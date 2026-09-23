@@ -1,0 +1,36 @@
+{
+  "/start": { "status": 302, "headers": { "location": "/final" } },
+  "/final": { "body": "final" },
+  "/to-metadata": {
+    "status": 302,
+    "headers": { "location": "http://169.254.169.254/latest/meta-data/" }
+  },
+  "/to-metadata-mapped": {
+    "status": 301,
+    "headers": { "location": "http://[::ffff:a9fe:a9fe]/latest/meta-data/" }
+  },
+  "/to-loopback-port": { "status": 307, "headers": { "location": "http://127.0.0.1:1/" } },
+  "/to-ipv6-loopback": { "status": 308, "headers": { "location": "http://[::1]/" } },
+  "/to-decimal-ip": { "status": 302, "headers": { "location": "http://2130706433/" } },
+  "/to-internal-name": { "status": 302, "headers": { "location": "http://internal.example/" } },
+  "/to-localhost": { "status": 302, "headers": { "location": "http://localhost/" } },
+  "/to-file": { "status": 302, "headers": { "location": "file:///etc/passwd" } },
+  "/to-gopher": { "status": 302, "headers": { "location": "gopher://127.0.0.1:6379/_INFO" } },
+  "/to-credentials": {
+    "status": 302,
+    "headers": { "location": "http://admin:admin@internal.example/" }
+  },
+  "/loop": { "status": 302, "headers": { "location": "/loop" } },
+  "/hop/1": { "status": 301, "headers": { "location": "/hop/2" } },
+  "/hop/2": { "status": 301, "headers": { "location": "/hop/3" } },
+  "/hop/3": { "status": 301, "headers": { "location": "/hop/4" } },
+  "/hop/4": { "status": 301, "headers": { "location": "/hop/5" } },
+  "/hop/5": { "status": 301, "headers": { "location": "/hop/6" } },
+  "/hop/6": { "status": 301, "headers": { "location": "/hop/7" } },
+  "/hop/7": { "status": 301, "headers": { "location": "/hop/8" } },
+  "/hop/8": { "status": 301, "headers": { "location": "/hop/9" } },
+  "/hop/9": { "status": 301, "headers": { "location": "/hop/10" } },
+  "/hop/10": { "status": 301, "headers": { "location": "/hop/11" } },
+  "/hop/11": { "status": 301, "headers": { "location": "/hop/12" } },
+  "/hop/12": { "body": "end of chain" }
+}

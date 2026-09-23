@@ -1,0 +1,10 @@
+{
+  "/gone": { "status": 410 },
+  "/old": { "status": 301, "headers": { "location": "/" } },
+  "/robots.txt": { "headers": { "cache-control": "max-age=60" } },
+  "/tagged": {
+    "headers": { "x-robots-tag": ["noindex", "googlebot: nofollow"] },
+    "body": "tagged"
+  },
+  "/arabic-location": { "status": 302, "headers": { "location": "/منتجات/" } }
+}
