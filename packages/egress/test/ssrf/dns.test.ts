@@ -7,7 +7,8 @@ import { stubResolver } from '../helpers'
 async function vet(input: string, resolver: Resolver) {
   const checked = checkUrl(input, DEFAULT_POLICY)
   if (!checked.ok) throw new Error(`checkUrl rejected ${input}`)
-  return resolveEndpoint(checked.url, checked.host, checked.port, DEFAULT_POLICY, resolver)
+  const signal = new AbortController().signal
+  return resolveEndpoint(checked.url, checked.host, checked.port, DEFAULT_POLICY, resolver, signal)
 }
 
 const dns = stubResolver({

@@ -6,7 +6,7 @@ import zlib from 'node:zlib'
 import { egressError, type EgressError } from './errors'
 import { DEFAULT_POLICY, type EgressPolicy } from './policy'
 import { redactUrl } from './redact'
-import { resolveEndpoint, systemResolver, type ResolvedAddress, type Resolver } from './resolve'
+import { defaultResolver, resolveEndpoint, type ResolvedAddress, type Resolver } from './resolve'
 import { checkUrl } from './url'
 
 /** BUILD-PLAN §11 page-load limits. */
@@ -85,7 +85,7 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
   checkLimit('maxBytes', options.maxBytes, 1, DEFAULT_MAX_BYTES)
   checkLimit('maxRedirects', options.maxRedirects, 0, MAX_REDIRECTS)
   const policy = options.policy ?? DEFAULT_POLICY
-  const resolver = options.resolver ?? systemResolver
+  const resolver = options.resolver ?? defaultResolver(policy)
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS
   const deadline = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
   const signal =
@@ -109,7 +109,7 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
     const { url, host, port } = checked
     try {
       const endpoint = await untilAborted(
-        resolveEndpoint(url, host, port, policy, resolver),
+        resolveEndpoint(url, host, port, policy, resolver, signal),
         signal,
       )
       if (!endpoint.ok) return finish(null, endpoint.error)

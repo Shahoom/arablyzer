@@ -104,6 +104,7 @@ describe('IP literals are vetted without DNS', () => {
       checked.port,
       DEFAULT_POLICY,
       resolver,
+      new AbortController().signal,
     )
     expect(result).toMatchObject({ ok: false, error: { code: 'blocked-address', range } })
     expect(resolver.calls).toEqual([])
