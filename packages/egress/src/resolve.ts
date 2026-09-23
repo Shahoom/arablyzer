@@ -79,7 +79,12 @@ export function defaultResolver(policy: EgressPolicy): Resolver {
 }
 
 export type EndpointCheck =
-  | { readonly ok: true; readonly addresses: readonly ResolvedAddress[] }
+  | {
+      readonly ok: true
+      readonly addresses: readonly ResolvedAddress[]
+      /** Every address is private (opened only by --allow-private). */
+      readonly private: boolean
+    }
   | { readonly ok: false; readonly error: EgressError }
 
 /** Resolve the host and vet every answer; one bad answer blocks the whole host (design §1). */
@@ -108,9 +113,11 @@ export async function resolveEndpoint(
       return { ok: false, error: egressError('dns-failed', url.href, 'DNS returned no addresses') }
     }
   }
+  let allPrivate = true
   for (const { address } of addresses) {
     const verdict = vetEndpoint(address, port, policy)
-    if (!verdict.allowed) {
+    if (verdict.allowed) allPrivate &&= verdict.kind === 'private'
+    else {
       return {
         ok: false,
         error: egressError(verdict.code, url.href, `${address} is not allowed (${verdict.range})`, {
@@ -120,7 +127,7 @@ export async function resolveEndpoint(
       }
     }
   }
-  return { ok: true, addresses }
+  return { ok: true, addresses, private: allPrivate }
 }
 
 function describe(error: unknown): string {

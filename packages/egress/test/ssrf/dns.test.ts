@@ -55,6 +55,7 @@ describe('every DNS answer is vetted before connecting', () => {
         { address: '93.184.215.14', family: 4 },
         { address: '2001:4860:4860::8888', family: 6 },
       ],
+      private: false,
     })
   })
 })

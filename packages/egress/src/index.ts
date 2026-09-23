@@ -10,13 +10,19 @@ export {
   type FetchResult,
   type SafeFetchOptions,
 } from './fetch'
+export { localInterfaceCidrs } from './interfaces'
 export { DEFAULT_POLICY, createPolicy, type EgressPolicy, type EgressTarget } from './policy'
 export { IPV4_RANGES, IPV6_RANGES, type SpecialRange } from './ranges'
 export {
+  createDnsResolver,
+  defaultResolver,
+  dnsResolver,
   resolveEndpoint,
   systemResolver,
+  type DnsResolverOptions,
   type EndpointCheck,
   type ResolvedAddress,
   type Resolver,
 } from './resolve'
+export { redactUrl } from './redact'
 export { MAX_URL_LENGTH, checkUrl, type UrlCheck } from './url'

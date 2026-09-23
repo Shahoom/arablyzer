@@ -2,7 +2,8 @@ import { serveSite, sitePath, type FixtureSite } from '@arablyzer/fixtures'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { EgressErrorCode } from '../../src/errors'
 import { safeFetch } from '../../src/fetch'
-import { onlyServer, stubResolver, UA } from '../helpers'
+import { createPolicy } from '../../src/policy'
+import { onlyServer, startServer, stubResolver, UA } from '../helpers'
 
 let site: FixtureSite
 
@@ -68,5 +69,42 @@ describe('redirects are vetted hop by hop', () => {
   it('honours a lower limit, e.g. 5 for robots.txt (RFC 9309)', async () => {
     expect((await fetchFromSite('/hop/7', 5)).error).toBeNull()
     expect((await fetchFromSite('/hop/6', 5)).error?.code).toBe('too-many-redirects')
+  })
+})
+
+// Security review 2026-09-24: --allow-private is for local builds. A chain that starts on a
+// non-private address (a public site) must not be able to redirect into local services.
+describe('--allow-private only for chains that start on a private address', () => {
+  it('drops private access when the first hop is not private', async () => {
+    // The fixture site is an exact test target, standing in for a public site here.
+    const result = await safeFetch(site.url('/to-loopback-port'), {
+      userAgent: UA,
+      policy: onlyServer(site.port, { allowPrivate: true }),
+      resolver: dns,
+    })
+    expect(result.response).toBeNull()
+    expect(result.error?.code).toBe('port-not-allowed')
+  })
+
+  it('keeps private access when the chain starts on a private address', async () => {
+    const target = await startServer((_req, res) => {
+      res.end('local target')
+    })
+    const start = await startServer((_req, res) => {
+      res.writeHead(302, { location: `http://127.0.0.1:${target.port}/` })
+      res.end()
+    })
+    try {
+      const result = await safeFetch(`http://127.0.0.1:${start.port}/`, {
+        userAgent: UA,
+        policy: createPolicy({ allowPrivate: true }),
+      })
+      expect(result.error).toBeNull()
+      expect(Buffer.from(result.response?.body ?? new Uint8Array()).toString('utf8')).toBe(
+        'local target',
+      )
+    } finally {
+      await Promise.all([target.close(), start.close()])
+    }
   })
 })

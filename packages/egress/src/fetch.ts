@@ -103,16 +103,22 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
   })
 
   let current = input
+  let hopPolicy = policy
   for (;;) {
-    const checked = checkUrl(current, policy)
+    const checked = checkUrl(current, hopPolicy)
     if (!checked.ok) return finish(null, checked.error)
     const { url, host, port } = checked
     try {
       const endpoint = await untilAborted(
-        resolveEndpoint(url, host, port, policy, resolver, signal),
+        resolveEndpoint(url, host, port, hopPolicy, resolver, signal),
         signal,
       )
       if (!endpoint.ok) return finish(null, endpoint.error)
+      if (redirects.length === 0 && hopPolicy.allowPrivate && !endpoint.private) {
+        // --allow-private is for local builds: a chain that starts on a public address keeps
+        // the default rules on every later hop, so it cannot redirect into local services.
+        hopPolicy = { ...hopPolicy, allowPrivate: false }
+      }
       const res = await sendRequest(url, endpoint.addresses, options, signal)
       const status = res.statusCode ?? 0
       const location = res.headers.location
