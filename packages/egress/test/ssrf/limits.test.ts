@@ -1,3 +1,4 @@
+import net from 'node:net'
 import { gzipSync } from 'node:zlib'
 import { afterEach, describe, expect, it } from 'vitest'
 import { safeFetch } from '../../src/fetch'
@@ -82,6 +83,33 @@ describe('size and time limits', () => {
       timeoutMs: 200,
     })
     expect(result.error?.code).toBe('timeout')
+  })
+
+  it('times out a TLS handshake that never completes', async () => {
+    const sockets = new Set<net.Socket>()
+    const stalled = net.createServer((socket) => {
+      sockets.add(socket) // accept the connection, never answer the ClientHello
+    })
+    await new Promise<void>((resolve) => {
+      stalled.listen(0, '127.0.0.1', resolve)
+    })
+    const address = stalled.address()
+    const port = typeof address === 'object' && address !== null ? address.port : 0
+    try {
+      const result = await safeFetch(`https://127.0.0.1:${port}/`, {
+        userAgent: UA,
+        policy: onlyServer(port),
+        timeoutMs: 200,
+      })
+      expect(result.error?.code).toBe('timeout')
+    } finally {
+      for (const socket of sockets) socket.destroy()
+      await new Promise<void>((resolve) => {
+        stalled.close(() => {
+          resolve()
+        })
+      })
+    }
   })
 
   it('times out DNS that never answers', async () => {
