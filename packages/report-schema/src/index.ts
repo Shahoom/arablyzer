@@ -1,0 +1,207 @@
+import { z } from 'zod'
+
+/** Version of the report contract; a major bump means a breaking change (docs/design/phase-0.md §3). */
+export const SCHEMA_VERSION = '0.1.0'
+
+/** Rule ids and notice codes: ASCII kebab-case, stable forever (BUILD-PLAN §10). */
+export const KEBAB_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/
+
+/** Evidence snippets are capped so reports stay small. */
+export const MAX_SNIPPET_LENGTH = 300
+
+const count = () => z.number().int().nonnegative()
+
+export const Severity = z
+  .enum(['critical', 'serious', 'moderate', 'minor', 'info'])
+  .meta({ id: 'Severity' })
+export type Severity = z.infer<typeof Severity>
+
+/** Most severe first; used for sorting findings and for `--fail-on`. */
+export const SEVERITY_ORDER: readonly Severity[] = Severity.options
+
+export const Category = z
+  .enum([
+    'crawl',
+    'index',
+    'onpage',
+    'links',
+    'schema',
+    'intl',
+    'speed',
+    'commerce',
+    'ai',
+    'trust',
+    'ar-render',
+    'rtl',
+    'ar-content',
+    'forms',
+    'locale',
+  ])
+  .meta({ id: 'Category' })
+export type Category = z.infer<typeof Category>
+
+export const RuleStatus = z
+  .enum(['pass', 'fail', 'needs-review', 'not-applicable', 'error'])
+  .meta({ id: 'RuleStatus' })
+export type RuleStatus = z.infer<typeof RuleStatus>
+
+export const ScanStatus = z.enum(['complete', 'partial', 'failed'])
+export type ScanStatus = z.infer<typeof ScanStatus>
+
+/** Every user-facing string ships in both languages; Arabic is the original (BUILD-PLAN §4). */
+export const Localized = z
+  .strictObject({ ar: z.string().min(1), en: z.string().min(1) })
+  .meta({ id: 'Localized' })
+export type Localized = z.infer<typeof Localized>
+
+export const Notice = z.strictObject({ code: z.string().regex(KEBAB_ID), message: Localized })
+export type Notice = z.infer<typeof Notice>
+
+export const Redirect = z.strictObject({
+  url: z.string().min(1),
+  status: z.number().int().min(300).max(399),
+})
+export type Redirect = z.infer<typeof Redirect>
+
+export const Target = z.strictObject({
+  /** The URL exactly as given. */
+  url: z.string().min(1),
+  /** After redirects; null when nothing could be fetched. */
+  finalUrl: z.string().min(1).nullable(),
+  fetchedAt: z.iso.datetime(),
+  userAgent: z.string().min(1),
+  http: z.strictObject({
+    status: z.number().int().min(100).max(599).nullable(),
+    contentType: z.string().nullable(),
+    redirects: z.array(Redirect),
+  }),
+})
+export type Target = z.infer<typeof Target>
+
+export type JsonValue =
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+
+/** Any JSON value; evidence values are free-form but must stay serialisable. */
+export const JsonValue: z.ZodType<JsonValue> = z
+  .lazy(() =>
+    z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+      z.array(JsonValue),
+      z.record(z.string(), JsonValue),
+    ]),
+  )
+  .meta({ id: 'JsonValue' })
+
+export const FindingEvidence = z.strictObject({
+  url: z.string().min(1).optional(),
+  selector: z.string().min(1).optional(),
+  snippet: z.string().max(MAX_SNIPPET_LENGTH).optional(),
+  location: z
+    .strictObject({
+      line: z.number().int().positive(),
+      column: z.number().int().positive().optional(),
+    })
+    .optional(),
+  values: z.record(z.string(), JsonValue).optional(),
+})
+export type FindingEvidence = z.infer<typeof FindingEvidence>
+
+export const Finding = z.strictObject({
+  ruleId: z.string().regex(KEBAB_ID),
+  severity: Severity,
+  /** Stable hash of rule + location; used to de-duplicate and to diff scans. */
+  fingerprint: z.string().regex(/^[0-9a-f]{16}$/),
+  message: Localized,
+  evidence: FindingEvidence,
+})
+export type Finding = z.infer<typeof Finding>
+
+export const RuleResult = z.strictObject({
+  id: z.string().regex(KEBAB_ID),
+  version: z.string().regex(SEMVER),
+  category: Category,
+  severity: Severity,
+  wcag: z.array(z.string().regex(/^\d+\.\d+\.\d+$/)).optional(),
+  status: RuleStatus,
+  title: Localized,
+  /** Findings dropped beyond the per-rule cap. */
+  findingsOmitted: count().optional(),
+  /** Machine-readable reason when status is "error". */
+  error: z.string().regex(KEBAB_ID).optional(),
+})
+export type RuleResult = z.infer<typeof RuleResult>
+
+export const Summary = z.strictObject({
+  pass: count(),
+  fail: count(),
+  needsReview: count(),
+  notApplicable: count(),
+  error: count(),
+  bySeverity: z.strictObject({
+    critical: count(),
+    serious: count(),
+    moderate: count(),
+    minor: count(),
+    info: count(),
+  }),
+})
+export type Summary = z.infer<typeof Summary>
+
+export const AiCrawlerFact = z.strictObject({
+  token: z.string().min(1),
+  purpose: z.enum(['search', 'training', 'user-fetch']),
+  allowed: z.boolean(),
+})
+export type AiCrawlerFact = z.infer<typeof AiCrawlerFact>
+
+/** Small collector summaries that tool pages display (design §3). */
+export const Facts = z.strictObject({
+  robots: z
+    .strictObject({
+      url: z.string().min(1),
+      /** null when robots.txt could not be fetched at all. */
+      status: z.number().int().min(100).max(599).nullable(),
+      aiCrawlers: z.array(AiCrawlerFact),
+    })
+    .optional(),
+})
+export type Facts = z.infer<typeof Facts>
+
+export const Page = z.strictObject({
+  lang: z.string().nullable(),
+  dir: z.enum(['ltr', 'rtl', 'auto']).nullable(),
+  dominantScript: z.enum(['arabic', 'latin', 'other', 'none']),
+})
+export type Page = z.infer<typeof Page>
+
+export const Report = z
+  .strictObject({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    generator: z.strictObject({
+      name: z.literal('arablyzer'),
+      version: z.string().regex(SEMVER),
+      rulesetVersion: z.string().regex(SEMVER),
+    }),
+    target: Target,
+    scan: z.strictObject({ status: ScanStatus, durationMs: count(), notices: z.array(Notice) }),
+    /** null when the page could not be fetched or parsed. */
+    page: Page.nullable(),
+    summary: Summary,
+    rules: z.array(RuleResult),
+    findings: z.array(Finding),
+    facts: Facts,
+  })
+  .meta({
+    title: 'Arablyzer report',
+    description: 'Output of one Arablyzer scan (arablyzer <url> --json).',
+  })
+export type Report = z.infer<typeof Report>
+
+/** JSON Schema (draft 2020-12) generated from the Zod contract; committed as report.schema.json. */
+export function reportJsonSchema(): Record<string, unknown> {
+  return z.toJSONSchema(Report, { target: 'draft-2020-12' })
+}
