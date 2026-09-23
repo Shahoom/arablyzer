@@ -51,6 +51,7 @@ describe('redirects are vetted hop by hop', () => {
     expect(result.response).toBeNull()
     expect(result.error).toMatchObject(range === undefined ? { code } : { code, range })
     expect(result.redirects).toHaveLength(1)
+    expect(JSON.stringify(result)).not.toContain('admin:admin')
   })
 
   it('stops redirect loops', async () => {

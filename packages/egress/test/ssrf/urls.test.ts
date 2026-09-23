@@ -35,9 +35,15 @@ describe('URL rules (no DNS)', () => {
     expect(result.ok ? 'accepted' : result.error.code).toBe(code)
   })
 
-  it('never echoes credentials back', () => {
-    const result = checkUrl('https://admin:hunter2@example.com/', DEFAULT_POLICY)
-    expect(JSON.stringify(result)).not.toContain('hunter2')
+  it('never echoes credentials back, whatever the rejection reason', () => {
+    for (const input of [
+      'https://admin:hunter2@example.com/',
+      'ftp://admin:hunter2@example.com/',
+      `https://admin:hunter2@example.com/${'a'.repeat(2048)}`,
+      'http://admin:hunter2@exa mple.com/',
+    ]) {
+      expect(JSON.stringify(checkUrl(input, DEFAULT_POLICY))).not.toContain('hunter2')
+    }
   })
 
   it('accepts ordinary http(s) URLs, including Arabic host names and paths', () => {

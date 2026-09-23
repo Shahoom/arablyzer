@@ -1,10 +1,11 @@
 import http, { type IncomingMessage } from 'node:http'
 import https from 'node:https'
 import type { LookupFunction } from 'node:net'
-import { pipeline, type Readable } from 'node:stream'
+import type { Readable } from 'node:stream'
 import zlib from 'node:zlib'
 import { egressError, type EgressError } from './errors'
 import { DEFAULT_POLICY, type EgressPolicy } from './policy'
+import { redactUrl } from './redact'
 import { resolveEndpoint, systemResolver, type ResolvedAddress, type Resolver } from './resolve'
 import { checkUrl } from './url'
 
@@ -12,8 +13,20 @@ import { checkUrl } from './url'
 export const DEFAULT_TIMEOUT_MS = 30_000
 export const DEFAULT_MAX_BYTES = 25 * 1024 * 1024
 export const DEFAULT_MAX_REDIRECTS = 10
+/** Upper bounds for caller-supplied limits (§11: a whole scan stays within 120 s). */
+const MAX_TIMEOUT_MS = 120_000
+const MAX_REDIRECTS = 20
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
+
+function checkLimit(name: string, value: number | undefined, min: number, max: number): void {
+  if (value === undefined) return
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new TypeError(
+      `${name} must be a whole number from ${min} to ${max}, got ${String(value)}`,
+    )
+  }
+}
 
 export interface SafeFetchOptions {
   /** Sent as-is: Arablyzer always identifies itself and never poses as another bot. */
@@ -64,8 +77,13 @@ class DecodeError extends Error {}
  * The only way Arablyzer code reaches the network (docs/design/phase-0.md §1). Every hop is vetted:
  * URL rules, then every DNS answer, then a connection pinned to the vetted addresses so DNS cannot
  * change in between.
+ *
+ * Network problems come back in `error`; invalid options (e.g. a NaN limit) throw a TypeError.
  */
 export async function safeFetch(input: string, options: SafeFetchOptions): Promise<FetchResult> {
+  checkLimit('timeoutMs', options.timeoutMs, 1, MAX_TIMEOUT_MS)
+  checkLimit('maxBytes', options.maxBytes, 1, DEFAULT_MAX_BYTES)
+  checkLimit('maxRedirects', options.maxRedirects, 0, MAX_REDIRECTS)
   const policy = options.policy ?? DEFAULT_POLICY
   const resolver = options.resolver ?? systemResolver
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS
@@ -76,7 +94,7 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
   const started = performance.now()
   const redirects: FetchHop[] = []
   const finish = (response: FetchResponse | null, error: EgressError | null): FetchResult => ({
-    requestedUrl: input,
+    requestedUrl: redactUrl(input),
     redirects,
     response,
     error,
@@ -110,10 +128,14 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
         if (next === null) {
           return finish(
             null,
-            egressError('invalid-redirect', url.href, `Unusable Location header: ${location}`),
+            egressError(
+              'invalid-redirect',
+              url.href,
+              `Unusable Location header: ${redactUrl(location)}`,
+            ),
           )
         }
-        redirects.push({ url: url.href, status, location: next.href })
+        redirects.push({ url: url.href, status, location: redactUrl(next.href) })
         current = next.href
         continue
       }
@@ -155,9 +177,14 @@ function sendRequest(
   }
   const requestOptions: https.RequestOptions = {
     method: 'GET',
+    // A fresh agent: no shared sockets and no proxy settings picked up from the environment.
     agent: false,
     lookup,
     signal,
+    // Set explicitly so NODE_OPTIONS or environment variables cannot loosen them.
+    rejectUnauthorized: true,
+    insecureHTTPParser: false,
+    maxHeaderSize: 16 * 1024,
     headers: {
       'user-agent': options.userAgent,
       accept: options.accept ?? '*/*',
@@ -181,11 +208,23 @@ async function readBody(
 ): Promise<{ body: Uint8Array; truncated: boolean }> {
   const encoding = (res.headers['content-encoding'] ?? '').trim().toLowerCase()
   const declared = Number(res.headers['content-length'] ?? Number.NaN)
-  if (onTooLarge === 'error' && !isEncoded(encoding) && declared > maxBytes) {
+  if (onTooLarge === 'error' && declared > maxBytes) {
     res.destroy()
     throw new TooLargeError(`Content-Length ${declared} is over the ${maxBytes}-byte limit`)
   }
-  const stream = decodedStream(res, encoding)
+  // The cap applies to bytes on the wire and again to decoded bytes, so neither compressed
+  // padding nor a decompression bomb can run past it.
+  const raw = await collect(res, maxBytes, onTooLarge)
+  if (!isEncoded(encoding) || raw.body.length === 0) return raw
+  const decoded = await collect(decoder(encoding, raw.body, raw.truncated), maxBytes, onTooLarge)
+  return { body: decoded.body, truncated: raw.truncated || decoded.truncated }
+}
+
+async function collect(
+  stream: Readable,
+  maxBytes: number,
+  onTooLarge: 'error' | 'truncate',
+): Promise<{ body: Buffer; truncated: boolean }> {
   const chunks: Buffer[] = []
   let size = 0
   try {
@@ -204,7 +243,6 @@ async function readBody(
     return { body: Buffer.concat(chunks), truncated: false }
   } finally {
     stream.destroy()
-    res.destroy()
   }
 }
 
@@ -212,18 +250,29 @@ function isEncoded(encoding: string): boolean {
   return encoding !== '' && encoding !== 'identity'
 }
 
-function decodedStream(res: IncomingMessage, encoding: string): Readable {
-  if (!isEncoded(encoding)) return res
-  let decoder: zlib.Gunzip | zlib.Inflate | zlib.BrotliDecompress
-  if (encoding === 'gzip' || encoding === 'x-gzip') decoder = zlib.createGunzip()
-  else if (encoding === 'deflate') decoder = zlib.createInflate()
-  else if (encoding === 'br') decoder = zlib.createBrotliDecompress()
-  else {
-    res.destroy()
-    throw new DecodeError(`Unsupported Content-Encoding: ${encoding}`)
-  }
-  // pipeline forwards an error on either side into the decoder, which the reader then sees.
-  return pipeline(res, decoder, () => undefined)
+/** Decoders chosen the way browsers choose them; a truncated input is decoded leniently. */
+function decoder(encoding: string, bytes: Buffer, truncated: boolean): Readable {
+  const flush = truncated ? { finishFlush: zlib.constants.Z_SYNC_FLUSH } : {}
+  let stream: zlib.Gunzip | zlib.Inflate | zlib.InflateRaw | zlib.BrotliDecompress
+  if (encoding === 'gzip' || encoding === 'x-gzip') stream = zlib.createGunzip(flush)
+  else if (encoding === 'deflate') {
+    // Servers send both zlib-wrapped and raw deflate under this name; browsers accept both.
+    stream = hasZlibHeader(bytes) ? zlib.createInflate(flush) : zlib.createInflateRaw(flush)
+  } else if (encoding === 'br') {
+    stream = zlib.createBrotliDecompress(
+      truncated ? { finishFlush: zlib.constants.BROTLI_OPERATION_FLUSH } : {},
+    )
+  } else throw new DecodeError(`Unsupported Content-Encoding: ${encoding}`)
+  stream.end(bytes)
+  return stream
+}
+
+/** RFC 1950 header: compression method 8 and a check value divisible by 31. */
+function hasZlibHeader(bytes: Uint8Array): boolean {
+  const first = bytes[0]
+  const second = bytes[1]
+  if (first === undefined || second === undefined) return false
+  return (first & 0x0f) === 8 && ((first << 8) | second) % 31 === 0
 }
 
 /** Location bytes are UTF-8 on the wire (browsers read them so); Node hands them over as latin1. */

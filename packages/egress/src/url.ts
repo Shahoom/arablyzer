@@ -1,6 +1,7 @@
 import { isIP } from 'node:net'
 import { egressError, type EgressError, type EgressErrorCode } from './errors'
 import type { EgressPolicy } from './policy'
+import { redactUrl } from './redact'
 
 /** BUILD-PLAN §11. */
 export const MAX_URL_LENGTH = 2048
@@ -66,5 +67,5 @@ function isInternalName(host: string): boolean {
 }
 
 function reject(code: EgressErrorCode, url: string, message: string): UrlCheck {
-  return { ok: false, error: egressError(code, url.slice(0, 200), message) }
+  return { ok: false, error: egressError(code, redactUrl(url).slice(0, 200), message) }
 }

@@ -1,4 +1,4 @@
-import { brotliCompressSync, deflateSync, gzipSync } from 'node:zlib'
+import { brotliCompressSync, deflateRawSync, deflateSync, gzipSync } from 'node:zlib'
 import { afterEach, describe, expect, it } from 'vitest'
 import { safeFetch } from '../../src/fetch'
 import { onlyServer, startServer, UA, type TestServer } from '../helpers'
@@ -140,5 +140,37 @@ describe('safeFetch', () => {
     const result = await fetchFrom(local)
     expect(Number.isNaN(Date.parse(result.startedAt))).toBe(false)
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
+  })
+
+  // Security review 2026-09-24: bodies that browsers and curl accept must not fail.
+  it.each([
+    ['a 204 that names an encoding', 204, 'gzip', undefined],
+    ['a 200 with Content-Length: 0', 200, 'gzip', '0'],
+    ['an empty br body', 200, 'br', undefined],
+  ] as const)('returns an empty body for %s', async (_name, status, encoding, length) => {
+    const local = await serve((_req, res) => {
+      res.writeHead(status, {
+        'content-encoding': encoding,
+        ...(length === undefined ? {} : { 'content-length': length }),
+      })
+      res.end()
+    })
+    const result = await fetchFrom(local)
+    expect(result.error).toBeNull()
+    expect(result.response?.body.length).toBe(0)
+  })
+
+  it('decodes raw deflate (no zlib header), as browsers do', async () => {
+    const local = await serve((_req, res) => {
+      res.writeHead(200, { 'content-encoding': 'deflate' })
+      res.end(deflateRawSync(Buffer.from('مرحبا بالعالم')))
+    })
+    expect(text((await fetchFrom(local)).response?.body)).toBe('مرحبا بالعالم')
+  })
+
+  it('never echoes credentials from the requested URL', async () => {
+    const result = await safeFetch('https://admin:hunter2@example.com/', { userAgent: UA })
+    expect(result.error?.code).toBe('credentials-in-url')
+    expect(JSON.stringify(result)).not.toContain('hunter2')
   })
 })
