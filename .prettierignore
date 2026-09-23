@@ -1,0 +1,6 @@
+pnpm-lock.yaml
+LICENSE
+**/*.md
+**/report.schema.json
+fixtures/sites/
+packages/rules/src/rules/*/fixtures/
