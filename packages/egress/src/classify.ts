@@ -41,8 +41,17 @@ function inRange(address: Address, cidr: string): boolean {
   return false
 }
 
+/**
+ * `::a.b.c.d` is the deprecated IPv4-compatible form (resolvers print it for such AAAA answers).
+ * ipaddr.js reads it as IPv4-mapped, so it is caught here, before parsing.
+ */
+const IPV4_COMPATIBLE = /^::(?:\d{1,3}\.){3}\d{1,3}$/
+
 /** Classify one IP address under a policy. Ports are checked separately by `vetEndpoint`. */
 export function classifyAddress(address: string, policy: EgressPolicy): AddressVerdict {
+  if (IPV4_COMPATIBLE.test(address)) {
+    return { allowed: false, address, range: 'not-global-unicast' }
+  }
   let parsed: Address
   try {
     parsed = ipaddr.parse(address)
@@ -109,10 +118,13 @@ function embeddedIPv4(
   return null
 }
 
-/** Vet one address:port pair: exact test targets, then address ranges, then public ports. */
+/** Vet one address:port pair: configured denies, then exact test targets, ranges, public ports. */
 export function vetEndpoint(address: string, port: number, policy: EgressPolicy): EndpointVerdict {
-  if (isTestTarget(address, port, policy)) return { allowed: true, kind: 'test-target' }
   const verdict = classifyAddress(address, policy)
+  if (!verdict.allowed && verdict.range === 'configured-deny') {
+    return { allowed: false, code: 'blocked-address', range: verdict.range }
+  }
+  if (isTestTarget(address, port, policy)) return { allowed: true, kind: 'test-target' }
   if (!verdict.allowed) return { allowed: false, code: 'blocked-address', range: verdict.range }
   if (verdict.kind === 'public' && !policy.allowedPorts.includes(port)) {
     return { allowed: false, code: 'port-not-allowed', range: `port-${port}` }

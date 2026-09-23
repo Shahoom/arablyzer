@@ -45,6 +45,11 @@ const BLOCKED_BY_DEFAULT: readonly [string, string][] = [
   ['ff02::1', 'multicast'],
   ['::7f00:1', 'not-global-unicast'],
   ['4000::1', 'not-global-unicast'],
+  // Security review 2026-09-24: cloud platform endpoints and the dotted IPv4-compatible form.
+  ['168.63.129.16', 'metadata-azure-wireserver'],
+  ['fd20:ce::254', 'metadata-gcp'],
+  ['::8.8.8.8', 'not-global-unicast'],
+  ['::127.0.0.1', 'not-global-unicast'],
 ]
 
 const PUBLIC: readonly string[] = [
@@ -101,6 +106,8 @@ describe('address classification — --allow-private (local builds)', () => {
     ['fe80::1', 'link-local'],
     ['fd00:ec2::254', 'metadata-aws'],
     ['100.100.100.200', 'metadata-alibaba'],
+    ['fd20:ce::254', 'metadata-gcp'],
+    ['168.63.129.16', 'metadata-azure-wireserver'],
     ['64:ff9b::a9fe:a9fe', 'link-local'],
     ['0.0.0.0', 'this-network'],
     ['224.0.0.1', 'multicast'],
@@ -125,8 +132,38 @@ describe('configured deny ranges (the host server’s own IP)', () => {
     }
   })
 
+  it('blocks them when wrapped in NAT64 or 6to4 too', () => {
+    for (const address of ['64:ff9b::cb00:7207', '2002:cb00:7207::1']) {
+      expect(classifyAddress(address, policy)).toEqual({
+        allowed: false,
+        address,
+        range: 'configured-deny',
+      })
+    }
+  })
+
+  it('accepts deny CIDRs written as IPv4-mapped IPv6 and applies them to plain IPv4', () => {
+    const mapped = createPolicy({ denyCidrs: ['::ffff:203.0.114.7/128'] })
+    expect(mapped.denyCidrs).toEqual(['203.0.114.7/32'])
+    expect(classifyAddress('203.0.114.7', mapped)).toMatchObject({
+      allowed: false,
+      range: 'configured-deny',
+    })
+  })
+
   it('rejects invalid CIDRs when the policy is created', () => {
     expect(() => createPolicy({ denyCidrs: ['10.0.0.0/33'] })).toThrow(/Invalid deny CIDR/)
+    expect(() => createPolicy({ denyCidrs: ['::ffff:0:0/80'] })).toThrow(/Invalid deny CIDR/)
+  })
+
+  it('keeps frozen copies, so later changes to the caller’s arrays have no effect', () => {
+    const denyCidrs = ['203.0.114.7/32']
+    const frozen = createPolicy({ denyCidrs })
+    denyCidrs.length = 0
+    expect(classifyAddress('203.0.114.7', frozen)).toMatchObject({ allowed: false })
+    expect(Object.isFrozen(frozen.denyCidrs)).toBe(true)
+    expect(Object.isFrozen(frozen.allowedPorts)).toBe(true)
+    expect(Object.isFrozen(frozen.allowTargets)).toBe(true)
   })
 })
 
@@ -160,6 +197,27 @@ describe('endpoint vetting (address + port)', () => {
       allowed: false,
       code: 'blocked-address',
       range: 'loopback',
+    })
+  })
+
+  it('accepts only loopback test targets, so the escape hatch cannot reach metadata', () => {
+    expect(() =>
+      createPolicy({ allowTargets: [{ address: '169.254.169.254', port: 80 }] }),
+    ).toThrow(/loopback/)
+    expect(() => createPolicy({ allowTargets: [{ address: '127.0.0.1', port: 0 }] })).toThrow(
+      /port/,
+    )
+  })
+
+  it('applies deny ranges before test targets', () => {
+    const policy = createPolicy({
+      denyCidrs: ['127.0.0.1/32'],
+      allowTargets: [{ address: '127.0.0.1', port: 5555 }],
+    })
+    expect(vetEndpoint('127.0.0.1', 5555, policy)).toEqual({
+      allowed: false,
+      code: 'blocked-address',
+      range: 'configured-deny',
     })
   })
 })

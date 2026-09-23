@@ -17,6 +17,8 @@ export const IPV4_RANGES: readonly SpecialRange[] = [
   { cidr: '100.64.0.0/10', name: 'shared-cgnat', privateUse: true },
   { cidr: '100.100.100.200/32', name: 'metadata-alibaba', privateUse: false },
   { cidr: '127.0.0.0/8', name: 'loopback', privateUse: true },
+  // Azure's platform endpoint (WireServer): public-looking, reachable on port 80 from every Azure VM.
+  { cidr: '168.63.129.16/32', name: 'metadata-azure-wireserver', privateUse: false },
   { cidr: '169.254.0.0/16', name: 'link-local', privateUse: false },
   { cidr: '172.16.0.0/12', name: 'private-172', privateUse: true },
   { cidr: '192.0.0.0/24', name: 'ietf-protocol-assignments', privateUse: false },
@@ -40,6 +42,7 @@ export const IPV6_RANGES: readonly SpecialRange[] = [
   { cidr: '3fff::/20', name: 'documentation', privateUse: false },
   { cidr: 'fc00::/7', name: 'unique-local', privateUse: true },
   { cidr: 'fd00:ec2::254/128', name: 'metadata-aws', privateUse: false },
+  { cidr: 'fd20:ce::254/128', name: 'metadata-gcp', privateUse: false },
   { cidr: 'fe80::/10', name: 'link-local', privateUse: false },
   { cidr: 'fec0::/10', name: 'deprecated-site-local', privateUse: false },
   { cidr: 'ff00::/8', name: 'multicast', privateUse: false },
