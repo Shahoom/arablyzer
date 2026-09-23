@@ -31,7 +31,7 @@ it('ignores proxy settings from the environment', async () => {
           },
         },
         (error, stdout) => {
-          if (error) reject(error)
+          if (error) reject(new Error(`child process failed: ${error.message}`, { cause: error }))
           else resolve(stdout)
         },
       )
