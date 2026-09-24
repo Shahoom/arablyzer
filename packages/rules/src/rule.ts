@@ -24,7 +24,8 @@ export interface DetectorFinding<M extends string = string> {
   readonly url?: string
   readonly selector?: string
   readonly snippet?: string
-  readonly location?: SourceLocation
+  /** Leave out the column when it cannot be exact (e.g. inside text with entities). */
+  readonly location?: SourceLocation | { readonly line: number }
   /** What tells this finding apart from others of the rule on the page; part of the fingerprint. */
   readonly key?: string
 }

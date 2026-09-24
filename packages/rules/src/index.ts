@@ -1,12 +1,13 @@
 import type { Rule } from './rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
+import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
 export const RULESET_VERSION = '0.1.0'
 
 /** Every rule, sorted by id. */
-export const RULES: readonly Rule[] = [arHtmlLang, rtlHtmlDir]
+export const RULES: readonly Rule[] = [arHtmlLang, arLatinPunctuation, rtlHtmlDir]
 
 export function ruleById(id: string): Rule | undefined {
   return RULES.find((rule) => rule.id === id)
