@@ -8,6 +8,8 @@ import {
 } from '@arablyzer/collectors'
 import {
   DEFAULT_POLICY,
+  DEFAULT_TIMEOUT_MS,
+  defaultResolver,
   safeFetch,
   type EgressPolicy,
   type FetchResult,
@@ -15,12 +17,12 @@ import {
   type SafeFetchOptions,
 } from '@arablyzer/egress'
 import {
+  Finding,
   MAX_SNIPPET_LENGTH,
   Report,
   SCHEMA_VERSION,
   SEVERITY_ORDER,
   type Facts,
-  type Finding,
   type Notice,
   type Page,
   type RuleResult,
@@ -36,6 +38,7 @@ import {
   type DetectorFinding,
   type Rule,
 } from '@arablyzer/rules'
+import { boundSelector, boundText, boundValues } from './bounds'
 import { notice } from './notices'
 
 export const ENGINE_VERSION = '0.1.0'
@@ -62,6 +65,11 @@ export interface ScanOptions {
   readonly resolver?: Resolver
   /** Per request (BUILD-PLAN §11: 30 s). */
   readonly timeoutMs?: number
+  /**
+   * Budget for parsing the page's HTML, which blocks the process while it runs; timeoutMs by
+   * default. Past it, the rules that need the HTML report an error and the scan is partial.
+   */
+  readonly parseTimeoutMs?: number
   readonly userAgent?: string
   readonly signal?: AbortSignal
 }
@@ -81,13 +89,23 @@ export function selectRules(rules: readonly Rule[], ids?: readonly string[]): Ru
  */
 export async function scan(url: string, options: ScanOptions = {}): Promise<Report> {
   if (url.trim() === '') throw new TypeError('A URL is required')
+  // timeoutMs itself is checked by safeFetch.
+  const parseTimeoutMs = options.parseTimeoutMs ?? options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  if (
+    options.parseTimeoutMs !== undefined &&
+    !(Number.isFinite(parseTimeoutMs) && parseTimeoutMs > 0)
+  ) {
+    throw new TypeError(`parseTimeoutMs must be a positive number, got ${String(parseTimeoutMs)}`)
+  }
   const started = performance.now()
   const rules = selectRules(options.rules ?? RULES, options.ruleIds)
   const userAgent = options.userAgent ?? USER_AGENT
+  const policy = options.policy ?? DEFAULT_POLICY
   const base: SafeFetchOptions = {
     userAgent,
-    policy: options.policy ?? DEFAULT_POLICY,
-    ...(options.resolver === undefined ? {} : { resolver: options.resolver }),
+    policy,
+    // Chosen once, so the robots.txt fetch resolves names the way the page fetch did.
+    resolver: options.resolver ?? defaultResolver(policy),
     ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   }
@@ -129,25 +147,40 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       facts: parts.facts,
     })
 
-  if (fetched.error !== null || response === null) {
-    return finish({
+  const failed = (notices: Notice[], error: string): Report =>
+    finish({
       status: 'failed',
-      notices: fetched.error === null ? [] : [notice(fetched.error.code)],
+      notices,
       page: null,
-      results: rules.map((rule) => ruleResult(rule, 'error', { error: 'page-unavailable' })),
+      results: rules.map((rule) => ruleResult(rule, 'error', { error })),
       findings: [],
       facts: {},
     })
+
+  if (fetched.error !== null || response === null) {
+    return failed(fetched.error === null ? [] : [notice(fetched.error.code)], 'page-unavailable')
   }
 
-  const page = collectPage({
-    url: response.url,
-    status: response.status,
-    headers: response.headers,
-    body: response.body,
-  })
+  let page: PageFacts
+  try {
+    page = collectPage(
+      {
+        url: response.url,
+        status: response.status,
+        headers: response.headers,
+        body: response.body,
+      },
+      { deadline: performance.now() + parseTimeoutMs },
+    )
+  } catch {
+    // A collector bug, or an input it cannot handle: the report says so instead of the scan crashing.
+    return failed([notice('page-unreadable')], 'page-unreadable')
+  }
+  // Under --allow-private, a chain that started on a public address lost private access; the
+  // robots.txt fetch for the same site keeps that, so DNS cannot move it onto a private address.
+  const robotsPolicy = fetched.privateAccess ? policy : { ...policy, allowPrivate: false }
   const robots = rules.some((rule) => rule.needs.includes('robots'))
-    ? await fetchRobots(response.url, base)
+    ? await fetchRobots(response.url, { ...base, policy: robotsPolicy })
     : undefined
 
   const notices = pageNotices(page, robots)
@@ -155,14 +188,13 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   const findings: Finding[] = []
   for (const rule of rules) {
     const outcome = evaluate(rule, page, robots)
-    const converted = convert(rule, outcome.findings, page.url)
     results.push(
       ruleResult(rule, outcome.status, {
         ...(outcome.error === undefined ? {} : { error: outcome.error }),
-        findingsOmitted: converted.omitted,
+        findingsOmitted: outcome.omitted,
       }),
     )
-    findings.push(...converted.kept)
+    findings.push(...outcome.findings)
   }
   findings.sort(compareFindings)
 
@@ -199,13 +231,17 @@ async function fetchRobots(pageUrl: string, base: SafeFetchOptions): Promise<Rob
 interface Outcome {
   readonly status: RuleStatus
   readonly error?: string
-  readonly findings: readonly DetectorFinding[]
+  readonly findings: readonly Finding[]
+  readonly omitted?: number
 }
 
 function evaluate(rule: Rule, page: PageFacts, robots: RobotsFacts | undefined): Outcome {
   const needsPage = rule.needs.some((need) => need !== 'robots')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text')
   if (needsPage && !isSuccess(page.status)) return { status: 'not-applicable', findings: [] }
+  if (needsHtml && page.htmlTimedOut) {
+    return { status: 'error', error: 'page-too-complex', findings: [] }
+  }
   if (needsHtml && (page.html === null || page.text === null)) {
     return { status: 'not-applicable', findings: [] }
   }
@@ -214,54 +250,89 @@ function evaluate(rule: Rule, page: PageFacts, robots: RobotsFacts | undefined):
   }
   try {
     if (!rule.appliesTo(page)) return { status: 'not-applicable', findings: [] }
-    const findings = [...rule.detect(robots === undefined ? { page } : { page, robots })]
-    if (rule.manualCheck === true) return { status: 'needs-review', findings }
-    return { status: findings.length > 0 ? 'fail' : 'pass', findings }
+    const detected = rule.detect(robots === undefined ? { page } : { page, robots })
+    const { kept, total } = firstByPosition(detected, MAX_FINDINGS_PER_RULE)
+    const status = rule.manualCheck === true ? 'needs-review' : total > 0 ? 'fail' : 'pass'
+    return { status, findings: convert(rule, kept, page.url), omitted: total - kept.length }
   } catch {
-    // A bug in a rule must not take the whole scan down; the report says which rule failed.
+    // A bug in a rule (a throw, a missing message, output the schema rejects) must not take the
+    // whole scan down; the report says which rule failed.
     return { status: 'error', error: 'rule-failed', findings: [] }
   }
 }
 
-/** Detector output → report findings: messages rendered, fingerprints unique, capped per rule. */
-function convert(
-  rule: Rule,
-  detected: readonly DetectorFinding[],
-  pageUrl: string,
-): { kept: Finding[]; omitted: number } {
+/**
+ * The first `limit` findings by position, in a single pass that holds no more than that; ties
+ * keep the detector's order. `total` counts them all.
+ */
+function firstByPosition(
+  detected: Iterable<DetectorFinding>,
+  limit: number,
+): { kept: DetectorFinding[]; total: number } {
+  const kept: DetectorFinding[] = []
+  let total = 0
+  for (const finding of detected) {
+    total++
+    if (kept.length === limit) {
+      const last = kept.at(-1)
+      if (last === undefined || comparePosition(finding, last) >= 0) continue
+    }
+    let index = kept.length
+    while (index > 0) {
+      const previous = kept[index - 1]
+      if (previous === undefined || comparePosition(finding, previous) >= 0) break
+      index--
+    }
+    kept.splice(index, 0, finding)
+    if (kept.length > limit) kept.pop()
+  }
+  return { kept, total }
+}
+
+function comparePosition(a: DetectorFinding, b: DetectorFinding): number {
+  return (
+    (a.location?.line ?? 0) - (b.location?.line ?? 0) || columnOf(a.location) - columnOf(b.location)
+  )
+}
+
+function columnOf(location: DetectorFinding['location']): number {
+  return location !== undefined && 'column' in location ? location.column : 0
+}
+
+/**
+ * The findings a rule reports → report findings: values bounded, messages rendered, fingerprints
+ * unique. Throws when a finding does not fit the report schema.
+ */
+function convert(rule: Rule, detected: readonly DetectorFinding[], pageUrl: string): Finding[] {
   const seen = new Map<string, number>()
-  const all = detected.map((finding): Finding => {
+  return detected.map((finding): Finding => {
     const url = finding.url ?? pageUrl
     const parts = [rule.id, url, finding.selector ?? '', finding.message, finding.key ?? '']
     const base = parts.join('\n')
     const occurrence = (seen.get(base) ?? 0) + 1
     seen.set(base, occurrence)
+    const values = finding.values === undefined ? {} : boundValues(finding.values)
     const template = (lang: 'ar' | 'en') => {
       const text = rule.copy[lang].messages[finding.message]
       if (text === undefined) throw new Error(`${rule.id}: no ${lang} message "${finding.message}"`)
-      return renderMessage(text, finding.values)
+      return renderMessage(text, values)
     }
-    return {
+    return Finding.parse({
       ruleId: rule.id,
       severity: rule.severity,
       fingerprint: hash(occurrence === 1 ? base : `${base}\n#${occurrence}`),
       message: { ar: template('ar'), en: template('en') },
       evidence: {
-        url,
-        ...(finding.selector === undefined ? {} : { selector: finding.selector }),
-        ...(finding.snippet === undefined ? {} : { snippet: truncate(finding.snippet) }),
-        ...(finding.location === undefined ? {} : { location: finding.location }),
-        ...(finding.values === undefined || Object.keys(finding.values).length === 0
+        url: boundText(url),
+        ...(finding.selector === undefined ? {} : { selector: boundSelector(finding.selector) }),
+        ...(finding.snippet === undefined
           ? {}
-          : { values: { ...finding.values } }),
+          : { snippet: boundText(finding.snippet, MAX_SNIPPET_LENGTH) }),
+        ...(finding.location === undefined ? {} : { location: finding.location }),
+        ...(Object.keys(values).length === 0 ? {} : { values }),
       },
-    }
+    })
   })
-  all.sort(compareFindings)
-  return {
-    kept: all.slice(0, MAX_FINDINGS_PER_RULE),
-    omitted: Math.max(0, all.length - MAX_FINDINGS_PER_RULE),
-  }
 }
 
 /** Ties keep the detector's own order: Array.prototype.sort is stable and detectors are deterministic. */
@@ -314,13 +385,17 @@ function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[]
   const notices: Notice[] = []
   if (!isSuccess(page.status)) notices.push(notice('page-status', { status: String(page.status) }))
   else if (!page.isHtml) notices.push(notice('not-html'))
-  else if (page.text !== null && page.html !== null) {
-    const loadsScripts = page.html.scripts.some(
-      (script) => isJavaScript(script.type) && (script.src !== null || script.text.trim() !== ''),
-    )
-    if (page.text.letters.total < LITTLE_TEXT_LETTERS && loadsScripts) {
-      notices.push(notice('little-text'))
+  else {
+    if (page.htmlTimedOut) notices.push(notice('page-too-complex'))
+    else if (page.text !== null && page.html !== null) {
+      const loadsScripts = page.html.scripts.some(
+        (script) => isJavaScript(script.type) && (script.src !== null || script.text.trim() !== ''),
+      )
+      if (page.text.letters.total < LITTLE_TEXT_LETTERS && loadsScripts) {
+        notices.push(notice('little-text'))
+      }
     }
+    if (page.htmlTruncated) notices.push(notice('page-truncated'))
   }
   if (robots?.outcome === 'failed') notices.push(notice('robots-unchecked'))
   if (robots?.outcome === 'fetched' && robots.truncated) notices.push(notice('robots-truncated'))
@@ -365,10 +440,6 @@ function isSuccess(status: number): boolean {
 
 function lastHeader(headers: readonly (readonly [string, string])[], name: string): string | null {
   return headerValues(headers, name).at(-1) ?? null
-}
-
-function truncate(text: string): string {
-  return text.length <= MAX_SNIPPET_LENGTH ? text : `${text.slice(0, MAX_SNIPPET_LENGTH - 1)}…`
 }
 
 function hash(input: string): string {

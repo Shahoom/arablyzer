@@ -8,6 +8,9 @@ export type NoticeCode =
   | 'page-status'
   | 'not-html'
   | 'little-text'
+  | 'page-too-complex'
+  | 'page-truncated'
+  | 'page-unreadable'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -97,6 +100,18 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'not-html': {
     ar: 'الاستجابة ليست صفحة HTML، ففحصنا ترويساتها فقط.',
     en: 'The response is not an HTML page, so only its headers were checked.',
+  },
+  'page-too-complex': {
+    ar: 'بنية HTML في الصفحة معقّدة جداً فلم تكتمل قراءتها في الوقت المحدد، فلم تُطبَّق الفحوص التي تحتاج HTML الصفحة ونصّها.',
+    en: 'The page’s HTML is too complex to read within the time limit, so the checks that need its HTML and text did not run.',
+  },
+  'page-truncated': {
+    ar: 'HTML الصفحة أكبر من 15 ميغابايت، فقرأنا أول 15 ميغابايت فقط كما يفعل Google.',
+    en: 'The page’s HTML is larger than 15 MB, so only the first 15 MB were read, as Google does.',
+  },
+  'page-unreadable': {
+    ar: 'تعذّرت قراءة محتوى الصفحة بسبب خطأ داخلي في Arablyzer، فلم نفحصها.',
+    en: 'Arablyzer could not read the page’s content because of an internal error, so the page was not checked.',
   },
   'little-text': {
     ar: 'في HTML الصفحة نص قليل جداً مع سكربتات، فالأرجح أن JavaScript يبني محتواها. هذا الإصدار يقرأ HTML الخام فقط، فقد تظهر فحوص النص «غير منطبقة».',

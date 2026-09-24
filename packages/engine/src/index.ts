@@ -1,3 +1,12 @@
+export {
+  boundSelector,
+  boundText,
+  boundValue,
+  boundValues,
+  MAX_SELECTOR_LENGTH,
+  MAX_VALUE_ITEMS,
+  MAX_VALUE_LENGTH,
+} from './bounds'
 export { notice, type NoticeCode } from './notices'
 export {
   ENGINE_VERSION,

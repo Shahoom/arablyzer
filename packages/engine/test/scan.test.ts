@@ -1,7 +1,16 @@
-import { createPolicy } from '@arablyzer/egress'
+import { HTML_PARSE_LIMIT } from '@arablyzer/collectors'
+import { createPolicy, type Resolver } from '@arablyzer/egress'
 import type { Report } from '@arablyzer/report-schema'
 import { afterEach, describe, expect, it } from 'vitest'
-import { MAX_FINDINGS_PER_RULE, ROBOTS_MAX_BYTES, scan, USER_AGENT } from '../src/index'
+import {
+  MAX_FINDINGS_PER_RULE,
+  MAX_SELECTOR_LENGTH,
+  MAX_VALUE_ITEMS,
+  MAX_VALUE_LENGTH,
+  ROBOTS_MAX_BYTES,
+  scan,
+  USER_AGENT,
+} from '../src/index'
 import { flagRule, policyFor, schemaErrors, tempSite, testRule, type TempSite } from './helpers'
 
 let sites: TempSite[] = []
@@ -266,6 +275,173 @@ describe('scan', () => {
   })
 })
 
+describe('scan: hostile pages and rules', () => {
+  const headerRule = testRule({ id: 'header-rule', needs: ['http'], detect: () => [] })
+  const robotsRule = testRule({ id: 'robots-rule', needs: ['robots'], detect: () => [] })
+
+  it('stops parsing HTML that takes too long, and still runs the rules that do not need it', async () => {
+    const local = await site({
+      'index.html': `<html lang="ar"><body>${'<p>نص</p>'.repeat(50_000)}</body></html>`,
+      'robots.txt': 'User-agent: *\nAllow: /\n',
+    })
+    const report = await scan(local.url('/'), {
+      rules: [flagRule(), headerRule, robotsRule],
+      policy: policyFor(local),
+      parseTimeoutMs: 1,
+    })
+    expect(schemaErrors(report)).toBe('')
+    expect(report.scan.status).toBe('partial')
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['page-too-complex'])
+    expect(report.rules.map((rule) => [rule.id, rule.status, rule.error])).toEqual([
+      ['header-rule', 'pass', undefined],
+      ['robots-rule', 'pass', undefined],
+      ['test-rule', 'error', 'page-too-complex'],
+    ])
+    expect(report.page).toBeNull()
+  })
+
+  it('rejects a parse budget that is not a positive number, naming the right option', async () => {
+    // A loopback URL: were the check missing, the scan would fail on the address, not throw.
+    for (const parseTimeoutMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      await expect(scan('http://127.0.0.1/', { parseTimeoutMs })).rejects.toThrow(/parseTimeoutMs/)
+    }
+    await expect(scan('http://127.0.0.1/', { timeoutMs: Number.NaN })).rejects.toThrow(/timeoutMs/)
+    await expect(scan('http://127.0.0.1/', { timeoutMs: Number.NaN })).rejects.not.toThrow(
+      /parseTimeoutMs/,
+    )
+  })
+
+  it('counts every finding a rule yields but keeps only the first by position', async () => {
+    const local = await site({ 'index.html': ARABIC_PAGE })
+    const total = 100_000
+    const report = await scan(local.url('/'), {
+      rules: [
+        testRule({
+          // Last line first, and one finding past the cap that would not fit the schema:
+          // only the reported findings are rendered and checked.
+          *detect() {
+            for (let line = total; line >= 1; line--) {
+              yield {
+                message: 'found',
+                values: { what: line === 500 ? Number.NaN : 'x' },
+                location: { line },
+              }
+            }
+          },
+        }),
+      ],
+      policy: policyFor(local),
+    })
+    expect(report.rules[0]).toMatchObject({
+      status: 'fail',
+      findingsOmitted: total - MAX_FINDINGS_PER_RULE,
+    })
+    expect(report.findings.map((finding) => finding.evidence.location?.line)).toEqual(
+      Array.from({ length: MAX_FINDINGS_PER_RULE }, (_, i) => i + 1),
+    )
+  })
+
+  // Parsing 15 MB takes seconds; four-byte characters halve that, since the limit is in bytes.
+  it(
+    'reads only the first 15 MB of HTML, as Google does, and says so',
+    { timeout: 30_000 },
+    async () => {
+      const head = '<html lang="ar"><head><meta name="flag" content="early"></head><body><p>'
+      const local = await site({
+        'index.html': `${head}${'😀'.repeat(HTML_PARSE_LIMIT / 4)}<meta name="flag" content="late">`,
+      })
+      const report = await scan(local.url('/'), { rules: [flagRule()], policy: policyFor(local) })
+      expect(report.scan.status).toBe('complete')
+      expect(report.scan.notices.map((item) => item.code)).toEqual(['page-truncated'])
+      expect(report.findings.map((finding) => finding.evidence.values?.what)).toEqual(['early'])
+    },
+  )
+
+  it('fails the scan when the page answers a status that is not HTTP', async () => {
+    const local = await site({}, { '/': { status: 999, body: ARABIC_PAGE } })
+    const report = await scan(local.url('/'), { rules: [flagRule()], policy: policyFor(local) })
+    expect(schemaErrors(report)).toBe('')
+    expect(report.scan.status).toBe('failed')
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['invalid-status'])
+    expect(report.target.http.status).toBeNull()
+    expect(report.rules[0]).toMatchObject({ status: 'error', error: 'page-unavailable' })
+  })
+
+  it('gives no robots.txt verdict when robots.txt answers a status that is not HTTP', async () => {
+    const local = await site(
+      { 'index.html': ARABIC_PAGE },
+      { '/robots.txt': { status: 999, body: 'User-agent: *\nDisallow: /\n' } },
+    )
+    const report = await scan(local.url('/'), { rules: [robotsRule], policy: policyFor(local) })
+    expect(schemaErrors(report)).toBe('')
+    expect(report.scan.status).toBe('partial')
+    expect(report.rules[0]).toMatchObject({ status: 'error', error: 'robots-unchecked' })
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['robots-unchecked'])
+  })
+
+  it('bounds the strings, lists and selectors a rule puts in the report', async () => {
+    const local = await site({ 'index.html': ARABIC_PAGE })
+    const longUrl = `${local.url('/')}?q=${'y'.repeat(5000)}`
+    const report = await scan(local.url('/'), {
+      rules: [
+        testRule({
+          detect: () => [
+            {
+              message: 'found',
+              values: {
+                what: 'x'.repeat(10_000),
+                list: Array.from({ length: 100 }, (_, i) => i),
+                nested: { emoji: '😀'.repeat(2000) },
+              },
+              selector: `${'div > '.repeat(1000)}a`,
+              url: longUrl,
+            },
+          ],
+        }),
+      ],
+      policy: policyFor(local),
+    })
+    expect(schemaErrors(report)).toBe('')
+    const evidence = report.findings[0]?.evidence
+    const cut = `${'x'.repeat(MAX_VALUE_LENGTH - 1)}…`
+    expect(evidence?.values?.what).toBe(cut)
+    expect(report.findings[0]?.message.en).toBe(`Found ${cut}`)
+    expect(evidence?.values?.list).toEqual(Array.from({ length: MAX_VALUE_ITEMS }, (_, i) => i))
+    // A surrogate pair is never split.
+    expect(evidence?.values?.nested).toEqual({ emoji: `${'😀'.repeat(MAX_VALUE_LENGTH / 2 - 1)}…` })
+    // Selectors keep their most specific end.
+    expect(evidence?.selector?.length).toBeLessThanOrEqual(MAX_SELECTOR_LENGTH)
+    expect(evidence?.selector).toMatch(/^… > div > div > .* > div > a$/)
+    expect(evidence?.url).toBe(`${longUrl.slice(0, MAX_VALUE_LENGTH - 1)}…`)
+  })
+
+  it('turns output that breaks the report schema into a rule error', async () => {
+    const local = await site({ 'index.html': ARABIC_PAGE })
+    const report = await scan(local.url('/'), {
+      rules: [
+        testRule({
+          id: 'nan-rule',
+          detect: () => [{ message: 'found', values: { what: Number.NaN } }],
+        }),
+        testRule({
+          id: 'zero-line-rule',
+          detect: () => [{ message: 'found', values: { what: 'x' }, location: { line: 0 } }],
+        }),
+        flagRule(),
+      ],
+      policy: policyFor(local),
+    })
+    expect(schemaErrors(report)).toBe('')
+    expect(report.scan.status).toBe('partial')
+    expect(report.rules.map((rule) => [rule.id, rule.status, rule.error])).toEqual([
+      ['nan-rule', 'error', 'rule-failed'],
+      ['test-rule', 'fail', undefined],
+      ['zero-line-rule', 'error', 'rule-failed'],
+    ])
+    expect(report.findings.every((finding) => finding.ruleId === 'test-rule')).toBe(true)
+  })
+})
+
 describe('scan: robots.txt', () => {
   const robotsRule = testRule({
     id: 'robots-rule',
@@ -355,5 +531,30 @@ describe('scan: robots.txt', () => {
     })
     expect(report.rules[0]).toMatchObject({ status: 'fail' })
     expect(report.findings[0]?.message.en).toBe('Found unavailable')
+  })
+
+  // Security review 2026-09-24: under --allow-private, a chain that starts on a public address
+  // loses private access. The robots.txt fetch for the same site must not get it back.
+  it('keeps a public chain’s lockdown when it fetches robots.txt', async () => {
+    const local = await site({ 'index.html': ARABIC_PAGE, 'robots.txt': 'User-agent: *\n' })
+    let lookups = 0
+    // The page's host resolves to the exact test target, standing in for a public site; by the
+    // time robots.txt is fetched, DNS points it at a loopback address only --allow-private opens.
+    const resolver: Resolver = () => {
+      lookups++
+      return Promise.resolve([{ address: lookups === 1 ? '127.0.0.1' : '127.0.0.2', family: 4 }])
+    }
+    const report = await scan(`http://fixture.test:${local.port}/`, {
+      rules: [robotsRule],
+      policy: createPolicy({
+        allowPrivate: true,
+        allowTargets: [{ address: '127.0.0.1', port: local.port }],
+      }),
+      resolver,
+    })
+    expect(report.target.http.status).toBe(200)
+    expect(lookups).toBe(2)
+    expect(report.rules[0]).toMatchObject({ status: 'error', error: 'robots-unchecked' })
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['robots-unchecked'])
   })
 })
