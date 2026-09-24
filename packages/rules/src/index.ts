@@ -1,6 +1,7 @@
 import type { Rule } from './rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
+import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as robotsBlocksAiSearch } from './rules/robots-blocks-ai-search/rule'
@@ -15,6 +16,7 @@ export const RULESET_VERSION = '0.1.0'
 export const RULES: readonly Rule[] = [
   arHtmlLang,
   arLatinPunctuation,
+  canonicalConflict,
   hreflangInvalidCode,
   pageNoindex,
   robotsBlocksAiSearch,
