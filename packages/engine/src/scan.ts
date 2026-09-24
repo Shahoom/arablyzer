@@ -184,6 +184,45 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     : undefined
 
   const notices = pageNotices(page, robots)
+  const { results, findings } = evaluateRules(rules, page, robots)
+
+  return finish({
+    status: results.some((result) => result.status === 'error') ? 'partial' : 'complete',
+    notices,
+    page: pageSummary(page),
+    results,
+    findings,
+    facts: robotsFacts(robots, page.url),
+  })
+}
+
+export interface EvaluateOptions {
+  /** Rule ids to run; all rules by default. Unknown ids throw a TypeError. */
+  readonly ruleIds?: readonly string[]
+  /** The rule set to choose from; tests pass their own. */
+  readonly rules?: readonly Rule[]
+  /** robots.txt for the page's site; without it, rules that need it report an error. */
+  readonly robots?: RobotsFacts
+}
+
+export interface Evaluation {
+  readonly results: RuleResult[]
+  readonly findings: Finding[]
+}
+
+/**
+ * Runs rules on facts already collected, without the network: what scan() does once it has
+ * fetched the page. The SEO self-audit uses it on rendered pages.
+ */
+export function evaluatePage(page: PageFacts, options: EvaluateOptions = {}): Evaluation {
+  return evaluateRules(selectRules(options.rules ?? RULES, options.ruleIds), page, options.robots)
+}
+
+function evaluateRules(
+  rules: readonly Rule[],
+  page: PageFacts,
+  robots: RobotsFacts | undefined,
+): Evaluation {
   const results: RuleResult[] = []
   const findings: Finding[] = []
   for (const rule of rules) {
@@ -197,15 +236,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     findings.push(...outcome.findings)
   }
   findings.sort(compareFindings)
-
-  return finish({
-    status: results.some((result) => result.status === 'error') ? 'partial' : 'complete',
-    notices,
-    page: pageSummary(page),
-    results,
-    findings,
-    facts: robotsFacts(robots, page.url),
-  })
+  return { results, findings }
 }
 
 async function fetchRobots(pageUrl: string, base: SafeFetchOptions): Promise<RobotsFacts> {
