@@ -17,7 +17,7 @@ robots.txt could not be reached, and crawlers that follow RFC 9309, Google among
 ## Why it matters
 
 - Googlebot is the crawler Google uses to read your pages before showing them in search results. When robots.txt blocks it from a page, Google cannot read the page's content; the page may appear as a bare link without a description, or not at all.
-- A single line such as `Disallow: /` blocks the whole site, and it is often left over from the development version after launch.
+- A single line such as `Disallow: /` blocks the whole site, and it can be left over from the development version after launch.
 - When robots.txt answers with a server error (5xx) or 429, Google temporarily stops crawling the whole site until it can read the file again.
 - robots.txt is not a way to hide a page from search results; use `noindex` for that and leave the page open to crawling.
 
