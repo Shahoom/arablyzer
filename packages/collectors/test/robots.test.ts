@@ -165,6 +165,19 @@ describe('collectRobots', () => {
     }
   })
 
+  it('gives no verdict for a status that is not HTTP (some sites send 999 to bots)', () => {
+    for (const status of [999, 600, 99, 0]) {
+      expect(collectRobots({ url, response: response(status), errorCode: null })).toEqual({
+        outcome: 'failed',
+        url,
+        code: 'invalid-status',
+      })
+    }
+    expect(collectRobots({ url, response: null, errorCode: 'invalid-status' }).outcome).toBe(
+      'failed',
+    )
+  })
+
   it('treats a final 3xx without Location as unavailable', () => {
     expect(collectRobots({ url, response: response(302), errorCode: null }).outcome).toBe(
       'unavailable',

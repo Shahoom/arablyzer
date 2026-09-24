@@ -9,7 +9,15 @@ export {
   type ScriptElement,
 } from './html'
 export { parseLinkHeader, type LinkHeaderEntry } from './link-header'
-export { collectPage, headerValues, type Header, type PageFacts, type PageInput } from './page'
+export {
+  collectPage,
+  HTML_PARSE_LIMIT,
+  headerValues,
+  type CollectOptions,
+  type Header,
+  type PageFacts,
+  type PageInput,
+} from './page'
 export {
   collectRobots,
   parseRobotsTxt,

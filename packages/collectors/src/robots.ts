@@ -75,6 +75,10 @@ export function collectRobots(input: RobotsInput): RobotsFacts {
     return { outcome: 'failed', url, code: errorCode ?? 'no-response' }
   }
   const { status } = response
+  // Not an HTTP status (RFC 9110 §15), and neither RFC 9309 nor Google gives it a meaning.
+  if (!Number.isInteger(status) || status < 100 || status > 599) {
+    return { outcome: 'failed', url, code: 'invalid-status' }
+  }
   if (status >= 200 && status < 300) {
     return {
       outcome: 'fetched',
