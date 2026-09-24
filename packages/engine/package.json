@@ -1,0 +1,25 @@
+{
+  "name": "@arablyzer/engine",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@arablyzer/collectors": "workspace:*",
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/rules": "workspace:*"
+  },
+  "devDependencies": {
+    "@arablyzer/fixtures": "workspace:*",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  }
+}

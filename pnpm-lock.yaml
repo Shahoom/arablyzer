@@ -64,6 +64,31 @@ importers:
         specifier: workspace:*
         version: link:../../fixtures
 
+  packages/engine:
+    dependencies:
+      '@arablyzer/collectors':
+        specifier: workspace:*
+        version: link:../collectors
+      '@arablyzer/egress':
+        specifier: workspace:*
+        version: link:../egress
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../rules
+    devDependencies:
+      '@arablyzer/fixtures':
+        specifier: workspace:*
+        version: link:../../fixtures
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.20.0)
+
   packages/report-schema:
     dependencies:
       zod:
