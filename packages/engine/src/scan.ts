@@ -264,13 +264,13 @@ function convert(
   }
 }
 
+/** Ties keep the detector's own order: Array.prototype.sort is stable and detectors are deterministic. */
 function compareFindings(a: Finding, b: Finding): number {
   return (
     SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) ||
     a.ruleId.localeCompare(b.ruleId, 'en') ||
     (a.evidence.location?.line ?? 0) - (b.evidence.location?.line ?? 0) ||
-    (a.evidence.location?.column ?? 0) - (b.evidence.location?.column ?? 0) ||
-    a.fingerprint.localeCompare(b.fingerprint, 'en')
+    (a.evidence.location?.column ?? 0) - (b.evidence.location?.column ?? 0)
   )
 }
 
