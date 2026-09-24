@@ -3,7 +3,13 @@ import http from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { serveSite, sitePath, type FixtureSite } from '../src/index'
+import {
+  loadFixtureConfig,
+  resolveFixtureResponse,
+  serveSite,
+  sitePath,
+  type FixtureSite,
+} from '../src/index'
 
 interface RawResponse {
   status: number
@@ -83,6 +89,7 @@ describe('serveSite', () => {
     expect(old.status).toBe(301)
     expect(header(old, 'location')).toEqual(['/'])
     const tagged = await request(site.url('/tagged'))
+    expect(tagged.status).toBe(200)
     expect(header(tagged, 'x-robots-tag')).toEqual(['noindex', 'googlebot: nofollow'])
     expect(tagged.body.toString('utf8')).toBe('tagged')
   })
@@ -105,6 +112,30 @@ describe('serveSite', () => {
     const other = await serveSite(sitePath('sample'))
     expect(other.origin).not.toBe(site.origin)
     await other.close()
+  })
+
+  it('does not serve expect.json, the rule tests’ metadata', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-fixture-'))
+    await writeFile(path.join(dir, 'expect.json'), '{}')
+    const hidden = await serveSite(dir)
+    expect((await request(hidden.url('/expect.json'))).status).toBe(404)
+    await hidden.close()
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  it('resolves responses without HTTP, exactly as the server sends them', async () => {
+    const root = sitePath('sample')
+    const config = await loadFixtureConfig(root)
+    const tagged = await resolveFixtureResponse(root, config, '/tagged')
+    expect(tagged).toEqual({
+      status: 200,
+      headers: {
+        'content-type': 'text/plain; charset=utf-8',
+        'x-robots-tag': ['noindex', 'googlebot: nofollow'],
+      },
+      body: Buffer.from('tagged'),
+    })
+    expect((await resolveFixtureResponse(root, config, '/missing')).status).toBe(404)
   })
 
   it('rejects an invalid fixture.json and names the file', async () => {
