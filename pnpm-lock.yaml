@@ -77,6 +77,19 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1(ajv@8.20.0)
 
+  packages/rules:
+    dependencies:
+      '@arablyzer/collectors':
+        specifier: workspace:*
+        version: link:../collectors
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+    devDependencies:
+      '@arablyzer/fixtures':
+        specifier: workspace:*
+        version: link:../../fixtures
+
 packages:
 
   '@cacheable/memory@2.2.0':

@@ -1,0 +1,22 @@
+{
+  "name": "@arablyzer/rules",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "copy:review": "tsx scripts/check-arabic-review.ts"
+  },
+  "dependencies": {
+    "@arablyzer/collectors": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@arablyzer/fixtures": "workspace:*"
+  }
+}
