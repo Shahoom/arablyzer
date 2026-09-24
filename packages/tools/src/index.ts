@@ -1,7 +1,8 @@
 import type { Tool } from './tool'
+import { tool as rtlCheck } from './tools/rtl-check/tool'
 
 /** Every tool, sorted by slug. */
-export const TOOLS: readonly Tool[] = []
+export const TOOLS: readonly Tool[] = [rtlCheck]
 
 export function toolBySlug(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug)
