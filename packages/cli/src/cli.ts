@@ -1,8 +1,14 @@
-import { createPolicy, localInterfaceCidrs } from '@arablyzer/egress'
+import {
+  createPolicy,
+  localInterfaceCidrs,
+  publicInterfaceCidrs,
+  type EgressPolicy,
+  type InterfaceMap,
+} from '@arablyzer/egress'
 import { ENGINE_VERSION, scan } from '@arablyzer/engine'
 import { SEVERITY_ORDER, type Report, type Severity } from '@arablyzer/report-schema'
 import { parseCliArgs, UsageError } from './args'
-import { formatReport } from './format'
+import { formatJson, formatReport } from './format'
 import { langFromEnv, STRINGS } from './i18n'
 
 export interface Io {
@@ -33,23 +39,25 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     return 0
   }
 
-  // Default mode also denies this machine's own addresses, so a redirect cannot reach services
-  // on a server with a public IP (M0.1 security review). --allow-private is for local builds.
-  const policy = options.allowPrivate
-    ? createPolicy({ allowPrivate: true })
-    : createPolicy({ denyCidrs: localInterfaceCidrs() })
   const report = await scan(options.url, {
-    policy,
+    policy: cliPolicy(options.allowPrivate),
     timeoutMs: options.timeoutMs,
     ...(options.ruleIds === undefined ? {} : { ruleIds: options.ruleIds }),
     ...(io.signal === undefined ? {} : { signal: io.signal }),
   })
-  io.stdout(
-    options.json
-      ? `${JSON.stringify(report, null, 2)}\n`
-      : formatReport(report, options.lang, io.color),
-  )
+  io.stdout(options.json ? formatJson(report) : formatReport(report, options.lang, io.color))
   return exitCode(report, options.failOn)
+}
+
+/**
+ * Default mode denies this machine's own addresses, so a redirect cannot reach services on a
+ * server with a public IP (M0.1 security review). --allow-private opens private ranges for local
+ * builds but still denies the public ones (M0.2 security review).
+ */
+export function cliPolicy(allowPrivate: boolean, interfaces?: InterfaceMap): EgressPolicy {
+  return allowPrivate
+    ? createPolicy({ allowPrivate: true, denyCidrs: publicInterfaceCidrs(interfaces) })
+    : createPolicy({ denyCidrs: localInterfaceCidrs(interfaces) })
 }
 
 /** 0 complete; 1 a rule failed at --fail-on or above; 2 the scan did not complete. */

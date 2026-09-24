@@ -1,8 +1,8 @@
 import { SCHEMA_VERSION, type Report } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
 import { parseCliArgs, UsageError } from '../../src/args'
-import { exitCode, run } from '../../src/cli'
-import { formatReport } from '../../src/format'
+import { cliPolicy, exitCode, run } from '../../src/cli'
+import { clean, formatJson, formatReport } from '../../src/format'
 import { langFromEnv } from '../../src/i18n'
 
 describe('parseCliArgs', () => {
@@ -184,6 +184,88 @@ describe('formatReport', () => {
     expect(arabic).toContain('html · السطر 2')
     expect(arabic).not.toContain('\x1b[')
     expect(formatReport(report(), 'en', true)).toContain('\x1b[31m✗ serious\x1b[0m')
+  })
+})
+
+describe('terminal safety (M0.2 review)', () => {
+  /** Characters a page must not get into the terminal raw; the report's own line breaks aside. */
+  const unsafe = (text: string) =>
+    Array.from({ length: text.length }, (_, i) => text.charCodeAt(i)).filter(
+      (code) =>
+        (code < 0x20 && code !== 0x0a) ||
+        (code >= 0x7f && code <= 0x9f) ||
+        code === 0x2028 ||
+        code === 0x2029 ||
+        (code >= 0x202a && code <= 0x202e) ||
+        (code >= 0x2066 && code <= 0x2069),
+    )
+
+  const hostile = report({
+    findings: [
+      {
+        ruleId: 'ar-html-lang',
+        severity: 'serious',
+        fingerprint: '0123456789abcdef',
+        message: { ar: 'lang="\u202Ear"', en: 'lang="\x1b[2J\x1b[31mfake\u202Eevil"' },
+        evidence: {
+          url: 'https://example.com/other\u009b31m',
+          selector: '#a\u0007b',
+          snippet: '<html\n  lang="en"\u2066\r>',
+          location: { line: 2 },
+        },
+      },
+    ],
+    scan: {
+      status: 'complete',
+      durationMs: 1,
+      notices: [{ code: 'page-status', message: { ar: 'x', en: 'HTTP \u2028999' } }],
+    },
+  })
+
+  it('shows controls and bidi overrides from the page as escapes in the text report', () => {
+    const text = formatReport(hostile, 'en', false)
+    expect(unsafe(text)).toEqual([])
+    expect(text).toContain('lang="\\u001B[2J\\u001B[31mfake\\u202Eevil"')
+    expect(text).toContain('https://example.com/other\\u009B31m · #a\\u0007b · line 2')
+    expect(text).toContain('<html   lang="en"\\u2066 >')
+    expect(text).toContain('HTTP \\u2028999')
+    expect(unsafe(formatReport(hostile, 'ar', true)).filter((code) => code !== 0x1b)).toEqual([])
+  })
+
+  it('keeps the marks Arabic text needs', () => {
+    expect(clean('مرحبا\u200F (RLM) و\u061C و\u200E')).toBe('مرحبا\u200F (RLM) و\u061C و\u200E')
+  })
+
+  it('escapes them in JSON too, which still parses to the same report', () => {
+    const json = formatJson(hostile)
+    expect(unsafe(json)).toEqual([])
+    expect(json).toContain('\\u202E')
+    expect(json.endsWith('\n')).toBe(true)
+    expect(JSON.parse(json)).toEqual(hostile)
+  })
+})
+
+describe('cliPolicy', () => {
+  const interfaces = {
+    lo: [{ address: '127.0.0.1', family: 'IPv4' }],
+    eth0: [
+      { address: '8.8.8.8', family: 'IPv4' },
+      { address: '192.168.1.5', family: 'IPv4' },
+    ],
+  }
+
+  it('denies every address of this machine by default', () => {
+    expect(cliPolicy(false, interfaces)).toMatchObject({
+      allowPrivate: false,
+      denyCidrs: ['127.0.0.1/32', '192.168.1.5/32', '8.8.8.8/32'],
+    })
+  })
+
+  it('still denies its public addresses under --allow-private (M0.2 review)', () => {
+    expect(cliPolicy(true, interfaces)).toMatchObject({
+      allowPrivate: true,
+      denyCidrs: ['8.8.8.8/32'],
+    })
   })
 })
 

@@ -31,7 +31,7 @@ pnpm arablyzer --help
 
 Exit codes: `0` the scan completed; `1` a rule failed at `--fail-on` or above; `2` the scan did not complete (blocked or unreachable address, time limit, partial scan) or the options were invalid. The JSON report follows [`packages/report-schema/report.schema.json`](packages/report-schema/report.schema.json).
 
-Arablyzer fetches pages as `ArablyzerBot/1.0 (+https://arablyzer.com/bot)`, only through its SSRF guard (`packages/egress`): private, loopback, link-local and metadata addresses are refused. `--allow-private` opens private and loopback addresses for local builds; link-local and metadata addresses stay blocked.
+Arablyzer fetches pages as `ArablyzerBot/1.0 (+https://arablyzer.com/bot)`, only through its SSRF guard (`packages/egress`): private, loopback, link-local and metadata addresses are refused. `--allow-private` opens private and loopback addresses for local builds; link-local and metadata addresses, and the machine's own public addresses, stay blocked. Text printed from a scanned page is escaped, so a page cannot send terminal control sequences.
 
 ## Rules / القواعد
 
