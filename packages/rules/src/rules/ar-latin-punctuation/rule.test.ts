@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
+import { detectAll, evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
 import { rule } from './rule'
 
 const detect = (body: string) =>
-  rule.detect(evidenceOf(htmlPage(`<html lang="ar" dir="rtl"><body>${body}</body></html>`)))
+  detectAll(rule, evidenceOf(htmlPage(`<html lang="ar" dir="rtl"><body>${body}</body></html>`)))
 
 describe('ar-latin-punctuation', () => {
   it('fires once per Latin mark on the wrong fixture', async () => {
     const evidence = await fixtureEvidence(rule.id, 'wrong')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    const findings = rule.detect(evidence)
+    const findings = detectAll(rule, evidence)
     expect(findings.map((finding) => [finding.values?.found, finding.values?.suggested])).toEqual([
       ['?', '؟'],
       [',', '،'],
@@ -25,7 +25,7 @@ describe('ar-latin-punctuation', () => {
   it('passes the right fixture: Arabic marks, 1,500, React, Vue and code', async () => {
     const evidence = await fixtureEvidence(rule.id, 'right')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([])
+    expect(detectAll(rule, evidence)).toEqual([])
   })
 
   it('sees through diacritics, tatweel and inline elements', () => {

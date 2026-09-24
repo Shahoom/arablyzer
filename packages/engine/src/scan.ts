@@ -214,7 +214,7 @@ function evaluate(rule: Rule, page: PageFacts, robots: RobotsFacts | undefined):
   }
   try {
     if (!rule.appliesTo(page)) return { status: 'not-applicable', findings: [] }
-    const findings = rule.detect(robots === undefined ? { page } : { page, robots })
+    const findings = [...rule.detect(robots === undefined ? { page } : { page, robots })]
     if (rule.manualCheck === true) return { status: 'needs-review', findings }
     return { status: findings.length > 0 ? 'fail' : 'pass', findings }
   } catch {

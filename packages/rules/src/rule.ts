@@ -44,8 +44,12 @@ export interface Rule<M extends string = string> {
   readonly messages: readonly M[]
   /** False → not-applicable: the page has nothing this rule checks. */
   readonly appliesTo: (page: PageFacts) => boolean
-  /** A pure function: tested without a browser or network. */
-  readonly detect: (evidence: Evidence) => DetectorFinding<M>[]
+  /**
+   * A pure function: tested without a browser or network. A rule whose findings grow with the
+   * page (one per punctuation mark, say) yields them lazily, so the engine keeps the ones it
+   * reports and only counts the rest (M0.2 review: a hostile page cannot exhaust memory).
+   */
+  readonly detect: (evidence: Evidence) => Iterable<DetectorFinding<M>>
   readonly copy: { readonly ar: RuleCopy; readonly en: RuleCopy }
 }
 

@@ -1,11 +1,12 @@
 import type { Header } from '@arablyzer/collectors'
 import { describe, expect, it } from 'vitest'
-import { evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
+import { detectAll, evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
 import { rule } from './rule'
 
 const HTML: Header = ['content-type', 'text/html; charset=utf-8']
 const withHeaders = (...values: string[]) =>
-  rule.detect(
+  detectAll(
+    rule,
     evidenceOf(
       htmlPage('<p>نص</p>', {
         headers: [HTML, ...values.map((value): Header => ['x-robots-tag', value])],
@@ -13,13 +14,13 @@ const withHeaders = (...values: string[]) =>
     ),
   )
 const withMeta = (name: string, content: string) =>
-  rule.detect(evidenceOf(htmlPage(`<meta name="${name}" content="${content}"><p>نص</p>`)))
+  detectAll(rule, evidenceOf(htmlPage(`<meta name="${name}" content="${content}"><p>نص</p>`)))
 
 describe('page-noindex', () => {
   it('fires on the X-Robots-Tag fixture', async () => {
     const evidence = await fixtureEvidence(rule.id, 'wrong')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([
+    expect(detectAll(rule, evidence)).toEqual([
       {
         message: 'header',
         snippet: 'X-Robots-Tag: noindex',
@@ -30,7 +31,7 @@ describe('page-noindex', () => {
   })
 
   it('fires on the meta fixture and points at the tag', async () => {
-    const [finding] = rule.detect(await fixtureEvidence(rule.id, 'wrong-meta'))
+    const [finding] = detectAll(rule, await fixtureEvidence(rule.id, 'wrong-meta'))
     expect(finding).toMatchObject({
       message: 'meta',
       selector: 'head > meta:nth-of-type(3)',
@@ -41,7 +42,7 @@ describe('page-noindex', () => {
   })
 
   it('passes the right fixture', async () => {
-    expect(rule.detect(await fixtureEvidence(rule.id, 'right'))).toEqual([])
+    expect(detectAll(rule, await fixtureEvidence(rule.id, 'right'))).toEqual([])
   })
 
   it.each([
@@ -89,6 +90,6 @@ describe('page-noindex', () => {
       ],
     })
     expect(rule.appliesTo(pdf)).toBe(true)
-    expect(rule.detect(evidenceOf(pdf))).toHaveLength(1)
+    expect(detectAll(rule, evidenceOf(pdf))).toHaveLength(1)
   })
 })

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
+import { detectAll, evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
 import { rule } from './rule'
 
 const detect = (href: string) =>
-  rule.detect(
+  detectAll(
+    rule,
     evidenceOf(
       htmlPage(`<html lang="ar" dir="rtl"><body><a href="${href}">واتساب</a></body></html>`),
     ),
@@ -14,9 +15,11 @@ describe('whatsapp-link-format', () => {
     const evidence = await fixtureEvidence(rule.id, 'wrong')
     expect(rule.appliesTo(evidence.page)).toBe(true)
     expect(
-      rule
-        .detect(evidence)
-        .map((finding) => [finding.message, finding.values?.number, finding.values?.suggestion]),
+      detectAll(rule, evidence).map((finding) => [
+        finding.message,
+        finding.values?.number,
+        finding.values?.suggestion,
+      ]),
     ).toEqual([
       ['not-digits-only', '+968 9123-4567', '96891234567'],
       ['leading-zero', '0501234567', null],
@@ -28,7 +31,7 @@ describe('whatsapp-link-format', () => {
   it('passes the right fixture', async () => {
     const evidence = await fixtureEvidence(rule.id, 'right')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([])
+    expect(detectAll(rule, evidence)).toEqual([])
   })
 
   it('points at the link', () => {

@@ -66,7 +66,7 @@ export interface TestRuleOptions {
   readonly severity?: Rule['severity']
   readonly manualCheck?: boolean
   readonly appliesTo?: (page: PageFacts) => boolean
-  readonly detect: (evidence: Evidence) => DetectorFinding<'found'>[]
+  readonly detect: (evidence: Evidence) => Iterable<DetectorFinding<'found'>>
 }
 
 /** A rule with inline copy: message "found" says `Found {what}` / `وجدنا {what}`. */

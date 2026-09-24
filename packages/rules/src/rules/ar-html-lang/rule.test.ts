@@ -1,6 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { evidenceOf, fixtureEvidence, fixturesDir, htmlPage } from '../../../test/helpers'
+import {
+  detectAll,
+  evidenceOf,
+  fixtureEvidence,
+  fixturesDir,
+  htmlPage,
+} from '../../../test/helpers'
 import { rule } from './rule'
 
 const ARTICLE = '<p>متجر صغير في مسقط يبيع العطور العربية والبخور ودهن العود.</p>'
@@ -11,13 +17,13 @@ describe('ar-html-lang', () => {
   it.each(['wrong', 'wrong-missing', 'wrong-windows-1256'])('fires on fixture %s', async (name) => {
     const evidence = await fixtureEvidence(rule.id, name)
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toHaveLength(1)
+    expect(detectAll(rule, evidence)).toHaveLength(1)
   })
 
   it.each(['right', 'right-fa'])('passes fixture %s', async (name) => {
     const evidence = await fixtureEvidence(rule.id, name)
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([])
+    expect(detectAll(rule, evidence)).toEqual([])
   })
 
   it('reads the windows-1256 fixture as the same text as the UTF-8 one', async () => {
@@ -31,7 +37,7 @@ describe('ar-html-lang', () => {
   })
 
   it('reports the declared language with its location and the letter counts', async () => {
-    const [finding] = rule.detect(await fixtureEvidence(rule.id, 'wrong'))
+    const [finding] = detectAll(rule, await fixtureEvidence(rule.id, 'wrong'))
     expect(finding).toMatchObject({
       message: 'not-arabic-script',
       selector: 'html',
@@ -43,8 +49,10 @@ describe('ar-html-lang', () => {
   })
 
   it('treats a missing and an empty lang the same way', () => {
-    expect(rule.detect(evidenceOf(page('<html dir="rtl">')))[0]?.message).toBe('missing')
-    expect(rule.detect(evidenceOf(page('<html lang=" " dir="rtl">')))[0]?.message).toBe('missing')
+    expect(detectAll(rule, evidenceOf(page('<html dir="rtl">')))[0]?.message).toBe('missing')
+    expect(detectAll(rule, evidenceOf(page('<html lang=" " dir="rtl">')))[0]?.message).toBe(
+      'missing',
+    )
   })
 
   it.each([
@@ -72,13 +80,13 @@ describe('ar-html-lang', () => {
     'ar-t-en-latn',
     'ar-x-latn',
   ])('accepts lang="%s"', (lang) => {
-    expect(rule.detect(evidenceOf(page(`<html lang="${lang}" dir="rtl">`)))).toEqual([])
+    expect(detectAll(rule, evidenceOf(page(`<html lang="${lang}" dir="rtl">`)))).toEqual([])
   })
 
   it.each(['en', 'en-US', 'ar-Latn', 'arabic', 'tr', 'pa', 'ms', 'x'])(
     'rejects lang="%s"',
     (lang) => {
-      expect(rule.detect(evidenceOf(page(`<html lang="${lang}" dir="rtl">`)))).toHaveLength(1)
+      expect(detectAll(rule, evidenceOf(page(`<html lang="${lang}" dir="rtl">`)))).toHaveLength(1)
     },
   )
 
@@ -91,7 +99,8 @@ describe('ar-html-lang', () => {
   })
 
   it('mentions a content-language meta as context, but still fires', () => {
-    const [finding] = rule.detect(
+    const [finding] = detectAll(
+      rule,
       evidenceOf(
         htmlPage(
           `<html dir="rtl"><head><meta http-equiv="Content-Language" content="ar"></head><body>${ARTICLE}</body></html>`,

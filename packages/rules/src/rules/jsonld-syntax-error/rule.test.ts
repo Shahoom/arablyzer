@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
+import { detectAll, evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
 import { rule } from './rule'
 
-const detect = (html: string) => rule.detect(evidenceOf(htmlPage(html)))
+const detect = (html: string) => detectAll(rule, evidenceOf(htmlPage(html)))
 
 describe('jsonld-syntax-error', () => {
   it('fires on a trailing comma and points at it', async () => {
     const evidence = await fixtureEvidence(rule.id, 'wrong')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([
+    expect(detectAll(rule, evidence)).toEqual([
       {
         message: 'trailing-comma',
         values: { block: 1, line: 12, column: 33, problem: 'trailing-comma' },
@@ -21,7 +21,7 @@ describe('jsonld-syntax-error', () => {
   })
 
   it('fires on an unescaped quote inside an Arabic name', async () => {
-    const [finding] = rule.detect(await fixtureEvidence(rule.id, 'wrong-quote'))
+    const [finding] = detectAll(rule, await fixtureEvidence(rule.id, 'wrong-quote'))
     expect(finding).toMatchObject({
       message: 'unexpected-character',
       values: { block: 1, line: 11, column: 24, character: 'ا' },
@@ -32,7 +32,7 @@ describe('jsonld-syntax-error', () => {
   it('passes the right fixture', async () => {
     const evidence = await fixtureEvidence(rule.id, 'right')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([])
+    expect(detectAll(rule, evidence)).toEqual([])
   })
 
   it('numbers blocks among JSON-LD scripts only, and reports each broken one', () => {

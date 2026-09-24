@@ -1,6 +1,12 @@
 import type { Header } from '@arablyzer/collectors'
 import { describe, expect, it } from 'vitest'
-import { evidenceOf, FIXTURE_ORIGIN, fixtureEvidence, htmlPage } from '../../../test/helpers'
+import {
+  detectAll,
+  evidenceOf,
+  FIXTURE_ORIGIN,
+  fixtureEvidence,
+  htmlPage,
+} from '../../../test/helpers'
 import { rule } from './rule'
 
 const HTML: Header = ['content-type', 'text/html; charset=utf-8']
@@ -9,13 +15,14 @@ const page = (head: string, links: string[] = []) =>
     headers: [HTML, ...links.map((value): Header => ['link', value])],
     url: `${FIXTURE_ORIGIN}/ar/oud`,
   })
-const detect = (head: string, links: string[] = []) => rule.detect(evidenceOf(page(head, links)))
+const detect = (head: string, links: string[] = []) =>
+  detectAll(rule, evidenceOf(page(head, links)))
 
 describe('canonical-conflict', () => {
   it('fires on two canonical tags with different URLs', async () => {
     const evidence = await fixtureEvidence(rule.id, 'wrong')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([
+    expect(detectAll(rule, evidence)).toEqual([
       {
         message: 'multiple-tags',
         values: {
@@ -36,7 +43,7 @@ describe('canonical-conflict', () => {
   })
 
   it('fires when the Link header disagrees with the tag', async () => {
-    const [finding] = rule.detect(await fixtureEvidence(rule.id, 'wrong-header'))
+    const [finding] = detectAll(rule, await fixtureEvidence(rule.id, 'wrong-header'))
     expect(finding).toMatchObject({
       message: 'header-mismatch',
       values: { headerUrl: 'https://example.com/products/oud', tagUrl: 'https://example.com/oud' },
@@ -47,7 +54,7 @@ describe('canonical-conflict', () => {
   it('passes the right fixture: one canonical, the header agrees', async () => {
     const evidence = await fixtureEvidence(rule.id, 'right')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([])
+    expect(detectAll(rule, evidence)).toEqual([])
   })
 
   it('compares resolved URLs without fragments', () => {
@@ -67,7 +74,8 @@ describe('canonical-conflict', () => {
   })
 
   it('reports conflicting Link headers on their own', () => {
-    const findings = rule.detect(
+    const findings = detectAll(
+      rule,
       evidenceOf(
         htmlPage('%PDF', {
           headers: [
@@ -85,7 +93,7 @@ describe('canonical-conflict', () => {
     const bodyLink = htmlPage(
       '<link rel="canonical" href="/a"><p>نص</p><link rel="canonical" href="/b">',
     )
-    expect(rule.detect(evidenceOf(bodyLink))).toEqual([])
+    expect(detectAll(rule, evidenceOf(bodyLink))).toEqual([])
   })
 
   it('does not apply without a canonical', () => {

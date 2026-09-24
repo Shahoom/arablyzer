@@ -1,6 +1,12 @@
 import { collectRobots, type RobotsFacts } from '@arablyzer/collectors'
 import { describe, expect, it } from 'vitest'
-import { evidenceOf, FIXTURE_ORIGIN, fixtureEvidence, htmlPage } from '../../../test/helpers'
+import {
+  detectAll,
+  evidenceOf,
+  FIXTURE_ORIGIN,
+  fixtureEvidence,
+  htmlPage,
+} from '../../../test/helpers'
 import { rule } from './rule'
 
 const ROBOTS_URL = `${FIXTURE_ORIGIN}/robots.txt`
@@ -11,7 +17,7 @@ const robots = (text: string, status = 200): RobotsFacts =>
     errorCode: null,
   })
 const detect = (facts: RobotsFacts, url = `${FIXTURE_ORIGIN}/products/oud`) =>
-  rule.detect(evidenceOf(htmlPage('<p>عود</p>', { url }), facts))
+  detectAll(rule, evidenceOf(htmlPage('<p>عود</p>', { url }), facts))
 
 describe('robots-blocks-googlebot', () => {
   it.each([
@@ -21,16 +27,16 @@ describe('robots-blocks-googlebot', () => {
   ])('fires on fixture %s with message %s', async (name, message) => {
     const evidence = await fixtureEvidence(rule.id, name)
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence).map((finding) => finding.message)).toEqual([message])
+    expect(detectAll(rule, evidence).map((finding) => finding.message)).toEqual([message])
   })
 
   it.each(['right', 'right-404'])('passes fixture %s', async (name) => {
     const evidence = await fixtureEvidence(rule.id, name)
-    expect(rule.detect(evidence)).toEqual([])
+    expect(detectAll(rule, evidence)).toEqual([])
   })
 
   it('points at the blocking line of robots.txt', async () => {
-    const [finding] = rule.detect(await fixtureEvidence(rule.id, 'wrong-googlebot'))
+    const [finding] = detectAll(rule, await fixtureEvidence(rule.id, 'wrong-googlebot'))
     expect(finding).toMatchObject({
       url: ROBOTS_URL,
       snippet: 'Disallow: /',

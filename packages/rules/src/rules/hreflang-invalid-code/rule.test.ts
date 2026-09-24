@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
+import { detectAll, evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
 import { rule } from './rule'
 
 const detect = (hreflang: string) =>
-  rule.detect(
+  detectAll(
+    rule,
     evidenceOf(
       htmlPage(
         `<html lang="ar" dir="rtl"><head><link rel="alternate" hreflang="${hreflang}" href="/x"></head><body>نص</body></html>`,
@@ -15,7 +16,7 @@ describe('hreflang-invalid-code', () => {
   it('fires once per invalid code on the wrong fixture', async () => {
     const evidence = await fixtureEvidence(rule.id, 'wrong')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    const findings = rule.detect(evidence)
+    const findings = detectAll(rule, evidence)
     expect(
       findings.map((finding) => [
         finding.message,
@@ -38,7 +39,7 @@ describe('hreflang-invalid-code', () => {
   it('checks hreflang in Link headers too', async () => {
     const evidence = await fixtureEvidence(rule.id, 'wrong-header')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([
+    expect(detectAll(rule, evidence)).toEqual([
       expect.objectContaining({
         message: 'underscore',
         values: expect.objectContaining({
@@ -54,7 +55,7 @@ describe('hreflang-invalid-code', () => {
   it('passes the right fixture', async () => {
     const evidence = await fixtureEvidence(rule.id, 'right')
     expect(rule.appliesTo(evidence.page)).toBe(true)
-    expect(rule.detect(evidence)).toEqual([])
+    expect(detectAll(rule, evidence)).toEqual([])
   })
 
   it.each([

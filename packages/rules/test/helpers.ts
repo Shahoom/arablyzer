@@ -8,7 +8,7 @@ import {
   type RobotsFacts,
 } from '@arablyzer/collectors'
 import { loadFixtureConfig, resolveFixtureResponse } from '@arablyzer/fixtures'
-import type { Evidence } from '../src/rule'
+import type { DetectorFinding, Evidence, Rule } from '../src/rule'
 
 /** Rule tests read fixtures without HTTP; the engine test serves the same sites for real. */
 export const FIXTURE_ORIGIN = 'http://fixture.test'
@@ -72,4 +72,12 @@ export function htmlPage(html: string, options: HtmlPageOptions = {}): PageFacts
 
 export function evidenceOf(page: PageFacts, robots?: RobotsFacts): Evidence {
   return robots === undefined ? { page } : { page, robots }
+}
+
+/** A detector's findings as an array; detectors may yield them lazily. */
+export function detectAll<M extends string>(
+  rule: Rule<M>,
+  evidence: Evidence,
+): DetectorFinding<M>[] {
+  return [...rule.detect(evidence)]
 }
