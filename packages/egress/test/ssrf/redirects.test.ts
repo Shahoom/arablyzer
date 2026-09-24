@@ -84,6 +84,8 @@ describe('--allow-private only for chains that start on a private address', () =
     })
     expect(result.response).toBeNull()
     expect(result.error?.code).toBe('port-not-allowed')
+    // A follow-up fetch for the same site (robots.txt) inherits the lockdown through this flag.
+    expect(result.privateAccess).toBe(false)
   })
 
   it('keeps private access when the chain starts on a private address', async () => {
@@ -103,6 +105,7 @@ describe('--allow-private only for chains that start on a private address', () =
       expect(Buffer.from(result.response?.body ?? new Uint8Array()).toString('utf8')).toBe(
         'local target',
       )
+      expect(result.privateAccess).toBe(true)
     } finally {
       await Promise.all([target.close(), start.close()])
     }

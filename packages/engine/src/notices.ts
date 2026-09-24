@@ -78,6 +78,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     ar: 'تعذّر فك ضغط الصفحة.',
     en: 'The page could not be decompressed.',
   },
+  'invalid-status': {
+    ar: 'ردّ الخادم برمز حالة HTTP غير صالح (ليس بين 100 و599)، فلم نقرأ الصفحة.',
+    en: 'The server answered with an invalid HTTP status code (not between 100 and 599), so the page was not read.',
+  },
   'robots-unchecked': {
     ar: 'تعذّر فحص robots.txt، فلم تُطبَّق القواعد التي تحتاجه.',
     en: 'robots.txt could not be checked, so the rules that need it did not run.',

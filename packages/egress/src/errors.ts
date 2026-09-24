@@ -15,6 +15,7 @@ export type EgressErrorCode =
   | 'invalid-redirect'
   | 'too-large'
   | 'decode-failed'
+  | 'invalid-status'
 
 export interface EgressError {
   readonly code: EgressErrorCode

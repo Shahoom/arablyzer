@@ -38,6 +38,7 @@ describe('safeFetch', () => {
     })
     const result = await fetchFrom(local)
     expect(result.error).toBeNull()
+    expect(result.privateAccess).toBe(false)
     expect(result.response?.status).toBe(200)
     expect(result.response?.headers.filter(([name]) => name === 'x-robots-tag')).toEqual([
       ['x-robots-tag', 'noindex'],
@@ -69,6 +70,16 @@ describe('safeFetch', () => {
       res.end(compress(Buffer.from('مرحبا بالعالم')))
     })
     expect(text((await fetchFrom(local)).response?.body)).toBe('مرحبا بالعالم')
+  })
+
+  it.each([600, 999])('reports the non-HTTP status %i as invalid-status', async (status) => {
+    const local = await serve((_req, res) => {
+      res.writeHead(status)
+      res.end('denied')
+    })
+    const result = await fetchFrom(local)
+    expect(result.response).toBeNull()
+    expect(result.error?.code).toBe('invalid-status')
   })
 
   it('reports a corrupt compressed body as decode-failed', async () => {
