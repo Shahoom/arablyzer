@@ -1,10 +1,11 @@
 import type { Rule } from './rule'
+import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
 export const RULESET_VERSION = '0.1.0'
 
 /** Every rule, sorted by id. */
-export const RULES: readonly Rule[] = []
+export const RULES: readonly Rule[] = [arHtmlLang]
 
 export function ruleById(id: string): Rule | undefined {
   return RULES.find((rule) => rule.id === id)
