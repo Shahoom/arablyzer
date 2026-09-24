@@ -21,6 +21,7 @@ export const rule = defineRule({
   detect: ({ page }) => (page.text?.segments ?? []).flatMap(findMarks),
 })
 
+/** One pass over the text, so a long text node costs no more than its length (M0.2 review). */
 function findMarks(segment: TextSegment): DetectorFinding<'latin-mark'>[] {
   if (segment.code) return []
   const { text } = segment
@@ -29,29 +30,40 @@ function findMarks(segment: TextSegment): DetectorFinding<'latin-mark'>[] {
   if (ARABIC_FORM[text.charAt(0)] !== undefined && ARABIC_LETTER_OR_MARK.test(segment.precededBy)) {
     positions.unshift(0)
   }
-  return positions
-    .filter((position) => !inUrl(text, position))
-    .map((position) => {
-      const found = text.charAt(position)
-      const snippet = context(text, position)
-      return {
-        message: 'latin-mark' as const,
-        values: { found, suggested: ARABIC_FORM[found] ?? found },
-        selector: segment.selector,
-        snippet,
-        ...(segment.location === null
-          ? {}
-          : { location: { line: segment.location.line + countNewlines(text.slice(0, position)) } }),
-        key: `${snippet}#${position}`,
-      }
+  const urls = urlWords(text)
+  const findings: DetectorFinding<'latin-mark'>[] = []
+  let url = 0
+  let scanned = 0
+  let newlines = 0
+  for (const position of positions) {
+    for (; scanned < position; scanned++) if (text.charCodeAt(scanned) === 10) newlines++
+    while (url < urls.length && (urls[url]?.end ?? 0) <= position) url++
+    // A mark inside a word that contains "/" belongs to a URL or a path: example.com/بحث?q=1
+    if ((urls[url]?.start ?? Number.POSITIVE_INFINITY) <= position) continue
+    const found = text.charAt(position)
+    const snippet = context(text, position)
+    findings.push({
+      message: 'latin-mark',
+      values: { found, suggested: ARABIC_FORM[found] ?? found },
+      selector: segment.selector,
+      snippet,
+      ...(segment.location === null
+        ? {}
+        : { location: { line: segment.location.line + newlines } }),
+      key: `${snippet}#${position}`,
     })
+  }
+  return findings
 }
 
-/** A mark inside a word that contains "/" belongs to a URL or a path, e.g. example.com/بحث?q=1. */
-function inUrl(text: string, position: number): boolean {
-  const start = text.slice(0, position).search(/\S*$/)
-  const end = text.slice(position).search(/\s|$/)
-  return text.slice(start, position + end).includes('/')
+/** [start, end) of each whitespace-separated word that contains "/", in text order. */
+function urlWords(text: string): { start: number; end: number }[] {
+  const words: { start: number; end: number }[] = []
+  for (const match of text.matchAll(/\S+/g)) {
+    if (match[0].includes('/'))
+      words.push({ start: match.index, end: match.index + match[0].length })
+  }
+  return words
 }
 
 function context(text: string, position: number): string {
@@ -59,8 +71,4 @@ function context(text: string, position: number): string {
   const end = Math.min(text.length, position + CONTEXT + 1)
   const snippet = text.slice(start, end).replace(/\s+/g, ' ').trim()
   return `${start > 0 ? '…' : ''}${snippet}${end < text.length ? '…' : ''}`
-}
-
-function countNewlines(text: string): number {
-  return text.split('\n').length - 1
 }

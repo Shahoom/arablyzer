@@ -147,3 +147,64 @@ describe('robotsPath and crawlerAccess', () => {
     ).toBeNull()
   })
 })
+
+describe('patternMatches on hostile robots.txt (M0.2 review)', () => {
+  /** Google's RobotsMatchStrategy::Matches, kept as the reference the fast matcher must agree with. */
+  function reference(path: string, pattern: string): boolean {
+    let positions = [0]
+    for (let p = 0; p < pattern.length; p++) {
+      const char = pattern.charAt(p)
+      if (char === '$' && p === pattern.length - 1) return positions.at(-1) === path.length
+      if (char === '*') {
+        const first = positions[0] ?? 0
+        positions = Array.from({ length: path.length - first + 1 }, (_, i) => first + i)
+        continue
+      }
+      const next: number[] = []
+      for (const position of positions) {
+        if (position < path.length && path.charAt(position) === char) next.push(position + 1)
+      }
+      if (next.length === 0) return false
+      positions = next
+    }
+    return true
+  }
+
+  it('agrees with Google’s algorithm on 20000 seeded random cases', () => {
+    let seed = 9309
+    const random = (limit: number) => {
+      seed = (seed * 1103515245 + 12345) % 2 ** 31
+      return seed % limit
+    }
+    const word = (alphabet: string, max: number) =>
+      Array.from({ length: random(max + 1) }, () => alphabet.charAt(random(alphabet.length))).join(
+        '',
+      )
+    for (let i = 0; i < 20_000; i++) {
+      const pattern = `/${word('ab/*$', 7)}`
+      const path = `/${word('ab/$', 7)}`
+      expect(patternMatches(path, pattern), `${pattern} vs ${path}`).toBe(reference(path, pattern))
+    }
+  })
+
+  it('matches long runs of * against long paths in linear time', () => {
+    const pattern = `/${'*'.repeat(16_643)}b`
+    const path = `/${'a'.repeat(2000)}`
+    const start = performance.now()
+    for (let i = 0; i < 13; i++) expect(patternMatches(path, pattern)).toBe(false)
+    expect(performance.now() - start).toBeLessThan(500)
+  })
+
+  it('checks a 500 KiB hostile robots.txt quickly, for every crawler', () => {
+    const line = `Disallow: /${'*'.repeat(16_643)}b\n`
+    const text = `User-agent: *\n${line.repeat(Math.floor((500 * 1024) / line.length))}`
+    const robots = parseRobotsTxt(new TextEncoder().encode(text))
+    const start = performance.now()
+    for (let i = 0; i < 13; i++) {
+      expect(
+        matchRobots(robots, 'Googlebot', `https://example.com/${'a'.repeat(2000)}`).allowed,
+      ).toBe(true)
+    }
+    expect(performance.now() - start).toBeLessThan(2000)
+  })
+})

@@ -76,7 +76,11 @@ const ARABIC_SCRIPT_REGIONS = new Set(['pa-pk', 'uz-af', 'az-ir'])
  * script. An explicit script subtag decides: `ms-Arab` is Arabic script, `ar-Latn` is not.
  */
 export function isArabicScriptLanguage(tag: string): boolean {
-  const subtags = tag.trim().toLowerCase().split(/[-_]/)
+  const all = tag.trim().toLowerCase().split(/[-_]/)
+  // A singleton (u-, t-, x-…) starts extensions or private use, which say nothing about the
+  // script of the text: ar-u-nu-latn is Arabic with Latin digits.
+  const singleton = all.findIndex((subtag, i) => i > 0 && subtag.length === 1)
+  const subtags = singleton === -1 ? all : all.slice(0, singleton)
   const [language = '', ...rest] = subtags
   const script = rest.find((subtag) => /^[a-z]{4}$/.test(subtag))
   if (script !== undefined) return script === 'arab'

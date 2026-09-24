@@ -55,25 +55,30 @@ export function robotsPath(url: string): string {
   )
 }
 
-/** Google's RobotsMatchStrategy::Matches: a set of candidate positions, linear in the path. */
+/**
+ * Whether a robots.txt path pattern matches a path, with Google's semantics: a prefix match,
+ * `*` for any run of characters, and a final `$` anchoring the end. Literal parts between the
+ * stars are found leftmost-first with indexOf, which is exact for `*`-only patterns and linear
+ * in practice, so a hostile robots.txt cannot stall a scan (M0.2 review).
+ */
 export function patternMatches(path: string, pattern: string): boolean {
-  let positions = [0]
-  for (let p = 0; p < pattern.length; p++) {
-    const char = pattern.charAt(p)
-    if (char === '$' && p === pattern.length - 1) return positions.at(-1) === path.length
-    if (char === '*') {
-      const first = positions[0] ?? 0
-      positions = Array.from({ length: path.length - first + 1 }, (_, i) => first + i)
-      continue
-    }
-    const next: number[] = []
-    for (const position of positions) {
-      if (position < path.length && path.charAt(position) === char) next.push(position + 1)
-    }
-    if (next.length === 0) return false
-    positions = next
+  const anchored = pattern.endsWith('$')
+  const parts = (anchored ? pattern.slice(0, -1) : pattern).split('*')
+  const first = parts[0] ?? ''
+  if (!path.startsWith(first)) return false
+  if (parts.length === 1) return !anchored || path.length === first.length
+  let position = first.length
+  const last = parts.length - 1
+  for (let i = 1; i < last; i++) {
+    const part = parts[i] ?? ''
+    if (part === '') continue
+    const found = path.indexOf(part, position)
+    if (found === -1) return false
+    position = found + part.length
   }
-  return true
+  const tail = parts[last] ?? ''
+  if (!anchored) return tail === '' || path.includes(tail, position)
+  return path.length - tail.length >= position && path.endsWith(tail)
 }
 
 export type CrawlerAccess =

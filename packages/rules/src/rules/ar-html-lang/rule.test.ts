@@ -68,6 +68,9 @@ describe('ar-html-lang', () => {
     'pa-PK',
     'uz-AF',
     'az-IR',
+    'ar-u-nu-latn',
+    'ar-t-en-latn',
+    'ar-x-latn',
   ])('accepts lang="%s"', (lang) => {
     expect(rule.detect(evidenceOf(page(`<html lang="${lang}" dir="rtl">`)))).toEqual([])
   })

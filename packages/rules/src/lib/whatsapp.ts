@@ -16,14 +16,17 @@ export function whatsAppNumber(url: string): string | null {
   }
   const web = parsed.protocol === 'https:' || parsed.protocol === 'http:'
   const host = parsed.hostname.toLowerCase().replace(/^www\./, '')
-  if (web && host === 'wa.me') {
-    const [first, second] = parsed.pathname.split('/').filter((segment) => segment !== '')
-    if (first === undefined || first === 'message' || first === 'qr') return null
-    if (first === 'c') return second === undefined ? null : decode(second)
-    return decode(first)
+  const segments = parsed.pathname.split('/').filter((segment) => segment !== '')
+  if (web && host === 'wa.me' && segments[0] !== 'send') {
+    const [first, second, third] = segments.map(decode)
+    // wa.me/c/<number> is a catalog, wa.me/p/<product id>/<number> a product; other words
+    // (message, qr, catalog, channel…) are links without a number.
+    const number = first === 'c' ? second : first === 'p' ? third : first
+    return number !== undefined && isPhoneLike(number) ? number : null
   }
   const send =
     (parsed.protocol === 'whatsapp:' && host === 'send') ||
+    (web && host === 'wa.me') ||
     (web && SEND_HOSTS.has(host) && /^\/send\/?$/.test(parsed.pathname))
   if (!send) return null
   const phone = queryParam(parsed.search, 'phone')
@@ -66,6 +69,14 @@ function canonical(digits: string): string | null {
   const parsed = parsePhoneNumberFromString(`+${digits}`)
   if (!parsed?.isPossible()) return null
   return `${parsed.countryCallingCode}${parsed.nationalNumber}`
+}
+
+/** Digits (any of the three sets) with the separators people type in phone numbers. */
+function isPhoneLike(value: string): boolean {
+  return (
+    /^[0-9\u0660-\u0669\u06f0-\u06f9+\-\s().]+$/.test(value) &&
+    /[0-9\u0660-\u0669\u06f0-\u06f9]/.test(value)
+  )
 }
 
 /** A query parameter with "+" kept as "+": people who type it mean the plus sign. */

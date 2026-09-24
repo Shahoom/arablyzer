@@ -47,6 +47,17 @@ describe('ar-latin-punctuation', () => {
     expect(new Set(findings.map((finding) => finding.key)).size).toBe(3)
   })
 
+  it('stays linear in the length of a text node (M0.2 review)', () => {
+    let start = performance.now()
+    expect(detect(`<p>${'ب'.repeat(100_000)} ب,</p>`)).toHaveLength(1)
+    expect(performance.now() - start).toBeLessThan(1000)
+    start = performance.now()
+    expect(detect(`<p>${'ب, '.repeat(20_000)}</p>`)).toHaveLength(20_000)
+    const noSpaces = detect(`<p>${'ب,'.repeat(20_000)}</p>`)
+    expect(noSpaces).toHaveLength(20_000)
+    expect(performance.now() - start).toBeLessThan(2000)
+  })
+
   it('does not apply to pages that are not mostly Arabic', () => {
     expect(rule.appliesTo(htmlPage('<p>The word مرحبا, means hello</p>'))).toBe(false)
   })

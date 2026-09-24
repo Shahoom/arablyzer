@@ -62,6 +62,8 @@ export function checkJson(text: string): JsonError | null {
       if (char !== '"') return unexpected(pos)
       const end = scanString(text, pos)
       if (typeof end !== 'number') return end
+      // A key follows the comma, so that comma was not trailing.
+      comma = -1
       pos = skipSpace(text, end)
       if (text.charAt(pos) !== ':') return unexpected(pos)
       pos = skipSpace(text, pos + 1)

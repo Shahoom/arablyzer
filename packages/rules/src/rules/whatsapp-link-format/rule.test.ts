@@ -55,6 +55,8 @@ describe('whatsapp-link-format', () => {
     ],
     ['https://web.whatsapp.com/send?phone=968-9123-4567', 'not-digits-only', '96891234567'],
     ['whatsapp://send?phone=+96891234567', 'not-digits-only', '96891234567'],
+    ['https://wa.me/p/5089023457814242/+96891234567', 'not-digits-only', '96891234567'],
+    ['https://wa.me/send?phone=0501234567', 'leading-zero', null],
   ])('%s → %s', (href, message, suggestion) => {
     const [finding] = detect(href)
     expect([finding?.message, finding?.values?.suggestion]).toEqual([message, suggestion])
@@ -66,6 +68,7 @@ describe('whatsapp-link-format', () => {
     'https://www.wa.me/966501234567/',
     'https://wa.me/390612345678',
     'https://api.whatsapp.com/send?phone=971501234567',
+    'https://wa.me/p/5089023457814242/966501234567',
   ])('accepts %s', (href) => {
     expect(detect(href)).toEqual([])
   })
@@ -75,6 +78,10 @@ describe('whatsapp-link-format', () => {
       'https://wa.me/',
       'https://wa.me/?text=hi',
       'https://wa.me/message/ABCDEF123',
+      'https://wa.me/p/5089023457814242',
+      'https://wa.me/catalog/966501234567',
+      'https://wa.me/channel/0029VaAbCdEf',
+      'https://wa.me/about',
       'https://chat.whatsapp.com/AbC',
       'https://api.whatsapp.com/send?text=hi',
     ]) {

@@ -107,3 +107,14 @@ describe('checkJson agrees with JSON.parse on mutated JSON-LD', () => {
     }
   })
 })
+
+describe('checkJson error positions (M0.2 review)', () => {
+  it('does not blame a comma that a key already followed', () => {
+    expect(checkJson('{"a":1,"b":]')).toMatchObject({
+      problem: 'unexpected-character',
+      offset: 11,
+      character: ']',
+    })
+    expect(checkJson('[1,{"b":]}]')).toMatchObject({ problem: 'unexpected-character', offset: 8 })
+  })
+})
