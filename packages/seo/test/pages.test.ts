@@ -214,6 +214,24 @@ describe('renderReportPage', () => {
     expect(ar).toContain('&lt;html lang=&quot;en&quot; onmouseover=&quot;alert(1)&quot;&gt;')
   })
 
+  it('names the evidence URL only when it is not the scanned page', () => {
+    expect(ar).toContain('<p><code dir="ltr">html[onload=alert(1)]</code> · السطر 2</p>')
+    const robots = report({
+      findings: [
+        {
+          ruleId: 'ar-html-lang',
+          severity: 'serious',
+          fingerprint: '0123456789abcdef',
+          message: { ar: 'ممنوع', en: 'blocked' },
+          evidence: { url: 'https://example.com/robots.txt', location: { line: 3 } },
+        },
+      ],
+    })
+    expect(renderReportPage(robots, 'en')).toContain(
+      '<p><span dir="ltr">https://example.com/robots.txt</span> · line 3</p>',
+    )
+  })
+
   it('links each problem to its rule page and counts the ones not shown', () => {
     expect(ar).toContain('<a href="/rules/ar-html-lang">لغة الصفحة</a>')
     expect(renderReportPage(report(), 'en')).toContain(

@@ -37,7 +37,7 @@ export function renderReportPage(report: Report, lang: Lang): string {
         '<article>',
         `<h3><a href="${localePath(lang, PATHS.rule(rule.id))}">${escapeHtml(rule.title[lang])}</a></h3>`,
         `<p>${escapeHtml(t.severity[rule.severity])}</p>`,
-        `<ul>${(byRule.get(rule.id) ?? []).map((finding) => `<li>${findingHtml(finding, lang)}</li>`).join('')}</ul>`,
+        `<ul>${(byRule.get(rule.id) ?? []).map((finding) => `<li>${findingHtml(finding, lang, target.finalUrl)}</li>`).join('')}</ul>`,
         ...(rule.findingsOmitted === undefined ? [] : [`<p>… +${rule.findingsOmitted}</p>`]),
         '</article>',
       ].join('\n'),
@@ -72,11 +72,12 @@ export function renderReportPage(report: Report, lang: Lang): string {
   return document(lang, head, body)
 }
 
-function findingHtml(finding: Finding, lang: Lang): string {
+/** The finding's evidence; its URL only when it is not the scanned page (robots.txt, say). */
+function findingHtml(finding: Finding, lang: Lang, pageUrl: string | null): string {
   const t = STRINGS[lang].report
   const { url, selector, location, snippet } = finding.evidence
   const where = [
-    ...(url === undefined ? [] : [`<span dir="ltr">${escapeHtml(url)}</span>`]),
+    ...(url === undefined || url === pageUrl ? [] : [`<span dir="ltr">${escapeHtml(url)}</span>`]),
     ...(selector === undefined ? [] : [`<code dir="ltr">${escapeHtml(selector)}</code>`]),
     ...(location === undefined ? [] : [`${escapeHtml(t.line)} ${location.line}`]),
   ]
