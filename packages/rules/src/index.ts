@@ -2,6 +2,7 @@ import type { Rule } from './rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
+import { rule as robotsBlocksAiSearch } from './rules/robots-blocks-ai-search/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
@@ -13,6 +14,7 @@ export const RULES: readonly Rule[] = [
   arHtmlLang,
   arLatinPunctuation,
   hreflangInvalidCode,
+  robotsBlocksAiSearch,
   rtlHtmlDir,
   whatsappLinkFormat,
 ]
