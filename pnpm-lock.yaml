@@ -146,6 +146,22 @@ importers:
         specifier: workspace:*
         version: link:../../fixtures
 
+  packages/tools:
+    dependencies:
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+    devDependencies:
+      '@arablyzer/collectors':
+        specifier: workspace:*
+        version: link:../collectors
+      '@arablyzer/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../rules
+
 packages:
 
   '@cacheable/memory@2.2.0':
