@@ -1,0 +1,7 @@
+{
+  "/": {
+    "headers": {
+      "link": "<https://example.com/sa/offers>; rel=\"alternate\"; hreflang=\"ar-SA\", <https://example.com/en/offers>; rel=\"alternate\"; hreflang=\"en_US\""
+    }
+  }
+}
