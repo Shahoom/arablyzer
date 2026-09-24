@@ -397,7 +397,7 @@ function ruleResult(
 }
 
 /** Rule statuses, and failed rules by severity. */
-function summarize(results: readonly RuleResult[]): Summary {
+export function summarize(results: readonly RuleResult[]): Summary {
   const count = (status: RuleStatus) => results.filter((result) => result.status === status).length
   const failed = results.filter((result) => result.status === 'fail')
   const bySeverity = { critical: 0, serious: 0, moderate: 0, minor: 0, info: 0 }
@@ -433,7 +433,8 @@ function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[]
   return notices
 }
 
-function pageSummary(page: PageFacts): Page | null {
+/** The report's `page`: the declared language and direction, and the text's dominant script. */
+export function pageSummary(page: PageFacts): Page | null {
   if (page.html === null || page.text === null) return null
   const dir = page.html.root.dir?.trim().toLowerCase() ?? null
   return {

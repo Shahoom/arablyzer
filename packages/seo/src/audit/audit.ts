@@ -19,6 +19,7 @@ export type AuditCheck =
   | 'own-rules'
   | 'reciprocal'
   | 'noindex'
+  | 'content'
 
 export interface AuditProblem {
   readonly check: AuditCheck

@@ -40,6 +40,8 @@ jobs:
         run: pnpm test:unit
       - name: E2E (built CLI over every fixture site)
         run: pnpm test:e2e
+      - name: SEO self-audit (every tool page and the report template)
+        run: pnpm seo:audit
       - name: Report schema drift
         run: pnpm schema:check
 

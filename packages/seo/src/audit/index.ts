@@ -7,3 +7,4 @@ export {
   type ExpectedPage,
   type PageProblem,
 } from './audit'
+export { auditSite, sampleReport, type RenderedPage, type SiteAudit } from './site'
