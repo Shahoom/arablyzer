@@ -14,3 +14,6 @@ export {
   type Lang,
   type Site,
 } from './site'
+export { renderReportPage } from './report-page'
+export { STRINGS, type PageStrings } from './strings'
+export { renderToolPage } from './tool-page'
