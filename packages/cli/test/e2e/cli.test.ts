@@ -106,4 +106,53 @@ describe('arablyzer (built bundle)', () => {
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^arablyzer: --timeout must be/)
   })
+
+  it('exits 1 only when a rule fails at --fail-on or above', async () => {
+    // ar-html-lang is serious; the fixture fails nothing else.
+    const site = await serveSite(`${RULES_DIR}ar-html-lang/fixtures/wrong`)
+    try {
+      const args = [site.url('/'), '--json', '--allow-private']
+      expect((await arablyzer(args)).code).toBe(0)
+      expect((await arablyzer([...args, '--fail-on', 'serious'])).code).toBe(1)
+      expect((await arablyzer([...args, '--fail-on', 'critical'])).code).toBe(0)
+    } finally {
+      await site.close()
+    }
+  })
+
+  it('runs only the rules named with --rules', async () => {
+    const site = await serveSite(`${RULES_DIR}robots-blocks-googlebot/fixtures/wrong`)
+    try {
+      const result = await arablyzer([
+        site.url('/'),
+        '--json',
+        '--allow-private',
+        '--rules',
+        'robots-blocks-googlebot,page-noindex',
+      ])
+      const report = JSON.parse(result.stdout) as { rules: { id: string; status: string }[] }
+      expect(report.rules.map((rule) => [rule.id, rule.status])).toEqual([
+        ['page-noindex', 'pass'],
+        ['robots-blocks-googlebot', 'fail'],
+      ])
+    } finally {
+      await site.close()
+    }
+  })
+
+  it('prints each failure with its evidence in the text report', async () => {
+    const site = await serveSite(`${RULES_DIR}whatsapp-link-format/fixtures/wrong`)
+    try {
+      const result = await arablyzer([site.url('/'), '--allow-private', '--lang', 'en'])
+      expect(result.stdout).toContain('✗ serious  whatsapp-link-format')
+      expect(result.stdout).toContain(
+        '• The WhatsApp link number "0501234567" starts with 0; write it in full international format, starting with the country code.',
+      )
+      expect(result.stdout).toMatch(
+        /body > main > ul > li:nth-of-type\(2\) > a · line 14 · <a href="https:\/\/wa\.me\/0501234567">/,
+      )
+    } finally {
+      await site.close()
+    }
+  })
 })
