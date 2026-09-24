@@ -10,12 +10,14 @@ const { values } = parseArgs({ options: { out: { type: 'string' } } })
 const { pages, problems } = auditSite()
 
 if (values.out !== undefined) {
+  // pnpm runs package scripts in the package; INIT_CWD is where the command was typed.
+  const out = path.resolve(process.env.INIT_CWD ?? process.cwd(), values.out)
   for (const page of pages) {
-    const file = path.join(values.out, page.file)
+    const file = path.join(out, page.file)
     await mkdir(path.dirname(file), { recursive: true })
     await writeFile(file, page.html)
   }
-  console.log(`Wrote ${pages.length} pages to ${values.out}`)
+  console.log(`Wrote ${pages.length} pages to ${out}`)
 }
 
 if (problems.length > 0) {
