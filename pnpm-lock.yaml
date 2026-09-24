@@ -48,6 +48,34 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
+  packages/cli:
+    dependencies:
+      '@arablyzer/egress':
+        specifier: workspace:*
+        version: link:../egress
+      '@arablyzer/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../rules
+    devDependencies:
+      '@arablyzer/fixtures':
+        specifier: workspace:*
+        version: link:../../fixtures
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.20.0)
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+
   packages/collectors:
     dependencies:
       parse5:

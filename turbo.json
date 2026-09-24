@@ -3,6 +3,7 @@
   "tasks": {
     "typecheck": {},
     "test": {},
-    "test:ssrf": {}
+    "test:ssrf": {},
+    "test:e2e": {}
   }
 }

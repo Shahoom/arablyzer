@@ -15,8 +15,11 @@
     "test": "turbo run test test:ssrf",
     "test:unit": "turbo run test",
     "test:ssrf": "turbo run test:ssrf",
+    "test:e2e": "turbo run test:e2e",
     "schema:gen": "pnpm --filter @arablyzer/report-schema run schema:gen",
-    "schema:check": "pnpm run schema:gen && git diff --exit-code -- packages/report-schema/report.schema.json"
+    "schema:check": "pnpm run schema:gen && git diff --exit-code -- packages/report-schema/report.schema.json",
+    "arablyzer": "tsx packages/cli/src/main.ts",
+    "copy:review": "pnpm --filter @arablyzer/rules run copy:review"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

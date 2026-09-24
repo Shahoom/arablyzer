@@ -1,0 +1,28 @@
+{
+  "name": "@arablyzer/cli",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "bin": {
+    "arablyzer": "./dist/arablyzer.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsx scripts/build.ts",
+    "test": "vitest run test/unit",
+    "test:e2e": "tsx scripts/build.ts && vitest run test/e2e"
+  },
+  "dependencies": {
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/engine": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/rules": "workspace:*"
+  },
+  "devDependencies": {
+    "@arablyzer/fixtures": "workspace:*",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "esbuild": "^0.28.2"
+  }
+}
