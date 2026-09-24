@@ -4,6 +4,6 @@ export const tool = defineTool({
   slug: 'whatsapp-link-check',
   category: 'forms',
   rules: ['whatsapp-link-format'],
-  related: ['rtl-check'],
+  related: ['rtl-check', 'ai-crawler-check'],
   updated: '2026-09-24',
 })
