@@ -94,10 +94,18 @@ const LETTER = /\p{L}/gu
 const ARABIC = /\p{Script=Arabic}/u
 const LATIN = /\p{Script=Latin}/u
 
+interface Frame {
+  readonly element: Element
+  next: number
+  readonly code: boolean
+  readonly inline: boolean
+}
+
 /**
  * Visible text of <body> in the raw HTML: no scripts, styles, templates, `hidden` elements or
  * inline `display: none`. CSS from stylesheets is not applied until the browser collectors
- * (Phase 1), so text hidden by classes still counts.
+ * (Phase 1), so text hidden by classes still counts. Walks the tree with its own stack, so deep
+ * nesting cannot exhaust the call stack.
  */
 export function collectText(index: DocumentIndex): TextFacts {
   const body = findBody(index)
@@ -105,35 +113,46 @@ export function collectText(index: DocumentIndex): TextFacts {
   const counts = { arabic: 0, latin: 0, other: 0 }
   let lastChar = ''
 
-  const visit = (element: Element, code: boolean) => {
-    for (const child of element.childNodes) {
-      if (child.nodeName === '#text' && 'value' in child) {
-        const text = child.value
-        if (text.trim() !== '') {
-          segments.push({
-            text,
-            precededBy: lastChar,
-            selector: index.selector(element),
-            location: locationOf(child),
-            code,
-          })
-          for (const [letter] of text.matchAll(LETTER)) {
-            if (ARABIC.test(letter)) counts.arabic++
-            else if (LATIN.test(letter)) counts.latin++
-            else counts.other++
-          }
-        }
-        lastChar = text.at(-1) ?? lastChar
-        continue
-      }
-      if (!isElement(child) || isHidden(child)) continue
-      const inline = INLINE_TAGS.has(child.tagName)
-      if (!inline) lastChar = ''
-      visit(child, code || CODE_TAGS.has(child.tagName))
-      if (!inline) lastChar = ''
+  const stack: Frame[] =
+    body === null ? [] : [{ element: body, next: 0, code: false, inline: false }]
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1]
+    if (frame === undefined) break
+    const child = frame.element.childNodes[frame.next++]
+    if (child === undefined) {
+      stack.pop()
+      if (!frame.inline) lastChar = ''
+      continue
     }
+    if (child.nodeName === '#text' && 'value' in child) {
+      const text = child.value
+      if (text.trim() !== '') {
+        segments.push({
+          text,
+          precededBy: lastChar,
+          selector: index.selector(frame.element),
+          location: locationOf(child),
+          code: frame.code,
+        })
+        for (const [letter] of text.matchAll(LETTER)) {
+          if (ARABIC.test(letter)) counts.arabic++
+          else if (LATIN.test(letter)) counts.latin++
+          else counts.other++
+        }
+      }
+      lastChar = text.at(-1) ?? lastChar
+      continue
+    }
+    if (!isElement(child) || isHidden(child)) continue
+    const inline = INLINE_TAGS.has(child.tagName)
+    if (!inline) lastChar = ''
+    stack.push({
+      element: child,
+      next: 0,
+      code: frame.code || CODE_TAGS.has(child.tagName),
+      inline,
+    })
   }
-  if (body !== null) visit(body, false)
 
   const total = counts.arabic + counts.latin + counts.other
   return {

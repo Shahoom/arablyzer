@@ -161,6 +161,30 @@ describe('collectPage: edge cases', () => {
     ])
   })
 
+  it('ignores a <base> whose URL is data: or javascript:, as HTML does', () => {
+    for (const href of ['javascript:void(0)', 'data:text/html,x']) {
+      expect(htmlOf(page(`<base href="${href}"><a href="/x">x</a>`)).baseUrl).toBe(URL)
+    }
+  })
+
+  it('reads xml:lang on XHTML pages only', () => {
+    const xhtml = collectPage({
+      url: URL,
+      status: 200,
+      headers: [['content-type', 'application/xhtml+xml']],
+      body: utf8('<html xml:lang="ar"><body><p>مرحبا</p></body></html>'),
+    })
+    expect(htmlOf(xhtml).root.lang).toBe('ar')
+    expect(
+      htmlOf(page('<html xml:lang="ar"><body><p>مرحبا</p></body></html>')).root.lang,
+    ).toBeNull()
+  })
+
+  it('takes the title from the HTML <title>, not an SVG one', () => {
+    const html = htmlOf(page('<body><svg><title>أيقونة</title></svg></body>'))
+    expect(html.title).toBeNull()
+  })
+
   it('decodes a windows-1256 page declared in the header', () => {
     const body = concat(utf8('<p>'), encodeSingleByte('العربية', 'windows-1256'), utf8('</p>'))
     const facts = collectPage({

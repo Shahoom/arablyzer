@@ -227,8 +227,13 @@ function isSpace(char: string): boolean {
   return ' \t\n\v\f\r'.includes(char)
 }
 
+/** Index loops, not a regex: `\s+$` backtracks quadratically on long runs of spaces. */
 function trim(value: string): string {
-  return value.replace(/^[ \t\n\v\f\r]+|[ \t\n\v\f\r]+$/g, '')
+  let start = 0
+  let end = value.length
+  while (start < end && isSpace(value.charAt(start))) start++
+  while (end > start && isSpace(value.charAt(end - 1))) end--
+  return value.slice(start, end)
 }
 
 /** Byte strings back to text for display; invalid UTF-8 shows as U+FFFD. */

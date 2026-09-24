@@ -1,12 +1,13 @@
 import {
   attr,
   collapseWhitespace,
-  elements,
   isElement,
+  isHtmlElement,
   locationOf,
   type DocumentIndex,
   type Element,
   type ElementRef,
+  type Node,
   type SourceLocation,
 } from './dom'
 import type { EncodingInfo } from './encoding'
@@ -70,19 +71,25 @@ export interface HtmlFacts {
   readonly scripts: readonly ScriptElement[]
 }
 
+export interface HtmlOptions {
+  /** application/xhtml+xml: there, xml:lang declares the language too. */
+  readonly xhtml?: boolean
+}
+
 export function collectHtml(
   index: DocumentIndex,
   pageUrl: string,
   encoding: EncodingInfo,
+  options: HtmlOptions = {},
 ): HtmlFacts {
-  const all = [...elements(index.document)]
+  const all = index.elements
   const root = all.find((element) => element.tagName === 'html')
   if (root === undefined) throw new Error('parse5 always creates an <html> element')
-  const head = all.find((element) => element.tagName === 'head')
-  const body = all.find((element) => element.tagName === 'body')
-  const inHead = (element: Element) => head !== undefined && isInside(element, head)
+  const body = all.find((element) => isHtmlElement(element, 'body'))
+  const inHead = (element: Element) => index.inHead(element)
   const baseUrl = documentBaseUrl(all, pageUrl)
-  const titleElement = all.find((element) => element.tagName === 'title')
+  // The document's title is its first title element in the HTML namespace, not an SVG <title>.
+  const titleElement = all.find((element) => isHtmlElement(element, 'title'))
 
   const metas: MetaElement[] = []
   const links: LinkElement[] = []
@@ -144,8 +151,8 @@ export function collectHtml(
   return {
     encoding,
     baseUrl,
-    root: rootElement(index, root),
-    body: body === undefined ? null : rootElement(index, body),
+    root: rootElement(index, root, options.xhtml === true),
+    body: body === undefined ? null : rootElement(index, body, options.xhtml === true),
     title: titleElement === undefined ? null : collapseWhitespace(textOf(titleElement)),
     metas,
     links,
@@ -154,33 +161,37 @@ export function collectHtml(
   }
 }
 
-function rootElement(index: DocumentIndex, element: Element): RootElement {
-  return { ...index.ref(element), lang: attr(element, 'lang'), dir: attr(element, 'dir') }
+function rootElement(index: DocumentIndex, element: Element, xhtml: boolean): RootElement {
+  // In XHTML documents xml:lang sets the language when lang is absent; in text/html it does not.
+  const lang = attr(element, 'lang') ?? (xhtml ? attr(element, 'xml:lang') : null)
+  return { ...index.ref(element), lang, dir: attr(element, 'dir') }
 }
 
-/** HTML: the frozen base URL comes from the first <base> with an href, resolved against the page URL. */
+/**
+ * HTML "set the frozen base URL": the first <base> with an href, resolved against the page URL,
+ * unless that fails or gives a data: or javascript: URL, which fall back to the page URL.
+ */
 function documentBaseUrl(all: readonly Element[], pageUrl: string): string {
   const base = all.find((element) => element.tagName === 'base' && attr(element, 'href') !== null)
   const href = base === undefined ? null : attr(base, 'href')
-  return (href === null ? null : resolve(href, pageUrl)) ?? pageUrl
+  const resolved = href === null ? null : resolve(href, pageUrl)
+  if (resolved === null) return pageUrl
+  const scheme = new URL(resolved).protocol
+  return scheme === 'data:' || scheme === 'javascript:' ? pageUrl : resolved
 }
 
-function isInside(element: Element, ancestor: Element): boolean {
-  for (
-    let node = element.parentNode;
-    node !== null;
-    node = 'parentNode' in node ? node.parentNode : null
-  ) {
-    if (node === ancestor) return true
-  }
-  return false
-}
-
+/** Descendant text in document order, with an explicit stack. */
 function textOf(element: Element): string {
   let text = ''
-  for (const child of element.childNodes) {
-    if (child.nodeName === '#text' && 'value' in child) text += child.value
-    else if (isElement(child)) text += textOf(child)
+  const stack: Node[] = [...element.childNodes].reverse()
+  for (let node = stack.pop(); node !== undefined; node = stack.pop()) {
+    if (node.nodeName === '#text' && 'value' in node) text += node.value
+    else if (isElement(node)) {
+      for (let i = node.childNodes.length - 1; i >= 0; i--) {
+        const child = node.childNodes[i]
+        if (child !== undefined) stack.push(child)
+      }
+    }
   }
   return text
 }

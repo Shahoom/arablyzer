@@ -1,5 +1,5 @@
-import { parse } from 'parse5'
-import { DocumentIndex } from './dom'
+import { defaultTreeAdapter, parse, type DefaultTreeAdapterMap, type TreeAdapter } from 'parse5'
+import { DocumentIndex, type Document } from './dom'
 import { decodeHtml } from './encoding'
 import { collectHtml, type HtmlFacts } from './html'
 import { parseLinkHeader, type LinkHeaderEntry } from './link-header'
@@ -27,16 +27,33 @@ export interface PageFacts {
   readonly mimeType: string | null
   readonly isHtml: boolean
   readonly linkHeaders: readonly LinkHeaderEntry[]
-  /** null unless the response is HTML. */
+  /** null unless the response is HTML (and was parsed before the deadline). */
   readonly html: HtmlFacts | null
   readonly text: TextFacts | null
+  /** Only the first HTML_PARSE_LIMIT bytes were parsed. */
+  readonly htmlTruncated: boolean
+  /** Parsing stopped at the deadline, so html and text are null. */
+  readonly htmlTimedOut: boolean
 }
+
+export interface CollectOptions {
+  /** performance.now() time by which HTML parsing must finish. */
+  readonly deadline?: number
+  /** Bytes of HTML to parse; the rest is ignored. Default HTML_PARSE_LIMIT. */
+  readonly maxHtmlBytes?: number
+}
+
+/**
+ * Googlebot reads the first 15 MB of an HTML file and ignores the rest, so Arablyzer parses no
+ * more either; it also bounds parse5's memory, which grows to many times the input.
+ */
+export const HTML_PARSE_LIMIT = 15 * 1024 * 1024
 
 export function headerValues(headers: readonly Header[], name: string): string[] {
   return headers.filter(([key]) => key === name).map(([, value]) => value)
 }
 
-export function collectPage(input: PageInput): PageFacts {
+export function collectPage(input: PageInput, options: CollectOptions = {}): PageFacts {
   const contentType =
     headerValues(input.headers, 'content-type').findLast((value) => value.trim() !== '') ?? null
   const mimeType = contentType === null ? null : essence(contentType)
@@ -56,12 +73,58 @@ export function collectPage(input: PageInput): PageFacts {
     isHtml,
     linkHeaders,
   }
-  if (!isHtml) return { ...base, html: null, text: null }
+  if (!isHtml) return { ...base, html: null, text: null, htmlTruncated: false, htmlTimedOut: false }
 
-  const { text: source, encoding } = decodeHtml(input.body, contentType)
-  const document = parse(source, { sourceCodeLocationInfo: true })
+  const limit = options.maxHtmlBytes ?? HTML_PARSE_LIMIT
+  const htmlTruncated = input.body.length > limit
+  const { text: source, encoding } = decodeHtml(
+    htmlTruncated ? input.body.subarray(0, limit) : input.body,
+    contentType,
+  )
+  const deadline = options.deadline ?? Number.POSITIVE_INFINITY
+  let document: Document
+  try {
+    document = parse(source, {
+      sourceCodeLocationInfo: true,
+      treeAdapter: timedTreeAdapter(deadline),
+    })
+  } catch (error) {
+    if (!(error instanceof ParseTimeout)) throw error
+    return { ...base, html: null, text: null, htmlTruncated, htmlTimedOut: true }
+  }
   const index = new DocumentIndex(document, source)
-  return { ...base, html: collectHtml(index, input.url, encoding), text: collectText(index) }
+  return {
+    ...base,
+    html: collectHtml(index, input.url, encoding, { xhtml: mimeType === 'application/xhtml+xml' }),
+    text: collectText(index),
+    htmlTruncated,
+    htmlTimedOut: false,
+  }
+}
+
+class ParseTimeout extends Error {}
+
+/**
+ * parse5's default tree, with a clock check on every element and text insertion: parse5 can be
+ * quadratic in nesting depth, so a hostile page is cut off at the deadline instead of stalling
+ * the scan.
+ */
+function timedTreeAdapter(deadline: number): TreeAdapter<DefaultTreeAdapterMap> {
+  if (deadline === Number.POSITIVE_INFINITY) return defaultTreeAdapter
+  const check = () => {
+    if (performance.now() > deadline) throw new ParseTimeout('HTML parsing ran out of time')
+  }
+  return {
+    ...defaultTreeAdapter,
+    createElement: (tagName, namespaceURI, attrs) => {
+      check()
+      return defaultTreeAdapter.createElement(tagName, namespaceURI, attrs)
+    },
+    insertText: (parentNode, text) => {
+      check()
+      defaultTreeAdapter.insertText(parentNode, text)
+    },
+  }
 }
 
 function essence(contentType: string): string | null {
