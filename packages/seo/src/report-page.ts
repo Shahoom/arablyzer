@@ -35,7 +35,7 @@ export function renderReportPage(report: Report, lang: Lang): string {
     .map((rule) =>
       [
         '<article>',
-        `<h3><a href="${localePath(lang, PATHS.rule(rule.id))}">${escapeHtml(rule.title[lang])}</a></h3>`,
+        `<h3><a href="${escapeHtml(localePath(lang, PATHS.rule(rule.id)))}">${escapeHtml(rule.title[lang])}</a></h3>`,
         `<p>${escapeHtml(t.severity[rule.severity])}</p>`,
         `<ul>${(byRule.get(rule.id) ?? []).map((finding) => `<li>${findingHtml(finding, lang, target.finalUrl)}</li>`).join('')}</ul>`,
         ...(rule.findingsOmitted === undefined ? [] : [`<p>… +${rule.findingsOmitted}</p>`]),
