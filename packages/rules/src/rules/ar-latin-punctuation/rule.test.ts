@@ -58,6 +58,15 @@ describe('ar-latin-punctuation', () => {
     expect(performance.now() - start).toBeLessThan(2000)
   })
 
+  it('yields marks lazily, so a page with millions of them cannot exhaust memory', () => {
+    const evidence = evidenceOf(htmlPage(`<html lang="ar"><body><p>${'ب,'.repeat(200_000)}</p>`))
+    const findings = rule.detect(evidence)
+    expect(Array.isArray(findings)).toBe(false)
+    const first = findings[Symbol.iterator]().next()
+    if (first.done === true) throw new Error('expected a finding')
+    expect(first.value.values).toEqual({ found: ',', suggested: '،' })
+  })
+
   it('does not apply to pages that are not mostly Arabic', () => {
     expect(rule.appliesTo(htmlPage('<p>The word مرحبا, means hello</p>'))).toBe(false)
   })

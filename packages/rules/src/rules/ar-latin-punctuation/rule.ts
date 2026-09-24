@@ -18,31 +18,28 @@ export const rule = defineRule({
   needs: ['text'],
   messages: ['latin-mark'],
   appliesTo: isMostlyArabic,
-  detect: ({ page }) => (page.text?.segments ?? []).flatMap(findMarks),
+  // Lazily: a page can hold millions of marks, and only the first few are reported.
+  detect: function* ({ page }) {
+    for (const segment of page.text?.segments ?? []) yield* findMarks(segment)
+  },
 })
 
 /** One pass over the text, so a long text node costs no more than its length (M0.2 review). */
-function findMarks(segment: TextSegment): DetectorFinding<'latin-mark'>[] {
-  if (segment.code) return []
+function* findMarks(segment: TextSegment): Generator<DetectorFinding<'latin-mark'>> {
+  if (segment.code) return
   const { text } = segment
-  const positions = [...text.matchAll(LATIN_MARK)].map((match) => match.index + match[0].length - 1)
-  // A mark at the start of this text can follow an Arabic word in an inline element: <b>نص</b>,
-  if (ARABIC_FORM[text.charAt(0)] !== undefined && ARABIC_LETTER_OR_MARK.test(segment.precededBy)) {
-    positions.unshift(0)
-  }
-  const urls = urlWords(text)
-  const findings: DetectorFinding<'latin-mark'>[] = []
-  let url = 0
+  const words = urlWords(text)
+  let word = words.next()
   let scanned = 0
   let newlines = 0
-  for (const position of positions) {
+  for (const position of markPositions(segment)) {
     for (; scanned < position; scanned++) if (text.charCodeAt(scanned) === 10) newlines++
-    while (url < urls.length && (urls[url]?.end ?? 0) <= position) url++
+    while (!word.done && word.value.end <= position) word = words.next()
     // A mark inside a word that contains "/" belongs to a URL or a path: example.com/بحث?q=1
-    if ((urls[url]?.start ?? Number.POSITIVE_INFINITY) <= position) continue
+    if (!word.done && word.value.start <= position) continue
     const found = text.charAt(position)
     const snippet = context(text, position)
-    findings.push({
+    yield {
       message: 'latin-mark',
       values: { found, suggested: ARABIC_FORM[found] ?? found },
       selector: segment.selector,
@@ -51,19 +48,25 @@ function findMarks(segment: TextSegment): DetectorFinding<'latin-mark'>[] {
         ? {}
         : { location: { line: segment.location.line + newlines } }),
       key: `${snippet}#${position}`,
-    })
+    }
   }
-  return findings
+}
+
+/** Where the Latin marks that follow Arabic letters are, in text order. */
+function* markPositions(segment: TextSegment): Generator<number> {
+  const { text } = segment
+  // A mark at the start of this text can follow an Arabic word in an inline element: <b>نص</b>,
+  if (ARABIC_FORM[text.charAt(0)] !== undefined && ARABIC_LETTER_OR_MARK.test(segment.precededBy)) {
+    yield 0
+  }
+  for (const match of text.matchAll(LATIN_MARK)) yield match.index + match[0].length - 1
 }
 
 /** [start, end) of each whitespace-separated word that contains "/", in text order. */
-function urlWords(text: string): { start: number; end: number }[] {
-  const words: { start: number; end: number }[] = []
+function* urlWords(text: string): Generator<{ start: number; end: number }> {
   for (const match of text.matchAll(/\S+/g)) {
-    if (match[0].includes('/'))
-      words.push({ start: match.index, end: match.index + match[0].length })
+    if (match[0].includes('/')) yield { start: match.index, end: match.index + match[0].length }
   }
-  return words
 }
 
 function context(text: string, position: number): string {
