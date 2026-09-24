@@ -1,0 +1,24 @@
+{
+  "name": "@arablyzer/seo",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./audit": "./src/audit/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "seo:audit": "tsx scripts/self-audit.ts"
+  },
+  "dependencies": {
+    "@arablyzer/collectors": "workspace:*",
+    "@arablyzer/engine": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/rules": "workspace:*",
+    "@arablyzer/tools": "workspace:*",
+    "parse5": "^8.0.1"
+  }
+}
