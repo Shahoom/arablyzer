@@ -32,9 +32,9 @@ Remove `letter-spacing` from Arabic text. When a shared style needs it for Latin
 ## How we detect
 
 1. We render the page in a browser and find the elements whose own text has Arabic letters.
-2. For each one with a `letter-spacing` other than zero, we measure its longest Arabic word with and without that spacing, in the same font. When the width changes, the engine drew the spacing.
+2. For each one with a `letter-spacing` above zero, we measure its longest Arabic word with and without that spacing, in the same font. When the width changes, the engine drew the spacing.
 3. The rule fails when an engine drew the spacing. When the engines we rendered left it out and WebKit was not one of them, it fails too, because in our tests WebKit drew such spacing. When WebKit rendered the page and left the spacing out, the rule passes.
-4. Words of a single letter have no joins, so they do not count.
+4. Words of a single letter have no joins, so they do not count. Nor does negative spacing: it draws the letters closer, and they overlap but stay joined.
 
 ## References
 

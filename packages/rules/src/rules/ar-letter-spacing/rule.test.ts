@@ -58,13 +58,14 @@ describe('ar-letter-spacing', () => {
     ).toEqual([])
   })
 
-  it('counts negative spacing too, which pushes the letters into each other', () => {
+  it('leaves negative spacing out: the letters draw closer but stay joined (M1.1 review)', () => {
+    // Tailwind's tracking-tight, common on headings: -0.025em.
     expect(
       detectAll(
         rule,
-        renderedEvidence([renderedFacts('webkit', { arabicText: [spaced(true, -2)] })]),
+        renderedEvidence([renderedFacts('webkit', { arabicText: [spaced(true, -0.8)] })]),
       ),
-    ).toMatchObject([{ message: 'drawn', values: { letterSpacing: -2 } }])
+    ).toEqual([])
   })
 
   it('ignores text without spacing, and words too short to have joins', () => {

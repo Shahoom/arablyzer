@@ -21,8 +21,9 @@ export const rule = defineRule({
     const spaced = new Sightings<ArabicTextBlock>()
     for (const facts of rendered) {
       for (const block of facts.arabicText) {
-        // null: no word of two letters or more, so there are no joins to break.
-        if (block.letterSpacing === 0 || block.letterSpacingApplied === null) continue
+        // null: no word of two letters or more, so there are no joins to break. Negative spacing
+        // draws the letters closer; they overlap but stay joined (M1.1 review).
+        if (block.letterSpacing <= 0 || block.letterSpacingApplied === null) continue
         spaced.add(block.selector, facts.engine, block)
       }
     }
