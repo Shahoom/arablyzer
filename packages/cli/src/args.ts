@@ -76,6 +76,15 @@ export function parseCliArgs(
       )
     }
   }
+  // Some rules read what only one engine reports (Chromium: the fonts that drew a text).
+  for (const rule of RULES) {
+    if (render === null || ids?.includes(rule.id) !== true) continue
+    const readable = rule.renderEngines
+    if (readable?.some((engine) => render.engines.includes(engine)) ?? true) continue
+    throw new UsageError(
+      `${rule.id} reads what only ${(readable ?? []).join(' or ')} reports: add it to --engines`,
+    )
+  }
   return {
     ...base,
     url: withScheme(positionals[0] ?? ''),

@@ -3,6 +3,7 @@ import type { RenderOutcome } from '@arablyzer/browser'
 import {
   collectPage,
   collectRobots,
+  ENGINES,
   headerValues,
   type Engine,
   type PageFacts,
@@ -135,10 +136,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     throw new TypeError(`parseTimeoutMs must be a positive number, got ${String(parseTimeoutMs)}`)
   }
   const started = performance.now()
-  const { rules, renderSkipped } = chooseRules(
+  const { rules, renderSkipped, engineSkipped } = chooseRules(
     options.rules ?? RULES,
     options.ruleIds,
-    options.render !== undefined,
+    options.render?.engines,
   )
   const userAgent = options.userAgent ?? USER_AGENT
   const policy = options.policy ?? DEFAULT_POLICY
@@ -241,6 +242,13 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   const notices = [
     ...pageNotices(page, robots),
     ...(renderSkipped ? [notice('render-skipped')] : []),
+    ...(engineSkipped.length > 0
+      ? [
+          notice('render-engine-skipped', {
+            engines: engineSkipped.map((engine) => ENGINE_NAMES[engine]).join(', '),
+          }),
+        ]
+      : []),
     ...(rendering?.notices ?? []),
   ]
   const { results, findings } = evaluateRules(rules, page, robots, rendering?.rendered)
@@ -259,23 +267,47 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   })
 }
 
-/** Rules for a scan: without rendering, those that need it are left out, or refused by id. */
+/**
+ * Rules for a scan. Without rendering, those that need it are left out; with it, so are those
+ * that read only engines the scan does not render in (Chromium alone reports used fonts).
+ * Named by id, either kind is refused instead.
+ */
 function chooseRules(
   all: readonly Rule[],
   ids: readonly string[] | undefined,
-  rendering: boolean,
-): { rules: Rule[]; renderSkipped: boolean } {
+  engines: readonly Engine[] | undefined,
+): { rules: Rule[]; renderSkipped: boolean; engineSkipped: Engine[] } {
   const selected = selectRules(all, ids)
-  if (rendering) return { rules: selected, renderSkipped: false }
   const needRender = selected.filter((rule) => rule.needs.includes('render'))
-  if (ids !== undefined && needRender.length > 0) {
+  if (engines === undefined) {
+    if (ids !== undefined && needRender.length > 0) {
+      throw new TypeError(
+        `These rules need the page rendered in a browser: ${needRender.map((rule) => rule.id).join(', ')}`,
+      )
+    }
+    return {
+      rules: selected.filter((rule) => !needRender.includes(rule)),
+      renderSkipped: needRender.length > 0,
+      engineSkipped: [],
+    }
+  }
+  const unread = needRender.filter(
+    (rule) =>
+      rule.renderEngines !== undefined &&
+      !rule.renderEngines.some((engine) => engines.includes(engine)),
+  )
+  if (ids !== undefined && unread.length > 0) {
     throw new TypeError(
-      `These rules need the page rendered in a browser: ${needRender.map((rule) => rule.id).join(', ')}`,
+      `These rules read engines this scan does not render in: ${unread
+        .map((rule) => `${rule.id} (${(rule.renderEngines ?? []).join(', ')})`)
+        .join(', ')}`,
     )
   }
+  const engineSkipped = [...new Set(unread.flatMap((rule) => rule.renderEngines ?? []))]
   return {
-    rules: selected.filter((rule) => !needRender.includes(rule)),
-    renderSkipped: needRender.length > 0,
+    rules: selected.filter((rule) => !unread.includes(rule)),
+    renderSkipped: false,
+    engineSkipped,
   }
 }
 
@@ -386,10 +418,11 @@ export interface Evaluation {
  * fetched the page. The SEO self-audit uses it on rendered pages.
  */
 export function evaluatePage(page: PageFacts, options: EvaluateOptions = {}): Evaluation {
+  // Every engine counts as asked for: a rule whose engines did not render reports an error.
   const { rules } = chooseRules(
     options.rules ?? RULES,
     options.ruleIds,
-    options.rendered !== undefined,
+    options.rendered === undefined ? undefined : ENGINES,
   )
   return evaluateRules(rules, page, options.robots, options.rendered)
 }

@@ -97,6 +97,11 @@ describe('parseCliArgs', () => {
     [['x.test', '--rules', 'nope'], /unknown rule id: nope/],
     [['x.test', '--rules', ' , '], /at least one rule id/],
     [['x.test', '--bogus'], /Unknown option '--bogus'/],
+    [['x.test', '--rules', 'ar-letter-spacing'], /ar-letter-spacing need the page rendered/],
+    [
+      ['x.test', '--rules', 'ar-font-no-arabic', '--engines', 'firefox'],
+      /ar-font-no-arabic reads what only chromium reports: add it to --engines/,
+    ],
     [['x.test', '--engines', 'edge'], /unknown engine: edge/],
     [['x.test', '--engines', ' , '], /at least one engine/],
     [['x.test', '--screenshots', ''], /--screenshots needs a directory/],

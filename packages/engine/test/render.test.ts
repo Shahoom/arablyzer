@@ -158,4 +158,29 @@ describe('a scan asked to render', () => {
     expect(refused?.message.en).toMatch(/^WebKit sends some of its traffic around the proxy/)
     expect(report.scan.status).toBe('partial')
   })
+
+  it('leaves out rules that read only engines it does not render in, and says so', async () => {
+    site = await tempSite({ 'index.html': '<p>نص</p>' })
+    const chromiumOnly = renderRule({ renderEngines: ['chromium'] })
+    const report = await scan(site.url('/'), {
+      rules: [flagRule(), chromiumOnly],
+      policy: policyFor(site),
+      render: { engines: ['firefox'], executablePaths: { firefox: '/nonexistent/firefox' } },
+    })
+    expect(report.rules.map((rule) => rule.id)).toEqual(['test-rule'])
+    const skipped = report.scan.notices.find((notice) => notice.code === 'render-engine-skipped')
+    expect(skipped?.message.en).toBe(
+      'Some checks read what only Chromium reports, and this scan did not render in it, so they did not run.',
+    )
+  })
+
+  it('refuses such a rule named by id', async () => {
+    await expect(
+      scan('https://example.com/', {
+        rules: [renderRule({ renderEngines: ['chromium'] })],
+        ruleIds: ['render-rule'],
+        render: { engines: ['firefox'] },
+      }),
+    ).rejects.toThrow(/render-rule \(chromium\)/)
+  })
 })

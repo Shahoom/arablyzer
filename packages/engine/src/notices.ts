@@ -12,6 +12,7 @@ export type NoticeCode =
   | 'page-truncated'
   | 'page-unreadable'
   | 'render-skipped'
+  | 'render-engine-skipped'
   | 'render-failed'
   | 'render-timeout'
   | 'engine-unavailable'
@@ -127,6 +128,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'render-skipped': {
     ar: 'بعض الفحوص تحتاج عرض الصفحة في متصفح، ولم يُطلب العرض في هذا الفحص، فلم تعمل.',
     en: 'Some checks need the page rendered in a browser; this scan did not render it, so they did not run.',
+  },
+  'render-engine-skipped': {
+    ar: 'بعض الفحوص تقرأ ما يخبر به {engines} وحده، ولم يُعرض هذا الفحص فيه، فلم تعمل.',
+    en: 'Some checks read what only {engines} reports, and this scan did not render in it, so they did not run.',
   },
   'render-failed': {
     ar: 'تعذّر عرض الصفحة في {engine}، فلم تعمل فيه فحوص العرض.',
