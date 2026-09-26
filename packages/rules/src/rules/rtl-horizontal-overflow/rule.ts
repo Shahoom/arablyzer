@@ -20,9 +20,12 @@ function madeForPhones(facts: RenderedFacts): boolean {
   return facts.dir === 'rtl' && declaresDeviceWidth(facts.viewportMeta)
 }
 
-/** How far the element reaches past the left or the right edge of the screen. */
-function reach({ box }: RenderedElement, width: number): number {
-  return Math.max(-box.x, box.x + box.width - width, 0)
+/**
+ * How far the element reaches past the end edge of the screen, the only one a page scrolls to:
+ * the left edge in a right-to-left page (M1.1 review).
+ */
+function reach({ box }: RenderedElement, width: number, dir: RenderedFacts['dir']): number {
+  return Math.max(dir === 'rtl' ? -box.x : box.x + box.width - width, 0)
 }
 
 export const rule = defineRule({
@@ -34,7 +37,11 @@ export const rule = defineRule({
   messages: ['element', 'page'],
   appliesTo: (_page, evidence) => renderedFacts(evidence).some(madeForPhones),
   detect: ({ rendered = [] }) => {
-    const elements = new Sightings<{ element: RenderedElement; width: number }>()
+    const elements = new Sightings<{
+      element: RenderedElement
+      width: number
+      dir: RenderedFacts['dir']
+    }>()
     const pages = new Sightings<RenderedFacts>()
     for (const facts of rendered) {
       const width = facts.viewport.width
@@ -42,7 +49,7 @@ export const rule = defineRule({
       if (!madeForPhones(facts) || facts.scrollWidth <= width + 1) continue
       if (facts.overflow.length === 0) pages.add('html', facts.engine, facts)
       for (const element of facts.overflow) {
-        elements.add(element.selector, facts.engine, { element, width })
+        elements.add(element.selector, facts.engine, { element, width, dir: facts.dir })
       }
     }
     const findings: DetectorFinding<Message>[] = []
@@ -51,7 +58,10 @@ export const rule = defineRule({
       if (first === undefined) continue
       findings.push({
         message: 'element',
-        values: { overflow: reach(first.element, first.width), viewportWidth: first.width },
+        values: {
+          overflow: reach(first.element, first.width, first.dir),
+          viewportWidth: first.width,
+        },
         selector: key,
         engines,
         box: first.element.box,

@@ -31,7 +31,7 @@ Mark the number or the word as left to right:
 
 ## How we detect
 
-1. We render the page in a browser. In each element laid out right to left, we look for numbers made of groups separated by spaces or hyphens, or that start with `+`, in Western or Arabic-Indic digits, and for Latin words that end in `+` or `#`.
+1. We render the page in a browser. In each element laid out right to left, we look for numbers made of groups separated by spaces or hyphens, and phone numbers written with `+` and at least 8 digits, in Western or Arabic-Indic digits, and for Latin words that end in `+` or `#`. A short number after `+`, such as `+500` for "more than 500", reads as meant either way, so it does not count.
 2. For each one, we measure where the browser drew each of its characters. When a character sits to the left of the one written before it, on the same line, the number or word is out of order. Those split over two lines are not checked.
 3. The finding shows the number or the word as written, and the element that holds it.
 

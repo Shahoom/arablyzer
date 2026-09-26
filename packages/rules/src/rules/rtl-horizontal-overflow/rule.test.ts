@@ -31,14 +31,15 @@ describe('rtl-horizontal-overflow', () => {
     ])
   })
 
-  it('counts overflow past the right edge too', () => {
-    const right = { selector: 'img', box: { x: 10, y: 0, width: 500, height: 100 } }
+  it('measures the reach past the end edge only, which is the one a page scrolls to (M1.1 review)', () => {
+    // Past the left edge by 90, and past the right one by 220, which cannot be scrolled to.
+    const both = { selector: 'table', box: { x: -90, y: 300, width: 700, height: 200 } }
     expect(
       detectAll(
         rule,
-        renderedEvidence([renderedFacts('chromium', { scrollWidth: 510, overflow: [right] })]),
+        renderedEvidence([renderedFacts('chromium', { scrollWidth: 480, overflow: [both] })]),
       ),
-    ).toMatchObject([{ values: { overflow: 120 } }])
+    ).toMatchObject([{ values: { overflow: 90 } }])
   })
 
   it('reports the page itself when no element could be named', () => {

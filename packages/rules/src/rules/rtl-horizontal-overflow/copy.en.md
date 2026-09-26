@@ -32,8 +32,8 @@ The page is {scrollWidth} pixels wide on a phone screen {viewportWidth} pixels w
 
 ## How we detect
 
-1. The rule applies to pages laid out right to left whose viewport meta sets `width=device-width`, the sign of a page made for the phone's width. We render them 390 pixels wide.
-2. When the page is wider than the screen, we list the elements that reach past its left or right edge. Elements inside another element that clips its content, and elements with a fixed position, do not count.
+1. The rule applies to pages laid out right to left, by `dir` on `<body>` or on `<html>`, whose viewport meta sets `width=device-width`, the sign of a page made for the phone's width. We render them 390 pixels wide.
+2. When the page is wider than the screen, we list the elements that reach past its left edge, the side a right-to-left page scrolls towards. What lies past the right edge cannot be scrolled to, so it does not count. Elements inside another element that clips its content, and elements with a fixed position, do not count.
 3. There is one finding per element, with how far it reaches past the edge. When no element can be named, there is one finding for the page.
 
 ## References

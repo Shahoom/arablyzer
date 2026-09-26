@@ -174,8 +174,10 @@ export function measurePage(limits: MeasureLimits): Measured {
   let arabicTextOmitted = 0
   let tokens = 0
   const seen = new Set<Element>()
+  // Numbers in groups (+966 50 123 4567, 1 500), and phone numbers written with + and at least
+  // 8 digits. A short number after + ("+500 clients") reads as "500+" either way (M1.1 review).
   const numberGroups =
-    /\+?[0-9\u0660-\u0669\u06F0-\u06F9]+(?:[ \u00A0\u202F-][0-9\u0660-\u0669\u06F0-\u06F9]+)+|\+[0-9\u0660-\u0669\u06F0-\u06F9]+/gu
+    /\+?[0-9\u0660-\u0669\u06F0-\u06F9]+(?:[ \u00A0\u202F-][0-9\u0660-\u0669\u06F0-\u06F9]+)+|\+[0-9\u0660-\u0669\u06F0-\u06F9]{8,}/gu
   const latinWithNeutrals = /[A-Za-z][A-Za-z0-9.]*[+#]+/g
 
   /** Characters of an LTR token must be drawn left to right, on one line. */
