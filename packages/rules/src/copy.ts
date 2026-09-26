@@ -94,7 +94,7 @@ export function parseRuleCopy(markdown: string, lang: Lang, file: string): RuleC
       else if (fenceMark.startsWith(fence)) fence = null
     }
     const heading =
-      fence === null && fenceMark === undefined ? /^(#{1,3})\s+(.+?)\s*$/.exec(line) : null
+      fence === null && fenceMark === undefined ? /^(#{1,3})\s+(.*\S)\s*$/.exec(line) : null
     if (heading?.[1] === '#') {
       if (title !== null) fail('more than one # title')
       title = heading[2] ?? ''

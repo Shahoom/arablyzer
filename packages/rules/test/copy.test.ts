@@ -55,6 +55,20 @@ describe('parseRuleCopy', () => {
     expect(() => parseRuleCopy(AR.replace('كيف تصلح', 'كيف تُصلح'), 'ar', 'ar.md')).not.toThrow()
   })
 
+  it('reads a heading in one pass, however much space it holds (M0.3 review)', () => {
+    const start = performance.now()
+    const heading = `# a${' '.repeat(40_000)}b`
+    expect(() => parseRuleCopy(`${heading}\n`, 'en', 'test.md')).toThrow(/missing section/)
+    expect(performance.now() - start).toBeLessThan(200)
+    expect(
+      parseRuleCopy(
+        AR.replace('# لغة الصفحة لا تطابق محتواها', '#   لغة الصفحة لا تطابق محتواها  '),
+        'ar',
+        'x.md',
+      ).title,
+    ).toBe('لغة الصفحة لا تطابق محتواها')
+  })
+
   it('has no review flag without front matter', () => {
     const en = `# Title\n\n## Messages\n\n### missing\n\nNo lang.\n\n## Why it matters\n\nx\n\n## How to fix\n\nx\n\n## How we detect\n\nx\n\n## References\n\n- x\n`
     expect(parseRuleCopy(en, 'en', 'en.md').reviewed).toBeNull()
