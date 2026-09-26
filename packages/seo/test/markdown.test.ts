@@ -51,6 +51,28 @@ describe('renderMarkdown', () => {
     ['a table without its separator row', '| a | b |\n| c | d |', /table needs a separator row/],
     ['a table row with too many cells', '| a | b |\n|---|---|\n| c | d | e |', /3 cells, not 2/],
     ['an unclosed code block', '```html\n<p>', /code block is not closed/],
+    // M0.3 review: each of these used to render wrongly without a word.
+    [
+      'a table separator with too few cells',
+      '| a | b |\n|---|\n| c | d |',
+      /separator has 1 cells, not 2/,
+    ],
+    ['a nested list', '- a\n  - b', /nested lists are not supported/i],
+    ['a code block inside a list item', '- a\n  ```\n  x\n  ```', /code blocks inside list items/i],
+    ['a numbered list that does not start at 1', '3. c\n4. d', /numbered lists count from 1/i],
+    ['a skipped number', '1. a\n3. c', /numbered lists count from 1/i],
+    [
+      'a paragraph line that looks like a numbered item',
+      'نص\n2. المزيد',
+      /numbered lists count from 1/i,
+    ],
+    ['text right after a list item', '- أول\nتكملة', /right after a list item/],
+    [
+      'a link with parentheses in its URL',
+      '[W](https://en.wikipedia.org/wiki/Bidi_(text))',
+      /link could not be read/,
+    ],
+    ['a link with a title', '[x](https://example.com/ "title")', /link could not be read/],
   ])('rejects %s', (_name, markdown, error) => {
     expect(() => renderMarkdown(markdown)).toThrow(error)
   })
@@ -61,6 +83,20 @@ describe('renderInline', () => {
     expect(renderInline('ضع `dir="rtl"` في **وسم `<html>`** ثم [اقرأ](/rules/rtl-html-dir).')).toBe(
       'ضع <code dir="ltr">dir=&quot;rtl&quot;</code> في <strong>وسم <code dir="ltr">&lt;html&gt;</code></strong> ثم <a href="/rules/rtl-html-dir">اقرأ</a>.',
     )
+  })
+
+  it('reads backslash escapes as the character itself', () => {
+    expect(renderInline('\\*\\*not bold\\*\\* and \\`not code\\`')).toBe(
+      '**not bold** and `not code`',
+    )
+  })
+
+  it('stays linear on unclosed markup (M0.3 review)', () => {
+    const start = performance.now()
+    expect(() => renderInline('[a]('.repeat(40_000))).toThrow(/link could not be read/)
+    expect(renderInline('['.repeat(40_000))).toHaveLength(40_000)
+    expect(renderInline(`**${'a'.repeat(40_000)}`)).toHaveLength(40_002)
+    expect(performance.now() - start).toBeLessThan(500)
   })
 
   it('keeps markup inside code literal', () => {
@@ -76,8 +112,14 @@ describe('renderInline', () => {
       'http://example.com/',
       '//evil.example/',
       'data:text/html,x',
+      // Browsers read "\\" as "/": these would leave the site (M0.3 review).
+      '/\\evil.example/path',
+      'https:\\\\evil.example/',
+      'https://a.example/\\x',
     ]) {
-      expect(() => renderInline(`[x](${href})`), href).toThrow(/links must be https:/)
+      expect(() => renderInline(`[x](${href})`), href).toThrow(
+        /links must be https:|could not be read/,
+      )
     }
   })
 })
