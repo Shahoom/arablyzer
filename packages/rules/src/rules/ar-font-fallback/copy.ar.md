@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # خط ويب عربي لم يُحمَّل

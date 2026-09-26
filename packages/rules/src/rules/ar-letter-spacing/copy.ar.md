@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # تباعد الحروف في النص العربي
