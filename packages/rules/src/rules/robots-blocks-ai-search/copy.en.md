@@ -8,7 +8,7 @@ robots.txt blocks {token}, {provider}'s search crawler, from this page with "{ru
 
 ### server-error
 
-robots.txt answered HTTP {status}, and crawlers that follow RFC 9309, AI search crawlers among them, treat that as blocking the whole site.
+robots.txt answered HTTP {status}. Crawlers that follow RFC 9309, AI search crawlers among them, treat a server error (5xx) as blocking the whole site, and Google treats 429 the same way.
 
 ### unreachable
 
@@ -44,7 +44,7 @@ A group that names a crawler takes precedence over the `*` group, so this works 
 
 1. We use the same robots.txt parser and matching as the Googlebot rule, for each search crawler on our list: OAI-SearchBot from OpenAI, Claude-SearchBot from Anthropic and PerplexityBot from Perplexity. The names and purposes were checked against each provider's documentation, and we update the list when they change.
 2. Training crawlers, and crawlers that fetch a page because a user asked, appear in the report's crawler table as allowed or blocked, and never make the rule fail.
-3. When robots.txt answers with a 5xx error or 429, or cannot be reached, RFC 9309 asks crawlers to treat the whole site as blocked, so we report that in a single finding.
+3. When robots.txt answers with a server error (5xx) or cannot be reached, RFC 9309 asks crawlers to treat the whole site as blocked. We treat 429 the same way, as Google does, and report either in a single finding.
 
 ## References
 
