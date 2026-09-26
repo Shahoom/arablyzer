@@ -1,9 +1,12 @@
 import { createHash } from 'node:crypto'
+import type { RenderOutcome } from '@arablyzer/browser'
 import {
   collectPage,
   collectRobots,
   headerValues,
+  type Engine,
   type PageFacts,
+  type RenderedFacts,
   type RobotsFacts,
 } from '@arablyzer/collectors'
 import {
@@ -25,6 +28,7 @@ import {
   type Facts,
   type Notice,
   type Page,
+  type RenderRun,
   type RuleResult,
   type RuleStatus,
   type Summary,
@@ -55,6 +59,33 @@ const PAGE_ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q
 const ROBOTS_ACCEPT = 'text/plain,*/*;q=0.8'
 /** Heuristic for the little-text notice: fewer visible letters than this, while scripts load. */
 const LITTLE_TEXT_LETTERS = 50
+/** BUILD-PLAN §11: a whole scan stays within 120 s; rendering gets what is left of it. */
+export const SCAN_BUDGET_MS = 120_000
+/** Below this, an engine is not started: it could not load a page in time. */
+const MIN_RENDER_MS = 2_000
+const ENGINE_NAMES: Readonly<Record<Engine, string>> = {
+  chromium: 'Chromium',
+  firefox: 'Firefox',
+  webkit: 'WebKit',
+}
+
+/** Rendering in a browser (M1.1): the engines, one after the other. */
+export interface RenderRequest {
+  readonly engines: readonly Engine[]
+  readonly screenshots?: boolean
+  /** Receives each engine's screenshot of the first screen, when screenshots are asked for. */
+  readonly onScreenshot?: (engine: Engine, png: Uint8Array) => void
+  /** Browser binaries by engine; the ARABLYZER_<ENGINE>_PATH variables by default. */
+  readonly executablePaths?: Partial<Record<Engine, string>>
+  /** Per engine; BUILD-PLAN §11 by default (30 s for the first, 20 s for each further one). */
+  readonly timeoutMs?: number
+  readonly extraEngineTimeoutMs?: number
+  /**
+   * Whether the network here reaches nothing but the egress proxy; ARABLYZER_NETWORK_ISOLATED by
+   * default. Without it, engines that need isolation (WebKit) are refused.
+   */
+  readonly networkIsolated?: boolean
+}
 
 export interface ScanOptions {
   /** Rule ids to run; all rules by default. Unknown ids throw a TypeError. */
@@ -72,6 +103,11 @@ export interface ScanOptions {
   readonly parseTimeoutMs?: number
   readonly userAgent?: string
   readonly signal?: AbortSignal
+  /**
+   * Render the page in a browser too. Without it, rules that need `render` are left out (a
+   * notice says so), and naming one in ruleIds throws a TypeError.
+   */
+  readonly render?: RenderRequest
 }
 
 /** The selected rules, sorted by id; a TypeError names any unknown id. */
@@ -98,7 +134,11 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     throw new TypeError(`parseTimeoutMs must be a positive number, got ${String(parseTimeoutMs)}`)
   }
   const started = performance.now()
-  const rules = selectRules(options.rules ?? RULES, options.ruleIds)
+  const { rules, renderSkipped } = chooseRules(
+    options.rules ?? RULES,
+    options.ruleIds,
+    options.render !== undefined,
+  )
   const userAgent = options.userAgent ?? USER_AGENT
   const policy = options.policy ?? DEFAULT_POLICY
   const base: SafeFetchOptions = {
@@ -130,6 +170,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     results: RuleResult[]
     findings: Finding[]
     facts: Facts
+    render?: RenderRun[]
   }): Report =>
     Report.parse({
       schemaVersion: SCHEMA_VERSION,
@@ -139,6 +180,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
         status: parts.status,
         durationMs: Math.round(performance.now() - started),
         notices: parts.notices,
+        ...(parts.render === undefined ? {} : { render: parts.render }),
       },
       page: parts.page,
       summary: summarize(parts.results),
@@ -182,18 +224,144 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   const robots = rules.some((rule) => rule.needs.includes('robots'))
     ? await fetchRobots(response.url, { ...base, policy: robotsPolicy })
     : undefined
+  // The browser gets the same lockdown: a public page never opens private addresses to it.
+  const rendering =
+    options.render === undefined
+      ? undefined
+      : isSuccess(page.status) && page.isHtml
+        ? await renderAll(response.url, options.render, {
+            policy: robotsPolicy,
+            resolver: base.resolver ?? defaultResolver(robotsPolicy),
+            started,
+            ...(options.signal === undefined ? {} : { signal: options.signal }),
+          })
+        : { runs: [], rendered: [], notices: [] }
 
-  const notices = pageNotices(page, robots)
-  const { results, findings } = evaluateRules(rules, page, robots)
+  const notices = [
+    ...pageNotices(page, robots),
+    ...(renderSkipped ? [notice('render-skipped')] : []),
+    ...(rendering?.notices ?? []),
+  ]
+  const { results, findings } = evaluateRules(rules, page, robots, rendering?.rendered)
+  // An engine that was asked for and did not render leaves the scan short, whatever the rules.
+  const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
 
   return finish({
-    status: results.some((result) => result.status === 'error') ? 'partial' : 'complete',
+    status:
+      unrendered || results.some((result) => result.status === 'error') ? 'partial' : 'complete',
     notices,
     page: pageSummary(page),
     results,
     findings,
     facts: robotsFacts(robots, page.url),
+    ...(rendering === undefined ? {} : { render: rendering.runs }),
   })
+}
+
+/** Rules for a scan: without rendering, those that need it are left out, or refused by id. */
+function chooseRules(
+  all: readonly Rule[],
+  ids: readonly string[] | undefined,
+  rendering: boolean,
+): { rules: Rule[]; renderSkipped: boolean } {
+  const selected = selectRules(all, ids)
+  if (rendering) return { rules: selected, renderSkipped: false }
+  const needRender = selected.filter((rule) => rule.needs.includes('render'))
+  if (ids !== undefined && needRender.length > 0) {
+    throw new TypeError(
+      `These rules need the page rendered in a browser: ${needRender.map((rule) => rule.id).join(', ')}`,
+    )
+  }
+  return {
+    rules: selected.filter((rule) => !needRender.includes(rule)),
+    renderSkipped: needRender.length > 0,
+  }
+}
+
+interface Rendering {
+  readonly runs: RenderRun[]
+  readonly rendered: RenderedFacts[]
+  readonly notices: Notice[]
+}
+
+/**
+ * Renders the page in each engine, one after the other, within what is left of the scan's
+ * 120 s (BUILD-PLAN §11). The browser package loads only here, so scans without it never load
+ * Playwright.
+ */
+async function renderAll(
+  url: string,
+  request: RenderRequest,
+  context: {
+    readonly policy: EgressPolicy
+    readonly resolver: Resolver
+    readonly started: number
+    readonly signal?: AbortSignal
+  },
+): Promise<Rendering> {
+  const { renderPage, RENDER_TIMEOUT_MS, EXTRA_ENGINE_TIMEOUT_MS } =
+    await import('@arablyzer/browser')
+  const runs: RenderRun[] = []
+  const rendered: RenderedFacts[] = []
+  const notices: Notice[] = []
+  for (const [index, engine] of request.engines.entries()) {
+    const name = ENGINE_NAMES[engine]
+    const own =
+      index === 0
+        ? (request.timeoutMs ?? RENDER_TIMEOUT_MS)
+        : (request.extraEngineTimeoutMs ?? EXTRA_ENGINE_TIMEOUT_MS)
+    const budget = Math.min(own, SCAN_BUDGET_MS - (performance.now() - context.started))
+    if (budget < MIN_RENDER_MS) {
+      runs.push({
+        engine,
+        version: null,
+        status: 'timeout',
+        durationMs: 0,
+        requests: { total: 0, refused: 0 },
+      })
+      notices.push(notice('render-timeout', { engine: name }))
+      continue
+    }
+    const [outcome] = await renderPage(url, {
+      engines: [engine],
+      policy: context.policy,
+      resolver: context.resolver,
+      timeoutMs: Math.round(budget),
+      screenshots: request.screenshots === true,
+      ...(request.executablePaths === undefined
+        ? {}
+        : { executablePaths: request.executablePaths }),
+      ...(request.networkIsolated === undefined
+        ? {}
+        : { networkIsolated: request.networkIsolated }),
+      ...(context.signal === undefined ? {} : { signal: context.signal }),
+    })
+    if (outcome === undefined) continue
+    runs.push(renderRun(outcome))
+    if (outcome.facts !== null) {
+      rendered.push(outcome.facts)
+      if (outcome.facts.truncated) notices.push(notice('render-truncated', { engine: name }))
+    }
+    if (outcome.screenshot !== null) request.onScreenshot?.(engine, outcome.screenshot)
+    if (outcome.status === 'failed') notices.push(notice('render-failed', { engine: name }))
+    if (outcome.status === 'timeout') notices.push(notice('render-timeout', { engine: name }))
+    if (outcome.status === 'unavailable') {
+      notices.push(notice('engine-unavailable', { engine: name }))
+    }
+    if (outcome.status === 'refused') notices.push(notice('engine-refused', { engine: name }))
+    if (outcome.requests.limited) notices.push(notice('request-limit', { engine: name }))
+  }
+  return { runs, rendered, notices }
+}
+
+function renderRun(outcome: RenderOutcome): RenderRun {
+  return {
+    engine: outcome.engine,
+    version: outcome.version === null || outcome.version === '' ? null : outcome.version,
+    status: outcome.status,
+    durationMs: outcome.durationMs,
+    requests: { total: outcome.requests.requests, refused: outcome.requests.refused },
+  }
 }
 
 export interface EvaluateOptions {
@@ -203,6 +371,8 @@ export interface EvaluateOptions {
   readonly rules?: readonly Rule[]
   /** robots.txt for the page's site; without it, rules that need it report an error. */
   readonly robots?: RobotsFacts
+  /** The page as engines rendered it; without it, rules that need `render` are left out. */
+  readonly rendered?: readonly RenderedFacts[]
 }
 
 export interface Evaluation {
@@ -215,18 +385,24 @@ export interface Evaluation {
  * fetched the page. The SEO self-audit uses it on rendered pages.
  */
 export function evaluatePage(page: PageFacts, options: EvaluateOptions = {}): Evaluation {
-  return evaluateRules(selectRules(options.rules ?? RULES, options.ruleIds), page, options.robots)
+  const { rules } = chooseRules(
+    options.rules ?? RULES,
+    options.ruleIds,
+    options.rendered !== undefined,
+  )
+  return evaluateRules(rules, page, options.robots, options.rendered)
 }
 
 function evaluateRules(
   rules: readonly Rule[],
   page: PageFacts,
   robots: RobotsFacts | undefined,
+  rendered?: readonly RenderedFacts[],
 ): Evaluation {
   const results: RuleResult[] = []
   const findings: Finding[] = []
   for (const rule of rules) {
-    const outcome = evaluate(rule, page, robots)
+    const outcome = evaluate(rule, page, robots, rendered)
     results.push(
       ruleResult(rule, outcome.status, {
         ...(outcome.error === undefined ? {} : { error: outcome.error }),
@@ -266,9 +442,15 @@ interface Outcome {
   readonly omitted?: number
 }
 
-function evaluate(rule: Rule, page: PageFacts, robots: RobotsFacts | undefined): Outcome {
+function evaluate(
+  rule: Rule,
+  page: PageFacts,
+  robots: RobotsFacts | undefined,
+  rendered: readonly RenderedFacts[] | undefined,
+): Outcome {
   const needsPage = rule.needs.some((need) => need !== 'robots')
-  const needsHtml = rule.needs.includes('html') || rule.needs.includes('text')
+  const needsRender = rule.needs.includes('render')
+  const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
   if (needsPage && !isSuccess(page.status)) return { status: 'not-applicable', findings: [] }
   if (needsHtml && page.htmlTimedOut) {
     return { status: 'error', error: 'page-too-complex', findings: [] }
@@ -279,9 +461,20 @@ function evaluate(rule: Rule, page: PageFacts, robots: RobotsFacts | undefined):
   if (rule.needs.includes('robots') && (robots === undefined || robots.outcome === 'failed')) {
     return { status: 'error', error: 'robots-unchecked', findings: [] }
   }
+  // Only the engines the rule can read; none of them rendered means it could not check.
+  const seen = needsRender
+    ? (rendered ?? []).filter(
+        (facts) => rule.renderEngines === undefined || rule.renderEngines.includes(facts.engine),
+      )
+    : undefined
+  if (seen?.length === 0) return { status: 'error', error: 'not-rendered', findings: [] }
   try {
     if (!rule.appliesTo(page)) return { status: 'not-applicable', findings: [] }
-    const detected = rule.detect(robots === undefined ? { page } : { page, robots })
+    const detected = rule.detect({
+      page,
+      ...(robots === undefined ? {} : { robots }),
+      ...(seen === undefined ? {} : { rendered: seen }),
+    })
     const { kept, total } = firstByPosition(detected, MAX_FINDINGS_PER_RULE)
     const status = rule.manualCheck === true ? 'needs-review' : total > 0 ? 'fail' : 'pass'
     return { status, findings: convert(rule, kept, page.url), omitted: total - kept.length }
@@ -360,6 +553,10 @@ function convert(rule: Rule, detected: readonly DetectorFinding[], pageUrl: stri
           ? {}
           : { snippet: boundText(finding.snippet, MAX_SNIPPET_LENGTH) }),
         ...(finding.location === undefined ? {} : { location: finding.location }),
+        ...(finding.engines === undefined || finding.engines.length === 0
+          ? {}
+          : { engines: [...new Set(finding.engines)] }),
+        ...(finding.box === undefined ? {} : { box: finding.box }),
         ...(Object.keys(values).length === 0 ? {} : { values }),
       },
     })

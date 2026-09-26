@@ -11,6 +11,13 @@ export type NoticeCode =
   | 'page-too-complex'
   | 'page-truncated'
   | 'page-unreadable'
+  | 'render-skipped'
+  | 'render-failed'
+  | 'render-timeout'
+  | 'engine-unavailable'
+  | 'engine-refused'
+  | 'render-truncated'
+  | 'request-limit'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -114,8 +121,36 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     en: 'Arablyzer could not read the page’s content because of an internal error, so the page was not checked.',
   },
   'little-text': {
-    ar: 'في HTML الصفحة نص قليل جداً مع سكربتات، فالأرجح أن JavaScript يبني محتواها. هذا الإصدار يقرأ HTML الخام فقط، فقد تظهر فحوص النص «غير منطبقة».',
-    en: 'The page’s HTML has almost no text but loads scripts, so JavaScript probably builds its content. This version reads the raw HTML only, so text checks may show as not applicable.',
+    ar: 'في HTML الصفحة نص قليل جداً مع سكربتات، فالأرجح أن JavaScript يبني محتواها. فحوص النص تقرأ HTML الخام، فقد تظهر «غير منطبقة»؛ أما فحوص العرض فترى الصفحة بعد تشغيل JavaScript.',
+    en: 'The page’s HTML has almost no text but loads scripts, so JavaScript probably builds its content. Text checks read the raw HTML, so they may show as not applicable; rendering checks see the page after JavaScript runs.',
+  },
+  'render-skipped': {
+    ar: 'بعض الفحوص تحتاج عرض الصفحة في متصفح، ولم يُطلب العرض في هذا الفحص، فلم تعمل.',
+    en: 'Some checks need the page rendered in a browser; this scan did not render it, so they did not run.',
+  },
+  'render-failed': {
+    ar: 'تعذّر عرض الصفحة في {engine}، فلم تعمل فيه فحوص العرض.',
+    en: 'The page could not be rendered in {engine}, so the rendering checks did not run in it.',
+  },
+  'render-timeout': {
+    ar: 'لم يكتمل عرض الصفحة في {engine} خلال الوقت المحدد، فلم تعمل فيه فحوص العرض.',
+    en: 'Rendering the page in {engine} did not finish within the time limit, so the rendering checks did not run in it.',
+  },
+  'engine-unavailable': {
+    ar: 'المتصفح {engine} غير مثبّت على هذا الجهاز، فلم تُعرض الصفحة فيه.',
+    en: '{engine} is not installed on this machine, so the page was not rendered in it.',
+  },
+  'engine-refused': {
+    ar: 'المتصفح {engine} يرسل بعض اتصالاته دون المرور بالبروكسي الذي يفحص كل طلب، فلا يعمل إلا داخل حاوية شبكتها معزولة، ولم تُعرض الصفحة فيه.',
+    en: '{engine} sends some of its traffic around the proxy that checks every request, so it runs only in a container with an isolated network; the page was not rendered in it.',
+  },
+  'render-truncated': {
+    ar: 'الصفحة كبيرة، فقِسنا في {engine} جزءاً منها فقط ضمن حدود الوقت وعدد العناصر.',
+    en: 'The page is large, so in {engine} only part of it was measured, within the time and element limits.',
+  },
+  'request-limit': {
+    ar: 'طلبت الصفحة في {engine} أكثر من الحد (300 طلب أو 25 ميغابايت)، فلم يُحمَّل الباقي، وقد يختلف عرضها عمّا يراه الزائر.',
+    en: 'In {engine}, the page asked for more than the limit (300 requests or 25 MB), so the rest was not loaded, and it may look different from what visitors see.',
   },
 }
 

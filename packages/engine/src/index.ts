@@ -15,11 +15,13 @@ export {
   pageSummary,
   ROBOTS_MAX_BYTES,
   ROBOTS_MAX_REDIRECTS,
+  SCAN_BUDGET_MS,
   scan,
   selectRules,
   summarize,
   USER_AGENT,
   type EvaluateOptions,
   type Evaluation,
+  type RenderRequest,
   type ScanOptions,
 } from './scan'
