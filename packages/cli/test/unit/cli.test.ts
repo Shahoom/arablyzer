@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { parseCliArgs, UsageError } from '../../src/args'
 import { cliPolicy, exitCode, run } from '../../src/cli'
 import { clean, formatJson, formatReport } from '../../src/format'
-import { langFromEnv } from '../../src/i18n'
+import { langFromEnv, STRINGS } from '../../src/i18n'
 
 describe('parseCliArgs', () => {
   it('has the documented defaults', () => {
@@ -108,6 +108,28 @@ describe('parseCliArgs', () => {
   ])('rejects %j', (argv, error) => {
     expect(() => parseCliArgs(argv, {})).toThrow(UsageError)
     expect(() => parseCliArgs(argv, {})).toThrow(error)
+  })
+})
+
+describe('request counts in the text report', () => {
+  it('agree with their number in English and in Arabic', () => {
+    expect([1, 2, 31].map((total) => STRINGS.en.requests(total, 0))).toEqual([
+      '1 request',
+      '2 requests',
+      '31 requests',
+    ])
+    expect(STRINGS.en.requests(31, 2)).toBe('31 requests, 2 refused')
+    expect([1, 2, 3, 10, 11, 99, 100, 103].map((total) => STRINGS.ar.requests(total, 0))).toEqual([
+      'طلب واحد',
+      'طلبان',
+      '3 طلبات',
+      '10 طلبات',
+      '11 طلباً',
+      '99 طلباً',
+      '100 طلب',
+      '103 طلبات',
+    ])
+    expect(STRINGS.ar.requests(31, 2)).toBe('31 طلباً، رُفض منها 2')
   })
 })
 

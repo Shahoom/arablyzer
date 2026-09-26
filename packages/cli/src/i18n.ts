@@ -102,8 +102,10 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
       unavailable: 'not installed',
       refused: 'needs an isolated network',
     },
-    requests: (total, refused) =>
-      refused === 0 ? `${total} requests` : `${total} requests, ${refused} refused`,
+    requests: (total, refused) => {
+      const requests = `${total} ${total === 1 ? 'request' : 'requests'}`
+      return refused === 0 ? requests : `${requests}, ${refused} refused`
+    },
     installBrowsers: (engines, version) =>
       `to render in ${engines.join(', ')}, install it with: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
@@ -137,10 +139,30 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
       refused: 'يحتاج شبكة معزولة',
     },
     requests: (total, refused) =>
-      refused === 0 ? `${total} طلباً` : `${total} طلباً، رُفض منها ${refused}`,
+      refused === 0 ? arabicRequests(total) : `${arabicRequests(total)}، رُفض منها ${refused}`,
     installBrowsers: (engines, version) =>
       `لعرض الصفحة في ${engines.join('، ')} ثبّته بالأمر: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
+}
+
+const ARABIC_PLURAL = new Intl.PluralRules('ar')
+
+/** A count of requests with the noun in the form Arabic gives each number (1, 2, 3–10, 11–99…). */
+function arabicRequests(total: number): string {
+  switch (ARABIC_PLURAL.select(total)) {
+    case 'zero':
+      return 'لا طلبات'
+    case 'one':
+      return 'طلب واحد'
+    case 'two':
+      return 'طلبان'
+    case 'few':
+      return `${total} طلبات`
+    case 'many':
+      return `${total} طلباً`
+    default:
+      return `${total} طلب`
+  }
 }
 
 /** LC_ALL, then LC_MESSAGES, then LANG, as POSIX orders them; Arabic locales give Arabic. */
