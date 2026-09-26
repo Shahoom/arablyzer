@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # علامات ترقيم لاتينية في نص عربي

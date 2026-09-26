@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # رقم رابط واتساب ليس بالصيغة الدولية

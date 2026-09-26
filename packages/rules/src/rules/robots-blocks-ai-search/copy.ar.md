@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # robots.txt يمنع زواحف البحث بالذكاء الاصطناعي

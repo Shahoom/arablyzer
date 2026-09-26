@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # الصفحة تمنع أرشفتها في محركات البحث (noindex)
