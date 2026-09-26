@@ -32,11 +32,13 @@ describe('every tool', () => {
       expect(new Set(tool.related).size).toBe(tool.related.length)
     })
 
-    it('was last updated on a real date, not in the future', () => {
+    it('was last updated on a real date, not in the future anywhere', () => {
       expect(tool.updated).toMatch(/^\d{4}-\d{2}-\d{2}$/)
       const date = new Date(`${tool.updated}T00:00:00Z`)
       expect(date.toISOString().slice(0, 10)).toBe(tool.updated)
-      expect(date.getTime()).toBeLessThanOrEqual(Date.now())
+      // The date starts first at UTC+14, so this holds on the day itself in every time zone
+      // (M0.3 review: at 02:00 in Muscat the UTC comparison failed).
+      expect(Date.parse(`${tool.updated}T00:00:00+14:00`)).toBeLessThanOrEqual(Date.now())
     })
 
     it('has Arabic copy in Arabic, with the owner review flag set', () => {

@@ -59,4 +59,4 @@ Google says it determines a page's language from its visible content, not from t
 
 ## Methodology
 
-We fetch the page with one request as `ArablyzerBot` and read the HTML as the server sends it, before any JavaScript runs. We count the letters in the visible text; the tool applies when more than half of them are Arabic-script letters, which includes Persian, Urdu and other languages written in Arabic script. Then we apply two rules: the page's direction and its language. The same page gives the same result on every check.
+We fetch the page as `ArablyzerBot`, following its redirects, and read the HTML as the server sends it, before any JavaScript runs. We count the letters in the visible text; the tool applies when more than half of them are Arabic-script letters, which includes Persian, Urdu and other languages written in Arabic script. Then we apply two rules: the page's direction and its language. The same page gives the same result on every check.

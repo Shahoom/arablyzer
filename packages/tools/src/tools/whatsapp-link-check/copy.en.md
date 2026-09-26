@@ -1,6 +1,6 @@
 # WhatsApp link checker
 
-Checks that the WhatsApp links on your page use the format WhatsApp documents, the full international number in digits only, and suggests the right form when it is clear.
+Checks that the WhatsApp links on your page use the format WhatsApp documents: the full international number, in digits only.
 
 ## What it checks
 
@@ -52,4 +52,4 @@ No. We check the number's format and length only, because checking the account w
 
 ## Methodology
 
-We fetch the page with one request as `ArablyzerBot` and read its links in the HTML as the server sends it, before any JavaScript runs. For every WhatsApp link with a number, we decode the number and check, in order: Eastern Arabic or Persian digits, then any character other than 0–9, then a leading zero. Then we check that it is a possible international number, using the phone numbering data of the libphonenumber-js library, which is based on Google's data. Links without a number, such as `wa.me/message/…`, are not checked.
+We fetch the page as `ArablyzerBot`, following its redirects, and read its links in the HTML as the server sends it, before any JavaScript runs. For every WhatsApp link with a number, we decode the number and check, in order: Eastern Arabic or Persian digits, then any character other than 0–9, then a leading zero. Then we check that it is a possible international number, using the phone numbering data of the libphonenumber-js library, which is based on Google's data. Links without a number, such as `wa.me/message/…`, are not checked.

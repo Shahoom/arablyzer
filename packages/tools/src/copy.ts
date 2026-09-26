@@ -65,7 +65,7 @@ const EXAMPLES: readonly ExampleKey[] = ['wrong', 'right']
 const CODE_LANGS: readonly CodeExample['lang'][] = ['html', 'robots.txt']
 
 /** Harakat, superscript alef and tatweel: "كيف تصلح" and "كيف تُصلح" are the same heading. */
-const ARABIC_MARKS = /[ً-ٰٟـ]/g
+const ARABIC_MARKS = /[\u064B-\u065F\u0670\u0640]/g
 
 /** src/tools/, next to this file. */
 const TOOLS_DIR = new URL('./tools/', import.meta.url)
@@ -103,7 +103,7 @@ export function parseToolCopy(markdown: string, lang: Lang, file: string): ToolC
       else if (fenceMark.startsWith(fence)) fence = null
     }
     const heading =
-      fence === null && fenceMark === undefined ? /^(#{1,3})\s+(.+?)\s*$/.exec(line) : null
+      fence === null && fenceMark === undefined ? /^(#{1,3})\s+(.*\S)\s*$/.exec(line) : null
     const level = heading?.[1]
     const name = heading?.[2] ?? ''
     if (level === '#') {
@@ -192,7 +192,7 @@ export function parseToolCopy(markdown: string, lang: Lang, file: string): ToolC
 
   return {
     title,
-    description: plain(paragraphs[0]?.join(' ') ?? ''),
+    description: plain(paragraphs[0]?.join(' ') ?? '', fail),
     checks,
     example: { wrong: example('wrong'), right: example('right') },
     fix: text('fix'),
@@ -250,7 +250,13 @@ function same(expected: string, heading: string): boolean {
   return expected.replace(ARABIC_MARKS, '') === heading.replace(ARABIC_MARKS, '').trim()
 }
 
-/** Markdown code marks dropped: the description is also the meta description. */
-function plain(text: string): string {
+/**
+ * The description is also the meta description, so it is plain text: code marks are dropped,
+ * and bold or links, which would show there as written, are refused (M0.3 review).
+ */
+function plain(text: string, fail: (message: string) => never): string {
+  if (text.includes('**') || text.includes('](')) {
+    fail('the description is plain text, without bold or links')
+  }
   return text.replaceAll('`', '').replace(/\s+/g, ' ').trim()
 }

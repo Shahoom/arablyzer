@@ -120,6 +120,24 @@ describe('parseToolCopy', () => {
     expect(parse(AR.replace('يتحقق من اتجاه', 'يتحقق من `dir`')).description).toBe(
       'يتحقق من dir الصفحة ولغتها.',
     )
+    // M0.3 review: bold and links reached the meta description as written.
+    expect(() => parse(AR.replace('يتحقق من اتجاه', 'يتحقق **مجاناً** من اتجاه'))).toThrow(
+      /description is plain text/,
+    )
+    expect(() =>
+      parse(AR.replace('يتحقق من اتجاه', 'يتحقق من [الاتجاه](https://example.com/)')),
+    ).toThrow(/description is plain text/)
+  })
+
+  // M0.3 review: the harakat range also took in the Arabic-Indic digits.
+  it('ignores harakat in headings, but not digits', () => {
+    expect(() => parse(AR.replace('## المنهجية', '## المنهجية٢٠٢٦'))).toThrow(/unknown section/)
+  })
+
+  it('reads a heading in one pass, however much space it holds', () => {
+    const start = performance.now()
+    expect(() => parse(`# a${' '.repeat(40_000)}b\n`)).toThrow(/missing the description/)
+    expect(performance.now() - start).toBeLessThan(200)
   })
 
   it.each([

@@ -6,7 +6,7 @@ Reads your site's robots.txt and shows which AI crawlers may reach the page and 
 
 - Whether robots.txt blocks the page for AI search crawlers: `OAI-SearchBot` from OpenAI, `Claude-SearchBot` from Anthropic and `PerplexityBot` from Perplexity.
 - Whether the training and user-request crawlers of these companies, and `Google-Extended`, are allowed or blocked, as information rather than a problem.
-- Whether robots.txt answers with a 5xx error or 429, or cannot be reached, which crawlers treat as blocking the whole site.
+- Whether robots.txt answers with a server error (5xx) or cannot be reached, which crawlers that follow RFC 9309 treat as blocking the whole site; we treat 429 the same way, as Google does.
 
 ## Example
 
