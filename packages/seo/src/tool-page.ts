@@ -1,3 +1,4 @@
+import { KEBAB_ID } from '@arablyzer/report-schema'
 import { ruleById } from '@arablyzer/rules'
 import { toolBySlug, type CodeExample, type Tool } from '@arablyzer/tools'
 import { formatDate } from './dates'
@@ -14,6 +15,10 @@ import { dirOf, otherLang, STRINGS } from './strings'
  * the methodology with the last update.
  */
 export function renderToolPage(tool: Tool, lang: Lang, site: Site): string {
+  // The slug becomes URLs and attributes; defineTool checks it too, but not every Tool comes
+  // through defineTool (M0.3 review).
+  if (!KEBAB_ID.test(tool.slug))
+    throw new TypeError(`Tool slugs are ASCII kebab-case: ${tool.slug}`)
   const t = STRINGS[lang]
   const copy = tool.copy[lang]
   const path = PATHS.tool(tool.slug)
@@ -51,8 +56,8 @@ export function renderToolPage(tool: Tool, lang: Lang, site: Site): string {
 
   const body = [
     '<header>',
-    `<a href="${localePath(lang, PATHS.home)}">Arablyzer</a>`,
-    `<a href="${localePath(other, path)}" hreflang="${other}" lang="${other}" dir="${dirOf(other)}">${t.otherLang}</a>`,
+    `<a href="${escapeHtml(localePath(lang, PATHS.home))}">Arablyzer</a>`,
+    `<a href="${escapeHtml(localePath(other, path))}" hreflang="${other}" lang="${other}" dir="${dirOf(other)}">${escapeHtml(t.otherLang)}</a>`,
     '</header>',
     '<main>',
     `<nav aria-label="${escapeHtml(t.breadcrumb)}"><ol>${trail
@@ -60,7 +65,7 @@ export function renderToolPage(tool: Tool, lang: Lang, site: Site): string {
       .join('')}<li aria-current="page">${escapeHtml(copy.title)}</li></ol></nav>`,
     `<h1>${escapeHtml(copy.title)}</h1>`,
     `<p>${escapeHtml(copy.description)}</p>`,
-    `<form action="${localePath(lang, path)}" method="get">`,
+    `<form action="${escapeHtml(localePath(lang, path))}" method="get">`,
     `<label for="url">${escapeHtml(t.urlLabel)}</label>`,
     '<input id="url" name="url" type="url" required placeholder="https://" dir="ltr">',
     `<button type="submit">${escapeHtml(t.check)}</button>`,
@@ -89,7 +94,7 @@ export function renderToolPage(tool: Tool, lang: Lang, site: Site): string {
     ]),
     section('about', t.sections.about, [
       renderMarkdown(copy.methodology),
-      `<p>${escapeHtml(t.updated)} <time datetime="${tool.updated}">${formatDate(tool.updated, lang)}</time></p>`,
+      `<p>${escapeHtml(t.updated)} <time datetime="${escapeHtml(tool.updated)}">${formatDate(tool.updated, lang)}</time></p>`,
     ]),
     '</main>',
     `<footer><p>Arablyzer — ${escapeHtml(t.tagline)}</p></footer>`,

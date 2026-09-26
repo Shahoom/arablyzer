@@ -25,6 +25,7 @@ export interface PageStrings {
     readonly summary: string
     readonly findings: string
     readonly noFindings: string
+    readonly ruleErrors: string
     readonly notices: string
     readonly line: string
     readonly scan: Readonly<Record<ScanStatus, string>>
@@ -62,6 +63,7 @@ export const STRINGS: Readonly<Record<Lang, PageStrings>> = {
       summary: 'الملخص',
       findings: 'المشكلات',
       noFindings: 'لم تجد القواعد أي مشكلة.',
+      ruleErrors: 'قواعد تعذّر تشغيلها',
       notices: 'تنبيهات',
       line: 'السطر',
       scan: { complete: 'مكتمل', partial: 'جزئي', failed: 'فشل' },
@@ -108,6 +110,7 @@ export const STRINGS: Readonly<Record<Lang, PageStrings>> = {
       summary: 'Summary',
       findings: 'Problems',
       noFindings: 'The rules found no problems.',
+      ruleErrors: 'Rules that could not run',
       notices: 'Notices',
       line: 'line',
       scan: { complete: 'complete', partial: 'partial', failed: 'failed' },

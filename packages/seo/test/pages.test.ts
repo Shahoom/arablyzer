@@ -125,6 +125,13 @@ describe('renderToolPage', () => {
     expect(en).toContain('<a href="/tools/rtl-check" hreflang="ar" lang="ar" dir="rtl">العربية</a>')
   })
 
+  it('refuses a slug that is not ASCII kebab-case', () => {
+    const base = tool('rtl-check')
+    expect(() =>
+      renderToolPage({ ...base, slug: 'x"><script>alert(1)</script>' }, 'ar', PREVIEW_SITE),
+    ).toThrow(TypeError)
+  })
+
   it('escapes copy', () => {
     const base = tool('rtl-check')
     const hostile: Tool = {
@@ -204,12 +211,54 @@ describe('renderReportPage', () => {
     expect(ar).not.toContain('hreflang')
   })
 
-  it('renders everything from the scanned page as text', () => {
-    const tags = elements(ar)
-    expect(tags.some((element) => element.tagName === 'script')).toBe(false)
-    expect(
-      tags.some((element) => element.attrs.some((attribute) => attribute.name.startsWith('on'))),
-    ).toBe(false)
+  it('renders everything from the scanned page as text: only our elements, attributes and links', () => {
+    const ELEMENTS = new Set([
+      'html',
+      'head',
+      'body',
+      'meta',
+      'title',
+      'main',
+      'h1',
+      'h2',
+      'h3',
+      'p',
+      'span',
+      'time',
+      'section',
+      'ul',
+      'li',
+      'article',
+      'a',
+      'code',
+      'pre',
+    ])
+    const ATTRIBUTES = new Set([
+      'lang',
+      'dir',
+      'charset',
+      'name',
+      'content',
+      'href',
+      'datetime',
+      'id',
+    ])
+    for (const page of [ar, renderReportPage(report(), 'en')]) {
+      const tags = elements(page)
+      expect(tags.map((element) => element.tagName).filter((name) => !ELEMENTS.has(name))).toEqual(
+        [],
+      )
+      expect(
+        tags
+          .flatMap((element) => element.attrs.map((attribute) => attribute.name))
+          .filter((name) => !ATTRIBUTES.has(name)),
+      ).toEqual([])
+      for (const link of tags.filter((element) => element.tagName === 'a')) {
+        expect(link.attrs.find((attribute) => attribute.name === 'href')?.value).toMatch(
+          /^\/(en\/)?rules\/[a-z0-9-]+$/,
+        )
+      }
+    }
     expect(ar).toContain('lang=&quot;&lt;script&gt;alert(1)&lt;/script&gt;&quot;')
     expect(ar).toContain('&lt;html lang=&quot;en&quot; onmouseover=&quot;alert(1)&quot;&gt;')
   })
@@ -238,6 +287,82 @@ describe('renderReportPage', () => {
       '<a href="/en/rules/ar-html-lang">Page language</a>',
     )
     expect(ar).toContain('… +3')
+  })
+
+  // M0.3 review: a failed scan said "The rules found no problems."
+  it('claims no clean result when rules did not run, and lists the ones that could not', () => {
+    const failed = report({
+      scan: {
+        status: 'failed',
+        durationMs: 1,
+        notices: [
+          { code: 'dns-failed', message: { ar: 'تعذّر العثور على النطاق', en: 'DNS failed' } },
+        ],
+      },
+      summary: {
+        pass: 0,
+        fail: 0,
+        needsReview: 0,
+        notApplicable: 0,
+        error: 1,
+        bySeverity: { critical: 0, serious: 0, moderate: 0, minor: 0, info: 0 },
+      },
+      rules: [
+        {
+          id: 'ar-html-lang',
+          version: '1.0.0',
+          category: 'intl',
+          severity: 'serious',
+          status: 'error',
+          title: { ar: 'لغة الصفحة', en: 'Page language' },
+          error: 'page-unavailable',
+        },
+      ],
+      findings: [],
+    })
+    const page = renderReportPage(failed, 'en')
+    expect(page).not.toContain('The rules found no problems.')
+    expect(page).not.toContain('<section id="findings">')
+    expect(page).toContain('<li>DNS failed</li>')
+
+    const partial = report({
+      scan: { status: 'partial', durationMs: 1, notices: [] },
+      rules: [
+        ...report().rules,
+        {
+          id: 'robots-blocks-googlebot',
+          version: '1.0.0',
+          category: 'crawl',
+          severity: 'critical',
+          status: 'error',
+          title: { ar: 'Googlebot ممنوع', en: 'Googlebot blocked' },
+          error: 'robots-unchecked',
+        },
+      ],
+    })
+    expect(renderReportPage(partial, 'en')).toContain(
+      '<section id="errors">\n<h2>Rules that could not run</h2>\n<ul><li><a href="/en/rules/robots-blocks-googlebot">Googlebot blocked</a> <code dir="ltr">robots-unchecked</code></li></ul>',
+    )
+  })
+
+  // M0.3 review: a hostile lang attribute put U+202E into the page.
+  it('shows controls and bidi overrides from the scanned page as escapes', () => {
+    const hostile = report({
+      findings: [
+        {
+          ruleId: 'ar-html-lang',
+          severity: 'serious',
+          fingerprint: '0123456789abcdef',
+          message: { ar: 'lang="x\u202Ey"', en: 'lang="x\u202Ey\u2066"' },
+          evidence: { selector: 'html\u0007', snippet: '<p>\n\t\u202E</p>' },
+        },
+      ],
+    })
+    const page = renderReportPage(hostile, 'en')
+    expect(page).not.toMatch(/[\u202A-\u202E\u2066-\u2069]/)
+    expect(page).toContain('lang=&quot;x\\u202Ey\\u2066&quot;')
+    expect(page).toContain('<code dir="ltr">html\\u0007</code>')
+    expect(page).toContain('<pre dir="ltr"><code>&lt;p&gt;\n\t\\u202E&lt;/p&gt;</code></pre>')
   })
 
   it('uses the page language and direction', () => {
