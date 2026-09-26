@@ -367,6 +367,7 @@ async function renderWith(
     url: page.url(),
     status: response?.status() ?? null,
     fontRequests: fontRequests.map((request) => fontRequestFact(request, statuses, refusals)),
+    limited: proxy.stats().limited || budget.reached,
     ...(usedFonts === undefined ? {} : { usedFonts }),
   })
   return { facts, screenshot }

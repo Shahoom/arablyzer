@@ -33,6 +33,7 @@ const context = {
   url: 'https://example.com/',
   status: 200,
   fontRequests: [],
+  limited: false,
 }
 
 describe('toFacts: the page script’s result, checked before any rule reads it', () => {

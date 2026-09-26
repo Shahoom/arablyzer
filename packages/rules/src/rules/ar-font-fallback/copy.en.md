@@ -33,7 +33,7 @@ body {
 1. We render the page in a browser and find the elements whose own text has Arabic letters, with the first family in their `font-family`.
 2. When that family is one of the page's web fonts, from `@font-face` or added by a script, we read the state of its faces from the browser's list of fonts. Faces whose `unicode-range` leaves out the Arabic letters do not count.
 3. The rule fails when a face that covers Arabic letters ended in an error and none of them loaded. A face still loading when our wait ended, or one never asked for, does not count.
-4. When Arablyzer's own proxy refused a font request, for example for a blocked address or past the page's request limit, the failure is not the site's, so the rule says nothing for that engine.
+4. When Arablyzer's own proxy refused a font request, for example for a blocked address, or the page reached Arablyzer's limit on requests or data, which cuts fonts that are still loading, the failure may not be the site's, so the rule says nothing for that engine.
 5. There is one finding per font, at the first element set in it.
 
 ## References

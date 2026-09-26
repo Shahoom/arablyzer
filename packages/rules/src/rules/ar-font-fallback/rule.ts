@@ -18,9 +18,10 @@ export const rule = defineRule({
   detect: ({ rendered = [] }) => {
     const failed = new Sightings<ArabicTextBlock>()
     for (const facts of rendered) {
-      // A font the egress proxy refused (a blocked address, the request limit) fails because of
-      // Arablyzer, not the site; the fonts are not told apart, so this engine says nothing.
-      if (facts.fontRequests.some((request) => request.refused)) continue
+      // A font the egress proxy refused (a blocked address), or cut when the page reached the
+      // limits on requests or data, fails because of Arablyzer, not the site; the fonts are not
+      // told apart, so this engine says nothing (M1.1 review).
+      if (facts.limited || facts.fontRequests.some((request) => request.refused)) continue
       for (const block of facts.arabicText) {
         if (!failedForArabic(facts, block.primaryFamily)) continue
         // One finding per font, at the first element set in it.

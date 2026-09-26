@@ -127,6 +127,7 @@ export function renderedFacts(
     ...(engine === 'chromium' ? { usedFonts: [] } : {}),
     bidi: [],
     truncated: false,
+    limited: false,
     ...overrides,
   }
 }

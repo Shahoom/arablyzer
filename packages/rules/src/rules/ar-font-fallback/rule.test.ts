@@ -127,6 +127,23 @@ describe('ar-font-fallback', () => {
     expect(finding?.values).toEqual({ family: `${family.slice(0, 63)}…` })
   })
 
+  it("stays silent when the page reached Arablyzer's limits, which cut fonts too (M1.1 review)", () => {
+    // A large response spent the data budget while the font was still arriving; the proxy cut
+    // both, and logged only the response that crossed the budget.
+    expect(
+      detectAll(
+        rule,
+        renderedEvidence([
+          renderedFacts('chromium', {
+            arabicText: [branded],
+            fontFaces: [face('error')],
+            limited: true,
+          }),
+        ]),
+      ),
+    ).toEqual([])
+  })
+
   it('matches family names without regard to case', () => {
     expect(
       detectAll(

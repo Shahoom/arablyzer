@@ -98,12 +98,17 @@ describe.each(engines)('rendered facts: %s', (engine) => {
         <p id="indic">رقمنا ٠٥٠ ١٢٣ ٤٥٦٧ للطلبات</p>
         <p id="code">نستخدم C++ في المشروع</p>
         <p id="bdi">نستخدم <bdi>C++</bdi> في المشروع</p>
-        <p id="plain">تأسست الشركة عام 2010 ولديها 500 موظف</p>`),
+        <p id="plain">تأسست الشركة عام 2010 ولديها 500 موظف</p>
+        <p id="count">أكثر من +500 عميل</p>
+        <p id="intl">اتصل على +966501234567 الآن</p>`),
     })
+    // "+500" drawn as "500+" reads as "more than 500" either way, so short numbers after + do
+    // not count; a phone number written with + does (M1.1 review).
     expect(page.bidi.map(({ selector, text, kind }) => ({ selector, text, kind }))).toEqual([
       { selector: '#broken', text: '+966 50 123 4567', kind: 'number' },
       { selector: '#indic', text: '٠٥٠ ١٢٣ ٤٥٦٧', kind: 'number' },
       { selector: '#code', text: 'C++', kind: 'latin' },
+      { selector: '#intl', text: '+966501234567', kind: 'number' },
     ])
   })
 
@@ -267,6 +272,8 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     // The page itself is the first of the ten.
     expect(served).toBe(9)
     expect(outcome?.requests.limited).toBe(true)
+    // The rules learn it too: a font cut at the limit is not the site's failure.
+    expect(outcome?.facts?.limited).toBe(true)
   })
 
   it('stops at its time budget when the page blocks its own main thread', async () => {

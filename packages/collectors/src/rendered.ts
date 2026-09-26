@@ -109,4 +109,9 @@ export interface RenderedFacts {
   readonly bidi: readonly BidiTokenFact[]
   /** Measuring stopped at its time or node limit, so the lists may be incomplete. */
   readonly truncated: boolean
+  /**
+   * The page reached Arablyzer's limits on requests or data, so some of its requests were cut
+   * short, fonts among them, by Arablyzer rather than by the site.
+   */
+  readonly limited: boolean
 }

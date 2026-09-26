@@ -60,6 +60,8 @@ export interface FactsContext {
   readonly status: number | null
   readonly fontRequests: readonly FontRequestFact[]
   readonly usedFonts?: readonly UsedFontsFact[]
+  /** The proxy or the browser stopped requests at their limits. */
+  readonly limited: boolean
 }
 
 /** The page script's result as RenderedFacts; throws when it is not what the script returns. */
@@ -83,5 +85,6 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     ...(context.usedFonts === undefined ? {} : { usedFonts: context.usedFonts }),
     bidi: facts.bidi,
     truncated: facts.truncated,
+    limited: context.limited,
   }
 }
