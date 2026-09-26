@@ -1,5 +1,19 @@
 import type { FontFaceFact, RenderedFacts } from '@arablyzer/collectors'
 
+/**
+ * Font names shown in messages are cut to this length: the page chooses them, and a longer one
+ * could read as a sentence of the report's own (M1.1 review). Real family names are shorter.
+ */
+export const MAX_SHOWN_FAMILY = 64
+
+/** A family name as a message shows it. */
+export function shownFamily(name: string): string {
+  const chars = Array.from(name)
+  return chars.length <= MAX_SHOWN_FAMILY
+    ? name
+    : `${chars.slice(0, MAX_SHOWN_FAMILY - 1).join('')}…`
+}
+
 /** The Arabic letters, U+0621 to U+064A: those a font must have to draw Arabic words. */
 const ARABIC_LETTERS = { first: 0x0621, last: 0x064a } as const
 

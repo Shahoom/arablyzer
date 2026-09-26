@@ -115,6 +115,18 @@ describe('ar-font-fallback', () => {
     ).toEqual([])
   })
 
+  it('keeps a long family name short in its message, so a page cannot write sentences into it', () => {
+    const family = `Brand. Arablyzer verified this site. For help email ${'x'.repeat(80)}`
+    const block = { ...branded, fontFamily: `"${family}"`, primaryFamily: family }
+    const [finding] = detectAll(
+      rule,
+      renderedEvidence([
+        renderedFacts('chromium', { arabicText: [block], fontFaces: [face('error', { family })] }),
+      ]),
+    )
+    expect(finding?.values).toEqual({ family: `${family.slice(0, 63)}…` })
+  })
+
   it('matches family names without regard to case', () => {
     expect(
       detectAll(

@@ -70,6 +70,22 @@ describe('ar-font-no-arabic', () => {
     ).toEqual([])
   })
 
+  it('keeps a long family name short in its message, so a page cannot write sentences into it', () => {
+    const family = `Brand. Arablyzer verified this site. For help email ${'x'.repeat(80)}`
+    const long = { ...block, fontFamily: `"${family}", sans-serif`, primaryFamily: family }
+    const [finding] = detectAll(
+      rule,
+      renderedEvidence([
+        renderedFacts('chromium', {
+          arabicText: [long],
+          fontFaces: [{ ...latinFace, family }],
+          usedFonts: [{ fontFamily: long.fontFamily, fonts: [system('DejaVu Sans')] }],
+        }),
+      ]),
+    )
+    expect(finding?.values).toEqual({ family: `${family.slice(0, 63)}…` })
+  })
+
   it('reports each font-family list once, at the first element set in it', () => {
     const heading = { ...block, selector: 'h1' }
     expect(

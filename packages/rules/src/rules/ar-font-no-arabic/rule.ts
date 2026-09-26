@@ -1,4 +1,4 @@
-import { failedForArabic } from '../../lib/fonts'
+import { failedForArabic, shownFamily } from '../../lib/fonts'
 import { renderedFacts } from '../../lib/rendered'
 import { defineRule, type DetectorFinding } from '../../rule'
 
@@ -29,7 +29,7 @@ export const rule = defineRule({
         if (web && !other) continue
         findings.push({
           message: web ? 'partial' : 'none',
-          values: { family: block.primaryFamily },
+          values: { family: shownFamily(block.primaryFamily) },
           selector: block.selector,
           engines: [facts.engine],
           box: block.box,

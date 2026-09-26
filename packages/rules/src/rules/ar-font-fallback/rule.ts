@@ -1,5 +1,5 @@
 import type { ArabicTextBlock } from '@arablyzer/collectors'
-import { failedForArabic, facesOf } from '../../lib/fonts'
+import { failedForArabic, facesOf, shownFamily } from '../../lib/fonts'
 import { renderedFacts, Sightings } from '../../lib/rendered'
 import { defineRule } from '../../rule'
 
@@ -33,7 +33,7 @@ export const rule = defineRule({
       return [
         {
           message: 'failed' as const,
-          values: { family: block.primaryFamily },
+          values: { family: shownFamily(block.primaryFamily) },
           selector: block.selector,
           engines,
           box: block.box,
