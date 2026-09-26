@@ -63,8 +63,12 @@ export interface Rule<M extends string = string> {
    */
   readonly renderEngines?: readonly Engine[]
   readonly messages: readonly M[]
-  /** False → not-applicable: the page has nothing this rule checks. */
-  readonly appliesTo: (page: PageFacts) => boolean
+  /**
+   * False → not-applicable: the page has nothing this rule checks. Rules that need `render`
+   * decide from the rendered page, whose text may come from scripts the HTML does not show; the
+   * engine always passes the evidence, and tests of rules that read only the page may leave it out.
+   */
+  readonly appliesTo: (page: PageFacts, evidence?: Evidence) => boolean
   /**
    * A pure function: tested without a browser or network. A rule whose findings grow with the
    * page (one per punctuation mark, say) yields them lazily, so the engine keeps the ones it

@@ -3,8 +3,11 @@ import { fileURLToPath } from 'node:url'
 import {
   collectPage,
   collectRobots,
+  type ArabicTextBlock,
+  type Engine,
   type Header,
   type PageFacts,
+  type RenderedFacts,
   type RobotsFacts,
 } from '@arablyzer/collectors'
 import { loadFixtureConfig, resolveFixtureResponse } from '@arablyzer/fixtures'
@@ -80,4 +83,63 @@ export function detectAll<M extends string>(
   evidence: Evidence,
 ): DetectorFinding<M>[] {
   return [...rule.detect(evidence)]
+}
+
+/** An Arabic page as its HTML, for rules that read the rendered page. */
+export const ARABIC_PAGE = htmlPage(
+  '<html lang="ar" dir="rtl"><body><p id="a">نشحن الطلبات خلال يومي عمل.</p></body></html>',
+)
+
+/** A block of Arabic text as an engine measured it: plain text, no spacing, a system font. */
+export function arabicBlock(overrides: Partial<ArabicTextBlock> = {}): ArabicTextBlock {
+  return {
+    selector: '#a',
+    box: { x: 20, y: 40, width: 350, height: 24 },
+    text: 'نشحن الطلبات خلال يومي عمل.',
+    letterSpacing: 0,
+    letterSpacingApplied: null,
+    fontFamily: 'serif',
+    primaryFamily: 'serif',
+    ...overrides,
+  }
+}
+
+/** One engine's facts for a right-to-left Arabic page that fits a phone screen. */
+export function renderedFacts(
+  engine: Engine = 'chromium',
+  overrides: Partial<RenderedFacts> = {},
+): RenderedFacts {
+  return {
+    engine,
+    version: '1.0',
+    url: `${FIXTURE_ORIGIN}/`,
+    status: 200,
+    viewport: { width: 390, height: 844 },
+    dir: 'rtl',
+    lang: 'ar',
+    viewportMeta: 'width=device-width, initial-scale=1',
+    scrollWidth: 390,
+    overflow: [],
+    arabicText: [arabicBlock()],
+    arabicTextOmitted: 0,
+    fontFaces: [],
+    fontRequests: [],
+    ...(engine === 'chromium' ? { usedFonts: [] } : {}),
+    bidi: [],
+    truncated: false,
+    ...overrides,
+  }
+}
+
+/** Evidence for a rule that needs `render`: the page's HTML and each engine's facts. */
+export function renderedEvidence(
+  rendered: readonly RenderedFacts[],
+  page: PageFacts = ARABIC_PAGE,
+): Evidence {
+  return { page, rendered }
+}
+
+/** Whether a rule applies, as the engine asks it: with the evidence. */
+export function applies(rule: Rule, evidence: Evidence): boolean {
+  return rule.appliesTo(evidence.page, evidence)
 }

@@ -40,6 +40,7 @@ import {
   RULES,
   RULESET_VERSION,
   type DetectorFinding,
+  type Evidence,
   type Rule,
 } from '@arablyzer/rules'
 import { boundSelector, boundText, boundValues } from './bounds'
@@ -468,13 +469,14 @@ function evaluate(
       )
     : undefined
   if (seen?.length === 0) return { status: 'error', error: 'not-rendered', findings: [] }
+  const evidence: Evidence = {
+    page,
+    ...(robots === undefined ? {} : { robots }),
+    ...(seen === undefined ? {} : { rendered: seen }),
+  }
   try {
-    if (!rule.appliesTo(page)) return { status: 'not-applicable', findings: [] }
-    const detected = rule.detect({
-      page,
-      ...(robots === undefined ? {} : { robots }),
-      ...(seen === undefined ? {} : { rendered: seen }),
-    })
+    if (!rule.appliesTo(page, evidence)) return { status: 'not-applicable', findings: [] }
+    const detected = rule.detect(evidence)
     const { kept, total } = firstByPosition(detected, MAX_FINDINGS_PER_RULE)
     const status = rule.manualCheck === true ? 'needs-review' : total > 0 ? 'fail' : 'pass'
     return { status, findings: convert(rule, kept, page.url), omitted: total - kept.length }

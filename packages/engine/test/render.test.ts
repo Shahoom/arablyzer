@@ -98,6 +98,24 @@ describe('rules that need rendering', () => {
     ])
   })
 
+  it('decide whether they apply from the rendered page, which the HTML may not show', () => {
+    const rule = renderRule({
+      appliesTo: (_page, evidence) =>
+        evidence?.rendered?.some((rendered) => rendered.arabicText.length > 0) ?? false,
+    })
+    const blank = { ...facts('chromium'), arabicText: [] }
+    // The HTML has no Arabic text; the page's scripts added it.
+    const empty = page(
+      '<html><body><div id="app"></div><script src="/app.js"></script></body></html>',
+    )
+    expect(evaluatePage(empty, { rules: [rule], rendered: [facts('chromium')] }).results).toEqual([
+      expect.objectContaining({ id: 'render-rule', status: 'fail' }),
+    ])
+    expect(evaluatePage(empty, { rules: [rule], rendered: [blank] }).results).toEqual([
+      expect.objectContaining({ id: 'render-rule', status: 'not-applicable' }),
+    ])
+  })
+
   it('are left out of evaluatePage without rendered facts', () => {
     const { results } = evaluatePage(ARABIC, { rules: [flagRule(), renderRule()] })
     expect(results.map((result) => result.id)).toEqual(['test-rule'])

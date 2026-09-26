@@ -66,7 +66,7 @@ export interface TestRuleOptions {
   readonly renderEngines?: Rule['renderEngines']
   readonly severity?: Rule['severity']
   readonly manualCheck?: boolean
-  readonly appliesTo?: (page: PageFacts) => boolean
+  readonly appliesTo?: (page: PageFacts, evidence?: Evidence) => boolean
   readonly detect: (evidence: Evidence) => Iterable<DetectorFinding<'found'>>
 }
 
