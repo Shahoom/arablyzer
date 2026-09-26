@@ -208,7 +208,7 @@ describe('egress proxy: forwarding', () => {
     expect(seen['x-custom']).toBe('kept')
     expect(seen['proxy-authorization']).toBeUndefined()
     expect(seen['proxy-connection']).toBeUndefined()
-    expect(through.stats()).toMatchObject({ requests: 1, refused: 0 })
+    expect(through.stats()).toMatchObject({ requests: 1, refused: 0, limited: false })
   })
 
   it('opens a tunnel to an allowed target and passes bytes both ways', async () => {
@@ -385,7 +385,7 @@ describe('egress proxy: limits', () => {
     expect(third.headers['x-arablyzer-refused']).toBe('request-limit')
     expect((await tunnel(through, `127.0.0.1:${target.port}`)).status).toBe(403)
     expect(hits).toBe(2)
-    expect(through.stats()).toMatchObject({ requests: 2, refused: 2 })
+    expect(through.stats()).toMatchObject({ requests: 2, refused: 2, limited: true })
   })
 
   it('cuts responses and tunnels past maxBytes', async () => {
@@ -394,6 +394,7 @@ describe('egress proxy: limits', () => {
     const answer = await via(through, `${target.origin}/`).catch((error: unknown) => error)
     expect(answer instanceof Error || (answer as Answer).body.length < 64 * 1024).toBe(true)
     expect(through.stats().refusals.map((refusal) => refusal.code)).toEqual(['too-large'])
+    expect(through.stats().limited).toBe(true)
   })
 
   it('logs the first refusals only, and counts them all', async () => {

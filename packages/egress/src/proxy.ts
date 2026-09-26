@@ -54,6 +54,8 @@ export interface ProxyStats {
   readonly refused: number
   /** Requests without the proxy's credentials, such as a browser's own background traffic. */
   readonly unauthenticated: number
+  /** The request limit or the byte budget was reached, so the page did not load in full. */
+  readonly limited: boolean
   /** Bytes received from the network. */
   readonly bytes: number
   /** The first PROXY_LOG_LIMIT refusals. */
@@ -113,6 +115,7 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
   let pending = 0
   let refused = 0
   let unauthenticated = 0
+  let limited = false
   let bytes = 0
 
   const track = (socket: Duplex) => {
@@ -122,6 +125,7 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
 
   const refuse = (target: string, code: ProxyRefusalCode, address?: string, range?: string) => {
     refused += 1
+    if (code === 'request-limit' || code === 'too-large') limited = true
     if (refusals.length < PROXY_LOG_LIMIT) {
       refusals.push({
         target: redactUrl(target).slice(0, MAX_TARGET_LENGTH),
@@ -384,7 +388,14 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
     url: `http://127.0.0.1:${address.port}`,
     username,
     password,
-    stats: () => ({ requests, refused, unauthenticated, bytes, refusals: [...refusals] }),
+    stats: () => ({
+      requests,
+      refused,
+      unauthenticated,
+      limited,
+      bytes,
+      refusals: [...refusals],
+    }),
     close: () =>
       new Promise<void>((resolve) => {
         closing.abort()
