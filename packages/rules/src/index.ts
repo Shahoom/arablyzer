@@ -1,4 +1,5 @@
 import type { Rule } from './rule'
+import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
@@ -16,6 +17,7 @@ export const RULESET_VERSION = '0.2.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
+  arFontFallback,
   arHtmlLang,
   arLatinPunctuation,
   arLetterSpacing,
