@@ -19,6 +19,19 @@ export {
   type PageInput,
 } from './page'
 export {
+  ENGINES,
+  type ArabicTextBlock,
+  type BidiTokenFact,
+  type Box,
+  type Engine,
+  type FontFaceFact,
+  type FontRequestFact,
+  type RenderedElement,
+  type RenderedFacts,
+  type UsedFont,
+  type UsedFontsFact,
+} from './rendered'
+export {
   collectRobots,
   parseRobotsTxt,
   type RobotsAgent,
