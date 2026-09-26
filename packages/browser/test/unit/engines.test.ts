@@ -2,10 +2,13 @@ import vm from 'node:vm'
 import { describe, expect, it } from 'vitest'
 import {
   BOT_TOKEN,
+  NEEDS_ISOLATION,
   contextOptions,
   executablePathFor,
   launchOptions,
   measureSource,
+  networkIsolated,
+  renderPage,
   userAgentFor,
 } from '../../src/index'
 
@@ -33,6 +36,7 @@ describe('launch settings', () => {
     expect(launchOptions('firefox', proxy).firefoxUserPrefs).toMatchObject({
       'network.proxy.allow_hijacking_localhost': true,
       'media.peerconnection.enabled': false,
+      'network.webtransport.enabled': false,
       'dom.serviceWorkers.enabled': false,
     })
   })
@@ -44,6 +48,39 @@ describe('launch settings', () => {
     expect(executablePathFor('firefox', { ARABLYZER_FIREFOX_PATH: '' })).toBeUndefined()
     expect(executablePathFor('webkit', {})).toBeUndefined()
     expect(launchOptions('webkit', proxy, '/opt/webkit').executablePath).toBe('/opt/webkit')
+  })
+})
+
+describe('engines that need an isolated network', () => {
+  it('are WebKit, whose WebRTC goes around the proxy (see the browser SSRF suite)', () => {
+    expect(NEEDS_ISOLATION).toEqual(['webkit'])
+  })
+
+  it('count as isolated only when ARABLYZER_NETWORK_ISOLATED is 1', () => {
+    expect(networkIsolated({ ARABLYZER_NETWORK_ISOLATED: '1' })).toBe(true)
+    expect(networkIsolated({ ARABLYZER_NETWORK_ISOLATED: ' 1 ' })).toBe(true)
+    expect(networkIsolated({ ARABLYZER_NETWORK_ISOLATED: 'true' })).toBe(false)
+    expect(networkIsolated({ ARABLYZER_NETWORK_ISOLATED: '0' })).toBe(false)
+    expect(networkIsolated({})).toBe(false)
+  })
+
+  it('are refused elsewhere, before any browser or proxy starts', async () => {
+    const [outcome] = await renderPage('http://127.0.0.1:9/', {
+      engines: ['webkit'],
+      networkIsolated: false,
+      // Never launched: a launch would fail on this path, and the outcome would not be "refused".
+      executablePaths: { webkit: '/nonexistent/webkit' },
+    })
+    expect(outcome).toMatchObject({
+      engine: 'webkit',
+      status: 'refused',
+      version: null,
+      durationMs: 0,
+      requests: { requests: 0, refused: 0, unauthenticated: 0 },
+      facts: null,
+      screenshot: null,
+    })
+    expect(outcome?.error).toMatch(/only where the network is isolated/)
   })
 })
 

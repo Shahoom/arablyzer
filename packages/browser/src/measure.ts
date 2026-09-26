@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 /**
  * The script that measures a rendered page, run inside it with page.evaluate. It must stay
  * self-contained: it is sent to the page as source text, so it can use nothing from this module

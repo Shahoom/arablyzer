@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 import type { Engine, FontRequestFact, RenderedFacts, UsedFontsFact } from '@arablyzer/collectors'
 import {
   DEFAULT_POLICY,
@@ -13,6 +14,7 @@ import {
   firefox,
   webkit,
   type Browser,
+  type BrowserServer,
   type BrowserType,
   type Page,
   type Request,
@@ -22,6 +24,9 @@ import {
   contextOptions,
   executablePathFor,
   launchOptions,
+  NEEDS_ISOLATION,
+  NETWORK_ISOLATED_VARIABLE,
+  networkIsolated,
   userAgentFor,
 } from './engines'
 import { measureSource } from './measure'
@@ -35,6 +40,13 @@ const SETTLE_CAP_MS = 5_000
 const QUIET_MS = 500
 const MAX_FONT_REQUESTS = 50
 const MAX_PROBED_FAMILIES = 10
+/**
+ * A browser gets this long to close by itself, and is then killed: a page that holds its main
+ * thread can keep an engine from closing (WebKit took 30 s in CI).
+ */
+const CLOSE_GRACE_MS = 5_000
+/** A killed browser whose processes have not all exited by then is left to exit on its own. */
+const KILL_WAIT_MS = 5_000
 /** Every Arabic letter, to ask which font draws them. */
 const ARABIC_SAMPLE = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي'
 
@@ -52,9 +64,14 @@ export interface RenderOptions {
   readonly signal?: AbortSignal
   /** Browser binaries by engine; the ARABLYZER_<ENGINE>_PATH variables by default. */
   readonly executablePaths?: Partial<Record<Engine, string>>
+  /**
+   * Whether the network here reaches nothing but the egress proxy; ARABLYZER_NETWORK_ISOLATED by
+   * default. Engines in NEEDS_ISOLATION are refused without it.
+   */
+  readonly networkIsolated?: boolean
 }
 
-export type RenderStatus = 'rendered' | 'failed' | 'timeout' | 'unavailable'
+export type RenderStatus = 'rendered' | 'failed' | 'timeout' | 'unavailable' | 'refused'
 
 export interface RenderOutcome {
   readonly engine: Engine
@@ -69,6 +86,16 @@ export interface RenderOutcome {
 }
 
 class RenderTimeout extends Error {}
+class RenderAborted extends Error {}
+
+const NO_REQUESTS: ProxyStats = Object.freeze({
+  requests: 0,
+  refused: 0,
+  unauthenticated: 0,
+  limited: false,
+  bytes: 0,
+  refusals: Object.freeze([]),
+})
 
 /**
  * Renders the page in each engine, one after the other (one browser at a time, BUILD-PLAN
@@ -93,6 +120,18 @@ async function renderIn(
   budgetMs: number,
   options: RenderOptions,
 ): Promise<RenderOutcome> {
+  if (NEEDS_ISOLATION.includes(engine) && !(options.networkIsolated ?? networkIsolated())) {
+    return {
+      engine,
+      status: 'refused',
+      version: null,
+      error: `${engine} sends traffic around the egress proxy, so it renders only where the network is isolated (${NETWORK_ISOLATED_VARIABLE}=1)`,
+      durationMs: 0,
+      requests: NO_REQUESTS,
+      facts: null,
+      screenshot: null,
+    }
+  }
   const started = performance.now()
   const deadline = started + budgetMs
   const proxy = await startProxy({
@@ -100,7 +139,6 @@ async function renderIn(
     ...(options.resolver === undefined ? {} : { resolver: options.resolver }),
   })
   const executablePath = options.executablePaths?.[engine] ?? executablePathFor(engine)
-  let browser: Browser | undefined
   let version: string | null = null
   const finish = (
     status: RenderStatus,
@@ -118,6 +156,15 @@ async function renderIn(
     screenshot,
   })
 
+  // A browser server rather than a plain launch, because only a server can be killed; it listens
+  // on loopback only, at an unguessable path, and the page's own requests cannot reach loopback.
+  const launching = TYPES[engine].launchServer({
+    ...launchOptions(engine, proxySettings(proxy), executablePath),
+    host: '127.0.0.1',
+    port: 0,
+    timeout: budgetMs,
+  })
+  launching.catch(() => undefined)
   let timer: NodeJS.Timeout | undefined
   const expired = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => {
@@ -128,7 +175,7 @@ async function renderIn(
     options.signal?.addEventListener(
       'abort',
       () => {
-        reject(new Error('Aborted'))
+        reject(new RenderAborted('Aborted'))
       },
       { once: true },
     )
@@ -136,11 +183,14 @@ async function renderIn(
   // The losers of the race below still settle later; they must not become unhandled rejections.
   expired.catch(() => undefined)
   aborted.catch(() => undefined)
+  // A page that ran out of time may be holding its engine: that browser is killed, not closed.
+  let stuck = false
   try {
     const work = (async () => {
-      browser = await TYPES[engine].launch(
-        launchOptions(engine, proxySettings(proxy), executablePath),
-      )
+      const server = await launching
+      const browser: Browser = await TYPES[engine].connect(server.wsEndpoint(), {
+        timeout: Math.max(1, Math.round(deadline - performance.now())),
+      })
       version = browser.version()
       return await renderWith(browser, engine, url, proxy, deadline, options.screenshots === true)
     })()
@@ -149,9 +199,11 @@ async function renderIn(
     const { facts, screenshot } = await Promise.race([work, expired, aborted])
     return finish('rendered', null, facts, screenshot)
   } catch (error) {
+    if (error instanceof RenderTimeout || error instanceof RenderAborted) stuck = true
     if (error instanceof RenderTimeout) return finish('timeout', error.message)
     // Playwright's own timeouts are set from the same budget, so they can fire first.
     if (error instanceof Error && error.name === 'TimeoutError') {
+      stuck = true
       return finish('timeout', firstLine(error.message))
     }
     const message = error instanceof Error ? error.message : String(error)
@@ -161,9 +213,35 @@ async function renderIn(
     return finish('failed', firstLine(message))
   } finally {
     clearTimeout(timer)
-    await browser?.close().catch(() => undefined)
+    await shutDown(launching, stuck)
     await proxy.close()
   }
+}
+
+/**
+ * Ends a render's browser: it is killed at once when its page ran out of time, and otherwise
+ * when it has not closed within CLOSE_GRACE_MS. Killing ends the whole process group.
+ */
+async function shutDown(launching: Promise<BrowserServer>, stuck: boolean): Promise<void> {
+  // A launch has its own timeout (the budget), so this wait ends too.
+  const server = await launching.catch(() => undefined)
+  if (server === undefined) return
+  if (!stuck) {
+    const closed = await Promise.race([
+      server.close().then(
+        () => true,
+        () => false,
+      ),
+      unheld(CLOSE_GRACE_MS).then(() => false),
+    ])
+    if (closed) return
+  }
+  await Promise.race([server.kill().catch(() => undefined), unheld(KILL_WAIT_MS)])
+}
+
+/** A delay that does not keep the process alive, so a closed browser does not hold up exit. */
+function unheld(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms).unref())
 }
 
 async function renderWith(
@@ -216,7 +294,7 @@ async function renderWith(
   const settleUntil = Math.min(deadline, performance.now() + SETTLE_CAP_MS)
   await Promise.race([
     page.evaluate('document.fonts.ready.then(() => true)').catch(() => undefined),
-    delay(Math.max(0, settleUntil - performance.now())),
+    unheld(Math.max(0, settleUntil - performance.now())),
   ])
   while (performance.now() < settleUntil) {
     if (inflight === 0 && performance.now() - lastActivity >= QUIET_MS) break

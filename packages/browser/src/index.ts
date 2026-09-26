@@ -1,10 +1,13 @@
 export {
   BOT_TOKEN,
   DEVICE_SCALE_FACTOR,
+  NEEDS_ISOLATION,
+  NETWORK_ISOLATED_VARIABLE,
   VIEWPORT,
   contextOptions,
   executablePathFor,
   launchOptions,
+  networkIsolated,
   userAgentFor,
   type ProxySettings,
 } from './engines'
@@ -25,3 +28,4 @@ export {
   type RenderStatus,
 } from './render'
 export { toFacts, type FactsContext } from './validate'
+export { PLAYWRIGHT_VERSION } from './version'

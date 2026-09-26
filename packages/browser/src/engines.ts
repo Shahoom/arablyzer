@@ -8,6 +8,26 @@ export const BOT_TOKEN = 'ArablyzerBot/1.0 (+https://arablyzer.com/bot)'
 export const VIEWPORT = Object.freeze({ width: 390, height: 844 })
 export const DEVICE_SCALE_FACTOR = 2
 
+/**
+ * Set to 1 only where the browser's network reaches nothing but the egress proxy: a container on
+ * an isolated network (BUILD-PLAN §13).
+ */
+export const NETWORK_ISOLATED_VARIABLE = 'ARABLYZER_NETWORK_ISOLATED'
+
+/**
+ * Engines that send traffic around the egress proxy, so they render only where the network is
+ * isolated (Phase 1 design §5). Measured in CI on 2026-09-26: WebKit's WebRTC reached a loopback
+ * port by STUN and TURN, over UDP and TCP. Playwright's WebKit turns WebRTC on for every page it
+ * drives, and has no setting that turns it off.
+ */
+export const NEEDS_ISOLATION: readonly Engine[] = Object.freeze(['webkit'])
+
+export function networkIsolated(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  return env[NETWORK_ISOLATED_VARIABLE]?.trim() === '1'
+}
+
 export interface ProxySettings {
   readonly server: string
   readonly username: string
@@ -20,7 +40,8 @@ export interface ProxySettings {
  * proxy (Playwright adds it too, unless PLAYWRIGHT_DISABLE_FORCED_CHROMIUM_PROXIED_LOOPBACK is
  * set; the browser SSRF suite sets it, so it tests this setting); the full browser honours only
  * --webrtc-ip-handling-policy and the headless shell only --force-webrtc-ip-handling-policy, so
- * both are set; with neither, STUN reached a local UDP port.
+ * both are set; with neither, STUN reached a local UDP port. WebTransport sent QUIC to a local
+ * UDP port despite --disable-quic when no proxy applied, and nothing once the proxy did.
  */
 export function launchOptions(
   engine: Engine,
@@ -54,6 +75,7 @@ export function launchOptions(
           'media.peerconnection.enabled': false,
           'network.http.http3.enable': false,
           'network.http.http3.enabled': false,
+          'network.webtransport.enabled': false,
           'network.dns.disablePrefetch': true,
           'network.prefetch-next': false,
           'network.predictor.enabled': false,

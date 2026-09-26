@@ -34,6 +34,8 @@ async function rendered(
   const [outcome] = await renderPage(site.url('/'), {
     engines: [engine],
     policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+    // These pages use no WebRTC, the one route that needs isolation (see the SSRF suite).
+    networkIsolated: true,
     ...options,
   })
   if (outcome === undefined) throw new Error('No outcome')
