@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
 import type { Engine, FontRequestFact, RenderedFacts, UsedFontsFact } from '@arablyzer/collectors'
 import {
+  DEFAULT_MAX_REQUESTS,
   DEFAULT_POLICY,
   redactUrl,
   startProxy,
@@ -69,6 +70,11 @@ export interface RenderOptions {
    * default. Engines in NEEDS_ISOLATION are refused without it.
    */
   readonly networkIsolated?: boolean
+  /**
+   * Requests a page may make per engine (BUILD-PLAN §11: 300). The browser counts them, since
+   * the proxy sees only the tunnel of an HTTPS connection, not the requests inside it.
+   */
+  readonly maxRequests?: number
 }
 
 export type RenderStatus = 'rendered' | 'failed' | 'timeout' | 'unavailable' | 'refused'
@@ -140,6 +146,8 @@ async function renderIn(
   })
   const executablePath = options.executablePaths?.[engine] ?? executablePathFor(engine)
   let version: string | null = null
+  // The page's own request count, kept by the browser (see RenderOptions.maxRequests).
+  const budget = { max: options.maxRequests ?? DEFAULT_MAX_REQUESTS, reached: false }
   const finish = (
     status: RenderStatus,
     error: string | null,
@@ -151,7 +159,7 @@ async function renderIn(
     version,
     error,
     durationMs: Math.round(performance.now() - started),
-    requests: proxy.stats(),
+    requests: { ...proxy.stats(), limited: proxy.stats().limited || budget.reached },
     facts,
     screenshot,
   })
@@ -192,7 +200,10 @@ async function renderIn(
         timeout: Math.max(1, Math.round(deadline - performance.now())),
       })
       version = browser.version()
-      return await renderWith(browser, engine, url, proxy, deadline, options.screenshots === true)
+      return await renderWith(browser, engine, url, proxy, deadline, {
+        screenshots: options.screenshots === true,
+        budget,
+      })
     })()
     work.catch(() => undefined)
     // A page that blocks its own main thread would hold page.evaluate forever; the budget wins.
@@ -250,11 +261,23 @@ async function renderWith(
   url: string,
   proxy: EgressProxy,
   deadline: number,
-  screenshots: boolean,
+  { screenshots, budget }: { screenshots: boolean; budget: { max: number; reached: boolean } },
 ): Promise<{ facts: RenderedFacts; screenshot: Uint8Array | null }> {
   const remaining = () => Math.max(1, Math.round(deadline - performance.now()))
   const agent = await defaultUserAgent(browser)
   const context = await browser.newContext(contextOptions(userAgentFor(agent, BOT_TOKEN)))
+  // Every request waits here for its turn to be counted, so a burst cannot get past the limit
+  // before it is noticed; past it, new requests are refused (BUILD-PLAN §11, M1.1 review).
+  let made = 0
+  await context.route('**/*', async (route) => {
+    made++
+    if (made <= budget.max) {
+      await route.fallback()
+      return
+    }
+    budget.reached = true
+    await route.abort('blockedbyclient')
+  })
   const page = await context.newPage()
   // No pop-ups, no dialogs waiting for a click: nothing on the page is ever acted on (§13).
   context.on('page', (opened) => {

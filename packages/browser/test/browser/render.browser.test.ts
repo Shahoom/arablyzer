@@ -178,6 +178,34 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(outcome.status, outcome.error ?? '').toBe('rendered')
   })
 
+  it('refuses requests past the limit, counted by the browser, which sees into tunnels (M1.1 review)', async () => {
+    let served = 0
+    const site = await serve((req, res) => {
+      if (req.url === '/') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        res.end(
+          arabicPage(
+            '<p>نص</p><script>for (let i = 0; i < 60; i++) fetch("/r" + i).catch(() => {})</script>',
+          ),
+        )
+        return
+      }
+      served++
+      res.end('ok')
+    })
+    cleanup.push(() => site.close())
+    const [outcome] = await renderPage(site.url('/'), {
+      engines: [engine],
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      networkIsolated: true,
+      maxRequests: 10,
+    })
+    expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
+    // The page itself is the first of the ten.
+    expect(served).toBe(9)
+    expect(outcome?.requests.limited).toBe(true)
+  })
+
   it('stops at its time budget when the page blocks its own main thread', async () => {
     const started = performance.now()
     const outcome = await rendered(
