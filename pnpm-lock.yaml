@@ -69,6 +69,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@arablyzer/browser':
+        specifier: workspace:*
+        version: link:../browser
       '@arablyzer/egress':
         specifier: workspace:*
         version: link:../egress
@@ -94,6 +97,10 @@ importers:
       esbuild:
         specifier: ^0.28.2
         version: 0.28.2
+    optionalDependencies:
+      playwright-core:
+        specifier: 1.63.0
+        version: 1.63.0
 
   packages/collectors:
     dependencies:
@@ -113,6 +120,9 @@ importers:
 
   packages/engine:
     dependencies:
+      '@arablyzer/browser':
+        specifier: workspace:*
+        version: link:../browser
       '@arablyzer/collectors':
         specifier: workspace:*
         version: link:../collectors

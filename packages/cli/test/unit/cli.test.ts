@@ -15,9 +15,46 @@ describe('parseCliArgs', () => {
       failOn: undefined,
       timeoutMs: 30_000,
       allowPrivate: false,
+      render: null,
       help: false,
       version: false,
     })
+  })
+
+  it('renders in Chromium with --render, in the engines asked for, and --screenshots implies it', () => {
+    const render = (...flags: string[]) => parseCliArgs(['x.test', ...flags], {}).render
+    expect(render('--render')).toEqual({
+      engines: ['chromium'],
+      screenshotsDir: null,
+      networkIsolated: false,
+    })
+    expect(render('--engines', 'firefox, chromium,firefox')).toMatchObject({
+      engines: ['firefox', 'chromium'],
+    })
+    expect(render('--screenshots', 'shots')).toMatchObject({
+      engines: ['chromium'],
+      screenshotsDir: 'shots',
+    })
+  })
+
+  it('runs WebKit only where the network is isolated: by name it is refused, and all leaves it out', () => {
+    const render = (env: Record<string, string>, ...flags: string[]) =>
+      parseCliArgs(['x.test', ...flags], env).render
+    expect(render({}, '--engines', 'all')).toEqual({
+      engines: ['chromium', 'firefox'],
+      screenshotsDir: null,
+      networkIsolated: false,
+    })
+    expect(() => render({}, '--engines', 'chromium,webkit')).toThrow(
+      /webkit sends WebRTC around the egress proxy.*ARABLYZER_NETWORK_ISOLATED=1/,
+    )
+    const isolated = { ARABLYZER_NETWORK_ISOLATED: '1' }
+    expect(render(isolated, '--engines', 'all')).toEqual({
+      engines: ['chromium', 'firefox', 'webkit'],
+      screenshotsDir: null,
+      networkIsolated: true,
+    })
+    expect(render(isolated, '--engines', 'webkit')).toMatchObject({ engines: ['webkit'] })
   })
 
   it('adds https:// to a bare host and leaves other schemes for egress to refuse', () => {
@@ -60,6 +97,9 @@ describe('parseCliArgs', () => {
     [['x.test', '--rules', 'nope'], /unknown rule id: nope/],
     [['x.test', '--rules', ' , '], /at least one rule id/],
     [['x.test', '--bogus'], /Unknown option '--bogus'/],
+    [['x.test', '--engines', 'edge'], /unknown engine: edge/],
+    [['x.test', '--engines', ' , '], /at least one engine/],
+    [['x.test', '--screenshots', ''], /--screenshots needs a directory/],
   ])('rejects %j', (argv, error) => {
     expect(() => parseCliArgs(argv, {})).toThrow(UsageError)
     expect(() => parseCliArgs(argv, {})).toThrow(error)

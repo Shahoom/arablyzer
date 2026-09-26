@@ -8,8 +8,14 @@ const rulesDir = fileURLToPath(new URL('../../rules/src/rules/', import.meta.url
 
 await rm(dist, { recursive: true, force: true })
 await build({
-  entryPoints: [`${root}src/main.ts`],
-  outfile: `${dist}arablyzer.mjs`,
+  entryPoints: { arablyzer: `${root}src/main.ts` },
+  outdir: dist,
+  outExtension: { '.js': '.mjs' },
+  // The browser code (and Playwright, which finds its own files at run time and so stays
+  // external) goes to a chunk loaded only by --render; scans without it never load Playwright.
+  splitting: true,
+  chunkNames: 'chunks/[name]-[hash]',
+  external: ['playwright-core'],
   bundle: true,
   platform: 'node',
   format: 'esm',

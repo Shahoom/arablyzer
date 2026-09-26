@@ -1,4 +1,4 @@
-import type { RuleStatus, ScanStatus, Severity } from '@arablyzer/report-schema'
+import type { Engine, RenderRun, RuleStatus, ScanStatus, Severity } from '@arablyzer/report-schema'
 
 export type Lang = 'ar' | 'en'
 
@@ -12,6 +12,10 @@ export interface Strings {
   readonly noProblems: string
   readonly usageHint: string
   readonly help: string
+  readonly render: Readonly<Record<RenderRun['status'], string>>
+  readonly requests: (total: number, refused: number) => string
+  /** When an engine is not installed: the command that installs it. */
+  readonly installBrowsers: (engines: readonly Engine[], version: string) => string
 }
 
 const HELP_EN = `Usage: arablyzer <url> [options]
@@ -27,6 +31,13 @@ Options:
   --timeout <seconds>    Time limit for each request, 1 to 120 (default 30)
   --allow-private        Allow private and local addresses on any port, for local builds
                          (link-local and cloud metadata addresses stay blocked)
+  --render               Also render the page in a browser (Chromium), behind the same
+                         address rules, for the checks that need it
+  --engines <list>       Render in these engines: chromium, firefox, webkit, or all.
+                         WebKit sends WebRTC around the proxy, so it runs only in a
+                         container whose network is isolated (ARABLYZER_NETWORK_ISOLATED=1);
+                         elsewhere, all means chromium and firefox
+  --screenshots <dir>    Save a screenshot of the first screen per engine as <dir>/<engine>.png
   -h, --help             Show this help
   -v, --version          Show the version
 
@@ -47,6 +58,13 @@ const HELP_AR = `الاستخدام: arablyzer <الرابط> [خيارات]
   --timeout <seconds>    مهلة كل طلب بالثواني، من 1 إلى 120 (الافتراضي 30)
   --allow-private        اسمح بالعناوين الخاصة والمحلية على أي منفذ، للبناءات المحلية
                          (عناوين link-local وmetadata تبقى محجوبة)
+  --render               اعرض الصفحة في متصفح أيضاً (Chromium)، بقواعد العناوين نفسها،
+                         للفحوص التي تحتاج ذلك
+  --engines <list>       اعرضها في هذه المحرّكات: chromium أو firefox أو webkit أو all.
+                         WebKit يرسل WebRTC دون المرور بالبروكسي، فلا يعمل إلا داخل حاوية
+                         شبكتها معزولة (ARABLYZER_NETWORK_ISOLATED=1)؛ وفي غيرها تعني all
+                         المحرّكين chromium وfirefox
+  --screenshots <dir>    احفظ لقطة للشاشة الأولى في كل محرّك باسم <dir>/<engine>.png
   -h, --help             اعرض هذه المساعدة
   -v, --version          اعرض رقم الإصدار
 
@@ -77,6 +95,17 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
     noProblems: 'The selected rules found no problems.',
     usageHint: 'Run arablyzer --help for usage.',
     help: HELP_EN,
+    render: {
+      rendered: 'rendered',
+      failed: 'could not render',
+      timeout: 'out of time',
+      unavailable: 'not installed',
+      refused: 'needs an isolated network',
+    },
+    requests: (total, refused) =>
+      refused === 0 ? `${total} requests` : `${total} requests, ${refused} refused`,
+    installBrowsers: (engines, version) =>
+      `to render in ${engines.join(', ')}, install it with: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
   ar: {
     severity: {
@@ -100,6 +129,17 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
     noProblems: 'لم تجد القواعد المختارة أي مشكلة.',
     usageHint: 'شغّل arablyzer --help لعرض طريقة الاستخدام.',
     help: HELP_AR,
+    render: {
+      rendered: 'عُرضت',
+      failed: 'تعذّر العرض',
+      timeout: 'انتهى الوقت',
+      unavailable: 'غير مثبّت',
+      refused: 'يحتاج شبكة معزولة',
+    },
+    requests: (total, refused) =>
+      refused === 0 ? `${total} طلباً` : `${total} طلباً، رُفض منها ${refused}`,
+    installBrowsers: (engines, version) =>
+      `لعرض الصفحة في ${engines.join('، ')} ثبّته بالأمر: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
 }
 
