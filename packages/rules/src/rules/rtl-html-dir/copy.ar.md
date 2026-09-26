@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # صفحة عربية بلا dir="rtl" في وسم html

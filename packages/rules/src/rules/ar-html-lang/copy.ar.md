@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # سمة lang مفقودة أو خاطئة في صفحة عربية

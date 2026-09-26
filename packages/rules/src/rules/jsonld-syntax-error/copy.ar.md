@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # خطأ في صيغة JSON داخل البيانات المنظّمة (JSON-LD)
