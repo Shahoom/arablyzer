@@ -84,6 +84,22 @@ describe('engines that need an isolated network', () => {
   })
 })
 
+describe('an aborted render', () => {
+  it('stops before any browser starts when its signal is already aborted (M1.1 review)', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const started = performance.now()
+    const [outcome] = await renderPage('http://127.0.0.1:9/', {
+      engines: ['chromium'],
+      signal: controller.signal,
+      // Never launched: a launch would fail on this path, and the outcome would say so.
+      executablePaths: { chromium: '/nonexistent/chromium' },
+    })
+    expect(outcome).toMatchObject({ status: 'failed', error: 'Aborted', facts: null })
+    expect(performance.now() - started).toBeLessThan(1_000)
+  })
+})
+
 describe('context settings', () => {
   it('blocks service workers and downloads, and fixes screen, language and clock', () => {
     expect(contextOptions('agent')).toMatchObject({

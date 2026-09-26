@@ -48,6 +48,8 @@ const MAX_PROBED_FAMILIES = 10
 const CLOSE_GRACE_MS = 5_000
 /** A killed browser whose processes have not all exited by then is left to exit on its own. */
 const KILL_WAIT_MS = 5_000
+/** How long the used-fonts probes wait for their fonts, once the settle step is over. */
+const PROBE_FONTS_CAP_MS = 2_000
 /** Every Arabic letter, to ask which font draws them. */
 const ARABIC_SAMPLE = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي'
 
@@ -138,6 +140,19 @@ async function renderIn(
       screenshot: null,
     }
   }
+  // An abort that came first never fires its event: without this, the render ran its whole budget.
+  if (options.signal?.aborted === true) {
+    return {
+      engine,
+      status: 'failed',
+      version: null,
+      error: 'Aborted',
+      durationMs: 0,
+      requests: NO_REQUESTS,
+      facts: null,
+      screenshot: null,
+    }
+  }
   const started = performance.now()
   const deadline = started + budgetMs
   const proxy = await startProxy({
@@ -180,6 +195,8 @@ async function renderIn(
     }, budgetMs)
   })
   const aborted = new Promise<never>((_resolve, reject) => {
+    // An abort while the proxy started has already fired its event.
+    if (options.signal?.aborted === true) reject(new RenderAborted('Aborted'))
     options.signal?.addEventListener(
       'abort',
       () => {
@@ -365,7 +382,12 @@ async function chromiumUsedFonts(page: Page, measured: unknown): Promise<UsedFon
   if (families.length === 0) return []
   const ids: unknown = await page.evaluate(inPage(addProbes, families, ARABIC_SAMPLE))
   if (!Array.isArray(ids)) return []
-  await page.evaluate('document.fonts.ready.then(() => true)').catch(() => undefined)
+  // Capped, as the settle step is: a font that never arrives held the whole render until its
+  // budget ran out, and the page was reported with no facts at all (M1.1 review).
+  await Promise.race([
+    page.evaluate('document.fonts.ready.then(() => true)').catch(() => undefined),
+    unheld(PROBE_FONTS_CAP_MS),
+  ])
   const session = await page.context().newCDPSession(page)
   const result: UsedFontsFact[] = []
   try {

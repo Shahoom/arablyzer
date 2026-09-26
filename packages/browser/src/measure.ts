@@ -273,6 +273,9 @@ export function measurePage(limits: MeasureLimits): Measured {
   }
 
   // Elements that reach past the viewport, when the page scrolls sideways at all.
+  // CSS Writing Modes 3 §8: an HTML page takes its direction from <body> when there is one, so
+  // dir="rtl" on <body> alone makes the whole page right to left (M1.1 review).
+  const pageDir = getComputedStyle(body ?? root).direction === 'rtl' ? 'rtl' : 'ltr'
   const clientWidth = root.clientWidth
   const scrollWidth = Math.max(root.scrollWidth, body?.scrollWidth ?? 0)
   const overflow: Measured['overflow'][number][] = []
@@ -293,7 +296,9 @@ export function measurePage(limits: MeasureLimits): Measured {
       if (element === undefined) continue
       const rect = element.getBoundingClientRect()
       if (rect.width === 0 || rect.height === 0) continue
-      if (rect.right <= clientWidth + 1 && rect.left >= -1) continue
+      // Only the end edge can be scrolled to; past the start edge is unreachable and clipped (CSS
+      // Overflow 3 §2.2): the left edge in a right-to-left page, the right edge otherwise.
+      if (pageDir === 'rtl' ? rect.left >= -1 : rect.right <= clientWidth + 1) continue
       if (recorded.some((outer) => outer.contains(element))) continue
       if (getComputedStyle(element).position === 'fixed' || clips(element)) continue
       recorded.push(element)
@@ -315,7 +320,7 @@ export function measurePage(limits: MeasureLimits): Measured {
 
   const viewportMeta = document.querySelector('meta[name="viewport" i]')
   return {
-    dir: getComputedStyle(root).direction,
+    dir: pageDir,
     lang: root.getAttribute('lang')?.slice(0, 100) ?? null,
     viewportMeta: viewportMeta?.getAttribute('content')?.slice(0, 500) ?? null,
     viewport: { width: clientWidth, height: root.clientHeight },

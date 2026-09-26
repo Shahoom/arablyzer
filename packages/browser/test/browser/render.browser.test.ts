@@ -118,6 +118,54 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(page.overflow.map((element) => element.selector)).toEqual(['#wide'])
   })
 
+  it('leaves out elements past the start edge, which no one can scroll to (M1.1 review)', async () => {
+    const page = await facts(engine, {
+      '/': arabicPage(
+        // Past the right edge of a right-to-left page: unreachable, and clipped (CSS Overflow 3).
+        '<nav id="drawer" style="position: absolute; top: 0; right: -300px; width: 280px">قائمة</nav>' +
+          '<div id="wide" style="width: 500px">نص عريض</div>',
+      ),
+    })
+    expect(page.overflow.map((element) => element.selector)).toEqual(['#wide'])
+  })
+
+  it('takes the page direction from <body> when <html> has none, as CSS does (M1.1 review)', async () => {
+    const page = await facts(engine, {
+      '/': `<!doctype html><html lang="ar"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body dir="rtl" style="margin: 0"><div id="wide" style="width: 500px">نص عريض</div></body></html>`,
+    })
+    expect(page.dir).toBe('rtl')
+    expect(page.overflow.map((element) => element.selector)).toEqual(['#wide'])
+  })
+
+  it('does not let a font that never arrives hold the render past its settle time (M1.1 review)', async () => {
+    const site = await serve((req, res) => {
+      if (req.url === '/slow.ttf') {
+        // Headers and a first chunk, then nothing: the font stays loading.
+        res.writeHead(200, { 'content-type': 'font/ttf', 'content-length': '100000' })
+        res.write(Buffer.alloc(100))
+        return
+      }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+      res.end(
+        arabicPage(
+          `<p style="font-family: 'Slow Arabic', serif">نص عربي</p>`,
+          `<style>@font-face { font-family: 'Slow Arabic'; src: url(/slow.ttf); }</style>`,
+        ),
+      )
+    })
+    cleanup.push(() => site.close())
+    const [outcome] = await renderPage(site.url('/'), {
+      engines: [engine],
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      networkIsolated: true,
+      timeoutMs: 20_000,
+    })
+    expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
+    expect(outcome?.facts?.arabicText).toHaveLength(1)
+  })
+
   it('reports web fonts: loaded, failed, and their requests', async () => {
     const page = await facts(engine, {
       '/': arabicPage(

@@ -82,14 +82,20 @@ export interface RenderedFacts {
   /** The HTTP status of the page's document. */
   readonly status: number | null
   readonly viewport: { readonly width: number; readonly height: number }
-  /** <html>'s computed direction, and its lang attribute. */
+  /**
+   * The page's direction: <body>'s, which CSS applies to the whole page, else <html>'s (CSS
+   * Writing Modes 3 §8); and <html>'s lang attribute.
+   */
   readonly dir: 'ltr' | 'rtl'
   readonly lang: string | null
   /** The viewport meta's content. */
   readonly viewportMeta: string | null
   /** The document's scroll width. */
   readonly scrollWidth: number
-  /** Elements that reach past the viewport's left or right edge (the first 20). */
+  /**
+   * Elements that reach past the viewport's end edge (the left one in a right-to-left page), where
+   * the page can be scrolled to them (the first 20).
+   */
   readonly overflow: readonly RenderedElement[]
   /** Elements whose own text has Arabic letters, in document order (bounded). */
   readonly arabicText: readonly ArabicTextBlock[]
