@@ -1,5 +1,5 @@
 ---
-reviewed: false
+reviewed: true
 ---
 
 # فحص زواحف الذكاء الاصطناعي
