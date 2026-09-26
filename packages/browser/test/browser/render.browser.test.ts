@@ -159,6 +159,21 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(drew('Web Missing')).toEqual([])
   })
 
+  it('reads the first family whole when its quoted name holds a comma (M1.1 review)', async () => {
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<p style="font-family: 'Brand, Arabic', serif">نص عربي</p>
+         <p style="font-family: &quot;Brand \\&quot;Two\\&quot;&quot;, serif">نص عربي</p>
+         <p style="font-family: Plain Name, serif">نص عربي</p>`,
+      ),
+    })
+    expect(page.arabicText.map((block) => block.primaryFamily)).toEqual([
+      'Brand, Arabic',
+      'Brand "Two"',
+      'Plain Name',
+    ])
+  })
+
   it('takes a PNG of the first screen when asked', async () => {
     const outcome = await rendered(
       engine,

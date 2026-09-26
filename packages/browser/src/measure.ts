@@ -117,7 +117,22 @@ export function measurePage(limits: MeasureLimits): Measured {
   }
 
   const unquote = (family: string): string => family.trim().replace(/^(["'])(.*)\1$/, '$2')
-  const primaryFamily = (list: string): string => unquote(list.split(',')[0] ?? '')
+  /** The first name of a computed font-family list; a quoted name may hold commas and escapes. */
+  const primaryFamily = (list: string): string => {
+    const text = list.trim()
+    const quote = text[0]
+    if (quote !== '"' && quote !== "'") return (text.split(',')[0] ?? '').trim()
+    let name = ''
+    for (let i = 1; i < text.length; i++) {
+      const char = text.charAt(i)
+      if (char === quote) break
+      if (char === '\\') {
+        i++
+        name += text.charAt(i)
+      } else name += char
+    }
+    return name
+  }
 
   /** Whether letter-spacing changes the width of one Arabic word in this engine's hands. */
   const spacingApplied = (style: CSSStyleDeclaration, text: string): boolean | null => {
