@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
-/** Version of the report contract; a major bump means a breaking change (docs/design/phase-0.md §3). */
-export const SCHEMA_VERSION = '0.1.0'
+/**
+ * Version of the report contract; a major bump means a breaking change (docs/design/phase-0.md
+ * §3). 0.2.0 adds rendering (M1.1) and stays open until Phase 1 ends: nothing is published yet.
+ */
+export const SCHEMA_VERSION = '0.2.0'
 
 /** Rule ids and notice codes: ASCII kebab-case, stable forever (BUILD-PLAN §10). */
 export const KEBAB_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -96,6 +99,21 @@ export const JsonValue: z.ZodType<JsonValue> = z
   )
   .meta({ id: 'JsonValue' })
 
+/** The browser engines of BUILD-PLAN §5.3. */
+export const Engine = z.enum(['chromium', 'firefox', 'webkit']).meta({ id: 'Engine' })
+export type Engine = z.infer<typeof Engine>
+
+/** Where an element was drawn, in CSS pixels from the top left of the page. */
+export const Box = z
+  .strictObject({
+    x: z.number().int(),
+    y: z.number().int(),
+    width: count(),
+    height: count(),
+  })
+  .meta({ id: 'Box' })
+export type Box = z.infer<typeof Box>
+
 export const FindingEvidence = z.strictObject({
   url: z.string().min(1).optional(),
   selector: z.string().min(1).optional(),
@@ -106,6 +124,10 @@ export const FindingEvidence = z.strictObject({
       column: z.number().int().positive().optional(),
     })
     .optional(),
+  /** For findings from the rendered page: the engines it was seen in. */
+  engines: z.array(Engine).min(1).optional(),
+  /** Where the element was drawn, in the first of those engines. */
+  box: Box.optional(),
   values: z.record(z.string(), JsonValue).optional(),
 })
 export type FindingEvidence = z.infer<typeof FindingEvidence>
@@ -171,6 +193,24 @@ export const Facts = z.strictObject({
 })
 export type Facts = z.infer<typeof Facts>
 
+/** One engine's render of the page (M1.1): present only when rendering was asked for. */
+export const RenderRun = z
+  .strictObject({
+    engine: Engine,
+    /** The engine's version; null when it did not start. */
+    version: z.string().min(1).nullable(),
+    /**
+     * unavailable: the engine is not installed. refused: the engine sends traffic around the
+     * egress proxy, so it renders only where the network is isolated.
+     */
+    status: z.enum(['rendered', 'failed', 'timeout', 'unavailable', 'refused']),
+    durationMs: count(),
+    /** Requests and tunnels the egress proxy let through, and those it refused. */
+    requests: z.strictObject({ total: count(), refused: count() }),
+  })
+  .meta({ id: 'RenderRun' })
+export type RenderRun = z.infer<typeof RenderRun>
+
 export const Page = z.strictObject({
   lang: z.string().nullable(),
   dir: z.enum(['ltr', 'rtl', 'auto']).nullable(),
@@ -187,7 +227,12 @@ export const Report = z
       rulesetVersion: z.string().regex(SEMVER),
     }),
     target: Target,
-    scan: z.strictObject({ status: ScanStatus, durationMs: count(), notices: z.array(Notice) }),
+    scan: z.strictObject({
+      status: ScanStatus,
+      durationMs: count(),
+      notices: z.array(Notice),
+      render: z.array(RenderRun).optional(),
+    }),
     /** null when the page could not be fetched or parsed. */
     page: Page.nullable(),
     summary: Summary,

@@ -19,7 +19,34 @@ function validReport(): Report {
         redirects: [{ url: 'http://example.com/', status: 301 }],
       },
     },
-    scan: { status: 'complete', durationMs: 1200, notices: [] },
+    scan: {
+      status: 'partial',
+      durationMs: 1200,
+      notices: [],
+      render: [
+        {
+          engine: 'chromium',
+          version: '153.0.8010.12',
+          status: 'rendered',
+          durationMs: 2400,
+          requests: { total: 31, refused: 2 },
+        },
+        {
+          engine: 'firefox',
+          version: null,
+          status: 'unavailable',
+          durationMs: 5,
+          requests: { total: 0, refused: 0 },
+        },
+        {
+          engine: 'webkit',
+          version: null,
+          status: 'refused',
+          durationMs: 0,
+          requests: { total: 0, refused: 0 },
+        },
+      ],
+    },
     page: { lang: 'en', dir: null, dominantScript: 'arabic' },
     summary: {
       pass: 0,
@@ -56,6 +83,8 @@ function validReport(): Report {
           url: 'https://example.com/',
           selector: 'html',
           snippet: '<html lang="en">',
+          engines: ['chromium', 'firefox'],
+          box: { x: -210, y: 0, width: 600, height: 40 },
           values: { declaredLang: 'en', arabicLetters: 912, latinLetters: 41 },
         },
       },
@@ -95,6 +124,13 @@ const INVALID: readonly [string, readonly (string | number)[], unknown][] = [
   ['a negative count', ['summary', 'pass'], -1],
   ['a timestamp with a UTC offset', ['target', 'fetchedAt'], '2026-09-24T13:00:00+03:00'],
   ['an unknown AI crawler purpose', ['facts', 'robots', 'aiCrawlers', 0, 'purpose'], 'ads'],
+  // M1.1: rendering.
+  ['an unknown engine', ['scan', 'render', 0, 'engine'], 'edge'],
+  ['an unknown render status', ['scan', 'render', 0, 'status'], 'crashed'],
+  ['a negative request count', ['scan', 'render', 0, 'requests', 'refused'], -1],
+  ['an empty engine list', ['findings', 0, 'evidence', 'engines'], []],
+  ['a fractional box coordinate', ['findings', 0, 'evidence', 'box', 'x'], 1.5],
+  ['a negative box width', ['findings', 0, 'evidence', 'box', 'width'], -1],
 ]
 
 describe('Report (Zod)', () => {
