@@ -1,6 +1,7 @@
 import type { Rule } from './rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
+import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
@@ -11,12 +12,13 @@ import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
-export const RULESET_VERSION = '0.1.0'
+export const RULESET_VERSION = '0.2.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
   arHtmlLang,
   arLatinPunctuation,
+  arLetterSpacing,
   canonicalConflict,
   hreflangInvalidCode,
   jsonldSyntaxError,
