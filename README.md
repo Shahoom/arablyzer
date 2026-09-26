@@ -2,9 +2,9 @@
 
 **محلّل المواقع العربية** — أداة مفتوحة المصدر لفحص المواقع العربية والخليجية، أول مشروع في مختبر كلاود توبيا (LAB-001).
 
-> **الحالة:** قيد البناء — المرحلة 0 (الأساس). لا يوجد إصدار منشور بعد؛ الأداة تعمل من المستودع فقط.
+> **الحالة:** قيد البناء — المرحلة 1 (عرض الصفحة في متصفح). لا يوجد إصدار منشور بعد؛ الأداة تعمل من المستودع فقط.
 
-Open-source website analyzer for Arabic and Gulf websites. **Status:** in development (Phase 0); nothing is released yet, and the CLI runs from this repository only.
+Open-source website analyzer for Arabic and Gulf websites. **Status:** in development (Phase 1: rendering pages in a browser); nothing is released yet, and the CLI runs from this repository only.
 
 ## Development
 
@@ -15,10 +15,13 @@ pnpm install
 pnpm lint && pnpm typecheck && pnpm test
 pnpm test:e2e      # builds the CLI and scans every fixture site
 pnpm seo:audit     # renders every tool page and the report template, and audits them
+pnpm test:browser  # the browser SSRF suite, rendered facts and render rule fixtures
 ```
 
+`pnpm test:browser` needs a browser. `npx playwright-core@1.63.0 install chromium firefox webkit` installs Playwright's own; `ARABLYZER_CHROMIUM_PATH` (and `_FIREFOX_`, `_WEBKIT_`) points at an installed one instead. CI installs all three and sets `ARABLYZER_REQUIRE_ENGINES=chromium,firefox,webkit`, so a missing engine fails the run.
+
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
-- Phase 0 design: [`docs/design/phase-0.md`](docs/design/phase-0.md)
+- Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md)
 
 ## Scanning a page / فحص صفحة
 
@@ -27,12 +30,16 @@ pnpm arablyzer https://example.com                    # text report, in Arabic w
 pnpm arablyzer https://example.com --lang en          # text report in English
 pnpm arablyzer https://example.com --json             # the full report as JSON on stdout
 pnpm arablyzer https://example.com --fail-on serious  # exit 1 when a serious or critical rule fails
+pnpm arablyzer https://example.com --render           # also render the page in Chromium
+pnpm arablyzer https://example.com --engines chromium,firefox --screenshots shots
 pnpm arablyzer --help
 ```
 
 Exit codes: `0` the scan completed; `1` a rule failed at `--fail-on` or above; `2` the scan did not complete (blocked or unreachable address, time limit, partial scan) or the options were invalid. The JSON report follows [`packages/report-schema/report.schema.json`](packages/report-schema/report.schema.json).
 
 Arablyzer fetches pages as `ArablyzerBot/1.0 (+https://arablyzer.com/bot)`, only through its SSRF guard (`packages/egress`): private, loopback, link-local and metadata addresses are refused. `--allow-private` opens private and loopback addresses for local builds; link-local and metadata addresses, and the machine's own public addresses, stay blocked. Text printed from a scanned page is escaped, so a page cannot send terminal control sequences.
+
+With `--render`, the page is also rendered in a browser, one engine after the other, each behind its own egress proxy that vets every request the page makes by the same rules; `--screenshots <dir>` saves the first screen of each as `<dir>/<engine>.png`. WebKit sends WebRTC traffic around the proxy, so it runs only in a container whose network reaches nothing but the proxy, marked by `ARABLYZER_NETWORK_ISOLATED=1`; elsewhere `--engines webkit` is refused and `--engines all` means Chromium and Firefox.
 
 ## Rules / القواعد
 
@@ -50,6 +57,16 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`page-noindex`](packages/rules/src/rules/page-noindex/copy.en.md) | No `noindex` in meta robots or `X-Robots-Tag` |
 | [`canonical-conflict`](packages/rules/src/rules/canonical-conflict/copy.en.md) | The page gives at most one canonical URL |
 | [`jsonld-syntax-error`](packages/rules/src/rules/jsonld-syntax-error/copy.en.md) | JSON-LD blocks are valid JSON |
+
+These read the page as a browser rendered it, so they run with `--render`:
+
+| Rule | Checks |
+|---|---|
+| [`ar-letter-spacing`](packages/rules/src/rules/ar-letter-spacing/copy.en.md) | No `letter-spacing` pulls Arabic letters apart |
+| [`ar-font-fallback`](packages/rules/src/rules/ar-font-fallback/copy.en.md) | The web font set for Arabic text loaded |
+| [`ar-font-no-arabic`](packages/rules/src/rules/ar-font-no-arabic/copy.en.md) | The web font set for Arabic text has the Arabic letters (Chromium) |
+| [`rtl-bidi-isolation`](packages/rules/src/rules/rtl-bidi-isolation/copy.en.md) | Numbers and Latin words inside right-to-left text are drawn in order |
+| [`rtl-horizontal-overflow`](packages/rules/src/rules/rtl-horizontal-overflow/copy.en.md) | A right-to-left page fits a phone screen without scrolling sideways |
 
 ## Tools / الأدوات
 
