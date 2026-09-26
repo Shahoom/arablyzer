@@ -32,7 +32,7 @@ export interface ProxyOptions {
   readonly resolver?: Resolver
   /** Requests and tunnels let through (BUILD-PLAN §11: 300 per page load). */
   readonly maxRequests?: number
-  /** Bytes received from the network by all requests together (BUILD-PLAN §11: 25 MB). */
+  /** Bytes to and from the network, all requests together (BUILD-PLAN §11: 25 MB). */
   readonly maxBytes?: number
 }
 
@@ -56,7 +56,7 @@ export interface ProxyStats {
   readonly unauthenticated: number
   /** The request limit or the byte budget was reached, so the page did not load in full. */
   readonly limited: boolean
-  /** Bytes received from the network. */
+  /** Bytes to and from the network. */
   readonly bytes: number
   /** The first PROXY_LOG_LIMIT refusals. */
   readonly refusals: readonly ProxyRefusal[]
@@ -136,8 +136,11 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
     }
   }
 
-  /** Counts bytes from the network; false once the budget is spent (logged once). */
-  const received = (length: number, target: string): boolean => {
+  /**
+   * Counts bytes to and from the network; false once the budget is spent (logged once). Uploads
+   * count too, or a page could send out unbounded data through a scan (M1.1 review).
+   */
+  const counted = (length: number, target: string): boolean => {
     const before = bytes
     bytes += length
     if (bytes <= maxBytes) return true
@@ -245,10 +248,19 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
           answer(res, 'invalid-status')
           return
         }
-        res.writeHead(status, incoming.statusMessage, endToEnd(incoming.rawHeaders))
+        try {
+          // The server's reason phrase stays behind: browsers ignore it, and Node refuses to write
+          // one with control characters, which would throw here and end the process (M1.1 review).
+          res.writeHead(status, endToEnd(incoming.rawHeaders))
+        } catch {
+          incoming.destroy()
+          refuse(url.href, 'invalid-status')
+          answer(res, 'invalid-status')
+          return
+        }
         // Counted before it is passed on, so nothing past the budget reaches the browser.
         incoming.on('data', (chunk: Buffer) => {
-          if (!received(chunk.length, url.href)) {
+          if (!counted(chunk.length, url.href)) {
             cut = true
             incoming.destroy()
             res.destroy()
@@ -265,6 +277,13 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
       track(socket)
       socket.setTimeout(IDLE_TIMEOUT_MS, () => socket.destroy())
     })
+    // A request forwarded here never asks to upgrade (browsers tunnel WebSockets through CONNECT),
+    // so a 101 is a server misbehaving; unanswered, it held the request until the idle timeout.
+    upstream.on('upgrade', (_response, socket) => {
+      socket.destroy()
+      refuse(url.href, 'invalid-status')
+      answer(res, 'invalid-status')
+    })
     upstream.on('error', () => {
       if (cut || closing.signal.aborted) return
       if (res.headersSent) {
@@ -275,7 +294,19 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
       answer(res, 'connect-failed')
     })
     res.on('close', () => upstream.destroy())
-    req.pipe(upstream)
+    // The request body, counted before it goes out, as responses are before they come in.
+    req.on('data', (chunk: Buffer) => {
+      if (!counted(chunk.length, url.href)) {
+        cut = true
+        req.destroy()
+        upstream.destroy()
+        res.destroy()
+        return
+      }
+      if (!upstream.write(chunk)) req.pause()
+    })
+    upstream.on('drain', () => req.resume())
+    req.on('end', () => upstream.end())
   }
 
   const onConnect = async (req: IncomingMessage, client: Duplex, head: Buffer): Promise<void> => {
@@ -317,18 +348,29 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
       open = true
       upstream.setTimeout(IDLE_TIMEOUT_MS)
       client.write('HTTP/1.1 200 Connection Established\r\n\r\n')
-      if (head.length > 0) upstream.write(head)
-      upstream.on('data', (chunk: Buffer) => {
-        if (!received(chunk.length, authority)) {
+      // Both directions count against the byte budget, each chunk before it is passed on.
+      const relay = (from: Duplex, to: Duplex) => {
+        from.on('data', (chunk: Buffer) => {
+          if (!counted(chunk.length, authority)) {
+            upstream.destroy()
+            client.destroy()
+            return
+          }
+          if (!to.write(chunk)) from.pause()
+        })
+        to.on('drain', () => from.resume())
+        from.on('end', () => to.end())
+      }
+      if (head.length > 0) {
+        if (!counted(head.length, authority)) {
           upstream.destroy()
           client.destroy()
           return
         }
-        if (!client.write(chunk)) upstream.pause()
-      })
-      client.on('drain', () => upstream.resume())
-      upstream.on('end', () => client.end())
-      client.pipe(upstream)
+        upstream.write(head)
+      }
+      relay(upstream, client)
+      relay(client, upstream)
     })
     upstream.on('timeout', () => {
       if (!open) {

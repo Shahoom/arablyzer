@@ -221,6 +221,65 @@ describe('egress proxy: forwarding', () => {
   })
 })
 
+/** A target that answers every request with these raw bytes, as a hostile server might. */
+async function rawTarget(answer: string): Promise<TestServer> {
+  const sockets = new Set<net.Socket>()
+  const raw = net.createServer((socket) => {
+    sockets.add(socket)
+    socket.on('error', () => undefined)
+    socket.once('data', () => socket.end(Buffer.from(answer, 'latin1')))
+  })
+  await new Promise<void>((resolve) => {
+    raw.listen(0, '127.0.0.1', resolve)
+  })
+  const { port } = raw.address() as net.AddressInfo
+  const started: TestServer = {
+    port,
+    origin: `http://127.0.0.1:${port}`,
+    close: () =>
+      new Promise<void>((resolve) => {
+        for (const socket of sockets) socket.destroy()
+        raw.close(() => {
+          resolve()
+        })
+      }),
+  }
+  cleanup.push(() => started.close())
+  return started
+}
+
+describe('egress proxy: answers a browser should not get as they are (M1.1 review)', () => {
+  it.each([
+    ['a control character', 'OK\x01'],
+    ['a NUL', 'O\x00K'],
+    ['an escape sequence', '\x1b[2J'],
+  ])(
+    'passes on a response whose reason phrase has %s, with its own reason phrase',
+    async (_name, reason) => {
+      const target = await rawTarget(
+        `HTTP/1.1 200 ${reason}\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok`,
+      )
+      const through = await proxy(onlyServer(target.port))
+      expect(await via(through, `${target.origin}/`)).toMatchObject({ status: 200, body: 'ok' })
+      // Still serving: a response cannot take the proxy, or the scan, down.
+      expect(await via(through, `${target.origin}/again`)).toMatchObject({ status: 200 })
+    },
+  )
+
+  it('answers 502 at once when a server switches protocols on a plain request', async () => {
+    const target = await rawTarget(
+      'HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n',
+    )
+    const through = await proxy(onlyServer(target.port))
+    const started = performance.now()
+    expect(await via(through, `${target.origin}/`)).toMatchObject({ status: 502 })
+    expect(performance.now() - started).toBeLessThan(5_000)
+    expect(through.stats().refusals).toContainEqual(
+      expect.objectContaining({ target: `${target.origin}/`, code: 'invalid-status' }),
+    )
+  })
+})
+
 describe('egress proxy: refusals, for both request forms', () => {
   it('refuses a loopback port that is not a test target, as safeFetch does, before DNS', async () => {
     const allowed = await server((_req, res) => res.end('ok'))
@@ -395,6 +454,54 @@ describe('egress proxy: limits', () => {
     expect(answer instanceof Error || (answer as Answer).body.length < 64 * 1024).toBe(true)
     expect(through.stats().refusals.map((refusal) => refusal.code)).toEqual(['too-large'])
     expect(through.stats().limited).toBe(true)
+  })
+
+  it('counts uploads against maxBytes too, so a page cannot send out unbounded data (M1.1 review)', async () => {
+    let uploaded = 0
+    const target = await server((req, res) => {
+      req.on('data', (chunk: Buffer) => (uploaded += chunk.length))
+      req.on('end', () => res.end('ok'))
+    })
+    const through = await proxy(onlyServer(target.port), { maxBytes: 64 * 1024 })
+    const body = 'x'.repeat(1024 * 1024)
+    await via(through, `${target.origin}/upload`, { method: 'POST', body }).catch(() => undefined)
+    // Past the budget the upload is cut; what got out is the budget and a chunk at most.
+    expect(uploaded).toBeLessThan(256 * 1024)
+    expect(through.stats()).toMatchObject({ limited: true })
+    expect(through.stats().refusals.map((refusal) => refusal.code)).toEqual(['too-large'])
+  })
+
+  it('counts what goes up a tunnel against maxBytes too (M1.1 review)', async () => {
+    let uploaded = 0
+    const target = net.createServer((socket) => {
+      socket.on('data', (chunk: Buffer) => (uploaded += chunk.length))
+      socket.on('error', () => undefined)
+    })
+    await new Promise<void>((resolve) => {
+      target.listen(0, '127.0.0.1', resolve)
+    })
+    const { port } = target.address() as net.AddressInfo
+    cleanup.push(
+      () =>
+        new Promise<void>((resolve) => {
+          target.close(() => {
+            resolve()
+          })
+        }),
+    )
+    const through = await proxy(onlyServer(port), { maxBytes: 64 * 1024 })
+    const opened = await tunnel(through, `127.0.0.1:${port}`)
+    const closed = new Promise<void>((resolve) => {
+      opened.socket.on('close', () => {
+        resolve()
+      })
+      opened.socket.on('error', () => undefined)
+    })
+    const chunk = Buffer.alloc(64 * 1024, 'x')
+    for (let i = 0; i < 16 && !opened.socket.destroyed; i++) opened.socket.write(chunk)
+    await closed
+    expect(uploaded).toBeLessThan(256 * 1024)
+    expect(through.stats()).toMatchObject({ limited: true })
   })
 
   it('logs the first refusals only, and counts them all', async () => {
