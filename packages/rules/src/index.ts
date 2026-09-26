@@ -11,6 +11,7 @@ import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as robotsBlocksAiSearch } from './rules/robots-blocks-ai-search/rule'
 import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/rule'
 import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
+import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
@@ -31,6 +32,7 @@ export const RULES: readonly Rule[] = [
   robotsBlocksAiSearch,
   robotsBlocksGooglebot,
   rtlBidiIsolation,
+  rtlHorizontalOverflow,
   rtlHtmlDir,
   whatsappLinkFormat,
 ]
