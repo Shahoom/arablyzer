@@ -45,6 +45,33 @@ jobs:
       - name: Report schema drift
         run: pnpm schema:check
 
+  browsers:
+    # M1.1: the browser SSRF suite and the rendered-facts tests, in every engine (Phase 1 design
+    # §6). A missing engine fails the run instead of being skipped.
+    name: Browsers (Chromium, Firefox, WebKit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Cache the browsers of this Playwright version
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Install the browsers and their system libraries
+        run: pnpm --filter @arablyzer/browser exec playwright-core install --with-deps chromium firefox webkit
+      - name: Browser SSRF suite and rendered facts
+        run: pnpm test:browser
+        env:
+          ARABLYZER_REQUIRE_ENGINES: chromium,firefox,webkit
+
   arabic-copy:
     # Design decision 7: a rule or tool stays red until the owner has read its Arabic copy and
     # set `reviewed: true` in packages/{rules/src/rules/<id>,tools/src/tools/<slug>}/copy.ar.md.

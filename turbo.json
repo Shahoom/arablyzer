@@ -4,6 +4,15 @@
     "typecheck": {},
     "test": {},
     "test:ssrf": {},
-    "test:e2e": {}
+    "test:e2e": {},
+    "test:browser": {
+      "passThroughEnv": [
+        "ARABLYZER_REQUIRE_ENGINES",
+        "ARABLYZER_CHROMIUM_PATH",
+        "ARABLYZER_FIREFOX_PATH",
+        "ARABLYZER_WEBKIT_PATH",
+        "PLAYWRIGHT_BROWSERS_PATH"
+      ]
+    }
   }
 }

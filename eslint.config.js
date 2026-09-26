@@ -36,9 +36,15 @@ const ESCAPE_MODULES = ['module', 'child_process']
 const NETWORK_MESSAGE =
   'Network access goes through @arablyzer/egress only (docs/design/phase-0.md §1).'
 
-/** Tests and scripts may spawn processes (e.g. the CLI under test); source code may not. */
-function networkRules({ allowProcesses }) {
-  const modules = allowProcesses ? NETWORK_MODULES : [...NETWORK_MODULES, ...ESCAPE_MODULES]
+/**
+ * Tests and scripts may spawn processes (e.g. the CLI under test); source code may not. `allow`
+ * lifts the ban on named modules for one package, and only on those.
+ */
+function networkRules({ allowProcesses, allow = [] }) {
+  const modules = (
+    allowProcesses ? NETWORK_MODULES : [...NETWORK_MODULES, ...ESCAPE_MODULES]
+  ).filter((name) => !allow.includes(name))
+  const subpaths = NETWORK_SUBPATHS.filter((pattern) => !allow.includes(pattern.slice(0, -2)))
   return {
     'no-restricted-imports': [
       'error',
@@ -46,7 +52,7 @@ function networkRules({ allowProcesses }) {
         paths: modules
           .flatMap((name) => [name, `node:${name}`])
           .map((name) => ({ name, message: NETWORK_MESSAGE })),
-        patterns: [{ group: [...NETWORK_SUBPATHS, '@playwright/*'], message: NETWORK_MESSAGE }],
+        patterns: [{ group: [...subpaths, '@playwright/*'], message: NETWORK_MESSAGE }],
       },
     ],
     'no-restricted-globals': [
@@ -94,6 +100,17 @@ export default defineConfig(
   { files: ['**/*.{js,mjs,cjs}'], extends: [tseslint.configs.disableTypeChecked] },
   { rules: networkRules({ allowProcesses: false }) },
   { files: ['**/test/**', '**/scripts/**'], rules: networkRules({ allowProcesses: true }) },
+  {
+    // Phase 1: browsers are launched here and nowhere else, always behind the egress proxy
+    // (docs/design/plans/m1.1-browser.md §3); the browser SSRF suite checks that they stay there.
+    files: ['packages/browser/src/**'],
+    rules: networkRules({ allowProcesses: false, allow: ['playwright-core'] }),
+  },
+  {
+    // That suite serves hostile pages and traps local services, so its tests open sockets.
+    files: ['packages/browser/test/**'],
+    rules: { 'no-restricted-imports': 'off' },
+  },
   {
     // The egress package is the network boundary; the fixture server is local test infrastructure.
     files: ['packages/egress/**', 'fixtures/**'],

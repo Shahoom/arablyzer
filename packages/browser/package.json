@@ -1,0 +1,24 @@
+{
+  "name": "@arablyzer/browser",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run test/unit",
+    "test:browser": "vitest run test/browser"
+  },
+  "dependencies": {
+    "@arablyzer/collectors": "workspace:*",
+    "@arablyzer/egress": "workspace:*",
+    "playwright-core": "1.63.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@arablyzer/fixtures": "workspace:*"
+  }
+}

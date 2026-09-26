@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // The measuring script runs in the page, so this package also has the DOM's types.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src", "test", "vitest.config.ts"]
+}
