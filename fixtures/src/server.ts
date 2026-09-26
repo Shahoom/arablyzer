@@ -1,6 +1,7 @@
 import { readFile, stat } from 'node:fs/promises'
 import http from 'node:http'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { FixtureConfig, type RouteOverride } from './config'
 
@@ -14,6 +15,9 @@ export interface FixtureSite {
 const CONFIG_FILE = 'fixture.json'
 /** Test metadata that sits next to the site files but is not part of the site. */
 const HIDDEN_FILES = new Set([CONFIG_FILE, 'expect.json'])
+/** Paths under this prefix come from fixtures/shared/, whatever the site. */
+export const SHARED_PREFIX = '/_shared/'
+const SHARED_ROOT = path.resolve(fileURLToPath(new URL('../shared/', import.meta.url)))
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -26,6 +30,8 @@ const CONTENT_TYPES: Record<string, string> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
+  '.ttf': 'font/ttf',
+  '.woff': 'font/woff',
   '.woff2': 'font/woff2',
 }
 
@@ -155,9 +161,13 @@ async function readSiteFile(
   } catch {
     return null
   }
-  const relative = decoded.endsWith('/') ? `${decoded}index.html` : decoded
-  const filePath = path.resolve(root, `.${relative}`)
-  if (!filePath.startsWith(root + path.sep) || HIDDEN_FILES.has(path.basename(filePath)))
+  // Assets several sites share (test fonts) are served from fixtures/shared/ on every site.
+  const shared = decoded.startsWith(SHARED_PREFIX)
+  const base = shared ? SHARED_ROOT : root
+  const inside = shared ? decoded.slice(SHARED_PREFIX.length - 1) : decoded
+  const relative = inside.endsWith('/') ? `${inside}index.html` : inside
+  const filePath = path.resolve(base, `.${relative}`)
+  if (!filePath.startsWith(base + path.sep) || HIDDEN_FILES.has(path.basename(filePath)))
     return null
   try {
     const info = await stat(filePath)
