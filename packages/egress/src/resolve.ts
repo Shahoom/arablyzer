@@ -1,5 +1,5 @@
 import { Resolver as AresResolver, lookup } from 'node:dns/promises'
-import { isIP } from 'node:net'
+import { isIP, type LookupFunction } from 'node:net'
 import { vetEndpoint } from './classify'
 import { egressError, type EgressError } from './errors'
 import type { EgressPolicy } from './policy'
@@ -128,6 +128,28 @@ export async function resolveEndpoint(
     }
   }
   return { ok: true, addresses, private: allPrivate }
+}
+
+/**
+ * A lookup that hands Node only the vetted answers, so a connection cannot be re-resolved
+ * elsewhere between the check and the connect.
+ */
+export function pinnedLookup(addresses: readonly ResolvedAddress[]): LookupFunction {
+  return (_hostname, options, callback) => {
+    if (options.all === true) {
+      callback(
+        null,
+        addresses.map(({ address, family }) => ({ address, family })),
+      )
+      return
+    }
+    const [first] = addresses
+    if (first === undefined) {
+      callback(new Error('No vetted address'), '', 0)
+      return
+    }
+    callback(null, first.address, first.family)
+  }
 }
 
 function describe(error: unknown): string {
