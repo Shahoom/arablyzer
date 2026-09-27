@@ -1,0 +1,82 @@
+import type { Category, RuleResult, RuleStatus, Severity } from '@arablyzer/report-schema'
+import { describe, expect, it } from 'vitest'
+import { scoreOf, SEVERITY_WEIGHTS } from '../src/index'
+
+let next = 0
+function result(severity: Severity, status: RuleStatus, category: Category = 'onpage'): RuleResult {
+  next++
+  return {
+    id: `rule-${next}`,
+    version: '1.0.0',
+    category,
+    severity,
+    status,
+    title: { ar: 'قاعدة', en: 'Rule' },
+  }
+}
+
+describe('scoreOf', () => {
+  it('weighs severities 10, 5, 3, 1 and 0', () => {
+    expect(SEVERITY_WEIGHTS).toEqual({ critical: 10, serious: 5, moderate: 3, minor: 1, info: 0 })
+  })
+
+  // The worked examples of docs/methodology.md, one for each weight.
+  it.each([
+    // 100 × (1 − 10 ÷ 25)
+    ['critical', 60],
+    // 100 × (1 − 5 ÷ 20)
+    ['serious', 75],
+    // 100 × (1 − 3 ÷ 18) = 83.3
+    ['moderate', 83],
+    // 100 × (1 − 1 ÷ 16) = 93.75
+    ['minor', 94],
+    // 100 × (1 − 0 ÷ 15)
+    ['info', 100],
+  ] as const)('a failed %s rule beside passing critical and serious ones', (severity, score) => {
+    // Applicable weight: 10 + 5 + the failed rule's own; failed weight: its own.
+    const results = [
+      result('critical', 'pass'),
+      result('serious', 'pass'),
+      result(severity, 'fail'),
+    ]
+    expect(scoreOf(results).overall).toBe(score)
+  })
+
+  it('counts only rules that passed or failed', () => {
+    const results = [
+      result('critical', 'fail'),
+      result('critical', 'pass'),
+      result('critical', 'not-applicable'),
+      result('critical', 'needs-review'),
+    ]
+    expect(scoreOf(results)).toEqual({ overall: 50, categories: { onpage: 50 }, partial: false })
+  })
+
+  it('scores each category, and gives none to a category of information alone', () => {
+    const results = [
+      result('serious', 'fail', 'trust'),
+      result('moderate', 'pass', 'trust'),
+      result('info', 'fail', 'rtl'),
+      result('minor', 'pass', 'speed'),
+    ]
+    expect(scoreOf(results)).toEqual({
+      // Applicable 5 + 3 + 0 + 1 = 9; failed 5 + 0 = 5.
+      overall: 44,
+      categories: { rtl: null, speed: 100, trust: 38 },
+      partial: false,
+    })
+  })
+
+  it('is partial when a rule could not run, and null with nothing that applied', () => {
+    expect(scoreOf([result('critical', 'error'), result('minor', 'pass')])).toEqual({
+      overall: 100,
+      categories: { onpage: 100 },
+      partial: true,
+    })
+    expect(scoreOf([result('critical', 'not-applicable')])).toEqual({
+      overall: null,
+      categories: {},
+      partial: false,
+    })
+  })
+})

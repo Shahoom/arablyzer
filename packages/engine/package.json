@@ -17,7 +17,8 @@
     "@arablyzer/collectors": "workspace:*",
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
-    "@arablyzer/rules": "workspace:*"
+    "@arablyzer/rules": "workspace:*",
+    "@arablyzer/scoring": "workspace:*"
   },
   "devDependencies": {
     "@arablyzer/fixtures": "workspace:*",

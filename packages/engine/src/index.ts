@@ -25,3 +25,4 @@ export {
   type RenderRequest,
   type ScanOptions,
 } from './scan'
+export { scoreOf, SEVERITY_WEIGHTS } from '@arablyzer/scoring'

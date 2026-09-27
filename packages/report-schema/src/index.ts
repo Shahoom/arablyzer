@@ -173,6 +173,24 @@ export const Summary = z.strictObject({
 })
 export type Summary = z.infer<typeof Summary>
 
+/** 0 to 100, whole; null when no rule with weight applied. */
+const ScoreValue = z.number().int().min(0).max(100).nullable()
+
+/**
+ * The score (docs/methodology.md): 100 × (1 − failed weight ÷ applicable weight), overall and for
+ * each category with applicable rules. Weights by severity: critical 10, serious 5, moderate 3,
+ * minor 1, info 0. Comparable only within a major version of the rule set (generator.rulesetVersion).
+ */
+export const Score = z
+  .strictObject({
+    overall: ScoreValue,
+    categories: z.partialRecord(Category, ScoreValue),
+    /** Some rule could not run, so the score counts only those that did. */
+    partial: z.boolean(),
+  })
+  .meta({ id: 'Score' })
+export type Score = z.infer<typeof Score>
+
 export const AiCrawlerFact = z.strictObject({
   token: z.string().min(1),
   purpose: z.enum(['search', 'training', 'user-fetch']),
@@ -239,6 +257,7 @@ export const Report = z
     /** null when the page could not be fetched or parsed. */
     page: Page.nullable(),
     summary: Summary,
+    score: Score,
     rules: z.array(RuleResult),
     findings: z.array(Finding),
     facts: Facts,

@@ -28,6 +28,8 @@ export interface PageStrings {
     readonly ruleErrors: string
     readonly notices: string
     readonly line: string
+    /** As the CLI says it. */
+    readonly score: (value: number, partial: boolean) => string
     readonly scan: Readonly<Record<ScanStatus, string>>
     readonly status: Readonly<Record<RuleStatus, string>>
     readonly severity: Readonly<Record<Severity, string>>
@@ -61,6 +63,8 @@ export const STRINGS: Readonly<Record<Lang, PageStrings>> = {
       title: 'تقرير Arablyzer',
       scannedPage: 'الصفحة المفحوصة:',
       summary: 'الملخص',
+      score: (value, partial) =>
+        `الدرجة ${value} من 100${partial ? ' (جزئية: تعذّر تشغيل بعض القواعد)' : ''}`,
       findings: 'المشكلات',
       noFindings: 'لم تجد القواعد أي مشكلة.',
       ruleErrors: 'قواعد تعذّر تشغيلها',
@@ -108,6 +112,8 @@ export const STRINGS: Readonly<Record<Lang, PageStrings>> = {
       title: 'Arablyzer report',
       scannedPage: 'Scanned page:',
       summary: 'Summary',
+      score: (value, partial) =>
+        `Score ${value}/100${partial ? ' (partial: some rules could not run)' : ''}`,
       findings: 'Problems',
       noFindings: 'The rules found no problems.',
       ruleErrors: 'Rules that could not run',

@@ -34,6 +34,7 @@ import {
   type RuleStatus,
   type Summary,
 } from '@arablyzer/report-schema'
+import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
   crawlerAccess,
@@ -186,6 +187,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       },
       page: parts.page,
       summary: summarize(parts.results),
+      score: scoreOf(parts.results),
       rules: parts.results,
       findings: parts.findings,
       facts: parts.facts,

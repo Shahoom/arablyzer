@@ -45,7 +45,7 @@ import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
-export const RULESET_VERSION = '0.3.0'
+export const RULESET_VERSION = '0.4.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [

@@ -177,6 +177,8 @@ function report(overrides: Partial<Report> = {}): Report {
       error: 0,
       bySeverity: { critical: 0, serious: 1, moderate: 0, minor: 0, info: 0 },
     },
+    // A serious rule failed beside a critical one that passed: 100 × (1 − 5 ÷ 15).
+    score: { overall: 67, categories: { index: 100, intl: 0 }, partial: false },
     rules: [
       {
         id: 'ar-html-lang',
@@ -245,6 +247,7 @@ describe('formatReport', () => {
         'Arablyzer 0.1.0 · http://example.com/ → https://example.com/',
         'HTTP 200 · complete · 1.2 s',
         '1 failed · 1 passed',
+        'Score 67/100',
         '',
         '✗ serious  ar-html-lang  Page language',
         '    • The page declares lang="en"',
@@ -257,6 +260,10 @@ describe('formatReport', () => {
   it('writes the Arabic report, and colour only when asked', () => {
     const arabic = formatReport(report(), 'ar', false)
     expect(arabic).toContain('1 فشلت · 1 نجحت')
+    expect(arabic).toContain('الدرجة 67 من 100')
+    expect(
+      formatReport(report({ score: { overall: 90, categories: {}, partial: true } }), 'en', false),
+    ).toContain('Score 90/100 (partial: some rules could not run)')
     expect(arabic).toContain('✗ خطير  ar-html-lang  لغة الصفحة')
     expect(arabic).toContain('html · السطر 2')
     expect(arabic).not.toContain('\x1b[')

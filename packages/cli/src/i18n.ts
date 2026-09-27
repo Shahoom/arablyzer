@@ -14,6 +14,8 @@ export interface Strings {
   readonly help: string
   readonly render: Readonly<Record<RenderRun['status'], string>>
   readonly requests: (total: number, refused: number) => string
+  /** The overall score, out of 100; partial when some rule could not run. */
+  readonly score: (value: number, partial: boolean) => string
   /** When an engine is not installed: the command that installs it. */
   readonly installBrowsers: (engines: readonly Engine[], version: string) => string
 }
@@ -106,6 +108,8 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
       const requests = `${total} ${total === 1 ? 'request' : 'requests'}`
       return refused === 0 ? requests : `${requests}, ${refused} refused`
     },
+    score: (value, partial) =>
+      `Score ${value}/100${partial ? ' (partial: some rules could not run)' : ''}`,
     installBrowsers: (engines, version) =>
       `to render in ${engines.join(', ')}, install it with: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
@@ -140,6 +144,8 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
     },
     requests: (total, refused) =>
       refused === 0 ? arabicRequests(total) : `${arabicRequests(total)}، رُفض منها ${refused}`,
+    score: (value, partial) =>
+      `الدرجة ${value} من 100${partial ? ' (جزئية: تعذّر تشغيل بعض القواعد)' : ''}`,
     installBrowsers: (engines, version) =>
       `لعرض الصفحة في ${engines.join('، ')} ثبّته بالأمر: npx playwright-core@${version} install ${engines.join(' ')}`,
   },

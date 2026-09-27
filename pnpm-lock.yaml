@@ -148,6 +148,9 @@ importers:
       '@arablyzer/rules':
         specifier: workspace:*
         version: link:../rules
+      '@arablyzer/scoring':
+        specifier: workspace:*
+        version: link:../scoring
     devDependencies:
       '@arablyzer/fixtures':
         specifier: workspace:*
@@ -187,6 +190,12 @@ importers:
       '@arablyzer/fixtures':
         specifier: workspace:*
         version: link:../../fixtures
+
+  packages/scoring:
+    dependencies:
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
 
   packages/seo:
     dependencies:

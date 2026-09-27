@@ -292,6 +292,9 @@
       ],
       "additionalProperties": false
     },
+    "score": {
+      "$ref": "#/$defs/Score"
+    },
     "rules": {
       "type": "array",
       "items": {
@@ -501,6 +504,7 @@
     "scan",
     "page",
     "summary",
+    "score",
     "rules",
     "findings",
     "facts"
@@ -596,6 +600,50 @@
         "firefox",
         "webkit"
       ]
+    },
+    "Score": {
+      "type": "object",
+      "properties": {
+        "overall": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "categories": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/Category"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "partial": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "overall",
+        "categories",
+        "partial"
+      ],
+      "additionalProperties": false
     },
     "Category": {
       "type": "string",
