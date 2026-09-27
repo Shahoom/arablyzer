@@ -276,6 +276,95 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(outcome?.facts?.limited).toBe(true)
   })
 
+  it('starts no shared or service worker, whose requests the browser does not count (M1.1 CI)', async () => {
+    // Engines tie neither kind's requests to the page, so no route sees them (measured in
+    // Chromium: 30 of 30 past a limit of 10). Every request a worker makes names the document
+    // that started it (realm=…), from the script's URL or its own.
+    const reached: string[] = []
+    const site = await serve((req, res) => {
+      const path = new URL(req.url ?? '/', 'http://x').pathname
+      if (path === '/') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        res.end(
+          arabicPage(`<p>نص</p><script>
+const attempt = (start) => { try { Promise.resolve(start()).catch(() => {}) } catch {} };
+const blob = (body) => URL.createObjectURL(new Blob([body], { type: 'text/javascript' }));
+const frame = document.createElement('iframe');
+document.body.append(frame);
+for (const [where, realm] of [['page', window], ['frame', frame.contentWindow], ['pop-up', window.open('about:blank')]]) {
+  attempt(() => new realm.SharedWorker('/shared.js?realm=' + where));
+  attempt(() => new realm.SharedWorker(blob('fetch(' + JSON.stringify(location.origin + '/from-blob?realm=' + where) + ')')));
+  attempt(() => realm.navigator.serviceWorker.register('/sw.js?realm=' + where));
+  attempt(() => realm.ServiceWorkerContainer.prototype.register.call(realm.navigator.serviceWorker, '/sw.js?by=prototype&realm=' + where));
+}
+</script>`),
+        )
+        return
+      }
+      if (path !== '/favicon.ico') reached.push(req.url ?? '')
+      res.writeHead(200, { 'content-type': 'text/javascript' })
+      if (path === '/shared.js') res.end('fetch("/from-shared" + location.search)')
+      else if (path === '/sw.js') {
+        res.end(
+          `self.addEventListener('install', (e) => e.waitUntil(fetch('/from-sw' + location.search)))`,
+        )
+      } else res.end('')
+    })
+    cleanup.push(() => site.close())
+    const [outcome] = await renderPage(site.url('/'), {
+      engines: [engine],
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      networkIsolated: true,
+    })
+    expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
+    // Every engine runs the guard in the page's own documents before their scripts.
+    expect(reached.filter((url) => url.endsWith('realm=page'))).toEqual([])
+    // A new frame's or pop-up's first document may be reached before an engine runs the guard
+    // there. Chromium has no SharedWorker at all, and runs the guard there first.
+    if (engine === 'chromium') expect(reached).toEqual([])
+    else console.info(`${engine}: from a new frame or pop-up: ${reached.join(' ') || 'nothing'}`)
+  })
+
+  it('records whether a dedicated worker can start a service worker (M1.1 CI)', async () => {
+    // Init scripts do not run in workers, so the page's own guard cannot reach one. Chromium
+    // gives workers no navigator.serviceWorker; Firefox lets them register (its
+    // ServiceWorkerContainer is exposed to workers), and ties no service worker to the page.
+    let registered = false
+    let fetched = 0
+    const site = await serve((req, res) => {
+      const path = new URL(req.url ?? '/', 'http://x').pathname
+      if (path === '/') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        res.end(arabicPage(`<p>نص</p><script>new Worker('/worker.js')</script>`))
+        return
+      }
+      res.writeHead(200, { 'content-type': 'text/javascript' })
+      if (path === '/worker.js') {
+        res.end(`try { navigator.serviceWorker.register('/sw.js').catch(() => {}) } catch {}`)
+      } else if (path === '/sw.js') {
+        registered = true
+        res.end(`self.addEventListener('install', (e) => e.waitUntil(Promise.all(
+  Array.from({ length: 30 }, (_, i) => fetch('/from-sw?' + i).catch(() => {})))))`)
+      } else {
+        if (path === '/from-sw') fetched++
+        res.end('')
+      }
+    })
+    cleanup.push(() => site.close())
+    const [outcome] = await renderPage(site.url('/'), {
+      engines: [engine],
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      networkIsolated: true,
+      maxRequests: 10,
+    })
+    expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
+    console.info(
+      `${engine}: a dedicated worker registered a service worker = ${String(registered)}, ` +
+        `which sent ${String(fetched)} of 30 requests with a limit of 10`,
+    )
+    if (engine === 'chromium') expect(registered).toBe(false)
+  })
+
   it('stops at its time budget when the page blocks its own main thread', async () => {
     const started = performance.now()
     const outcome = await rendered(

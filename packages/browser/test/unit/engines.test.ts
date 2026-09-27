@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BOT_TOKEN,
   NEEDS_ISOLATION,
+  WORKER_GUARD,
   contextOptions,
   executablePathFor,
   launchOptions,
@@ -32,13 +33,25 @@ describe('launch settings', () => {
     )
   })
 
+  it('takes SharedWorker out of Chromium, since no route sees its requests (M1.1 CI)', () => {
+    expect(launchOptions('chromium', proxy).args).toContain('--disable-blink-features=SharedWorker')
+  })
+
   it('turns WebRTC off in Firefox and sends localhost to the proxy', () => {
     expect(launchOptions('firefox', proxy).firefoxUserPrefs).toMatchObject({
       'network.proxy.allow_hijacking_localhost': true,
       'media.peerconnection.enabled': false,
       'network.webtransport.enabled': false,
-      'dom.serviceWorkers.enabled': false,
     })
+  })
+
+  it('leaves Firefox service workers on, because turning them off also stops request routing (M1.1 CI)', () => {
+    // With dom.serviceWorkers.enabled false, Firefox asks no interception controller about a
+    // request (HttpBaseChannel::ShouldIntercept), Playwright's route included: the request limit
+    // never applied in Firefox. Service workers are stopped in the page instead (render.ts).
+    expect(launchOptions('firefox', proxy).firefoxUserPrefs).not.toHaveProperty([
+      'dom.serviceWorkers.enabled',
+    ])
   })
 
   it('launches a binary named in the environment, and Playwright’s own otherwise', () => {
@@ -101,14 +114,15 @@ describe('an aborted render', () => {
 })
 
 describe('context settings', () => {
-  it('blocks service workers and downloads, and fixes screen, language and clock', () => {
+  it('refuses downloads, and fixes screen, language and clock', () => {
     expect(contextOptions('agent')).toMatchObject({
       viewport: { width: 390, height: 844 },
       deviceScaleFactor: 2,
       locale: 'ar',
       timezoneId: 'Asia/Riyadh',
       reducedMotion: 'reduce',
-      serviceWorkers: 'block',
+      // WORKER_GUARD stops service workers; Playwright's 'block' hid their requests (M1.1 CI).
+      serviceWorkers: 'allow',
       acceptDownloads: false,
       ignoreHTTPSErrors: false,
       bypassCSP: false,
@@ -121,6 +135,28 @@ describe('context settings', () => {
       `Mozilla/5.0 (X11) Chrome/141.0.0.0 Safari/537.36 ${BOT_TOKEN}`,
     )
     expect(BOT_TOKEN).toBe('ArablyzerBot/1.0 (+https://arablyzer.com/bot)')
+  })
+})
+
+describe('the worker guard', () => {
+  it('takes SharedWorker away and makes registering a service worker fail (M1.1 CI)', async () => {
+    class ServiceWorkerContainer {
+      register(): Promise<string> {
+        return Promise.resolve('registered')
+      }
+    }
+    const realm = vm.createContext({ SharedWorker: 'here', ServiceWorkerContainer, DOMException })
+    vm.runInContext(WORKER_GUARD, realm)
+    expect(vm.runInContext('typeof SharedWorker', realm)).toBe('undefined')
+    await expect(new ServiceWorkerContainer().register()).rejects.toMatchObject({
+      name: 'SecurityError',
+    })
+  })
+
+  it('runs where neither exists', () => {
+    expect(() => {
+      vm.runInContext(WORKER_GUARD, vm.createContext({}))
+    }).not.toThrow()
   })
 })
 

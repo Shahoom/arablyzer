@@ -4,6 +4,7 @@ export {
   NEEDS_ISOLATION,
   NETWORK_ISOLATED_VARIABLE,
   VIEWPORT,
+  WORKER_GUARD,
   contextOptions,
   executablePathFor,
   launchOptions,

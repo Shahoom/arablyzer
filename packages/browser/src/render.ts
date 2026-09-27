@@ -29,6 +29,7 @@ import {
   NETWORK_ISOLATED_VARIABLE,
   networkIsolated,
   userAgentFor,
+  WORKER_GUARD,
 } from './engines'
 import { measureSource } from './measure'
 import { toFacts } from './validate'
@@ -295,6 +296,8 @@ async function renderWith(
     budget.reached = true
     await route.abort('blockedbyclient')
   })
+  // No workers whose requests no route sees (see WORKER_GUARD).
+  await context.addInitScript(WORKER_GUARD)
   const page = await context.newPage()
   // No pop-ups, no dialogs waiting for a click: nothing on the page is ever acted on (§13).
   context.on('page', (opened) => {

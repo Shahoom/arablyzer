@@ -42,6 +42,10 @@ export interface ProxySettings {
  * --webrtc-ip-handling-policy and the headless shell only --force-webrtc-ip-handling-policy, so
  * both are set; with neither, STUN reached a local UDP port. WebTransport sent QUIC to a local
  * UDP port despite --disable-quic when no proxy applied, and nothing once the proxy did.
+ * Chromium has no SharedWorker in any realm (see WORKER_GUARD). Firefox keeps
+ * dom.serviceWorkers.enabled: turned off, it also turns off the request routing that counts the
+ * page's requests (CI run 36279700918: with a limit of 10, 61 requests reached the server
+ * instead of 9).
  */
 export function launchOptions(
   engine: Engine,
@@ -64,6 +68,7 @@ export function launchOptions(
           '--dns-prefetch-disable',
           '--disable-background-networking',
           '--no-pings',
+          '--disable-blink-features=SharedWorker',
         ],
       }
     case 'firefox':
@@ -79,7 +84,6 @@ export function launchOptions(
           'network.dns.disablePrefetch': true,
           'network.prefetch-next': false,
           'network.predictor.enabled': false,
-          'dom.serviceWorkers.enabled': false,
           'browser.send_pings': false,
         },
       }
@@ -88,7 +92,37 @@ export function launchOptions(
   }
 }
 
-/** A fresh context per render: fixed screen, language and clock, nothing kept between scans. */
+/**
+ * Runs in every document the page loads, before its own scripts: SharedWorker is gone, and
+ * registering a service worker fails. No engine ties either kind's requests to the page, so the
+ * browser's request count never sees them (measured in Chromium 141 on 2026-09-27: 30 of 30 past
+ * a limit of 10; Firefox's source says so for both). Playwright's serviceWorkers: 'block'
+ * replaced only navigator.serviceWorker.register, which the prototype still offered (M1.1
+ * review). In Chromium, SharedWorker is off in every realm (see launchOptions), and this script
+ * ran in a new frame or pop-up before the page could reach it (measured). In other engines, a new
+ * frame's or pop-up's first document may be reached before the engine runs the script there, and
+ * init scripts never run in workers, from which Firefox lets a page register a service worker.
+ * The browser suite records both.
+ */
+export const WORKER_GUARD = `(() => {
+  delete globalThis.SharedWorker;
+  const container = globalThis.ServiceWorkerContainer;
+  if (typeof container !== 'function') return;
+  Object.defineProperty(container.prototype, 'register', {
+    value: function register(scriptURL) {
+      return Promise.reject(new DOMException('Service workers are off in this browser', 'SecurityError'));
+    },
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+})();`
+
+/**
+ * A fresh context per render: fixed screen, language and clock, nothing kept between scans.
+ * Service workers are stopped by WORKER_GUARD rather than Playwright: its 'block' also hides a
+ * Chromium service worker's requests from the route, and 'allow' lets the route count them.
+ */
 export function contextOptions(userAgent: string): BrowserContextOptions {
   return {
     viewport: { ...VIEWPORT },
@@ -97,7 +131,7 @@ export function contextOptions(userAgent: string): BrowserContextOptions {
     timezoneId: 'Asia/Riyadh',
     reducedMotion: 'reduce',
     colorScheme: 'light',
-    serviceWorkers: 'block',
+    serviceWorkers: 'allow',
     acceptDownloads: false,
     javaScriptEnabled: true,
     ignoreHTTPSErrors: false,
