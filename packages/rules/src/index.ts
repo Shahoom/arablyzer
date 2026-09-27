@@ -1,4 +1,5 @@
 import type { Rule } from './rule'
+import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
 import { rule as arFontNoArabic } from './rules/ar-font-no-arabic/rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
@@ -26,6 +27,7 @@ export const RULESET_VERSION = '0.3.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
+  arDigitsMixed,
   arFontFallback,
   arFontNoArabic,
   arHtmlLang,
