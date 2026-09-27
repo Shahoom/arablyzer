@@ -2,7 +2,7 @@ import { bypassesProxyForLoopback } from '@arablyzer/browser'
 import { serveSite } from '@arablyzer/fixtures'
 import { describe, expect, it } from 'vitest'
 import { scan } from '../../src/index'
-import { FIXTURE_CASES, RENDER_RULES } from '../fixture-cases'
+import { FIXTURE_CASES, MANUAL_RULES, RENDER_RULES } from '../fixture-cases'
 import { policyFor, schemaErrors } from '../helpers'
 import { enginesHere } from './engines'
 
@@ -27,11 +27,17 @@ describe(`render rule fixtures (${engines.join(', ')})`, () => {
       )
       expect(report.scan.status).toBe('complete')
       const failed = report.rules.filter((rule) => rule.status === 'fail').map((rule) => rule.id)
-      if (fixture.startsWith('wrong')) {
+      const own = report.rules.find((rule) => rule.id === ruleId)?.status
+      if (MANUAL_RULES.has(ruleId)) {
+        // A rule that asks for review never fails: its wrong fixture has something to review,
+        // its right one has nothing.
+        expect(failed.sort()).toEqual([...alsoFails].sort())
+        expect(own).toBe(fixture.startsWith('wrong') ? 'needs-review' : 'not-applicable')
+      } else if (fixture.startsWith('wrong')) {
         expect(failed.sort()).toEqual([ruleId, ...alsoFails].sort())
       } else {
         expect(failed).toEqual([])
-        expect(report.rules.find((rule) => rule.id === ruleId)?.status).toBe('pass')
+        expect(own).toBe('pass')
       }
     } finally {
       await site.close()

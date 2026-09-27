@@ -1,4 +1,10 @@
 import type { Rule } from './rule'
+import { rule as a11yButtonName } from './rules/a11y-button-name/rule'
+import { rule as a11yColorContrast } from './rules/a11y-color-contrast/rule'
+import { rule as a11yColorContrastReview } from './rules/a11y-color-contrast-review/rule'
+import { rule as a11yImageAlt } from './rules/a11y-image-alt/rule'
+import { rule as a11yLinkName } from './rules/a11y-link-name/rule'
+import { rule as a11yValidLang } from './rules/a11y-valid-lang/rule'
 import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
 import { rule as arFontNoArabic } from './rules/ar-font-no-arabic/rule'
@@ -10,6 +16,7 @@ import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
+import { rule as formLabelMissing } from './rules/form-label-missing/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
@@ -32,6 +39,12 @@ export const RULESET_VERSION = '0.3.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
+  a11yButtonName,
+  a11yColorContrast,
+  a11yColorContrastReview,
+  a11yImageAlt,
+  a11yLinkName,
+  a11yValidLang,
   arDigitsMixed,
   arFontFallback,
   arFontNoArabic,
@@ -43,6 +56,7 @@ export const RULES: readonly Rule[] = [
   canonicalConflict,
   formArabicDigitsRejected,
   formArabicNameRejected,
+  formLabelMissing,
   h1Missing,
   hreflangInvalidCode,
   jsonldSyntaxError,
