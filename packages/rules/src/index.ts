@@ -4,6 +4,7 @@ import { rule as arFontNoArabic } from './rules/ar-font-no-arabic/rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
+import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
@@ -30,6 +31,7 @@ export const RULES: readonly Rule[] = [
   arHtmlLang,
   arLatinPunctuation,
   arLetterSpacing,
+  arMojibake,
   canonicalConflict,
   h1Missing,
   hreflangInvalidCode,
