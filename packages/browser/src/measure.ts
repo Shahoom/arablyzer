@@ -175,15 +175,15 @@ export function measurePage(limits: MeasureLimits): Measured {
     (codePoint >= 0x870 && codePoint <= 0x8ff) ||
     (codePoint >= 0xfb50 && codePoint <= 0xfdff) ||
     (codePoint >= 0xfe70 && codePoint <= 0xfeff)
-  const formatOrUnassigned = /\p{Cf}|\p{Cn}/u
-  /** A text's distinct Arabic-script characters in code point order, format characters left out. */
+  /**
+   * A text's distinct characters in the Arabic script's blocks, in code point order. Which of them
+   * are format or unassigned characters is left to Node: engines know different Unicode versions.
+   */
   const arabicCharactersOf = (text: string): string => {
     const found = new Set<number>()
     for (const char of text) {
       const codePoint = char.codePointAt(0) ?? 0
-      if (!inArabicBlocks(codePoint) || found.has(codePoint) || formatOrUnassigned.test(char)) {
-        continue
-      }
+      if (!inArabicBlocks(codePoint) || found.has(codePoint)) continue
       found.add(codePoint)
       if (found.size >= limits.maxCharacters) break
     }

@@ -15,7 +15,7 @@ import {
 import { redactUrl } from '@arablyzer/egress'
 import type { Page, Request, Response } from 'playwright-core'
 import { z } from 'zod'
-import { DECODED_SIZES_NAME, fromPage, inPage, throughGuard } from './guard'
+import { DECODED_SIZES_NAME, fromPage, inPage, MAX_RESULT_LENGTH, throughGuard } from './guard'
 
 export interface FileLimits {
   readonly maxFonts: number
@@ -68,7 +68,7 @@ interface TimedSize {
 }
 const InlineStyles = z.strictObject({
   base: z.string().max(MAX_URL),
-  texts: z.array(z.string()).max(100),
+  texts: z.array(z.string().max(MAX_RESULT_LENGTH)).max(100),
 })
 
 /**

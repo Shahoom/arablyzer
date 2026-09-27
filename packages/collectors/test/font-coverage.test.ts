@@ -46,6 +46,38 @@ function format4Cmap(segments: readonly (readonly [start: number, end: number, d
   return concat(bytes([2, 0], [2, 1], [2, 3], [2, 1], [4, 12]), subtable)
 }
 
+/** A segment mapped through glyphIdArray (idRangeOffset), whose glyphs then get idDelta added. */
+interface ArraySegment {
+  readonly start: number
+  readonly end: number
+  readonly delta: number
+  readonly glyphs: readonly number[]
+}
+
+/** A cmap table with one (3,1) format 4 subtable whose segments look glyphs up in glyphIdArray. */
+function format4ArrayCmap(segments: readonly ArraySegment[]) {
+  const all = [...segments, { start: 0xffff, end: 0xffff, delta: 1, glyphs: [] }]
+  const segCount = all.length
+  const u16s = (values: readonly number[]) => bytes(...values.map((value) => [2, value] as const))
+  let glyphIndex = 0
+  const rangeOffsets = all.map((segment, index) => {
+    if (segment.glyphs.length === 0) return 0
+    const offset = 2 * (segCount - index) + 2 * glyphIndex
+    glyphIndex += segment.glyphs.length
+    return offset
+  })
+  const subtable = concat(
+    bytes([2, 4], [2, 0], [2, 0], [2, segCount * 2], [2, 0], [2, 0], [2, 0]),
+    u16s(all.map(({ end }) => end)),
+    bytes([2, 0]),
+    u16s(all.map(({ start }) => start)),
+    u16s(all.map(({ delta }) => delta & 0xffff)),
+    u16s(rangeOffsets),
+    u16s(all.flatMap(({ glyphs }) => glyphs)),
+  )
+  return concat(bytes([2, 0], [2, 1], [2, 3], [2, 1], [4, 12]), subtable)
+}
+
 /** A cmap table with one (3,10) format 12 subtable. */
 function format12Cmap(groups: readonly (readonly [first: number, last: number, glyph: number])[]) {
   const header = bytes([2, 12], [2, 0], [4, 16 + groups.length * 12], [4, 0], [4, groups.length])
@@ -131,6 +163,37 @@ describe('fontCoverage', () => {
     }
   })
 
+  it('reads glyphs looked up through idRangeOffset as fontTools does', () => {
+    // 73 characters mapped to glyphs in shuffled order: 3 of its 6 segments use glyphIdArray.
+    expect(fontCoverage(font('arablyzer-test-range-offset.ttf'))).toEqual([
+      [0x41, 0x5a],
+      [0x621, 0x64a],
+      [0x660, 0x662],
+      [0x6a4, 0x6a4],
+      [0x6cc, 0x6cc],
+    ])
+    expect(
+      fontCoverage(
+        sfnt(
+          format4ArrayCmap([
+            // Glyph 0 in the array is .notdef: U+0628 is not covered.
+            { start: 0x627, end: 0x62a, delta: 0, glyphs: [5, 0, 7, 9] },
+            // idDelta is added to what the array gives, and may bring it to 0.
+            { start: 0x641, end: 0x643, delta: 10, glyphs: [1, 0xfff6, 2] },
+            // An array shorter than its segment: code points past the table map to nothing.
+            { start: 0x660, end: 0x669, delta: 0, glyphs: [3, 4] },
+          ]),
+        ),
+      ),
+    ).toEqual([
+      [0x627, 0x627],
+      [0x629, 0x62a],
+      [0x641, 0x641],
+      [0x643, 0x643],
+      [0x660, 0x661],
+    ])
+  })
+
   it('finds no Arabic in a Latin font', () => {
     const latin = fontCoverage(font('arablyzer-test-latin.ttf'))
     expect(latin).toEqual([
@@ -200,10 +263,24 @@ describe('fontCoverage', () => {
     expect(fontCoverage(woff2(new Uint8Array([0xff, 0xff, 0xff, 0xff, 0x7f]), stream))).toBeNull()
   })
 
-  it('stays fast on overlapping format 4 segments and many format 12 groups', () => {
+  it('refuses format 4 segments out of order or overlapping, as browsers refuse the font', () => {
+    const outOfOrder = format4Cmap([
+      [0x700, 0x7ff, 1],
+      [0x600, 0x6ff, 1],
+    ])
+    expect(fontCoverage(sfnt(outOfOrder))).toBeNull()
     const overlapping = format4Cmap(Array.from({ length: 8000 }, () => [0, 0xfffe, 1] as const))
+    const started = performance.now()
+    expect(fontCoverage(sfnt(overlapping))).toBeNull()
+    expect(performance.now() - started).toBeLessThan(2_000)
+  })
+
+  it('stays fast on a full format 4 table and many format 12 groups', () => {
+    const full = format4Cmap(
+      Array.from({ length: 8000 }, (_, index) => [index * 8, index * 8 + 7, 1] as const),
+    )
     let started = performance.now()
-    expect(fontCoverage(sfnt(overlapping))).toEqual([[0, 0xfffe]])
+    expect(fontCoverage(sfnt(full))).toEqual([[0, 63_999]])
     expect(performance.now() - started).toBeLessThan(2_000)
 
     const groups = Array.from(

@@ -219,8 +219,10 @@ function unicodeCoverage(cmap: Bytes): CodePointRange[] | null {
 }
 
 /**
- * Segments of 16-bit code points (OpenType cmap format 4). Code points already seen are skipped,
- * so overlapping segments cost no more than 65,536 steps in all.
+ * Segments of 16-bit code points (OpenType cmap format 4), which must come in order without
+ * overlapping, so they cost at most 65,536 steps in all. Browsers refuse a font whose segments
+ * do not (OTS, the sanitizer of Chromium and Firefox), and binary-search the rest: a table out of
+ * order is malformed, not read in part.
  */
 function format4(table: Bytes): CodePointRange[] {
   const segments = table.u16(6) >>> 1
@@ -229,17 +231,15 @@ function format4(table: Bytes): CodePointRange[] {
   const deltas = starts + segments * 2
   const offsets = deltas + segments * 2
   const ranges: [number, number][] = []
-  let next = 0
+  let previous = -1
   for (let segment = 0; segment < segments; segment++) {
     const end = table.u16(ends + segment * 2)
     const start = table.u16(starts + segment * 2)
+    if (start > end || start <= previous) throw new Malformed()
+    previous = end
     const delta = table.u16(deltas + segment * 2)
     const rangeOffset = table.u16(offsets + segment * 2)
-    for (
-      let codePoint = Math.max(start, next);
-      codePoint <= end && codePoint < 0xffff;
-      codePoint++
-    ) {
+    for (let codePoint = start; codePoint <= end && codePoint < 0xffff; codePoint++) {
       let glyph: number
       if (rangeOffset === 0) {
         glyph = (codePoint + delta) & 0xffff
@@ -254,7 +254,6 @@ function format4(table: Bytes): CodePointRange[] {
       if (last?.[1] === codePoint - 1) last[1] = codePoint
       else ranges.push([codePoint, codePoint])
     }
-    next = Math.max(next, end + 1)
   }
   return ranges
 }

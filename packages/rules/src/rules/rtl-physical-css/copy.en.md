@@ -26,8 +26,9 @@ Use logical properties, which follow the page's direction:
 | `text-align: left` | `text-align: start` |
 | `float: left` | `float: inline-start` |
 
-- When a site has a stylesheet of its own for Arabic, such as one RTLCSS generates, the physical properties in it are meant. Files with `rtl` in their name are not counted.
+- In Tailwind CSS, use the logical classes: `ms-4` and `me-4` instead of `ml-4` and `mr-4`, `ps-4` and `pe-4` instead of `pl-4` and `pr-4`, `start-0` and `end-0` instead of `left-0` and `right-0`, and `text-start` instead of `text-left`.
 - With Bootstrap, use `bootstrap.rtl.min.css` on Arabic pages.
+- When a site has a stylesheet of its own for Arabic, such as one RTLCSS generates, the physical properties in it are meant. Files with `rtl` in their name are not counted.
 
 ## How we detect
 

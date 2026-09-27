@@ -172,6 +172,21 @@ describe('ar-font-missing-letters', () => {
     })
   })
 
+  it('leaves out format characters, which draw nothing, and unassigned ones', () => {
+    // U+061C ARABIC LETTER MARK is a format character; U+FDD0 is a noncharacter, never assigned.
+    const text = `نص ${String.fromCodePoint(0x61c)}عربي ${String.fromCodePoint(0xfdd0)}`
+    const marks = arabicBlock({ text, fontFamily: LIST })
+    expect(marks.arabicCharacters).toContain(String.fromCodePoint(0x61c))
+    expect(
+      detectAll(
+        rule,
+        renderedEvidence([
+          facts('chromium', [coverage('Brand Arabic', PARTIAL)], { arabicText: [marks] }),
+        ]),
+      ),
+    ).toEqual([])
+  })
+
   it('applies when a web font draws some Arabic text', () => {
     expect(
       applies(rule, renderedEvidence([facts('chromium', [coverage('Brand Arabic', PARTIAL)])])),

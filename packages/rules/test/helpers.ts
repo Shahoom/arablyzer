@@ -100,7 +100,7 @@ export function arabicCharactersOf(text: string): string {
   for (const char of text) {
     const codePoint = char.codePointAt(0) ?? 0
     if (ARABIC_BLOCKS.some(([first, last]) => codePoint >= first && codePoint <= last)) {
-      if (!/\p{Cf}|\p{Cn}/u.test(char)) found.add(codePoint)
+      found.add(codePoint)
     }
   }
   return String.fromCodePoint(...[...found].sort((a, b) => a - b))

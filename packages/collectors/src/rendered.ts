@@ -38,7 +38,7 @@ export interface ArabicTextBlock extends RenderedElement {
   readonly primaryFamily: string
   /**
    * The distinct characters of its whole own text in the Arabic script's blocks, in code point
-   * order, format characters left out (the first 200).
+   * order (the first 200).
    */
   readonly arabicCharacters: string
 }

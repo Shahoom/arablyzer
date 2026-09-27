@@ -30,8 +30,9 @@ reviewed: false
 | `text-align: left` | `text-align: start` |
 | `float: left` | `float: inline-start` |
 
+- في Tailwind CSS استخدم الأصناف المنطقية: `ms-4` و`me-4` بدل `ml-4` و`mr-4`، و`ps-4` و`pe-4` بدل `pl-4` و`pr-4`، و`start-0` و`end-0` بدل `left-0` و`right-0`، و`text-start` بدل `text-left`.
+- وفي Bootstrap، استخدم الملف `bootstrap.rtl.min.css` في الصفحات العربية.
 - إذا كان للموقع ملف CSS خاص بالعربية، كالملف الذي تولّده أداة RTLCSS، فالخصائص المادية فيه مقصودة. ولا نحسب الملفات التي في اسمها `rtl`.
-- وفي قالب Bootstrap، استخدم الملف `bootstrap.rtl.min.css` في الصفحات العربية.
 
 ## كيف نكشف
 

@@ -16,6 +16,11 @@ const BASIC_LETTERS = Array.from(
 )
 /** Characters a message names; the rest are counted in its evidence. */
 const MAX_SHOWN = 10
+/**
+ * Format characters draw nothing and no font has unassigned ones. Told apart here, with Node's
+ * Unicode tables, so each engine's characters are judged by the same Unicode version.
+ */
+const NOT_DRAWN = /\p{Cf}|\p{Cn}/u
 
 type Drawn =
   | { readonly by: 'web'; readonly family: string }
@@ -59,7 +64,8 @@ function missingIn(
   }
   if (family === undefined) return undefined
   const missing = Array.from(block.arabicCharacters).filter(
-    (char) => drawnBy(char.codePointAt(0) ?? 0, families, facts).by === 'other',
+    (char) =>
+      !NOT_DRAWN.test(char) && drawnBy(char.codePointAt(0) ?? 0, families, facts).by === 'other',
   )
   return { family, missing }
 }
