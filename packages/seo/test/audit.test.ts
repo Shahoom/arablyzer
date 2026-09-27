@@ -56,6 +56,18 @@ describe('auditToolPage on the right pages', () => {
       auditPair({ html: AR, expected: EXPECTED.ar }, { html: EN, expected: EXPECTED.en }),
     ).toEqual([])
   })
+
+  it('lets only a missing og:image through, which the site build will add', () => {
+    const noTitle = edit(AR, /<meta property="og:title"[^>]*>\n/, '')
+    expect(auditToolPage(noTitle, EXPECTED.ar)).toEqual([
+      {
+        check: 'own-rules',
+        message: expect.stringMatching(
+          /^og-tags-missing fail: The page has no og:title tag/,
+        ) as string,
+      },
+    ])
+  })
 })
 
 // One defect per page; each must fail exactly the checks listed, so the auditor is neither
@@ -63,10 +75,15 @@ describe('auditToolPage on the right pages', () => {
 describe.each<[string, string, AuditCheck[]]>([
   ['no dir="rtl"', edit(AR, ' dir="rtl"', ''), ['lang-dir', 'own-rules']],
   ['an English lang', edit(AR, 'lang="ar"', 'lang="en"'), ['lang-dir', 'own-rules']],
-  ['no title', edit(AR, /<title>.*<\/title>\n/, ''), ['title']],
-  ['no meta description', edit(AR, /<meta name="description"[^>]*>\n/, ''), ['description']],
+  // Our own rules check these too: title-missing, meta-description-missing, h1-missing.
+  ['no title', edit(AR, /<title>.*<\/title>\n/, ''), ['own-rules', 'title']],
+  [
+    'no meta description',
+    edit(AR, /<meta name="description"[^>]*>\n/, ''),
+    ['description', 'own-rules'],
+  ],
   ['two H1s', edit(AR, '<h1>فحص نموذجي</h1>', '<h1>فحص نموذجي</h1><h1>ثانٍ</h1>'), ['h1']],
-  ['no H1', edit(AR, '<h1>فحص نموذجي</h1>', '<p>فحص نموذجي</p>'), ['h1']],
+  ['no H1', edit(AR, '<h1>فحص نموذجي</h1>', '<p>فحص نموذجي</p>'), ['h1', 'own-rules']],
   [
     'the tool below a section',
     edit(
@@ -334,6 +351,7 @@ describe('auditPair', () => {
     )
     expect(problems).toEqual([
       { page: ALTERNATES.ar, check: 'title', message: expect.any(String) as string },
+      { page: ALTERNATES.ar, check: 'own-rules', message: expect.any(String) as string },
     ])
   })
 })

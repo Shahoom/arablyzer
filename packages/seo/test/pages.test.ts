@@ -61,6 +61,23 @@ describe('renderToolPage', () => {
     }
   })
 
+  it('gives link previews the page title, description and URL in Open Graph tags', () => {
+    for (const [page, url] of [
+      [ar, 'https://arablyzer.example/tools/rtl-check'],
+      [en, 'https://arablyzer.example/en/tools/rtl-check'],
+    ] as const) {
+      const title = /<title>(.*?)<\/title>/.exec(page)?.[1]
+      const description = /<meta name="description" content="([^"]*)">/.exec(page)?.[1]
+      expect(title).toBeDefined()
+      expect(description).toBeDefined()
+      expect(page).toContain(`<meta property="og:title" content="${title ?? ''}">`)
+      expect(page).toContain(`<meta property="og:description" content="${description ?? ''}">`)
+      expect(page).toContain(`<meta property="og:url" content="${url}">`)
+      expect(page).toContain('<meta property="og:type" content="website">')
+      expect(page).toContain('<meta property="og:site_name" content="Arablyzer">')
+    }
+  })
+
   it('describes the tool in JSON-LD, with the breadcrumb it shows', () => {
     const scripts = [...ar.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map(
       (match) => JSON.parse(match[1] ?? '') as Record<string, unknown>,
