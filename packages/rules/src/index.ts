@@ -5,6 +5,7 @@ import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
@@ -28,6 +29,7 @@ export const RULES: readonly Rule[] = [
   arLatinPunctuation,
   arLetterSpacing,
   canonicalConflict,
+  h1Missing,
   hreflangInvalidCode,
   jsonldSyntaxError,
   metaDescriptionMissing,
