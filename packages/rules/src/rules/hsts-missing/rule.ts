@@ -4,20 +4,73 @@ import { defineRule, type DetectorFinding } from '../../rule'
 
 type Message = 'missing' | 'zero' | 'invalid'
 
-/** max-age from a Strict-Transport-Security value; null when it has none or it is not valid. */
+/** RFC 9110 §5.6.2: the characters of a token. */
+const TOKEN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]$/
+
+/**
+ * max-age from a Strict-Transport-Security value; null when the value is not valid, which the
+ * browser then ignores (RFC 6797 §6.1, §8.1). Directives are tokens, each with an optional value,
+ * a token or a quoted string, separated by semicolons; names are read whatever their case.
+ * max-age must be there, with digits alone; includeSubDomains takes no value; neither may come
+ * twice, as Chromium and Firefox refuse. Other directives, preload among them, are ignored.
+ */
 function maxAge(value: string): number | null {
-  let found: number | null = null
-  for (const directive of value.split(';')) {
-    const match = /^\s*max-age\s*=\s*"?(\d+)"?\s*$/i.exec(directive)
-    if (match?.[1] !== undefined) {
-      // RFC 6797 §6.1: a directive given twice makes the header invalid.
-      if (found !== null) return null
-      found = Number(match[1])
-    } else if (/^\s*max-age\s*=/i.test(directive)) {
-      return null
-    }
+  let at = 0
+  const spaces = () => {
+    while (value[at] === ' ' || value[at] === '\t') at++
   }
-  return found
+  const token = () => {
+    const start = at
+    while (at < value.length && TOKEN.test(value[at] ?? '')) at++
+    return value.slice(start, at)
+  }
+  /** A quoted string's content, from its opening quote; null when it is left open. */
+  const quoted = (): string | null => {
+    let content = ''
+    for (at++; at < value.length; at++) {
+      const character = value[at] ?? ''
+      if (character === '"') {
+        at++
+        return content
+      }
+      if (character === '\\') at++
+      if (at >= value.length) return null
+      content += value[at] ?? ''
+    }
+    return null
+  }
+  const seen = new Set<string>()
+  let age: number | null = null
+  for (;;) {
+    spaces()
+    if (at < value.length && value[at] !== ';') {
+      const name = token().toLowerCase()
+      if (name === '') return null
+      spaces()
+      let given: string | null = null
+      if (value[at] === '=') {
+        at++
+        spaces()
+        given = value[at] === '"' ? quoted() : token()
+        if (given === null || (given === '' && value[at - 1] !== '"')) return null
+        spaces()
+      }
+      if (name === 'max-age' || name === 'includesubdomains') {
+        if (seen.has(name)) return null
+        seen.add(name)
+      }
+      if (name === 'max-age') {
+        if (given === null || !/^\d+$/.test(given)) return null
+        age = Number(given)
+      } else if (name === 'includesubdomains' && given !== null) {
+        return null
+      }
+    }
+    if (at >= value.length) break
+    if (value[at] !== ';') return null
+    at++
+  }
+  return age
 }
 
 /**

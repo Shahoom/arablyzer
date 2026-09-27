@@ -35,6 +35,32 @@ describe('hsts-missing', () => {
     }
   })
 
+  it('reads the header by RFC 6797 §6.1, as browsers do (M1.3a review)', () => {
+    const invalid = [
+      // A quoted value left open, a directive given twice, a value where none belongs.
+      'max-age="31536000',
+      'max-age=31536000; includeSubDomains; includeSubDomains',
+      'max-age=31536000; includeSubDomains=yes',
+      // What is not a directive: a stray character, or a name that is not a token.
+      'max-age=31536000 x',
+      'max-age=31536000; @preload',
+      'max-age=',
+    ]
+    for (const value of invalid) {
+      expect(detectAll(rule, secure(value)), value).toEqual([
+        { message: 'invalid', values: { value }, snippet: value },
+      ])
+    }
+    const valid = [
+      'MAX-AGE=31536000',
+      ' max-age = 31536000 ; includeSubDomains ; preload ',
+      'max-age=31536000;;',
+      'max-age=31536000; ext="a \\"quoted\\" value"; preload; preload',
+      'includeSubDomains; max-age=31536000',
+    ]
+    for (const value of valid) expect(detectAll(rule, secure(value)), value).toEqual([])
+  })
+
   it('reads only the first header, as browsers do', () => {
     expect(detectAll(rule, secure('max-age=0', 'max-age=31536000'))).toMatchObject([
       { message: 'zero' },
