@@ -77,8 +77,11 @@ These read the page as a browser rendered it, so they run with `--render`:
 | [`ar-letter-spacing`](packages/rules/src/rules/ar-letter-spacing/copy.en.md) | No `letter-spacing` pulls Arabic letters apart |
 | [`ar-font-fallback`](packages/rules/src/rules/ar-font-fallback/copy.en.md) | The web font set for Arabic text loaded |
 | [`ar-font-no-arabic`](packages/rules/src/rules/ar-font-no-arabic/copy.en.md) | The web font set for Arabic text has the Arabic letters (Chromium) |
+| [`ar-font-missing-letters`](packages/rules/src/rules/ar-font-missing-letters/copy.en.md) | The web font set for Arabic text has every character the text uses, such as «ڤ» or «٣», read from the font files |
 | [`rtl-bidi-isolation`](packages/rules/src/rules/rtl-bidi-isolation/copy.en.md) | Numbers and Latin words inside right-to-left text are drawn in order |
 | [`rtl-horizontal-overflow`](packages/rules/src/rules/rtl-horizontal-overflow/copy.en.md) | A right-to-left page fits a phone screen without scrolling sideways |
+| [`rtl-physical-css`](packages/rules/src/rules/rtl-physical-css/copy.en.md) | A right-to-left page's CSS sets sides by start and end rather than left and right (information) |
+| [`rtl-mirrored-icons`](packages/rules/src/rules/rtl-mirrored-icons/copy.en.md) | Arrows and chevrons that point right in right-to-left text, for review |
 | [`a11y-image-alt`](packages/rules/src/rules/a11y-image-alt/copy.en.md) | Images have a text alternative (axe-core) |
 | [`a11y-color-contrast`](packages/rules/src/rules/a11y-color-contrast/copy.en.md) | Text, Arabic included, has the contrast WCAG asks for (axe-core) |
 | [`a11y-color-contrast-review`](packages/rules/src/rules/a11y-color-contrast-review/copy.en.md) | Text whose contrast axe-core cannot measure, such as text over an image, for review |

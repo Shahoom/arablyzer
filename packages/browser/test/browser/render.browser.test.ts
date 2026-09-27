@@ -330,6 +330,8 @@ describe.each(engines)('rendered facts: %s', (engine) => {
          <p><i class="fa-solid fa-arrow-left" style="${icon}"></i> السابق</p>
          <p><span id="ms" class="material-symbols-outlined">arrow_forward</span></p>
          <p id="more">اقرأ المزيد →</p>
+         <p><a href="/offers">كل العروض <span id="alone">→</span></a></p>
+         <p>Next →</p>
          <p dir="ltr"><i class="bi-arrow-right" style="${icon}"></i> Next →</p>`,
       ),
     })
@@ -337,6 +339,7 @@ describe.each(engines)('rendered facts: %s', (engine) => {
       ['#fa', 'fa-arrow-right'],
       ['#ms', 'arrow_forward'],
       ['#more', '→'],
+      ['#alone', '→'],
     ])
     expect(page.directionIcons[2]?.box.width).toBeLessThan(40)
   })

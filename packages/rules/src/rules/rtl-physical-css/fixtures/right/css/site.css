@@ -1,0 +1,24 @@
+/* The same theme with logical properties: start and end follow the page's direction. */
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+ul.menu {
+  padding-inline-start: 0;
+  list-style: none;
+}
+.menu li {
+  float: inline-start;
+  margin-inline-end: 16px;
+}
+main {
+  clear: both;
+  padding: 16px;
+}
+.price {
+  text-align: end;
+}
+/* Written for right-to-left pages on purpose, so left out. */
+[dir='rtl'] .price {
+  padding-left: 4px;
+}

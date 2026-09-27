@@ -14,6 +14,43 @@ export function shownFamily(name: string): string {
     : `${chars.slice(0, MAX_SHOWN_FAMILY - 1).join('')}…`
 }
 
+/**
+ * The names of a computed font-family list, in order: quoted names unquoted, with their commas
+ * and escapes; unquoted ones with their spaces collapsed.
+ */
+export function familyList(value: string): string[] {
+  const names: string[] = []
+  let part = ''
+  let quote: string | null = null
+  const push = () => {
+    const trimmed = part.trim()
+    const first = trimmed.charAt(0)
+    if ((first === '"' || first === "'") && trimmed.length >= 2 && trimmed.endsWith(first)) {
+      names.push(trimmed.slice(1, -1).replace(/\\(.)/g, '$1'))
+    } else if (trimmed !== '') {
+      names.push(trimmed.replace(/\s+/g, ' '))
+    }
+    part = ''
+  }
+  for (let index = 0; index < value.length; index++) {
+    const char = value.charAt(index)
+    if (quote !== null && char === '\\') {
+      part += char + value.charAt(index + 1)
+      index++
+      continue
+    }
+    if (char === quote) quote = null
+    else if (quote === null && (char === '"' || char === "'")) quote = char
+    else if (quote === null && char === ',') {
+      push()
+      continue
+    }
+    part += char
+  }
+  push()
+  return names
+}
+
 /** The Arabic letters, U+0621 to U+064A: those a font must have to draw Arabic words. */
 const ARABIC_LETTERS = { first: 0x0621, last: 0x064a } as const
 

@@ -299,11 +299,14 @@ export function measurePage(limits: MeasureLimits): Measured {
       const parent = text.parentElement
       if (parent === null) continue
       if (parent.closest(skipped) !== null) continue
-      if (arrows.length < limits.maxIcons * 5 && arabicLetter.test(text.data)) {
-        const arrow = rightArrow.exec(text.data)
-        if (arrow !== null && parent.closest('code, pre, kbd, samp') === null) {
-          arrows.push({ node: text, index: arrow.index, arrow: arrow[0] })
-        }
+      // An arrow in Arabic text, or alone in an inline element beside it: «التالي <span>→</span>».
+      const arrow = arrows.length < limits.maxIcons * 5 ? rightArrow.exec(text.data) : null
+      if (arrow !== null && parent.closest('code, pre, kbd, samp') === null) {
+        const beside = /\p{L}/u.test(text.data)
+          ? arabicLetter.test(text.data)
+          : getComputedStyle(parent).display.startsWith('inline') &&
+            arabicLetter.test(parent.parentElement?.textContent ?? '')
+        if (beside) arrows.push({ node: text, index: arrow.index, arrow: arrow[0] })
       }
       if (/[+#0-9\u0660-\u0669\u06F0-\u06F9]/.test(text.data)) {
         let dir = direction.get(parent)
@@ -512,21 +515,21 @@ export function measurePage(limits: MeasureLimits): Measured {
     }
     return sign < 0
   }
-  const directionIcons: Measured['directionIcons'][number][] = []
+  const icons: { element: Element; fact: Measured['directionIcons'][number] }[] = []
   const looked = new Set<Element>()
   const addIcon = (element: Element, name: string, rect: DOMRect) => {
     if (looked.has(element)) return
     looked.add(element)
     if (rect.width === 0 || rect.height === 0) return
     if (getComputedStyle(element).direction !== 'rtl' || mirrored(element)) return
-    directionIcons.push({ selector: selectorOf(element), box: box(rect), name })
+    icons.push({ element, fact: { selector: selectorOf(element), box: box(rect), name } })
   }
   if (body !== null) {
     const candidates = body.querySelectorAll(
       '[class*="right" i], [class*="forward" i], [class*="next" i], [class*="material-" i]',
     )
     const count = Math.min(candidates.length, limits.maxIconCandidates)
-    for (let i = 0; i < count && directionIcons.length < limits.maxIcons && !late(); i++) {
+    for (let i = 0; i < count && icons.length < limits.maxIcons && !late(); i++) {
       const element = candidates[i]
       const name = element === undefined ? null : iconName(element)
       if (element !== undefined && name !== null) {
@@ -535,7 +538,7 @@ export function measurePage(limits: MeasureLimits): Measured {
     }
   }
   for (const { node, index, arrow } of arrows) {
-    if (directionIcons.length >= limits.maxIcons || late()) break
+    if (icons.length >= limits.maxIcons || late()) break
     const parent = node.parentElement
     if (parent === null) continue
     const range = document.createRange()
@@ -543,6 +546,17 @@ export function measurePage(limits: MeasureLimits): Measured {
     range.setEnd(node, index + arrow.length)
     addIcon(parent, arrow, range.getBoundingClientRect())
   }
+
+  // In document order: icons found by class come first otherwise, arrows in text after them.
+  const directionIcons = icons
+    .sort((a, b) =>
+      a.element === b.element
+        ? 0
+        : a.element.compareDocumentPosition(b.element) & Node.DOCUMENT_POSITION_FOLLOWING
+          ? -1
+          : 1,
+    )
+    .map((icon) => icon.fact)
 
   const viewportMeta = document.querySelector('meta[name="viewport" i]')
   return {

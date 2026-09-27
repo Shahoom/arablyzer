@@ -7,6 +7,7 @@ import { rule as a11yLinkName } from './rules/a11y-link-name/rule'
 import { rule as a11yValidLang } from './rules/a11y-valid-lang/rule'
 import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
+import { rule as arFontMissingLetters } from './rules/ar-font-missing-letters/rule'
 import { rule as arFontNoArabic } from './rules/ar-font-no-arabic/rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
@@ -31,6 +32,8 @@ import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/r
 import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
 import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
+import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
+import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
 import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
@@ -48,6 +51,7 @@ export const RULES: readonly Rule[] = [
   a11yValidLang,
   arDigitsMixed,
   arFontFallback,
+  arFontMissingLetters,
   arFontNoArabic,
   arHtmlLang,
   arLatinPunctuation,
@@ -72,6 +76,8 @@ export const RULES: readonly Rule[] = [
   rtlBidiIsolation,
   rtlHorizontalOverflow,
   rtlHtmlDir,
+  rtlMirroredIcons,
+  rtlPhysicalCss,
   titleMissing,
   viewportMissing,
   whatsappLinkFormat,
