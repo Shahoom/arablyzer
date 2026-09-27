@@ -92,3 +92,15 @@ describe('arablyzer --render (built bundle)', () => {
     )
   })
 })
+
+describe('arablyzer --lab (built bundle, M1.3b)', () => {
+  it('loads Lighthouse from outside the bundle, and prints its metrics as information', async () => {
+    const result = await arablyzer([site.url('/'), '--allow-private', '--lab', '--lang', 'en'])
+    expect(result.stderr).toBe('')
+    expect(result.stdout).toMatch(/Lighthouse 13\.5\.0 \(lab, information only\) · performance \d+/)
+    const json = await arablyzer([site.url('/'), '--allow-private', '--lab', '--json'])
+    const report = JSON.parse(json.stdout) as { facts: { lab?: { status: string } } }
+    expect(validate(report), ajv.errorsText(validate.errors)).toBe(true)
+    expect(report.facts.lab?.status).toBe('measured')
+  })
+})
