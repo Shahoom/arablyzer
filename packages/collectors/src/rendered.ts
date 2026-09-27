@@ -111,6 +111,8 @@ export interface UncompressedTextFact {
   readonly url: string
   /** The browser's resource type: document, script, stylesheet, xhr, fetch or eventsource. */
   readonly type: string
+  /** The response's media type, lowercased; null without one. */
+  readonly mimeType: string | null
   readonly size: number
   /** Gzipped with Node's zlib at its default level, as Lighthouse 12 measured it. */
   readonly gzipSize: number
@@ -120,7 +122,7 @@ export interface UncompressedTextFact {
 export interface CompressionFact {
   /** Text responses whose compression is known: sent compressed, or read and gzipped. */
   readonly checked: number
-  /** Those sent without Content-Encoding (the first 50). */
+  /** Those sent without Content-Encoding: the 50 that gzip would shrink most. */
   readonly uncompressed: readonly UncompressedTextFact[]
 }
 

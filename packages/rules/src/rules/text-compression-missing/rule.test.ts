@@ -8,6 +8,7 @@ import { rule } from './rule'
 const text = (overrides: Partial<UncompressedTextFact> = {}): UncompressedTextFact => ({
   url: 'http://fixture.test/',
   type: 'document',
+  mimeType: 'text/html',
   size: 3_667,
   gzipSize: 1_382,
   ...overrides,

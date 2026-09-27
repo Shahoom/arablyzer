@@ -32,6 +32,20 @@ function arabicPage(body: string, head = ''): string {
 <body style="margin: 0; font-family: serif">${body}</body></html>`
 }
 
+/** The text in windows-1256, which Node cannot encode: each byte by what it decodes to. */
+function windows1256(text: string): Buffer {
+  const decoder = new TextDecoder('windows-1256')
+  const bytes = new Map<string, number>()
+  for (let byte = 0; byte < 256; byte++) bytes.set(decoder.decode(Uint8Array.of(byte)), byte)
+  return Buffer.from(
+    Array.from(text, (character) => {
+      const byte = bytes.get(character)
+      if (byte === undefined) throw new Error(`${character} is not in windows-1256`)
+      return byte
+    }),
+  )
+}
+
 async function rendered(
   engine: Engine,
   routes: Parameters<typeof pages>[0],
@@ -407,6 +421,28 @@ describe.each(engines)('rendered facts: %s', (engine) => {
         size: png.length,
       }),
     ])
+  })
+
+  it('reads text in a legacy encoding as it was sent, or leaves it out when the engine re-encoded it', async () => {
+    const stylesheet = windows1256('.عنوان { margin-left: 4px }')
+    const script = windows1256(`window.title = "${'عنوان عربي '.repeat(200)}"`)
+    const page = await facts(engine, {
+      '/': arabicPage(
+        '<p class="عنوان">نص عربي</p>',
+        '<link rel="stylesheet" href="/site.css"><script src="/app.js"></script>',
+      ),
+      '/site.css': [200, { 'content-type': 'text/css; charset=windows-1256' }, stylesheet],
+      '/app.js': [200, { 'content-type': 'text/javascript; charset=windows-1256' }, script],
+    })
+    // Chromium hands both re-encoded as UTF-8, Firefox as sent (measured 2026-09-27): the
+    // stylesheet reads the same either way, and the script is gzipped only as it was sent.
+    expect(page.stylesheets.physical[0]?.examples[0]?.selector).toBe('.عنوان')
+    const sent = page.compression.uncompressed.filter((text) => text.url.endsWith('/app.js'))
+    expect(sent).toEqual(
+      engine === 'firefox'
+        ? [expect.objectContaining({ mimeType: 'text/javascript', size: script.length })]
+        : [],
+    )
   })
 
   it('gives an image chosen by srcset or <picture> the size of its file, not divided by its density', async () => {
