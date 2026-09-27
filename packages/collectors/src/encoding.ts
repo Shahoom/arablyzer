@@ -31,8 +31,32 @@ export function decodeHtml(
 ): { text: string; encoding: EncodingInfo } {
   const encoding = sniffEncoding(bytes, contentType)
   // TextDecoder strips a BOM that matches the encoding (ignoreBOM defaults to false).
-  const text = new TextDecoder(encoding.name).decode(bytes)
+  const text =
+    encoding.name === 'windows-1252'
+      ? decodeWindows1252(bytes)
+      : new TextDecoder(encoding.name).decode(bytes)
   return { text, encoding }
+}
+
+/**
+ * WHATWG index-windows-1252 for 0x80–0x9F; every other byte is its own code point. Node's
+ * TextDecoder reads these bytes as ISO-8859-1 control characters (checked on Node 22.22), where
+ * browsers show € … “ ” and the rest, so this decoder does not rely on it.
+ */
+const WINDOWS_1252_HIGH = [
+  0x20ac, 0x81, 0x201a, 0x192, 0x201e, 0x2026, 0x2020, 0x2021, 0x2c6, 0x2030, 0x160, 0x2039, 0x152,
+  0x8d, 0x17d, 0x8f, 0x90, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014, 0x2dc, 0x2122,
+  0x161, 0x203a, 0x153, 0x9d, 0x17e, 0x178,
+]
+
+/** windows-1252 as WHATWG and browsers decode it (the labels iso-8859-1 and us-ascii included). */
+export function decodeWindows1252(bytes: Uint8Array): string {
+  // Latin-1 gives every byte its own code point; then only 0x80–0x9F change.
+  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+    .toString('latin1')
+    .replace(/[\u0080-\u009f]/g, (char) =>
+      String.fromCharCode(WINDOWS_1252_HIGH[char.charCodeAt(0) - 0x80] ?? char.charCodeAt(0)),
+    )
 }
 
 function bomEncoding(bytes: Uint8Array): string | null {
