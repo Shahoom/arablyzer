@@ -1,5 +1,6 @@
 import type {
   A11yFacts,
+  CompressionFact,
   Engine,
   FontFaceFact,
   FontRequestFact,
@@ -82,6 +83,17 @@ const Measured = z.strictObject({
   directionIcons: z
     .array(z.strictObject({ selector, box: Box, name: z.string().max(100) }))
     .max(MEASURE_LIMITS.maxIcons),
+  images: z
+    .array(
+      z.strictObject({
+        selector,
+        box: Box,
+        url: z.string().max(2048),
+        naturalWidth: size,
+        naturalHeight: size,
+      }),
+    )
+    .max(MEASURE_LIMITS.maxImages),
   truncated: z.boolean(),
 })
 
@@ -99,7 +111,18 @@ export interface FactsContext {
   /** From the font files and stylesheets read after the render; none when absent. */
   readonly arabicFontCoverage?: readonly WebFontCoverageFact[]
   readonly stylesheets?: StylesheetsFact
+  readonly compression?: CompressionFact
+  /** Each image file's media type and size, by URL. */
+  readonly imageFiles?: ReadonlyMap<string, ImageFile>
 }
+
+/** What the render knows of an image file. */
+export interface ImageFile {
+  readonly type: string | null
+  readonly size: number | null
+}
+
+const NO_COMPRESSION: CompressionFact = Object.freeze({ checked: 0, uncompressed: [] })
 
 const NO_STYLESHEETS: StylesheetsFact = Object.freeze({ read: 0, unread: 0, physical: [] })
 
@@ -144,6 +167,11 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     bidi: facts.bidi,
     fields: facts.fields,
     directionIcons: facts.directionIcons,
+    compression: context.compression ?? NO_COMPRESSION,
+    images: facts.images.map((image) => {
+      const file = context.imageFiles?.get(image.url)
+      return { ...image, type: file?.type ?? null, size: file?.size ?? null }
+    }),
     a11y: context.a11y ?? null,
     truncated: facts.truncated,
     limited: context.limited,

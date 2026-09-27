@@ -172,6 +172,8 @@ export function renderedFacts(
     bidi: [],
     fields: [],
     directionIcons: [],
+    compression: { checked: 0, uncompressed: [] },
+    images: [],
     a11y: null,
     truncated: false,
     limited: false,

@@ -1,4 +1,5 @@
 /// <reference lib="dom" />
+import { gzipSync } from 'node:zlib'
 import {
   decodeStylesheet,
   fontCoverage,
@@ -9,13 +10,16 @@ import {
   type FontFaceRule,
   type PhysicalCssFact,
   type PhysicalDeclaration,
+  type CompressionFact,
   type StylesheetsFact,
+  type UncompressedTextFact,
   type WebFontCoverageFact,
 } from '@arablyzer/collectors'
 import { redactUrl } from '@arablyzer/egress'
 import type { Page, Request, Response } from 'playwright-core'
 import { z } from 'zod'
 import { DECODED_SIZES_NAME, fromPage, inPage, MAX_RESULT_LENGTH, throughGuard } from './guard'
+import type { ImageFile } from './validate'
 
 export interface FileLimits {
   readonly maxFonts: number
@@ -27,6 +31,10 @@ export interface FileLimits {
   /** Characters of the page's <style> elements read, in all. */
   readonly maxInlineCss: number
   readonly maxPhysicalSources: number
+  /** Text responses sent without Content-Encoding, read to gzip them: each, and in all. */
+  readonly maxTextBytes: number
+  readonly maxTextTotal: number
+  readonly maxUncompressed: number
 }
 
 /** docs/design/plans/m1.2c-css-fonts.md §2. */
@@ -38,12 +46,18 @@ export const FILE_LIMITS: FileLimits = {
   maxStylesheetTotal: 10 * 1024 * 1024,
   maxInlineCss: 1_000_000,
   maxPhysicalSources: 40,
+  maxTextBytes: 5 * 1024 * 1024,
+  maxTextTotal: 10 * 1024 * 1024,
+  maxUncompressed: 50,
 }
 
-/** The main frame's stylesheet and font responses, as they arrived during the render. */
+/** The main frame's responses the rules read, as they arrived during the render. */
 export interface PageFiles {
   readonly stylesheets: readonly Response[]
   readonly fonts: readonly Response[]
+  /** The document, scripts, and data (XHR, fetch, event streams). */
+  readonly texts: readonly Response[]
+  readonly images: readonly Response[]
   /**
    * Requests whose response had fully arrived: one still arriving (a font that never ends) is
    * not waited for, and counts as unread.
@@ -56,6 +70,8 @@ export interface PageFiles {
 export interface FilesFacts {
   readonly arabicFontCoverage: readonly WebFontCoverageFact[]
   readonly stylesheets: StylesheetsFact
+  readonly compression: CompressionFact
+  readonly imageFiles: ReadonlyMap<string, ImageFile>
 }
 
 const MAX_URL = 2048
@@ -89,6 +105,38 @@ export async function readPageFiles(
   const sizes = await decodedSizes(page, until)
   const bodyOf = (response: Response, max: number) => readBody(response, sizes, files, max, until)
 
+  // Text responses: sent compressed, or read and gzipped as Lighthouse 12 did (M1.3 plan §0).
+  let checked = 0
+  let textTotal = 0
+  const uncompressed: UncompressedTextFact[] = []
+  const noteText = async (response: Response, type: string, read?: Uint8Array | null) => {
+    if (!response.ok() || !files.finished.has(response.request())) return
+    const encoding = await contentEncoding(response)
+    if (encoding !== '' && encoding !== 'identity') {
+      checked++
+      return
+    }
+    // A body the stylesheet step could not read is tried again within the text limits.
+    let body = read ?? null
+    if (body === null && uncompressed.length < limits.maxUncompressed) {
+      const room = Math.min(limits.maxTextBytes, limits.maxTextTotal - textTotal)
+      body = room > 0 ? await bodyOf(response, room) : null
+      textTotal += body?.byteLength ?? 0
+    }
+    if (body === null) return
+    checked++
+    if (uncompressed.length >= limits.maxUncompressed) return
+    uncompressed.push({
+      url: redactUrl(response.url()).slice(0, MAX_URL),
+      type,
+      size: body.byteLength,
+      gzipSize: gzipSync(body).byteLength,
+    })
+  }
+  for (const response of files.texts) {
+    await noteText(response, response.request().resourceType())
+  }
+
   const fontFiles = new Map<string, readonly CodePointRange[] | null>()
   let fonts = 0
   for (const response of files.fonts) {
@@ -114,6 +162,7 @@ export async function readPageFiles(
       read < limits.maxStylesheets && room > 0 && files.finished.has(response.request())
         ? await bodyOf(response, room)
         : null
+    await noteText(response, 'stylesheet', body)
     if (body === null) {
       unread++
       continue
@@ -149,10 +198,29 @@ export async function readPageFiles(
     }
   }
 
+  // Image files: their media type and size, which needs no body.
+  const imageFiles = new Map<string, ImageFile>()
+  for (const response of files.images) {
+    if (!response.ok() || !files.finished.has(response.request())) continue
+    const header = await response.headerValue('content-type').catch(() => null)
+    const essence = header?.split(';')[0]?.trim().toLowerCase() ?? ''
+    const type = essence === '' ? null : essence
+    const size = await knownSize(response, sizes, files, until).catch(() => null)
+    for (const url of urlsOf(response)) imageFiles.set(url, { type, size })
+  }
+
   return {
     arabicFontCoverage: webFontCoverage(faces, rules, fontFiles),
     stylesheets: { read, unread, physical },
+    compression: { checked, uncompressed },
+    imageFiles,
   }
+}
+
+/** The response's Content-Encoding, trimmed and lowercased; '' without one. */
+async function contentEncoding(response: Response): Promise<string> {
+  const value = await response.headerValue('content-encoding').catch(() => null)
+  return (value ?? '').trim().toLowerCase()
 }
 
 /** Each resource's decoded size and number of entries; none on failure. */
@@ -199,9 +267,10 @@ async function readBody(
 }
 
 /**
- * The size of a response's body once decoded: without Content-Encoding, the bytes that came
- * (which count any chunk framing, so never fewer); else Resource Timing's decoded size, which is
- * 0 for a cross-origin file without Timing-Allow-Origin. Null when not known.
+ * The size of a response's body once decoded. With Content-Encoding, only Resource Timing's
+ * decoded size tells it, which is 0 for a cross-origin file without Timing-Allow-Origin. Without,
+ * Content-Length when sent, else Resource Timing's size, else the bytes that came. Null when not
+ * known.
  *
  * Resource Timing names a size by URL, not by response. So it counts only for a URL loaded once,
  * with one entry: a page that loads a URL twice, and makes Resource Timing drop the second entry
@@ -213,18 +282,31 @@ async function knownSize(
   files: PageFiles,
   until: number,
 ): Promise<number | null> {
-  const encoding = ((await response.headerValue('content-encoding')) ?? '').trim().toLowerCase()
-  if (encoding === '' || encoding === 'identity') {
-    const received = await within(
-      response
-        .request()
-        .sizes()
-        .catch(() => undefined),
-      until - performance.now(),
-    )
-    const size = received?.responseBodySize ?? 0
-    return size > 0 ? size : null
-  }
+  const timed = timedSize(response, sizes, files)
+  const encoding = await contentEncoding(response)
+  if (encoding !== '' && encoding !== 'identity') return timed
+  // Without encoding, the browser reads no more than Content-Length, which is then the size.
+  const length = Number(await response.headerValue('content-length').catch(() => null))
+  if (Number.isSafeInteger(length) && length > 0) return length
+  if (timed !== null) return timed
+  // What came over the network, which counts chunk framing too: never fewer than the body.
+  const received = await within(
+    response
+      .request()
+      .sizes()
+      .catch(() => undefined),
+    until - performance.now(),
+  )
+  const size = received?.responseBodySize ?? 0
+  return size > 0 ? size : null
+}
+
+/** Resource Timing's decoded size for the response, when its URLs came back once each. */
+function timedSize(
+  response: Response,
+  sizes: ReadonlyMap<string, TimedSize>,
+  files: PageFiles,
+): number | null {
   const urls = urlsOf(response)
   if (urls.some((url) => files.responses.get(url) !== 1)) return null
   const timed = urls.flatMap((url) => sizes.get(url) ?? [])

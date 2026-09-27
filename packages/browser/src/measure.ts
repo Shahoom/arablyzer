@@ -23,6 +23,8 @@ export interface MeasureLimits {
   /** Direction icons reported, and elements looked at for them. */
   readonly maxIcons: number
   readonly maxIconCandidates: number
+  /** Images drawn on the page, with their natural size. */
+  readonly maxImages: number
   readonly timeMs: number
 }
 
@@ -86,6 +88,13 @@ export interface Measured {
     readonly box: MeasuredBox
     readonly name: string
   }[]
+  readonly images: readonly {
+    readonly selector: string
+    readonly box: MeasuredBox
+    readonly url: string
+    readonly naturalWidth: number
+    readonly naturalHeight: number
+  }[]
   /** The time limit stopped the walk early. */
   readonly truncated: boolean
 }
@@ -102,6 +111,7 @@ export const MEASURE_LIMITS: MeasureLimits = {
   maxCharacters: 200,
   maxIcons: 20,
   maxIconCandidates: 3_000,
+  maxImages: 100,
   timeMs: 5_000,
 }
 
@@ -558,6 +568,28 @@ export function measurePage(limits: MeasureLimits): Measured {
     )
     .map((icon) => icon.fact)
 
+  // Images drawn on the page, each by the source the browser chose (srcset, <picture>).
+  const images: Measured['images'][number][] = []
+  if (body !== null) {
+    const drawn = body.getElementsByTagName('img')
+    const count = Math.min(drawn.length, limits.maxNodes)
+    for (let i = 0; i < count && images.length < limits.maxImages && !late(); i++) {
+      const image = drawn[i]
+      if (image === undefined || !image.complete || image.naturalWidth === 0) continue
+      const url = image.currentSrc
+      if (!/^https?:/i.test(url)) continue
+      const rect = image.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) continue
+      images.push({
+        selector: selectorOf(image),
+        box: box(rect),
+        url: url.slice(0, 2048),
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight,
+      })
+    }
+  }
+
   const viewportMeta = document.querySelector('meta[name="viewport" i]')
   return {
     dir: pageDir,
@@ -573,6 +605,7 @@ export function measurePage(limits: MeasureLimits): Measured {
     bidi,
     fields,
     directionIcons,
+    images,
     truncated,
   }
 }

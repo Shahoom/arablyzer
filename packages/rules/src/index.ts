@@ -23,6 +23,7 @@ import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
 import { rule as httpsMissing } from './rules/https-missing/rule'
+import { rule as imageFormatLegacy } from './rules/image-format-legacy/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
@@ -37,6 +38,7 @@ import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/r
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
+import { rule as textCompressionMissing } from './rules/text-compression-missing/rule'
 import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as tlsExpiring } from './rules/tls-expiring/rule'
 import { rule as viewportMissing } from './rules/viewport-missing/rule'
@@ -71,6 +73,7 @@ export const RULES: readonly Rule[] = [
   hreflangInvalidCode,
   hstsMissing,
   httpsMissing,
+  imageFormatLegacy,
   jsonldSyntaxError,
   metaDescriptionMissing,
   mixedContent,
@@ -85,6 +88,7 @@ export const RULES: readonly Rule[] = [
   rtlHtmlDir,
   rtlMirroredIcons,
   rtlPhysicalCss,
+  textCompressionMissing,
   titleMissing,
   tlsExpiring,
   viewportMissing,

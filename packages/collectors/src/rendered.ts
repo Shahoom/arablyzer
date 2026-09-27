@@ -106,6 +106,36 @@ export interface DirectionIconFact extends RenderedElement {
   readonly name: string
 }
 
+/** A text response that came without Content-Encoding, and what gzip makes of it. */
+export interface UncompressedTextFact {
+  readonly url: string
+  /** The browser's resource type: document, script, stylesheet, xhr, fetch or eventsource. */
+  readonly type: string
+  readonly size: number
+  /** Gzipped with Node's zlib at its default level, as Lighthouse 12 measured it. */
+  readonly gzipSize: number
+}
+
+/** Whether the page's text responses came compressed (M1.3 plan §1). */
+export interface CompressionFact {
+  /** Text responses whose compression is known: sent compressed, or read and gzipped. */
+  readonly checked: number
+  /** Those sent without Content-Encoding (the first 50). */
+  readonly uncompressed: readonly UncompressedTextFact[]
+}
+
+/** An image drawn on the page, with its file's format and size. */
+export interface ImageFact extends RenderedElement {
+  /** The source the browser chose. */
+  readonly url: string
+  readonly naturalWidth: number
+  readonly naturalHeight: number
+  /** The response's media type, lowercased; null when not known. */
+  readonly type: string | null
+  /** Bytes of the file; null when not known. */
+  readonly size: number | null
+}
+
 /** A number or a Latin word inside right-to-left text whose characters are drawn out of order. */
 export interface BidiTokenFact extends RenderedElement {
   readonly text: string
@@ -218,6 +248,9 @@ export interface RenderedFacts {
   readonly fields: readonly RenderedFieldFact[]
   /** Unmirrored direction icons in right-to-left text (the first 20). */
   readonly directionIcons: readonly DirectionIconFact[]
+  readonly compression: CompressionFact
+  /** Images drawn on the page (the first 100). */
+  readonly images: readonly ImageFact[]
   /** axe-core's results; null when axe did not run or did not finish in time. */
   readonly a11y: A11yFacts | null
   /** Measuring stopped at its time or node limit, so the lists may be incomplete. */

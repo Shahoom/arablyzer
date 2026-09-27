@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises'
 import http from 'node:http'
 import https from 'node:https'
 import path from 'node:path'
+import { gzipSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { FixtureConfig, SiteConfig, type RouteOverride } from './config'
@@ -130,8 +131,16 @@ async function respond(
   }
   const pathname = new URL(req.url ?? '/', 'http://fixture.invalid').pathname
   const { status, headers, body } = await resolveFixtureResponse(root, config, pathname)
-  res.writeHead(status, wireHeaders(headers))
-  res.end(req.method === 'HEAD' ? undefined : body)
+  const gzip =
+    config[pathname]?.compress === 'gzip' && /\bgzip\b/i.test(req.headers['accept-encoding'] ?? '')
+  const sent = gzip ? gzipSync(body) : body
+  res.writeHead(
+    status,
+    wireHeaders(
+      gzip ? { ...headers, 'content-encoding': 'gzip', vary: 'Accept-Encoding' } : headers,
+    ),
+  )
+  res.end(req.method === 'HEAD' ? undefined : sent)
 }
 
 export interface FixtureResponse {

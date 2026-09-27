@@ -8,6 +8,8 @@ export const RouteOverride = z.strictObject({
   headers: z.record(z.string().min(1), HeaderValue).optional(),
   /** Inline body; without it the file at the same path is served (or an empty body). */
   body: z.string().optional(),
+  /** Sent gzipped, with Content-Encoding, to a client that accepts gzip. */
+  compress: z.literal('gzip').optional(),
 })
 export type RouteOverride = z.infer<typeof RouteOverride>
 

@@ -47,6 +47,8 @@ function facts(engine: RenderedFacts['engine']): RenderedFacts {
     bidi: [],
     fields: [],
     directionIcons: [],
+    compression: { checked: 0, uncompressed: [] },
+    images: [],
     a11y: null,
     truncated: false,
     limited: false,

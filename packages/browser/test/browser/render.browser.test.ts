@@ -361,6 +361,54 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(outcome?.facts?.stylesheets).toEqual({ read: 0, unread: 1, physical: [] })
   })
 
+  it('gzips the text that came uncompressed, and gives each drawn image its type and size', async () => {
+    const script = `window.catalog = ${JSON.stringify(Array.from({ length: 300 }, (_, i) => ({ id: i, name: 'منتج عربي' })))}`
+    const png = readFileSync(
+      fileURLToPath(
+        new URL(
+          '../../../rules/src/rules/image-format-legacy/fixtures/wrong/images/sadu.png',
+          import.meta.url,
+        ),
+      ),
+    )
+    const page = await facts(engine, {
+      '/': arabicPage(
+        '<p>نص عربي</p><img id="sadu" src="/sadu.png" width="128" height="128" alt="نقش">',
+        '<script src="/app.js"></script><link rel="stylesheet" href="/site.css">',
+      ),
+      '/app.js': [200, { 'content-type': 'text/javascript' }, script],
+      '/site.css': [
+        200,
+        { 'content-type': 'text/css', 'content-encoding': 'gzip' },
+        gzipSync('p { color: #222 }'),
+      ],
+      '/sadu.png': [200, { 'content-type': 'image/png' }, png],
+    })
+    const uncompressed = page.compression.uncompressed.map((text) => [
+      new URL(text.url).pathname,
+      text.type,
+      text.size,
+    ])
+    expect(uncompressed).toEqual(
+      expect.arrayContaining([
+        ['/', 'document', expect.any(Number)],
+        ['/app.js', 'script', Buffer.byteLength(script)],
+      ]),
+    )
+    expect(page.compression.uncompressed.every((text) => text.gzipSize < text.size)).toBe(true)
+    // The document, the script and the stylesheet, which came gzipped.
+    expect(page.compression.checked).toBe(3)
+    expect(page.images).toEqual([
+      expect.objectContaining({
+        selector: '#sadu',
+        naturalWidth: 128,
+        naturalHeight: 128,
+        type: 'image/png',
+        size: png.length,
+      }),
+    ])
+  })
+
   it('finds direction icons drawn as for left-to-right text in right-to-left text', async () => {
     const icon = 'display: inline-block; width: 12px; height: 12px'
     const page = await facts(engine, {
