@@ -99,10 +99,10 @@ export function launchOptions(
  * a limit of 10; Firefox's source says so for both). Playwright's serviceWorkers: 'block'
  * replaced only navigator.serviceWorker.register, which the prototype still offered (M1.1
  * review). In Chromium, SharedWorker is off in every realm (see launchOptions), and this script
- * ran in a new frame or pop-up before the page could reach it (measured). In other engines, a new
- * frame's or pop-up's first document may be reached before the engine runs the script there, and
- * init scripts never run in workers, from which Firefox lets a page register a service worker.
- * The browser suite records both.
+ * ran in a new frame or pop-up before the page could reach it (measured); so it did in Firefox and
+ * WebKit (CI run 36282666726). Init scripts never run in workers, and Firefox and WebKit let a
+ * dedicated worker register a service worker, whose requests went out uncounted in that run; the
+ * browser suite records it.
  */
 export const WORKER_GUARD = `(() => {
   delete globalThis.SharedWorker;

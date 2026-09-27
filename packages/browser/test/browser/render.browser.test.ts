@@ -317,12 +317,9 @@ for (const [where, realm] of [['page', window], ['frame', frame.contentWindow], 
       networkIsolated: true,
     })
     expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
-    // Every engine runs the guard in the page's own documents before their scripts.
-    expect(reached.filter((url) => url.endsWith('realm=page'))).toEqual([])
-    // A new frame's or pop-up's first document may be reached before an engine runs the guard
-    // there. Chromium has no SharedWorker at all, and runs the guard there first.
-    if (engine === 'chromium') expect(reached).toEqual([])
-    else console.info(`${engine}: from a new frame or pop-up: ${reached.join(' ') || 'nothing'}`)
+    // The guard ran first in the page and, in every engine, in the first document of a new frame
+    // and of a pop-up, which the page reaches at once (CI run 36282666726).
+    expect(reached).toEqual([])
   })
 
   it('lets nothing out past the limit while the browser closes (M1.1 CI)', async () => {
@@ -359,8 +356,8 @@ for (const [where, realm] of [['page', window], ['frame', frame.contentWindow], 
 
   it('records whether a dedicated worker can start a service worker (M1.1 CI)', async () => {
     // Init scripts do not run in workers, so the page's own guard cannot reach one. Chromium
-    // gives workers no navigator.serviceWorker; Firefox lets them register (its
-    // ServiceWorkerContainer is exposed to workers), and ties no service worker to the page.
+    // gives workers no navigator.serviceWorker. Firefox and WebKit let them register, and the
+    // service worker's 30 requests all went out with a limit of 10 (CI run 36282666726).
     let registered = false
     let fetched = 0
     const site = await serve((req, res) => {
