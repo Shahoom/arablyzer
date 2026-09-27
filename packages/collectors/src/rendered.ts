@@ -1,3 +1,6 @@
+import type { PhysicalDeclaration } from './stylesheet'
+import type { WebFontCoverageFact } from './web-font-coverage'
+
 /**
  * Facts from a page rendered in a browser (docs/design/plans/m1.1-browser.md §4). The browser
  * package measures them; rules read them. All lengths are CSS pixels, rounded to whole pixels.
@@ -33,6 +36,11 @@ export interface ArabicTextBlock extends RenderedElement {
   readonly fontFamily: string
   /** Its first family, unquoted. */
   readonly primaryFamily: string
+  /**
+   * The distinct characters of its whole own text in the Arabic script's blocks, in code point
+   * order, format characters left out (the first 200).
+   */
+  readonly arabicCharacters: string
 }
 
 /** A face from document.fonts: the page's @font-face rules and fonts added by script. */
@@ -66,6 +74,36 @@ export interface UsedFont {
   /** A web font rather than one installed on the machine. */
   readonly custom: boolean
   readonly glyphs: number
+}
+
+/** Declarations in one stylesheet that set a side by left or right. */
+export interface PhysicalCssFact {
+  /** The stylesheet's URL; the page's, for its <style> elements, which count as one. */
+  readonly url: string
+  /** The page's <style> elements rather than a stylesheet file; their lines are not the page's. */
+  readonly inline: boolean
+  readonly count: number
+  /** The first few, in the order of the text. */
+  readonly examples: readonly PhysicalDeclaration[]
+}
+
+/** The page's CSS as far as Arablyzer read it (docs/design/plans/m1.2c-css-fonts.md §2). */
+export interface StylesheetsFact {
+  /** Stylesheet files read, and the <style> elements as one when the page has any. */
+  readonly read: number
+  /**
+   * Stylesheet files the page loaded that were not read: past the limits, of a size that could
+   * not be known before reading, or no longer held by the browser.
+   */
+  readonly unread: number
+  /** Those read that set sides by left or right (the first 40). */
+  readonly physical: readonly PhysicalCssFact[]
+}
+
+/** A direction icon in right-to-left text, drawn as it is for left-to-right text. */
+export interface DirectionIconFact extends RenderedElement {
+  /** What names it: an icon-font class (`fa-arrow-right`), a Material name, or the arrow. */
+  readonly name: string
 }
 
 /** A number or a Latin word inside right-to-left text whose characters are drawn out of order. */
@@ -163,13 +201,23 @@ export interface RenderedFacts {
   /** Blocks past the bound, counted only. */
   readonly arabicTextOmitted: number
   readonly fontFaces: readonly FontFaceFact[]
+  /** Faces past the bound, counted only. */
+  readonly fontFacesOmitted: number
   readonly fontRequests: readonly FontRequestFact[]
+  /**
+   * Each web font family's Arabic-script coverage, from the font files and stylesheets the page
+   * loaded (the first 50 families).
+   */
+  readonly arabicFontCoverage: readonly WebFontCoverageFact[]
+  readonly stylesheets: StylesheetsFact
   /** Chromium only. */
   readonly usedFonts?: readonly UsedFontsFact[]
   /** Out-of-order tokens (the first 20). */
   readonly bidi: readonly BidiTokenFact[]
   /** Text fields (the first 200). */
   readonly fields: readonly RenderedFieldFact[]
+  /** Unmirrored direction icons in right-to-left text (the first 20). */
+  readonly directionIcons: readonly DirectionIconFact[]
   /** axe-core's results; null when axe did not run or did not finish in time. */
   readonly a11y: A11yFacts | null
   /** Measuring stopped at its time or node limit, so the lists may be incomplete. */

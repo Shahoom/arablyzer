@@ -25,6 +25,7 @@ import {
   type BrowserType,
   type Page,
   type Request,
+  type Response,
 } from 'playwright-core'
 import {
   BOT_TOKEN,
@@ -39,9 +40,10 @@ import {
   WORKER_GUARD,
 } from './engines'
 import { axeRunnerSource, axeSource, toA11yFacts } from './a11y'
-import { fromPage, RESULT_GUARD, throughGuard } from './guard'
+import { readPageFiles } from './files'
+import { DECODED_SIZES, fromPage, inPage, RESULT_GUARD, throughGuard } from './guard'
 import { measureSource } from './measure'
-import { toFacts } from './validate'
+import { measuredFontFaces, toFacts } from './validate'
 
 /** BUILD-PLAN §11: 30 s for the page load, 20 s for each further engine. */
 export const RENDER_TIMEOUT_MS = 30_000
@@ -62,6 +64,10 @@ const KILL_WAIT_MS = 5_000
 const AXE_CAP_MS = 10_000
 /** How long the used-fonts probes wait for their fonts, once the settle step is over. */
 const PROBE_FONTS_CAP_MS = 2_000
+/** Reading the stylesheets and font files the page loaded, within the engine's budget. */
+const FILES_CAP_MS = 5_000
+/** Stylesheet and font responses kept for reading: as many as a page may make requests. */
+const MAX_FILE_RESPONSES = DEFAULT_MAX_REQUESTS
 /** Every Arabic letter, to ask which font draws them. */
 const ARABIC_SAMPLE = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي'
 
@@ -362,6 +368,7 @@ async function renderWith(
   // No workers whose requests no route sees (see WORKER_GUARD).
   await context.addInitScript(WORKER_GUARD)
   await context.addInitScript(RESULT_GUARD)
+  await context.addInitScript(DECODED_SIZES)
   const page = await context.newPage()
   // No pop-ups, no dialogs waiting for a click: nothing on the page is ever acted on (§13).
   context.on('page', (opened) => {
@@ -382,15 +389,35 @@ async function renderWith(
       fontRequests.push(request)
     }
   })
+  // The main frame's stylesheets and fonts, read once the page has rendered (see readPageFiles).
+  const files: { stylesheets: Response[]; fonts: Response[]; finished: Set<Request> } = {
+    stylesheets: [],
+    fonts: [],
+    finished: new Set(),
+  }
   page.on('response', (response) => {
     const request = response.request()
-    if (request.resourceType() === 'font') statuses.set(request, response.status())
+    const kind = request.resourceType()
+    if (kind === 'font') statuses.set(request, response.status())
+    if (kind !== 'font' && kind !== 'stylesheet') return
+    let main = false
+    try {
+      main = response.frame() === page.mainFrame()
+    } catch {
+      // A response without a frame is not the page's.
+    }
+    const list = kind === 'font' ? files.fonts : files.stylesheets
+    if (main && list.length < MAX_FILE_RESPONSES) list.push(response)
   })
   const done = () => {
     inflight = Math.max(0, inflight - 1)
     lastActivity = performance.now()
   }
-  page.on('requestfinished', done)
+  page.on('requestfinished', (request) => {
+    const kind = request.resourceType()
+    if (kind === 'font' || kind === 'stylesheet') files.finished.add(request)
+    done()
+  })
   page.on('requestfailed', done)
 
   const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: remaining() })
@@ -411,6 +438,13 @@ async function renderWith(
   await page.evaluate(FINISH_ANIMATIONS).catch(() => undefined)
 
   const measured = fromPage(await page.evaluate(throughGuard(measureSource())))
+  // Stylesheets and font files, only for the rules that read them: without them they stay silent.
+  const read = await readPageFiles(
+    page,
+    files,
+    measuredFontFaces(measured),
+    Math.min(deadline, performance.now() + FILES_CAP_MS),
+  ).catch(() => undefined)
   // Used fonts only explain font findings; without them those rules stay silent.
   const usedFonts =
     engine === 'chromium'
@@ -440,6 +474,7 @@ async function renderWith(
     limited: proxy.stats().limited || budget.reached,
     ...(usedFonts === undefined ? {} : { usedFonts }),
     a11y,
+    ...(read ?? {}),
   })
   return { facts, screenshot }
 }
@@ -601,12 +636,6 @@ async function defaultUserAgent(browser: Browser): Promise<string> {
 
 function proxySettings(proxy: EgressProxy) {
   return { server: proxy.url, username: proxy.username, password: proxy.password }
-}
-
-/** A function and its JSON arguments as source for page.evaluate (see measureSource). */
-function inPage(fn: (...args: never[]) => unknown, ...args: readonly unknown[]): string {
-  const list = args.map((arg) => JSON.stringify(arg)).join(', ')
-  return `(() => { const __name = (target) => target; return (${fn.toString()})(${list}) })()`
 }
 
 function delay(ms: number): Promise<void> {

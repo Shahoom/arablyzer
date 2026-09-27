@@ -1,9 +1,12 @@
 import type {
   A11yFacts,
   Engine,
+  FontFaceFact,
   FontRequestFact,
   RenderedFacts,
+  StylesheetsFact,
   UsedFontsFact,
+  WebFontCoverageFact,
 } from '@arablyzer/collectors'
 import { z } from 'zod'
 import { MEASURE_LIMITS } from './measure'
@@ -13,6 +16,14 @@ const pixels = z.number().int().min(-10_000_000).max(10_000_000)
 const size = z.number().int().min(0).max(10_000_000)
 const Box = z.strictObject({ x: pixels, y: pixels, width: size, height: size })
 const selector = z.string().max(300)
+
+const FontFace = z.strictObject({
+  family: z.string().max(200),
+  status: z.enum(['unloaded', 'loading', 'loaded', 'error']),
+  weight: z.string().max(50),
+  style: z.string().max(50),
+  unicodeRange: z.string().max(2000),
+})
 
 const Measured = z.strictObject({
   dir: z.enum(['ltr', 'rtl']),
@@ -31,21 +42,13 @@ const Measured = z.strictObject({
         letterSpacingApplied: z.boolean().nullable(),
         fontFamily: z.string().max(500),
         primaryFamily: z.string().max(200),
+        arabicCharacters: z.string().max(MEASURE_LIMITS.maxCharacters),
       }),
     )
     .max(MEASURE_LIMITS.maxBlocks),
   arabicTextOmitted: z.number().int().min(0),
-  fontFaces: z
-    .array(
-      z.strictObject({
-        family: z.string().max(200),
-        status: z.enum(['unloaded', 'loading', 'loaded', 'error']),
-        weight: z.string().max(50),
-        style: z.string().max(50),
-        unicodeRange: z.string().max(2000),
-      }),
-    )
-    .max(MEASURE_LIMITS.maxFontFaces),
+  fontFaces: z.array(FontFace).max(MEASURE_LIMITS.maxFontFaces),
+  fontFacesOmitted: z.number().int().min(0),
   bidi: z
     .array(
       z.strictObject({
@@ -76,6 +79,9 @@ const Measured = z.strictObject({
       }),
     )
     .max(MEASURE_LIMITS.maxFields),
+  directionIcons: z
+    .array(z.strictObject({ selector, box: Box, name: z.string().max(100) }))
+    .max(MEASURE_LIMITS.maxIcons),
   truncated: z.boolean(),
 })
 
@@ -90,6 +96,20 @@ export interface FactsContext {
   readonly limited: boolean
   /** axe-core's results; null or absent when axe did not run. */
   readonly a11y?: A11yFacts | null
+  /** From the font files and stylesheets read after the render; none when absent. */
+  readonly arabicFontCoverage?: readonly WebFontCoverageFact[]
+  readonly stylesheets?: StylesheetsFact
+}
+
+const NO_STYLESHEETS: StylesheetsFact = Object.freeze({ read: 0, unread: 0, physical: [] })
+
+/** The faces the page script measured; none when its result is not what the script returns. */
+export function measuredFontFaces(measured: unknown): FontFaceFact[] {
+  const faces = z
+    .strictObject({ fontFaces: z.array(FontFace).max(MEASURE_LIMITS.maxFontFaces) })
+    .loose()
+    .safeParse(measured)
+  return faces.success ? faces.data.fontFaces : []
 }
 
 /** The page script's result as RenderedFacts; throws when it is not what the script returns. */
@@ -116,10 +136,14 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     arabicText: facts.arabicText,
     arabicTextOmitted: facts.arabicTextOmitted,
     fontFaces: facts.fontFaces,
+    fontFacesOmitted: facts.fontFacesOmitted,
     fontRequests: context.fontRequests,
+    arabicFontCoverage: context.arabicFontCoverage ?? [],
+    stylesheets: context.stylesheets ?? NO_STYLESHEETS,
     ...(context.usedFonts === undefined ? {} : { usedFonts: context.usedFonts }),
     bidi: facts.bidi,
     fields: facts.fields,
+    directionIcons: facts.directionIcons,
     a11y: context.a11y ?? null,
     truncated: facts.truncated,
     limited: context.limited,

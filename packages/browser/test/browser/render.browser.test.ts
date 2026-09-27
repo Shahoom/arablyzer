@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import type { Engine } from '@arablyzer/collectors'
+import { gzipSync } from 'node:zlib'
+import { inRanges, type Engine } from '@arablyzer/collectors'
 import { createPolicy } from '@arablyzer/egress'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
@@ -23,6 +24,7 @@ const font = (name: string) =>
   readFileSync(fileURLToPath(new URL(`../../../../fixtures/shared/fonts/${name}`, import.meta.url)))
 const ARABIC_FONT = font('arablyzer-test-arabic.ttf')
 const LATIN_FONT = font('arablyzer-test-latin.ttf')
+const PARTIAL_FONT = font('arablyzer-test-arabic-partial.woff2')
 
 function arabicPage(body: string, head = ''): string {
   return `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
@@ -216,6 +218,127 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(drew('Web Arabic')).toEqual(['Arablyzer Test Arabic'])
     expect(drew('Web Latin')).toEqual([])
     expect(drew('Web Missing')).toEqual([])
+  })
+
+  it('reads the fonts and stylesheets the page loaded: coverage, and sides set by left or right', async () => {
+    const css = `@font-face { font-family: 'Partial'; src: url(/partial.woff2) format('woff2'); }
+.card { margin-left: 12px; font-family: 'Partial', serif }
+[dir=rtl] .card { margin-right: 12px }`
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<p id="a" class="card">ڤيلا بسعر ١٠٠ ريال</p>
+         <p style="float: right; font-family: 'Inline Arabic'">نص عربي</p>`,
+        `<link rel="stylesheet" href="/site.css">
+         <style>
+           @font-face { font-family: 'Inline Arabic'; src: url(/arabic.ttf); }
+           .x { padding-right: 4px }
+         </style>`,
+      ),
+      // Compressed, with Timing-Allow-Origin not needed on the page's own origin.
+      '/site.css': [200, { 'content-type': 'text/css', 'content-encoding': 'gzip' }, gzipSync(css)],
+      '/partial.woff2': [200, { 'content-type': 'font/woff2' }, PARTIAL_FONT],
+      '/arabic.ttf': [200, { 'content-type': 'font/ttf' }, ARABIC_FONT],
+    })
+    const partial = page.arabicFontCoverage.find((entry) => entry.family === 'Partial')
+    expect(partial?.unknown).toEqual([])
+    expect(inRanges(partial?.covered ?? [], 0x627)).toBe(true)
+    expect(inRanges(partial?.covered ?? [], 0x6a4)).toBe(false)
+    expect(inRanges(partial?.covered ?? [], 0x661)).toBe(false)
+    const inline = page.arabicFontCoverage.find((entry) => entry.family === 'Inline Arabic')
+    expect(inRanges(inline?.covered ?? [], 0x6a4)).toBe(true)
+    expect(page.arabicText.find((block) => block.selector === '#a')?.arabicCharacters).toBe(
+      'ابرسعلي٠١ڤ',
+    )
+    expect(page.stylesheets).toMatchObject({ read: 2, unread: 0 })
+    expect(page.stylesheets.physical).toEqual([
+      {
+        url: expect.stringMatching(/\/site\.css$/) as string,
+        inline: false,
+        count: 1,
+        examples: [
+          { selector: '.card', property: 'margin-left', value: '12px', line: 2, column: 9 },
+        ],
+      },
+      expect.objectContaining({ inline: true, count: 1 }),
+    ])
+  })
+
+  it('does not read a compressed file whose size cannot be known beforehand', async () => {
+    // From another origin, compressed: 8 MB once decoded without Timing-Allow-Origin, so no size
+    // is known; and a small one with it.
+    const cdn = await serve(
+      pages({
+        '/big.css': [
+          200,
+          { 'content-type': 'text/css', 'content-encoding': 'gzip' },
+          gzipSync(Buffer.from(`/*${' '.repeat(8 * 1024 * 1024)}*/ .a { margin-left: 1px }`)),
+        ],
+        '/small.css': [
+          200,
+          {
+            'content-type': 'text/css',
+            'content-encoding': 'gzip',
+            'timing-allow-origin': '*',
+          },
+          gzipSync('.b { padding-left: 2px }'),
+        ],
+      }),
+    )
+    cleanup.push(() => cdn.close())
+    const site = await serve(
+      pages({
+        '/': arabicPage(
+          '<p class="a">نص عربي</p>',
+          `<link rel="stylesheet" href="${cdn.url('/big.css')}">
+           <link rel="stylesheet" href="${cdn.url('/small.css')}">`,
+        ),
+      }),
+    )
+    cleanup.push(() => site.close())
+    const [outcome] = await renderPage(site.url('/'), {
+      engines: [engine],
+      policy: createPolicy({
+        allowTargets: [
+          { address: '127.0.0.1', port: site.port },
+          { address: '127.0.0.1', port: cdn.port },
+        ],
+      }),
+      networkIsolated: true,
+    })
+    expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
+    const stylesheets = outcome?.facts?.stylesheets
+    // Firefox follows Fetch in hiding the size of another origin's stylesheet linked without
+    // crossorigin, even with Timing-Allow-Origin: there both stay unread. The large one never is.
+    expect(stylesheets).toEqual(
+      engine === 'firefox'
+        ? { read: 0, unread: 2, physical: [] }
+        : {
+            read: 1,
+            unread: 1,
+            physical: [expect.objectContaining({ url: cdn.url('/small.css'), count: 1 })],
+          },
+    )
+  })
+
+  it('finds direction icons drawn as for left-to-right text in right-to-left text', async () => {
+    const icon = 'display: inline-block; width: 12px; height: 12px'
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<p><i id="fa" class="fa-solid fa-arrow-right" style="${icon}"></i> التالي</p>
+         <p><i class="fa-solid fa-chevron-right" style="${icon}; transform: scaleX(-1)"></i> التالي</p>
+         <p style="transform: rotate(180deg)"><i class="bi-caret-right-fill" style="${icon}"></i></p>
+         <p><i class="fa-solid fa-arrow-left" style="${icon}"></i> السابق</p>
+         <p><span id="ms" class="material-symbols-outlined">arrow_forward</span></p>
+         <p id="more">اقرأ المزيد →</p>
+         <p dir="ltr"><i class="bi-arrow-right" style="${icon}"></i> Next →</p>`,
+      ),
+    })
+    expect(page.directionIcons.map((found) => [found.selector, found.name])).toEqual([
+      ['#fa', 'fa-arrow-right'],
+      ['#ms', 'arrow_forward'],
+      ['#more', '→'],
+    ])
+    expect(page.directionIcons[2]?.box.width).toBeLessThan(40)
   })
 
   it('reads the first family whole when its quoted name holds a comma (M1.1 review)', async () => {

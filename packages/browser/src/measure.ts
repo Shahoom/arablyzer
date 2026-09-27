@@ -18,6 +18,11 @@ export interface MeasureLimits {
   /** Text fields reported with their computed direction. */
   readonly maxFields: number
   readonly textLength: number
+  /** Distinct Arabic-script characters kept for each block of Arabic text. */
+  readonly maxCharacters: number
+  /** Direction icons reported, and elements looked at for them. */
+  readonly maxIcons: number
+  readonly maxIconCandidates: number
   readonly timeMs: number
 }
 
@@ -43,6 +48,7 @@ export interface Measured {
     readonly letterSpacingApplied: boolean | null
     readonly fontFamily: string
     readonly primaryFamily: string
+    readonly arabicCharacters: string
   }[]
   readonly arabicTextOmitted: number
   readonly fontFaces: readonly {
@@ -52,6 +58,7 @@ export interface Measured {
     readonly style: string
     readonly unicodeRange: string
   }[]
+  readonly fontFacesOmitted: number
   readonly bidi: readonly {
     readonly selector: string
     readonly box: MeasuredBox
@@ -74,6 +81,11 @@ export interface Measured {
     readonly direction: string
     readonly unicodeBidi: string
   }[]
+  readonly directionIcons: readonly {
+    readonly selector: string
+    readonly box: MeasuredBox
+    readonly name: string
+  }[]
   /** The time limit stopped the walk early. */
   readonly truncated: boolean
 }
@@ -87,6 +99,9 @@ export const MEASURE_LIMITS: MeasureLimits = {
   maxFontFaces: 100,
   maxFields: 200,
   textLength: 200,
+  maxCharacters: 200,
+  maxIcons: 20,
+  maxIconCandidates: 3_000,
   timeMs: 5_000,
 }
 
@@ -153,6 +168,34 @@ export function measurePage(limits: MeasureLimits): Measured {
     return name
   }
 
+  /** In the Arabic script's blocks: Arabic, its Supplement, Extended-B and -A, presentation forms. */
+  const inArabicBlocks = (codePoint: number): boolean =>
+    (codePoint >= 0x600 && codePoint <= 0x6ff) ||
+    (codePoint >= 0x750 && codePoint <= 0x77f) ||
+    (codePoint >= 0x870 && codePoint <= 0x8ff) ||
+    (codePoint >= 0xfb50 && codePoint <= 0xfdff) ||
+    (codePoint >= 0xfe70 && codePoint <= 0xfeff)
+  const formatOrUnassigned = /\p{Cf}|\p{Cn}/u
+  /** A text's distinct Arabic-script characters in code point order, format characters left out. */
+  const arabicCharactersOf = (text: string): string => {
+    const found = new Set<number>()
+    for (const char of text) {
+      const codePoint = char.codePointAt(0) ?? 0
+      if (!inArabicBlocks(codePoint) || found.has(codePoint) || formatOrUnassigned.test(char)) {
+        continue
+      }
+      found.add(codePoint)
+      if (found.size >= limits.maxCharacters) break
+    }
+    return String.fromCodePoint(...Array.from(found).sort((a, b) => a - b))
+  }
+  // Arrows that point right and, unlike ‹ › « », are not mirrored in right-to-left text:
+  // → ⇒ ⟶ ➔ ➜ ➝ ➞ ➡ ➢ ➣ ➤ ⭢ ⮕.
+  const rightArrow = new RegExp(
+    `[${String.fromCodePoint(0x2192, 0x21d2, 0x27f6, 0x2794, 0x279c, 0x279d, 0x279e, 0x27a1, 0x27a2, 0x27a3, 0x27a4, 0x2b62, 0x2b95)}]`,
+    'u',
+  )
+
   /** Whether letter-spacing changes the width of one Arabic word in this engine's hands. */
   const spacingApplied = (style: CSSStyleDeclaration, text: string): boolean | null => {
     const words = text.match(arabicWord) ?? []
@@ -193,6 +236,7 @@ export function measurePage(limits: MeasureLimits): Measured {
   let arabicTextOmitted = 0
   let tokens = 0
   const seen = new Set<Element>()
+  const arrows: { readonly node: Text; readonly index: number; readonly arrow: string }[] = []
   // Numbers in groups (+966 50 123 4567, 1 500), and phone numbers written with + and at least
   // 8 digits. A short number after + ("+500 clients") reads as "500+" either way (M1.1 review).
   const numberGroups =
@@ -255,6 +299,12 @@ export function measurePage(limits: MeasureLimits): Measured {
       const parent = text.parentElement
       if (parent === null) continue
       if (parent.closest(skipped) !== null) continue
+      if (arrows.length < limits.maxIcons * 5 && arabicLetter.test(text.data)) {
+        const arrow = rightArrow.exec(text.data)
+        if (arrow !== null && parent.closest('code, pre, kbd, samp') === null) {
+          arrows.push({ node: text, index: arrow.index, arrow: arrow[0] })
+        }
+      }
       if (/[+#0-9\u0660-\u0669\u06F0-\u06F9]/.test(text.data)) {
         let dir = direction.get(parent)
         if (dir === undefined) {
@@ -272,13 +322,11 @@ export function measurePage(limits: MeasureLimits): Measured {
         continue
       }
       const style = getComputedStyle(parent)
-      const own = Array.from(parent.childNodes)
+      const full = Array.from(parent.childNodes)
         .filter((child) => child.nodeType === Node.TEXT_NODE)
         .map((child) => (child as Text).data)
         .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, limits.textLength)
+      const own = full.replace(/\s+/g, ' ').trim().slice(0, limits.textLength)
       const spacing = Number.parseFloat(style.letterSpacing)
       const letterSpacing = Number.isFinite(spacing) ? Math.round(spacing * 100) / 100 : 0
       arabicText.push({
@@ -289,6 +337,7 @@ export function measurePage(limits: MeasureLimits): Measured {
         letterSpacingApplied: letterSpacing === 0 ? null : spacingApplied(style, own),
         fontFamily: style.fontFamily.slice(0, 500),
         primaryFamily: primaryFamily(style.fontFamily).slice(0, 200),
+        arabicCharacters: arabicCharactersOf(full),
       })
     }
   }
@@ -328,8 +377,12 @@ export function measurePage(limits: MeasureLimits): Measured {
   }
 
   const fontFaces: Measured['fontFaces'][number][] = []
+  let fontFacesOmitted = 0
   document.fonts.forEach((face) => {
-    if (fontFaces.length >= limits.maxFontFaces) return
+    if (fontFaces.length >= limits.maxFontFaces) {
+      fontFacesOmitted++
+      return
+    }
     fontFaces.push({
       family: unquote(face.family).slice(0, 200),
       status: face.status,
@@ -389,6 +442,108 @@ export function measurePage(limits: MeasureLimits): Measured {
     })
   }
 
+  // Direction icons drawn as for left-to-right text in right-to-left text: icon-font classes,
+  // Material ligatures, and arrows beside Arabic words (docs/design/plans/m1.2c-css-fonts.md §2).
+  const ICON_CLASS =
+    /^(?:fa[srlbd]?|bi|lucide|feather|ti|ri|ph|bxs?|mdi|la[srb]?|icon|glyphicon|ion(?:-md|-ios)?)-([a-z0-9-]+)$/
+  const ICON_SHAPES = new Set([
+    'arrow',
+    'arrows',
+    'chevron',
+    'chevrons',
+    'caret',
+    'angle',
+    'angles',
+  ])
+  const FORWARD = new Set(['right', 'forward', 'next'])
+  const NOT_FORWARD = new Set(['left', 'back', 'prev', 'previous', 'up', 'down', 'rotate', 'turn'])
+  const MATERIAL = /^material-(?:icons|symbols)(?:-[a-z]+)?$/
+  const MATERIAL_FORWARD = new Set([
+    'arrow_forward',
+    'arrow_forward_ios',
+    'arrow_right',
+    'arrow_right_alt',
+    'chevron_right',
+    'navigate_next',
+    'keyboard_arrow_right',
+    'keyboard_double_arrow_right',
+    'double_arrow',
+    'east',
+    'last_page',
+  ])
+  const iconName = (element: Element): string | null => {
+    for (const token of Array.from(element.classList)) {
+      const lower = token.toLowerCase()
+      if (MATERIAL.test(lower)) {
+        const ligature = element.textContent.trim().toLowerCase()
+        if (MATERIAL_FORWARD.has(ligature)) return ligature
+        continue
+      }
+      const words = ICON_CLASS.exec(lower)?.[1]?.split('-') ?? []
+      if (
+        words.some((word) => ICON_SHAPES.has(word)) &&
+        words.some((word) => FORWARD.has(word)) &&
+        !words.some((word) => NOT_FORWARD.has(word))
+      ) {
+        return token.slice(0, 100)
+      }
+    }
+    return null
+  }
+  /** -1 when a style turns what it draws around its vertical axis. */
+  const mirrorSign = (style: CSSStyleDeclaration): number => {
+    let sign = 1
+    const matrix = /^matrix(?:3d)?\(\s*(-?[\d.]+(?:e[+-]?\d+)?)/.exec(style.transform)
+    if (matrix !== null && Number(matrix[1]) < 0) sign = -sign
+    const scale = style.getPropertyValue('scale')
+    if (scale !== '' && scale !== 'none' && Number.parseFloat(scale) < 0) sign = -sign
+    if (/(?:^|\s)180deg$/.test(style.getPropertyValue('rotate'))) sign = -sign
+    return sign
+  }
+  /** Mirrored by a transform on it, on its ::before or ::after, or on up to three ancestors. */
+  const mirrored = (element: Element): boolean => {
+    let sign =
+      mirrorSign(getComputedStyle(element, '::before')) *
+      mirrorSign(getComputedStyle(element, '::after'))
+    let node: Element | null = element
+    for (let depth = 0; node !== null && depth < 4; depth++) {
+      sign *= mirrorSign(getComputedStyle(node))
+      node = node.parentElement
+    }
+    return sign < 0
+  }
+  const directionIcons: Measured['directionIcons'][number][] = []
+  const looked = new Set<Element>()
+  const addIcon = (element: Element, name: string, rect: DOMRect) => {
+    if (looked.has(element)) return
+    looked.add(element)
+    if (rect.width === 0 || rect.height === 0) return
+    if (getComputedStyle(element).direction !== 'rtl' || mirrored(element)) return
+    directionIcons.push({ selector: selectorOf(element), box: box(rect), name })
+  }
+  if (body !== null) {
+    const candidates = body.querySelectorAll(
+      '[class*="right" i], [class*="forward" i], [class*="next" i], [class*="material-" i]',
+    )
+    const count = Math.min(candidates.length, limits.maxIconCandidates)
+    for (let i = 0; i < count && directionIcons.length < limits.maxIcons && !late(); i++) {
+      const element = candidates[i]
+      const name = element === undefined ? null : iconName(element)
+      if (element !== undefined && name !== null) {
+        addIcon(element, name, element.getBoundingClientRect())
+      }
+    }
+  }
+  for (const { node, index, arrow } of arrows) {
+    if (directionIcons.length >= limits.maxIcons || late()) break
+    const parent = node.parentElement
+    if (parent === null) continue
+    const range = document.createRange()
+    range.setStart(node, index)
+    range.setEnd(node, index + arrow.length)
+    addIcon(parent, arrow, range.getBoundingClientRect())
+  }
+
   const viewportMeta = document.querySelector('meta[name="viewport" i]')
   return {
     dir: pageDir,
@@ -400,8 +555,10 @@ export function measurePage(limits: MeasureLimits): Measured {
     arabicText,
     arabicTextOmitted,
     fontFaces,
+    fontFacesOmitted,
     bidi,
     fields,
+    directionIcons,
     truncated,
   }
 }
