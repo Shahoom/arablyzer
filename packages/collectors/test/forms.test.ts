@@ -13,6 +13,17 @@ function html(source: string) {
   return facts.html
 }
 
+describe('collectPage: the title element', () => {
+  it('says where the title is', () => {
+    expect(html('<head>\n  <title>متجر</title></head>').titleElement).toEqual({
+      selector: 'head > title',
+      location: { line: 2, column: 3 },
+      snippet: '<title>',
+    })
+    expect(html('<p>نص</p>').titleElement).toBeNull()
+  })
+})
+
 describe('collectPage: headings', () => {
   it('lists h1 to h6 with their level, text and location', () => {
     const facts = html(`<!doctype html><body>

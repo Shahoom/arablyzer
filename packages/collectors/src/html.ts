@@ -92,6 +92,8 @@ export interface HtmlFacts {
   /** null for frameset documents. */
   readonly body: RootElement | null
   readonly title: string | null
+  /** Where that title is: the first <title> in the HTML namespace. */
+  readonly titleElement: ElementRef | null
   readonly metas: readonly MetaElement[]
   readonly links: readonly LinkElement[]
   readonly anchors: readonly AnchorElement[]
@@ -214,6 +216,7 @@ export function collectHtml(
     root: rootElement(index, root, options.xhtml === true),
     body: body === undefined ? null : rootElement(index, body, options.xhtml === true),
     title: titleElement === undefined ? null : collapseWhitespace(textOf(titleElement)),
+    titleElement: titleElement === undefined ? null : index.ref(titleElement),
     metas,
     links,
     anchors,

@@ -13,10 +13,11 @@ import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/r
 import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
 import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
+import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
-export const RULESET_VERSION = '0.2.0'
+export const RULESET_VERSION = '0.3.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
@@ -34,6 +35,7 @@ export const RULES: readonly Rule[] = [
   rtlBidiIsolation,
   rtlHorizontalOverflow,
   rtlHtmlDir,
+  titleMissing,
   whatsappLinkFormat,
 ]
 
