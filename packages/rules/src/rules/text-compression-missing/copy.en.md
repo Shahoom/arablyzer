@@ -9,12 +9,12 @@
 ## Why it matters
 
 - HTML, CSS, JavaScript and JSON are text, and text compresses well.
-- Every browser decompresses gzip and Brotli, and tells the server so in every request (the `Accept-Encoding` header).
+- Every browser decompresses gzip, and Brotli too on HTTPS pages, and tells the server so in every request (the `Accept-Encoding` header).
 - Every extra kilobyte delays the page, most of all on mobile networks.
 
 ## How to fix
 
-Turn on compression in the server: gzip, or Brotli, which compresses further. In nginx, for example:
+Turn on compression in the server: gzip, or Brotli, which compresses further and which browsers ask for over HTTPS only. In nginx, for example:
 
 ```nginx
 gzip on;

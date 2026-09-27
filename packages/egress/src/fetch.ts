@@ -1,7 +1,7 @@
 import http, { type IncomingMessage } from 'node:http'
 import https from 'node:https'
 import type { Readable } from 'node:stream'
-import { TLSSocket } from 'node:tls'
+import { TLSSocket, type PeerCertificate } from 'node:tls'
 import zlib from 'node:zlib'
 import { egressError, type EgressError } from './errors'
 import { DEFAULT_POLICY, type EgressPolicy } from './policy'
@@ -201,7 +201,9 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
 export function validityOf(
   socket: Pick<TLSSocket, 'getPeerCertificate'>,
 ): CertificateValidity | null {
-  const certificate = socket.getPeerCertificate()
+  // Null once the socket is destroyed, whatever its type says (Node's documentation).
+  const certificate = socket.getPeerCertificate() as PeerCertificate | null
+  if (certificate === null) return null
   const from = new Date(certificate.valid_from)
   const to = new Date(certificate.valid_to)
   if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null

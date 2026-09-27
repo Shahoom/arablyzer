@@ -39,15 +39,13 @@ export const rule = defineRule({
     return [...files].flatMap(({ key, engines, each }) => {
       const text = engines[0] === undefined ? undefined : each.get(engines[0])
       if (text === undefined) return []
+      const size = kilobytes(text.size)
+      const gzipped = kilobytes(text.gzipSize)
       return [
         {
           message: 'uncompressed' as const,
-          values: {
-            url: key,
-            size: kilobytes(text.size),
-            gzipped: kilobytes(text.gzipSize),
-            saved: kilobytes(text.size - text.gzipSize),
-          },
+          // The saving as the difference of the sizes shown, so the three add up.
+          values: { url: key, size, gzipped, saved: Math.round((size - gzipped) * 10) / 10 },
           url: key,
           engines,
           key,

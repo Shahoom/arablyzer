@@ -104,4 +104,9 @@ describe('the certificate of a verified HTTPS response', () => {
     const socket = { getPeerCertificate: () => ({ valid_from: 'soon', valid_to: '' }) }
     expect(validityOf(socket as unknown as tls.TLSSocket)).toBeNull()
   })
+
+  it('gives none for a socket already destroyed, whose certificate is null (M1.3a review)', () => {
+    const socket = { getPeerCertificate: () => null }
+    expect(validityOf(socket as unknown as tls.TLSSocket)).toBeNull()
+  })
 })

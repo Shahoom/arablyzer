@@ -1,7 +1,10 @@
 import { defineRule } from '../../rule'
 
 const DAY = 86_400_000
-/** A fortnight: time to notice and renew before visitors see a warning. */
+/**
+ * A fortnight, our choice: renewal tools such as Certbot renew 30 days before the end, so less
+ * than this left means renewal has failed for over two weeks, with time still to fix it.
+ */
 const NOTICE = 14 * DAY
 
 /**

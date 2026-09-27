@@ -55,6 +55,16 @@ describe('image-format-legacy', () => {
     ).toEqual(['JPEG'])
   })
 
+  it('reads BMP as Lighthouse 12 did, and leaves GIF out (M1.3a review)', () => {
+    const bitmap = image({ url: 'http://fixture.test/b.bmp', type: 'image/x-ms-bmp', size: 49_206 })
+    const gif = image({ url: 'http://fixture.test/g.gif', type: 'image/gif', size: 90_000 })
+    expect(
+      detectAll(rule, renderedEvidence([facts('chromium', [bitmap, gif])])).map(
+        (finding) => finding.values?.format,
+      ),
+    ).toEqual(['BMP'])
+  })
+
   it('applies when some image has a known type and size', () => {
     expect(applies(rule, renderedEvidence([facts('chromium', [image()])]))).toBe(true)
     expect(applies(rule, renderedEvidence([facts('chromium', [image({ size: null })])]))).toBe(

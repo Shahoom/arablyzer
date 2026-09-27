@@ -3,17 +3,27 @@ import { renderedFacts, Sightings } from '../../lib/rendered'
 import { kilobytes } from '../../lib/sizes'
 import { defineRule } from '../../rule'
 
+/**
+ * The formats Lighthouse 12 looked at (image\/((x|ms|x-ms)-)?(png|bmp|jpeg)): not GIF, which it
+ * left to its audit of animated content.
+ */
 const LEGACY = new Map([
   ['image/jpeg', 'JPEG'],
   ['image/jpg', 'JPEG'],
   ['image/pjpeg', 'JPEG'],
   ['image/png', 'PNG'],
-  ['image/gif', 'GIF'],
+  ['image/x-png', 'PNG'],
+  ['image/bmp', 'BMP'],
+  ['image/x-bmp', 'BMP'],
+  ['image/ms-bmp', 'BMP'],
+  ['image/x-ms-bmp', 'BMP'],
 ])
 
 /**
- * Lighthouse 12's estimate of an image as AVIF from its natural size, when it did not encode it:
- * 2 bytes a pixel at 12:1; and its threshold, savings of 8,192 bytes (M1.3 plan §0).
+ * Lighthouse 12 re-encoded each image in Chrome and estimated AVIF from those sizes; when it
+ * could not, it estimated from the file's pixels, at 2 bytes a pixel and 12:1. That fallback is
+ * used here for every image, in every engine; and its threshold, savings of 8,192 bytes (M1.3 plan
+ * §0).
  */
 const AVIF_BYTES_PER_PIXEL = 2 / 12
 const MIN_SAVINGS = 8_192
@@ -26,7 +36,7 @@ function avifEstimate(image: ImageFact): number | null {
 }
 
 /**
- * Images sent as JPEG, PNG or GIF that would be much smaller as AVIF or WebP, which every
+ * Images sent as JPEG, PNG or BMP that would be much smaller as AVIF or WebP, which every
  * current browser draws.
  */
 export const rule = defineRule({

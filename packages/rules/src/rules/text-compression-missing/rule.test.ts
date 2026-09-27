@@ -24,7 +24,8 @@ describe('text-compression-missing', () => {
     ).toEqual([
       {
         message: 'uncompressed',
-        values: { url: 'http://fixture.test/', size: 3.6, gzipped: 1.3, saved: 2.2 },
+        // 3,667 − 1,382 bytes is 2.2 KB, but the sizes shown differ by 2.3: the message adds up.
+        values: { url: 'http://fixture.test/', size: 3.6, gzipped: 1.3, saved: 2.3 },
         url: 'http://fixture.test/',
         engines: ['chromium', 'firefox'],
         key: 'http://fixture.test/',

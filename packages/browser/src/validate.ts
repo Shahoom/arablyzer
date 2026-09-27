@@ -9,6 +9,7 @@ import type {
   UsedFontsFact,
   WebFontCoverageFact,
 } from '@arablyzer/collectors'
+import { redactUrl } from '@arablyzer/egress'
 import { z } from 'zod'
 import { MEASURE_LIMITS } from './measure'
 
@@ -170,7 +171,9 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     compression: context.compression ?? NO_COMPRESSION,
     images: facts.images.map((image) => {
       const file = context.imageFiles?.get(image.url)
-      return { ...image, type: file?.type ?? null, size: file?.size ?? null }
+      // Joined by the URL as the page gave it, then redacted as every URL in a report is.
+      const url = redactUrl(image.url)
+      return { ...image, url, type: file?.type ?? null, size: file?.size ?? null }
     }),
     a11y: context.a11y ?? null,
     truncated: facts.truncated,
