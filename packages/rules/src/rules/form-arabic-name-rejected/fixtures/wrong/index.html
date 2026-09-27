@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إنشاء حساب | متجر الواحة</title>
+    <meta name="description" content="أنشئ حساباً في متجر الواحة لتتابع طلباتك." />
+    <meta property="og:title" content="إنشاء حساب" />
+    <meta property="og:description" content="أنشئ حساباً في متجر الواحة لتتابع طلباتك." />
+    <meta property="og:image" content="https://www.example.com/og.png" />
+  </head>
+  <body>
+    <main>
+      <h1>إنشاء حساب</h1>
+      <form action="/register" method="post">
+        <label for="name">الاسم الكامل</label>
+        <input id="name" name="full_name" autocomplete="name" pattern="[A-Za-z ]{3,40}" required />
+        <label for="email">البريد الإلكتروني</label>
+        <input id="email" name="email" type="email" autocomplete="email" required />
+        <button>إنشاء الحساب</button>
+      </form>
+    </main>
+  </body>
+</html>

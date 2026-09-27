@@ -8,6 +8,7 @@ import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
@@ -39,6 +40,7 @@ export const RULES: readonly Rule[] = [
   arMojibake,
   arTatweel,
   canonicalConflict,
+  formArabicNameRejected,
   h1Missing,
   hreflangInvalidCode,
   jsonldSyntaxError,

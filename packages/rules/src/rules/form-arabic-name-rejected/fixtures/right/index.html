@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>طلب تأشيرة | وكالة السفر</title>
+    <meta name="description" content="قدّم طلب التأشيرة عبر وكالة السفر." />
+    <meta property="og:title" content="طلب تأشيرة" />
+    <meta property="og:description" content="قدّم طلب التأشيرة عبر وكالة السفر." />
+    <meta property="og:image" content="https://www.example.com/og.png" />
+  </head>
+  <body>
+    <main>
+      <h1>طلب تأشيرة</h1>
+      <form action="/visa" method="post">
+        <label for="name">الاسم الكامل</label>
+        <input id="name" name="full_name" autocomplete="name" pattern="[\p{L}\p{M} '\-]{2,60}" />
+        <label for="name-en">الاسم بالإنجليزية كما في الجواز</label>
+        <input id="name-en" name="passport_name" pattern="[A-Za-z ]{2,60}" dir="ltr" />
+        <label for="user">اسم المستخدم</label>
+        <input id="user" name="username" autocomplete="username" pattern="[a-z0-9_]{3,20}" dir="ltr" />
+        <label for="card">الاسم على البطاقة</label>
+        <input id="card" name="card_name" autocomplete="cc-name" pattern="[A-Za-z ]+" dir="ltr" />
+        <label for="nickname">اسم الشهرة</label>
+        <input id="nickname" name="nickname" pattern="[\p{L} ]{2,30}" />
+        <button>أرسل الطلب</button>
+      </form>
+    </main>
+  </body>
+</html>
