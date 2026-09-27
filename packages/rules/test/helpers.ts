@@ -126,6 +126,8 @@ export function renderedFacts(
     fontRequests: [],
     ...(engine === 'chromium' ? { usedFonts: [] } : {}),
     bidi: [],
+    fields: [],
+    a11y: null,
     truncated: false,
     limited: false,
     ...overrides,

@@ -41,6 +41,8 @@ function facts(engine: RenderedFacts['engine']): RenderedFacts {
     fontFaces: [],
     fontRequests: [],
     bidi: [],
+    fields: [],
+    a11y: null,
     truncated: false,
     limited: false,
   }

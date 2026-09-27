@@ -1,5 +1,11 @@
 /// <reference lib="dom" />
-import type { Engine, FontRequestFact, RenderedFacts, UsedFontsFact } from '@arablyzer/collectors'
+import type {
+  A11yFacts,
+  Engine,
+  FontRequestFact,
+  RenderedFacts,
+  UsedFontsFact,
+} from '@arablyzer/collectors'
 import {
   DEFAULT_MAX_REQUESTS,
   DEFAULT_POLICY,
@@ -32,6 +38,7 @@ import {
   userAgentFor,
   WORKER_GUARD,
 } from './engines'
+import { axeRunnerSource, axeSource, toA11yFacts } from './a11y'
 import { measureSource } from './measure'
 import { toFacts } from './validate'
 
@@ -50,6 +57,8 @@ const MAX_PROBED_FAMILIES = 10
 const CLOSE_GRACE_MS = 5_000
 /** A killed browser whose processes have not all exited by then is left to exit on its own. */
 const KILL_WAIT_MS = 5_000
+/** axe-core's curated rules, within the engine's budget: 36–124 ms on a small page. */
+const AXE_CAP_MS = 10_000
 /** How long the used-fonts probes wait for their fonts, once the settle step is over. */
 const PROBE_FONTS_CAP_MS = 2_000
 /** Every Arabic letter, to ask which font draws them. */
@@ -413,6 +422,9 @@ async function renderWith(
       )
     : null
 
+  // After the screenshot: axe reads the page as it is and leaves it so, but runs last all the same.
+  const a11y = await runAxe(page, Math.min(remaining(), AXE_CAP_MS))
+
   const refusals = proxy.stats().refusals
   const facts = toFacts(measured, {
     engine,
@@ -422,8 +434,22 @@ async function renderWith(
     fontRequests: fontRequests.map((request) => fontRequestFact(request, statuses, refusals)),
     limited: proxy.stats().limited || budget.reached,
     ...(usedFonts === undefined ? {} : { usedFonts }),
+    a11y,
   })
   return { facts, screenshot }
+}
+
+/**
+ * axe-core's curated rules on the page; null when axe fails, returns what its runner does not, or
+ * runs out of time. The browser is closed after the render in any case, so a run left behind ends
+ * with it.
+ */
+async function runAxe(page: Page, timeMs: number): Promise<A11yFacts | null> {
+  const run = async () => {
+    await page.evaluate(axeSource())
+    return toA11yFacts(await page.evaluate(axeRunnerSource()))
+  }
+  return await Promise.race([run().catch(() => null), unheld(timeMs).then(() => null)])
 }
 
 /**

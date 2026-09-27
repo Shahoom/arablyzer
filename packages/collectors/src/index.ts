@@ -28,6 +28,10 @@ export {
 } from './page'
 export {
   ENGINES,
+  type A11yFacts,
+  type A11yNodeFact,
+  type A11yRuleFact,
+  type A11yRuleId,
   type ArabicTextBlock,
   type BidiTokenFact,
   type Box,
@@ -36,6 +40,7 @@ export {
   type FontRequestFact,
   type RenderedElement,
   type RenderedFacts,
+  type RenderedFieldFact,
   type UsedFont,
   type UsedFontsFact,
 } from './rendered'
