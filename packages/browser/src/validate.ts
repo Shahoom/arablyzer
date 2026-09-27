@@ -94,7 +94,14 @@ export interface FactsContext {
 
 /** The page script's result as RenderedFacts; throws when it is not what the script returns. */
 export function toFacts(measured: unknown, context: FactsContext): RenderedFacts {
-  const facts = Measured.parse(measured)
+  const parsed = Measured.safeParse(measured)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    throw new Error(
+      `the page's measurements are not what the script returns, at ${issue === undefined ? 'the top' : issue.path.join('.') || 'the top'}`,
+    )
+  }
+  const facts = parsed.data
   return {
     engine: context.engine,
     version: context.version,

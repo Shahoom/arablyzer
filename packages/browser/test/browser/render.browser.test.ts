@@ -289,6 +289,34 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     })
   })
 
+  it('lets no large result reach Node when the page poisons the built-ins our scripts use (M1.2b review)', async () => {
+    const outcome = await rendered(engine, {
+      '/': arabicPage(
+        '<p>نص عربي</p><script>String.prototype.slice = function () { return "x".repeat(1000000) }</script>',
+      ),
+    })
+    expect(outcome.status).toBe('failed')
+    expect(outcome.error).toMatch(/over the limit/)
+  })
+
+  it('keeps axe’s results out, and the rest of the facts, when the page stands in for axe (M1.2b review)', async () => {
+    const fake = `{
+      _cache: { set() {} },
+      run: async () => ({
+        violations: [{ id: 'image-alt', nodes: { slice: () => Array.from({ length: 100000 }, () => ({ target: ['#x'], html: '<img>', any: [], all: [], none: [] })) } }],
+        incomplete: [],
+        inapplicable: [],
+      }),
+    }`
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<p>نص عربي</p><img src="/x.png"><script>Object.defineProperty(window, 'axe', { get: () => (${fake}), set() {} })</script>`,
+      ),
+    })
+    expect(page.a11y).toBeNull()
+    expect(page.arabicText.length).toBeGreaterThan(0)
+  })
+
   it('reports text fields with their computed direction', async () => {
     const page = await facts(engine, {
       '/': arabicPage(`<form>

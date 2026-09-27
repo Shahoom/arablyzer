@@ -193,9 +193,9 @@ const A11yResult = z.strictObject({
         ]),
         applicable: z.boolean(),
         violations: z.array(A11yNode).max(AXE_LIMITS.maxNodes),
-        violationCount: z.number().int().min(0),
+        violationCount: z.number().int().min(0).max(10_000_000),
         incomplete: z.array(A11yNode).max(AXE_LIMITS.maxNodes),
-        incompleteCount: z.number().int().min(0),
+        incompleteCount: z.number().int().min(0).max(10_000_000),
       }),
     )
     .max(AXE_RULES.length),

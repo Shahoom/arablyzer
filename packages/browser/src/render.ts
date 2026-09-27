@@ -39,6 +39,7 @@ import {
   WORKER_GUARD,
 } from './engines'
 import { axeRunnerSource, axeSource, toA11yFacts } from './a11y'
+import { fromPage, RESULT_GUARD, throughGuard } from './guard'
 import { measureSource } from './measure'
 import { toFacts } from './validate'
 
@@ -327,6 +328,9 @@ async function shutDown(launching: Promise<BrowserServer>, stuck: boolean): Prom
   await Promise.race([server.kill().catch(() => undefined), unheld(KILL_WAIT_MS)])
 }
 
+/** Waits for web fonts and returns only its own literal, whatever the page made the promise do. */
+const FONTS_READY = '(async () => { await document.fonts.ready; return true })()'
+
 /** A delay that does not keep the process alive, so a closed browser does not hold up exit. */
 function unheld(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms).unref())
@@ -357,6 +361,7 @@ async function renderWith(
   })
   // No workers whose requests no route sees (see WORKER_GUARD).
   await context.addInitScript(WORKER_GUARD)
+  await context.addInitScript(RESULT_GUARD)
   const page = await context.newPage()
   // No pop-ups, no dialogs waiting for a click: nothing on the page is ever acted on (§13).
   context.on('page', (opened) => {
@@ -395,7 +400,7 @@ async function renderWith(
   // Fixed wait policy (Phase 1 design §5): web fonts, then quiet on the network, both capped.
   const settleUntil = Math.min(deadline, performance.now() + SETTLE_CAP_MS)
   await Promise.race([
-    page.evaluate('document.fonts.ready.then(() => true)').catch(() => undefined),
+    page.evaluate(FONTS_READY).catch(() => undefined),
     unheld(Math.max(0, settleUntil - performance.now())),
   ])
   while (performance.now() < settleUntil) {
@@ -405,7 +410,7 @@ async function renderWith(
   // Finished animations end in their final state; endless ones stop (as Playwright's screenshots do).
   await page.evaluate(FINISH_ANIMATIONS).catch(() => undefined)
 
-  const measured: unknown = await page.evaluate(measureSource())
+  const measured = fromPage(await page.evaluate(throughGuard(measureSource())))
   // Used fonts only explain font findings; without them those rules stay silent.
   const usedFonts =
     engine === 'chromium'
@@ -446,8 +451,9 @@ async function renderWith(
  */
 async function runAxe(page: Page, timeMs: number): Promise<A11yFacts | null> {
   const run = async () => {
-    await page.evaluate(axeSource())
-    return toA11yFacts(await page.evaluate(axeRunnerSource()))
+    // The value of axe's own source is left behind: only the guard's text comes back.
+    await page.evaluate(`${axeSource()}\n;void 0`)
+    return toA11yFacts(fromPage(await page.evaluate(throughGuard(axeRunnerSource()))))
   }
   return await Promise.race([run().catch(() => null), unheld(timeMs).then(() => null)])
 }
@@ -460,12 +466,14 @@ async function runAxe(page: Page, timeMs: number): Promise<A11yFacts | null> {
 async function chromiumUsedFonts(page: Page, measured: unknown): Promise<UsedFontsFact[]> {
   const families = webFontFamilies(measured)
   if (families.length === 0) return []
-  const ids: unknown = await page.evaluate(inPage(addProbes, families, ARABIC_SAMPLE))
+  const ids = fromPage(
+    await page.evaluate(throughGuard(inPage(addProbes, families, ARABIC_SAMPLE))),
+  )
   if (!Array.isArray(ids)) return []
   // Capped, as the settle step is: a font that never arrives held the whole render until its
   // budget ran out, and the page was reported with no facts at all (M1.1 review).
   await Promise.race([
-    page.evaluate('document.fonts.ready.then(() => true)').catch(() => undefined),
+    page.evaluate(FONTS_READY).catch(() => undefined),
     unheld(PROBE_FONTS_CAP_MS),
   ])
   const session = await page.context().newCDPSession(page)
@@ -546,8 +554,9 @@ function addProbes(families: readonly string[], sample: string): string[] {
   })
 }
 
+// A block body returns nothing, whatever the page made forEach return.
 const REMOVE_PROBES =
-  "document.querySelectorAll('[data-arablyzer-probe]').forEach((probe) => probe.remove())"
+  "(() => { document.querySelectorAll('[data-arablyzer-probe]').forEach((probe) => probe.remove()) })()"
 
 const FINISH_ANIMATIONS = `(() => {
   for (const animation of document.getAnimations()) {
