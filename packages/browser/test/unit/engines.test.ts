@@ -4,6 +4,7 @@ import {
   BOT_TOKEN,
   NEEDS_ISOLATION,
   WORKER_GUARD,
+  bypassesProxyForLoopback,
   contextOptions,
   executablePathFor,
   launchOptions,
@@ -94,6 +95,30 @@ describe('engines that need an isolated network', () => {
       screenshot: null,
     })
     expect(outcome?.error).toMatch(/only where the network is isolated/)
+  })
+})
+
+// Measured on 2026-09-27 (macOS on Apple silicon, Playwright's WebKit 26.6): WebKit followed a
+// redirect and a navigation to 127.0.0.1 straight to the local service. Isolating the network
+// cannot stop that, since loopback is this machine; see the browser SSRF suite.
+describe('engines that reach loopback around the proxy on this operating system', () => {
+  it('are WebKit on macOS', () => {
+    expect(bypassesProxyForLoopback('webkit', 'darwin')).toBe(true)
+    expect(bypassesProxyForLoopback('webkit', 'linux')).toBe(false)
+    expect(bypassesProxyForLoopback('chromium', 'darwin')).toBe(false)
+    expect(bypassesProxyForLoopback('firefox', 'darwin')).toBe(false)
+  })
+
+  it('are refused there even where the network counts as isolated', async () => {
+    const [outcome] = await renderPage('http://127.0.0.1:9/', {
+      engines: ['webkit'],
+      networkIsolated: true,
+      platform: 'darwin',
+      // Never launched: a launch would fail on this path, and the outcome would not be "refused".
+      executablePaths: { webkit: '/nonexistent/webkit' },
+    })
+    expect(outcome).toMatchObject({ engine: 'webkit', status: 'refused', durationMs: 0 })
+    expect(outcome?.error).toMatch(/on macOS .*loopback/)
   })
 })
 

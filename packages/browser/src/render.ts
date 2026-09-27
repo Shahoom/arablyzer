@@ -22,6 +22,7 @@ import {
 } from 'playwright-core'
 import {
   BOT_TOKEN,
+  bypassesProxyForLoopback,
   contextOptions,
   executablePathFor,
   launchOptions,
@@ -73,6 +74,8 @@ export interface RenderOptions {
    * default. Engines in NEEDS_ISOLATION are refused without it.
    */
   readonly networkIsolated?: boolean
+  /** The operating system, for LOOPBACK_BYPASS; process.platform by default. */
+  readonly platform?: NodeJS.Platform
   /**
    * Requests a page may make per engine (BUILD-PLAN §11: 300). The browser counts them, since
    * the proxy sees only the tunnel of an HTTPS connection, not the requests inside it.
@@ -135,6 +138,18 @@ async function renderIn(
       status: 'refused',
       version: null,
       error: `${engine} sends traffic around the egress proxy, so it renders only where the network is isolated (${NETWORK_ISOLATED_VARIABLE}=1)`,
+      durationMs: 0,
+      requests: NO_REQUESTS,
+      facts: null,
+      screenshot: null,
+    }
+  }
+  if (bypassesProxyForLoopback(engine, options.platform)) {
+    return {
+      engine,
+      status: 'refused',
+      version: null,
+      error: `${engine} on macOS reaches loopback addresses around the egress proxy, which an isolated network cannot stop, so it never renders there`,
       durationMs: 0,
       requests: NO_REQUESTS,
       facts: null,

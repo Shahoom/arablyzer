@@ -3,10 +3,16 @@ import { fileURLToPath } from 'node:url'
 import type { Engine } from '@arablyzer/collectors'
 import { createPolicy } from '@arablyzer/egress'
 import { afterEach, describe, expect, it } from 'vitest'
-import { renderPage, type RenderOptions, type RenderOutcome } from '../../src/index'
+import {
+  bypassesProxyForLoopback,
+  renderPage,
+  type RenderOptions,
+  type RenderOutcome,
+} from '../../src/index'
 import { enginesUnderTest, pages, serve } from './helpers'
 
-const engines = await enginesUnderTest()
+// WebKit never renders on macOS (LOOPBACK_BYPASS); CI measures it on Linux.
+const engines = (await enginesUnderTest()).filter((engine) => !bypassesProxyForLoopback(engine))
 const cleanup: (() => Promise<void>)[] = []
 
 afterEach(async () => {

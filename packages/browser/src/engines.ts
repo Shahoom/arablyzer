@@ -22,6 +22,23 @@ export const NETWORK_ISOLATED_VARIABLE = 'ARABLYZER_NETWORK_ISOLATED'
  */
 export const NEEDS_ISOLATION: readonly Engine[] = Object.freeze(['webkit'])
 
+/**
+ * Engines that reach loopback addresses around the egress proxy on an operating system, which
+ * isolating the network cannot stop, since loopback is the machine itself: they never render
+ * there. Measured on 2026-09-27 (macOS on Apple silicon, Playwright's WebKit 26.6): WebKit
+ * followed a redirect and a navigation to 127.0.0.1 straight to the local service, while its
+ * requests from the page went to the proxy. On Linux, every one of them went to the proxy.
+ */
+export const LOOPBACK_BYPASS: Readonly<Partial<Record<NodeJS.Platform, readonly Engine[]>>> =
+  Object.freeze({ darwin: Object.freeze(['webkit' as const]) })
+
+export function bypassesProxyForLoopback(
+  engine: Engine,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
+  return LOOPBACK_BYPASS[platform]?.includes(engine) ?? false
+}
+
 export function networkIsolated(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): boolean {

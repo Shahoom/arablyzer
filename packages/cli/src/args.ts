@@ -3,6 +3,7 @@ import { parseArgs } from 'node:util'
 import {
   NEEDS_ISOLATION,
   NETWORK_ISOLATED_VARIABLE,
+  bypassesProxyForLoopback,
   networkIsolated,
 } from '@arablyzer/browser/engines'
 import { Engine, SEVERITY_ORDER, type Severity } from '@arablyzer/report-schema'
@@ -41,6 +42,7 @@ const MAX_TIMEOUT_SECONDS = 120
 export function parseCliArgs(
   argv: readonly string[],
   env: Readonly<Record<string, string | undefined>>,
+  platform: NodeJS.Platform = process.platform,
 ): CliOptions {
   let parsed: ReturnType<typeof parse>
   try {
@@ -64,7 +66,7 @@ export function parseCliArgs(
   if (positionals.length !== 1) {
     throw new UsageError(positionals.length === 0 ? 'a URL is required' : 'give exactly one URL')
   }
-  const render = renderChoice(values.render, values.engines, values.screenshots, env)
+  const render = renderChoice(values.render, values.engines, values.screenshots, env, platform)
   const ids = values.rules === undefined ? undefined : ruleIds(values.rules)
   if (render === null && ids !== undefined) {
     const needRender = ids.filter((id) =>
@@ -101,12 +103,13 @@ function renderChoice(
   engines: string | undefined,
   screenshots: string | undefined,
   env: Readonly<Record<string, string | undefined>>,
+  platform: NodeJS.Platform,
 ): RenderChoice | null {
   if (!render && engines === undefined && screenshots === undefined) return null
   if (screenshots?.trim() === '') throw new UsageError('--screenshots needs a directory')
   const isolated = networkIsolated(env)
   return {
-    engines: engines === undefined ? ['chromium'] : engineList(engines, isolated),
+    engines: engines === undefined ? ['chromium'] : engineList(engines, isolated, platform),
     screenshotsDir: screenshots ?? null,
     networkIsolated: isolated,
   }
@@ -114,16 +117,18 @@ function renderChoice(
 
 /**
  * The engines asked for. Engines that send traffic around the egress proxy (WebKit) run only
- * where the network is isolated (Phase 1 design §5): asked for by name elsewhere, they are a
- * usage error, and "all" leaves them out.
+ * where the network is isolated (Phase 1 design §5), and never where they reach loopback around
+ * it (WebKit on macOS): asked for by name there, they are a usage error, and "all" leaves them out.
  */
-function engineList(list: string, isolated: boolean): Engine[] {
+function engineList(list: string, isolated: boolean, platform: NodeJS.Platform): Engine[] {
+  const runsHere = (engine: Engine) =>
+    !bypassesProxyForLoopback(engine, platform) && (isolated || !NEEDS_ISOLATION.includes(engine))
   const names = list
     .split(',')
     .map((name) => name.trim().toLowerCase())
     .filter((name) => name !== '')
   if (names.length === 1 && names[0] === 'all') {
-    return Engine.options.filter((engine) => isolated || !NEEDS_ISOLATION.includes(engine))
+    return Engine.options.filter(runsHere)
   }
   if (names.length === 0) throw new UsageError('--engines needs at least one engine')
   const engines: Engine[] = []
@@ -132,7 +137,12 @@ function engineList(list: string, isolated: boolean): Engine[] {
     if (engine === undefined) {
       throw new UsageError(`unknown engine: ${name} (use ${Engine.options.join(', ')}, or all)`)
     }
-    if (!isolated && NEEDS_ISOLATION.includes(engine)) {
+    if (bypassesProxyForLoopback(engine, platform)) {
+      throw new UsageError(
+        `${engine} reaches loopback addresses around the egress proxy on macOS, so it never runs there; it runs in the Linux container`,
+      )
+    }
+    if (!runsHere(engine)) {
       throw new UsageError(
         `${engine} sends WebRTC around the egress proxy, so it runs only in a container whose network reaches nothing but the proxy (set ${NETWORK_ISOLATED_VARIABLE}=1 there)`,
       )

@@ -1,10 +1,12 @@
 export {
   BOT_TOKEN,
   DEVICE_SCALE_FACTOR,
+  LOOPBACK_BYPASS,
   NEEDS_ISOLATION,
   NETWORK_ISOLATED_VARIABLE,
   VIEWPORT,
   WORKER_GUARD,
+  bypassesProxyForLoopback,
   contextOptions,
   executablePathFor,
   launchOptions,

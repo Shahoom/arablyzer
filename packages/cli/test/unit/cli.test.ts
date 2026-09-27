@@ -39,7 +39,7 @@ describe('parseCliArgs', () => {
 
   it('runs WebKit only where the network is isolated: by name it is refused, and all leaves it out', () => {
     const render = (env: Record<string, string>, ...flags: string[]) =>
-      parseCliArgs(['x.test', ...flags], env).render
+      parseCliArgs(['x.test', ...flags], env, 'linux').render
     expect(render({}, '--engines', 'all')).toEqual({
       engines: ['chromium', 'firefox'],
       screenshotsDir: null,
@@ -55,6 +55,16 @@ describe('parseCliArgs', () => {
       networkIsolated: true,
     })
     expect(render(isolated, '--engines', 'webkit')).toMatchObject({ engines: ['webkit'] })
+  })
+
+  it('never runs WebKit on macOS, where it reaches loopback around the proxy', () => {
+    const isolated = { ARABLYZER_NETWORK_ISOLATED: '1' }
+    const render = (...flags: string[]) =>
+      parseCliArgs(['x.test', ...flags], isolated, 'darwin').render
+    expect(render('--engines', 'all')).toMatchObject({ engines: ['chromium', 'firefox'] })
+    expect(() => render('--engines', 'webkit')).toThrow(
+      /webkit reaches loopback addresses around the egress proxy on macOS/,
+    )
   })
 
   it('adds https:// to a bare host and leaves other schemes for egress to refuse', () => {
