@@ -242,8 +242,10 @@ async function renderIn(
     return finish('failed', firstLine(message))
   } finally {
     clearTimeout(timer)
-    await shutDown(launching, stuck)
+    // The proxy closes first: a closing browser lets go of the requests the route was holding,
+    // and beacons outlive their page, so otherwise they went out uncounted (M1.1 CI).
     await proxy.close()
+    await shutDown(launching, stuck)
   }
 }
 

@@ -325,6 +325,38 @@ for (const [where, realm] of [['page', window], ['frame', frame.contentWindow], 
     else console.info(`${engine}: from a new frame or pop-up: ${reached.join(' ') || 'nothing'}`)
   })
 
+  it('lets nothing out past the limit while the browser closes (M1.1 CI)', async () => {
+    // A request still waiting for the route when the page closes is let go by the browser, and
+    // a beacon outlives its page: in Chromium's headless shell, 1 or 2 went out past the limit
+    // in each of 3 runs, after the proxy's count was taken.
+    let beacons = 0
+    const site = await serve((req, res) => {
+      if (req.url === '/') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        res.end(
+          arabicPage(
+            '<p>نص</p><script>let i = 0; setInterval(() => navigator.sendBeacon("/b?" + i++, "x"), 5)</script>',
+          ),
+        )
+        return
+      }
+      beacons++
+      res.end('')
+    })
+    cleanup.push(() => site.close())
+    const [outcome] = await renderPage(site.url('/'), {
+      engines: [engine],
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      networkIsolated: true,
+      maxRequests: 10,
+    })
+    expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
+    // Anything the closing browser still sent would have arrived by now.
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    // The page itself is the first of the ten.
+    expect(beacons).toBeLessThanOrEqual(9)
+  })
+
   it('records whether a dedicated worker can start a service worker (M1.1 CI)', async () => {
     // Init scripts do not run in workers, so the page's own guard cannot reach one. Chromium
     // gives workers no navigator.serviceWorker; Firefox lets them register (its
