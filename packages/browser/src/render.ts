@@ -83,6 +83,17 @@ export interface RenderOptions {
   readonly maxRequests?: number
 }
 
+/**
+ * The page's requests as the browser's route counted them: every one, including those inside
+ * HTTPS connections, which the proxy sees only as tunnels (the owner's sites, 2026-09-27: dozens
+ * of files over two connections), and those refused past maxRequests, which never reach it.
+ */
+export interface PageRequests {
+  readonly made: number
+  /** Refused past maxRequests. */
+  readonly overLimit: number
+}
+
 export type RenderStatus = 'rendered' | 'failed' | 'timeout' | 'unavailable' | 'refused'
 
 export interface RenderOutcome {
@@ -92,13 +103,26 @@ export interface RenderOutcome {
   /** English detail for logs; the report maps the status to its own words. */
   readonly error: string | null
   readonly durationMs: number
+  /** What the egress proxy saw: an HTTPS connection is one tunnel, however many requests it carries. */
   readonly requests: ProxyStats
+  /** What the page asked for, as the browser counted it (see PageRequests). */
+  readonly pageRequests: PageRequests
   readonly facts: RenderedFacts | null
   readonly screenshot: Uint8Array | null
 }
 
+/** The page's request count against maxRequests, kept by the browser's route. */
+interface RequestBudget {
+  readonly max: number
+  made: number
+  overLimit: number
+  reached: boolean
+}
+
 class RenderTimeout extends Error {}
 class RenderAborted extends Error {}
+
+const NO_PAGE_REQUESTS: PageRequests = Object.freeze({ made: 0, overLimit: 0 })
 
 const NO_REQUESTS: ProxyStats = Object.freeze({
   requests: 0,
@@ -140,6 +164,7 @@ async function renderIn(
       error: `${engine} sends traffic around the egress proxy, so it renders only where the network is isolated (${NETWORK_ISOLATED_VARIABLE}=1)`,
       durationMs: 0,
       requests: NO_REQUESTS,
+      pageRequests: NO_PAGE_REQUESTS,
       facts: null,
       screenshot: null,
     }
@@ -152,6 +177,7 @@ async function renderIn(
       error: `${engine} on macOS reaches loopback addresses around the egress proxy, which an isolated network cannot stop, so it never renders there`,
       durationMs: 0,
       requests: NO_REQUESTS,
+      pageRequests: NO_PAGE_REQUESTS,
       facts: null,
       screenshot: null,
     }
@@ -165,6 +191,7 @@ async function renderIn(
       error: 'Aborted',
       durationMs: 0,
       requests: NO_REQUESTS,
+      pageRequests: NO_PAGE_REQUESTS,
       facts: null,
       screenshot: null,
     }
@@ -178,7 +205,12 @@ async function renderIn(
   const executablePath = options.executablePaths?.[engine] ?? executablePathFor(engine)
   let version: string | null = null
   // The page's own request count, kept by the browser (see RenderOptions.maxRequests).
-  const budget = { max: options.maxRequests ?? DEFAULT_MAX_REQUESTS, reached: false }
+  const budget: RequestBudget = {
+    max: options.maxRequests ?? DEFAULT_MAX_REQUESTS,
+    made: 0,
+    overLimit: 0,
+    reached: false,
+  }
   const finish = (
     status: RenderStatus,
     error: string | null,
@@ -191,6 +223,7 @@ async function renderIn(
     error,
     durationMs: Math.round(performance.now() - started),
     requests: { ...proxy.stats(), limited: proxy.stats().limited || budget.reached },
+    pageRequests: { made: budget.made, overLimit: budget.overLimit },
     facts,
     screenshot,
   })
@@ -296,21 +329,21 @@ async function renderWith(
   url: string,
   proxy: EgressProxy,
   deadline: number,
-  { screenshots, budget }: { screenshots: boolean; budget: { max: number; reached: boolean } },
+  { screenshots, budget }: { screenshots: boolean; budget: RequestBudget },
 ): Promise<{ facts: RenderedFacts; screenshot: Uint8Array | null }> {
   const remaining = () => Math.max(1, Math.round(deadline - performance.now()))
   const agent = await defaultUserAgent(browser)
   const context = await browser.newContext(contextOptions(userAgentFor(agent, BOT_TOKEN)))
   // Every request waits here for its turn to be counted, so a burst cannot get past the limit
   // before it is noticed; past it, new requests are refused (BUILD-PLAN §11, M1.1 review).
-  let made = 0
   await context.route('**/*', async (route) => {
-    made++
-    if (made <= budget.max) {
+    budget.made++
+    if (budget.made <= budget.max) {
       await route.fallback()
       return
     }
     budget.reached = true
+    budget.overLimit++
     await route.abort('blockedbyclient')
   })
   // No workers whose requests no route sees (see WORKER_GUARD).

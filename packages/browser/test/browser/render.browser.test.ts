@@ -278,6 +278,11 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     // The page itself is the first of the ten.
     expect(served).toBe(9)
     expect(outcome?.requests.limited).toBe(true)
+    // The report counts what the page made, as the browser saw it: the proxy never sees the
+    // requests refused past the limit, nor those inside an HTTPS tunnel (the owner's sites).
+    const made = outcome?.pageRequests.made ?? 0
+    expect(made).toBeGreaterThanOrEqual(61)
+    expect(made - (outcome?.pageRequests.overLimit ?? 0)).toBe(10)
     // The rules learn it too: a font cut at the limit is not the site's failure.
     expect(outcome?.facts?.limited).toBe(true)
   })

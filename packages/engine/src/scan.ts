@@ -387,13 +387,17 @@ async function renderAll(
   return { runs, rendered, notices }
 }
 
-function renderRun(outcome: RenderOutcome): RenderRun {
+/** A render as the report shows it: the page's own requests, and those not let through. */
+export function renderRun(outcome: RenderOutcome): RenderRun {
   return {
     engine: outcome.engine,
     version: outcome.version === null || outcome.version === '' ? null : outcome.version,
     status: outcome.status,
     durationMs: outcome.durationMs,
-    requests: { total: outcome.requests.requests, refused: outcome.requests.refused },
+    requests: {
+      total: outcome.pageRequests.made,
+      refused: outcome.requests.refused + outcome.pageRequests.overLimit,
+    },
   }
 }
 

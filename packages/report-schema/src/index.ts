@@ -205,7 +205,10 @@ export const RenderRun = z
      */
     status: z.enum(['rendered', 'failed', 'timeout', 'unavailable', 'refused']),
     durationMs: count(),
-    /** Requests and tunnels the egress proxy let through, and those it refused. */
+    /**
+     * Requests the page made, as the browser counted them (inside HTTPS connections too), and
+     * those not let through: refused by the egress proxy, or past the page's request limit.
+     */
     requests: z.strictObject({ total: count(), refused: count() }),
   })
   .meta({ id: 'RenderRun' })

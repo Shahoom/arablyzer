@@ -27,6 +27,7 @@ export {
   engineAvailable,
   renderPage,
   type RenderOptions,
+  type PageRequests,
   type RenderOutcome,
   type RenderStatus,
 } from './render'

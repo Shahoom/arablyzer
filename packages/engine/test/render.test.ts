@@ -1,6 +1,7 @@
 import { collectPage, type PageFacts, type RenderedFacts } from '@arablyzer/collectors'
 import { afterEach, describe, expect, it } from 'vitest'
 import { evaluatePage, scan } from '../src/index'
+import { renderRun } from '../src/scan'
 import { flagRule, policyFor, renderRule, tempSite, type TempSite } from './helpers'
 
 const page = (html: string): PageFacts =>
@@ -183,5 +184,38 @@ describe('a scan asked to render', () => {
         render: { engines: ['firefox'] },
       }),
     ).rejects.toThrow(/render-rule \(chromium\)/)
+  })
+})
+
+// The owner's sites (2026-09-27): a page that loaded dozens of files over two HTTPS connections
+// reported "2 requests", the proxy's count of tunnels. The browser counts every request.
+describe('a render run in the report', () => {
+  it('counts the requests the page made, and those not let through', () => {
+    expect(
+      renderRun({
+        engine: 'chromium',
+        version: '153.0',
+        status: 'rendered',
+        error: null,
+        durationMs: 5,
+        requests: {
+          requests: 2,
+          refused: 1,
+          unauthenticated: 0,
+          limited: true,
+          bytes: 10,
+          refusals: [],
+        },
+        pageRequests: { made: 61, overLimit: 51 },
+        facts: null,
+        screenshot: null,
+      }),
+    ).toEqual({
+      engine: 'chromium',
+      version: '153.0',
+      status: 'rendered',
+      durationMs: 5,
+      requests: { total: 61, refused: 52 },
+    })
   })
 })
