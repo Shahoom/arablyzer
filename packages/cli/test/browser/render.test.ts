@@ -9,8 +9,16 @@ import Ajv2020 from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-// The bundle built by `pnpm build` (test:browser builds it first).
+// The bundle from the build task, which the root script runs first (see turbo.json).
 const CLI = fileURLToPath(new URL('../../dist/arablyzer.mjs', import.meta.url))
+
+// Built once by the root scripts (pnpm test:e2e, pnpm test:browser) before any test runs; two
+// tasks building at once deleted each other's dist/ (2026-09-27).
+if (!existsSync(CLI)) {
+  throw new Error(
+    `${CLI} is missing: run pnpm test:e2e or test:browser from the repository root, or pnpm --filter @arablyzer/cli build`,
+  )
+}
 
 const ajv = new Ajv2020({ strict: true, allErrors: true })
 addFormats(ajv)

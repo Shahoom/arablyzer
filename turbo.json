@@ -1,11 +1,26 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "tasks": {
-    "typecheck": {},
-    "test": {},
-    "test:ssrf": {},
-    "test:e2e": {},
+    "build": {
+      "cache": false,
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "cache": false
+    },
+    "test": {
+      "cache": false
+    },
+    "test:ssrf": {
+      "cache": false
+    },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
     "test:browser": {
+      "dependsOn": ["build"],
+      "cache": false,
       "passThroughEnv": [
         "ARABLYZER_REQUIRE_ENGINES",
         "ARABLYZER_CHROMIUM_PATH",
