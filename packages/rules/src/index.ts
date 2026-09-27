@@ -7,6 +7,7 @@ import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
+import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as robotsBlocksAiSearch } from './rules/robots-blocks-ai-search/rule'
 import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/rule'
@@ -29,6 +30,7 @@ export const RULES: readonly Rule[] = [
   canonicalConflict,
   hreflangInvalidCode,
   jsonldSyntaxError,
+  metaDescriptionMissing,
   pageNoindex,
   robotsBlocksAiSearch,
   robotsBlocksGooglebot,
