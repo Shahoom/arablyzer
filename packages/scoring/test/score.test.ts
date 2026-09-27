@@ -42,6 +42,21 @@ describe('scoreOf', () => {
     expect(scoreOf(results).overall).toBe(score)
   })
 
+  it('rounds a half up, where 100 × (1 − 17 ÷ 40) in floating point is 57.49999… (M1.3a review)', () => {
+    // Failed: 10 + 5 + 1 + 1 = 17 of 40.
+    const results = [
+      result('critical', 'fail'),
+      result('serious', 'fail'),
+      result('minor', 'fail'),
+      result('minor', 'fail'),
+      result('critical', 'pass'),
+      result('serious', 'pass'),
+      result('serious', 'pass'),
+      result('moderate', 'pass'),
+    ]
+    expect(scoreOf(results).overall).toBe(58)
+  })
+
   it('counts only rules that passed or failed', () => {
     const results = [
       result('critical', 'fail'),

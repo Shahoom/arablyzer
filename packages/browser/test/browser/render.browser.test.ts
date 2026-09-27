@@ -409,6 +409,41 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     ])
   })
 
+  it('gives an image chosen by srcset or <picture> the size of its file, not divided by its density', async () => {
+    const png = readFileSync(
+      fileURLToPath(
+        new URL(
+          '../../../rules/src/rules/image-format-legacy/fixtures/wrong/images/sadu.png',
+          import.meta.url,
+        ),
+      ),
+    )
+    const image = [200, { 'content-type': 'image/png' }, png] as const
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<img id="x2" srcset="/x2.png 2x" alt="نقش">
+         <img id="w" srcset="/w.png 1024w" sizes="100vw" alt="نقش">
+         <picture><source srcset="/pic.png 3x"><img id="pic" src="/fallback.png" alt="نقش"></picture>`,
+      ),
+      '/x2.png': image,
+      '/w.png': image,
+      '/pic.png': image,
+      '/fallback.png': image,
+    })
+    // The file is 128 × 128; the elements themselves say 64, 48 and 42. Each is given the file's
+    // size, or left out when the engine does not have the file at hand: Firefox, in the render
+    // (measured 2026-09-27). Never the element's own size, which would shrink the estimate.
+    const sizes = page.images.map((drawn) => [
+      drawn.selector,
+      drawn.naturalWidth,
+      drawn.naturalHeight,
+    ])
+    expect(sizes.every(([, width, height]) => width === 128 && height === 128)).toBe(true)
+    if (engine === 'chromium') {
+      expect(sizes.map(([selector]) => selector)).toEqual(['#x2', '#w', '#pic'])
+    }
+  })
+
   it('finds direction icons drawn as for left-to-right text in right-to-left text', async () => {
     const icon = 'display: inline-block; width: 12px; height: 12px'
     const page = await facts(engine, {

@@ -568,6 +568,27 @@ export function measurePage(limits: MeasureLimits): Measured {
     )
     .map((icon) => icon.fact)
 
+  /**
+   * The size in pixels of the image file at `url`, when the browser has it at hand; else null. An
+   * image chosen by srcset or <picture> gives its size divided by the source's density (a 2x source
+   * of 128 pixels is 64 wide), so a detached image of the same URL is asked instead, as Lighthouse
+   * did: from the document's list of available images it is complete at once, and nothing is
+   * fetched again (Chromium, Firefox and WebKit, measured 2026-09-27, no-store included).
+   */
+  const fileSize = (image: HTMLImageElement, url: string) => {
+    const detached = new Image()
+    const mode = image.getAttribute('crossorigin')
+    if (mode !== null) detached.crossOrigin = mode
+    detached.src = url
+    const size =
+      detached.complete && detached.naturalWidth > 0
+        ? { width: detached.naturalWidth, height: detached.naturalHeight }
+        : null
+    // One not at hand is not fetched.
+    detached.removeAttribute('src')
+    return size
+  }
+
   // Images drawn on the page, each by the source the browser chose (srcset, <picture>).
   const images: Measured['images'][number][] = []
   if (body !== null) {
@@ -580,12 +601,17 @@ export function measurePage(limits: MeasureLimits): Measured {
       if (!/^https?:/i.test(url)) continue
       const rect = image.getBoundingClientRect()
       if (rect.width === 0 || rect.height === 0) continue
+      const chosen = image.hasAttribute('srcset') || image.parentElement?.tagName === 'PICTURE'
+      const natural = chosen
+        ? fileSize(image, url)
+        : { width: image.naturalWidth, height: image.naturalHeight }
+      if (natural === null) continue
       images.push({
         selector: selectorOf(image),
         box: box(rect),
         url: url.slice(0, 2048),
-        naturalWidth: image.naturalWidth,
-        naturalHeight: image.naturalHeight,
+        naturalWidth: natural.width,
+        naturalHeight: natural.height,
       })
     }
   }

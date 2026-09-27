@@ -38,6 +38,10 @@ export function scoreOf(results: readonly RuleResult[]): Score {
   return { overall: scoreFrom(overall), categories, partial }
 }
 
+/**
+ * 100 × (1 − failed ÷ applicable), rounded. Weights are whole numbers, so dividing last keeps a
+ * half exact: 100 × (1 − 17 ÷ 40) is 57.49999… in floating point, (100 × 23) ÷ 40 is 57.5.
+ */
 function scoreFrom({ applicable, failed }: { applicable: number; failed: number }): number | null {
-  return applicable === 0 ? null : Math.round(100 * (1 - failed / applicable))
+  return applicable === 0 ? null : Math.round((100 * (applicable - failed)) / applicable)
 }
