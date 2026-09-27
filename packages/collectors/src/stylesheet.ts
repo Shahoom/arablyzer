@@ -1,4 +1,6 @@
-import { parse, walk, type CssNode, type Declaration } from 'css-tree'
+import type { CssNode, Declaration } from 'css-tree'
+import parse from 'css-tree/parser'
+import walk from 'css-tree/walker'
 import { ALL_CODE_POINTS, parseUnicodeRange, type CodePointRange } from './code-points'
 import { fontCoverage } from './font-coverage'
 
