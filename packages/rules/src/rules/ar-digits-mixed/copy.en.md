@@ -24,9 +24,9 @@ The page has Persian digits such as «{persian}» in Arabic text, and their 4, 5
 
 ## How we detect
 
-1. We read the visible text in the page's HTML as the server sends it, on pages where most letters are Arabic, leaving out code tags such as `<code>`.
+1. We read the visible text in the page's HTML as the server sends it, on pages where most letters are Arabic, leaving out code tags such as `<code>`. Pages that declare another language written in Arabic script, such as Persian (`fa`) or Urdu (`ur`), are left out: those digits are theirs.
 2. We collect the numbers that stand on their own, with their separators and decimal marks, such as «٤٫٥» and «1,500».
-3. We leave out numbers next to Latin words, such as «iPhone 15» and «Windows 11», and international phone numbers that start with `+`, since those are usually written in Western digits.
+3. We leave out numbers next to Latin words, such as «iPhone 15» and «Windows 11», international phone numbers that start with `+`, and the year after ©, since those are usually written in Western digits.
 4. The rule fails when the page has both Western and Eastern Arabic digits, and points at the first number of the system used less. It also fails when there are Persian digits.
 
 ## References

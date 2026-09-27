@@ -37,7 +37,8 @@ const ARABIC_LETTERS = /(?=\p{L})\p{Script=Arabic}/gu
 const LATIN_LETTER = /\p{Script=Latin}/u
 /** Ø Ù Ú Û: how the first bytes of UTF-8 Arabic (U+0600–U+06FF) read in Windows-1252. */
 const UTF8_LEAD = /[Ø-Û]/
-const ASCII_PUNCTUATION = /^([!-/:-@[-`{-~]*)(.*?)([!-/:-@[-`{-~]*)$/su
+/** Alef and lam: Arabic text of two words or more has one of them (ال), Danish «ÆØÅ æøå» has neither. */
+const ALEF_OR_LAM = /[\u0627\u0644]/
 
 interface Recovered {
   readonly source: MojibakeSource
@@ -56,7 +57,7 @@ export function firstGarbledRun(text: string): GarbledRun | null {
   } | null = null
   for (const match of text.matchAll(/\S+/gu)) {
     const word = match[0]
-    const [, before = '', core = '', after = ''] = ASCII_PUNCTUATION.exec(word) ?? []
+    const [before, core, after] = splitPunctuation(word)
     const recovered = recover(core)
     if (recovered !== null && (run === null || run.source === recovered.source)) {
       run ??= { source: recovered.source, start: match.index, found: [], recovered: [], letters: 0 }
@@ -80,8 +81,34 @@ export function firstGarbledRun(text: string): GarbledRun | null {
   return run !== null && plausible(run) ? finish(run) : null
 }
 
-function plausible(run: { found: readonly string[]; letters: number }): boolean {
+function plausible(run: {
+  source: MojibakeSource
+  found: readonly string[]
+  recovered: readonly string[]
+  letters: number
+}): boolean {
+  if (run.source === 'windows-1256' && !run.recovered.some((word) => ALEF_OR_LAM.test(word))) {
+    return false
+  }
   return run.found.length > 1 || run.letters >= MIN_SINGLE_WORD_LETTERS
+}
+
+/** A word's leading and trailing ASCII punctuation, and what is between: «(Ù…Ù†ØªØ¬)،». */
+function splitPunctuation(word: string): [before: string, core: string, after: string] {
+  let start = 0
+  while (start < word.length && isAsciiPunctuation(word.charCodeAt(start))) start++
+  let end = word.length
+  while (end > start && isAsciiPunctuation(word.charCodeAt(end - 1))) end--
+  return [word.slice(0, start), word.slice(start, end), word.slice(end)]
+}
+
+function isAsciiPunctuation(code: number): boolean {
+  return (
+    (code >= 0x21 && code <= 0x2f) ||
+    (code >= 0x3a && code <= 0x40) ||
+    (code >= 0x5b && code <= 0x60) ||
+    (code >= 0x7b && code <= 0x7e)
+  )
 }
 
 function finish(run: {

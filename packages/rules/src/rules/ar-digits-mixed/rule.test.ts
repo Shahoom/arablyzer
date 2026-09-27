@@ -50,4 +50,23 @@ describe('ar-digits-mixed', () => {
       values: { western: '٢٠24', eastern: '٢٠24' },
     })
   })
+
+  it('leaves out Persian and Urdu pages, whose own digits these are', () => {
+    for (const [lang, text] of [
+      ['fa', 'قیمت این کالا ۲۵۰ هزار تومان است و ارسال ۳ روز طول می‌کشد، سفارش 2024.'],
+      ['ur', 'اس کی قیمت ۲۵۰ روپے ہے اور ترسیل میں ۳ دن لگتے ہیں، آرڈر 2024۔'],
+    ] as const) {
+      const page = htmlPage(`<html lang="${lang}" dir="rtl"><body><p>${text}</p></body></html>`)
+      expect(rule.appliesTo(page), lang).toBe(false)
+    }
+  })
+
+  it('does not count the year after ©, which themes write in Western digits', () => {
+    expect(
+      inBody(
+        `<p>${ARABIC}: يصل الطلب خلال ٣ أيام بسعر ٥ دنانير.</p><footer>© 2024 جميع الحقوق محفوظة</footer>`,
+      ),
+    ).toEqual([])
+    expect(inBody(`<p>${ARABIC}: يصل الطلب خلال ٣ أيام، والشحن 5 دنانير.</p>`)).toHaveLength(1)
+  })
 })

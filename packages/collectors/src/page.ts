@@ -41,6 +41,8 @@ export interface CollectOptions {
   readonly deadline?: number
   /** Bytes of HTML to parse; the rest is ignored. Default HTML_PARSE_LIMIT. */
   readonly maxHtmlBytes?: number
+  /** Nodes the heading and label walks may visit in all. Default WALK_BUDGET. */
+  readonly walkBudget?: number
 }
 
 /**
@@ -95,7 +97,10 @@ export function collectPage(input: PageInput, options: CollectOptions = {}): Pag
   const index = new DocumentIndex(document, source)
   return {
     ...base,
-    html: collectHtml(index, input.url, encoding, { xhtml: mimeType === 'application/xhtml+xml' }),
+    html: collectHtml(index, input.url, encoding, {
+      xhtml: mimeType === 'application/xhtml+xml',
+      ...(options.walkBudget === undefined ? {} : { walkBudget: options.walkBudget }),
+    }),
     text: collectText(index),
     htmlTruncated,
     htmlTimedOut: false,

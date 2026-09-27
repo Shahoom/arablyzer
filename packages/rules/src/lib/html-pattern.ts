@@ -51,20 +51,35 @@ export function testPattern(pattern: string, values: readonly string[]): Pattern
 /** Tests one page may run, and patterns that run too long before the rest are skipped. */
 const MAX_TESTS = 500
 const MAX_SLOW = 3
+/** Time one page's patterns may take in all: many patterns each just under the limit add up. */
+const PAGE_BUDGET_MS = 1000
+/** Longer than any real pattern; a page's longer ones are not tested. */
+export const MAX_PATTERN_LENGTH = 1000
+
+export interface PageTesterOptions {
+  readonly budgetMs?: number
+}
 
 /**
  * testPattern for one page: each pattern and set of values runs once, and a page cannot stretch
  * the scan with many slow patterns; past the budget every answer is 'too-slow'.
  */
-export function pageTester(): (pattern: string, values: readonly string[]) => PatternResult {
+export function pageTester(
+  options: PageTesterOptions = {},
+): (pattern: string, values: readonly string[]) => PatternResult {
+  const budget = options.budgetMs ?? PAGE_BUDGET_MS
   const results = new Map<string, PatternResult>()
   let slow = 0
+  let spent = 0
   return (pattern, values) => {
     const key = JSON.stringify([pattern, values])
     const known = results.get(key)
     if (known !== undefined) return known
-    if (slow >= MAX_SLOW || results.size >= MAX_TESTS) return 'too-slow'
+    if (slow >= MAX_SLOW || spent > budget || results.size >= MAX_TESTS) return 'too-slow'
+    if (pattern.length > MAX_PATTERN_LENGTH) return 'too-slow'
+    const start = performance.now()
     const result = testPattern(pattern, values)
+    spent += performance.now() - start
     if (result === 'too-slow') slow++
     results.set(key, result)
     return result

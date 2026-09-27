@@ -4,9 +4,11 @@ import { defineRule } from '../../rule'
 /**
  * An Arabic letter (with its harakat), tatweel, and another Arabic letter: a join stretched with
  * tatweel. Tatweel (U+0640) itself belongs to the Common script, so it never counts as a letter.
+ * In Quranic (Uthmani) spelling tatweel carries a superscript alef, a hamza or a small waw or ya
+ * («ٱلرَّحْمَـٰنِ»): there it is a seat for the mark, not stretching.
  */
 const STRETCHED =
-  /(?=\p{L})\p{Script=Arabic}[\u064b-\u065f\u0670]*ـ+[\u064b-\u065f\u0670]*(?=\p{L})\p{Script=Arabic}/u
+  /(?=\p{L})\p{Script=Arabic}[\u064b-\u065f\u0670]*\u0640+(?![\u0654\u0655\u0670\u06e5\u06e6])[\u064b-\u0653\u0656-\u065f]*(?=\p{L})\p{Script=Arabic}/u
 
 export const rule = defineRule({
   id: 'ar-tatweel',

@@ -40,6 +40,14 @@ const AMOUNT = new RegExp(`[${DIGITS}]+(?:[.,\u066b\u066c][${DIGITS}]+)*`, 'gu')
 /** What may stand between a number and its currency: spaces and directional marks. */
 const GAP = '[\\s\u200e\u200f\u061c\u2066-\u2069]{0,4}'
 const DIRECTIONAL_MARKS = /[\u200e\u200f\u061c\u2066-\u2069]/g
+/**
+ * Thousands, millions and billions: «KD 12.5 million» is an amount in millions, as on bank and
+ * news pages, not a price with one decimal.
+ */
+const SCALE = new RegExp(
+  `^${GAP}(?:(?:million|billion|thousand|mn|bn|m|k)(?![A-Za-z])|مليون|ملايين|مليار|مليارات|بليون|ألف|الف|آلاف)`,
+  'iu',
+)
 /** How far from a number its currency marker can start; the longest is under 20 characters. */
 const REACH = 32
 
@@ -108,6 +116,8 @@ function* prices(page: PageFacts): Generator<Price> {
   for (const run of runs(page.text?.segments ?? [])) {
     // Where the last price ended: its marker is not also the next number's.
     let taken = 0
+    // Numbers come in order, so the text node that holds each one only moves forward.
+    let at = 0
     for (const match of run.text.matchAll(AMOUNT)) {
       const amount = match[0]
       const start = match.index
@@ -115,7 +125,8 @@ function* prices(page: PageFacts): Generator<Price> {
       const price = priced(run.text, start, end, taken)
       if (price === null) continue
       taken = price.to
-      const piece = run.pieces.findLast((candidate) => candidate.start <= start)
+      while ((run.pieces[at + 1]?.start ?? Infinity) <= start) at++
+      const piece = run.pieces[at]
       if (piece === undefined) continue
       const decimals = decimalsOf(amount)
       const zeros = decimals === null ? '' : zero(amount).repeat(Math.max(0, 3 - decimals))
@@ -142,6 +153,7 @@ function priced(
   end: number,
   taken: number,
 ): { currency: string; from: number; to: number } | null {
+  if (SCALE.test(text.slice(end, end + REACH))) return null
   const before = text.slice(Math.max(0, start - REACH), start)
   for (const [currency, pattern] of MARKER_BEFORE) {
     const marker = pattern.exec(before)
@@ -191,19 +203,31 @@ interface Run {
  * `<bdi>12.500&nbsp;<span>ر.ع.</span></bdi>`, joined. Code breaks a run.
  */
 function* runs(segments: readonly TextSegment[]): Generator<Run> {
-  let text = ''
+  // Parts are joined once per run: reading the end of a string built with += flattens it each
+  // time, which is quadratic on a long line of inline elements.
+  let parts: string[] = []
+  let length = 0
+  let last = ''
   let pieces: { segment: TextSegment; start: number }[] = []
+  const flush = function* (): Generator<Run> {
+    if (pieces.length > 0) yield { text: parts.join(''), pieces }
+    parts = []
+    length = 0
+    last = ''
+    pieces = []
+  }
   for (const segment of segments) {
-    if (pieces.length > 0 && (segment.precededBy === '' || segment.code)) {
-      yield { text, pieces }
-      text = ''
-      pieces = []
-    }
+    if (pieces.length > 0 && (segment.precededBy === '' || segment.code)) yield* flush()
     if (segment.code) continue
     // Text nodes of only spaces are not segments; precededBy keeps their last character.
-    if (pieces.length > 0 && segment.precededBy !== text.at(-1)) text += segment.precededBy
-    pieces.push({ segment, start: text.length })
-    text += segment.text
+    if (pieces.length > 0 && segment.precededBy !== last) {
+      parts.push(segment.precededBy)
+      length += segment.precededBy.length
+    }
+    pieces.push({ segment, start: length })
+    parts.push(segment.text)
+    length += segment.text.length
+    last = segment.text.at(-1) ?? last
   }
-  if (pieces.length > 0) yield { text, pieces }
+  yield* flush()
 }

@@ -115,4 +115,26 @@ describe('price-decimals', () => {
     expect(rule.appliesTo(page('<p>12.50 ريال سعودي</p>'))).toBe(false)
     expect(rule.appliesTo(page('<p>متجر</p>'))).toBe(false)
   })
+
+  // Independent review, 2026-09-27.
+  it('leaves out amounts in thousands, millions or billions, as on bank and news pages', () => {
+    for (const body of [
+      '<p>The bank reported a net profit of KD 12.5 million for the quarter.</p>',
+      '<p>Total assets reached BD 1.2 billion.</p>',
+      '<p>The project cost RO 3.5 million, or RO 3.5m, and RO 1.25bn in total.</p>',
+      '<p>بلغ صافي الربح د.ك 2.5 مليون، والأصول 1.2 مليار دينار كويتي.</p>',
+      '<p>ارتفعت الودائع إلى 12.5 ألف ر.ع.</p>',
+    ]) {
+      expect(detect(body), body).toEqual([])
+    }
+    expect(prices('<p>KD 12.5 مليوناً</p>')).toEqual([])
+    expect(prices('<p>KD 12.5 for millions of customers</p>')).toHaveLength(1)
+  })
+
+  it('stays linear on a long line of prices split by inline elements', () => {
+    const start = performance.now()
+    const findings = detect(`<p>${'<b>1.5 KD</b> '.repeat(40_000)}</p>`)
+    expect(findings).toMatchObject([{ values: { count: 40_000 } }])
+    expect(performance.now() - start).toBeLessThan(3000)
+  })
 })

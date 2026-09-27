@@ -38,4 +38,10 @@ describe('pageTester', () => {
     expect(test('[0-9]+', ['1'])).toBe('too-slow')
     expect(pageTester()('[0-9]+', ['1', 'a'])).toEqual([true, false])
   })
+
+  it('stops after a total time on one page, for patterns each just under the limit', () => {
+    const test = pageTester({ budgetMs: 0 })
+    expect(test('[0-9]+', ['1'])).toEqual([true])
+    expect(test('[a-z]+', ['a'])).toBe('too-slow')
+  })
 })

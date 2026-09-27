@@ -35,7 +35,7 @@ Content-Type: text/html; charset=utf-8
 
 1. We read the page's HTML as the server sends it, decode it as the browser does, and read the visible text.
 2. We look for words made of Latin letters such as `Ø`, `Ù`, `Ç` and `á`, turn each word back into its Windows-1252 bytes, and read them as UTF-8 or Windows-1256.
-3. A word counts as garbled only when reading it again gives two or more Arabic letters and leaves no Latin letter, so words such as «Café», «Crème» and «señor» do not count. A garbled word standing alone must give at least four Arabic letters.
+3. A word counts as garbled only when reading it again gives two or more Arabic letters and leaves no Latin letter, so words such as «Café», «Crème» and «señor» do not count. A garbled word standing alone must give at least four Arabic letters, and words read as Windows-1256 count only when their run has an alef or a lam, as Arabic text does, so a line such as «ÆØÅ æøå» does not count.
 4. We report the first run of garbled words in each text, up to eight words, with what they were before.
 
 ## References

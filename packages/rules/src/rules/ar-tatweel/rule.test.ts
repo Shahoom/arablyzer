@@ -36,4 +36,12 @@ describe('ar-tatweel', () => {
       [],
     )
   })
+
+  it('leaves out Quranic spelling, where tatweel carries a superscript alef or hamza', () => {
+    expect(
+      inBody('<p>بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ، وهذا نص عربي عادي للصفحة</p>'),
+    ).toEqual([])
+    expect(inBody('<p>قال تعالى: ﴿ذَ ٰلِكَ ٱلْكِتَـٰبُ﴾ في نص عربي طويل للصفحة</p>')).toEqual([])
+    expect(inBody('<p>مـحـمـد، وهذا نص عربي عادي طويل للصفحة</p>')).toHaveLength(1)
+  })
 })

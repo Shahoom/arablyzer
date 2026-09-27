@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { parse } from 'parse5'
 import { collectPage, type PageFacts } from '../src/page'
 import { utf8 } from './helpers'
 
@@ -103,5 +104,38 @@ describe('collectPage: form fields', () => {
   it('does not let a label with a for attribute label the field inside it', () => {
     const other = html('<body><label for="x">اسم<input name="inner"></label><input id="x"></body>')
     expect(other.fields.map((field) => field.label)).toEqual([null, 'اسم'])
+  })
+})
+
+// Independent review, 2026-09-27: headings or labels nested in one another made each walk its
+// whole subtree again, which is quadratic in the depth.
+describe('collectPage: walking headings and labels', () => {
+  const page = (body: string, walkBudget?: number) =>
+    collectPage(
+      {
+        url: 'https://example.com/',
+        status: 200,
+        headers: [['content-type', 'text/html; charset=utf-8']],
+        body: utf8(`<html lang="ar"><head><title>متجر</title></head><body>${body}</body></html>`),
+      },
+      walkBudget === undefined ? {} : { walkBudget },
+    ).html
+
+  it('shares one budget of nodes among all heading and label walks on a page', () => {
+    const facts = page('<h1>واحد</h1><h2>اثنان</h2><h3>ثلاثة</h3>', 2)
+    expect(facts?.headings.map((heading) => heading.text)).toEqual(['واحد', 'اثنان', ''])
+    expect(facts?.title).toBe('متجر')
+  })
+
+  it('stays close to the parse time on nested headings and labels', () => {
+    for (const open of ['<h1>نص<div>', '<label>نص<div>']) {
+      const body = open.repeat(8_000)
+      let start = performance.now()
+      parse(body)
+      const parsing = performance.now() - start
+      start = performance.now()
+      page(body)
+      expect(performance.now() - start, open).toBeLessThan(parsing * 2 + 300)
+    }
   })
 })

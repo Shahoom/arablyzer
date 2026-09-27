@@ -3,7 +3,8 @@ import { defineRule } from '../../rule'
 /** The viewport's properties, as browsers read them: `key=value` separated by commas, semicolons or spaces. */
 function viewportProperties(content: string): Map<string, string> {
   const properties = new Map<string, string>()
-  const normalized = content.toLowerCase().replace(/\s*=\s*/g, '=')
+  // The lookbehind starts a match where the spaces start, so long runs of spaces stay linear.
+  const normalized = content.toLowerCase().replace(/(?<!\s)\s*=\s*/g, '=')
   for (const part of normalized.split(/[\s,;]+/)) {
     const [key, value] = part.split('=')
     if (key !== undefined && key !== '' && value !== undefined) properties.set(key, value)

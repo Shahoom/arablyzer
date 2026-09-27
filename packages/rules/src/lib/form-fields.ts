@@ -1,12 +1,20 @@
 import type { FieldElement } from '@arablyzer/collectors'
-import { PATTERN_TYPES } from './html-pattern'
+import { MAX_PATTERN_LENGTH, PATTERN_TYPES } from './html-pattern'
 
 /** A field whose value its pattern attribute checks. */
 export type PatternField = FieldElement & { readonly pattern: string }
 
-/** An input with a pattern, of a type the pattern applies to. */
+/**
+ * An input with a pattern, of a type the pattern applies to. Patterns longer than any real one are
+ * left out before anything reads them: a page could make them slow for our own regular expressions.
+ */
 export function hasPattern(field: FieldElement): field is PatternField {
-  return field.tag === 'input' && field.pattern !== null && PATTERN_TYPES.has(field.type)
+  return (
+    field.tag === 'input' &&
+    field.pattern !== null &&
+    field.pattern.length <= MAX_PATTERN_LENGTH &&
+    PATTERN_TYPES.has(field.type)
+  )
 }
 
 /** Lowercase words of a field's name and id: "billing_firstName" gives billing, first, name. */

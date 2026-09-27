@@ -105,6 +105,21 @@ export interface HtmlFacts {
 export interface HtmlOptions {
   /** application/xhtml+xml: there, xml:lang declares the language too. */
   readonly xhtml?: boolean
+  /** Nodes the heading and label walks may visit in all. Default WALK_BUDGET. */
+  readonly walkBudget?: number
+}
+
+/**
+ * Nodes the heading and label walks may visit on one page. A real page uses a few thousand;
+ * headings or labels nested in one another would walk the same subtree again for each, which is
+ * quadratic in the depth, so past this a hostile page's walks stop. Counted, not timed, so the
+ * same page gives the same facts.
+ */
+export const WALK_BUDGET = 500_000
+
+/** What is left of a page's walk budget. */
+interface Walk {
+  left: number
 }
 
 export function collectHtml(
@@ -128,14 +143,15 @@ export function collectHtml(
   const scripts: ScriptElement[] = []
   const headings: HeadingElement[] = []
   const fields: FieldElement[] = []
-  const labels = labelsByField(all)
+  const walk: Walk = { left: options.walkBudget ?? WALK_BUDGET }
+  const labels = labelsByField(all, walk)
   for (const element of all) {
     const level = HEADING_LEVELS.get(element.tagName)
     if (level !== undefined && isHtmlElement(element, element.tagName)) {
       headings.push({
         ...index.ref(element),
         level,
-        text: collapseWhitespace(textOf(element, true)),
+        text: collapseWhitespace(textOf(element, walk, true)),
       })
       continue
     }
@@ -215,7 +231,11 @@ export function collectHtml(
     baseUrl,
     root: rootElement(index, root, options.xhtml === true),
     body: body === undefined ? null : rootElement(index, body, options.xhtml === true),
-    title: titleElement === undefined ? null : collapseWhitespace(textOf(titleElement)),
+    // The title walks on its own budget: a hostile page's headings cannot make it look empty.
+    title:
+      titleElement === undefined
+        ? null
+        : collapseWhitespace(textOf(titleElement, { left: WALK_BUDGET })),
     titleElement: titleElement === undefined ? null : index.ref(titleElement),
     metas,
     links,
@@ -289,7 +309,7 @@ function isLabelable(element: Element): boolean {
  * The text of the labels of each field, as HTML ties them: a label with a for attribute labels
  * the first element with that id; one without labels its first labelable descendant.
  */
-function labelsByField(all: readonly Element[]): Map<Element, string[]> {
+function labelsByField(all: readonly Element[], walk: Walk): Map<Element, string[]> {
   const byId = new Map<string, Element>()
   for (const element of all) {
     const id = attr(element, 'id')
@@ -298,9 +318,9 @@ function labelsByField(all: readonly Element[]): Map<Element, string[]> {
   const labels = new Map<Element, string[]>()
   for (const label of all) {
     if (!isHtmlElement(label, 'label')) continue
-    const target = labelTarget(label, byId)
+    const target = labelTarget(label, byId, walk)
     if (target === null) continue
-    const text = collapseWhitespace(textOf(label, false, FIELD_TEXT))
+    const text = collapseWhitespace(textOf(label, walk, false, FIELD_TEXT))
     if (text === '') continue
     const list = labels.get(target)
     if (list === undefined) labels.set(target, [text])
@@ -309,14 +329,19 @@ function labelsByField(all: readonly Element[]): Map<Element, string[]> {
   return labels
 }
 
-function labelTarget(label: Element, byId: ReadonlyMap<string, Element>): Element | null {
+function labelTarget(
+  label: Element,
+  byId: ReadonlyMap<string, Element>,
+  walk: Walk,
+): Element | null {
   const htmlFor = attr(label, 'for')
   if (htmlFor !== null) {
     const target = byId.get(htmlFor)
     return target !== undefined && isLabelable(target) ? target : null
   }
   const stack: Node[] = [...label.childNodes].reverse()
-  for (let node = stack.pop(); node !== undefined; node = stack.pop()) {
+  for (let node = stack.pop(); node !== undefined && walk.left > 0; node = stack.pop()) {
+    walk.left--
     if (!isElement(node)) continue
     if (isLabelable(node)) return node
     for (let i = node.childNodes.length - 1; i >= 0; i--) {
@@ -353,10 +378,16 @@ function documentBaseUrl(all: readonly Element[], pageUrl: string): string {
  * Descendant text in document order, with an explicit stack; with `alt`, images add their alt
  * text, as screen readers read them. Elements named in `skip` add nothing.
  */
-function textOf(element: Element, alt = false, skip: ReadonlySet<string> = NO_TAGS): string {
+function textOf(
+  element: Element,
+  walk: Walk,
+  alt = false,
+  skip: ReadonlySet<string> = NO_TAGS,
+): string {
   let text = ''
   const stack: Node[] = [...element.childNodes].reverse()
-  for (let node = stack.pop(); node !== undefined; node = stack.pop()) {
+  for (let node = stack.pop(); node !== undefined && walk.left > 0; node = stack.pop()) {
+    walk.left--
     if (node.nodeName === '#text' && 'value' in node) text += node.value
     else if (isElement(node)) {
       if (skip.has(node.tagName)) continue

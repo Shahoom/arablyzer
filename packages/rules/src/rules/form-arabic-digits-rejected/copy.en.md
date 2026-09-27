@@ -13,8 +13,14 @@ This field accepts «{western}» but rejects the same number in Arabic-Indic dig
 
 ## How to fix
 
-- Accept both digit sets in the pattern: `[0-9٠-٩]{8}`, or `\p{Nd}{8}` for the decimal digits of any script; browsers read patterns with the `v` flag, which understands `\p{…}`.
-- Then convert the digits to Western ones before you check or store the number, in JavaScript or on the server: `value.replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 0x660))`.
+- Accept the digit sets people type in the pattern: `[0-9٠-٩۰-۹]{8}` for Western, Arabic-Indic and Persian digits, or `\p{Nd}{8}` for the decimal digits of any script; browsers read patterns with the `v` flag, which understands `\p{…}`.
+- Then convert the digits to Western ones before you check or store the number, in JavaScript or on the server:
+
+```js
+const DIGITS = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹'
+const western = value.replace(/[٠-٩۰-۹]/g, (digit) => String(DIGITS.indexOf(digit) % 10))
+```
+
 - Or drop the pattern, keep `inputmode="numeric"` for the keyboard, and check the number after converting its digits.
 
 ## How we detect

@@ -1,7 +1,7 @@
 import type { PageFacts, ScriptElement } from '@arablyzer/collectors'
 import { ISO_4217_CURRENCIES } from '../../lib/iso-codes'
 import { MAX_JSON_DEPTH, jsonPointer, jsonValueOffsets } from '../../lib/json-positions'
-import { documentPosition, jsonLdBlocks, lineAround } from '../../lib/jsonld'
+import { jsonLdBlocks, textPlacer, type TextPlacer } from '../../lib/jsonld'
 import { defineRule, type DetectorFinding } from '../../rule'
 
 const MESSAGES = ['no-price', 'bad-price', 'no-currency', 'bad-currency'] as const
@@ -82,17 +82,23 @@ export const rule = defineRule({
       const pointers = wanted.get(at.block) ?? new Set<string>()
       wanted.set(at.block, pointers.add(at.pointer))
     }
-    const offsets = new Map(
-      [...wanted].map(([block, pointers]) => [
-        block,
-        jsonValueOffsets(block.script.text, pointers),
-      ]),
-    )
+    // Each block is read once for all its problems: a block can have thousands.
+    const placed = new Map<Block, { offsets: Map<string, number>; placer: TextPlacer }>()
+    const placeOf = (block: Block) => {
+      let place = placed.get(block)
+      if (place === undefined) {
+        const offsets = jsonValueOffsets(block.script.text, wanted.get(block) ?? new Set())
+        place = { offsets, placer: textPlacer(block.script) }
+        placed.set(block, place)
+      }
+      return place
+    }
     return problems.map(({ message, at, values }): DetectorFinding<Message> => {
       const { script, number } = at.block
-      const offset = offsets.get(at.block)?.get(at.pointer) ?? 0
-      const position = documentPosition(script, offset)
-      const snippet = lineAround(script.text, offset)
+      const place = placeOf(at.block)
+      const offset = place.offsets.get(at.pointer) ?? 0
+      const position = place.placer.position(offset)
+      const snippet = place.placer.line(offset)
       return {
         message,
         values: { block: number, line: position.line, ...values },

@@ -1,7 +1,7 @@
 import type { PageFacts } from '@arablyzer/collectors'
 import { isArabicPage } from '../../lib/arabic'
 import { hasPattern, shownPattern, type PatternField } from '../../lib/form-fields'
-import { pageTester } from '../../lib/html-pattern'
+import { MAX_PATTERN_LENGTH, pageTester } from '../../lib/html-pattern'
 import { defineRule } from '../../rule'
 
 const NUMERIC_INPUTMODES = new Set(['numeric', 'decimal', 'tel'])
@@ -101,7 +101,10 @@ function isDigitPattern(pattern: string): boolean {
  * lengths, bare, after "+", and after the digits the pattern itself spells out ("05", "+968").
  */
 function candidates(field: PatternField): string[] {
-  const fromPlaceholder = [...westernDigits(field.placeholder ?? '').matchAll(PLACEHOLDER_NUMBER)]
+  // A placeholder longer than any real one is not read: a page could make it slow to search.
+  const placeholder = field.placeholder ?? ''
+  const example = placeholder.length > MAX_PATTERN_LENGTH ? '' : westernDigits(placeholder)
+  const fromPlaceholder = [...example.matchAll(PLACEHOLDER_NUMBER)]
     .map(([number]) => number)
     .filter((number) => (number.match(/[0-9xX#*_]/g) ?? []).length >= 3)
     .map((number) => {

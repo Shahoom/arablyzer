@@ -92,4 +92,10 @@ describe('form-arabic-name-rejected', () => {
     expect(rule.appliesTo(page('<input name="name">'))).toBe(false)
     expect(rule.appliesTo(page('<input name="phone" pattern="[0-9]+">'))).toBe(false)
   })
+
+  it('leaves out patterns far longer than any real one', () => {
+    const start = performance.now()
+    expect(detect(`<input name="name" pattern="[A-Za-z ]${'+'.repeat(5_000)}">`)).toEqual([])
+    expect(performance.now() - start).toBeLessThan(1000)
+  })
 })

@@ -1,4 +1,5 @@
 import type { PageFacts } from '@arablyzer/collectors'
+import { isArabicLanguage, isArabicScriptLanguage } from './language-script'
 
 /** More than half of the letters in the page's visible text are Arabic-script letters. */
 export function isMostlyArabic(page: PageFacts): boolean {
@@ -6,7 +7,16 @@ export function isMostlyArabic(page: PageFacts): boolean {
   return letters !== undefined && letters.arabic * 2 > letters.total
 }
 
-/** The page declares Arabic in <html lang>, or most of its visible letters are Arabic-script. */
+/**
+ * Most visible letters are Arabic-script, and the page does not declare another language written in
+ * that script, such as Persian or Urdu, whose digits and letters differ from Arabic's.
+ */
+export function isArabicText(page: PageFacts): boolean {
+  const lang = page.html?.root.lang?.trim() ?? ''
+  return isMostlyArabic(page) && (isArabicLanguage(lang) || !isArabicScriptLanguage(lang))
+}
+
+/** The page declares Arabic in <html lang>, or its text is Arabic (a page's lang can be wrong). */
 export function isArabicPage(page: PageFacts): boolean {
-  return /^ar(?:-|$)/i.test(page.html?.root.lang?.trim() ?? '') || isMostlyArabic(page)
+  return isArabicLanguage(page.html?.root.lang ?? '') || isArabicText(page)
 }

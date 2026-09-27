@@ -58,4 +58,15 @@ describe('ar-mojibake', () => {
     const [finding] = inBody(`قبل: ${garbled}`)
     expect(finding?.values?.recovered).toBe('واحد اثنان ثلاثة أربعة خمسة ستة سبعة ثمانية')
   })
+
+  // Independent review, 2026-09-27: hostile pages and real text.
+  it('stays linear on a word made of punctuation, which a page could use to stall a scan', () => {
+    const start = performance.now()
+    expect(inBody(`a${'!'.repeat(200_000)}a`)).toEqual([])
+    expect(performance.now() - start).toBeLessThan(1000)
+  })
+
+  it('leaves out a line of Danish or Norwegian letters, which is not Arabic in Windows-1256', () => {
+    expect(inBody('Øen på Åen, ÆØÅ æøå.')).toEqual([])
+  })
 })

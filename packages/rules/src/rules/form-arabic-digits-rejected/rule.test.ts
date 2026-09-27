@@ -85,4 +85,23 @@ describe('form-arabic-digits-rejected', () => {
     expect(rule.appliesTo(page('<input type="tel" pattern="[0-9]{8}">', 'en'))).toBe(false)
     expect(rule.appliesTo(page('<input type="tel">'))).toBe(false)
   })
+
+  // Independent review, 2026-09-27: patterns and placeholders of hostile length.
+  it('stays fast on patterns and placeholders far longer than any real one', () => {
+    for (const field of [
+      `<input type="tel" pattern="\\d${'\\p{'.repeat(60_000)}">`,
+      `<input type="tel" pattern="${'['.repeat(200_000)}">`,
+      `<input type="tel" pattern="[0-9]{8}" placeholder="${'('.repeat(200_000)}xa">`,
+    ]) {
+      const start = performance.now()
+      detect(field)
+      expect(performance.now() - start, field.slice(0, 40)).toBeLessThan(1000)
+    }
+  })
+
+  it('still uses the generic numbers when the placeholder is too long to read', () => {
+    expect(
+      pairs(`<input type="tel" pattern="[0-9]{8}" placeholder="${'x'.repeat(5_000)}">`),
+    ).toEqual([['91234567', '٩١٢٣٤٥٦٧']])
+  })
 })

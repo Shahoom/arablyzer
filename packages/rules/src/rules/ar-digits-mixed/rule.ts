@@ -1,5 +1,5 @@
 import type { SourceLocation, TextSegment } from '@arablyzer/collectors'
-import { isMostlyArabic } from '../../lib/arabic'
+import { isArabicText } from '../../lib/arabic'
 import { defineRule, type DetectorFinding } from '../../rule'
 
 type DigitSet = 'western' | 'eastern' | 'persian'
@@ -12,6 +12,8 @@ const SET_OF: readonly [DigitSet, RegExp][] = [
 ]
 /** International numbers (+968 9123 4567) are written in Western digits by convention. */
 const PHONE = new RegExp(`\\+[${DIGITS}](?:[${DIGITS}]|[ -](?=[${DIGITS}])){5,}`, 'gu')
+/** The year of a copyright notice (© 2024, © 2019–2024): themes write it in Western digits. */
+const COPYRIGHT = new RegExp(`©\\s*[${DIGITS}]{4}(?:\\s*[-\u2013]\\s*[${DIGITS}]{4})?`, 'gu')
 /** A number: digits, with separators and decimal marks between them (٫ and ٬ included). */
 const NUMBER = new RegExp(`[${DIGITS}](?:[${DIGITS}.,\u066b\u066c:/-]*[${DIGITS}])?`, 'gu')
 const LATIN_LETTER = /\p{Script=Latin}/u
@@ -33,7 +35,7 @@ export const rule = defineRule({
   severity: 'minor',
   needs: ['text'],
   messages: ['mixed', 'persian'],
-  appliesTo: isMostlyArabic,
+  appliesTo: isArabicText,
   detect: ({ page }) => {
     const first = new Map<DigitSet, Sighting>()
     const count = new Map<DigitSet, number>()
@@ -83,9 +85,10 @@ export const rule = defineRule({
   },
 })
 
-/** Numbers in a text, leaving out international phone numbers and numbers in Latin words. */
+/** Numbers in a text, leaving out phone numbers, copyright years and numbers in Latin words. */
 function* numbers(text: string): Generator<{ number: string; offset: number }> {
-  const blanked = text.replace(PHONE, (phone) => ' '.repeat(phone.length))
+  const blank = (found: string) => ' '.repeat(found.length)
+  const blanked = text.replace(PHONE, blank).replace(COPYRIGHT, blank)
   for (const match of blanked.matchAll(NUMBER)) {
     const end = match.index + match[0].length
     if (LATIN_LETTER.test(neighbour(blanked, match.index, -1))) continue

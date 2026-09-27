@@ -22,7 +22,7 @@ The word «{word}» is stretched with tatweel (ـ) between its letters, so peopl
 
 1. We read the visible text in the page's HTML as the server sends it, on pages where most letters are Arabic, leaving out code tags such as `<code>`.
 2. A word counts as stretched when tatweel (ـ) stands between two of its Arabic letters, even with harakat on them.
-3. Tatweel after a word's last letter, such as «بـ», does not count, and neither do lines made of tatweel alone, such as «ـــــ».
+3. Tatweel after a word's last letter, such as «بـ», does not count, and neither do lines made of tatweel alone, such as «ـــــ», nor tatweel that carries a superscript alef or a hamza in Quranic spelling, such as «ٱلرَّحْمَـٰنِ».
 4. We report the first stretched word in each text, with the number of stretched words in it.
 
 ## References
