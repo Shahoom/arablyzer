@@ -13,7 +13,7 @@ describe('ar-digits-mixed', () => {
     expect(detectAll(rule, evidence)).toEqual([
       {
         message: 'mixed',
-        values: { western: '500', eastern: '٤٫٥', westernCount: 2, easternCount: 2 },
+        values: { western: '500', eastern: '٤٫٥٠٠', westernCount: 2, easternCount: 2 },
         selector: 'body > main > p:nth-of-type(2)',
         location: { line: 16 },
         key: 'mixed',
