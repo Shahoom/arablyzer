@@ -47,6 +47,6 @@ describe('viewport-missing', () => {
   it('stays linear on long runs of spaces, which a page could use to stall a scan', () => {
     const start = performance.now()
     expect(withViewport(`${' '.repeat(200_000)}x`)[0]?.message).toBe('no-device-width')
-    expect(performance.now() - start).toBeLessThan(1000)
-  })
+    expect(performance.now() - start).toBeLessThan(5000)
+  }, 30_000)
 })

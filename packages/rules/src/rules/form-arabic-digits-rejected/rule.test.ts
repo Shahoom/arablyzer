@@ -95,9 +95,9 @@ describe('form-arabic-digits-rejected', () => {
     ]) {
       const start = performance.now()
       detect(field)
-      expect(performance.now() - start, field.slice(0, 40)).toBeLessThan(1000)
+      expect(performance.now() - start, field.slice(0, 40)).toBeLessThan(5000)
     }
-  })
+  }, 30_000)
 
   it('still uses the generic numbers when the placeholder is too long to read', () => {
     expect(

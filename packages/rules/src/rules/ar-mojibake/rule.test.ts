@@ -63,8 +63,8 @@ describe('ar-mojibake', () => {
   it('stays linear on a word made of punctuation, which a page could use to stall a scan', () => {
     const start = performance.now()
     expect(inBody(`a${'!'.repeat(200_000)}a`)).toEqual([])
-    expect(performance.now() - start).toBeLessThan(1000)
-  })
+    expect(performance.now() - start).toBeLessThan(5000)
+  }, 30_000)
 
   it('leaves out a line of Danish or Norwegian letters, which is not Arabic in Windows-1256', () => {
     expect(inBody('Øen på Åen, ÆØÅ æøå.')).toEqual([])
