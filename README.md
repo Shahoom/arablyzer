@@ -32,6 +32,7 @@ pnpm arablyzer https://example.com --json             # the full report as JSON 
 pnpm arablyzer https://example.com --fail-on serious  # exit 1 when a serious or critical rule fails
 pnpm arablyzer https://example.com --render           # also render the page in Chromium
 pnpm arablyzer https://example.com --engines chromium,firefox --screenshots shots
+pnpm arablyzer https://example.com --lab              # also Lighthouse's lab metrics, as information
 pnpm arablyzer --help
 ```
 
@@ -40,6 +41,10 @@ Exit codes: `0` the scan completed; `1` a rule failed at `--fail-on` or above; `
 Arablyzer fetches pages as `ArablyzerBot/1.0 (+https://arablyzer.com/bot)`, only through its SSRF guard (`packages/egress`): private, loopback, link-local and metadata addresses are refused. `--allow-private` opens private and loopback addresses for local builds; link-local and metadata addresses, and the machine's own public addresses, stay blocked. Text printed from a scanned page is escaped, so a page cannot send terminal control sequences.
 
 With `--render`, the page is also rendered in a browser, one engine after the other, each behind its own egress proxy that vets every request the page makes by the same rules; `--screenshots <dir>` saves the first screen of each as `<dir>/<engine>.png`. WebKit sends WebRTC traffic around the proxy, so it runs only in a container whose network reaches nothing but the proxy, marked by `ARABLYZER_NETWORK_ISOLATED=1`; elsewhere `--engines webkit` is refused and `--engines all` means Chromium and Firefox. On macOS WebKit never runs, even with that variable: there it also sends redirects and navigations to local addresses around the proxy.
+
+With `--lab`, Lighthouse 13 measures the page in Chromium on an emulated phone, behind the same kind of proxy and limits as the render. Its metrics vary from run to run, so the report gives them as information: they are never findings, and never part of the score.
+
+Real visitors' Core Web Vitals come from Google's Chrome UX Report (CrUX), with an API key in `ARABLYZER_CRUX_API_KEY` (created in Google Cloud for the Chrome UX Report API). The page's URL is then sent to Google; a page on a private address never is. Without a key, the three rules that read CrUX do not apply, and a notice says so.
 
 ## Rules / القواعد
 
@@ -73,6 +78,14 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`hsts-missing`](packages/rules/src/rules/hsts-missing/copy.en.md) | An HTTPS page sends `Strict-Transport-Security` |
 | [`mixed-content`](packages/rules/src/rules/mixed-content/copy.en.md) | An HTTPS page loads nothing over `http:`, and its forms send nothing there |
 | [`tls-expiring`](packages/rules/src/rules/tls-expiring/copy.en.md) | The TLS certificate is not about to expire |
+
+These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
+
+| Rule | Checks |
+|---|---|
+| [`cwv-lcp-poor`](packages/rules/src/rules/cwv-lcp-poor/copy.en.md) | Largest Contentful Paint on phones is within Google's limit for poor (4 s at the 75th percentile) |
+| [`cwv-inp-poor`](packages/rules/src/rules/cwv-inp-poor/copy.en.md) | Interaction to Next Paint on phones is within Google's limit for poor (500 ms) |
+| [`cwv-cls-poor`](packages/rules/src/rules/cwv-cls-poor/copy.en.md) | Cumulative Layout Shift on phones is within Google's limit for poor (0.25) |
 
 These read the page as a browser rendered it, so they run with `--render`:
 

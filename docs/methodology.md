@@ -62,7 +62,8 @@
 - **ملفات CSS والخطوط**: لا نقرأ ملفاً إلا إذا عرفنا حجمه قبل قراءته، وضمن حدود ثابتة. Firefox وWebKit يخفيان حجم ملف CSS من موقع آخر، فلا نقرؤه فيهما، والقواعد التي تحتاجه لا تحكم عليه.
 - **axe-core**: مجموعة مختارة من قواعده، لكل منها نص عربي ونماذج اختبار. ويتجاهل axe تباين النص العربي بسبب خلل فيه، فنصلحه قبل تشغيله.
 - **حدود القواعد نفسها**: كل حد رقمي في قاعدة، كعدد الأيام قبل انتهاء الشهادة أو حجم التوفير بالضغط، مذكور في صفحة القاعدة مع مصدره.
-- **بيانات الزوار الحقيقيين (CrUX) وLighthouse**: تأتي في الجزء التالي من المرحلة. مقاييس Lighthouse تتغير من تشغيل لآخر، فتظهر معلومةً لا تدخل الدرجة.
+- **بيانات الزوار الحقيقيين (CrUX)**: من تقرير تجربة مستخدمي Chrome، بمفتاح API: الشريحة المئوية 75 لكل مقياس على الجوال في آخر 28 يوماً، لرابط الصفحة، أو لموقعها كله حين لا تكون عنده بيانات عنها، ويقول التقرير أيهما. هي زيارات مستخدمي Chrome الذين يشاركون إحصاءات الاستخدام وحدهم، وكثير من المواقع قليلة الزيارات ليس عنده بيانات عنها، فلا تنطبق قواعدها. ويُرسَل رابط الصفحة إلى Google، إلا صفحة على عنوان محلي أو خاص.
+- **Lighthouse**: الإصدار 13 في Chromium، على جوال يحاكيه وبسرعة شبكة ومعالج محسوبة (simulated throttling)، ومقاييسه الخمسة التي تزن درجته. تتغير من تشغيل لآخر، فتظهر معلومةً لا تكون مخالفة ولا تدخل الدرجة أبداً.
 
 ---
 
@@ -122,4 +123,5 @@ The same examples are tests in `packages/scoring`, so the formula written here a
 - **Stylesheets and fonts**: a file is read only when its size is known before reading it, within fixed limits. Firefox and WebKit hide the size of another site's stylesheet, so there it is not read, and the rules that need it do not judge it.
 - **axe-core**: a curated set of its rules, each with Arabic copy and test fixtures. A bug makes axe skip the contrast of Arabic text; we correct for it before running it.
 - **The rules' own limits**: every number in a rule, such as the days before a certificate expires or the savings compression must bring, is on the rule's page with its source.
-- **Real-user data (CrUX) and Lighthouse**: they come in the next part of the phase. Lighthouse's metrics vary from run to run, so they show as information and never enter the score.
+- **Real-user data (CrUX)**: from the Chrome UX Report, with an API key: each metric's 75th percentile on phones over the last 28 days, for the page's URL, or its whole site when CrUX has none for the page, and the report says which. It counts only the visits of Chrome users who share usage statistics, and many sites with fewer visits have no data, so its rules do not apply to them. The page's URL is sent to Google, unless the page is on a local or private address.
+- **Lighthouse**: version 13 in Chromium, on an emulated phone with simulated throttling, and the five metrics its score weighs. They vary from run to run, so they show as information: never findings, and never part of the score.
