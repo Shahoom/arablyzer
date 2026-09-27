@@ -86,8 +86,9 @@ export interface FieldElement extends ElementRef {
 
 /**
  * An element that loads something over http:, or sends a form there: on an HTTPS page, mixed
- * content (W3C Mixed Content). Blockable loads (scripts, styles, frames, objects) browsers block;
- * images and media they upgrade to https: or load with a warning.
+ * content (W3C Mixed Content). Images, audio and video browsers upgrade to https: (or load with a
+ * warning); everything else they block, and images too when chosen by srcset or <picture> or on
+ * an IP address (Mixed Content §4.1).
  */
 export interface InsecureLoadElement extends ElementRef {
   readonly tag: string
@@ -161,9 +162,10 @@ export function collectHtml(
   const insecureLoads: InsecureLoadElement[] = []
   const walk: Walk = { left: options.walkBudget ?? WALK_BUDGET }
   const labels = labelsByField(all, walk)
+  const forms = formIds(all)
   for (const element of all) {
     if (insecureLoads.length < MAX_INSECURE_LOADS && isHtmlElement(element, element.tagName)) {
-      for (const load of insecureLoadsOf(element, baseUrl)) {
+      for (const load of insecureLoadsOf(element, baseUrl, forms)) {
         if (insecureLoads.length < MAX_INSECURE_LOADS)
           insecureLoads.push({ ...index.ref(element), ...load })
       }
@@ -270,66 +272,210 @@ export function collectHtml(
 }
 
 export const MAX_INSECURE_LOADS = 100
+/** Candidates read from one srcset. */
+export const MAX_SRCSET_CANDIDATES = 50
+
+type LoadKind = InsecureLoadElement['kind']
 
 /** Attributes that load a resource, by element, and how browsers treat them over http:. */
-const LOADS: Readonly<Record<string, readonly (readonly [string, InsecureLoadElement['kind']])[]>> =
-  {
-    script: [['src', 'blockable']],
-    iframe: [['src', 'blockable']],
-    frame: [['src', 'blockable']],
-    object: [['data', 'blockable']],
-    embed: [['src', 'blockable']],
-    img: [
-      ['src', 'upgradable'],
-      ['srcset', 'upgradable'],
-    ],
-    source: [
-      ['src', 'upgradable'],
-      ['srcset', 'upgradable'],
-    ],
-    video: [
-      ['src', 'upgradable'],
-      ['poster', 'upgradable'],
-    ],
-    audio: [['src', 'upgradable']],
-    track: [['src', 'upgradable']],
-    form: [['action', 'form']],
-    button: [['formaction', 'form']],
-    input: [['formaction', 'form']],
-  }
+const LOADS: Readonly<Record<string, readonly (readonly [string, LoadKind])[]>> = {
+  script: [['src', 'blockable']],
+  iframe: [['src', 'blockable']],
+  frame: [['src', 'blockable']],
+  object: [['data', 'blockable']],
+  embed: [['src', 'blockable']],
+  img: [
+    ['src', 'upgradable'],
+    ['srcset', 'upgradable'],
+  ],
+  video: [
+    ['src', 'upgradable'],
+    ['poster', 'upgradable'],
+  ],
+  audio: [['src', 'upgradable']],
+  track: [['src', 'blockable']],
+  form: [['action', 'form']],
+}
 
-/** The http: loads of one element: a stylesheet or icon link too, and each candidate of a srcset. */
+/** The http: loads of one element, each srcset candidate on its own. */
 function insecureLoadsOf(
   element: Element,
   baseUrl: string,
+  forms: ReadonlySet<string>,
 ): Omit<InsecureLoadElement, keyof ElementRef>[] {
   const loads: Omit<InsecureLoadElement, keyof ElementRef>[] = []
-  const check = (attribute: string, kind: InsecureLoadElement['kind'], value: string) => {
+  const check = (attribute: string, kind: LoadKind, value: string) => {
     const url = resolve(value.trim(), baseUrl)
-    if (url?.startsWith('http:') === true)
-      loads.push({ tag: element.tagName, attribute, url, kind })
+    if (url?.startsWith('http:') !== true) return
+    // An image or media file on an IP address is not upgraded: it is blocked.
+    const blocked = kind === 'upgradable' && isAddressUrl(url)
+    loads.push({ tag: element.tagName, attribute, url, kind: blocked ? 'blockable' : kind })
   }
-  if (element.tagName === 'link') {
-    const rel = tokens(attr(element, 'rel'))
-    const href = attr(element, 'href')
-    if (href !== null && rel.includes('stylesheet')) check('href', 'blockable', href)
-    else if (href !== null && rel.includes('icon')) check('href', 'upgradable', href)
-    return loads
-  }
-  for (const [attribute, kind] of LOADS[element.tagName] ?? []) {
+  const load = (attribute: string, kind: LoadKind) => {
     const value = attr(element, attribute)
-    if (value === null || value.trim() === '') continue
-    if (attribute === 'srcset') {
-      // Each candidate is a URL and an optional descriptor, separated by commas.
-      for (const candidate of value.split(',')) {
-        const url = candidate.trim().split(/\s+/)[0]
-        if (url !== undefined && url !== '') check(attribute, kind, url)
-      }
-    } else {
-      check(attribute, kind, value)
-    }
+    if (value === null || value.trim() === '') return
+    if (attribute === 'srcset') for (const url of srcsetUrls(value)) check(attribute, kind, url)
+    else check(attribute, kind, value)
   }
+  const parent = parentTag(element)
+  switch (element.tagName) {
+    case 'link': {
+      // Icons are not upgraded either (Mixed Content §4.1): both are blocked.
+      const rel = tokens(attr(element, 'rel'))
+      if (rel.includes('stylesheet') || rel.includes('icon')) load('href', 'blockable')
+      return loads
+    }
+    case 'script':
+      if (fetchesScript(element)) load('src', 'blockable')
+      return loads
+    case 'img':
+      // An image set, chosen by srcset or <picture>, is blocked rather than upgraded.
+      if (attr(element, 'srcset') !== null || parent === 'picture') {
+        load('src', 'blockable')
+        load('srcset', 'blockable')
+        return loads
+      }
+      break
+    case 'source':
+      // A <picture> source is part of an image set; an audio or video source is media.
+      if (parent === 'picture') load('srcset', 'blockable')
+      else if (parent === 'video' || parent === 'audio') load('src', 'upgradable')
+      return loads
+    case 'input':
+      if (inputType(attr(element, 'type')) === 'image') load('src', 'upgradable')
+      if (submitsForm(element, forms)) load('formaction', 'form')
+      return loads
+    case 'button':
+      if (submitsForm(element, forms)) load('formaction', 'form')
+      return loads
+  }
+  for (const [attribute, kind] of LOADS[element.tagName] ?? []) load(attribute, kind)
   return loads
+}
+
+/**
+ * The URLs of a srcset's candidates, as HTML's srcset parser splits them: a URL runs to
+ * whitespace, so it may hold commas, and its descriptors run to a comma outside parentheses. At
+ * most MAX_SRCSET_CANDIDATES.
+ */
+export function srcsetUrls(value: string): string[] {
+  const urls: string[] = []
+  const space = (character: string | undefined) =>
+    character === ' ' ||
+    character === '\t' ||
+    character === '\n' ||
+    character === '\f' ||
+    character === '\r'
+  let at = 0
+  while (urls.length < MAX_SRCSET_CANDIDATES) {
+    while (at < value.length && (space(value[at]) || value[at] === ',')) at++
+    if (at >= value.length) break
+    const start = at
+    while (at < value.length && !space(value[at])) at++
+    let url = value.slice(start, at)
+    if (url.endsWith(',')) {
+      // No descriptors: the commas end the candidate.
+      url = url.replace(/,+$/, '')
+    } else {
+      let inParens = false
+      for (; at < value.length; at++) {
+        const character = value[at]
+        if (inParens) inParens = character !== ')'
+        else if (character === '(') inParens = true
+        else if (character === ',') {
+          at++
+          break
+        }
+      }
+    }
+    if (url !== '') urls.push(url)
+  }
+  return urls
+}
+
+/** HTML's JavaScript MIME type essences: a script of any other type is not run, nor fetched. */
+const JAVASCRIPT_TYPES: ReadonlySet<string> = new Set([
+  'application/ecmascript',
+  'application/javascript',
+  'application/x-ecmascript',
+  'application/x-javascript',
+  'text/ecmascript',
+  'text/javascript',
+  'text/javascript1.0',
+  'text/javascript1.1',
+  'text/javascript1.2',
+  'text/javascript1.3',
+  'text/javascript1.4',
+  'text/javascript1.5',
+  'text/jscript',
+  'text/livescript',
+  'text/x-ecmascript',
+  'text/x-javascript',
+])
+
+/**
+ * Whether the browser fetches the script's src (HTML "prepare the script element"): a classic
+ * script without nomodule, which browsers with modules skip, or a module. Data blocks, templates
+ * and import maps are not fetched.
+ */
+function fetchesScript(element: Element): boolean {
+  const type = attr(element, 'type')
+  const language = attr(element, 'language')
+  const typeString =
+    type !== null ? type.trim() : language !== null && language !== '' ? `text/${language}` : ''
+  const lowered = typeString.toLowerCase()
+  if (lowered === 'module') return true
+  const classic = lowered === '' || JAVASCRIPT_TYPES.has(lowered)
+  return classic && attr(element, 'nomodule') === null
+}
+
+/**
+ * Whether the button or input submits a form: a submit button (a <button> of type submit, the
+ * default, or an <input> of type submit or image) with a form owner, which formaction then
+ * sends to. The owner is the form its form attribute names, else the form it is in.
+ */
+function submitsForm(element: Element, forms: ReadonlySet<string>): boolean {
+  if (element.tagName === 'button') {
+    const type = attr(element, 'type')?.trim().toLowerCase()
+    if (type === 'reset' || type === 'button') return false
+  } else {
+    const type = inputType(attr(element, 'type'))
+    if (type !== 'submit' && type !== 'image') return false
+  }
+  const owner = attr(element, 'form')
+  if (owner !== null) return forms.has(owner)
+  // Not the type guard, which would leave `node` as never past a failed check.
+  const isForm = (node: Element): boolean => isHtmlElement(node, 'form')
+  for (let node = element.parentNode; node !== null && isElement(node); node = node.parentNode) {
+    if (isForm(node)) return true
+  }
+  return false
+}
+
+/** The IDs whose first element is a form: those a form attribute can name. */
+function formIds(all: readonly Element[]): Set<string> {
+  const first = new Map<string, Element>()
+  for (const element of all) {
+    const id = attr(element, 'id')
+    if (id !== null && id !== '' && !first.has(id)) first.set(id, element)
+  }
+  const forms = new Set<string>()
+  for (const [id, element] of first) if (isHtmlElement(element, 'form')) forms.add(id)
+  return forms
+}
+
+/** The parent element's tag name; null at the top or under a non-HTML parent. */
+function parentTag(element: Element): string | null {
+  const parent = element.parentNode
+  return parent !== null && isElement(parent) && isHtmlElement(parent, parent.tagName)
+    ? parent.tagName
+    : null
+}
+
+/** Whether the URL's host is an IP address, which the URL parser has written in its usual form. */
+function isAddressUrl(url: string): boolean {
+  const { hostname } = new URL(url)
+  return hostname.startsWith('[') || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname)
 }
 
 const HEADING_LEVELS = new Map<string, HeadingElement['level']>([
