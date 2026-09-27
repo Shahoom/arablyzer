@@ -5,6 +5,7 @@ import {
   collectRobots,
   ENGINES,
   headerValues,
+  type CruxFacts,
   type Engine,
   type PageFacts,
   type RenderedFacts,
@@ -46,7 +47,8 @@ import {
   type Rule,
 } from '@arablyzer/rules'
 import { boundSelector, boundText, boundValues } from './bounds'
-import { notice } from './notices'
+import { fetchCrux, type CruxOptions } from './crux'
+import { notice, type NoticeCode } from './notices'
 
 export const ENGINE_VERSION = '0.1.0'
 /** BUILD-PLAN §1. Arablyzer always identifies itself and never poses as another crawler. */
@@ -111,6 +113,12 @@ export interface ScanOptions {
    * notice says so), and naming one in ruleIds throws a TypeError.
    */
   readonly render?: RenderRequest
+  /**
+   * Real-user data from the Chrome UX Report, asked with this key (M1.3b). Without it, the rules
+   * that need `crux` do not apply, and a notice says so. A page on a private address is not asked
+   * about.
+   */
+  readonly crux?: CruxOptions
 }
 
 /** The selected rules, sorted by id; a TypeError names any unknown id. */
@@ -232,6 +240,18 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   const robots = rules.some((rule) => rule.needs.includes('robots'))
     ? await fetchRobots(response.url, { ...base, policy: robotsPolicy })
     : undefined
+  // Real-user data, when a rule reads it: the page's URL goes to Google with the key.
+  const cruxSkipped: NoticeCode | null = !rules.some((rule) => rule.needs.includes('crux'))
+    ? null
+    : options.crux === undefined
+      ? 'crux-no-key'
+      : fetched.privateAccess
+        ? 'crux-private'
+        : null
+  const crux =
+    cruxSkipped === null && options.crux !== undefined && isSuccess(page.status)
+      ? await fetchCrux(response.url, options.crux, { ...base, policy })
+      : undefined
   // The browser gets the same lockdown: a public page never opens private addresses to it.
   const rendering =
     options.render === undefined
@@ -256,8 +276,11 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
         ]
       : []),
     ...(rendering?.notices ?? []),
+    ...(cruxSkipped === null ? [] : [notice(cruxSkipped)]),
+    ...(crux?.outcome === 'not-found' ? [notice('crux-not-found')] : []),
+    ...(crux?.outcome === 'failed' ? [notice('crux-failed')] : []),
   ]
-  const { results, findings } = evaluateRules(rules, page, robots, rendering?.rendered)
+  const { results, findings } = evaluateRules(rules, page, robots, rendering?.rendered, crux)
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
 
@@ -268,7 +291,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     page: pageSummary(page),
     results,
     findings,
-    facts: robotsFacts(robots, page.url),
+    facts: { ...robotsFacts(robots, page.url), ...cruxFacts(crux) },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
   })
 }
@@ -416,6 +439,8 @@ export interface EvaluateOptions {
   readonly robots?: RobotsFacts
   /** The page as engines rendered it; without it, rules that need `render` are left out. */
   readonly rendered?: readonly RenderedFacts[]
+  /** Real-user data; without it, rules that need `crux` do not apply. */
+  readonly crux?: CruxFacts
 }
 
 export interface Evaluation {
@@ -434,7 +459,7 @@ export function evaluatePage(page: PageFacts, options: EvaluateOptions = {}): Ev
     options.ruleIds,
     options.rendered === undefined ? undefined : ENGINES,
   )
-  return evaluateRules(rules, page, options.robots, options.rendered)
+  return evaluateRules(rules, page, options.robots, options.rendered, options.crux)
 }
 
 function evaluateRules(
@@ -442,11 +467,12 @@ function evaluateRules(
   page: PageFacts,
   robots: RobotsFacts | undefined,
   rendered?: readonly RenderedFacts[],
+  crux?: CruxFacts,
 ): Evaluation {
   const results: RuleResult[] = []
   const findings: Finding[] = []
   for (const rule of rules) {
-    const outcome = evaluate(rule, page, robots, rendered)
+    const outcome = evaluate(rule, page, robots, rendered, crux)
     results.push(
       ruleResult(rule, outcome.status, {
         ...(outcome.error === undefined ? {} : { error: outcome.error }),
@@ -491,6 +517,7 @@ function evaluate(
   page: PageFacts,
   robots: RobotsFacts | undefined,
   rendered: readonly RenderedFacts[] | undefined,
+  crux: CruxFacts | undefined,
 ): Outcome {
   const needsPage = rule.needs.some((need) => need !== 'robots')
   const needsRender = rule.needs.includes('render')
@@ -504,6 +531,13 @@ function evaluate(
   }
   if (rule.needs.includes('robots') && (robots === undefined || robots.outcome === 'failed')) {
     return { status: 'error', error: 'robots-unchecked', findings: [] }
+  }
+  // Without a key, or for a private page, CrUX was not asked: nothing to judge.
+  if (rule.needs.includes('crux') && crux === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
+  if (rule.needs.includes('crux') && crux?.outcome === 'failed') {
+    return { status: 'error', error: 'crux-unchecked', findings: [] }
   }
   // Only the engines the rule can read; none of them rendered means it could not check.
   const seen = needsRender
@@ -519,6 +553,7 @@ function evaluate(
     page,
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
+    ...(crux === undefined ? {} : { crux }),
   }
   try {
     if (!rule.appliesTo(page, evidence)) return { status: 'not-applicable', findings: [] }
@@ -690,6 +725,13 @@ export function pageSummary(page: PageFacts): Page | null {
 }
 
 /** The AI crawler table for tool pages (design §3 `facts`). */
+/** CrUX's answer as the report gives it; nothing when it was not asked or did not answer. */
+function cruxFacts(crux: CruxFacts | undefined): Facts {
+  if (crux === undefined || crux.outcome === 'failed') return {}
+  const { outcome, scope, key, period, lcp, inp, cls } = crux
+  return { crux: { outcome, scope, key, period, lcp, inp, cls } }
+}
+
 function robotsFacts(robots: RobotsFacts | undefined, pageUrl: string): Facts {
   if (robots === undefined || robots.outcome === 'failed') return {}
   return {

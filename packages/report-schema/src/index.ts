@@ -208,6 +208,30 @@ export const AiCrawlerFact = z.strictObject({
 export type AiCrawlerFact = z.infer<typeof AiCrawlerFact>
 
 /** Small collector summaries that tool pages display (design §3). */
+/** YYYY-MM-DD. */
+const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
+/**
+ * Real-user data from the Chrome UX Report (M1.3b): the 75th percentile of each Core Web Vital
+ * on phones, for the page's URL or, when CrUX has none for it, its origin.
+ */
+export const CruxFact = z
+  .strictObject({
+    outcome: z.enum(['found', 'not-found']),
+    scope: z.enum(['url', 'origin']).nullable(),
+    /** The URL or origin as CrUX names it. */
+    key: z.string().min(1).max(2048).nullable(),
+    /** The days the data covers. */
+    period: z.strictObject({ first: IsoDate, last: IsoDate }).nullable(),
+    /** Milliseconds. */
+    lcp: z.number().nonnegative().nullable(),
+    inp: z.number().nonnegative().nullable(),
+    /** Without a unit. */
+    cls: z.number().nonnegative().nullable(),
+  })
+  .meta({ id: 'CruxFact' })
+export type CruxFact = z.infer<typeof CruxFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -217,6 +241,8 @@ export const Facts = z.strictObject({
       aiCrawlers: z.array(AiCrawlerFact),
     })
     .optional(),
+  /** Present when CrUX was asked, with a key, and answered. */
+  crux: CruxFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

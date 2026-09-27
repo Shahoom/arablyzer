@@ -15,6 +15,9 @@ import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
+import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
+import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
 import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
 import { rule as formLabelMissing } from './rules/form-label-missing/rule'
@@ -65,6 +68,9 @@ export const RULES: readonly Rule[] = [
   arMojibake,
   arTatweel,
   canonicalConflict,
+  cwvClsPoor,
+  cwvInpPoor,
+  cwvLcpPoor,
   formArabicDigitsRejected,
   formArabicNameRejected,
   formLabelMissing,

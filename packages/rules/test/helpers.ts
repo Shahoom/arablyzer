@@ -2,8 +2,10 @@ import { readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
   ARABIC_BLOCKS,
+  collectCrux,
   collectPage,
   collectRobots,
+  type CruxFacts,
   type A11yNodeFact,
   type A11yRuleFact,
   type A11yRuleId,
@@ -16,8 +18,10 @@ import {
   type RobotsFacts,
 } from '@arablyzer/collectors'
 import {
+  answerCrux,
   certificateWindow,
   loadFixtureConfig,
+  type CruxData,
   loadSiteConfig,
   resolveFixtureResponse,
 } from '@arablyzer/fixtures'
@@ -73,7 +77,19 @@ export async function fixtureEvidence(ruleId: string, name: string): Promise<Evi
       response: { status: robots.status, body: robots.body, truncated: false },
       errorCode: null,
     }),
+    // CrUX's answers as the engine asks for them: the URL, then the origin when it has none.
+    ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, `${origin}/`) }),
   }
+}
+
+/** What the engine would read from the CrUX stand-in for a fixture site's page. */
+function cruxOf(data: CruxData, pageUrl: string): CruxFacts {
+  const ask = (query: Record<string, string>) =>
+    answerCrux(data, { ...query, formFactor: 'PHONE' }, 'fixture-key')
+  const url = ask({ url: pageUrl })
+  return url.status === 404
+    ? collectCrux({ url, origin: ask({ origin: new URL(pageUrl).origin }) })
+    : collectCrux({ url })
 }
 
 function headerList(headers: Record<string, string | string[]>): Header[] {

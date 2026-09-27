@@ -19,6 +19,10 @@ export type NoticeCode =
   | 'engine-refused'
   | 'render-truncated'
   | 'request-limit'
+  | 'crux-no-key'
+  | 'crux-private'
+  | 'crux-not-found'
+  | 'crux-failed'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -156,6 +160,22 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'request-limit': {
     ar: 'طلبت الصفحة في {engine} أكثر من الحد (300 طلب أو 25 ميغابايت)، فلم يُحمَّل الباقي، وقد يختلف عرضها عمّا يراه الزائر.',
     en: 'In {engine}, the page asked for more than the limit (300 requests or 25 MB), so the rest was not loaded, and it may look different from what visitors see.',
+  },
+  'crux-no-key': {
+    ar: 'فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.',
+    en: "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run.",
+  },
+  'crux-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Google (CrUX) عن سرعة زوارها.',
+    en: "The page is on a local or private address, so Google (CrUX) was not asked about its visitors' speed.",
+  },
+  'crux-not-found': {
+    ar: 'ليس عند Google (CrUX) بيانات عن زوار هذه الصفحة ولا موقعها، وهذا حال كثير من المواقع قليلة الزيارات، فلا تنطبق فحوص سرعة الزوار الحقيقيين.',
+    en: "Google (CrUX) has no data on visitors to this page or its site, as for many sites with fewer visits, so the checks of real visitors' speed do not apply.",
+  },
+  'crux-failed': {
+    ar: 'تعذّر جلب بيانات الزوار الحقيقيين من Google (CrUX)، فلم تعمل فحوصها.',
+    en: "Real visitors' data could not be fetched from Google (CrUX), so its checks could not run.",
   },
 }
 

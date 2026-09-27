@@ -16,9 +16,17 @@ describe('parseCliArgs', () => {
       timeoutMs: 30_000,
       allowPrivate: false,
       render: null,
+      cruxKey: null,
       help: false,
       version: false,
     })
+  })
+
+  it('reads the CrUX key from ARABLYZER_CRUX_API_KEY alone, trimmed (M1.3b)', () => {
+    const key = (env: Record<string, string>) => parseCliArgs(['x.test'], env).cruxKey
+    expect(key({ ARABLYZER_CRUX_API_KEY: ' abc123 ' })).toBe('abc123')
+    expect(key({ ARABLYZER_CRUX_API_KEY: '  ' })).toBeNull()
+    expect(key({})).toBeNull()
   })
 
   it('renders in Chromium with --render, in the engines asked for, and --screenshots implies it', () => {

@@ -1,5 +1,6 @@
 import type {
   Box,
+  CruxFacts,
   Engine,
   PageFacts,
   RenderedFacts,
@@ -14,9 +15,10 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * `html` and `text`: a 2xx HTML page. `robots`: robots.txt for the final URL. `render`: the page
  * rendered in a browser (only with --render; M1.1). `files`, with `render`: the files the page
  * loaded, read after the render (stylesheets, fonts, text responses, image files); the rule sees
- * only the engines that read them.
+ * only the engines that read them. `crux`: real-user data from the Chrome UX Report, which needs
+ * an API key; without one the rule does not apply (M1.3b).
  */
-export type CollectorId = 'http' | 'html' | 'text' | 'robots' | 'render' | 'files'
+export type CollectorId = 'http' | 'html' | 'text' | 'robots' | 'render' | 'files' | 'crux'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -27,6 +29,8 @@ export interface Evidence {
    * empty (the engine reports an error when none did).
    */
   readonly rendered?: readonly RenderedFacts[]
+  /** Present when the rule needs `crux` and CrUX answered; never `failed` (an error instead). */
+  readonly crux?: CruxFacts
 }
 
 /** Detectors return data only; the wording comes from the copy files (docs/design/phase-0.md §1). */

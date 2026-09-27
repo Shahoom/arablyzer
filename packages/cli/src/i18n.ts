@@ -46,6 +46,9 @@ Options:
   -h, --help             Show this help
   -v, --version          Show the version
 
+Real visitors' speed (Core Web Vitals) comes from Google's Chrome UX Report with an API key
+in ARABLYZER_CRUX_API_KEY; the page's URL is sent to Google. Without it, those checks do not run.
+
 Exit codes: 0 scan complete; 1 failures at --fail-on or above; 2 scan not complete
 (address blocked or unreachable, time limit, partial scan) or invalid options.
 `
@@ -72,6 +75,9 @@ const HELP_AR = `الاستخدام: arablyzer <الرابط> [خيارات]
   --screenshots <dir>    احفظ لقطة للشاشة الأولى في كل محرّك باسم <dir>/<engine>.png
   -h, --help             اعرض هذه المساعدة
   -v, --version          اعرض رقم الإصدار
+
+سرعة الزوار الحقيقيين (Core Web Vitals) من تقرير Google (Chrome UX Report)، بمفتاح API في
+ARABLYZER_CRUX_API_KEY، ويُرسَل رابط الصفحة إلى Google. دونه لا تعمل هذه الفحوص.
 
 رموز الخروج: 0 اكتمل الفحص؛ 1 مخالفات عند --fail-on أو أعلى؛ 2 لم يكتمل الفحص
 (رابط محجوب أو غير قابل للوصول، انتهاء المهلة، فحص جزئي) أو خيارات غير صالحة.

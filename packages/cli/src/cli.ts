@@ -48,6 +48,7 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     policy: cliPolicy(options.allowPrivate),
     timeoutMs: options.timeoutMs,
     ...(options.ruleIds === undefined ? {} : { ruleIds: options.ruleIds }),
+    ...(options.cruxKey === null ? {} : { crux: { apiKey: options.cruxKey } }),
     ...(io.signal === undefined ? {} : { signal: io.signal }),
     ...(render === null
       ? {}

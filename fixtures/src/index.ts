@@ -1,5 +1,13 @@
 export { FixtureConfig, RouteOverride, SiteConfig } from './config'
 export {
+  answerCrux,
+  CruxData,
+  CruxMetrics,
+  serveCrux,
+  type CruxQuery,
+  type CruxStandIn,
+} from './crux'
+export {
   loadFixtureConfig,
   loadSiteConfig,
   resolveFixtureResponse,

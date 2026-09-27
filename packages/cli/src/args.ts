@@ -29,6 +29,8 @@ export interface CliOptions {
   readonly allowPrivate: boolean
   /** null: no browser, as in Phase 0. */
   readonly render: RenderChoice | null
+  /** ARABLYZER_CRUX_API_KEY: real-user data from CrUX (M1.3b); null without it. */
+  readonly cruxKey: string | null
   readonly help: boolean
   readonly version: boolean
 }
@@ -61,7 +63,15 @@ export function parseCliArgs(
     version: values.version,
   }
   if (values.help || values.version) {
-    return { ...base, url: '', ruleIds: undefined, failOn: undefined, timeoutMs: 0, render: null }
+    return {
+      ...base,
+      url: '',
+      ruleIds: undefined,
+      failOn: undefined,
+      timeoutMs: 0,
+      render: null,
+      cruxKey: null,
+    }
   }
   if (positionals.length !== 1) {
     throw new UsageError(positionals.length === 0 ? 'a URL is required' : 'give exactly one URL')
@@ -94,7 +104,16 @@ export function parseCliArgs(
     failOn: values['fail-on'] === undefined ? undefined : severity(values['fail-on']),
     timeoutMs: timeout(values.timeout),
     render,
+    cruxKey: cruxKey(env),
   }
+}
+
+/** The CrUX API key from the environment, never from an argument that shells keep in history. */
+export const CRUX_KEY_VARIABLE = 'ARABLYZER_CRUX_API_KEY'
+
+function cruxKey(env: Readonly<Record<string, string | undefined>>): string | null {
+  const key = env[CRUX_KEY_VARIABLE]?.trim() ?? ''
+  return key === '' ? null : key
 }
 
 /** --engines or --screenshots imply --render; Chromium alone by default (Phase 1 decision 2). */
