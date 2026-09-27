@@ -235,3 +235,41 @@ describe('collectPage: visible text', () => {
     })
   })
 })
+
+describe('collectPage: loads over http: (mixed content)', () => {
+  it('lists each element that loads over http:, with how browsers treat it', () => {
+    const facts = page(`<!doctype html><html><head>
+<link rel="stylesheet" href="http://cdn.example.com/site.css">
+<link rel="icon" href="http://cdn.example.com/favicon.ico">
+<link rel="canonical" href="http://example.com/ar/perfume">
+<script src="http://cdn.example.com/app.js"></script>
+</head><body>
+<img src="/ok.png" srcset="//cdn.example.com/a.png 1x, http://cdn.example.com/b.png 2x">
+<iframe src="https://maps.example.com/embed"></iframe>
+<form action="http://example.com/subscribe"><input formaction="https://example.com/x"></form>
+<a href="http://example.com/old">not a load</a>
+<svg><image href="http://cdn.example.com/c.png"></image></svg>
+</body></html>`)
+    expect(
+      htmlOf(facts).insecureLoads.map(({ tag, attribute, url, kind }) => [
+        tag,
+        attribute,
+        url,
+        kind,
+      ]),
+    ).toEqual([
+      ['link', 'href', 'http://cdn.example.com/site.css', 'blockable'],
+      ['link', 'href', 'http://cdn.example.com/favicon.ico', 'upgradable'],
+      ['script', 'src', 'http://cdn.example.com/app.js', 'blockable'],
+      ['img', 'srcset', 'http://cdn.example.com/b.png', 'upgradable'],
+      ['form', 'action', 'http://example.com/subscribe', 'form'],
+    ])
+  })
+
+  it('resolves against a <base> that points at http:', () => {
+    const facts = page('<base href="http://example.com/"><img src="logo.png">')
+    expect(htmlOf(facts).insecureLoads.map((load) => load.url)).toEqual([
+      'http://example.com/logo.png',
+    ])
+  })
+})

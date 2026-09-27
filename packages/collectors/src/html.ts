@@ -84,6 +84,19 @@ export interface FieldElement extends ElementRef {
   readonly ariaLabel: string | null
 }
 
+/**
+ * An element that loads something over http:, or sends a form there: on an HTTPS page, mixed
+ * content (W3C Mixed Content). Blockable loads (scripts, styles, frames, objects) browsers block;
+ * images and media they upgrade to https: or load with a warning.
+ */
+export interface InsecureLoadElement extends ElementRef {
+  readonly tag: string
+  readonly attribute: string
+  /** The http: URL, resolved against the document base URL. */
+  readonly url: string
+  readonly kind: 'blockable' | 'upgradable' | 'form'
+}
+
 export interface HtmlFacts {
   readonly encoding: EncodingInfo
   /** The document base URL: the first <base href>, else the page URL. */
@@ -100,6 +113,8 @@ export interface HtmlFacts {
   readonly scripts: readonly ScriptElement[]
   readonly headings: readonly HeadingElement[]
   readonly fields: readonly FieldElement[]
+  /** The first MAX_INSECURE_LOADS, in document order. */
+  readonly insecureLoads: readonly InsecureLoadElement[]
 }
 
 export interface HtmlOptions {
@@ -143,9 +158,16 @@ export function collectHtml(
   const scripts: ScriptElement[] = []
   const headings: HeadingElement[] = []
   const fields: FieldElement[] = []
+  const insecureLoads: InsecureLoadElement[] = []
   const walk: Walk = { left: options.walkBudget ?? WALK_BUDGET }
   const labels = labelsByField(all, walk)
   for (const element of all) {
+    if (insecureLoads.length < MAX_INSECURE_LOADS && isHtmlElement(element, element.tagName)) {
+      for (const load of insecureLoadsOf(element, baseUrl)) {
+        if (insecureLoads.length < MAX_INSECURE_LOADS)
+          insecureLoads.push({ ...index.ref(element), ...load })
+      }
+    }
     const level = HEADING_LEVELS.get(element.tagName)
     if (level !== undefined && isHtmlElement(element, element.tagName)) {
       headings.push({
@@ -243,7 +265,71 @@ export function collectHtml(
     scripts,
     headings,
     fields,
+    insecureLoads,
   }
+}
+
+export const MAX_INSECURE_LOADS = 100
+
+/** Attributes that load a resource, by element, and how browsers treat them over http:. */
+const LOADS: Readonly<Record<string, readonly (readonly [string, InsecureLoadElement['kind']])[]>> =
+  {
+    script: [['src', 'blockable']],
+    iframe: [['src', 'blockable']],
+    frame: [['src', 'blockable']],
+    object: [['data', 'blockable']],
+    embed: [['src', 'blockable']],
+    img: [
+      ['src', 'upgradable'],
+      ['srcset', 'upgradable'],
+    ],
+    source: [
+      ['src', 'upgradable'],
+      ['srcset', 'upgradable'],
+    ],
+    video: [
+      ['src', 'upgradable'],
+      ['poster', 'upgradable'],
+    ],
+    audio: [['src', 'upgradable']],
+    track: [['src', 'upgradable']],
+    form: [['action', 'form']],
+    button: [['formaction', 'form']],
+    input: [['formaction', 'form']],
+  }
+
+/** The http: loads of one element: a stylesheet or icon link too, and each candidate of a srcset. */
+function insecureLoadsOf(
+  element: Element,
+  baseUrl: string,
+): Omit<InsecureLoadElement, keyof ElementRef>[] {
+  const loads: Omit<InsecureLoadElement, keyof ElementRef>[] = []
+  const check = (attribute: string, kind: InsecureLoadElement['kind'], value: string) => {
+    const url = resolve(value.trim(), baseUrl)
+    if (url?.startsWith('http:') === true)
+      loads.push({ tag: element.tagName, attribute, url, kind })
+  }
+  if (element.tagName === 'link') {
+    const rel = tokens(attr(element, 'rel'))
+    const href = attr(element, 'href')
+    if (href !== null && rel.includes('stylesheet')) check('href', 'blockable', href)
+    else if (href !== null && rel.includes('icon')) check('href', 'upgradable', href)
+    return loads
+  }
+  for (const [attribute, kind] of LOADS[element.tagName] ?? []) {
+    const value = attr(element, attribute)
+    if (value === null || value.trim() === '') continue
+    if (attribute === 'srcset') {
+      // Each candidate is a URL and an optional descriptor, separated by commas.
+      for (const candidate of value.split(',')) {
+        const url = candidate.trim().split(/\s+/)[0]
+        if (url !== undefined && url !== '') check(attribute, kind, url)
+      }
+    } else {
+      check(attribute, kind, value)
+    }
+  }
+  return loads
 }
 
 const HEADING_LEVELS = new Map<string, HeadingElement['level']>([

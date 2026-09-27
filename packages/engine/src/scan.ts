@@ -213,6 +213,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
         status: response.status,
         headers: response.headers,
         body: response.body,
+        certificate:
+          response.certificate === null
+            ? null
+            : { ...response.certificate, checkedAt: fetched.startedAt },
       },
       { deadline: performance.now() + parseTimeoutMs },
     )

@@ -8,13 +8,19 @@ import {
   type A11yRuleFact,
   type A11yRuleId,
   type ArabicTextBlock,
+  type CertificateFacts,
   type Engine,
   type Header,
   type PageFacts,
   type RenderedFacts,
   type RobotsFacts,
 } from '@arablyzer/collectors'
-import { loadFixtureConfig, resolveFixtureResponse } from '@arablyzer/fixtures'
+import {
+  certificateWindow,
+  loadFixtureConfig,
+  loadSiteConfig,
+  resolveFixtureResponse,
+} from '@arablyzer/fixtures'
 import type { DetectorFinding, Evidence, Rule } from '../src/rule'
 
 /** Rule tests read fixtures without HTTP; the engine test serves the same sites for real. */
@@ -31,24 +37,39 @@ export function fixtureNames(ruleId: string): string[] {
     .sort()
 }
 
-/** Evidence for fixtures/<name>/ exactly as the fixture server would answer / and /robots.txt. */
+/**
+ * Evidence for fixtures/<name>/ exactly as the fixture server would answer / and /robots.txt:
+ * under its site.json host and over HTTPS when it asks, with the certificate it would have.
+ */
 export async function fixtureEvidence(ruleId: string, name: string): Promise<Evidence> {
   const root = `${fixturesDir(ruleId)}${name}`
   const config = await loadFixtureConfig(root)
+  const site = await loadSiteConfig(root)
+  const origin = `${site.tls === undefined ? 'http' : 'https'}://${site.host ?? 'fixture.test'}`
   const page = await resolveFixtureResponse(root, config, '/')
   if (page.status >= 300 && page.status < 400) {
     throw new Error(`${ruleId}/${name}: redirects are exercised by the engine tests, not here`)
   }
   const robots = await resolveFixtureResponse(root, config, '/robots.txt')
+  const window =
+    site.tls === undefined ? null : certificateWindow(site.tls.lifetimeDays, site.tls.daysLeft)
   return {
     page: collectPage({
-      url: `${FIXTURE_ORIGIN}/`,
+      url: `${origin}/`,
       status: page.status,
       headers: headerList(page.headers),
       body: page.body,
+      certificate:
+        window === null
+          ? null
+          : {
+              validFrom: window[0].toISOString(),
+              validTo: window[1].toISOString(),
+              checkedAt: new Date().toISOString(),
+            },
     }),
     robots: collectRobots({
-      url: `${FIXTURE_ORIGIN}/robots.txt`,
+      url: `${origin}/robots.txt`,
       response: { status: robots.status, body: robots.body, truncated: false },
       errorCode: null,
     }),
@@ -65,6 +86,7 @@ export interface HtmlPageOptions {
   readonly headers?: readonly Header[]
   readonly status?: number
   readonly url?: string
+  readonly certificate?: CertificateFacts | null
 }
 
 /** PageFacts for an inline HTML string. */
@@ -74,6 +96,7 @@ export function htmlPage(html: string, options: HtmlPageOptions = {}): PageFacts
     status: options.status ?? 200,
     headers: options.headers ?? [['content-type', 'text/html; charset=utf-8']],
     body: new TextEncoder().encode(html),
+    certificate: options.certificate ?? null,
   })
 }
 

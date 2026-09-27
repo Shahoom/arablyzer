@@ -1,6 +1,7 @@
 import http, { type IncomingMessage } from 'node:http'
 import https from 'node:https'
 import type { Readable } from 'node:stream'
+import { TLSSocket } from 'node:tls'
 import zlib from 'node:zlib'
 import { egressError, type EgressError } from './errors'
 import { DEFAULT_POLICY, type EgressPolicy } from './policy'
@@ -55,6 +56,13 @@ export interface FetchHop {
   readonly location: string
 }
 
+/** The final response's TLS certificate: when it became valid and when it expires. */
+export interface CertificateValidity {
+  /** ISO 8601. */
+  readonly validFrom: string
+  readonly validTo: string
+}
+
 export interface FetchResponse {
   /** Final URL after redirects. */
   readonly url: string
@@ -64,6 +72,8 @@ export interface FetchResponse {
   readonly body: Uint8Array
   readonly truncated: boolean
   readonly remoteAddress: string | null
+  /** null over plain HTTP, or when the certificate's dates could not be read. */
+  readonly certificate: CertificateValidity | null
 }
 
 export interface FetchResult {
@@ -167,17 +177,35 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
         continue
       }
       const remoteAddress = res.socket.remoteAddress ?? null
+      const certificate = res.socket instanceof TLSSocket ? validityOf(res.socket) : null
       const headers = headerPairs(res.rawHeaders)
       const { body, truncated } = await readBody(
         res,
         options.maxBytes ?? DEFAULT_MAX_BYTES,
         options.onTooLarge ?? 'error',
       )
-      return finish({ url: url.href, status, headers, body, truncated, remoteAddress }, null)
+      return finish(
+        { url: url.href, status, headers, body, truncated, remoteAddress, certificate },
+        null,
+      )
     } catch (error) {
       return finish(null, toEgressError(error, url.href, deadline, signal))
     }
   }
+}
+
+/**
+ * The validity of the certificate the server presented, which verified (rejectUnauthorized), as
+ * ISO dates; null when the socket gives none or its dates do not parse.
+ */
+export function validityOf(
+  socket: Pick<TLSSocket, 'getPeerCertificate'>,
+): CertificateValidity | null {
+  const certificate = socket.getPeerCertificate()
+  const from = new Date(certificate.valid_from)
+  const to = new Date(certificate.valid_to)
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null
+  return { validFrom: from.toISOString(), validTo: to.toISOString() }
 }
 
 function sendRequest(

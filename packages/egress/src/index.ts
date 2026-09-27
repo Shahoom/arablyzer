@@ -5,6 +5,7 @@ export {
   DEFAULT_MAX_REDIRECTS,
   DEFAULT_TIMEOUT_MS,
   safeFetch,
+  type CertificateValidity,
   type FetchHop,
   type FetchResponse,
   type FetchResult,

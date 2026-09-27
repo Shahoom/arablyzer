@@ -15,6 +15,19 @@ export interface PageInput {
   /** Names lowercased; repeated headers kept in order. */
   readonly headers: readonly Header[]
   readonly body: Uint8Array
+  readonly certificate?: CertificateFacts | null
+}
+
+/** The TLS certificate the page came with, and when it was checked. */
+export interface CertificateFacts {
+  /** ISO 8601. */
+  readonly validFrom: string
+  readonly validTo: string
+  /**
+   * When the page was fetched: rules measure the time left from here, so a report reads the same
+   * whenever it is read.
+   */
+  readonly checkedAt: string
 }
 
 /** Everything the rules may read about the page itself (BUILD-PLAN §10 `PageFacts`). */
@@ -27,6 +40,8 @@ export interface PageFacts {
   readonly mimeType: string | null
   readonly isHtml: boolean
   readonly linkHeaders: readonly LinkHeaderEntry[]
+  /** null over plain HTTP, or when the certificate's dates could not be read. */
+  readonly certificate: CertificateFacts | null
   /** null unless the response is HTML (and was parsed before the deadline). */
   readonly html: HtmlFacts | null
   readonly text: TextFacts | null
@@ -74,6 +89,7 @@ export function collectPage(input: PageInput, options: CollectOptions = {}): Pag
     mimeType,
     isHtml,
     linkHeaders,
+    certificate: input.certificate ?? null,
   }
   if (!isHtml) return { ...base, html: null, text: null, htmlTruncated: false, htmlTimedOut: false }
 

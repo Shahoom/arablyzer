@@ -1,20 +1,25 @@
 import { readFile, stat } from 'node:fs/promises'
 import http from 'node:http'
+import https from 'node:https'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
-import { FixtureConfig, type RouteOverride } from './config'
+import { FixtureConfig, SiteConfig, type RouteOverride } from './config'
+import { certificateWindow, serverCertificate } from './tls'
 
 export interface FixtureSite {
   readonly origin: string
   readonly port: number
+  /** The host name the site is scanned under: 127.0.0.1, or its site.json host. */
+  readonly hostname: string
   url(pathname?: string): string
   close(): Promise<void>
 }
 
 const CONFIG_FILE = 'fixture.json'
+const SITE_FILE = 'site.json'
 /** Test metadata that sits next to the site files but is not part of the site. */
-const HIDDEN_FILES = new Set([CONFIG_FILE, 'expect.json'])
+const HIDDEN_FILES = new Set([CONFIG_FILE, SITE_FILE, 'expect.json'])
 /** Paths under this prefix come from fixtures/shared/, whatever the site. */
 export const SHARED_PREFIX = '/_shared/'
 const SHARED_ROOT = path.resolve(fileURLToPath(new URL('../shared/', import.meta.url)))
@@ -49,16 +54,45 @@ export async function loadFixtureConfig(root: string): Promise<FixtureConfig> {
   return parsed.data
 }
 
-/** Serve one fixture site directory on its own 127.0.0.1 origin, so /robots.txt sits at the root. */
+export async function loadSiteConfig(root: string): Promise<SiteConfig> {
+  const file = path.join(root, SITE_FILE)
+  let text: string
+  try {
+    text = await readFile(file, 'utf8')
+  } catch (error) {
+    if (isNotFound(error)) return {}
+    throw error
+  }
+  const parsed = SiteConfig.safeParse(JSON.parse(text))
+  if (!parsed.success) throw new Error(`Invalid ${file}:\n${z.prettifyError(parsed.error)}`)
+  return parsed.data
+}
+
+/**
+ * Serve one fixture site directory on its own 127.0.0.1 origin, so /robots.txt sits at the root;
+ * over HTTPS, and under a host name of its own, when its site.json asks.
+ */
 export async function serveSite(root: string): Promise<FixtureSite> {
   const siteRoot = path.resolve(root)
   const config = await loadFixtureConfig(siteRoot)
-  const server = http.createServer((req, res) => {
+  const site = await loadSiteConfig(siteRoot)
+  const hostname = site.host ?? '127.0.0.1'
+  const handler: http.RequestListener = (req, res) => {
     respond(siteRoot, config, req, res).catch((error: unknown) => {
       res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
       res.end(String(error))
     })
-  })
+  }
+  const server =
+    site.tls === undefined
+      ? http.createServer(handler)
+      : https.createServer(
+          serverCertificate(
+            [hostname, ...(hostname === '127.0.0.1' ? [] : ['127.0.0.1'])],
+            ...certificateWindow(site.tls.lifetimeDays, site.tls.daysLeft),
+          ),
+          handler,
+        )
   await new Promise<void>((resolve) => {
     server.listen(0, '127.0.0.1', resolve)
   })
@@ -66,10 +100,11 @@ export async function serveSite(root: string): Promise<FixtureSite> {
   if (address === null || typeof address === 'string') {
     throw new Error('Fixture server has no TCP address')
   }
-  const origin = `http://127.0.0.1:${address.port}`
+  const origin = `${site.tls === undefined ? 'http' : 'https'}://${hostname}:${address.port}`
   return {
     origin,
     port: address.port,
+    hostname,
     url: (pathname = '/') => new URL(pathname, origin).href,
     close: () =>
       new Promise((resolve, reject) => {
