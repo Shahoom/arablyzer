@@ -16,6 +16,7 @@ import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
 import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as titleMissing } from './rules/title-missing/rule'
+import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
@@ -40,6 +41,7 @@ export const RULES: readonly Rule[] = [
   rtlHorizontalOverflow,
   rtlHtmlDir,
   titleMissing,
+  viewportMissing,
   whatsappLinkFormat,
 ]
 
