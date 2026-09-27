@@ -17,6 +17,7 @@ import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
 import { rule as formLabelMissing } from './rules/form-label-missing/rule'
+import { rule as formPhoneDirection } from './rules/form-phone-direction/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
@@ -57,6 +58,7 @@ export const RULES: readonly Rule[] = [
   formArabicDigitsRejected,
   formArabicNameRejected,
   formLabelMissing,
+  formPhoneDirection,
   h1Missing,
   hreflangInvalidCode,
   jsonldSyntaxError,

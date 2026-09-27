@@ -18,7 +18,10 @@ export function hasPattern(field: FieldElement): field is PatternField {
 }
 
 /** Lowercase words of a field's name and id: "billing_firstName" gives billing, first, name. */
-export function identifierWords(field: FieldElement): string[] {
+export function identifierWords(field: {
+  readonly name: string | null
+  readonly id: string | null
+}): string[] {
   return [field.name, field.id].flatMap((identifier) =>
     (identifier ?? '')
       .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -29,7 +32,11 @@ export function identifierWords(field: FieldElement): string[] {
 }
 
 /** What a person reads for the field: its labels, aria-label and placeholder. */
-export function fieldTexts(field: FieldElement): string[] {
+export function fieldTexts(field: {
+  readonly label: string | null
+  readonly ariaLabel: string | null
+  readonly placeholder: string | null
+}): string[] {
   return [field.label, field.ariaLabel, field.placeholder].flatMap((text) =>
     text === null || text.trim() === '' ? [] : [text],
   )
