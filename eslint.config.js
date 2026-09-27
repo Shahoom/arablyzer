@@ -112,6 +112,17 @@ export default defineConfig(
     rules: { 'no-restricted-imports': 'off' },
   },
   {
+    // M1.3b: Lighthouse's Chromium is launched here, by puppeteer-core, behind the egress proxy
+    // with the render's flags; Playwright only says where its Chromium is.
+    files: ['packages/lab/src/**'],
+    rules: networkRules({ allowProcesses: false, allow: ['playwright-core', 'puppeteer-core'] }),
+  },
+  {
+    // Its tests serve pages and a service the policy refuses, so they open sockets.
+    files: ['packages/lab/test/**'],
+    rules: { 'no-restricted-imports': 'off' },
+  },
+  {
     // The egress package is the network boundary; the fixture server is local test infrastructure.
     files: ['packages/egress/**', 'fixtures/**'],
     rules: {

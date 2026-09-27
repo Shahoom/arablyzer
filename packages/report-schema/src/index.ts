@@ -232,6 +232,37 @@ export const CruxFact = z
   .meta({ id: 'CruxFact' })
 export type CruxFact = z.infer<typeof CruxFact>
 
+/** Milliseconds, when measured. */
+const Milliseconds = z.number().int().nonnegative().nullable()
+
+/**
+ * Lighthouse's lab metrics on its emulated phone, with simulated throttling (M1.3b). They vary
+ * from run to run, so they are information, never judged and never part of the score.
+ */
+export const LabFact = z
+  .strictObject({
+    status: z.enum(['measured', 'failed', 'timeout', 'unavailable']),
+    /** Lighthouse's version: its metrics change from one version to the next. */
+    lighthouse: z.string().min(1),
+    /** The Chromium it ran in; null when it did not start. */
+    chromium: z.string().min(1).nullable(),
+    durationMs: count(),
+    requests: z.strictObject({ total: count(), refused: count() }),
+    /** Lighthouse's own performance score, 0 to 100. */
+    performance: ScoreValue,
+    metrics: z
+      .strictObject({
+        fcp: Milliseconds,
+        lcp: Milliseconds,
+        tbt: Milliseconds,
+        si: Milliseconds,
+        cls: z.number().nonnegative().nullable(),
+      })
+      .nullable(),
+  })
+  .meta({ id: 'LabFact' })
+export type LabFact = z.infer<typeof LabFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -243,6 +274,8 @@ export const Facts = z.strictObject({
     .optional(),
   /** Present when CrUX was asked, with a key, and answered. */
   crux: CruxFact.optional(),
+  /** Present when Lighthouse was asked for (--lab): information, never part of the score. */
+  lab: LabFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

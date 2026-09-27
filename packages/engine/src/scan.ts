@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { RenderOutcome } from '@arablyzer/browser'
+import type { LabRun } from '@arablyzer/lab'
 import {
   collectPage,
   collectRobots,
@@ -28,6 +29,7 @@ import {
   SCHEMA_VERSION,
   SEVERITY_ORDER,
   type Facts,
+  type LabFact,
   type Notice,
   type Page,
   type RenderRun,
@@ -74,6 +76,17 @@ const ENGINE_NAMES: Readonly<Record<Engine, string>> = {
   webkit: 'WebKit',
 }
 
+/** Lighthouse's lab metrics (M1.3b): information, never judged. */
+export interface LabRequest {
+  /** 60 s by default (LAB_TIMEOUT_MS), never more; what the scan's budget leaves otherwise. */
+  readonly timeoutMs?: number
+  /** Chromium's binary; ARABLYZER_CHROMIUM_PATH, else Playwright's Chromium. */
+  readonly executablePath?: string
+}
+
+/** Below this, Lighthouse is not started: it could not measure a page in time. */
+const MIN_LAB_MS = 10_000
+
 /** Rendering in a browser (M1.1): the engines, one after the other. */
 export interface RenderRequest {
   readonly engines: readonly Engine[]
@@ -119,6 +132,8 @@ export interface ScanOptions {
    * about.
    */
   readonly crux?: CruxOptions
+  /** Lighthouse's lab metrics, after the render; its package loads only then. */
+  readonly lab?: LabRequest
 }
 
 /** The selected rules, sorted by id; a TypeError names any unknown id. */
@@ -265,6 +280,17 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
           })
         : { runs: [], rendered: [], notices: [] }
 
+  // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
+  // lockdown. Information only, so its failure leaves the scan complete, with a notice.
+  const lab =
+    options.lab !== undefined && isSuccess(page.status) && page.isHtml
+      ? await measureLab(response.url, options.lab, {
+          policy: robotsPolicy,
+          resolver: base.resolver ?? defaultResolver(robotsPolicy),
+          started,
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
+        })
+      : undefined
   const notices = [
     ...pageNotices(page, robots),
     ...(renderSkipped ? [notice('render-skipped')] : []),
@@ -279,6 +305,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(cruxSkipped === null ? [] : [notice(cruxSkipped)]),
     ...(crux?.outcome === 'not-found' ? [notice('crux-not-found')] : []),
     ...(crux?.outcome === 'failed' ? [notice('crux-failed')] : []),
+    ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
   ]
   const { results, findings } = evaluateRules(rules, page, robots, rendering?.rendered, crux)
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
@@ -291,7 +318,11 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     page: pageSummary(page),
     results,
     findings,
-    facts: { ...robotsFacts(robots, page.url), ...cruxFacts(crux) },
+    facts: {
+      ...robotsFacts(robots, page.url),
+      ...cruxFacts(crux),
+      ...(lab === undefined ? {} : { lab: labFact(lab) }),
+    },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
   })
 }
@@ -725,6 +756,47 @@ export function pageSummary(page: PageFacts): Page | null {
 }
 
 /** The AI crawler table for tool pages (design §3 `facts`). */
+/** Runs Lighthouse within what the scan's budget leaves; its package loads only here. */
+async function measureLab(
+  url: string,
+  request: LabRequest,
+  context: {
+    readonly policy: EgressPolicy
+    readonly resolver: Resolver
+    readonly started: number
+    readonly signal?: AbortSignal
+  },
+): Promise<LabRun> {
+  const { runLab, LAB_TIMEOUT_MS, LIGHTHOUSE_VERSION } = await import('@arablyzer/lab')
+  const left = SCAN_BUDGET_MS - (performance.now() - context.started)
+  const budget = Math.min(request.timeoutMs ?? LAB_TIMEOUT_MS, LAB_TIMEOUT_MS, left)
+  if (budget < MIN_LAB_MS) {
+    return {
+      status: 'timeout',
+      lighthouse: LIGHTHOUSE_VERSION,
+      chromium: null,
+      error: 'No time left in the scan',
+      durationMs: 0,
+      requests: { total: 0, refused: 0 },
+      performance: null,
+      metrics: null,
+    }
+  }
+  return runLab(url, {
+    policy: context.policy,
+    resolver: context.resolver,
+    timeoutMs: Math.round(budget),
+    ...(request.executablePath === undefined ? {} : { executablePath: request.executablePath }),
+    ...(context.signal === undefined ? {} : { signal: context.signal }),
+  })
+}
+
+/** A Lighthouse run as the report gives it: its English error stays in the logs. */
+function labFact(run: LabRun): LabFact {
+  const { status, lighthouse, chromium, durationMs, requests, performance, metrics } = run
+  return { status, lighthouse, chromium, durationMs, requests, performance, metrics }
+}
+
 /** CrUX's answer as the report gives it; nothing when it was not asked or did not answer. */
 function cruxFacts(crux: CruxFacts | undefined): Facts {
   if (crux === undefined || crux.outcome === 'failed') return {}

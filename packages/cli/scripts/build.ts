@@ -13,9 +13,11 @@ await build({
   outExtension: { '.js': '.mjs' },
   // The browser code (and Playwright, which finds its own files at run time and so stays
   // external) goes to a chunk loaded only by --render; scans without it never load Playwright.
+  // Lighthouse too, which reads its locales and trace engine from its own files, loads only by
+  // --lab.
   splitting: true,
   chunkNames: 'chunks/[name]-[hash]',
-  external: ['playwright-core'],
+  external: ['playwright-core', 'lighthouse', 'puppeteer-core'],
   bundle: true,
   platform: 'node',
   format: 'esm',

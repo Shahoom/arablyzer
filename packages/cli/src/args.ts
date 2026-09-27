@@ -31,6 +31,8 @@ export interface CliOptions {
   readonly render: RenderChoice | null
   /** ARABLYZER_CRUX_API_KEY: real-user data from CrUX (M1.3b); null without it. */
   readonly cruxKey: string | null
+  /** --lab: Lighthouse's lab metrics, as information (M1.3b). */
+  readonly lab: boolean
   readonly help: boolean
   readonly version: boolean
 }
@@ -71,6 +73,7 @@ export function parseCliArgs(
       timeoutMs: 0,
       render: null,
       cruxKey: null,
+      lab: false,
     }
   }
   if (positionals.length !== 1) {
@@ -105,6 +108,7 @@ export function parseCliArgs(
     timeoutMs: timeout(values.timeout),
     render,
     cruxKey: cruxKey(env),
+    lab: values.lab,
   }
 }
 
@@ -186,6 +190,7 @@ function parse(argv: readonly string[]) {
       render: { type: 'boolean', default: false },
       engines: { type: 'string' },
       screenshots: { type: 'string' },
+      lab: { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
       version: { type: 'boolean', short: 'v', default: false },
     },

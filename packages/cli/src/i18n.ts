@@ -1,4 +1,13 @@
-import type { Engine, RenderRun, RuleStatus, ScanStatus, Severity } from '@arablyzer/report-schema'
+import type {
+  Engine,
+  LabFact,
+  RenderRun,
+  RuleStatus,
+  ScanStatus,
+  Severity,
+} from '@arablyzer/report-schema'
+
+type LabMetrics = NonNullable<LabFact['metrics']>
 
 export type Lang = 'ar' | 'en'
 
@@ -19,6 +28,8 @@ export interface Strings {
    * rule could not run.
    */
   readonly score: (value: number, partial: boolean, ran: number, total: number) => string
+  /** Lighthouse's lab metrics, as information. */
+  readonly lab: (version: string, performance: number | null, metrics: LabMetrics) => string
   /** When an engine is not installed: the command that installs it. */
   readonly installBrowsers: (engines: readonly Engine[], version: string) => string
 }
@@ -43,6 +54,8 @@ Options:
                          container whose network is isolated (ARABLYZER_NETWORK_ISOLATED=1);
                          elsewhere, all means chromium and firefox
   --screenshots <dir>    Save a screenshot of the first screen per engine as <dir>/<engine>.png
+  --lab                  Also measure the page with Lighthouse in Chromium, as information:
+                         lab metrics vary from run to run and never enter the score
   -h, --help             Show this help
   -v, --version          Show the version
 
@@ -73,6 +86,8 @@ const HELP_AR = `الاستخدام: arablyzer <الرابط> [خيارات]
                          شبكتها معزولة (ARABLYZER_NETWORK_ISOLATED=1)؛ وفي غيرها تعني all
                          المحرّكين chromium وfirefox
   --screenshots <dir>    احفظ لقطة للشاشة الأولى في كل محرّك باسم <dir>/<engine>.png
+  --lab                  قِس الصفحة أيضاً بـ Lighthouse في Chromium، للمعلومة: قياسات المختبر
+                         تتغير من تشغيل لآخر ولا تدخل الدرجة أبداً
   -h, --help             اعرض هذه المساعدة
   -v, --version          اعرض رقم الإصدار
 
@@ -119,6 +134,12 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
     },
     score: (value, partial, ran, total) =>
       `Score ${value}/100${ran < total ? ` over ${ran} of ${total} rules` : ''}${partial ? ' (partial: some rules could not run)' : ''}`,
+    lab: (version, performance, metrics) =>
+      [
+        `Lighthouse ${version} (lab, information only)`,
+        ...(performance === null ? [] : [`performance ${performance}`]),
+        ...labParts(metrics, 's', 'ms'),
+      ].join(' · '),
     installBrowsers: (engines, version) =>
       `to render in ${engines.join(', ')}, install it with: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
@@ -155,6 +176,12 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
       refused === 0 ? arabicRequests(total) : `${arabicRequests(total)}، رُفض منها ${refused}`,
     score: (value, partial, ran, total) =>
       `الدرجة ${value} من 100${ran < total ? `، محسوبة على ${arabicRules(ran)} من ${total}` : ''}${partial ? ' (جزئية: تعذّر تشغيل بعض القواعد)' : ''}`,
+    lab: (version, performance, metrics) =>
+      [
+        `Lighthouse ${version} (مختبر، للمعلومة فقط)`,
+        ...(performance === null ? [] : [`الأداء ${performance}`]),
+        ...labParts(metrics, 'ث', 'م.ث'),
+      ].join(' · '),
     installBrowsers: (engines, version) =>
       `لعرض الصفحة في ${engines.join('، ')} ثبّته بالأمر: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
@@ -200,4 +227,16 @@ export function langFromEnv(env: Readonly<Record<string, string | undefined>>): 
     (value) => value !== undefined && value !== '',
   )
   return locale?.toLowerCase().startsWith('ar') === true ? 'ar' : 'en'
+}
+
+/** Each lab metric Lighthouse measured, in seconds or milliseconds as it reports them. */
+function labParts(metrics: LabMetrics, seconds: string, milliseconds: string): string[] {
+  const time = (value: number) => `${(value / 1000).toFixed(1)} ${seconds}`
+  return [
+    metrics.fcp === null ? null : `FCP ${time(metrics.fcp)}`,
+    metrics.lcp === null ? null : `LCP ${time(metrics.lcp)}`,
+    metrics.tbt === null ? null : `TBT ${metrics.tbt} ${milliseconds}`,
+    metrics.cls === null ? null : `CLS ${metrics.cls}`,
+    metrics.si === null ? null : `Speed Index ${time(metrics.si)}`,
+  ].filter((part) => part !== null)
 }

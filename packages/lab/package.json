@@ -1,0 +1,25 @@
+{
+  "name": "@arablyzer/lab",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run test/unit",
+    "test:browser": "vitest run test/browser"
+  },
+  "dependencies": {
+    "@arablyzer/browser": "workspace:*",
+    "@arablyzer/egress": "workspace:*",
+    "lighthouse": "13.5.0",
+    "playwright-core": "1.63.0",
+    "puppeteer-core": "25.12.0"
+  },
+  "devDependencies": {
+    "@arablyzer/fixtures": "workspace:*"
+  }
+}

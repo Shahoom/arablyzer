@@ -23,6 +23,9 @@ export type NoticeCode =
   | 'crux-private'
   | 'crux-not-found'
   | 'crux-failed'
+  | 'lab-failed'
+  | 'lab-timeout'
+  | 'lab-unavailable'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -172,6 +175,18 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'crux-not-found': {
     ar: 'ليس عند Google (CrUX) بيانات عن زوار هذه الصفحة ولا موقعها، وهذا حال كثير من المواقع قليلة الزيارات، فلا تنطبق فحوص سرعة الزوار الحقيقيين.',
     en: "Google (CrUX) has no data on visitors to this page or its site, as for many sites with fewer visits, so the checks of real visitors' speed do not apply.",
+  },
+  'lab-failed': {
+    ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',
+    en: 'Lighthouse could not measure the page, so the report has no lab metrics.',
+  },
+  'lab-timeout': {
+    ar: 'لم ينتهِ Lighthouse من قياس الصفحة في وقته، فليس في التقرير قياساته.',
+    en: 'Lighthouse did not finish measuring the page in time, so the report has no lab metrics.',
+  },
+  'lab-unavailable': {
+    ar: 'متصفح Chromium غير مثبّت على هذا الجهاز، فلم يعمل Lighthouse.',
+    en: 'Chromium is not installed on this machine, so Lighthouse did not run.',
   },
   'crux-failed': {
     ar: 'تعذّر جلب بيانات الزوار الحقيقيين من Google (CrUX)، فلم تعمل فحوصها.',
