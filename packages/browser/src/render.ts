@@ -504,6 +504,7 @@ async function renderWith(
     status: response?.status() ?? null,
     fontRequests: fontRequests.map((request) => fontRequestFact(request, statuses, refusals)),
     limited: proxy.stats().limited || budget.reached,
+    filesRead: read !== undefined,
     ...(usedFonts === undefined ? {} : { usedFonts }),
     a11y,
     ...(read ?? {}),

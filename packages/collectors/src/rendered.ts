@@ -262,4 +262,10 @@ export interface RenderedFacts {
    * short, fonts among them, by Arablyzer rather than by the site.
    */
   readonly limited: boolean
+  /**
+   * The files the page loaded were read after the render. False when that step failed as a whole:
+   * stylesheets, fonts coverage, compression and image files are then empty, and the rules that
+   * read them report an error rather than pass.
+   */
+  readonly filesRead: boolean
 }

@@ -135,7 +135,7 @@ export function sampleReport(tools: readonly Tool[] = TOOLS): Report {
     },
     page: pageSummary(page),
     summary: summarize(results),
-    score: scoreOf(results),
+    score: scoreOf(results, RULES.length),
     rules: results,
     findings,
     facts: {},

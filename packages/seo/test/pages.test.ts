@@ -186,7 +186,7 @@ function report(overrides: Partial<Report> = {}): Report {
       error: 0,
       bySeverity: { critical: 0, serious: 1, moderate: 0, minor: 0, info: 0 },
     },
-    score: { overall: 0, categories: { intl: 0 }, partial: false },
+    score: { overall: 0, categories: { intl: 0 }, partial: false, rules: { ran: 1, total: 1 } },
     rules: [
       {
         id: 'ar-html-lang',

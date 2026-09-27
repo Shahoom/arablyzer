@@ -17,7 +17,7 @@
 | فشلت | وجدت مشكلة واحدة على الأقل، ويذكر التقرير مكانها ودليلها |
 | تحتاج مراجعة | ما وجدته يحتاج نظر إنسان، كنص فوق صورة لا يُقاس تباينه؛ لا تُخصم |
 | لا تنطبق | ليس في الصفحة ما تفحصه، كقاعدة الصور في صفحة بلا صور |
-| تعذّر تشغيلها | لم تكتمل، كأن ينتهي وقت العرض؛ تُخرج من الدرجة وتجعلها جزئية |
+| تعذّر تشغيلها | لم تكتمل، كأن ينتهي وقت العرض، أو تتعذّر قراءة الملفات التي حمّلتها الصفحة؛ تُخرج من الدرجة وتجعلها جزئية |
 
 ## الدرجة
 
@@ -34,10 +34,11 @@
 الدرجة = 100 × (1 − مجموع أوزان القواعد الفاشلة ÷ مجموع أوزان القواعد المنطبقة)، مقرّبة إلى أقرب عدد صحيح.
 
 - **المنطبقة** هي التي نجحت أو فشلت. التي لا تنطبق، والتي تحتاج مراجعة، والتي تعذّر تشغيلها، لا تدخل الحساب.
-- **الدرجة العامة** بالصيغة نفسها على كل القواعد، و**درجة كل فئة** على قواعدها وحدها، فالفئة ذات القواعد الأثقل تؤثر في الدرجة العامة أكثر.
+- **الدرجة العامة** بالصيغة نفسها على كل القواعد، و**درجة كل فئة** على قواعدها وحدها، فالفئة ذات القواعد الأثقل تؤثر في الدرجة العامة أكثر. لكل فئة شغّل الفحص قواعدها درجة، أو «بلا درجة» إن لم تنطبق منها قاعدة ذات وزن.
 - **الدرجة الجزئية**: إذا تعذّر تشغيل قاعدة، يقول التقرير إن الدرجة جزئية، لأنها تحسب ما اكتمل فقط.
 - **بلا درجة**: إذا لم تنطبق أي قاعدة ذات وزن، كفئة قواعدها كلها معلومات، فلا درجة لها.
-- **المقارنة**: الدرجات تُقارن داخل الإصدار الرئيسي نفسه لمجموعة القواعد فقط، ويذكره التقرير (`rulesetVersion`)، لأن إضافة قاعدة أو تغيير وزن يغيّر الدرجة.
+- **القواعد المحسوبة**: يذكر التقرير كم قاعدة شغّلها الفحص من قواعد المجموعة كلها (`score.rules`). الفحص دون عرض الصفحة في متصفح يترك القواعد التي تقرأ الصفحة المعروضة، والفحص الذي يسمّي قواعده يشغّلها وحدها، فتُحسب درجته على قواعد أقل.
+- **المقارنة**: الدرجات تُقارن داخل الإصدار الرئيسي نفسه لمجموعة القواعد فقط، ويذكره التقرير (`rulesetVersion`)، لأن إضافة قاعدة أو تغيير وزن يغيّر الدرجة؛ وبين فحوص شغّلت القواعد نفسها.
 
 ### مثال لكل وزن
 
@@ -84,7 +85,7 @@ How Arablyzer scans a page, how it scores it, and the limits of each source it r
 | Failed | It found at least one problem; the report says where, with evidence |
 | Needs review | What it found needs a person's eye, such as text over an image whose contrast cannot be measured; never deducted |
 | Not applicable | The page has nothing the rule checks, such as the image rule on a page without images |
-| Could not run | It did not finish, such as when rendering ran out of time; left out of the score, which becomes partial |
+| Could not run | It did not finish, such as when rendering ran out of time, or the files the page loaded could not be read; left out of the score, which becomes partial |
 
 ## The score
 
@@ -93,10 +94,11 @@ Each rule has a severity, and each severity a weight: critical 10, serious 5, mo
 Score = 100 × (1 − total weight of failed rules ÷ total weight of applicable rules), rounded to the nearest whole number.
 
 - **Applicable** rules are those that passed or failed. Rules that do not apply, need review, or could not run are left out.
-- **The overall score** uses the same formula over every rule, and **each category's score** over its own rules, so categories with heavier rules weigh more in the overall score.
+- **The overall score** uses the same formula over every rule, and **each category's score** over its own rules, so categories with heavier rules weigh more in the overall score. Every category the scan ran rules of has a score, or "no score" when none of its rules with weight applied.
 - **A partial score**: when a rule could not run, the report says the score is partial, since it counts only what finished.
 - **No score**: when no rule with weight applies, such as a category of information rules alone, there is no score.
-- **Comparing**: scores compare only within the same major version of the rule set, which the report gives (`rulesetVersion`), since adding a rule or changing a weight changes the score.
+- **The rules counted**: the report gives how many of the rule set's rules the scan ran (`score.rules`). A scan that does not render the page in a browser leaves out the rules that read the rendered page, and a scan that names its rules runs those alone, so its score counts fewer rules.
+- **Comparing**: scores compare only within the same major version of the rule set, which the report gives (`rulesetVersion`), since adding a rule or changing a weight changes the score; and between scans that ran the same rules.
 
 ### An example for each weight
 

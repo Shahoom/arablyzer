@@ -80,7 +80,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'ar-render',
   severity: 'moderate',
-  needs: ['render'],
+  needs: ['render', 'files'],
   messages: ['missing'],
   appliesTo: (_page, evidence) =>
     renderedFacts(evidence).some(

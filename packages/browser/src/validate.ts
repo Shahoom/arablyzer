@@ -107,6 +107,8 @@ export interface FactsContext {
   readonly usedFonts?: readonly UsedFontsFact[]
   /** The proxy or the browser stopped requests at their limits. */
   readonly limited: boolean
+  /** The step that reads the page's files finished (readPageFiles). */
+  readonly filesRead: boolean
   /** axe-core's results; null or absent when axe did not run. */
   readonly a11y?: A11yFacts | null
   /** From the font files and stylesheets read after the render; none when absent. */
@@ -178,5 +180,6 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     a11y: context.a11y ?? null,
     truncated: facts.truncated,
     limited: context.limited,
+    filesRead: context.filesRead,
   }
 }

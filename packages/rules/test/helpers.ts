@@ -177,6 +177,7 @@ export function renderedFacts(
     a11y: null,
     truncated: false,
     limited: false,
+    filesRead: true,
     ...overrides,
   }
 }

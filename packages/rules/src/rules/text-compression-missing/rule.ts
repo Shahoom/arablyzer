@@ -25,7 +25,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'speed',
   severity: 'moderate',
-  needs: ['render'],
+  needs: ['render', 'files'],
   messages: ['uncompressed'],
   appliesTo: (_page, evidence) =>
     renderedFacts(evidence).some((facts) => facts.compression.checked > 0),

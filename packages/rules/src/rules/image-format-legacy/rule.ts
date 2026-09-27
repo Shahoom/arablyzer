@@ -44,7 +44,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'speed',
   severity: 'minor',
-  needs: ['render'],
+  needs: ['render', 'files'],
   messages: ['legacy'],
   appliesTo: (_page, evidence) =>
     renderedFacts(evidence).some((facts) =>

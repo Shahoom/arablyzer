@@ -39,7 +39,7 @@ describe('scoreOf', () => {
       result('serious', 'pass'),
       result(severity, 'fail'),
     ]
-    expect(scoreOf(results).overall).toBe(score)
+    expect(scoreOf(results, results.length).overall).toBe(score)
   })
 
   it('rounds a half up, where 100 × (1 − 17 ÷ 40) in floating point is 57.49999… (M1.3a review)', () => {
@@ -54,7 +54,7 @@ describe('scoreOf', () => {
       result('serious', 'pass'),
       result('moderate', 'pass'),
     ]
-    expect(scoreOf(results).overall).toBe(58)
+    expect(scoreOf(results, results.length).overall).toBe(58)
   })
 
   it('counts only rules that passed or failed', () => {
@@ -64,7 +64,12 @@ describe('scoreOf', () => {
       result('critical', 'not-applicable'),
       result('critical', 'needs-review'),
     ]
-    expect(scoreOf(results)).toEqual({ overall: 50, categories: { onpage: 50 }, partial: false })
+    expect(scoreOf(results, 4)).toEqual({
+      overall: 50,
+      categories: { onpage: 50 },
+      partial: false,
+      rules: { ran: 4, total: 4 },
+    })
   })
 
   it('scores each category, and gives none to a category of information alone', () => {
@@ -74,24 +79,43 @@ describe('scoreOf', () => {
       result('info', 'fail', 'rtl'),
       result('minor', 'pass', 'speed'),
     ]
-    expect(scoreOf(results)).toEqual({
+    expect(scoreOf(results, 4)).toEqual({
       // Applicable 5 + 3 + 0 + 1 = 9; failed 5 + 0 = 5.
       overall: 44,
       categories: { rtl: null, speed: 100, trust: 38 },
       partial: false,
+      rules: { ran: 4, total: 4 },
     })
   })
 
   it('is partial when a rule could not run, and null with nothing that applied', () => {
-    expect(scoreOf([result('critical', 'error'), result('minor', 'pass')])).toEqual({
+    expect(scoreOf([result('critical', 'error'), result('minor', 'pass')], 2)).toEqual({
       overall: 100,
       categories: { onpage: 100 },
       partial: true,
+      rules: { ran: 2, total: 2 },
     })
-    expect(scoreOf([result('critical', 'not-applicable')])).toEqual({
+    expect(scoreOf([result('critical', 'not-applicable')], 1)).toEqual({
       overall: null,
-      categories: {},
+      categories: { onpage: null },
       partial: false,
+      rules: { ran: 1, total: 1 },
+    })
+  })
+
+  it('gives every category it ran rules of, null when none applied, and says how many ran (M1.3a review)', () => {
+    // A category whose rules did not apply is there, as null, as is one of information alone;
+    // a category the scan ran no rule of is not. The rule set has more rules than the scan ran.
+    const results = [
+      result('serious', 'pass', 'trust'),
+      result('moderate', 'not-applicable', 'speed'),
+      result('info', 'pass', 'rtl'),
+    ]
+    expect(scoreOf(results, 47)).toEqual({
+      overall: 100,
+      categories: { rtl: null, speed: null, trust: 100 },
+      partial: false,
+      rules: { ran: 3, total: 47 },
     })
   })
 })

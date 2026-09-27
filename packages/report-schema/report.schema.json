@@ -636,12 +636,33 @@
         },
         "partial": {
           "type": "boolean"
+        },
+        "rules": {
+          "type": "object",
+          "properties": {
+            "ran": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "ran",
+            "total"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
         "overall",
         "categories",
-        "partial"
+        "partial",
+        "rules"
       ],
       "additionalProperties": false
     },

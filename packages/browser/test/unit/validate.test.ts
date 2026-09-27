@@ -41,6 +41,7 @@ const context = {
   status: 200,
   fontRequests: [],
   limited: false,
+  filesRead: true,
 }
 
 describe('toFacts: the page script’s result, checked before any rule reads it', () => {

@@ -178,7 +178,12 @@ function report(overrides: Partial<Report> = {}): Report {
       bySeverity: { critical: 0, serious: 1, moderate: 0, minor: 0, info: 0 },
     },
     // A serious rule failed beside a critical one that passed: 100 × (1 − 5 ÷ 15).
-    score: { overall: 67, categories: { index: 100, intl: 0 }, partial: false },
+    score: {
+      overall: 67,
+      categories: { index: 100, intl: 0 },
+      partial: false,
+      rules: { ran: 2, total: 2 },
+    },
     rules: [
       {
         id: 'ar-html-lang',
@@ -261,9 +266,18 @@ describe('formatReport', () => {
     const arabic = formatReport(report(), 'ar', false)
     expect(arabic).toContain('1 فشلت · 1 نجحت')
     expect(arabic).toContain('الدرجة 67 من 100')
-    expect(
-      formatReport(report({ score: { overall: 90, categories: {}, partial: true } }), 'en', false),
-    ).toContain('Score 90/100 (partial: some rules could not run)')
+    const partial = { overall: 90, categories: {}, partial: true, rules: { ran: 2, total: 2 } }
+    expect(formatReport(report({ score: partial }), 'en', false)).toContain(
+      'Score 90/100 (partial: some rules could not run)',
+    )
+    // A scan that ran fewer rules than the rule set has says so (M1.3a review).
+    const fewer = { ...partial, partial: false, rules: { ran: 42, total: 47 } }
+    expect(formatReport(report({ score: fewer }), 'en', false)).toContain(
+      'Score 90/100 over 42 of 47 rules',
+    )
+    expect(formatReport(report({ score: fewer }), 'ar', false)).toContain(
+      'الدرجة 90 من 100، محسوبة على 42 قاعدة من 47',
+    )
     expect(arabic).toContain('✗ خطير  ar-html-lang  لغة الصفحة')
     expect(arabic).toContain('html · السطر 2')
     expect(arabic).not.toContain('\x1b[')

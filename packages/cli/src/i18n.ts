@@ -14,8 +14,11 @@ export interface Strings {
   readonly help: string
   readonly render: Readonly<Record<RenderRun['status'], string>>
   readonly requests: (total: number, refused: number) => string
-  /** The overall score, out of 100; partial when some rule could not run. */
-  readonly score: (value: number, partial: boolean) => string
+  /**
+   * The overall score, out of 100, over `ran` of the rule set's `total` rules; partial when some
+   * rule could not run.
+   */
+  readonly score: (value: number, partial: boolean, ran: number, total: number) => string
   /** When an engine is not installed: the command that installs it. */
   readonly installBrowsers: (engines: readonly Engine[], version: string) => string
 }
@@ -108,8 +111,8 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
       const requests = `${total} ${total === 1 ? 'request' : 'requests'}`
       return refused === 0 ? requests : `${requests}, ${refused} refused`
     },
-    score: (value, partial) =>
-      `Score ${value}/100${partial ? ' (partial: some rules could not run)' : ''}`,
+    score: (value, partial, ran, total) =>
+      `Score ${value}/100${ran < total ? ` over ${ran} of ${total} rules` : ''}${partial ? ' (partial: some rules could not run)' : ''}`,
     installBrowsers: (engines, version) =>
       `to render in ${engines.join(', ')}, install it with: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
@@ -144,14 +147,28 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
     },
     requests: (total, refused) =>
       refused === 0 ? arabicRequests(total) : `${arabicRequests(total)}، رُفض منها ${refused}`,
-    score: (value, partial) =>
-      `الدرجة ${value} من 100${partial ? ' (جزئية: تعذّر تشغيل بعض القواعد)' : ''}`,
+    score: (value, partial, ran, total) =>
+      `الدرجة ${value} من 100${ran < total ? `، محسوبة على ${arabicRules(ran)} من ${total}` : ''}${partial ? ' (جزئية: تعذّر تشغيل بعض القواعد)' : ''}`,
     installBrowsers: (engines, version) =>
       `لعرض الصفحة في ${engines.join('، ')} ثبّته بالأمر: npx playwright-core@${version} install ${engines.join(' ')}`,
   },
 }
 
 const ARABIC_PLURAL = new Intl.PluralRules('ar')
+
+/** A count of rules in the form Arabic gives each number, after a preposition (1, 2, 3–10, 11–99…). */
+function arabicRules(total: number): string {
+  switch (ARABIC_PLURAL.select(total)) {
+    case 'one':
+      return 'قاعدة واحدة'
+    case 'two':
+      return 'قاعدتين'
+    case 'few':
+      return `${total} قواعد`
+    default:
+      return `${total} قاعدة`
+  }
+}
 
 /** A count of requests with the noun in the form Arabic gives each number (1, 2, 3–10, 11–99…). */
 function arabicRequests(total: number): string {

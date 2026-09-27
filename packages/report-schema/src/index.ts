@@ -178,8 +178,9 @@ const ScoreValue = z.number().int().min(0).max(100).nullable()
 
 /**
  * The score (docs/methodology.md): 100 × (1 − failed weight ÷ applicable weight), overall and for
- * each category with applicable rules. Weights by severity: critical 10, serious 5, moderate 3,
- * minor 1, info 0. Comparable only within a major version of the rule set (generator.rulesetVersion).
+ * each category the scan ran rules of (null when none of them had weight and applied). Weights by
+ * severity: critical 10, serious 5, moderate 3, minor 1, info 0. Comparable only within a major
+ * version of the rule set (generator.rulesetVersion), between scans that ran the same rules.
  */
 export const Score = z
   .strictObject({
@@ -187,6 +188,14 @@ export const Score = z
     categories: z.partialRecord(Category, ScoreValue),
     /** Some rule could not run, so the score counts only those that did. */
     partial: z.boolean(),
+    /**
+     * The rules the scan ran, of all in the rule set: fewer without rendering (the rules that
+     * read the rendered page are left out) or when the scan named its rules.
+     */
+    rules: z.strictObject({
+      ran: z.number().int().min(0),
+      total: z.number().int().min(0),
+    }),
   })
   .meta({ id: 'Score' })
 export type Score = z.infer<typeof Score>

@@ -58,7 +58,9 @@ export function renderReportPage(report: Report, lang: Lang): string {
     `<h2>${escapeHtml(t.summary)}</h2>`,
     ...(report.score.overall === null
       ? []
-      : [`<p>${escapeHtml(t.score(report.score.overall, report.score.partial))}</p>`]),
+      : [
+          `<p>${escapeHtml(t.score(report.score.overall, report.score.partial, report.score.rules.ran, report.score.rules.total))}</p>`,
+        ]),
     `<ul>${counts
       .filter(([, count]) => count > 0)
       .map(([status, count]) => `<li>${count} ${escapeHtml(t.status[status])}</li>`)
