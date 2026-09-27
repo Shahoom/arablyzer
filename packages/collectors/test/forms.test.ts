@@ -127,15 +127,15 @@ describe('collectPage: walking headings and labels', () => {
     expect(facts?.title).toBe('متجر')
   })
 
-  it('stays close to the parse time on nested headings and labels', () => {
-    for (const open of ['<h1>نص<div>', '<label>نص<div>']) {
-      const body = open.repeat(8_000)
-      let start = performance.now()
-      parse(body)
-      const parsing = performance.now() - start
-      start = performance.now()
-      page(body)
-      expect(performance.now() - start, open).toBeLessThan(parsing * 2 + 300)
-    }
-  })
+  // Timed against the parse itself, which is quadratic in nesting depth too: nested labels
+  // searched their subtrees again for each label, five times the parse; the walks now add little.
+  it('stays close to the parse time on nested labels', () => {
+    const body = '<label>نص<div>'.repeat(4_000)
+    let start = performance.now()
+    parse(body)
+    const parsing = performance.now() - start
+    start = performance.now()
+    page(body)
+    expect(performance.now() - start).toBeLessThan(parsing * 2 + 50)
+  }, 30_000)
 })

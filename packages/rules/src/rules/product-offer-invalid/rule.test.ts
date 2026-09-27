@@ -210,13 +210,15 @@ describe('product-offer-invalid', () => {
   it('stays linear in the number of problems in one block', () => {
     const offers = Array.from({ length: 16_000 }, () => '{"@type":"Offer"}').join(',\n')
     const block = `{"@context":"https://schema.org","@type":"Product","name":"x","offers":[\n${offers}\n]}`
+    // Timed without the parse, which is linear and not the rule's.
+    const evidence = evidenceOf(page(block))
     const start = performance.now()
-    const findings = detect(block)
+    const findings = detectAll(rule, evidence)
+    expect(performance.now() - start).toBeLessThan(1000)
     expect(findings).toHaveLength(32_000)
     expect(findings.at(-1)).toMatchObject({
       location: { line: 16_001 },
       snippet: '{"@type":"Offer"}',
     })
-    expect(performance.now() - start).toBeLessThan(3000)
   })
 })

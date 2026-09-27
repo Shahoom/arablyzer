@@ -132,9 +132,11 @@ describe('price-decimals', () => {
   })
 
   it('stays linear on a long line of prices split by inline elements', () => {
+    // Timed without the parse, which is linear and not the rule's.
+    const evidence = evidenceOf(page(`<p>${'<b>1.5 KD</b> '.repeat(40_000)}</p>`))
     const start = performance.now()
-    const findings = detect(`<p>${'<b>1.5 KD</b> '.repeat(40_000)}</p>`)
+    const findings = detectAll(rule, evidence)
+    expect(performance.now() - start).toBeLessThan(1000)
     expect(findings).toMatchObject([{ values: { count: 40_000 } }])
-    expect(performance.now() - start).toBeLessThan(3000)
   })
 })
