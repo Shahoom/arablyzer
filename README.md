@@ -57,6 +57,18 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`page-noindex`](packages/rules/src/rules/page-noindex/copy.en.md) | No `noindex` in meta robots or `X-Robots-Tag` |
 | [`canonical-conflict`](packages/rules/src/rules/canonical-conflict/copy.en.md) | The page gives at most one canonical URL |
 | [`jsonld-syntax-error`](packages/rules/src/rules/jsonld-syntax-error/copy.en.md) | JSON-LD blocks are valid JSON |
+| [`title-missing`](packages/rules/src/rules/title-missing/copy.en.md) | The page has a `<title>` with text |
+| [`meta-description-missing`](packages/rules/src/rules/meta-description-missing/copy.en.md) | The page has a meta description with text |
+| [`h1-missing`](packages/rules/src/rules/h1-missing/copy.en.md) | The page has an `<h1>` with text |
+| [`viewport-missing`](packages/rules/src/rules/viewport-missing/copy.en.md) | A viewport tag with `width=device-width` fits the page to phone screens |
+| [`og-tags-missing`](packages/rules/src/rules/og-tags-missing/copy.en.md) | `og:title`, `og:description` and `og:image` are there for link previews |
+| [`ar-mojibake`](packages/rules/src/rules/ar-mojibake/copy.en.md) | No Arabic decoded in the wrong encoding, such as «Ø§Ù„» or «ÇáÚÑÈíÉ» |
+| [`ar-digits-mixed`](packages/rules/src/rules/ar-digits-mixed/copy.en.md) | An Arabic page writes its numbers in one digit set |
+| [`ar-tatweel`](packages/rules/src/rules/ar-tatweel/copy.en.md) | No words stretched with tatweel (ـ) |
+| [`product-offer-invalid`](packages/rules/src/rules/product-offer-invalid/copy.en.md) | JSON-LD product offers have a price and an ISO 4217 currency, written as Schema.org asks |
+| [`price-decimals`](packages/rules/src/rules/price-decimals/copy.en.md) | Prices in Omani rials and Kuwaiti or Bahraini dinars have three decimals |
+| [`form-arabic-name-rejected`](packages/rules/src/rules/form-arabic-name-rejected/copy.en.md) | Name fields' `pattern` accepts Arabic names |
+| [`form-arabic-digits-rejected`](packages/rules/src/rules/form-arabic-digits-rejected/copy.en.md) | Number fields' `pattern` accepts Arabic-Indic digits |
 
 These read the page as a browser rendered it, so they run with `--render`:
 
