@@ -1,3 +1,4 @@
+import { bypassesProxyForLoopback } from '@arablyzer/browser'
 import { serveSite } from '@arablyzer/fixtures'
 import { describe, expect, it } from 'vitest'
 import { scan } from '../../src/index'
@@ -5,7 +6,8 @@ import { FIXTURE_CASES, RENDER_RULES } from '../fixture-cases'
 import { policyFor, schemaErrors } from '../helpers'
 import { enginesHere } from './engines'
 
-const engines = await enginesHere()
+// WebKit never renders on macOS (the browser package's LOOPBACK_BYPASS); CI renders it on Linux.
+const engines = (await enginesHere()).filter((engine) => !bypassesProxyForLoopback(engine))
 const cases = FIXTURE_CASES.filter((entry) => RENDER_RULES.has(entry.ruleId))
 
 // The same contract as the fixtures over HTTP, rendered in every engine at once: each wrong
