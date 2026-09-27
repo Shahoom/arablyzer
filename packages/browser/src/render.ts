@@ -390,12 +390,17 @@ async function renderWith(
     }
   })
   // The main frame's stylesheets and fonts, read once the page has rendered (see readPageFiles).
-  const files: { stylesheets: Response[]; fonts: Response[]; finished: Set<Request> } = {
-    stylesheets: [],
-    fonts: [],
-    finished: new Set(),
-  }
+  const files: {
+    stylesheets: Response[]
+    fonts: Response[]
+    finished: Set<Request>
+    responses: Map<string, number>
+  } = { stylesheets: [], fonts: [], finished: new Set(), responses: new Map() }
   page.on('response', (response) => {
+    const url = response.url()
+    if (files.responses.has(url) || files.responses.size < MAX_FILE_RESPONSES) {
+      files.responses.set(url, (files.responses.get(url) ?? 0) + 1)
+    }
     const request = response.request()
     const kind = request.resourceType()
     if (kind === 'font') statuses.set(request, response.status())

@@ -320,6 +320,46 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     )
   })
 
+  it('trusts a size named by URL only for a URL loaded once, which a page cannot hide', async () => {
+    // The page loads its stylesheet's URL again, and keeps the second load out of Resource Timing
+    // with a buffer of one entry: a size named by that URL no longer says which body it is.
+    let served = 0
+    const site = await serve((req, res) => {
+      if (new URL(req.url ?? '/', 'http://x').pathname === '/s.css') {
+        served++
+        res.writeHead(200, {
+          'content-type': 'text/css',
+          'content-encoding': 'gzip',
+          'cache-control': 'no-store',
+        })
+        res.end(gzipSync(served === 1 ? '.a { margin-left: 1px }' : '.b { float: left }'))
+        return
+      }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+      res.end(
+        arabicPage(
+          '<p class="a">نص عربي</p>',
+          `<link rel="stylesheet" href="/s.css">
+           <script>
+             addEventListener('load', () => {
+               performance.setResourceTimingBufferSize(1)
+               fetch('/s.css', { cache: 'no-store' })
+             })
+           </script>`,
+        ),
+      )
+    })
+    cleanup.push(() => site.close())
+    const [outcome] = await renderPage(site.url('/'), {
+      engines: [engine],
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      networkIsolated: true,
+    })
+    expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
+    expect(served).toBe(2)
+    expect(outcome?.facts?.stylesheets).toEqual({ read: 0, unread: 1, physical: [] })
+  })
+
   it('finds direction icons drawn as for left-to-right text in right-to-left text', async () => {
     const icon = 'display: inline-block; width: 12px; height: 12px'
     const page = await facts(engine, {

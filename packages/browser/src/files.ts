@@ -49,6 +49,8 @@ export interface PageFiles {
    * not waited for, and counts as unread.
    */
   readonly finished: ReadonlySet<Request>
+  /** How many responses came for each URL, in every frame and of every kind. */
+  readonly responses: ReadonlyMap<string, number>
 }
 
 export interface FilesFacts {
@@ -58,6 +60,12 @@ export interface FilesFacts {
 
 const MAX_URL = 2048
 const DecodedSizes = z.array(z.tuple([z.string().max(100_000), z.number().min(0)])).max(1000)
+
+/** A URL's decoded size in Resource Timing, and how many entries it has there. */
+interface TimedSize {
+  readonly size: number
+  readonly entries: number
+}
 const InlineStyles = z.strictObject({
   base: z.string().max(MAX_URL),
   texts: z.array(z.string()).max(100),
@@ -79,6 +87,7 @@ export async function readPageFiles(
   limits: FileLimits = FILE_LIMITS,
 ): Promise<FilesFacts> {
   const sizes = await decodedSizes(page, until)
+  const bodyOf = (response: Response, max: number) => readBody(response, sizes, files, max, until)
 
   const fontFiles = new Map<string, readonly CodePointRange[] | null>()
   let fonts = 0
@@ -87,7 +96,7 @@ export async function readPageFiles(
     let coverage: readonly CodePointRange[] | null = null
     if (fonts < limits.maxFonts && files.finished.has(response.request())) {
       fonts++
-      const body = await bodyOf(response, sizes, limits.maxFontBytes, until)
+      const body = await bodyOf(response, limits.maxFontBytes)
       coverage = body === null ? null : fontCoverage(body)
     }
     for (const url of urlsOf(response)) fontFiles.set(url, coverage)
@@ -103,7 +112,7 @@ export async function readPageFiles(
     const room = Math.min(limits.maxStylesheetBytes, limits.maxStylesheetTotal - total)
     const body =
       read < limits.maxStylesheets && room > 0 && files.finished.has(response.request())
-        ? await bodyOf(response, sizes, room, until)
+        ? await bodyOf(response, room)
         : null
     if (body === null) {
       unread++
@@ -146,9 +155,9 @@ export async function readPageFiles(
   }
 }
 
-/** Each resource's decoded size, the largest when it loaded more than once; none on failure. */
-async function decodedSizes(page: Page, until: number): Promise<Map<string, number>> {
-  const sizes = new Map<string, number>()
+/** Each resource's decoded size and number of entries; none on failure. */
+async function decodedSizes(page: Page, until: number): Promise<Map<string, TimedSize>> {
+  const sizes = new Map<string, TimedSize>()
   try {
     const handed = await within(
       page.evaluate(throughGuard(`window.${DECODED_SIZES_NAME}()`)),
@@ -156,7 +165,10 @@ async function decodedSizes(page: Page, until: number): Promise<Map<string, numb
     )
     const parsed = DecodedSizes.safeParse(handed === undefined ? null : fromPage(handed))
     if (parsed.success) {
-      for (const [url, size] of parsed.data) sizes.set(url, Math.max(sizes.get(url) ?? 0, size))
+      for (const [url, size] of parsed.data) {
+        const seen = sizes.get(url)
+        sizes.set(url, { size: Math.max(seen?.size ?? 0, size), entries: (seen?.entries ?? 0) + 1 })
+      }
     }
   } catch {
     // Unknown sizes: no compressed body is read.
@@ -165,14 +177,15 @@ async function decodedSizes(page: Page, until: number): Promise<Map<string, numb
 }
 
 /** A response's body, when its size is known beforehand and at most `max` bytes. */
-async function bodyOf(
+async function readBody(
   response: Response,
-  sizes: ReadonlyMap<string, number>,
+  sizes: ReadonlyMap<string, TimedSize>,
+  files: PageFiles,
   max: number,
   until: number,
 ): Promise<Uint8Array | null> {
   try {
-    const size = await knownSize(response, sizes, until)
+    const size = await knownSize(response, sizes, files, until)
     if (size === null || size > max) return null
     const body = await within(
       response.body().catch(() => undefined),
@@ -189,10 +202,15 @@ async function bodyOf(
  * The size of a response's body once decoded: without Content-Encoding, the bytes that came
  * (which count any chunk framing, so never fewer); else Resource Timing's decoded size, which is
  * 0 for a cross-origin file without Timing-Allow-Origin. Null when not known.
+ *
+ * Resource Timing names a size by URL, not by response. So it counts only for a URL loaded once,
+ * with one entry: a page that loads a URL twice, and makes Resource Timing drop the second entry
+ * (with a buffer of one) or clear the first, could pair a small size with a large body.
  */
 async function knownSize(
   response: Response,
-  sizes: ReadonlyMap<string, number>,
+  sizes: ReadonlyMap<string, TimedSize>,
+  files: PageFiles,
   until: number,
 ): Promise<number | null> {
   const encoding = ((await response.headerValue('content-encoding')) ?? '').trim().toLowerCase()
@@ -207,11 +225,11 @@ async function knownSize(
     const size = received?.responseBodySize ?? 0
     return size > 0 ? size : null
   }
-  for (const url of urlsOf(response)) {
-    const size = sizes.get(url)
-    if (size !== undefined && size > 0) return size
-  }
-  return null
+  const urls = urlsOf(response)
+  if (urls.some((url) => files.responses.get(url) !== 1)) return null
+  const timed = urls.flatMap((url) => sizes.get(url) ?? [])
+  const [only] = timed
+  return timed.length === 1 && only?.entries === 1 && only.size > 0 ? only.size : null
 }
 
 /** The response's URL and those of the requests that redirected to it: CSS names the first. */
