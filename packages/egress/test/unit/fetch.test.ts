@@ -1,6 +1,7 @@
 import { brotliCompressSync, deflateRawSync, deflateSync, gzipSync } from 'node:zlib'
 import { afterEach, describe, expect, it } from 'vitest'
 import { safeFetch } from '../../src/fetch'
+import { createPolicy } from '../../src/policy'
 import { onlyServer, startServer, UA, type TestServer } from '../helpers'
 
 let server: TestServer | undefined
@@ -183,5 +184,106 @@ describe('safeFetch', () => {
     const result = await safeFetch('https://admin:hunter2@example.com/', { userAgent: UA })
     expect(result.error?.code).toBe('credentials-in-url')
     expect(JSON.stringify(result)).not.toContain('hunter2')
+  })
+})
+
+describe('safeFetch: a JSON POST (the CrUX API, M1.3b)', () => {
+  const KEY = 'test-key-7f3a'
+
+  it('sends the body as JSON with the headers given, and reads the answer', async () => {
+    let seen: { method?: string; type?: string; key?: string; body: string } = { body: '' }
+    const local = await serve((req, res) => {
+      const chunks: Buffer[] = []
+      req.on('data', (chunk: Buffer) => chunks.push(chunk))
+      req.on('end', () => {
+        seen = {
+          ...(req.method === undefined ? {} : { method: req.method }),
+          ...(req.headers['content-type'] === undefined
+            ? {}
+            : { type: req.headers['content-type'] }),
+          ...(typeof req.headers['x-goog-api-key'] === 'string'
+            ? { key: req.headers['x-goog-api-key'] }
+            : {}),
+          body: Buffer.concat(chunks).toString('utf8'),
+        }
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end('{"record":{}}')
+      })
+    })
+    const result = await safeFetch(`${local.origin}/v1/records:queryRecord`, {
+      userAgent: UA,
+      policy: onlyServer(local.port),
+      json: { url: 'https://example.com/ar', formFactor: 'PHONE' },
+      headers: { 'x-goog-api-key': KEY },
+    })
+    expect(result.error).toBeNull()
+    expect(text(result.response?.body)).toBe('{"record":{}}')
+    expect(seen).toEqual({
+      method: 'POST',
+      type: 'application/json',
+      key: KEY,
+      body: '{"url":"https://example.com/ar","formFactor":"PHONE"}',
+    })
+    expect(JSON.stringify(result)).not.toContain(KEY)
+  })
+
+  it('never follows a redirect with the body and its key', async () => {
+    let elsewhere = 0
+    const other = await startServer((_req, res) => {
+      elsewhere++
+      res.end('{}')
+    })
+    try {
+      const local = await serve((_req, res) => {
+        res.writeHead(307, { location: `${other.origin}/steal` })
+        res.end()
+      })
+      const result = await safeFetch(`${local.origin}/`, {
+        userAgent: UA,
+        policy: createPolicy({
+          allowTargets: [
+            { address: '127.0.0.1', port: local.port },
+            { address: '127.0.0.1', port: other.port },
+          ],
+        }),
+        json: {},
+        headers: { 'x-goog-api-key': KEY },
+      })
+      expect(result.error?.code).toBe('too-many-redirects')
+      expect(elsewhere).toBe(0)
+      expect(JSON.stringify(result)).not.toContain(KEY)
+    } finally {
+      await other.close()
+    }
+  })
+
+  it('keeps no header value in an error', async () => {
+    const result = await safeFetch('http://127.0.0.1:9/', {
+      userAgent: UA,
+      policy: onlyServer(9),
+      json: {},
+      headers: { 'x-goog-api-key': KEY },
+      timeoutMs: 2_000,
+    })
+    expect(result.error).not.toBeNull()
+    expect(JSON.stringify(result)).not.toContain(KEY)
+  })
+
+  it('refuses a body over its limit, and headers that are not its own to add', async () => {
+    const options = { userAgent: UA, policy: onlyServer(9) }
+    await expect(
+      safeFetch('http://127.0.0.1:9/', { ...options, json: 'x'.repeat(70_000) }),
+    ).rejects.toThrow(TypeError)
+    const refused: Record<string, string>[] = [
+      { 'user-agent': 'SomeoneElse' },
+      { host: 'example.com' },
+      { 'x-key': 'a\r\nx-injected: 1' },
+      { 'bad name': 'a' },
+    ]
+    for (const headers of refused) {
+      await expect(safeFetch('http://127.0.0.1:9/', { ...options, headers })).rejects.toThrow(
+        TypeError,
+      )
+    }
   })
 })
