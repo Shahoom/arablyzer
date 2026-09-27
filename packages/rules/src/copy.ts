@@ -43,7 +43,7 @@ export const SECTION_HEADINGS: Readonly<Record<Lang, Readonly<Record<SectionKey,
 const PLACEHOLDER = /\{([A-Za-z][A-Za-z0-9]*)\}/g
 
 /** Harakat, superscript alef and tatweel: "كيف تصلح" and "كيف تُصلح" are the same heading. */
-const ARABIC_MARKS = /[ً-ٰٟـ]/g
+const ARABIC_MARKS = /[\u064b-\u065f\u0670\u0640]/g
 
 /** src/rules/, next to this file (and next to the bundled CLI, where the build copies it). */
 const RULES_DIR = new URL('./rules/', import.meta.url)
