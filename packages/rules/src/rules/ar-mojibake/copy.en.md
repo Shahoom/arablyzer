@@ -18,7 +18,7 @@ Windows-1256 Arabic text shows on the page as meaningless symbols, because it wa
 
 ## How to fix
 
-1. Save the site's files in UTF-8, and declare it in the server and in the page:
+- Save the site's files in UTF-8, and declare it in the server and in the page:
 
 ```html
 <meta charset="utf-8" />
@@ -28,8 +28,8 @@ Windows-1256 Arabic text shows on the page as meaningless symbols, because it wa
 Content-Type: text/html; charset=utf-8
 ```
 
-2. If the garbled text comes from the database, set the connection and tables to `utf8mb4`, then repair the text stored in the wrong encoding; this is best left to a developer, with a backup made before any change.
-3. In WordPress, check the `DB_CHARSET` value in `wp-config.php` and the tables' encoding.
+- If the garbled text comes from the database, set the connection and tables to `utf8mb4`, then repair the text stored in the wrong encoding; this is best left to a developer, with a backup made before any change.
+- In WordPress, check the `DB_CHARSET` value in `wp-config.php` and the tables' encoding.
 
 ## How we detect
 
