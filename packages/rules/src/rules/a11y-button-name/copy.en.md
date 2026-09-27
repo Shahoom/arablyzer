@@ -20,7 +20,7 @@ This button has no accessible name, so a screen reader announces it as a button 
 ## How we detect
 
 1. We render the page and run axe-core 4.13.0's `button-name` rule in each engine.
-2. It reports each button whose accessible name is empty: no text, and no `aria-label`, `aria-labelledby` or `title`; for `<input type="button">` and its kin, no `value` either.
+2. It reports each `<button>` whose accessible name is empty: no text, and no `aria-label`, `aria-labelledby` or `title`. Buttons written as `<input type="button">` and its kin are a different axe rule, which Arablyzer does not run yet.
 3. It does not apply to pages without buttons.
 
 ## References

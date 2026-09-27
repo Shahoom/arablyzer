@@ -67,6 +67,40 @@ describe('form-phone-direction', () => {
     }
   })
 
+  it('reads labels and placeholders word by word, with the clitics Arabic attaches (M1.2b review)', () => {
+    for (const text of [
+      'الجوال',
+      'رقم جوالك',
+      'بالهاتف أو واتساب',
+      'رقم الواتساب',
+      'Phone',
+      'Mobile number',
+      'Tel.',
+    ]) {
+      expect(
+        detectAll(rule, evidence(phone({ name: null, id: null, label: text }))),
+        text,
+      ).toHaveLength(1)
+    }
+    for (const text of [
+      'موديل iPhone الذي تبحث عنه',
+      'Headphone brand',
+      'automobile',
+      'ابحث عن جوالات وإكسسوارات',
+      'هواتف ذكية',
+    ]) {
+      expect(detectAll(rule, evidence(phone({ name: null, id: null, label: text }))), text).toEqual(
+        [],
+      )
+    }
+  })
+
+  it('leaves out search boxes and message fields that only mention a phone (M1.2b review)', () => {
+    const search = phone({ name: 'q', id: 'q', type: 'search', placeholder: 'ابحث عن جوال' })
+    const message = phone({ name: 'message', id: 'message', label: 'رسالتك، نرد عليك عبر واتساب' })
+    expect(detectAll(rule, evidence(search, message))).toEqual([])
+  })
+
   it('applies only to pages with a phone field', () => {
     expect(applies(rule, evidence(phone()))).toBe(true)
     expect(applies(rule, evidence(phone({ name: 'city', id: 'city' })))).toBe(false)

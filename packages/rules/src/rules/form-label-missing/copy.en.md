@@ -20,7 +20,7 @@ This form field has no label, so a screen reader announces it without saying wha
 ## How we detect
 
 1. We render the page and run axe-core 4.13.0's `label` rule in each engine.
-2. It reports each input, select and textarea without an accessible name: no label, `aria-label`, `aria-labelledby`, `title` or placeholder. axe accepts a placeholder as a name; it disappears as someone types, so a visible label is still better.
+2. It reports each input and textarea without an accessible name: no label, `aria-label`, `aria-labelledby`, `title` or placeholder. axe accepts a placeholder as a name; it disappears as someone types, so a visible label is still better. Lists (`<select>`) are a different axe rule, which Arablyzer does not run yet.
 3. It does not apply to pages without form fields.
 
 ## References

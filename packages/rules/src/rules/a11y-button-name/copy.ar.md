@@ -24,7 +24,7 @@ reviewed: false
 ## كيف نكشف
 
 1. نعرض الصفحة ونشغّل قاعدة `button-name` في axe-core 4.13.0 في كل محرّك.
-2. تبلّغ عن كل زر اسمه فارغ: بلا نص، وبلا `aria-label` أو `aria-labelledby` أو `title`، وبلا `value` لـ`<input type="button">` وأمثاله.
+2. تبلّغ عن كل عنصر `<button>` اسمه فارغ: بلا نص، وبلا `aria-label` أو `aria-labelledby` أو `title`. أما الأزرار المكتوبة `<input type="button">` وأمثالها فلها قاعدة أخرى في axe لا يشغّلها Arablyzer بعد.
 3. لا تنطبق على الصفحات التي بلا أزرار.
 
 ## المراجع

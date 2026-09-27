@@ -15,17 +15,53 @@ const PHONE_WORDS = new Set([
   'gsm',
   'msisdn',
 ])
-/** «رقم الجوال»، «الهاتف»، «واتساب», "Phone number". */
-const PHONE_TEXT = /phone|mobile|whats\s?app|هاتف|جوال|موبايل|واتس/iu
+/** Arabic phone words, after the clitics a word carries: «الجوال»، «جوالك»، «بالهاتف». */
+const ARABIC_PHONE = new Set(['هاتف', 'جوال', 'موبايل', 'واتساب', 'واتس', 'تلفون', 'تليفون'])
+const PREFIX = /^(?:وال|بال|فال|لل|ال|و|ب|ف|ل)/u
+const SUFFIX = /(?:كم|كن|هم|ها|نا|ك|ه|ي)$/u
+const HARAKAT = /[\u064b-\u065f\u0670]/gu
+/** Fields that only mention a phone: a search box, a message. */
+const NOT_PHONE_WORDS = new Set([
+  'q',
+  'query',
+  'search',
+  'message',
+  'msg',
+  'comment',
+  'comments',
+  'note',
+  'notes',
+  'subject',
+  'body',
+])
+
+/**
+ * A label or placeholder that names a phone, word by word: «iPhone» and «Headphone» are not
+ * phones, and plurals such as «جوالات» or «هواتف» are products, not a number (M1.2b review).
+ */
+function namesPhone(text: string): boolean {
+  for (const [word] of text.toLowerCase().matchAll(/[\p{L}\p{M}]+/gu)) {
+    if (PHONE_WORDS.has(word)) return true
+    const bare = word.replace(HARAKAT, '')
+    const stem = bare.replace(PREFIX, '')
+    for (const candidate of [bare, stem, bare.replace(SUFFIX, ''), stem.replace(SUFFIX, '')]) {
+      if (ARABIC_PHONE.has(candidate)) return true
+    }
+  }
+  return false
+}
 
 /** A field for a phone number, by its type, keyboard, autocomplete, name, id or text. */
 function isPhoneField(field: RenderedFieldFact): boolean {
+  if (field.type === 'search' || identifierWords(field).some((word) => NOT_PHONE_WORDS.has(word))) {
+    return false
+  }
   return (
     field.type === 'tel' ||
     field.inputmode === 'tel' ||
     field.autocomplete.some((token) => /^tel(?:-|$)/.test(token)) ||
     identifierWords(field).some((word) => PHONE_WORDS.has(word)) ||
-    fieldTexts(field).some((text) => PHONE_TEXT.test(text))
+    fieldTexts(field).some(namesPhone)
   )
 }
 
