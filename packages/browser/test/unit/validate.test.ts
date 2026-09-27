@@ -119,6 +119,7 @@ describe('toA11yFacts: axe’s results, checked before any rule reads them', () 
   const node = { selector: '#low', snippet: '<p id="low">نص</p>', reason: null, contrast: null }
   const rule = {
     id: 'color-contrast',
+    applicable: true,
     violations: [node],
     violationCount: 1,
     incomplete: [],

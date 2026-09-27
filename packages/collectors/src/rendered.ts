@@ -119,6 +119,8 @@ export interface A11yNodeFact {
 
 export interface A11yRuleFact {
   readonly id: A11yRuleId
+  /** The page has something the rule checks (axe did not list it as inapplicable). */
+  readonly applicable: boolean
   /** What axe found wrong (the first 20), and how many in all. */
   readonly violations: readonly A11yNodeFact[]
   readonly violationCount: number

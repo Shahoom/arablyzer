@@ -68,7 +68,7 @@ interface Axe {
   run(
     context: Document,
     options: Record<string, unknown>,
-  ): Promise<{ violations: AxeResult[]; incomplete: AxeResult[] }>
+  ): Promise<{ violations: AxeResult[]; incomplete: AxeResult[]; inapplicable: AxeResult[] }>
 }
 
 /**
@@ -147,6 +147,7 @@ export async function runAxeInPage(
       const incomplete = nodesOf(result.incomplete, id)
       return {
         id,
+        applicable: !result.inapplicable.some((item) => item.id === id),
         violations: violations.slice(0, limits.maxNodes).map(compact),
         violationCount: violations.length,
         incomplete: incomplete.slice(0, limits.maxNodes).map(compact),
@@ -190,6 +191,7 @@ const A11yResult = z.strictObject({
           'valid-lang',
           'label',
         ]),
+        applicable: z.boolean(),
         violations: z.array(A11yNode).max(AXE_LIMITS.maxNodes),
         violationCount: z.number().int().min(0),
         incomplete: z.array(A11yNode).max(AXE_LIMITS.maxNodes),

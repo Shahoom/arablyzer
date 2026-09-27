@@ -270,7 +270,23 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(contrast?.incomplete.map((node) => [node.selector, node.reason])).toEqual([
       ['#over', 'bgImage'],
     ])
+    expect(a11y.rules.every((rule) => rule.applicable)).toBe(true)
     expect(a11y.axeVersion).toBe('4.13.0')
+  })
+
+  it('says which axe rules had nothing to check on the page', async () => {
+    const page = await facts(engine, { '/': arabicPage('<p>نص عربي قصير</p>') })
+    const applicable = Object.fromEntries(
+      (page.a11y?.rules ?? []).map((rule) => [rule.id, rule.applicable]),
+    )
+    expect(applicable).toEqual({
+      'image-alt': false,
+      'color-contrast': true,
+      'link-name': false,
+      'button-name': false,
+      'valid-lang': false,
+      label: false,
+    })
   })
 
   it('reports text fields with their computed direction', async () => {
