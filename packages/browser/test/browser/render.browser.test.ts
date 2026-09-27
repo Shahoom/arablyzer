@@ -307,16 +307,17 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     })
     expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
     const stylesheets = outcome?.facts?.stylesheets
-    // Firefox follows Fetch in hiding the size of another origin's stylesheet linked without
-    // crossorigin, even with Timing-Allow-Origin: there both stay unread. The large one never is.
+    // Firefox and WebKit follow Fetch in hiding the size of another origin's stylesheet linked
+    // without crossorigin, even with Timing-Allow-Origin: there both stay unread (WebKit measured
+    // in CI). Chromium gives it. The large one is never read.
     expect(stylesheets).toEqual(
-      engine === 'firefox'
-        ? { read: 0, unread: 2, physical: [] }
-        : {
+      engine === 'chromium'
+        ? {
             read: 1,
             unread: 1,
             physical: [expect.objectContaining({ url: cdn.url('/small.css'), count: 1 })],
-          },
+          }
+        : { read: 0, unread: 2, physical: [] },
     )
   })
 

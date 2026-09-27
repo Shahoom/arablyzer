@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { brotliCompressSync, deflateSync } from 'node:zlib'
+import { brotliCompressSync, constants, deflateSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { inRanges, type CodePointRange } from '../src/code-points'
 import { fontCoverage, MAX_FONT_DATA } from '../src/font-coverage'
@@ -255,8 +255,11 @@ describe('fontCoverage', () => {
     expect(fontCoverage(woff(bomb, 1024))).toBeNull()
     // A WOFF2 directory claiming more than MAX_FONT_DATA is refused before any Brotli.
     expect(fontCoverage(woff2(base128(MAX_FONT_DATA + 1), new Uint8Array(16)))).toBeNull()
-    // A Brotli stream that inflates past the tables' total stops at it.
-    const stream = brotliCompressSync(new Uint8Array(16 * 1024 * 1024))
+    // A Brotli stream that inflates past the tables' total stops at it. Quality 1: the default, 11,
+    // takes seconds on 16 MB in CI.
+    const stream = brotliCompressSync(new Uint8Array(16 * 1024 * 1024), {
+      params: { [constants.BROTLI_PARAM_QUALITY]: 1 },
+    })
     expect(fontCoverage(woff2(base128(1024), stream))).toBeNull()
     // UIntBase128 with a leading zero byte, or past 32 bits.
     expect(fontCoverage(woff2(new Uint8Array([0x80, 0x01]), new Uint8Array(16)))).toBeNull()
