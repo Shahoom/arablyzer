@@ -334,10 +334,8 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(fields['#p3']).toEqual(['text', 'ltr', null])
     expect(fields['#t1']).toEqual(['textarea', 'rtl', null])
     expect(Object.keys(fields)).toEqual(['#p1', '#p2', '#p3', '#t1'])
-    // Chromium and Firefox give type=tel direction ltr; recorded for each engine.
-    console.info(
-      `${engine}: <input type="tel"> on a right-to-left page is ${String(fields['#p2']?.[1])}`,
-    )
+    // Measured in all three: Chromium 153 and Firefox 155 here, WebKit 26.6 in CI (run 36295996310).
+    expect(fields['#p2']?.[1]).toBe('ltr')
   })
 
   it('takes a PNG of the first screen when asked', async () => {

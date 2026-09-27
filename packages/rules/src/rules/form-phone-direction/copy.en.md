@@ -9,7 +9,7 @@ This phone field is shown right to left, so a number typed as «+968 9123 4567»
 ## Why it matters
 
 - In a right-to-left field, the groups of a phone number are laid out from right to left: the country code moves to the end, and the groups swap places. People think they typed it wrong, and change a number that was right.
-- Chromium and Firefox show `type="tel"` fields left to right on right-to-left pages, but phone fields written as `type="text"`, even with `inputmode="tel"`, take the page's direction.
+- Chromium, Firefox and WebKit, Safari's engine, show `type="tel"` fields left to right on right-to-left pages, but phone fields written as `type="text"`, even with `inputmode="tel"`, take the page's direction.
 
 ## How to fix
 
