@@ -9,17 +9,17 @@
 # (plan §13); scanning the web needs the egress network of Phase 2 instead.
 FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6
 
-ENV PNPM_HOME=/opt/pnpm \
-    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright \
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright \
     CI=true
-ENV PATH=$PNPM_HOME:$PATH
 
 # Fonts for Arabic and Latin text (the Noto families and DejaVu), fontconfig to list them.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates fontconfig fonts-dejavu-core fonts-noto-core \
  && rm -rf /var/lib/apt/lists/*
 
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+# pnpm for every user, installed once: corepack would fetch it again for the unprivileged user,
+# and the golden reports run with no network (CI run 36419120972).
+RUN npm install --global pnpm@10.32.1
 
 RUN useradd --create-home --uid 10001 arablyzer
 WORKDIR /arablyzer
