@@ -1,4 +1,6 @@
 import type { UrlErrorCode } from '@arablyzer/api-contract/codes'
+import ipaddr from 'ipaddr.js'
+import { getDomain } from 'tldts'
 import {
   checkUrl,
   resolveEndpoint,
@@ -9,9 +11,20 @@ import {
 
 export interface ParsedTarget {
   readonly url: URL
-  /** The host as DNS is asked for it, lowercased: the per-host limit's key. */
+  /** The host as DNS is asked for it, lowercased. */
   readonly host: string
   readonly port: number
+}
+
+/**
+ * The per-host limit's key: the site, so its names cannot share it out. A name counts as its
+ * registrable domain (shop.example.com and example.com. are example.com; each github.io site is
+ * its own), by the Public Suffix List; an address counts as itself, however it is written.
+ */
+export function hostKey(host: string): string {
+  const name = host.toLowerCase().replace(/\.$/, '')
+  if (ipaddr.isValid(name)) return `ip:${ipaddr.process(name).toString()}`
+  return `domain:${getDomain(name, { allowPrivateDomains: true }) ?? name}`
 }
 
 export type TargetResult<T> =

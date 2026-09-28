@@ -4,9 +4,6 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "scripts": {
     "dev": "tsx src/dev.ts",
     "start": "tsx src/server.ts",
@@ -27,6 +24,7 @@
     "ioredis": "5.11.1",
     "ipaddr.js": "^2.5.0",
     "pg": "8.23.0",
+    "tldts": "7.4.16",
     "zod": "^4.6.5"
   },
   "devDependencies": {

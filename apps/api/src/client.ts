@@ -30,10 +30,26 @@ export function clientAddress(c: Context, trust: TrustProxy): string | null {
 }
 
 /**
+ * Who the limit counts: an IPv4 address, or an IPv6 address's /64, since one visitor's network
+ * gets a /64 and chooses any address in it. Written one way whatever the spelling: an IPv4
+ * address mapped into IPv6 is that IPv4 address, and IPv6 is written compressed.
+ */
+export function limitSubject(address: string): string {
+  const parsed = ipaddr.process(address)
+  return parsed.kind() === 'ipv6'
+    ? `${ipaddr.IPv6.networkAddressFromCIDR(`${parsed.toString()}/64`).toString()}/64`
+    : parsed.toString()
+}
+
+/**
  * A key for the visitor's scans that is not their address: an HMAC under a secret and the day,
  * so the limiter's store never holds an address, and keys cannot be linked across days (§14).
+ * The day turns at 00:00 UTC, which starts every bucket afresh then.
  */
 export function connectionKey(address: string, secret: string, now: Date): string {
   const day = now.toISOString().slice(0, 10)
-  return createHmac('sha256', secret).update(`${day}|${address}`).digest('base64url').slice(0, 32)
+  return createHmac('sha256', secret)
+    .update(`${day}|${limitSubject(address)}`)
+    .digest('base64url')
+    .slice(0, 32)
 }
