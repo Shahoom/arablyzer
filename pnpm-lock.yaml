@@ -48,6 +48,16 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
 
+  packages/api-contract:
+    dependencies:
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@arablyzer/egress':
+        specifier: workspace:*
+        version: link:../egress
+
   packages/browser:
     dependencies:
       '@arablyzer/collectors':
@@ -173,6 +183,16 @@ importers:
       ajv-formats:
         specifier: ^3.0.1
         version: 3.0.1(ajv@8.20.0)
+
+  packages/i18n:
+    dependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
+    devDependencies:
+      '@arablyzer/egress':
+        specifier: workspace:*
+        version: link:../egress
 
   packages/lab:
     dependencies:
