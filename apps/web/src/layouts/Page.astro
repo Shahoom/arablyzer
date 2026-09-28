@@ -17,19 +17,27 @@ interface Props {
   title: string
   description: string
   jsonLd?: readonly JsonLd[]
+  /**
+   * A user's report (/r/{id}): never indexed, and naming no canonical page or alternates, since
+   * the same page serves every report (BUILD-PLAN §6.5). Links to it in the other language keep
+   * the report's ID.
+   */
+  report?: boolean
 }
-const { lang, path, title, description, jsonLd = [] } = Astro.props
+const { lang, path, title, description, jsonLd = [], report = false } = Astro.props
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, path)
 // One source for <head>, shared with the templates the self-audit has checked since Phase 0.
-const head = renderHead({
-  title,
-  description,
-  canonical: url,
-  alternates: alternates(site, path),
-  jsonLd,
-  openGraph: { title, description, url },
-})
+const head = report
+  ? renderHead({ title, description, robots: 'noindex, nofollow' })
+  : renderHead({
+      title,
+      description,
+      canonical: url,
+      alternates: alternates(site, path),
+      jsonLd,
+      openGraph: { title, description, url },
+    })
 ---
 
 <!doctype html>
@@ -62,10 +70,19 @@ const head = renderHead({
       {SITE[lang].skipToContent}
     </a>
     <StatusBar lang={lang} />
-    <SiteHeader lang={lang} path={path} />
+    <SiteHeader lang={lang} path={path} keepId={report} />
     <main id="main" class="flex flex-col">
       <slot />
     </main>
-    <SiteFooter lang={lang} path={path} />
+    <SiteFooter lang={lang} path={path} keepId={report} />
+    {report && <script>
+      // The same report in the other language: /r/{id} and /en/r/{id}.
+      const id = window.location.pathname.split('/').filter(Boolean).at(-1) ?? ''
+      if (/^[A-Za-z0-9_-]{22}$/.test(id)) {
+        for (const link of document.querySelectorAll<HTMLAnchorElement>('a[data-keep-id]')) {
+          link.href = `${link.getAttribute('href') ?? ''}${id}`
+        }
+      }
+    </script>}
   </body>
 </html>

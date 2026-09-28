@@ -1,0 +1,23 @@
+---
+import { REPORT } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+import ReportApp from '../islands/ReportApp'
+import Page from '../layouts/Page.astro'
+
+/**
+ * /r/{id}: one static page for every report, which the server sends for any report ID (Caddy,
+ * M2.1c); the island reads the ID from the address and follows the scan.
+ */
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = REPORT[lang].meta
+---
+
+<Page lang={lang} path="/r/" title={t.title} description={t.description} report>
+  <ReportApp client:load lang={lang} />
+  <noscript>
+    <p class="mx-5 my-10 text-base md:mx-16">{REPORT[lang].noscript}</p>
+  </noscript>
+</Page>

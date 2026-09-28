@@ -166,3 +166,88 @@
   content-visibility: auto;
   contain-intrinsic-size: auto 900px;
 }
+
+/* A rule's "how to fix", as packages/seo's Markdown writes it: paragraphs, lists, code. */
+@layer components {
+  .prose-fix {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .prose-fix p {
+    margin: 0;
+  }
+  .prose-fix ul,
+  .prose-fix ol {
+    margin: 0;
+    padding-inline-start: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .prose-fix ul {
+    list-style: square;
+  }
+  .prose-fix ol {
+    list-style: decimal;
+  }
+  .prose-fix code {
+    overflow-wrap: anywhere;
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background: var(--color-paper);
+    padding: 0.05rem 0.35rem;
+  }
+  /* Short code, marked by scripts/generate.ts: it moves to the next line whole. */
+  .prose-fix code.whole {
+    white-space: nowrap;
+  }
+  .prose-fix pre {
+    margin: 0;
+    overflow-x: auto;
+    background: var(--color-panel);
+    color: var(--color-panel-soft);
+    padding: 0.85rem 1rem;
+    font-size: 0.8125rem;
+    line-height: 1.7;
+  }
+  .prose-fix pre code {
+    overflow-wrap: normal;
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  .prose-fix a {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  /* "Instead of | Use" tables: a code name never breaks, so the table scrolls on its own instead. */
+  .prose-fix .fix-table {
+    overflow-x: auto;
+  }
+  .prose-fix table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .prose-fix th {
+    text-align: start;
+    font-weight: 600;
+    color: var(--color-ink);
+    padding-block: 0 0.5rem;
+    padding-inline: 0 0.75rem;
+    border-bottom: 1.5px solid var(--color-ink);
+  }
+  .prose-fix td {
+    vertical-align: top;
+    padding-block: 0.6rem;
+    padding-inline: 0 0.75rem;
+    border-bottom: 1px solid var(--color-rule-soft);
+  }
+  .prose-fix :is(th, td):last-child {
+    padding-inline-end: 0;
+  }
+  .prose-fix td code {
+    padding-inline: 0.25rem;
+  }
+}

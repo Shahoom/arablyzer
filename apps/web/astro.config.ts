@@ -18,7 +18,23 @@ export default defineConfig({
   // phone, a stylesheet request delayed the first paint (M2.1 plan §3, measured).
   build: { format: 'preserve', inlineStylesheets: 'always' },
   trailingSlash: 'ignore',
-  integrations: [react()],
+  integrations: [
+    react(),
+    {
+      // One page serves every report: /r/{id} and /en/r/{id} are /r/ and /en/r/, as the site's
+      // server sends them in production (Caddy, M2.1c). This does the same for `astro dev`.
+      name: 'arablyzer:report-route',
+      hooks: {
+        'astro:server:setup': ({ server }) => {
+          server.middlewares.use((req, _res, next) => {
+            const match = /^(\/en)?\/r\/[A-Za-z0-9_-]{22}\/?(?:\?.*)?$/.exec(req.url ?? '')
+            if (match !== null) req.url = `${match[1] ?? ''}/r/`
+            next()
+          })
+        },
+      },
+    },
+  ],
   vite: {
     plugins: [tailwindcss()],
     server: { proxy: { '/api': api } },

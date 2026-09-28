@@ -7,8 +7,10 @@ import Logo from './Logo.astro'
 interface Props {
   lang: Lang
   path: string
+  /** On a report page, the other language's link gets the report's ID (Page.astro). */
+  keepId?: boolean
 }
-const { lang, path } = Astro.props
+const { lang, path, keepId = false } = Astro.props
 const t = SITE[lang]
 const other = otherLang(lang)
 ---
@@ -51,6 +53,7 @@ const other = otherLang(lang)
       LAB-001 ·{' '}
       <a
         href={localePath(other, path)}
+        data-keep-id={keepId ? '' : undefined}
         lang={other}
         hreflang={other}
         class:list={[
