@@ -1,2 +1,2 @@
 export { scanOptionsFrom } from './options'
-export { eventOf, runScan, type Scanner, type WorkerDeps } from './run'
+export { eventOf, failScan, runScan, type Scanner, type WorkerDeps } from './run'

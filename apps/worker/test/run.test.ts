@@ -6,7 +6,7 @@ import { serveSite } from '@arablyzer/fixtures'
 import type { Report } from '@arablyzer/report-schema'
 import { MemoryScanEvents, MemoryScanStore } from '@arablyzer/store'
 import { describe, expect, it } from 'vitest'
-import { runScan, type Scanner } from '../src/run'
+import { failScan, runScan, type Scanner } from '../src/run'
 
 const NOW = new Date('2026-09-28T12:00:00Z')
 const ID = 'AbCdEfGhIjKlMnOpQrSt_-'
@@ -76,6 +76,94 @@ describe('runScan', () => {
     expect(await store.get(ID)).toMatchObject({ state: 'failed', report: null })
     expect(await stored(events)).toEqual([{ type: 'started', engines: [] }, { type: 'error' }])
     expect(logged).toEqual([`Scan ${ID} could not run: the browser crashed`])
+  })
+
+  it('goes on when an event cannot be sent, and says which', async () => {
+    const { store, events } = await setup()
+    const logged: string[] = []
+    // Valkey refusing the first event, as when it is out of memory or read-only.
+    const flaky = {
+      since: events.since.bind(events),
+      follow: events.follow.bind(events),
+      publish: (id: string, event: ScanEvent) =>
+        event.type === 'started'
+          ? Promise.reject(new Error('OOM command not allowed'))
+          : events.publish(id, event),
+    }
+    const scanner: Scanner = async (_, options) => {
+      // The scanner is quiet a while after the refusal, as a browser starting is.
+      await new Promise((resolve) => setTimeout(resolve, 20))
+      options.onProgress?.({ step: 'rules', rules: 47 })
+      return { scan: { status: 'complete' } } as unknown as Report
+    }
+    await runScan(
+      { id: ID, url: 'https://example.com/' },
+      { store, events: flaky, scanner, options: {}, now: () => NOW, log: (m) => logged.push(m) },
+    )
+    expect(await store.get(ID)).toMatchObject({ state: 'complete' })
+    expect(await stored(events)).toEqual([
+      { type: 'rules', rules: 47 },
+      { type: 'done', state: 'complete' },
+    ])
+    expect(logged).toEqual([`Scan ${ID} lost its started event: OOM command not allowed`])
+  })
+
+  it('keeps the report when done cannot be sent: the scan ran, and the page reads its state', async () => {
+    const { store, events } = await setup()
+    const logged: string[] = []
+    const lossy = {
+      since: events.since.bind(events),
+      follow: events.follow.bind(events),
+      publish: (id: string, event: ScanEvent) =>
+        event.type === 'done' ? Promise.reject(new Error('READONLY')) : events.publish(id, event),
+    }
+    const report = { scan: { status: 'complete' } } as unknown as Report
+    await runScan(
+      { id: ID, url: 'https://example.com/' },
+      {
+        store,
+        events: lossy,
+        scanner: () => Promise.resolve(report),
+        options: {},
+        now: () => NOW,
+        log: (m) => logged.push(m),
+      },
+    )
+    expect(await store.get(ID)).toMatchObject({ state: 'complete', report })
+    expect(logged).toEqual([`Scan ${ID} lost its done event: READONLY`])
+  })
+
+  it('never runs a scan twice: one no longer queued is failed, not scanned', async () => {
+    const { store, events } = await setup()
+    // The first run's worker died mid-scan, leaving it running.
+    await store.start(ID, NOW)
+    let scanned = false
+    await runScan(
+      { id: ID, url: 'https://example.com/' },
+      {
+        store,
+        events,
+        scanner: () => {
+          scanned = true
+          return Promise.reject(new Error('not reached'))
+        },
+        options: {},
+        now: () => NOW,
+      },
+    )
+    expect(scanned).toBe(false)
+    expect(await store.get(ID)).toMatchObject({ state: 'failed', report: null })
+    expect(await stored(events)).toEqual([{ type: 'error' }])
+  })
+
+  it('leaves a scan that ended as it is when its job fails afterwards', async () => {
+    const { store, events } = await setup()
+    const report = { scan: { status: 'partial' } } as unknown as Report
+    await store.start(ID, NOW)
+    await store.finish(ID, report, NOW)
+    await failScan(ID, { store, events })
+    expect(await store.get(ID)).toMatchObject({ state: 'partial', report })
+    expect(await events.since(ID, null)).toEqual([])
   })
 
   it('runs the engine on a golden page, from the job to the stored report', async () => {
