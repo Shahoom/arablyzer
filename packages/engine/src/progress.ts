@@ -6,6 +6,8 @@ import type { Engine, RenderRun } from '@arablyzer/report-schema'
  * the report will say, earlier; they never change it.
  */
 export type ScanProgress =
+  /** The scan has begun, and will render in these engines, in this order, if the page is HTML. */
+  | { readonly step: 'start'; readonly engines: readonly Engine[] }
   | {
       /** The page: its HTTP status and type, or the egress code of why it could not be fetched. */
       readonly step: 'page'

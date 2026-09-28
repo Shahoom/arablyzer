@@ -35,6 +35,7 @@ describe('scan: onProgress', () => {
         : step,
     )
     expect(shown).toEqual([
+      { step: 'start', engines: ['chromium', 'firefox'] },
       { step: 'page', status: 200, contentType: 'text/html; charset=utf-8', error: null },
       { step: 'robots', outcome: 'fetched', status: 200 },
       { step: 'render-start', engine: 'chromium' },
@@ -49,6 +50,7 @@ describe('scan: onProgress', () => {
     const steps: ScanProgress[] = []
     await scan('http://10.0.0.1/', { rules: [flagRule()], onProgress: (step) => steps.push(step) })
     expect(steps).toEqual([
+      { step: 'start', engines: [] },
       { step: 'page', status: null, contentType: null, error: 'blocked-address' },
     ])
   })
@@ -61,8 +63,8 @@ describe('scan: onProgress', () => {
       policy: policyFor(local),
       onProgress: (step) => steps.push(step),
     })
-    expect(steps.map((step) => step.step)).toEqual(['page', 'crux', 'rules'])
-    expect(steps[1]).toEqual({ step: 'crux', outcome: 'skipped' })
+    expect(steps.map((step) => step.step)).toEqual(['start', 'page', 'crux', 'rules'])
+    expect(steps[2]).toEqual({ step: 'crux', outcome: 'skipped' })
   })
 
   it('never lets a listener change or break the scan', async () => {

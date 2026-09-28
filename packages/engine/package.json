@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./budgets": "./src/budgets.ts",
     "./identity": "./src/identity.ts"
   },
   "scripts": {
