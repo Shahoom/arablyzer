@@ -1,0 +1,20 @@
+{
+  "name": "@arablyzer/store",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --exclude \"test/services/**\"",
+    "test:services": "vitest run test/services"
+  },
+  "dependencies": {
+    "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/plans": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*"
+  }
+}

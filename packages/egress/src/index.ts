@@ -24,6 +24,7 @@ export {
   type ProxyStats,
 } from './proxy'
 export { IPV4_RANGES, IPV6_RANGES, type SpecialRange } from './ranges'
+export { ALLOW_PRIVATE_VARIABLE, DENY_CIDRS_VARIABLE, serverPolicy } from './server-policy'
 export {
   createDnsResolver,
   defaultResolver,

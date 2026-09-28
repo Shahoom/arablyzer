@@ -62,6 +62,9 @@ importers:
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../../packages/report-schema
+      '@arablyzer/store':
+        specifier: workspace:*
+        version: link:../../packages/store
       '@hono/node-server':
         specifier: 2.1.1
         version: 2.1.1(hono@4.13.10)
@@ -388,6 +391,18 @@ importers:
       parse5:
         specifier: ^8.0.1
         version: 8.0.1
+
+  packages/store:
+    dependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
+      '@arablyzer/plans':
+        specifier: workspace:*
+        version: link:../plans
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
 
   packages/tools:
     dependencies:

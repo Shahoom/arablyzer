@@ -4,8 +4,12 @@ import { DEVELOPMENT_LIMITS, type ScanLimits } from '@arablyzer/plans'
 import type { Report } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
 import { createApp, type ApiDeps } from '../src/app'
-import { MemoryRateLimiter } from '../src/limits'
-import { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from '../src/memory'
+import {
+  MemoryRateLimiter,
+  MemoryScanEvents,
+  MemoryScanQueue,
+  MemoryScanStore,
+} from '@arablyzer/store'
 
 /** Names the tests resolve, and what to: no test asks real DNS. */
 const DNS: Readonly<Record<string, readonly string[]>> = {
@@ -57,7 +61,7 @@ function setup(overrides: Partial<ApiDeps> & { limits?: ScanLimits } = {}) {
 }
 
 async function refusal(response: Response) {
-  return { status: response.status, body: (await response.json()) }
+  return { status: response.status, body: await response.json() }
 }
 
 describe('POST /api/scans', () => {

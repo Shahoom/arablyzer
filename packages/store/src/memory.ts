@@ -1,6 +1,6 @@
 import type { ScanEvent } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
-import type { ScanEvents, ScanJob, ScanQueue, ScanRecord, ScanStore, StoredEvent } from './stores'
+import type { ScanEvents, ScanJob, ScanQueue, ScanRecord, ScanStore, StoredEvent } from './types'
 
 // The stores in memory, for tests and `pnpm dev`: one process, nothing kept after it ends.
 

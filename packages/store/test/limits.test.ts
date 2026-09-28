@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MemoryRateLimiter, secondsUntilOne } from '../src/limits'
+import { MemoryRateLimiter, secondsUntilOne } from '../src/index'
 
 const hour = { scans: 3, seconds: 3600 }
 
