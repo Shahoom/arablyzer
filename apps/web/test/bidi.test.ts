@@ -26,6 +26,14 @@ describe('isolateLatin', () => {
     expect(isolated('الأرقام (١٢٣) و[٤٥٦]')).toEqual([])
   })
 
+  it('isolates numbers joined into one by spaces, brackets or a plus sign', () => {
+    expect(isolated('فالرقم المكتوب «+968 9123 4567» يظهر «4567 9123 968+».')).toEqual([
+      '+968 9123 4567',
+      '4567 9123 968+',
+    ])
+    expect(isolated('ويرفض «٩١٢٣٤٥٦٧»، ونمطه [0-9]{8}.')).toEqual(['[0-9]{8}'])
+  })
+
   it('leaves numbers alone, and keeps every character', () => {
     const text = 'هاتف عرضها 390 بكسل بمقدار 280 بكسل، و«12.50 ر.ع.» في CSS هنا.'
     expect(isolated(text)).toEqual(['CSS'])

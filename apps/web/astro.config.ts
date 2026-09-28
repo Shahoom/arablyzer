@@ -62,12 +62,13 @@ export default defineConfig({
       fallbacks: ['Segoe UI', 'Tahoma', 'sans-serif'],
     },
     {
-      provider: fontsource(),
+      // Its Arabic letters are IBM Plex Sans Arabic's, for code that quotes Arabic (fonts.ts).
+      provider: fontsource({ borrow: { arabic: 'IBM Plex Sans Arabic' } }),
       name: 'IBM Plex Mono',
       cssVariable: '--font-plex-mono',
       weights: [400, 500, 600],
       styles: ['normal'],
-      subsets: ['latin'],
+      subsets: ['latin', 'arabic'],
       fallbacks: ['ui-monospace', 'monospace'],
     },
   ],
