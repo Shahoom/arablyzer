@@ -30,6 +30,7 @@ export function apiDeps(
 ): ApiDeps {
   const production = env.NODE_ENV === 'production'
   const policy = serverPolicy(env)
+  const resolver = defaultResolver(policy)
   const trust = trustProxyFrom(env.ARABLYZER_TRUST_PROXY)
 
   const secret = env.TURNSTILE_SECRET?.trim()
@@ -44,9 +45,12 @@ export function apiDeps(
   const turnstile =
     secret === undefined || secret === ''
       ? noTurnstile
-      : cloudflareTurnstile({
+      : // Through the egress proxy too, like every request the API makes (M2.1 plan §5b).
+        cloudflareTurnstile({
           secret,
           userAgent: USER_AGENT,
+          policy,
+          resolver,
           ...(hostname === undefined ? {} : { hostname }),
         })
   if (turnstile === noTurnstile)
@@ -61,7 +65,7 @@ export function apiDeps(
   return {
     limits: limitsFrom(env),
     policy,
-    resolver: defaultResolver(policy),
+    resolver,
     turnstile,
     ...stores,
     address: (c) => clientAddress(c, trust),
