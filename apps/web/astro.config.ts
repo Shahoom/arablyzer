@@ -1,7 +1,7 @@
 import { defineSite, PREVIEW_SITE } from '@arablyzer/seo/site'
 import react from '@astrojs/react'
 import tailwindcss from '@tailwindcss/vite'
-import { defineConfig } from 'astro/config'
+import { defineConfig, envField } from 'astro/config'
 import { fontsource } from './src/fonts'
 
 // The domain is the owner's decision (BUILD-PLAN §20.1); until then pages are built for the
@@ -24,6 +24,17 @@ export default defineConfig({
     server: { proxy: { '/api': api } },
   },
   devToolbar: { enabled: false },
+  env: {
+    schema: {
+      // Turnstile's site key is public: it goes into the page. Unset, the form has no check,
+      // which the API accepts only where its TURNSTILE_SECRET is unset too (development).
+      PUBLIC_TURNSTILE_SITE_KEY: envField.string({
+        context: 'client',
+        access: 'public',
+        optional: true,
+      }),
+    },
+  },
   fonts: [
     {
       provider: fontsource(),

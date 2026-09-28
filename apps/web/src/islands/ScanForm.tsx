@@ -2,9 +2,11 @@ import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import { URL_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-import { useEffect, useState, type SubmitEvent } from 'react'
+import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
+import { useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react'
 import { startScan } from './api'
 import { precheck, type FormError } from './scan-request'
+import { challenge } from './turnstile'
 
 interface Props {
   lang: Lang
@@ -40,6 +42,8 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
   const [error, setError] = useState<FormError | null>(null)
   const errorId = `${inputId}-error`
   const Forward = lang === 'ar' ? ArrowLeft : ArrowRight
+  const box = useRef<HTMLDivElement>(null)
+  const check = useMemo(() => challenge(PUBLIC_TURNSTILE_SITE_KEY, () => box.current, lang), [lang])
 
   // The button stays disabled until the form can handle it, so an early click is not lost.
   useEffect(() => {
@@ -65,8 +69,15 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
     }
     setError(null)
     setBusy(true)
-    // Turnstile's token comes with the API (M2.1b).
-    const started = await startScan({ url: checked.url, turnstileToken: '' })
+    let token: string
+    try {
+      token = await check.token()
+    } catch {
+      setBusy(false)
+      setError({ code: 'turnstile-failed' })
+      return
+    }
+    const started = await startScan({ url: checked.url, turnstileToken: token })
     if (started.ok) {
       window.location.assign(localePath(lang, `/r/${started.id}`))
       return
@@ -102,6 +113,9 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
           autoCapitalize="none"
           spellCheck={false}
           placeholder={t.placeholder}
+          onFocus={() => {
+            check.warm()
+          }}
           aria-invalid={invalid ? true : undefined}
           aria-describedby={error === null ? undefined : errorId}
           className={`h-[54px] min-w-0 grow bg-white px-3.5 font-mono text-base text-ink placeholder:text-ink-3 sm:h-auto sm:px-5 sm:text-lg ${style.input}`}
@@ -117,6 +131,7 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
           <Forward size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
+      <div ref={box} className="empty:hidden" />
       <p id={errorId} role="alert" className={`text-sm ${style.error}`}>
         {message}
       </p>
