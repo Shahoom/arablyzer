@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { startScan } from '../src/islands/api'
-import { precheck, readScanStart } from '../src/islands/scan-request'
+import { askedUrl, precheck, readScanStart } from '../src/islands/scan-request'
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -95,5 +95,19 @@ describe('startScan', () => {
       ok: false,
       error: { code: 'network' },
     })
+  })
+})
+
+describe('askedUrl', () => {
+  it('reads the address a report\'s "Scan again" link carries', () => {
+    const link = `?url=${encodeURIComponent('https://example.com/a?b=1&c=2')}`
+    expect(askedUrl(link)).toBe('https://example.com/a?b=1&c=2')
+  })
+
+  it('ignores a missing, empty or overlong address', () => {
+    expect(askedUrl('')).toBeNull()
+    expect(askedUrl('?other=1')).toBeNull()
+    expect(askedUrl('?url=%20')).toBeNull()
+    expect(askedUrl(`?url=https://example.com/${'a'.repeat(2048)}`)).toBeNull()
   })
 })

@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
 import { useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react'
 import { startScan } from './api'
-import { precheck, type FormError } from './scan-request'
+import { askedUrl, precheck, type FormError } from './scan-request'
 import { challenge } from './turnstile'
 
 interface Props {
@@ -43,11 +43,17 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
   const errorId = `${inputId}-error`
   const Forward = lang === 'ar' ? ArrowLeft : ArrowRight
   const box = useRef<HTMLDivElement>(null)
+  const field = useRef<HTMLInputElement>(null)
   const check = useMemo(() => challenge(PUBLIC_TURNSTILE_SITE_KEY, () => box.current, lang), [lang])
 
   // The button stays disabled until the form can handle it, so an early click is not lost.
   useEffect(() => {
     setReady(true)
+    // "Scan again", from a report, opens this page with the address: the form starts with it.
+    const asked = askedUrl(window.location.search)
+    if (asked !== null && field.current !== null && field.current.value === '') {
+      field.current.value = asked
+    }
     // Back from the scan's page, a page the browser kept is shown as it was left: busy.
     const shown = (event: PageTransitionEvent) => {
       if (event.persisted) setBusy(false)
@@ -104,6 +110,7 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
       </label>
       <div className={`flex flex-col gap-2 sm:h-[66px] sm:flex-row sm:gap-0 ${style.row}`}>
         <input
+          ref={field}
           id={inputId}
           name="url"
           type="url"
