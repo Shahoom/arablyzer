@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createPolicy } from '@arablyzer/egress'
 import { loadSiteConfig, serveCrux, serveSite, trustFixtureCa } from '@arablyzer/fixtures'
 import { describe, expect, it } from 'vitest'
@@ -53,12 +53,16 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
           writeFileSync(file, actual)
           return
         }
-        const expected = readFileSync(file, 'utf8')
+        // A page without a report yet counts as changed: CI keeps what it gave, to be committed.
+        const expected = existsSync(file) ? readFileSync(file, 'utf8') : null
         if (actual !== expected && OUT !== undefined) {
           mkdirSync(OUT, { recursive: true })
           writeFileSync(`${OUT}/${name}.json`, actual)
         }
-        expect(JSON.parse(actual), `${name}: its report changed`).toEqual(JSON.parse(expected))
+        expect(expected, `${name}: no golden report yet`).not.toBeNull()
+        expect(JSON.parse(actual), `${name}: its report changed`).toEqual(
+          JSON.parse(expected ?? 'null'),
+        )
       } finally {
         await site.close()
         await crux?.close()
