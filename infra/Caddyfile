@@ -1,0 +1,49 @@
+# The site's server (M2.1 plan §5b): the pages, /api to the API, every report's link to its
+# language's report page, compressed, with the security headers. It writes no access log, so no
+# visitor's address is kept anywhere (BUILD-PLAN §14).
+{
+	admin off
+	# Behind the host's proxy, which terminates TLS: its X-Forwarded-For is read right to left,
+	# past the private addresses of proxies, to the visitor's own.
+	servers {
+		trusted_proxies static private_ranges
+		trusted_proxies_strict
+	}
+}
+
+:{$PORT:8080} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Cross-Origin-Opener-Policy same-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy api:8787 {
+			# One address, the visitor's, which the API counts its limits by (§14).
+			header_up X-Forwarded-For {client_ip}
+			# A scan's events go to its page as they come.
+			flush_interval -1
+		}
+	}
+
+	# A report's link opens the report page of its language, never indexed (§6.5).
+	@report path_regexp report ^/(en/)?r/(?:[A-Za-z0-9_-]{22}/?|index\.html)?$
+	handle @report {
+		header X-Robots-Tag "noindex, nofollow"
+		root * /srv
+		rewrite * /{re.report.1}r/index.html
+		file_server
+	}
+
+	handle {
+		root * /srv
+		file_server
+	}
+}

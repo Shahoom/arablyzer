@@ -8,6 +8,8 @@
 .git
 .github
 golden-actual
+# Tools' local state, such as their worktrees.
+.claude
 # Secrets stay out of the image, as they stay out of git, at any depth.
 **/.env
 **/.env.*
