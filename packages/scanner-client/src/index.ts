@@ -7,8 +7,11 @@ export {
 } from './client'
 export {
   MAX_ERROR_LENGTH,
+  MAX_SCANNER_EVENTS,
   SCAN_PATH,
+  SCANNER_EVENT_TYPES,
   ScannerLine,
   ScanRequest,
+  type ScannerEvent,
   type ScannerLineOut,
 } from './protocol'

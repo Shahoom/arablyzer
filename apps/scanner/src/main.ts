@@ -26,6 +26,10 @@ const app = createScannerApp({
   log: (text) => {
     console.error(text)
   },
+  // A scan that will not stop: out, and Compose starts the scanner again (restart policy).
+  onStuck: () => {
+    process.exit(1)
+  },
 })
 const server = serve(
   { fetch: app.fetch, port: Number(env.PORT ?? 8788), hostname: '0.0.0.0' },

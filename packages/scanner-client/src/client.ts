@@ -1,14 +1,13 @@
-import type { ScanEvent } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
-import { SCAN_PATH, ScannerLine } from './protocol'
+import { MAX_SCANNER_EVENTS, SCAN_PATH, ScannerLine, type ScannerEvent } from './protocol'
 
 /**
- * A scan: its events as they happen, then its report. It throws when the scan could not run; a
- * page a scan could not fetch is a report, not a throw.
+ * A scan: its steps' events as they happen, then its report. It throws when the scan could not
+ * run; a page a scan could not fetch is a report, not a throw.
  */
 export type Scanner = (
   url: string,
-  onEvent: (event: ScanEvent) => void,
+  onEvent: (event: ScannerEvent) => void,
   signal?: AbortSignal,
 ) => Promise<Report>
 
@@ -48,6 +47,7 @@ export function remoteScanner(
       await response.body?.cancel()
       throw new Error(`The scanner answered ${response.status}`)
     }
+    let events = 0
     for await (const line of lines(response.body)) {
       let parsed: unknown
       try {
@@ -58,8 +58,12 @@ export function remoteScanner(
       const checked = ScannerLine.safeParse(parsed)
       if (!checked.success) throw new Error('The scanner sent a line its protocol does not have')
       const message = checked.data
-      if (message.type === 'event') onEvent(message.event)
-      else if (message.type === 'report') return message.report
+      if (message.type === 'event') {
+        if (++events > MAX_SCANNER_EVENTS)
+          throw new Error('The scanner sent more events than a scan has')
+        // The protocol's check has refused every event that is not a scan's own step.
+        onEvent(message.event as ScannerEvent)
+      } else if (message.type === 'report') return message.report
       else throw new Error(`The scanner could not run the scan: ${message.message}`)
     }
     throw new Error('The scanner ended its answer without a report')

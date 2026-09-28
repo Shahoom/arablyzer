@@ -1,14 +1,20 @@
 import type { ScanEvent } from '@arablyzer/api-contract'
 import { SCAN_BUDGET_MS as ENGINE_BUDGET_MS } from '@arablyzer/engine/budgets'
 import type { Report } from '@arablyzer/report-schema'
-import { remoteScanner, SCAN_BUDGET_MS, type Scanner } from '@arablyzer/scanner-client'
+import {
+  remoteScanner,
+  SCAN_BUDGET_MS,
+  type Scanner,
+  type ScannerEvent,
+} from '@arablyzer/scanner-client'
+import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { describe, expect, it } from 'vitest'
 import { createScannerApp } from '../src/app'
 
 const TOKEN = 'a-token-long-enough-to-be-the-workers-own'
 const REPORT = { scan: { status: 'complete' } } as unknown as Report
-const EVENTS: ScanEvent[] = [
+const EVENTS: ScannerEvent[] = [
   { type: 'started', engines: ['chromium'] },
   { type: 'page', status: 200, contentType: 'text/html', error: null },
   { type: 'rules', rules: 47 },
@@ -128,6 +134,79 @@ describe('the scanner and its client', () => {
     await expect(cutClient('https://example.com/', () => undefined)).rejects.toThrow(
       /without a report/,
     )
+  })
+
+  it('stops the scan when the worker hangs up, on a real connection', async () => {
+    let started: () => void = () => undefined
+    const running = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    let stopped: () => void = () => undefined
+    const stopping = new Promise<void>((resolve) => {
+      stopped = resolve
+    })
+    const app = createScannerApp({
+      token: TOKEN,
+      scanner: (_url, onEvent, signal) => {
+        signal?.addEventListener('abort', () => {
+          stopped()
+        })
+        onEvent({ type: 'started', engines: ['chromium'] })
+        started()
+        // A render that would go on, but for the signal.
+        return new Promise<Report>(() => undefined)
+      },
+    })
+    let server: ReturnType<typeof serve> | undefined
+    const port = await new Promise<number>((resolve) => {
+      server = serve({ fetch: app.fetch, port: 0, hostname: '127.0.0.1' }, (info) => {
+        resolve(info.port)
+      })
+    })
+    try {
+      const hangUp = new AbortController()
+      const scanning = remoteScanner(`http://127.0.0.1:${String(port)}`, TOKEN)(
+        'https://example.com/',
+        () => {
+          hangUp.abort()
+        },
+        hangUp.signal,
+      )
+      await running
+      await expect(scanning).rejects.toThrow()
+      await stopping
+    } finally {
+      server?.close()
+    }
+  })
+
+  it('stops a scan past its limit, and is unhealthy while one will not stop', async () => {
+    let given: AbortSignal | undefined
+    const stuck: string[] = []
+    const app = createScannerApp({
+      token: TOKEN,
+      // A scan that neither ends nor listens to its signal.
+      scanner: (_url, _onEvent, signal) => {
+        given = signal
+        return new Promise<Report>(() => undefined)
+      },
+      hardLimitMs: 50,
+      stopGraceMs: 50,
+      onStuck: () => stuck.push('stuck'),
+    })
+    const response = await app.request('/scan', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${TOKEN}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ url: 'https://example.com/' }),
+    })
+    expect(response.status).toBe(200)
+    expect((await app.request('/health')).status).toBe(200)
+    await new Promise((resolve) => setTimeout(resolve, 75))
+    expect(given?.aborted).toBe(true)
+    expect((await app.request('/health')).status).toBe(503)
+    expect(stuck).toEqual([])
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(stuck).toEqual(['stuck'])
   })
 
   it('says it is up, to Compose, without the token', async () => {

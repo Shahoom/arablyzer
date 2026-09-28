@@ -1,8 +1,8 @@
-import type { ScanEvent } from '@arablyzer/api-contract'
 import type { ScanProgress } from '@arablyzer/engine'
+import type { ScannerEvent } from '@arablyzer/scanner-client'
 
 /** The engine's step as the page reads it. */
-export function eventOf(progress: ScanProgress): ScanEvent {
+export function eventOf(progress: ScanProgress): ScannerEvent {
   switch (progress.step) {
     case 'start':
       return { type: 'started', engines: [...progress.engines] }
