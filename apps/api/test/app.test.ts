@@ -61,7 +61,8 @@ function setup(overrides: Partial<ApiDeps> & { limits?: ScanLimits } = {}) {
 }
 
 async function refusal(response: Response) {
-  return { status: response.status, body: await response.json() }
+  const body: unknown = await response.json()
+  return { status: response.status, body }
 }
 
 describe('POST /api/scans', () => {

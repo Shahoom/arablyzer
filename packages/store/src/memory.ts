@@ -46,19 +46,19 @@ export class MemoryScanStore implements ScanStore {
 export class MemoryScanQueue implements ScanQueue {
   readonly #jobs: ScanJob[] = []
   readonly #takers: ((job: ScanJob) => void)[] = []
+  readonly #added = new Set<string>()
 
   waiting(): Promise<number> {
     return Promise.resolve(this.#jobs.length)
   }
 
-  add(job: ScanJob): Promise<number> {
+  add(job: ScanJob): Promise<void> {
+    if (this.#added.has(job.id)) return Promise.resolve()
+    this.#added.add(job.id)
     const taker = this.#takers.shift()
-    if (taker !== undefined) {
-      taker(job)
-      return Promise.resolve(0)
-    }
-    this.#jobs.push(job)
-    return Promise.resolve(this.#jobs.length - 1)
+    if (taker !== undefined) taker(job)
+    else this.#jobs.push(job)
+    return Promise.resolve()
   }
 
   /** The next job, when there is one: for the worker that runs in this process. */

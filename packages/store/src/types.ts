@@ -35,8 +35,8 @@ export interface ScanJob {
 export interface ScanQueue {
   /** Scans waiting, not yet started. */
   waiting(): Promise<number>
-  /** Queues the scan; returns how many wait ahead of it. */
-  add(job: ScanJob): Promise<number>
+  /** Queues the scan, once: a second add of the same ID does nothing. */
+  add(job: ScanJob): Promise<void>
 }
 
 export interface StoredEvent {

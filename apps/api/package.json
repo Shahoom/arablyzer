@@ -11,18 +11,28 @@
     "dev": "tsx src/dev.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --exclude \"test/ssrf/**\"",
-    "test:ssrf": "vitest run test/ssrf"
+    "test": "vitest run --exclude \"test/ssrf/**\" --exclude \"test/services/**\"",
+    "test:ssrf": "vitest run test/ssrf",
+    "test:services": "vitest run test/services"
   },
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
     "@arablyzer/egress": "workspace:*",
+    "@arablyzer/engine": "workspace:*",
     "@arablyzer/plans": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/store": "workspace:*",
     "@hono/node-server": "2.1.1",
     "hono": "4.13.10",
+    "ioredis": "5.11.1",
     "ipaddr.js": "^2.5.0",
+    "pg": "8.23.0",
     "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@arablyzer/fixtures": "workspace:*",
+    "@arablyzer/worker": "workspace:*",
+    "@types/pg": "8.23.1",
+    "bullmq": "6.3.9"
   }
 }

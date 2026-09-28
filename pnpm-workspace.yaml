@@ -2,3 +2,9 @@ packages:
   - apps/*
   - packages/*
   - fixtures
+
+# Install scripts stay off (pnpm 10's default); these two are named so the choice is explicit:
+# esbuild ships its binary in a platform package, and msgpackr (BullMQ) falls back to JavaScript.
+ignoredBuiltDependencies:
+  - esbuild
+  - msgpackr-extract

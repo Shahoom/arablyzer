@@ -1,5 +1,5 @@
 {
-  "name": "@arablyzer/store",
+  "name": "@arablyzer/worker",
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
@@ -8,21 +8,23 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --exclude \"test/services/**\"",
-    "test:services": "vitest run test/services"
+    "test": "vitest run"
   },
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
-    "@arablyzer/plans": "workspace:*",
+    "@arablyzer/browser": "workspace:*",
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/engine": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/store": "workspace:*",
     "bullmq": "6.3.9",
-    "drizzle-orm": "0.45.3",
     "ioredis": "5.11.1",
     "pg": "8.23.0"
   },
   "devDependencies": {
-    "@types/pg": "8.23.1",
-    "drizzle-kit": "0.31.11"
+    "@arablyzer/fixtures": "workspace:*",
+    "@types/pg": "8.23.1"
   }
 }
