@@ -19,7 +19,9 @@ export interface Stores {
 
 /**
  * The API's settings from the environment, on the stores it is given. Production refuses to
- * start without Turnstile's secret, the limiter's key, or the limits (packages/plans).
+ * start without Turnstile's secret, the site's address (ARABLYZER_SITE, whose host name a
+ * Turnstile token must come from), the limiter's key, or the limits (packages/plans), and
+ * refuses ARABLYZER_ALLOW_PRIVATE (packages/egress).
  */
 export function apiDeps(
   env: Env,
@@ -34,10 +36,19 @@ export function apiDeps(
   if ((secret === undefined || secret === '') && production) {
     throw new Error('TURNSTILE_SECRET must be set in production (BUILD-PLAN §13)')
   }
+  const site = env.ARABLYZER_SITE?.trim()
+  if ((site === undefined || site === '') && production) {
+    throw new Error('ARABLYZER_SITE must be set in production: Turnstile checks its host name')
+  }
+  const hostname = site === undefined || site === '' ? undefined : new URL(site).hostname
   const turnstile =
     secret === undefined || secret === ''
       ? noTurnstile
-      : cloudflareTurnstile({ secret, userAgent: USER_AGENT })
+      : cloudflareTurnstile({
+          secret,
+          userAgent: USER_AGENT,
+          ...(hostname === undefined ? {} : { hostname }),
+        })
   if (turnstile === noTurnstile)
     log('Turnstile is off: TURNSTILE_SECRET is not set (development only).')
 

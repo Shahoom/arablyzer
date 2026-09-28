@@ -17,17 +17,27 @@ function answering(status: number, body: string) {
 const base = { secret: 'the-secret', userAgent: 'ArablyzerBot/1.0' }
 
 describe('cloudflareTurnstile', () => {
-  it('asks Cloudflare through the egress package, with the token and the address', async () => {
+  it('asks Cloudflare through the egress package, with the token and never the address', async () => {
     const { fetcher, calls } = answering(200, '{"success":true}')
     const check = cloudflareTurnstile({ ...base, fetcher })
-    expect(await check('token', '203.0.113.9')).toBe(true)
+    expect(await check('token')).toBe(true)
     expect(calls).toHaveLength(1)
     expect(calls[0]?.url).toBe(SITEVERIFY_URL)
-    expect(calls[0]?.options.json).toEqual({
-      secret: 'the-secret',
-      response: 'token',
-      remoteip: '203.0.113.9',
-    })
+    expect(calls[0]?.options.json).toEqual({ secret: 'the-secret', response: 'token' })
+  })
+
+  it("refuses a token solved on another site than Arablyzer's", async () => {
+    const ours = answering(200, '{"success":true,"hostname":"arablyzer.example"}')
+    const theirs = answering(200, '{"success":true,"hostname":"elsewhere.example"}')
+    const unnamed = answering(200, '{"success":true}')
+    const hostname = 'arablyzer.example'
+    expect(await cloudflareTurnstile({ ...base, hostname, fetcher: ours.fetcher })('t')).toBe(true)
+    expect(await cloudflareTurnstile({ ...base, hostname, fetcher: theirs.fetcher })('t')).toBe(
+      false,
+    )
+    expect(await cloudflareTurnstile({ ...base, hostname, fetcher: unnamed.fetcher })('t')).toBe(
+      false,
+    )
   })
 
   it('refuses whatever is not a plain success', async () => {
@@ -38,21 +48,21 @@ describe('cloudflareTurnstile', () => {
       [500, '{"success":true}'],
     ] as const) {
       const { fetcher } = answering(status, body)
-      expect(await cloudflareTurnstile({ ...base, fetcher })('token', null), body).toBe(false)
+      expect(await cloudflareTurnstile({ ...base, fetcher })('token'), body).toBe(false)
     }
     const failed = cloudflareTurnstile({
       ...base,
       fetcher: () =>
         Promise.resolve({ response: null, error: { code: 'timeout' } } as unknown as FetchResult),
     })
-    expect(await failed('token', null)).toBe(false)
+    expect(await failed('token')).toBe(false)
   })
 
   it('does not ask about an empty or overlong token', async () => {
     const { fetcher, calls } = answering(200, '{"success":true}')
     const check = cloudflareTurnstile({ ...base, fetcher })
-    expect(await check('', null)).toBe(false)
-    expect(await check('x'.repeat(2049), null)).toBe(false)
+    expect(await check('')).toBe(false)
+    expect(await check('x'.repeat(2049))).toBe(false)
     expect(calls).toHaveLength(0)
   })
 })

@@ -15,6 +15,8 @@ import {
 const DNS: Readonly<Record<string, readonly string[]>> = {
   'example.com': ['93.184.215.14'],
   'shop.example.com': ['93.184.215.15'],
+  'example.com.': ['93.184.215.14'],
+  'example.org': ['93.184.215.17'],
   'rebind.example.com': ['93.184.215.16', '10.0.0.5'],
   'metadata.example.com': ['169.254.169.254'],
 }
@@ -164,7 +166,7 @@ describe('POST /api/scans', () => {
     expect(await third.json()).toEqual({ error: 'rate-limited', retryAfterSeconds: 1800 })
   })
 
-  it('keeps each host to its limit, whoever asks', async () => {
+  it('keeps each site to its limit, whoever asks and whichever of its names they use', async () => {
     let visitor = 0
     const { scanOf } = setup({
       limits: { ...DEVELOPMENT_LIMITS, perHost: { scans: 1, seconds: 3600 } },
@@ -172,7 +174,26 @@ describe('POST /api/scans', () => {
     })
     expect((await scanOf('https://example.com/')).status).toBe(202)
     expect((await scanOf('https://example.com/other')).status).toBe(429)
-    expect((await scanOf('https://shop.example.com/')).status).toBe(202)
+    expect((await scanOf('https://example.com./')).status).toBe(429)
+    expect((await scanOf('https://shop.example.com/')).status).toBe(429)
+    expect((await scanOf('https://example.org/')).status).toBe(202)
+  })
+
+  it('answers 503 when a store fails, and fails a scan it could not queue', async () => {
+    const logged: string[] = []
+    const { scanOf, store, events, queue } = setup({ log: (message) => logged.push(message) })
+    queue.add = () => Promise.reject(new Error('Connection is closed.'))
+    const response = await scanOf('https://example.com/')
+    expect(await refusal(response)).toEqual({ status: 503, body: { error: 'unavailable' } })
+    const id = `scan${'1'.padStart(18, '0')}`
+    expect(await store.get(id)).toMatchObject({ state: 'failed', report: null })
+    expect((await events.since(id, null)).map((stored) => stored.event)).toEqual([
+      { type: 'queued', ahead: 0 },
+      { type: 'error' },
+    ])
+    expect(logged).toEqual(['API: Connection is closed.'])
+    store.get = () => Promise.reject(new Error('Connection terminated'))
+    expect((await setupRead(store)).status).toBe(503)
   })
 
   it('refuses new scans when the queue is full', async () => {
@@ -197,6 +218,7 @@ describe('reading a scan', () => {
     })
     expect((await app.request(`/api/reports/${id}`)).status).toBe(409)
     const report = { scan: { status: 'partial' } } as unknown as Report
+    await store.start(id, NOW)
     await store.finish(id, report, NOW)
     const answer = await app.request(`/api/reports/${id}`)
     expect(answer.status).toBe(200)
@@ -250,11 +272,113 @@ describe('GET /api/scans/:id/events', () => {
   it('ends the stream of a scan that finished without its last event', async () => {
     const { app, scanOf, store } = setup()
     const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    await store.start(id, NOW)
     await store.finish(id, { scan: { status: 'complete' } } as unknown as Report, NOW)
     const text = await (await app.request(`/api/scans/${id}/events`)).text()
     expect(parse(text).at(-1)).toEqual({ id: null, event: { type: 'done', state: 'complete' } })
   })
+
+  it('ends with error a scan that could not run, when its own end was lost', async () => {
+    const { app, scanOf, store } = setup()
+    const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    await store.fail(id, NOW)
+    const text = await (await app.request(`/api/scans/${id}/events`)).text()
+    expect(parse(text).map((sent) => sent.event)).toEqual([
+      { type: 'queued', ahead: 0 },
+      { type: 'error' },
+    ])
+  })
+
+  it('answers 204 to a page that has seen every event of a scan that ended', async () => {
+    const { app, scanOf, store, events } = setup()
+    const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    await store.start(id, NOW)
+    await store.finish(id, { scan: { status: 'complete' } } as unknown as Report, NOW)
+    const last = await events.publish(id, { type: 'done', state: 'complete' })
+    const response = await app.request(`/api/scans/${id}/events`, {
+      headers: { 'last-event-id': last },
+    })
+    expect(response.status).toBe(204)
+  })
+
+  it('sends the real end when it comes after the scan is seen finished', async () => {
+    const { deps, scanOf, store, events } = setup()
+    const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    await store.start(id, NOW)
+    // The follower hears nothing (its read timed out) just as the scan ends and says so.
+    const late = createApp({
+      ...deps,
+      events: {
+        publish: events.publish.bind(events),
+        since: events.since.bind(events),
+        async *follow() {
+          await store.finish(id, { scan: { status: 'partial' } } as unknown as Report, NOW)
+          await events.publish(id, { type: 'done', state: 'partial' })
+          yield null
+        },
+      },
+    })
+    const sent = parse(await (await late.request(`/api/scans/${id}/events`)).text())
+    expect(sent.map((one) => one.event)).toEqual([
+      { type: 'queued', ahead: 0 },
+      { type: 'done', state: 'partial' },
+    ])
+    expect(sent.at(-1)?.id).toBe('2')
+  })
+
+  it('caps the streams open on one scan, and frees each as it ends', async () => {
+    const { app, scanOf } = setup({ streams: { perScan: 1, perVisitor: 8, total: 100 } })
+    const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    const first = new AbortController()
+    const open = await app.request(`/api/scans/${id}/events`, { signal: first.signal })
+    expect(open.status).toBe(200)
+    const refused = await app.request(`/api/scans/${id}/events`)
+    expect(await refusal(refused)).toEqual({
+      status: 429,
+      body: { error: 'rate-limited', retryAfterSeconds: 30 },
+    })
+    first.abort()
+    await open.body?.cancel().catch(() => undefined)
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    const again = new AbortController()
+    const reopened = await app.request(`/api/scans/${id}/events`, { signal: again.signal })
+    expect(reopened.status).toBe(200)
+    again.abort()
+    await reopened.body?.cancel().catch(() => undefined)
+  })
+
+  it('caps the streams of one visitor across scans', async () => {
+    const { app, scanOf } = setup({ streams: { perScan: 8, perVisitor: 1, total: 100 } })
+    const ids = []
+    for (const url of ['https://example.com/1', 'https://example.com/2']) {
+      ids.push(((await (await scanOf(url)).json()) as { id: string }).id)
+    }
+    const first = new AbortController()
+    const open = await app.request(`/api/scans/${ids[0] ?? ''}/events`, { signal: first.signal })
+    expect(open.status).toBe(200)
+    expect((await app.request(`/api/scans/${ids[1] ?? ''}/events`)).status).toBe(429)
+    first.abort()
+    await open.body?.cancel().catch(() => undefined)
+  })
+
+  it('ends every open stream when the server shuts down', async () => {
+    const shutdown = new AbortController()
+    const { app, scanOf } = setup({ shutdown: shutdown.signal })
+    const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    const response = await app.request(`/api/scans/${id}/events`)
+    setTimeout(() => {
+      shutdown.abort()
+    }, 30)
+    const text = await response.text()
+    expect(parse(text).map((sent) => sent.event)).toEqual([{ type: 'queued', ahead: 0 }])
+  })
 })
+
+/** A read of a scan on a store that fails. */
+async function setupRead(store: MemoryScanStore) {
+  const { app } = setup({ store })
+  return app.request('/api/scans/AbCdEfGhIjKlMnOpQrSt_-')
+}
 
 /** The stream's events, with their IDs. */
 function parse(text: string): { id: string | null; event: unknown }[] {
