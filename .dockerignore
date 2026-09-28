@@ -1,0 +1,8 @@
+**/node_modules
+**/dist
+**/.turbo
+**/.probe
+**/coverage
+.git
+.github
+*.log

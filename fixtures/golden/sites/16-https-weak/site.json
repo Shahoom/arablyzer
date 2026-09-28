@@ -1,0 +1,7 @@
+{
+  "host": "shop-tls.example",
+  "tls": {
+    "lifetimeDays": 90,
+    "daysLeft": 10
+  }
+}

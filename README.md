@@ -20,6 +20,21 @@ pnpm test:browser  # the browser SSRF suite, rendered facts and render rule fixt
 
 `pnpm test:browser` needs a browser. `npx playwright-core@1.63.0 install chromium firefox webkit` installs Playwright's own; `ARABLYZER_CHROMIUM_PATH` (and `_FIREFOX_`, `_WEBKIT_`) points at an installed one instead. CI installs all three and sets `ARABLYZER_REQUIRE_ENGINES=chromium,firefox,webkit`, so a missing engine fails the run.
 
+### The scanner image and the golden reports
+
+The `Dockerfile` builds the scanner image: Node 24, the three browsers Playwright pins, and a fixed set of fonts, so what the browsers draw does not depend on the machine. CI builds it on every pull request and never pushes it.
+
+The twenty pages in [`fixtures/golden/sites`](fixtures/golden/sites) between them fail every rule, and their reports in [`fixtures/golden/reports`](fixtures/golden/reports) come from the image alone, since fonts differ between machines. CI scans them again in the image and compares, leaving out times, engine versions and dates; a report that differs is kept as the `golden-actual` artifact. A change to a golden report needs explicit approval in its pull request.
+
+```bash
+docker build --platform linux/amd64 -t arablyzer .
+# Compare, as CI does; --network none leaves loopback alone, so WebKit renders too.
+docker run --rm --platform linux/amd64 --network none -e ARABLYZER_NETWORK_ISOLATED=1 --entrypoint pnpm arablyzer test:golden
+# Write them again, into this checkout.
+docker run --rm --platform linux/amd64 --network none -e ARABLYZER_NETWORK_ISOLATED=1 -e ARABLYZER_GOLDEN_UPDATE=1 \
+  -v "$PWD/fixtures/golden/reports:/arablyzer/fixtures/golden/reports" --entrypoint pnpm arablyzer test:golden
+```
+
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
 - Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md)
 

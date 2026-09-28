@@ -5,3 +5,4 @@ LICENSE
 fixtures/sites/
 packages/rules/src/rules/*/fixtures/
 packages/seo/test/fixtures/
+fixtures/golden/

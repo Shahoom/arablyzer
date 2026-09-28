@@ -72,6 +72,32 @@ jobs:
         env:
           ARABLYZER_REQUIRE_ENGINES: chromium,firefox,webkit
 
+  image:
+    # M1.3c: the scanner image (Phase 1 design §6, decision 9), built here and never pushed, and
+    # the golden reports, which come from it alone (BUILD-PLAN §16.3). Its network is loopback
+    # only (--network none), so WebKit renders too. A report that differs is kept as an artifact.
+    name: Scanner image and golden reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the image
+        run: docker build --tag arablyzer:ci .
+      - name: Golden reports
+        run: |
+          mkdir -p golden-actual && chmod 777 golden-actual
+          docker run --rm --network none \
+            -e ARABLYZER_NETWORK_ISOLATED=1 -e ARABLYZER_GOLDEN_OUT=/out \
+            -v "$PWD/golden-actual:/out" \
+            --entrypoint pnpm arablyzer:ci test:golden
+      - name: Keep the reports that differ
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: golden-actual
+          path: golden-actual
+          if-no-files-found: ignore
+
   arabic-copy:
     # Design decision 7: a rule or tool stays red until the owner has read its Arabic copy and
     # set `reviewed: true` in packages/{rules/src/rules/<id>,tools/src/tools/<slug>}/copy.ar.md.

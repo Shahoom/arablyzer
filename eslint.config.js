@@ -84,7 +84,8 @@ function networkRules({ allowProcesses, allow = [] }) {
 }
 
 export default defineConfig(
-  globalIgnores(['**/node_modules/', '**/dist/', '**/coverage/', '**/.turbo/']),
+  // The golden pages are fixtures the scanner reads, not code of Arablyzer's.
+  globalIgnores(['**/node_modules/', '**/dist/', '**/coverage/', '**/.turbo/', 'fixtures/golden/']),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,

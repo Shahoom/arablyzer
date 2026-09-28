@@ -1,0 +1,14 @@
+{
+  "host": "store.example",
+  "tls": {
+    "lifetimeDays": 90,
+    "daysLeft": 60
+  },
+  "crux": {
+    "url": {
+      "lcp": 2100,
+      "inp": 180,
+      "cls": 0.05
+    }
+  }
+}

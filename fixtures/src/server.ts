@@ -71,9 +71,13 @@ export async function loadSiteConfig(root: string): Promise<SiteConfig> {
 
 /**
  * Serve one fixture site directory on its own 127.0.0.1 origin, so /robots.txt sits at the root;
- * over HTTPS, and under a host name of its own, when its site.json asks.
+ * over HTTPS, and under a host name of its own, when its site.json asks. `port` is a free one by
+ * default; the golden reports name their pages by a fixed one.
  */
-export async function serveSite(root: string): Promise<FixtureSite> {
+export async function serveSite(
+  root: string,
+  { port = 0 }: { port?: number } = {},
+): Promise<FixtureSite> {
   const siteRoot = path.resolve(root)
   const config = await loadFixtureConfig(siteRoot)
   const site = await loadSiteConfig(siteRoot)
@@ -94,8 +98,9 @@ export async function serveSite(root: string): Promise<FixtureSite> {
           ),
           handler,
         )
-  await new Promise<void>((resolve) => {
-    server.listen(0, '127.0.0.1', resolve)
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(port, '127.0.0.1', resolve)
   })
   const address = server.address()
   if (address === null || typeof address === 'string') {
