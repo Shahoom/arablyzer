@@ -4,11 +4,11 @@
 
 ### url
 
-On phones, a quarter of real visits to this page waited more than {value} s for its largest content to appear (the 75th percentile). Google counts more than {limit} s as poor. Visits from {first} to {last}.
+On phones, in a quarter of the visits Chrome recorded to this page, its largest content took {value} s or longer to appear (the 75th percentile). Google counts more than {limit} s as poor. Visits from {first} to {last}.
 
 ### origin
 
-On phones, a quarter of real visits to this site's pages waited more than {value} s for their largest content to appear (the 75th percentile); CrUX has no data for this page alone. Google counts more than {limit} s as poor. Visits from {first} to {last}.
+On phones, in a quarter of the visits Chrome recorded to this site's pages, their largest content took {value} s or longer to appear (the 75th percentile); CrUX has no data for this page alone. Google counts more than {limit} s as poor. Visits from {first} to {last}.
 
 ## Why it matters
 
@@ -25,7 +25,7 @@ On phones, a quarter of real visits to this site's pages waited more than {value
 
 ## How we detect
 
-1. With an API key, we ask the Chrome UX Report (CrUX) about the page's URL on phones: data from Chrome users who share usage statistics, over the last 28 days. When it has none for the URL, we ask about the whole site (its origin), and the finding says so.
+1. With an API key, we ask the Chrome UX Report (CrUX) about the page's URL on phones: the last 28 days of visits in Chrome by users who share usage statistics and sync their browsing history. Chrome on iPhone, apps' web views and other browsers are not counted. When CrUX has no data for the URL, we ask about the whole site (its origin), and the finding says so.
 2. The rule fails when the 75th percentile of Largest Contentful Paint is over 4 seconds: Google's limit for poor.
 3. Without a key, or when CrUX has no data for the page or its site, as for many sites with fewer visits, the rule does not apply. A page on a local or private address is never sent to Google.
 4. CrUX covers the last 28 days, so a fix shows in it gradually, over about four weeks.
@@ -35,4 +35,5 @@ On phones, a quarter of real visits to this site's pages waited more than {value
 - [web.dev: Largest Contentful Paint](https://web.dev/articles/lcp)
 - [web.dev: Optimize Largest Contentful Paint](https://web.dev/articles/optimize-lcp)
 - [Chrome: the CrUX API](https://developer.chrome.com/docs/crux/api)
-- [Google Search Central: Core Web Vitals](https://developers.google.com/search/docs/appearance/core-web-vitals)
+- [Chrome: CrUX methodology](https://developer.chrome.com/docs/crux/methodology)
+- [Google Search Central: page experience](https://developers.google.com/search/docs/appearance/page-experience)

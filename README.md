@@ -42,9 +42,9 @@ Arablyzer fetches pages as `ArablyzerBot/1.0 (+https://arablyzer.com/bot)`, only
 
 With `--render`, the page is also rendered in a browser, one engine after the other, each behind its own egress proxy that vets every request the page makes by the same rules; `--screenshots <dir>` saves the first screen of each as `<dir>/<engine>.png`. WebKit sends WebRTC traffic around the proxy, so it runs only in a container whose network reaches nothing but the proxy, marked by `ARABLYZER_NETWORK_ISOLATED=1`; elsewhere `--engines webkit` is refused and `--engines all` means Chromium and Firefox. On macOS WebKit never runs, even with that variable: there it also sends redirects and navigations to local addresses around the proxy.
 
-With `--lab`, Lighthouse 13 measures the page in Chromium on an emulated phone, behind the same kind of proxy and limits as the render. Its metrics vary from run to run, so the report gives them as information: they are never findings, and never part of the score.
+With `--lab`, Lighthouse 13 measures the page on an emulated phone in the render's Chromium (Playwright's headless shell), behind its own egress proxy and the render's limits. Its metrics vary from run to run, so the report gives them as information: they are never findings, and never part of the score.
 
-Real visitors' Core Web Vitals come from Google's Chrome UX Report (CrUX), with an API key in `ARABLYZER_CRUX_API_KEY` (created in Google Cloud for the Chrome UX Report API). The page's URL is then sent to Google; a page on a private address never is. Without a key, the three rules that read CrUX do not apply, and a notice says so.
+Real visitors' Core Web Vitals come from Google's Chrome UX Report (CrUX), with an API key in `ARABLYZER_CRUX_API_KEY` (created in Google Cloud for the Chrome UX Report API): visits in Chrome by users who share usage statistics and sync their history; Chrome on iPhone is not counted. The page's URL is then sent to Google; a page on a private address never is. Without a key, the three rules that read CrUX do not apply, and a notice says so.
 
 ## Rules / القواعد
 
@@ -83,9 +83,9 @@ These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
 
 | Rule | Checks |
 |---|---|
-| [`cwv-lcp-poor`](packages/rules/src/rules/cwv-lcp-poor/copy.en.md) | Largest Contentful Paint on phones is within Google's limit for poor (4 s at the 75th percentile) |
-| [`cwv-inp-poor`](packages/rules/src/rules/cwv-inp-poor/copy.en.md) | Interaction to Next Paint on phones is within Google's limit for poor (500 ms) |
-| [`cwv-cls-poor`](packages/rules/src/rules/cwv-cls-poor/copy.en.md) | Cumulative Layout Shift on phones is within Google's limit for poor (0.25) |
+| [`cwv-lcp-poor`](packages/rules/src/rules/cwv-lcp-poor/copy.en.md) | Largest Contentful Paint on phones is not in Google's poor range (over 4 s at the 75th percentile) |
+| [`cwv-inp-poor`](packages/rules/src/rules/cwv-inp-poor/copy.en.md) | Interaction to Next Paint on phones is not in Google's poor range (over 500 ms) |
+| [`cwv-cls-poor`](packages/rules/src/rules/cwv-cls-poor/copy.en.md) | Cumulative Layout Shift on phones is not in Google's poor range (over 0.25) |
 
 These read the page as a browser rendered it, so they run with `--render`:
 

@@ -76,4 +76,45 @@ describe('collectCrux', () => {
     const bad = record({ url: 'https://shop.example/' }, { lcp: -5, cls: 'much' })
     expect(collectCrux({ url: { status: 200, body: bad } })).toMatchObject({ lcp: null, cls: null })
   })
+
+  it('fails on answers the API never gives, rather than report half a record (M1.3b review)', () => {
+    const good = record({ url: 'https://shop.example/' }, { lcp: 2_000 })
+    const variants: unknown[] = [
+      { record: { ...good.record, key: { formFactor: 'PHONE', url: '' } } },
+      {
+        record: {
+          ...good.record,
+          collectionPeriod: {
+            ...good.record.collectionPeriod,
+            firstDate: { year: 10_000, month: 1, day: 1 },
+          },
+        },
+      },
+      { record: { ...good.record, collectionPeriod: undefined } },
+    ]
+    for (const body of variants) {
+      expect(collectCrux({ url: { status: 200, body } })).toMatchObject({ outcome: 'failed' })
+    }
+    // A value no page has is not a size: past an hour, or a shift of 100.
+    const huge = record(
+      { url: 'https://shop.example/' },
+      { lcp: 1e297, inp: 3_600_001, cls: '101' },
+    )
+    expect(collectCrux({ url: { status: 200, body: huge } })).toMatchObject({
+      outcome: 'found',
+      lcp: null,
+      inp: null,
+      cls: null,
+    })
+  })
+
+  it('says when the API refused the request, as it does a key it does not accept', () => {
+    for (const status of [400, 401, 403]) {
+      expect(collectCrux({ url: { status, body: {} } })).toMatchObject({
+        outcome: 'failed',
+        refused: true,
+      })
+    }
+    expect(collectCrux({ url: { status: 500, body: {} } }).refused).toBeUndefined()
+  })
 })

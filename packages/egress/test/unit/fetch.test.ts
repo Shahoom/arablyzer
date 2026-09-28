@@ -257,6 +257,34 @@ describe('safeFetch: a JSON POST (the CrUX API, M1.3b)', () => {
     }
   })
 
+  it('never follows a redirect with an added header, whatever the method (M1.3b review)', async () => {
+    let elsewhere = 0
+    const other = await startServer((_req, res) => {
+      elsewhere++
+      res.end('{}')
+    })
+    try {
+      const local = await serve((_req, res) => {
+        res.writeHead(302, { location: `${other.origin}/steal` })
+        res.end()
+      })
+      const result = await safeFetch(`${local.origin}/`, {
+        userAgent: UA,
+        policy: createPolicy({
+          allowTargets: [
+            { address: '127.0.0.1', port: local.port },
+            { address: '127.0.0.1', port: other.port },
+          ],
+        }),
+        headers: { 'x-goog-api-key': KEY },
+      })
+      expect(result.error?.code).toBe('too-many-redirects')
+      expect(elsewhere).toBe(0)
+    } finally {
+      await other.close()
+    }
+  })
+
   it('keeps no header value in an error', async () => {
     const result = await safeFetch('http://127.0.0.1:9/', {
       userAgent: UA,

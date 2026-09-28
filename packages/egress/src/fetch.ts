@@ -50,8 +50,8 @@ export interface SafeFetchOptions {
   readonly signal?: AbortSignal
   /**
    * A JSON body to send with POST instead of a GET, as the CrUX API takes (M1.3 plan §0); at most
-   * MAX_JSON_BODY_BYTES. A POST is never redirected: a redirect would carry the body, and the
-   * headers with it, to another address.
+   * MAX_JSON_BODY_BYTES. A request with a body or added headers is never redirected: a redirect
+   * would carry them to another address.
    */
   readonly json?: unknown
   /**
@@ -74,8 +74,14 @@ const FIXED_HEADERS: ReadonlySet<string> = new Set([
   'content-length',
   'transfer-encoding',
   'connection',
+  'keep-alive',
+  'upgrade',
+  'expect',
+  'te',
+  'trailer',
   'cookie',
   'proxy-authorization',
+  'proxy-connection',
 ])
 
 /** RFC 9110 §5.6.2. */
@@ -195,10 +201,15 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
       const location = res.headers.location
       if (REDIRECT_STATUSES.has(status) && location !== undefined) {
         res.destroy()
-        if (postBody !== undefined) {
+        // A redirect would carry the body, or an added header such as a key, to another address.
+        if (postBody !== undefined || Object.keys(addedHeaders).length > 0) {
           return finish(
             null,
-            egressError('too-many-redirects', url.href, 'A POST is not redirected'),
+            egressError(
+              'too-many-redirects',
+              url.href,
+              'A request with a body or added headers is not redirected',
+            ),
           )
         }
         if (redirects.length >= maxRedirects) {

@@ -6,6 +6,7 @@ export {
   NETWORK_ISOLATED_VARIABLE,
   VIEWPORT,
   WORKER_GUARD,
+  browserEnvironment,
   bypassesProxyForLoopback,
   contextOptions,
   executablePathFor,

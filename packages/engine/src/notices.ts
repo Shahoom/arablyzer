@@ -23,6 +23,7 @@ export type NoticeCode =
   | 'crux-private'
   | 'crux-not-found'
   | 'crux-failed'
+  | 'crux-refused'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -192,6 +193,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'lab-skipped': {
     ar: 'لم يبقَ من وقت الفحص ما يكفي Lighthouse، فلم يعمل.',
     en: 'The scan had no time left for Lighthouse, so it did not run.',
+  },
+  'crux-refused': {
+    ar: 'رفضت Google (CrUX) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Chrome UX Report API، فلم تعمل فحوص سرعة الزوار الحقيقيين.',
+    en: "Google (CrUX) refused the request, most often for an API key that is not valid or not enabled for the Chrome UX Report API, so the checks of real visitors' speed could not run.",
   },
   'crux-failed': {
     ar: 'تعذّر جلب بيانات الزوار الحقيقيين من Google (CrUX)، فلم تعمل فحوصها.',

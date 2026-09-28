@@ -7,6 +7,12 @@ export const CRUX_ENDPOINT = 'https://chromeuxreport.googleapis.com/v1/records:q
 /** Its answers are a few kilobytes; this bounds a server that sends more. */
 const CRUX_MAX_BYTES = 256 * 1024
 
+/**
+ * Each question gets this long at most, within the scan's own limit: the API answers in well
+ * under a second, and time spent waiting here is taken from the render (M1.3b review).
+ */
+const CRUX_TIMEOUT_MS = 10_000
+
 /** The three Core Web Vitals the rules read; asking for them alone keeps the answer small. */
 const METRICS = ['largest_contentful_paint', 'interaction_to_next_paint', 'cumulative_layout_shift']
 
@@ -29,6 +35,7 @@ export async function fetchCrux(
   const ask = async (target: { url: string } | { origin: string }): Promise<CruxAnswer> => {
     const fetched = await safeFetch(crux.endpoint ?? CRUX_ENDPOINT, {
       ...base,
+      timeoutMs: Math.min(base.timeoutMs ?? CRUX_TIMEOUT_MS, CRUX_TIMEOUT_MS),
       accept: 'application/json',
       maxBytes: CRUX_MAX_BYTES,
       json: { ...target, formFactor: 'PHONE', metrics: METRICS },
@@ -42,7 +49,10 @@ export async function fetchCrux(
       return { status: response.status, body: null }
     }
   }
-  const url = await ask({ url: pageUrl })
+  // A fragment never reaches a server, nor Google: CrUX keys pages without it.
+  const page = new URL(pageUrl)
+  page.hash = ''
+  const url = await ask({ url: page.href })
   if (url.status !== 404) return collectCrux({ url })
-  return collectCrux({ url, origin: await ask({ origin: new URL(pageUrl).origin }) })
+  return collectCrux({ url, origin: await ask({ origin: page.origin }) })
 }

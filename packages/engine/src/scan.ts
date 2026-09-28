@@ -307,7 +307,9 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(rendering?.notices ?? []),
     ...(cruxSkipped === null ? [] : [notice(cruxSkipped)]),
     ...(crux?.outcome === 'not-found' ? [notice('crux-not-found')] : []),
-    ...(crux?.outcome === 'failed' ? [notice('crux-failed')] : []),
+    ...(crux?.outcome === 'failed'
+      ? [notice(crux.refused === true ? 'crux-refused' : 'crux-failed')]
+      : []),
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
     ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
   ]

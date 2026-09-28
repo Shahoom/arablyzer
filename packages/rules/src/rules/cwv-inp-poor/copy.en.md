@@ -4,11 +4,11 @@
 
 ### url
 
-On phones, a quarter of real visits to this page had a tap or key press that took more than {value} ms to show a response on screen (the 75th percentile). Google counts more than {limit} ms as poor. Visits from {first} to {last}.
+On phones, in a quarter of the visits Chrome recorded to this page, a tap or key press took {value} ms or longer to show a response on screen (the 75th percentile). Google counts more than {limit} ms as poor. Visits from {first} to {last}.
 
 ### origin
 
-On phones, a quarter of real visits to this site's pages had a tap or key press that took more than {value} ms to show a response on screen (the 75th percentile); CrUX has no data for this page alone. Google counts more than {limit} ms as poor. Visits from {first} to {last}.
+On phones, in a quarter of the visits Chrome recorded to this site's pages, a tap or key press took {value} ms or longer to show a response on screen (the 75th percentile); CrUX has no data for this page alone. Google counts more than {limit} ms as poor. Visits from {first} to {last}.
 
 ## Why it matters
 
@@ -25,7 +25,7 @@ On phones, a quarter of real visits to this site's pages had a tap or key press 
 
 ## How we detect
 
-1. With an API key, we ask the Chrome UX Report (CrUX) about the page's URL on phones: data from Chrome users who share usage statistics, over the last 28 days. When it has none for the URL, we ask about the whole site (its origin), and the finding says so.
+1. With an API key, we ask the Chrome UX Report (CrUX) about the page's URL on phones: the last 28 days of visits in Chrome by users who share usage statistics and sync their browsing history. Chrome on iPhone, apps' web views and other browsers are not counted. When CrUX has no data for the URL, we ask about the whole site (its origin), and the finding says so.
 2. The rule fails when the 75th percentile of Interaction to Next Paint is over 500 milliseconds: Google's limit for poor.
 3. Without a key, or when CrUX has no data for the page or its site, as for many sites with fewer visits, the rule does not apply. A page on a local or private address is never sent to Google.
 4. CrUX covers the last 28 days, so a fix shows in it gradually, over about four weeks.
@@ -35,4 +35,5 @@ On phones, a quarter of real visits to this site's pages had a tap or key press 
 - [web.dev: Interaction to Next Paint](https://web.dev/articles/inp)
 - [web.dev: Optimize Interaction to Next Paint](https://web.dev/articles/optimize-inp)
 - [Chrome: the CrUX API](https://developer.chrome.com/docs/crux/api)
-- [Google Search Central: Core Web Vitals](https://developers.google.com/search/docs/appearance/core-web-vitals)
+- [Chrome: CrUX methodology](https://developer.chrome.com/docs/crux/methodology)
+- [Google Search Central: page experience](https://developers.google.com/search/docs/appearance/page-experience)
