@@ -85,6 +85,8 @@ jobs:
         run: |
           docker build --tag arablyzer:ci .
           docker image ls arablyzer:ci
+          # The image's own entry point, the CLI, as a user runs it.
+          docker run --rm --network none arablyzer:ci --version
       - name: Golden reports
         run: |
           mkdir -p golden-actual && chmod 777 golden-actual
@@ -99,6 +101,8 @@ jobs:
           name: golden-actual
           path: golden-actual
           if-no-files-found: ignore
+          # A re-run of the job replaces what the run before it kept.
+          overwrite: true
 
   arabic-copy:
     # Design decision 7: a rule or tool stays red until the owner has read its Arabic copy and
