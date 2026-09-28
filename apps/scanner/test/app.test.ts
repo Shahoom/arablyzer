@@ -1,6 +1,7 @@
 import type { ScanEvent } from '@arablyzer/api-contract'
 import { SCAN_BUDGET_MS as ENGINE_BUDGET_MS } from '@arablyzer/engine/budgets'
-import type { Report } from '@arablyzer/report-schema'
+import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
+import { Report } from '@arablyzer/report-schema'
 import {
   remoteScanner,
   SCAN_BUDGET_MS,
@@ -20,10 +21,12 @@ const EVENTS: ScannerEvent[] = [
   { type: 'rules', rules: 47 },
 ]
 
-/** The report a real scan gives is checked on the worker's side; this one passes that check. */
-async function validReport(): Promise<Report> {
-  const { scan } = await import('@arablyzer/engine')
-  return scan('http://10.0.0.1/', { rules: [] })
+/**
+ * The report a real scan gives is checked on the worker's side; a golden report passes that
+ * check, and needs no engine loaded, which takes CI's machines longer than a test's 5 s.
+ */
+function validReport(): Promise<Report> {
+  return Promise.resolve(Report.parse(rtlLayoutJson))
 }
 
 /** The scanner app, and a client of it that talks to it through app.request. */
