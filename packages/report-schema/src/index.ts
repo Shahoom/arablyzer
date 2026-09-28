@@ -241,7 +241,11 @@ const Milliseconds = z.number().int().nonnegative().nullable()
  */
 export const LabFact = z
   .strictObject({
-    status: z.enum(['measured', 'failed', 'timeout', 'unavailable']),
+    /**
+     * timeout: out of time, or the page had not loaded when Lighthouse stopped waiting.
+     * unavailable: Lighthouse or Chromium is not installed. skipped: the scan left no time.
+     */
+    status: z.enum(['measured', 'failed', 'timeout', 'unavailable', 'skipped']),
     /** Lighthouse's version: its metrics change from one version to the next. */
     lighthouse: z.string().min(1),
     /** The Chromium it ran in; null when it did not start. */

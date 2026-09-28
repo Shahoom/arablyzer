@@ -26,6 +26,7 @@ export type NoticeCode =
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
+  | 'lab-skipped'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -181,12 +182,16 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     en: 'Lighthouse could not measure the page, so the report has no lab metrics.',
   },
   'lab-timeout': {
-    ar: 'لم ينتهِ Lighthouse من قياس الصفحة في وقته، فليس في التقرير قياساته.',
-    en: 'Lighthouse did not finish measuring the page in time, so the report has no lab metrics.',
+    ar: 'لم ينتهِ Lighthouse من قياس الصفحة في وقته، أو لم تكتمل الصفحة حين توقف عن انتظارها، فليس في التقرير قياساته.',
+    en: 'Lighthouse did not finish measuring the page in time, or the page had not finished loading when it stopped waiting, so the report has no lab metrics.',
   },
   'lab-unavailable': {
-    ar: 'متصفح Chromium غير مثبّت على هذا الجهاز، فلم يعمل Lighthouse.',
-    en: 'Chromium is not installed on this machine, so Lighthouse did not run.',
+    ar: 'Lighthouse أو متصفح Chromium غير مثبّت على هذا الجهاز، فلم يعمل Lighthouse.',
+    en: 'Lighthouse or Chromium is not installed on this machine, so Lighthouse did not run.',
+  },
+  'lab-skipped': {
+    ar: 'لم يبقَ من وقت الفحص ما يكفي Lighthouse، فلم يعمل.',
+    en: 'The scan had no time left for Lighthouse, so it did not run.',
   },
   'crux-failed': {
     ar: 'تعذّر جلب بيانات الزوار الحقيقيين من Google (CrUX)، فلم تعمل فحوصها.',

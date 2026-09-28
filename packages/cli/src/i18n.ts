@@ -32,6 +32,8 @@ export interface Strings {
   readonly lab: (version: string, performance: number | null, metrics: LabMetrics) => string
   /** When an engine is not installed: the command that installs it. */
   readonly installBrowsers: (engines: readonly Engine[], version: string) => string
+  /** How to install what --lab needs: Lighthouse, puppeteer-core, and Playwright's Chromium. */
+  readonly installLab: (lighthouse: string, puppeteer: string, playwright: string) => string
 }
 
 const HELP_EN = `Usage: arablyzer <url> [options]
@@ -142,6 +144,8 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
       ].join(' · '),
     installBrowsers: (engines, version) =>
       `to render in ${engines.join(', ')}, install it with: npx playwright-core@${version} install ${engines.join(' ')}`,
+    installLab: (lighthouse, puppeteer, playwright) =>
+      `to measure with Lighthouse, install lighthouse@${lighthouse} and puppeteer-core@${puppeteer} next to Arablyzer, and Chromium with: npx playwright-core@${playwright} install chromium`,
   },
   ar: {
     severity: {
@@ -184,6 +188,8 @@ export const STRINGS: Readonly<Record<Lang, Strings>> = {
       ].join(' · '),
     installBrowsers: (engines, version) =>
       `لعرض الصفحة في ${engines.join('، ')} ثبّته بالأمر: npx playwright-core@${version} install ${engines.join(' ')}`,
+    installLab: (lighthouse, puppeteer, playwright) =>
+      `للقياس بـ Lighthouse ثبّت lighthouse@${lighthouse} وpuppeteer-core@${puppeteer} مع Arablyzer، ومتصفح Chromium بالأمر: npx playwright-core@${playwright} install chromium`,
   },
 }
 

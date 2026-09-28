@@ -32,6 +32,7 @@ import {
   bypassesProxyForLoopback,
   contextOptions,
   executablePathFor,
+  browserEnvironment,
   launchOptions,
   NEEDS_ISOLATION,
   NETWORK_ISOLATED_VARIABLE,
@@ -262,6 +263,8 @@ async function renderIn(
     host: '127.0.0.1',
     port: 0,
     timeout: budgetMs,
+    // No key or token of this process reaches a browser that runs pages' code.
+    env: browserEnvironment(),
   })
   launching.catch(() => undefined)
   let timer: NodeJS.Timeout | undefined
@@ -329,8 +332,12 @@ async function renderIn(
  * when it has not closed within CLOSE_GRACE_MS. Killing ends the whole process group.
  */
 async function shutDown(launching: Promise<BrowserServer>, stuck: boolean): Promise<void> {
-  // A launch has its own timeout (the budget), so this wait ends too.
-  const server = await launching.catch(() => undefined)
+  // A launch has its own timeout (the budget), but a browser that starts and never answers held
+  // it for minutes (M1.3b review): past the kill wait, it is left behind.
+  const server = await Promise.race([
+    launching.catch(() => undefined),
+    unheld(KILL_WAIT_MS).then(() => undefined),
+  ])
   if (server === undefined) return
   if (!stuck) {
     const closed = await Promise.race([

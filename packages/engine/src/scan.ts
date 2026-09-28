@@ -76,6 +76,9 @@ const ENGINE_NAMES: Readonly<Record<Engine, string>> = {
   webkit: 'WebKit',
 }
 
+/** The Lighthouse the lab package pins; named here too, for a run whose package did not load. */
+const LIGHTHOUSE_VERSION = '13.5.0'
+
 /** Lighthouse's lab metrics (M1.3b): information, never judged. */
 export interface LabRequest {
   /** 60 s by default (LAB_TIMEOUT_MS), never more; what the scan's budget leaves otherwise. */
@@ -84,8 +87,8 @@ export interface LabRequest {
   readonly executablePath?: string
 }
 
-/** Below this, Lighthouse is not started: it could not measure a page in time. */
-const MIN_LAB_MS = 10_000
+/** Below this, Lighthouse is not started: it could not load and measure a page in time. */
+const MIN_LAB_MS = 20_000
 
 /** Rendering in a browser (M1.1): the engines, one after the other. */
 export interface RenderRequest {
@@ -306,6 +309,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(crux?.outcome === 'not-found' ? [notice('crux-not-found')] : []),
     ...(crux?.outcome === 'failed' ? [notice('crux-failed')] : []),
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
+    ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
   ]
   const { results, findings } = evaluateRules(rules, page, robots, rendering?.rendered, crux)
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
@@ -392,11 +396,27 @@ async function renderAll(
     readonly signal?: AbortSignal
   },
 ): Promise<Rendering> {
-  const { renderPage, RENDER_TIMEOUT_MS, EXTRA_ENGINE_TIMEOUT_MS } =
-    await import('@arablyzer/browser')
   const runs: RenderRun[] = []
   const rendered: RenderedFacts[] = []
   const notices: Notice[] = []
+  let browser: typeof import('@arablyzer/browser')
+  try {
+    browser = await import('@arablyzer/browser')
+  } catch {
+    // Playwright is an optional dependency: without it, no engine is there (M1.3b review).
+    for (const engine of request.engines) {
+      runs.push({
+        engine,
+        version: null,
+        status: 'unavailable',
+        durationMs: 0,
+        requests: { total: 0, refused: 0 },
+      })
+      notices.push(notice('engine-unavailable', { engine: ENGINE_NAMES[engine] }))
+    }
+    return { runs, rendered, notices }
+  }
+  const { renderPage, RENDER_TIMEOUT_MS, EXTRA_ENGINE_TIMEOUT_MS } = browser
   for (const [index, engine] of request.engines.entries()) {
     const name = ENGINE_NAMES[engine]
     const own =
@@ -767,21 +787,28 @@ async function measureLab(
     readonly signal?: AbortSignal
   },
 ): Promise<LabRun> {
-  const { runLab, LAB_TIMEOUT_MS, LIGHTHOUSE_VERSION } = await import('@arablyzer/lab')
+  const none = (status: 'unavailable' | 'skipped', error: string): LabRun => ({
+    status,
+    lighthouse: LIGHTHOUSE_VERSION,
+    chromium: null,
+    error,
+    durationMs: 0,
+    requests: { total: 0, refused: 0 },
+    limited: false,
+    performance: null,
+    metrics: null,
+  })
+  let lab: typeof import('@arablyzer/lab')
+  try {
+    lab = await import('@arablyzer/lab')
+  } catch (error) {
+    // Lighthouse is an optional dependency: without it, the scan goes on (M1.3b review).
+    return none('unavailable', error instanceof Error ? (error.message.split('\n')[0] ?? '') : '')
+  }
+  const { runLab, LAB_TIMEOUT_MS } = lab
   const left = SCAN_BUDGET_MS - (performance.now() - context.started)
   const budget = Math.min(request.timeoutMs ?? LAB_TIMEOUT_MS, LAB_TIMEOUT_MS, left)
-  if (budget < MIN_LAB_MS) {
-    return {
-      status: 'timeout',
-      lighthouse: LIGHTHOUSE_VERSION,
-      chromium: null,
-      error: 'No time left in the scan',
-      durationMs: 0,
-      requests: { total: 0, refused: 0 },
-      performance: null,
-      metrics: null,
-    }
-  }
+  if (budget < MIN_LAB_MS) return none('skipped', 'No time left in the scan')
   return runLab(url, {
     policy: context.policy,
     resolver: context.resolver,

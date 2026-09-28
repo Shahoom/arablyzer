@@ -890,7 +890,8 @@
             "measured",
             "failed",
             "timeout",
-            "unavailable"
+            "unavailable",
+            "skipped"
           ]
         },
         "lighthouse": {
