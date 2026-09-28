@@ -189,7 +189,7 @@ export const HOME: Copy<HomeStrings> = {
         {
           question: 'ماذا تحفظون من صفحتي؟',
           answer:
-            'التقرير وحده: نتائج القواعد، ومقتطفات قصيرة من صفحتك دليلاً عليها. يفتحه رابطه، ولا يظهر في محركات البحث. ولا نحفظ من زيارتك ترويسات ولا كوكيز، ونستعمل عنوان IP لحدود الفحص وحدها ثم نحذفه بعد أيام.',
+            'التقرير وحده: نتائج القواعد، ومقتطفات قصيرة من صفحتك دليلاً عليها. يفتحه رابطه، ولا يظهر في محركات البحث. ولا نحفظ من زيارتك ترويسات ولا كوكيز ولا عنوان IP: حدود الفحص تعدّ رمزاً مشتقاً منه، يتغيّر كل يوم ويُحذف حين تنتهي مدة الحدّ. ونموذج الفحص يستعمل Cloudflare Turnstile ليميّز الناس من البرامج الآلية، فيُحمَّل من Cloudflare حين تبدأ به.',
         },
         {
           question: 'هل تملؤون النماذج أو ترسلونها؟',
@@ -316,7 +316,7 @@ export const HOME: Copy<HomeStrings> = {
         {
           question: 'What do you keep from my page?',
           answer:
-            'Only the report: the rules’ results, with short excerpts of your page as evidence. Its link opens it, and it never appears in search engines. From your visit we keep no headers and no cookies; your IP address is used for the scan limits alone, then deleted after a few days.',
+            'Only the report: the rules’ results, with short excerpts of your page as evidence. Its link opens it, and it never appears in search engines. From your visit we keep no headers, no cookies and no IP address: the scan limits count a code made from it, which changes every day and is deleted when the limit’s window ends. The scan form uses Cloudflare Turnstile to tell people from bots, so it loads from Cloudflare when you start on the form.',
         },
         {
           question: 'Do you fill in or submit forms?',

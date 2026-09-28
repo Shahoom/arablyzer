@@ -78,8 +78,16 @@ export function challenge(
       callback: (token: string) => {
         settle(token)
       },
+      // Every way the check can end without a token ends the wait too, so the form never stays
+      // busy: an error, a challenge left unanswered, a browser Turnstile does not support.
       'error-callback': () => {
         settle(new Error('Turnstile failed'))
+      },
+      'timeout-callback': () => {
+        settle(new Error('Turnstile timed out'))
+      },
+      'unsupported-callback': () => {
+        settle(new Error('Turnstile is not supported here'))
       },
       'expired-callback': () => {
         if (widget !== null) api.reset(widget)
