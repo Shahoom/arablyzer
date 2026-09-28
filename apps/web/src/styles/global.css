@@ -26,7 +26,8 @@
   --color-rule-soft: #e1e6ec;
   --color-tick: #9aa4af;
 
-  --color-signal: #b53a17;
+  /* A shade darker than the design's #b53a17, which fell to 4.43:1 where two grid lines cross. */
+  --color-signal: #b03815;
   --color-signal-soft: #fbede8;
   --color-critical: #8e1b0e;
   --color-moderate: #8a5300;
@@ -49,8 +50,9 @@
   --color-panel-measure: #7aa7ff;
   --color-panel-moderate: #f2b544;
 
-  /* The categories: a colour and its tint each. */
-  --color-cat-render: #6d4aff;
+  /* The categories: a colour and its tint each. Arabic rendering's violet is a shade darker than
+     the design's #6d4aff, whose 4.48:1 on its tint our own contrast rule failed. */
+  --color-cat-render: #6844f5;
   --color-cat-render-soft: #f0edff;
   --color-cat-rtl: #255fc7;
   --color-cat-rtl-soft: #eaf1fc;
@@ -153,4 +155,14 @@
 /* The marked end of the main heading. */
 @utility mark-signal {
   box-shadow: inset 0 -0.2em 0 rgb(181 58 23 / 0.14);
+}
+
+/*
+ * A section below the first screen: the browser lays it out when it comes near, which halved the
+ * style and layout work before a phone's first paint (M2.1 plan §3, measured). The size is a
+ * placeholder until then, remembered once the section has been laid out.
+ */
+@utility below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
 }

@@ -200,6 +200,44 @@ describe('serveSite: compressed paths', () => {
     })
   }
 
+  it('gzips every text response when asked to, as a production server does', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-gzip-all-'))
+    await writeFile(path.join(dir, 'index.html'), `<p>${'نص عربي '.repeat(200)}</p>`)
+    await writeFile(path.join(dir, 'style.css'), `p { color: red; }\n`.repeat(50))
+    await writeFile(path.join(dir, 'font.woff2'), Buffer.alloc(2048, 7))
+    const all = await serveSite(dir, { compressText: true })
+    const encoding = (pathname: string) =>
+      new Promise<string | undefined>((resolve, reject) => {
+        const target = new URL(all.url(pathname))
+        http
+          .get(
+            {
+              host: target.hostname,
+              port: target.port,
+              path: pathname,
+              agent: false,
+              headers: { 'accept-encoding': 'gzip' },
+            },
+            (res) => {
+              res.resume()
+              res.on('end', () => {
+                resolve(res.headers['content-encoding'])
+              })
+            },
+          )
+          .on('error', reject)
+      })
+    try {
+      expect(await encoding('/')).toBe('gzip')
+      expect(await encoding('/style.css')).toBe('gzip')
+      expect(await encoding('/font.woff2')).toBeUndefined()
+      expect(await encoding('/missing.html')).toBeUndefined()
+    } finally {
+      await all.close()
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
   it('sends gzip to a client that accepts it, and the file as it is otherwise', async () => {
     const gzipped = await get('gzip, deflate, br')
     expect(gzipped.headers).toContainEqual(['content-encoding', 'gzip'])

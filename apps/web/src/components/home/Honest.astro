@@ -30,21 +30,24 @@ const kind = (line: string) =>
         : 'plain'
 ---
 
-<section class="grid items-start gap-10 border-y border-ink bg-white px-5 py-10 md:px-16 md:py-[88px] lg:grid-cols-12 lg:gap-x-12">
+<section class="below-fold grid items-start gap-10 border-y border-ink bg-white px-5 py-10 md:px-16 md:py-[88px] lg:grid-cols-12 lg:gap-x-12">
   <div class="flex flex-col gap-[30px] lg:col-span-5">
     <SectionHead number={number} label={t.kicker} id="honest-title" title={t.title} size="md" />
     <dl class="m-0 flex flex-col border-t border-ink">
       {t.points.map((point, index) => {
         const Icon = icons[index] ?? Code
         return (
-          <div class="grid grid-cols-[44px_minmax(0,1fr)] gap-4 border-b border-rule py-5">
-            <span class="flex size-11 items-center justify-center border-[1.5px] border-ink">
-              <Icon size={20} stroke-width={1.8} aria-hidden="true" />
-            </span>
-            <div class="flex flex-col gap-1">
-              <dt class="text-lg font-semibold">{point.title}</dt>
-              <dd class="m-0 text-[15px] leading-[1.8] text-ink-2">{point.text}</dd>
-            </div>
+          <div class="relative flex flex-col gap-1 border-b border-rule py-5 ps-[60px]">
+            <dt class="text-lg font-semibold">
+              <span
+                aria-hidden="true"
+                class="absolute start-0 top-5 flex size-11 items-center justify-center border-[1.5px] border-ink"
+              >
+                <Icon size={20} stroke-width={1.8} />
+              </span>
+              {point.title}
+            </dt>
+            <dd class="m-0 text-[15px] leading-[1.8] text-ink-2">{point.text}</dd>
           </div>
         )
       })}

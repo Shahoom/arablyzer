@@ -14,8 +14,9 @@ const api = process.env.ARABLYZER_API_ORIGIN ?? 'http://127.0.0.1:8787'
 export default defineConfig({
   site: site.origin,
   output: 'static',
-  // Pages land where packages/seo's PATHS says: /, /en/, /tools/<slug>.
-  build: { format: 'preserve' },
+  // Pages land where packages/seo's PATHS says: /, /en/, /tools/<slug>. The CSS is inlined: on a
+  // phone, a stylesheet request delayed the first paint (M2.1 plan §3, measured).
+  build: { format: 'preserve', inlineStylesheets: 'always' },
   trailingSlash: 'ignore',
   integrations: [react()],
   vite: {

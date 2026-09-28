@@ -42,6 +42,8 @@ jobs:
         run: pnpm test:e2e
       - name: SEO self-audit (every tool page and the report template)
         run: pnpm seo:audit
+      - name: Site build and self-audit (every page Astro builds, M2.1)
+        run: pnpm site:build && pnpm site:audit
       - name: Report schema drift
         run: pnpm schema:check
 
@@ -67,10 +69,23 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install the browsers and their system libraries
         run: pnpm --filter @arablyzer/browser exec playwright-core install --with-deps chromium firefox webkit
-      - name: Browser SSRF suite and rendered facts
+      - name: Browser SSRF suite, rendered facts, and the site scanning itself
         run: pnpm test:browser
         env:
           ARABLYZER_REQUIRE_ENGINES: chromium,firefox,webkit
+      - name: Lighthouse on the site (M2.1 plan §3)
+        run: |
+          CHROME_PATH="$(find ~/.cache/ms-playwright -type f -name chrome -path '*/chromium-*' | head -1)"
+          export CHROME_PATH
+          pnpm --filter @arablyzer/web run lighthouse --runs 3 --min-mobile 90 --min-desktop 95 --out lighthouse.json
+      - name: Keep the Lighthouse scores
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lighthouse
+          path: lighthouse.json
+          if-no-files-found: ignore
+          overwrite: true
 
   image:
     # M1.3c: the scanner image (Phase 1 design §6, decision 9), built here and never pushed, and
