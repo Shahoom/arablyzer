@@ -82,7 +82,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build the image
-        run: docker build --tag arablyzer:ci .
+        run: |
+          docker build --tag arablyzer:ci .
+          docker image ls arablyzer:ci
       - name: Golden reports
         run: |
           mkdir -p golden-actual && chmod 777 golden-actual
