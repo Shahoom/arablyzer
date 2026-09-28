@@ -10,6 +10,7 @@ import { safeFetch } from '../../src/fetch'
 import { createPolicy, type EgressPolicy } from '../../src/policy'
 import { startProxy, type EgressProxy } from '../../src/proxy'
 import { serverPolicy } from '../../src/server-policy'
+import { openTunnel } from '../../src/upstream'
 import { startServer, stubResolver, UA, type TestServer } from '../helpers'
 
 // The egress package in front of Smokescreen (M2.1 plan §5b): with `upstream` in the policy,
@@ -462,5 +463,86 @@ describe('the egress proxy in the policy', () => {
     expect(() => serverPolicy({ ARABLYZER_EGRESS_PROXY: 'socks5://proxy:1080' }, {})).toThrow(
       TypeError,
     )
+  })
+})
+
+/**
+ * A proxy that answers every CONNECT with these pieces, one after another, and then waits: the
+ * answers Smokescreen never gives, which openTunnel must still survive.
+ */
+async function answeringProxy(pieces: readonly string[], gapMs = 20): Promise<URL> {
+  const sockets = new Set<net.Socket>()
+  const proxy = net.createServer((socket) => {
+    sockets.add(socket)
+    socket.on('error', () => undefined)
+    socket.once('data', () => {
+      void (async () => {
+        for (const piece of pieces) {
+          if (socket.destroyed) return
+          socket.write(piece)
+          await new Promise((resolve) => setTimeout(resolve, gapMs))
+        }
+      })()
+    })
+  })
+  await new Promise<void>((resolve) => {
+    proxy.listen(0, '127.0.0.1', resolve)
+  })
+  const address = proxy.address()
+  if (address === null || typeof address === 'string') throw new Error('No port')
+  cleanup.push(
+    () =>
+      new Promise<void>((resolve) => {
+        for (const socket of sockets) socket.destroy()
+        proxy.close(() => {
+          resolve()
+        })
+      }),
+  )
+  return new URL(`http://127.0.0.1:${String(address.port)}`)
+}
+
+describe('openTunnel', () => {
+  const never = new AbortController().signal
+
+  it('reads an answer that comes in pieces, the blank line last', async () => {
+    const proxy = await answeringProxy(['HTTP/1.1 2', '00 Connection Established\r\n', '\r\n'])
+    const tunnel = await openTunnel(proxy, 'shop.example.test', 443, never)
+    expect(tunnel.ok).toBe(true)
+    if (tunnel.ok) tunnel.socket.destroy()
+  })
+
+  it('refuses an answer that never ends, past its size', async () => {
+    const header = `X-Filler: ${'x'.repeat(1000)}\r\n`
+    const proxy = await answeringProxy([
+      'HTTP/1.1 200 Connection Established\r\n',
+      header.repeat(20),
+    ])
+    expect(await openTunnel(proxy, 'shop.example.test', 443, never)).toEqual({
+      ok: false,
+      code: 'connect-failed',
+      detail: 'The egress proxy answer is too long',
+    })
+  })
+
+  it('gives up on a proxy that does not answer, and on one that answers too slowly', async () => {
+    const silent = await answeringProxy([])
+    expect(await openTunnel(silent, 'shop.example.test', 443, never, 100)).toMatchObject({
+      ok: false,
+      code: 'timeout',
+    })
+    const slow = await answeringProxy(['HTTP/1.1 200 Connection Established\r\n', '\r\n'], 300)
+    expect(await openTunnel(slow, 'shop.example.test', 443, never, 100)).toMatchObject({
+      ok: false,
+      code: 'timeout',
+    })
+  })
+
+  it('stops waiting when its signal ends', async () => {
+    const silent = await answeringProxy([])
+    const stop = new AbortController()
+    const waiting = openTunnel(silent, 'shop.example.test', 443, stop.signal)
+    stop.abort(new Error('The scan ended'))
+    await expect(waiting).rejects.toThrow('The scan ended')
   })
 })
