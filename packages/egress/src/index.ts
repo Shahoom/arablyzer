@@ -24,7 +24,18 @@ export {
   type ProxyStats,
 } from './proxy'
 export { IPV4_RANGES, IPV6_RANGES, type SpecialRange } from './ranges'
-export { ALLOW_PRIVATE_VARIABLE, DENY_CIDRS_VARIABLE, serverPolicy } from './server-policy'
+export {
+  ALLOW_PRIVATE_VARIABLE,
+  DENY_CIDRS_VARIABLE,
+  EGRESS_PROXY_VARIABLE,
+  serverPolicy,
+} from './server-policy'
+export {
+  openTunnel,
+  UPSTREAM_CONNECT_TIMEOUT_MS,
+  type Tunnel,
+  type UpstreamRefusalCode,
+} from './upstream'
 export {
   createDnsResolver,
   defaultResolver,

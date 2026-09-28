@@ -18,6 +18,12 @@ export interface EgressPolicy {
   readonly denyCidrs: readonly string[]
   /** Exact test targets allowed despite the rules above. Programmatic only; never a CLI flag. */
   readonly allowTargets: readonly EgressTarget[]
+  /**
+   * The egress proxy every connection goes through (Smokescreen, M2.1 plan §5b), as
+   * `http://host:port`. Set, a name is resolved and its addresses vetted there, not here: every
+   * check that needs no DNS still runs here, and a literal address is still vetted here.
+   */
+  readonly upstream?: string
 }
 
 export const DEFAULT_POLICY: EgressPolicy = Object.freeze({
@@ -35,7 +41,29 @@ export function createPolicy(overrides: Partial<EgressPolicy> = {}): EgressPolic
     allowPrivate: merged.allowPrivate,
     denyCidrs: Object.freeze(merged.denyCidrs.map(normalizeDenyCidr)),
     allowTargets: Object.freeze(merged.allowTargets.map(validTestTarget)),
+    ...(merged.upstream === undefined ? {} : { upstream: validUpstream(merged.upstream) }),
   })
+}
+
+/** An egress proxy is plain `http://host:port`: no credentials, path, query or fragment. */
+function validUpstream(value: string): string {
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw new TypeError(`Invalid egress proxy: ${value}`)
+  }
+  if (
+    url.protocol !== 'http:' ||
+    url.username !== '' ||
+    url.password !== '' ||
+    url.pathname !== '/' ||
+    url.search !== '' ||
+    url.hash !== ''
+  ) {
+    throw new TypeError(`The egress proxy is http://host:port, not ${value}`)
+  }
+  return url.origin
 }
 
 function validPort(port: number): number {
