@@ -1,4 +1,5 @@
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
+import { URL_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useEffect, useState, type SubmitEvent } from 'react'
@@ -43,6 +44,14 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
   // The button stays disabled until the form can handle it, so an early click is not lost.
   useEffect(() => {
     setReady(true)
+    // Back from the scan's page, a page the browser kept is shown as it was left: busy.
+    const shown = (event: PageTransitionEvent) => {
+      if (event.persisted) setBusy(false)
+    }
+    window.addEventListener('pageshow', shown)
+    return () => {
+      window.removeEventListener('pageshow', shown)
+    }
   }, [])
 
   async function onSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -66,6 +75,10 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
     setError(started.error)
   }
 
+  // Only the URL itself is invalid; the service being busy or away says nothing about it.
+  const invalid =
+    error !== null &&
+    (error.code === 'empty' || (URL_ERROR_CODES as readonly string[]).includes(error.code))
   const message =
     error === null
       ? ''
@@ -89,14 +102,16 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
           autoCapitalize="none"
           spellCheck={false}
           placeholder={t.placeholder}
-          aria-invalid={error === null ? undefined : true}
+          aria-invalid={invalid ? true : undefined}
           aria-describedby={error === null ? undefined : errorId}
           className={`h-[54px] min-w-0 grow bg-white px-3.5 font-mono text-base text-ink placeholder:text-ink-3 sm:h-auto sm:px-5 sm:text-lg ${style.input}`}
         />
         <button
           type="submit"
-          disabled={!ready || busy}
-          className={`flex h-[54px] shrink-0 cursor-pointer items-center justify-center gap-2.5 px-[30px] text-[17px] font-semibold text-white disabled:cursor-wait sm:h-auto sm:text-lg ${style.button}`}
+          // Disabled only before the form works; while it sends, it keeps focus and ignores clicks.
+          disabled={!ready}
+          aria-disabled={busy ? true : undefined}
+          className={`flex h-[54px] shrink-0 cursor-pointer items-center justify-center gap-2.5 px-[30px] text-[17px] font-semibold text-white disabled:cursor-wait aria-disabled:cursor-wait sm:h-auto sm:text-lg ${style.button}`}
         >
           {busy ? t.submitting : t.submit}
           <Forward size={20} strokeWidth={2} aria-hidden="true" />

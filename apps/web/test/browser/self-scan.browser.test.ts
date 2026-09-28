@@ -4,7 +4,7 @@ import { createPolicy } from '@arablyzer/egress'
 import { scan } from '@arablyzer/engine'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
 import type { Engine, Report } from '@arablyzer/report-schema'
-import { isKnownGap } from '@arablyzer/seo/audit'
+import { builtPages, isKnownGap } from '@arablyzer/seo/audit'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The site scanned by Arablyzer, in its three engines, as a visitor's scan would (M2.1 plan §3,
@@ -19,20 +19,21 @@ const ENGINES = (['chromium', 'firefox', 'webkit'] as const).filter(
 )
 
 /**
- * Rules that judge the server rather than the pages: its scheme, certificate, HSTS header and
- * compression, which the site's server sets (Caddy, M2.1c). Staging answers them (M2.5).
+ * Rules that judge the server rather than the pages: its scheme, certificate and HSTS header,
+ * which the site's server sets (Caddy, M2.1c); staging answers them (M2.5). The pages are served
+ * compressed, as that server sends them, so the compression rule runs.
  */
-const SERVER_RULES = new Set([
-  'https-missing',
-  'hsts-missing',
-  'tls-expiring',
-  'text-compression-missing',
-])
+const SERVER_RULES = new Set(['https-missing', 'hsts-missing', 'tls-expiring'])
+
+/** Every page the build wrote, report pages aside: they are noindex, and audited as such. */
+const PAGES = builtPages(DIST)
+  .map((page) => page.path)
+  .filter((path) => !/^\/(?:en\/)?r(?:\/|$)/.test(path))
 
 let site: FixtureSite
 
 beforeAll(async () => {
-  site = await serveSite(DIST)
+  site = await serveSite(DIST, { compressText: true, cleanUrls: true })
 })
 
 afterAll(async () => {
@@ -66,11 +67,11 @@ function problems(report: Report) {
   )
 }
 
-describe.each(['/', '/en/'])('Arablyzer on its own page %s', (path) => {
+describe.each(PAGES)('Arablyzer on its own page %s', (path) => {
   it(`passes every rule in ${ENGINES.join(', ')}`, async () => {
     const report = await scan(site.url(path), {
-      // The pages are served on loopback; the scan's policy opens private ranges for it alone.
-      policy: createPolicy({ allowPrivate: true }),
+      // The pages are served on loopback: the policy opens that one address and port alone.
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
       // CI's runner is a throwaway VM and these pages are ours, so WebKit runs there as in the
       // browser SSRF suite (M2.1 plan §3).
       render: { engines: ENGINES, networkIsolated: true },

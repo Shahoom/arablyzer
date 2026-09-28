@@ -23,9 +23,11 @@ export function builtPages(dir: string): BuiltPage[] {
       if (entry.isDirectory()) {
         if (entry.name !== '_astro') walk(file)
       } else if (entry.name.endsWith('.html')) {
-        const page = file.endsWith('index.html')
-          ? `/${file.slice(0, -'index.html'.length)}`
-          : `/${file.slice(0, -'.html'.length)}`
+        // A directory's page is its index.html; tools/noindex.html is /tools/noindex.
+        const page =
+          entry.name === 'index.html'
+            ? `/${file.slice(0, -'index.html'.length)}`
+            : `/${file.slice(0, -'.html'.length)}`
         pages.push({ path: page, file, lang: isEnglish(page) ? 'en' : 'ar' })
       }
     }

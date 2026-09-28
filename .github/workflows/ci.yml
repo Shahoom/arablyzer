@@ -77,7 +77,7 @@ jobs:
         run: |
           CHROME_PATH="$(find ~/.cache/ms-playwright -type f -name chrome -path '*/chromium-*' | head -1)"
           export CHROME_PATH
-          pnpm --filter @arablyzer/web run lighthouse --runs 3 --min-mobile 90 --min-desktop 95 --out lighthouse.json
+          pnpm --filter @arablyzer/web run lighthouse --runs 3 --min-mobile 95 --min-desktop 100 --out lighthouse.json
       - name: Keep the Lighthouse scores
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

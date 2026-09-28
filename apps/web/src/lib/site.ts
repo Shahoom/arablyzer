@@ -16,8 +16,14 @@ export function otherLang(lang: Lang): Lang {
   return lang === 'ar' ? 'en' : 'ar'
 }
 
-/** The site's repository, for the code and the methodology. */
+/**
+ * The site's repository, for the code and the methodology. It is private until the owner opens
+ * it, which must come before the site is public: the page says the code is open (M2.1 plan).
+ */
 export const REPOSITORY = 'https://github.com/Shahoom/arablyzer'
+
+/** The methodology, Arabic first, in the repository (docs/methodology.md). */
+export const METHODOLOGY = `${REPOSITORY}/blob/main/docs/methodology.md`
 
 export const CLOUDTOPIA = 'https://cloudtopia.net'
 

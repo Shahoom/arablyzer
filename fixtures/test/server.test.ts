@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import http from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -234,6 +234,23 @@ describe('serveSite: compressed paths', () => {
       expect(await encoding('/missing.html')).toBeUndefined()
     } finally {
       await all.close()
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('serves a page without its .html when asked to, as the site does', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-clean-'))
+    await mkdir(path.join(dir, 'tools'), { recursive: true })
+    await writeFile(path.join(dir, 'tools', 'rtl-check.html'), '<p>rtl</p>')
+    const clean = await resolveFixtureResponse(dir, {}, '/tools/rtl-check', { cleanUrls: true })
+    const strict = await resolveFixtureResponse(dir, {}, '/tools/rtl-check')
+    const escape = await resolveFixtureResponse(dir, {}, '/../server', { cleanUrls: true })
+    try {
+      expect([clean.status, clean.body.toString()]).toEqual([200, '<p>rtl</p>'])
+      expect(clean.headers['content-type']).toBe('text/html; charset=utf-8')
+      expect(strict.status).toBe(404)
+      expect(escape.status).toBe(404)
+    } finally {
       await rm(dir, { recursive: true, force: true })
     }
   })

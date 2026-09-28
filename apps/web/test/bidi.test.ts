@@ -21,6 +21,11 @@ describe('isolateLatin', () => {
     ])
   })
 
+  it('leaves brackets around Arabic alone, which a lone isolated bracket would turn round', () => {
+    expect(isolated('اختبر الصفحة (الرئيسية) الآن')).toEqual([])
+    expect(isolated('الأرقام (١٢٣) و[٤٥٦]')).toEqual([])
+  })
+
   it('leaves numbers alone, and keeps every character', () => {
     const text = 'هاتف عرضها 390 بكسل بمقدار 280 بكسل، و«12.50 ر.ع.» في CSS هنا.'
     expect(isolated(text)).toEqual(['CSS'])

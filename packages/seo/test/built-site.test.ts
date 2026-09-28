@@ -55,11 +55,13 @@ describe('builtPages', () => {
       'index.html': home('ar'),
       'en/index.html': home('en'),
       'tools/rtl-check.html': page('ar', '/tools/rtl-check'),
+      'tools/noindex.html': page('ar', '/tools/noindex'),
       '_astro/chunk.html': '<p>not a page</p>',
     })
     expect(builtPages(dir)).toEqual([
       { path: '/', file: 'index.html', lang: 'ar' },
       { path: '/en/', file: 'en/index.html', lang: 'en' },
+      { path: '/tools/noindex', file: 'tools/noindex.html', lang: 'ar' },
       { path: '/tools/rtl-check', file: 'tools/rtl-check.html', lang: 'ar' },
     ])
   })

@@ -62,6 +62,8 @@ export interface HomeStrings {
     readonly kicker: string
     readonly title: string
     readonly points: readonly [Titled, Titled, Titled]
+    /** The link under the methodology point, to the document it names. */
+    readonly methodology: string
     readonly terminal: {
       readonly title: string
       /** A comment line above the output: which page it is. */
@@ -167,6 +169,7 @@ export const HOME: Copy<HomeStrings> = {
           text: 'نفصل ما يفشل آلياً عمّا يحتاج عين إنسان. والذكاء الاصطناعي لا يضيف مخالفة ولا يغيّر درجة.',
         },
       ],
+      methodology: 'اقرأ المنهجية',
       terminal: {
         title: 'للمطوّرين: سطر الأوامر',
         caption: (page) => `# صفحة الاختبار ${page}، في المتصفحات الثلاثة`,
@@ -293,6 +296,7 @@ export const HOME: Copy<HomeStrings> = {
           text: 'We keep what fails automatically apart from what needs a human eye. AI never adds a finding or changes a score.',
         },
       ],
+      methodology: 'Read the methodology',
       terminal: {
         title: 'For developers: the command line',
         caption: (page) => `# test page ${page}, in all three browsers`,

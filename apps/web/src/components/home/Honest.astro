@@ -7,7 +7,7 @@ import ShieldCheck from '@lucide/astro/icons/shield-check'
 import Bidi from '../Bidi.astro'
 import Crosshairs from '../Crosshairs.astro'
 import SectionHead from '../SectionHead.astro'
-import { REPOSITORY } from '../../lib/site'
+import { METHODOLOGY, REPOSITORY } from '../../lib/site'
 import { SHOWCASE, terminalLines } from '../../lib/showcase'
 
 interface Props {
@@ -20,6 +20,14 @@ const icons = [Code, Ruler, ShieldCheck]
 const lines = terminalLines(lang)
 // The CLI's own marks: ✗ with a severity word opens a finding, • one of its messages.
 const ARABIC = /\p{Script=Arabic}/u
+/**
+ * A rule's line, "✗ severity  rule-id  title": the ID isolated on its own, so a title that
+ * starts in Latin ("CSS …") is not read as part of it.
+ */
+const ruleLine = (line: string) => {
+  const match = /^(✗ \S+) {2}(\S+) {2}(.*)$/u.exec(line)
+  return match === null ? null : { mark: match[1] ?? '', id: match[2] ?? '', title: match[3] ?? '' }
+}
 const kind = (line: string) =>
   line.startsWith('✗')
     ? 'rule'
@@ -47,7 +55,18 @@ const kind = (line: string) =>
               </span>
               {point.title}
             </dt>
-            <dd class="m-0 text-[15px] leading-[1.8] text-ink-2">{point.text}</dd>
+            <dd class="m-0 text-[15px] leading-[1.8] text-ink-2">
+              {point.text}
+              {index === 1 && [
+                ' ',
+                <a
+                  href={METHODOLOGY}
+                  class="font-semibold text-ink underline underline-offset-4 hover:text-signal"
+                >
+                  {t.methodology}
+                </a>,
+              ]}
+            </dd>
           </div>
         )
       })}
@@ -80,7 +99,19 @@ const kind = (line: string) =>
             kind(line) === 'rule' && 'pt-3 font-semibold text-white',
             kind(line) === 'message' && 'ps-5',
             kind(line) === 'where' && 'ps-9 text-panel-dim',
-          ]}><Bidi text={line.trimStart()} lang={lang} /></span>
+          ]}>{(() => {
+            const rule = ruleLine(line)
+            // An array, not a fragment: in <pre>, a fragment's line breaks would show.
+            return rule === null
+              ? [<Bidi text={line.trimStart()} lang={lang} />]
+              : [
+                  rule.mark,
+                  '  ',
+                  <bdi dir="ltr">{rule.id}</bdi>,
+                  '  ',
+                  <Bidi text={rule.title} lang={lang} />,
+                ]
+          })()}</span>
       ))}</pre>
     <figcaption class="border-t border-panel-line px-4 py-4 text-sm leading-[1.8] text-panel-dim md:px-[22px]">
       {codeParts(t.terminal.footer).map((part) =>

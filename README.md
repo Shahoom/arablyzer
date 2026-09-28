@@ -42,7 +42,7 @@ docker run --rm --platform linux/amd64 --network none -e ARABLYZER_NETWORK_ISOLA
 ```bash
 pnpm --filter @arablyzer/web dev      # http://localhost:4321; /api goes to ARABLYZER_API_ORIGIN
 pnpm site:build && pnpm site:audit    # builds apps/web/dist and audits every page, as CI does
-pnpm --filter @arablyzer/web test:browser   # Arablyzer scans its own pages in the three engines
+pnpm --filter @arablyzer/web test:browser   # after site:build: Arablyzer scans its own pages (WebKit on Linux only)
 CHROME_PATH=/path/to/chromium pnpm --filter @arablyzer/web run lighthouse --runs 3
 ```
 

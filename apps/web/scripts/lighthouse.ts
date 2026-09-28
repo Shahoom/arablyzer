@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { serveSite } from '@arablyzer/fixtures'
+import { builtPages } from '@arablyzer/seo/audit'
 import * as chromeLauncher from 'chrome-launcher'
 import lighthouse from 'lighthouse'
 import desktopConfig from 'lighthouse/core/config/desktop-config.js'
@@ -30,7 +31,10 @@ if (chromePath === undefined || chromePath === '') {
 }
 
 const DIST = fileURLToPath(new URL('../dist/', import.meta.url))
-const PAGES = ['/', '/en/']
+/** Every page the build wrote, report pages aside. */
+const PAGES = builtPages(DIST)
+  .map((page) => page.path)
+  .filter((path) => !/^\/(?:en\/)?r(?:\/|$)/.test(path))
 const CATEGORIES = ['performance', 'accessibility', 'best-practices', 'seo'] as const
 const FORMS = ['mobile', 'desktop'] as const
 
@@ -51,7 +55,7 @@ const METRICS = [
   'speed-index',
 ]
 
-const site = await serveSite(DIST, { compressText: true })
+const site = await serveSite(DIST, { compressText: true, cleanUrls: true })
 const chrome = await chromeLauncher.launch({
   chromePath,
   // Ubuntu's runners forbid the user namespaces Chromium's sandbox needs; the pages are ours
@@ -80,7 +84,7 @@ try {
         const lhr = result?.lhr
         if (lhr === undefined) throw new Error(`Lighthouse returned nothing for ${page} (${form})`)
         if (values.lhr !== undefined) {
-          const name = `${page === '/' ? 'ar' : 'en'}-${form}-${run}.json`
+          const name = `${page.replaceAll('/', '_')}-${form}-${run}.json`
           await writeFile(
             path.join(path.resolve(process.env.INIT_CWD ?? process.cwd(), values.lhr), name),
             JSON.stringify(lhr),
