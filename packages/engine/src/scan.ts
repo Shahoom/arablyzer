@@ -50,11 +50,10 @@ import {
 } from '@arablyzer/rules'
 import { boundSelector, boundText, boundValues } from './bounds'
 import { fetchCrux, type CruxOptions } from './crux'
+import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 
-export const ENGINE_VERSION = '0.1.0'
-/** BUILD-PLAN §1. Arablyzer always identifies itself and never poses as another crawler. */
-export const USER_AGENT = 'ArablyzerBot/1.0 (+https://arablyzer.com/bot)'
+export { ENGINE_VERSION, USER_AGENT }
 /** Keeps reports small; the rest of a rule's findings are counted in findingsOmitted. */
 export const MAX_FINDINGS_PER_RULE = 20
 /** Google reads the first 500 KiB of robots.txt; RFC 9309 asks crawlers to read at least that. */

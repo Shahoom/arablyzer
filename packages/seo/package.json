@@ -6,6 +6,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./site": "./src/site.ts",
+    "./head": "./src/head.ts",
+    "./json-ld": "./src/json-ld.ts",
+    "./strings": "./src/strings.ts",
     "./audit": "./src/audit/index.ts"
   },
   "scripts": {
