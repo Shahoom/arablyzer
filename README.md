@@ -2,9 +2,9 @@
 
 **محلّل المواقع العربية** — أداة مفتوحة المصدر لفحص المواقع العربية والخليجية، أول مشروع في مختبر كلاود توبيا (LAB-001).
 
-> **الحالة:** قيد البناء — المرحلة 1 (عرض الصفحة في متصفح). لا يوجد إصدار منشور بعد؛ الأداة تعمل من المستودع فقط.
+> **الحالة:** قيد البناء — المرحلة 2 (الموقع والفحص المجاني). لا يوجد إصدار منشور بعد؛ الأداة تعمل من المستودع فقط.
 
-Open-source website analyzer for Arabic and Gulf websites. **Status:** in development (Phase 1: rendering pages in a browser); nothing is released yet, and the CLI runs from this repository only.
+Open-source website analyzer for Arabic and Gulf websites. **Status:** in development (Phase 2: the site and the free scan); nothing is released yet, and the CLI runs from this repository only.
 
 ## Development
 
@@ -35,8 +35,21 @@ docker run --rm --platform linux/amd64 --network none -e ARABLYZER_NETWORK_ISOLA
   -e ARABLYZER_GOLDEN_OUT=/out -v "$PWD/golden-actual:/out" --entrypoint pnpm arablyzer test:golden
 ```
 
+### The site / الموقع
+
+`apps/web` is the site: Astro builds static pages, Arabic at the root and English under `/en/`, and React runs only the scan form. The home page reads its numbers from the golden reports at build time.
+
+```bash
+pnpm --filter @arablyzer/web dev      # http://localhost:4321; /api goes to ARABLYZER_API_ORIGIN
+pnpm site:build && pnpm site:audit    # builds apps/web/dist and audits every page, as CI does
+pnpm --filter @arablyzer/web test:browser   # Arablyzer scans its own pages in the three engines
+CHROME_PATH=/path/to/chromium pnpm --filter @arablyzer/web run lighthouse --runs 3
+```
+
+Pages are built for `https://arablyzer.example` until the domain is chosen; `ARABLYZER_SITE` sets another origin.
+
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
-- Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md)
+- Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md), [Phase 2](docs/design/phase-2.md)
 
 ## Scanning a page / فحص صفحة
 
