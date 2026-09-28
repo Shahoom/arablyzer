@@ -1,0 +1,198 @@
+---
+import { HOME } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+import Check from '@lucide/astro/icons/check'
+import X from '@lucide/astro/icons/x'
+import Forward from '../Forward.astro'
+import SectionHead from '../SectionHead.astro'
+import { drawnWithLetterSpacing } from '../../lib/arabic'
+import { ENGINE_NAMES, SHOWCASE } from '../../lib/showcase'
+import ExampleCard from './ExampleCard.astro'
+
+interface Props {
+  lang: Lang
+  number: number
+}
+const { lang, number } = Astro.props
+const t = HOME[lang].arabic
+const s = SHOWCASE
+
+// The overflow drawn to scale: the phone's screen, and the element past its left edge.
+const o = s.overflow
+const scale = 150 / o.viewport
+const screen = { x: 300, width: 150 }
+const element = { x: screen.x + o.x * scale, width: o.width * scale }
+const round = (value: number) => Math.round(value * 10) / 10
+const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
+---
+
+<section
+  aria-labelledby="arabic-title"
+  class="flex flex-col gap-4 border-y border-ink bg-white px-5 py-9 md:gap-11 md:px-16 md:py-[88px]"
+>
+  <div class="grid items-end gap-4 lg:grid-cols-12 lg:gap-x-12">
+    <div class="lg:col-span-7">
+      <SectionHead number={number} label={t.kicker} id="arabic-title" title={t.title} />
+    </div>
+    <p class="m-0 text-base leading-[1.8] text-ink-2 md:text-[17px] lg:col-span-5">{t.intro}</p>
+  </div>
+  <div class="grid gap-4 md:gap-7 lg:grid-cols-2">
+    <ExampleCard lang={lang} code="A-01" title={t.cards.spacing} finding={s.spacing.finding}>
+      <div class="flex flex-col gap-3 border border-rule-soft bg-white p-3.5 md:p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <span lang="ar" class="text-[26px] font-semibold md:text-[34px]">
+            {s.heading.text}
+          </span>
+          <span class="flex gap-1.5">
+            {s.engines
+              .filter((run) => run.joined)
+              .map((run) => (
+                <span dir="ltr" class:list={[chip, 'bg-pass-soft text-pass']}>
+                  <Check size={12} stroke-width={3} aria-hidden="true" />
+                  {run.name}
+                </span>
+              ))}
+          </span>
+        </div>
+        <div class="h-px bg-rule-soft"></div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <span
+            lang="ar"
+            aria-hidden="true"
+            class="text-[26px] font-semibold text-signal md:text-[34px]"
+          >
+            {drawnWithLetterSpacing(s.heading.text)}
+          </span>
+          <span class="flex items-center gap-2">
+            <span class="flex items-center gap-1">
+              <svg width="26" height="10" viewBox="0 0 26 10" fill="none" aria-hidden="true">
+                <path d="M1 5h24M1 1v8M25 1v8" class="stroke-measure" stroke-width="1.2"></path>
+              </svg>
+              <span dir="ltr" class="font-mono text-xs text-measure">
+                {s.spacing.px}px
+              </span>
+            </span>
+            {s.spacing.drawnBy.map((engine) => (
+              <span dir="ltr" class:list={[chip, 'bg-signal-soft text-signal']}>
+                <X size={12} stroke-width={3} aria-hidden="true" />
+                {ENGINE_NAMES[engine]}
+              </span>
+            ))}
+          </span>
+        </div>
+        <span class="text-xs text-ink-3 md:sr-only">
+          {t.drawnBy(s.spacing.drawnBy.map((engine) => ENGINE_NAMES[engine]).join(' · '))}
+        </span>
+      </div>
+    </ExampleCard>
+
+    <ExampleCard lang={lang} code="A-02" title={t.cards.overflow} finding={o.finding}>
+      <div class="border border-rule-soft bg-white px-3 py-3 md:px-5 md:py-4">
+        <svg
+          width="100%"
+          viewBox="0 0 520 148"
+          fill="none"
+          role="img"
+          aria-label={t.overflowDiagram(o.overflow, o.width, o.viewport)}
+        >
+          <rect
+            x={screen.x}
+            y="8"
+            width={screen.width}
+            height="124"
+            class="stroke-ink"
+            stroke-width="1.5"
+          ></rect>
+          <path
+            d="M318 30h114M330 44h102M318 58h114M340 72h92"
+            class="stroke-rule"
+            stroke-width="5"
+          ></path>
+          <rect
+            x={round(element.x)}
+            y="26"
+            width={round(element.width)}
+            height="30"
+            class="fill-signal-soft stroke-signal"
+            stroke-width="1.5"
+            stroke-dasharray="4 3"
+          ></rect>
+          <text
+            x={round(element.x + element.width / 2)}
+            y="46"
+            text-anchor="middle"
+            font-size="12"
+            class="fill-signal font-mono"
+          >
+            {o.element}
+          </text>
+          <path
+            d={`M${round(element.x)} 96H${screen.x}M${round(element.x)} 90v12M${screen.x} 90v12`}
+            class="stroke-measure"
+            stroke-width="1.2"
+          ></path>
+          <text
+            x={round((element.x + screen.x) / 2)}
+            y="120"
+            text-anchor="middle"
+            font-size="13"
+            class="fill-measure font-mono"
+          >
+            {o.overflow}px
+          </text>
+          <path
+            d={`M${screen.x} 140h${screen.width}M${screen.x} 135v10M${screen.x + screen.width} 135v10`}
+            class="stroke-tick"
+            stroke-width="1"
+          ></path>
+          <text
+            x={screen.x + screen.width / 2}
+            y="112"
+            text-anchor="middle"
+            font-size="12"
+            class="fill-ink-3 font-mono"
+          >
+            {o.viewport}px
+          </text>
+        </svg>
+      </div>
+    </ExampleCard>
+
+    <ExampleCard lang={lang} code="A-03" title={t.cards.name} finding={s.name.finding}>
+      <div
+        class="flex flex-col gap-2 border border-rule-soft bg-white p-3.5 md:p-5"
+        lang="ar"
+        dir="rtl"
+      >
+        <span class="text-[13px] font-semibold md:text-sm">{s.name.label}</span>
+        <span class="flex h-11 items-center border-[1.5px] border-signal bg-white px-3.5 text-base md:h-12 md:text-[17px]">
+          {s.name.name}
+        </span>
+        <span class="flex flex-wrap items-center justify-between gap-2 text-xs md:text-[13px]">
+          <span class="flex items-center gap-1.5 text-signal">
+            <X size={14} stroke-width={2.5} aria-hidden="true" />
+            <span lang={lang}>{t.rejected}</span>
+          </span>
+          <code dir="ltr" class="font-mono text-xs text-measure">
+            pattern="{s.name.pattern}"
+          </code>
+        </span>
+      </div>
+    </ExampleCard>
+
+    <ExampleCard lang={lang} code="A-04" title={t.cards.price} finding={s.price.finding}>
+      <div class="flex flex-wrap items-center justify-center gap-4 border border-rule-soft bg-white px-5 py-6 md:gap-7 md:py-[30px]">
+        <span
+          lang="ar"
+          class="text-2xl font-medium text-signal line-through decoration-2 md:text-[32px]"
+        >
+          <bdi>{s.price.price}</bdi>
+        </span>
+        <Forward lang={lang} size={28} class="text-ink-3" />
+        <span lang="ar" class="text-2xl font-semibold text-pass md:text-[32px]">
+          <bdi>{s.price.fixed}</bdi>
+        </span>
+      </div>
+    </ExampleCard>
+  </div>
+</section>

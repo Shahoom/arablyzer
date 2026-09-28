@@ -1,0 +1,116 @@
+---
+import { HOME } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+import SectionHead from '../SectionHead.astro'
+import { SHOWCASE } from '../../lib/showcase'
+
+interface Props {
+  lang: Lang
+  number: number
+}
+const { lang, number } = Astro.props
+const t = HOME[lang].how
+---
+
+<section
+  aria-labelledby="how-title"
+  class="flex flex-col gap-6 px-5 py-10 md:gap-11 md:px-16 md:py-[88px]"
+>
+  <SectionHead number={number} id="how-title" title={t.title} size="md" />
+  <ol class="m-0 grid list-none gap-5 p-0 md:grid-cols-3 md:gap-6">
+    {t.steps.map((step, index) => (
+      <li class="flex flex-col gap-2 border-t-2 border-ink pt-3.5 md:gap-[18px] md:border md:border-rule-strong md:bg-white md:p-7">
+        {index === 0 && (
+          <svg
+            class="hidden md:block ltr:-scale-x-100"
+            width="100%"
+            height="96"
+            viewBox="0 0 300 96"
+            fill="none"
+            aria-hidden="true"
+          >
+            <rect x="20" y="30" width="260" height="38" class="stroke-ink" stroke-width="1.5" />
+            <rect x="20" y="30" width="72" height="38" class="fill-ink" />
+            <path d="M150 40v18" class="stroke-measure" stroke-width="2" />
+            <path d="M180 49h82" class="stroke-rule" stroke-width="6" />
+            <path d="M20 82h260M20 78v8M280 78v8" class="stroke-measure" stroke-width="1" />
+          </svg>
+        )}
+        {index === 1 && (
+          <svg
+            class="hidden md:block ltr:-scale-x-100"
+            width="100%"
+            height="96"
+            viewBox="0 0 300 96"
+            fill="none"
+            aria-hidden="true"
+          >
+            <rect
+              x="40"
+              y="10"
+              width="120"
+              height="76"
+              class="fill-white stroke-tick"
+              stroke-width="1.5"
+            />
+            <rect
+              x="90"
+              y="16"
+              width="120"
+              height="76"
+              class="fill-white stroke-ink-3"
+              stroke-width="1.5"
+            />
+            <rect
+              x="140"
+              y="4"
+              width="120"
+              height="76"
+              class="fill-white stroke-ink"
+              stroke-width="1.5"
+            />
+            <path d="M140 16h120" class="stroke-ink" stroke-width="1.5" />
+            <path d="M156 34h88M168 48h76M156 62h88" class="stroke-rule" stroke-width="6" />
+          </svg>
+        )}
+        {index === 2 && (
+          <svg
+            class="hidden md:block"
+            width="100%"
+            height="96"
+            viewBox="0 0 300 96"
+            fill="none"
+            aria-hidden="true"
+          >
+            <rect
+              x="80"
+              y="4"
+              width="140"
+              height="88"
+              class="fill-white stroke-ink"
+              stroke-width="1.5"
+            />
+            <text x="200" y="38" text-anchor="end" font-size="26" class="fill-ink font-mono">
+              {SHOWCASE.score}
+            </text>
+            <path d="M96 50h108" class="stroke-rule-soft" stroke-width="4" />
+            <path
+              d={`M204 50H${204 - SHOWCASE.score * 1.08}`}
+              class="stroke-ink"
+              stroke-width="4"
+            />
+            <rect x="176" y="62" width="28" height="8" class="fill-signal" />
+            <path d="M96 66h70M96 80h108" class="stroke-rule" stroke-width="5" />
+          </svg>
+        )}
+        <div class="flex items-baseline gap-3">
+          <span dir="ltr" class="font-mono text-[13px] text-signal md:text-sm">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+          <h3 class="m-0 text-[19px] font-semibold md:text-[22px]">{step.title}</h3>
+        </div>
+        <p class="m-0 text-[15px] leading-[1.8] text-ink-2 md:text-base">{step.text}</p>
+      </li>
+    ))}
+  </ol>
+</section>

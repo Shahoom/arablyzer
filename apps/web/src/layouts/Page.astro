@@ -1,0 +1,71 @@
+---
+import { SITE } from '@arablyzer/i18n'
+import { renderHead } from '@arablyzer/seo/head'
+import type { JsonLd } from '@arablyzer/seo/json-ld'
+import { alternates, pageUrl, type Lang } from '@arablyzer/seo/site'
+import { Font } from 'astro:assets'
+import SiteFooter from '../components/SiteFooter.astro'
+import SiteHeader from '../components/SiteHeader.astro'
+import StatusBar from '../components/StatusBar.astro'
+import { dirOf, siteOf } from '../lib/site'
+import '../styles/global.css'
+
+interface Props {
+  lang: Lang
+  /** The page's path, as PATHS gives it; the English one is derived from it. */
+  path: string
+  title: string
+  description: string
+  jsonLd?: readonly JsonLd[]
+}
+const { lang, path, title, description, jsonLd = [] } = Astro.props
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, path)
+// One source for <head>, shared with the templates the self-audit has checked since Phase 0.
+const head = renderHead({
+  title,
+  description,
+  canonical: url,
+  alternates: alternates(site, path),
+  jsonLd,
+  openGraph: { title, description, url },
+})
+---
+
+<!doctype html>
+<html lang={lang} dir={dirOf(lang)}>
+  <head>
+    <Fragment set:html={head} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#111418" />
+    <Font
+      cssVariable="--font-plex-arabic"
+      preload={
+        lang === 'ar'
+          ? [
+              { subset: 'arabic', weight: 700 },
+              { subset: 'arabic', weight: 400 },
+            ]
+          : [
+              { subset: 'latin', weight: 700 },
+              { subset: 'latin', weight: 400 },
+            ]
+      }
+    />
+    <Font cssVariable="--font-plex-mono" />
+  </head>
+  <body class="bg-lab-grid">
+    <a
+      href="#main"
+      class="sr-only z-50 bg-ink px-4 py-2 text-white focus:not-sr-only focus:absolute focus:start-4 focus:top-4"
+    >
+      {SITE[lang].skipToContent}
+    </a>
+    <StatusBar lang={lang} />
+    <SiteHeader lang={lang} path={path} />
+    <main id="main" class="flex flex-col">
+      <slot />
+    </main>
+    <SiteFooter lang={lang} path={path} />
+  </body>
+</html>

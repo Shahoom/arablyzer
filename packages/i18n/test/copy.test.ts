@@ -33,7 +33,7 @@ describe('interface copy', () => {
   it('writes Arabic without directional marks, which the page sets with dir instead', () => {
     for (const copy of Object.values(ALL_COPY)) {
       for (const [path, text] of leaves(copy.ar)) {
-        expect(/[‎‏؜‪-‮⁦-⁩]/u.test(text), path).toBe(false)
+        expect(/[\u200e\u200f\u061c\u202a-\u202e\u2066-\u2069]/u.test(text), path).toBe(false)
       }
     }
   })

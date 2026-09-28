@@ -85,7 +85,14 @@ function networkRules({ allowProcesses, allow = [] }) {
 
 export default defineConfig(
   // The golden pages are fixtures the scanner reads, not code of Arablyzer's.
-  globalIgnores(['**/node_modules/', '**/dist/', '**/coverage/', '**/.turbo/', 'fixtures/golden/']),
+  globalIgnores([
+    '**/node_modules/',
+    '**/dist/',
+    '**/coverage/',
+    '**/.turbo/',
+    '**/.astro/',
+    'fixtures/golden/',
+  ]),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -122,6 +129,17 @@ export default defineConfig(
     // Its tests serve pages and a service the policy refuses, so they open sockets.
     files: ['packages/lab/test/**'],
     rules: { 'no-restricted-imports': 'off' },
+  },
+  {
+    // The site's pages run in the visitor's browser (M2.1).
+    files: ['apps/web/src/islands/**'],
+    languageOptions: { globals: globals.browser },
+  },
+  {
+    // The scan form's one request, to Arablyzer's own API on the same origin: not scan traffic,
+    // which leaves the server through the egress proxy alone (M2.1 plan §2).
+    files: ['apps/web/src/islands/api.ts'],
+    rules: { 'no-restricted-globals': 'off' },
   },
   {
     // The egress package is the network boundary; the fixture server is local test infrastructure.

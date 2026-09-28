@@ -1,0 +1,37 @@
+---
+/**
+ * A section's number and label, "§ 03 · الطبقة العربية", over its heading; with no label, a ruler
+ * runs from the number to the end of the line.
+ */
+interface Props {
+  number: number
+  label?: string | undefined
+  id: string
+  title: string
+  size?: 'lg' | 'md'
+}
+const { number, label, id, title, size = 'lg' } = Astro.props
+const numbered = `§ ${String(number).padStart(2, '0')}`
+---
+
+<div class="flex flex-col gap-3.5">
+  <div class="flex items-center gap-3.5">
+    <span dir="ltr" class="font-mono text-xs tracking-[0.06em] text-signal">
+      {numbered}
+    </span>
+    {label === undefined ? (
+      <span aria-hidden="true" class="bg-ruler h-[7px] grow" />
+    ) : (
+      <span class="text-sm font-semibold text-signal">{label}</span>
+    )}
+  </div>
+  <h2
+    id={id}
+    class:list={[
+      'm-0 leading-[1.2] font-bold text-balance',
+      size === 'lg' ? 'text-[30px] md:text-[48px]' : 'text-[28px] md:text-[44px]',
+    ]}
+  >
+    {title}
+  </h2>
+</div>

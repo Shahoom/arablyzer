@@ -49,7 +49,7 @@ export const SITE: Copy<SiteStrings> = {
     statusBar: 'Free tools, no sign-up · Open source',
     navLabel: 'Site sections',
     scanCta: 'Check your site',
-    otherLang: { label: 'العربية', short: 'ع' },
+    otherLang: { label: 'العربية', short: 'العربية' },
     footer: {
       about:
         'The Arabic website analyzer: free tools that check what Arabic-speaking customers actually see.',

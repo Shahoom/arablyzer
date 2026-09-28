@@ -1,0 +1,62 @@
+---
+import { SITE } from '@arablyzer/i18n'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import { CLOUDTOPIA, otherLang, REPOSITORY } from '../lib/site'
+import Logo from './Logo.astro'
+
+interface Props {
+  lang: Lang
+  path: string
+}
+const { lang, path } = Astro.props
+const t = SITE[lang]
+const other = otherLang(lang)
+---
+
+<footer class="flex flex-col gap-10 border-t border-ink bg-paper px-5 pt-10 pb-7 md:px-16 md:pt-14">
+  <div class="grid gap-8 md:grid-cols-12 md:gap-x-8">
+    <div class="flex flex-col gap-3.5 md:col-span-5">
+      <a href={localePath(lang, PATHS.home)} class="flex items-center gap-3 self-start">
+        <Logo size={28} />
+        <span dir="ltr" class="font-mono text-lg font-semibold">
+          Arablyzer
+        </span>
+      </a>
+      <p class="max-w-[340px] text-[15px] leading-[1.8] text-ink-2">{t.footer.about}</p>
+    </div>
+    <nav aria-labelledby="footer-project" class="flex flex-col gap-2.5 text-[15px] md:col-span-3">
+      <h2 id="footer-project" class="mb-1 text-[13px] font-semibold text-ink-3">
+        {t.footer.project}
+      </h2>
+      <a href={REPOSITORY} class="self-start underline-offset-4 hover:text-signal hover:underline">
+        {t.footer.github}
+      </a>
+    </nav>
+  </div>
+  <div
+    aria-hidden="true"
+    dir="ltr"
+    class="overflow-hidden text-center font-mono text-[clamp(56px,11.6vw,168px)] leading-[0.9] font-semibold tracking-[-0.04em] whitespace-nowrap text-transparent [-webkit-text-stroke:1.5px_var(--color-rule-strong)]"
+  >
+    Arablyzer
+  </div>
+  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5 text-[13px] text-ink-3">
+    <span>
+      {t.footer.license} · {t.footer.builtBy}{' '}
+      <a href={CLOUDTOPIA} class="underline underline-offset-4 hover:text-signal">
+        {t.footer.cloudtopia}
+      </a>
+    </span>
+    <span dir="ltr" class="font-mono">
+      LAB-001 ·{' '}
+      <a
+        href={localePath(other, path)}
+        lang={other}
+        hreflang={other}
+        class="underline underline-offset-4 hover:text-signal"
+      >
+        {SITE[lang].otherLang.label}
+      </a>
+    </span>
+  </div>
+</footer>

@@ -1,0 +1,42 @@
+---
+import { HOME, TOPICS, type Topic } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = HOME[lang].topics
+// Each topic in its category's colour, written out so Tailwind sees every class.
+const colour: Record<Topic, { chip: string; dot: string }> = {
+  'ar-render': { chip: 'bg-cat-render-soft text-cat-render', dot: 'bg-cat-render' },
+  rtl: { chip: 'bg-cat-rtl-soft text-cat-rtl', dot: 'bg-cat-rtl' },
+  fonts: { chip: 'bg-cat-fonts-soft text-cat-fonts', dot: 'bg-cat-fonts' },
+  forms: { chip: 'bg-cat-forms-soft text-cat-forms', dot: 'bg-cat-forms' },
+  whatsapp: { chip: 'bg-cat-whatsapp-soft text-cat-whatsapp', dot: 'bg-cat-whatsapp' },
+  'gulf-prices': { chip: 'bg-cat-prices-soft text-cat-prices', dot: 'bg-cat-prices' },
+  index: { chip: 'bg-cat-index-soft text-cat-index', dot: 'bg-cat-index' },
+  speed: { chip: 'bg-cat-speed-soft text-cat-speed', dot: 'bg-cat-speed' },
+  schema: { chip: 'bg-cat-schema-soft text-cat-schema', dot: 'bg-cat-schema' },
+  ai: { chip: 'bg-cat-ai-soft text-cat-ai', dot: 'bg-cat-ai' },
+}
+---
+
+<div class="flex flex-wrap items-center gap-2.5 border-y border-ink bg-white px-5 py-5 md:px-16">
+  <span id="topics-label" class="shrink-0 pe-2 text-[15px] font-bold text-signal">
+    {t.label}
+  </span>
+  <ul aria-labelledby="topics-label" class="m-0 flex list-none flex-wrap gap-2.5 p-0">
+    {TOPICS.map((topic) => (
+      <li
+        class:list={[
+          'flex items-center gap-2 px-3.5 py-[7px] text-sm font-semibold whitespace-nowrap',
+          colour[topic].chip,
+        ]}
+      >
+        <span aria-hidden="true" class:list={['size-[7px]', colour[topic].dot]} />
+        {t.names[topic]}
+      </li>
+    ))}
+  </ul>
+</div>

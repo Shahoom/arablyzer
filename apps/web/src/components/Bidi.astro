@@ -1,0 +1,14 @@
+---
+import type { Lang } from '@arablyzer/seo/site'
+import { isolateLatin } from '../lib/bidi'
+
+/** Text in the page's language; in Arabic, its Latin words and code are isolated with <bdi>. */
+interface Props {
+  text: string
+  lang: Lang
+}
+const { text, lang } = Astro.props
+const parts = lang === 'ar' ? isolateLatin(text) : [{ text, isolate: false }]
+---
+
+{parts.map((part) => (part.isolate ? <bdi dir="ltr">{part.text}</bdi> : part.text))}

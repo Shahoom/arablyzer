@@ -1,0 +1,16 @@
+---
+import ArrowLeft from '@lucide/astro/icons/arrow-left'
+import ArrowRight from '@lucide/astro/icons/arrow-right'
+import type { Lang } from '@arablyzer/seo/site'
+
+/** An arrow that points the way the text reads: left in Arabic, right in English. */
+interface Props {
+  lang: Lang
+  size?: number
+  class?: string
+}
+const { lang, size = 18, class: className } = Astro.props
+const Arrow = lang === 'ar' ? ArrowLeft : ArrowRight
+---
+
+<Arrow size={size} stroke-width={2} aria-hidden="true" class={className} />
