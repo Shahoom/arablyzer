@@ -22,7 +22,9 @@
     "schema:check": "pnpm run schema:gen && git diff --exit-code -- packages/report-schema/report.schema.json",
     "arablyzer": "tsx packages/cli/src/main.ts",
     "copy:review": "pnpm --recursive --no-bail run copy:review",
-    "seo:audit": "pnpm --filter @arablyzer/seo run seo:audit"
+    "seo:audit": "pnpm --filter @arablyzer/seo run seo:audit",
+    "site:build": "pnpm --filter @arablyzer/web run build",
+    "site:audit": "pnpm --filter @arablyzer/seo run site:audit"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -13,7 +13,7 @@ const t = SITE[lang]
 const other = otherLang(lang)
 ---
 
-<footer class="flex flex-col gap-10 border-t border-ink bg-paper px-5 pt-10 pb-7 md:px-16 md:pt-14">
+<footer class="below-fold flex flex-col gap-10 border-t border-ink bg-paper px-5 pt-10 pb-7 md:px-16 md:pt-14">
   <div class="grid gap-8 md:grid-cols-12 md:gap-x-8">
     <div class="flex flex-col gap-3.5 md:col-span-5">
       <a href={localePath(lang, PATHS.home)} class="flex items-center gap-3 self-start">
@@ -53,7 +53,10 @@ const other = otherLang(lang)
         href={localePath(other, path)}
         lang={other}
         hreflang={other}
-        class="underline underline-offset-4 hover:text-signal"
+        class:list={[
+          'underline underline-offset-4 hover:text-signal',
+          other === 'en' ? 'font-mono' : 'font-sans',
+        ]}
       >
         {SITE[lang].otherLang.label}
       </a>

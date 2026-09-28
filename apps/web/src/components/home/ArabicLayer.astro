@@ -28,7 +28,7 @@ const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
 
 <section
   aria-labelledby="arabic-title"
-  class="flex flex-col gap-4 border-y border-ink bg-white px-5 py-9 md:gap-11 md:px-16 md:py-[88px]"
+  class="below-fold flex flex-col gap-4 border-y border-ink bg-white px-5 py-9 md:gap-11 md:px-16 md:py-[88px]"
 >
   <div class="grid items-end gap-4 lg:grid-cols-12 lg:gap-x-12">
     <div class="lg:col-span-7">
@@ -186,11 +186,15 @@ const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
           lang="ar"
           class="text-2xl font-medium text-signal line-through decoration-2 md:text-[32px]"
         >
-          <bdi>{s.price.price}</bdi>
+          <samp class="font-sans">
+            <bdi>{s.price.price}</bdi>
+          </samp>
         </span>
         <Forward lang={lang} size={28} class="text-ink-3" />
         <span lang="ar" class="text-2xl font-semibold text-pass md:text-[32px]">
-          <bdi>{s.price.fixed}</bdi>
+          <samp class="font-sans">
+            <bdi>{s.price.fixed}</bdi>
+          </samp>
         </span>
       </div>
     </ExampleCard>

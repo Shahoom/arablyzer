@@ -15,7 +15,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seo:audit": "tsx scripts/self-audit.ts"
+    "seo:audit": "tsx scripts/self-audit.ts",
+    "site:audit": "tsx scripts/site-audit.ts"
   },
   "dependencies": {
     "@arablyzer/collectors": "workspace:*",

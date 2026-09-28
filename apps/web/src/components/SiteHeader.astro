@@ -50,7 +50,11 @@ const o = SITE[lang].otherLang
       lang={other}
       hreflang={other}
       aria-label={o.label}
-      class="border border-rule-strong px-2.5 py-1.5 font-mono text-[13px] hover:border-ink hover:text-signal"
+      class:list={[
+        'border border-rule-strong px-2.5 py-1.5 text-[13px] hover:border-ink hover:text-signal',
+        // IBM Plex Mono has no Arabic letters: the Arabic label is set in the Arabic face.
+        other === 'en' ? 'font-mono' : 'font-sans',
+      ]}
     >
       {o.short}
     </a>

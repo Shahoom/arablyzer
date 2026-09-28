@@ -1,0 +1,139 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { afterEach, describe, expect, it } from 'vitest'
+import { auditBuiltSite, builtPages } from '../src/audit/index'
+import { renderHead } from '../src/head'
+import { alternates, localePath, pageUrl, PREVIEW_SITE, type Lang } from '../src/site'
+
+const SITE = PREVIEW_SITE
+const dirs: string[] = []
+
+afterEach(() => {
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+})
+
+/** A build directory with these files. */
+function build(files: Readonly<Record<string, string>>): string {
+  const dir = mkdtempSync(path.join(tmpdir(), 'arablyzer-site-'))
+  dirs.push(dir)
+  for (const [file, html] of Object.entries(files)) {
+    mkdirSync(path.dirname(path.join(dir, file)), { recursive: true })
+    writeFileSync(path.join(dir, file), html)
+  }
+  return dir
+}
+
+const TEXT: Readonly<Record<Lang, { title: string; body: string }>> = {
+  ar: {
+    title: 'أدوات فحص المواقع العربية',
+    body: 'يفحص هذا الموقع الصفحات العربية في ثلاثة متصفحات.',
+  },
+  en: { title: 'Arabic website checks', body: 'This site checks Arabic pages in three browsers.' },
+}
+
+/** A page as the site's layout writes it: its head from renderHead, one heading, some text. */
+function page(lang: Lang, pagePath: string, options: { body?: string; robots?: string } = {}) {
+  const url = pageUrl(SITE, lang, pagePath)
+  const { title, body } = TEXT[lang]
+  const head = renderHead({
+    title,
+    description: body,
+    canonical: url,
+    alternates: alternates(SITE, pagePath),
+    openGraph: { title, description: body, url },
+    ...(options.robots === undefined ? {} : { robots: options.robots }),
+  })
+  return `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head>${head}</head><body><main><h1>${title}</h1><p>${body}</p>${options.body ?? ''}</main></body></html>`
+}
+
+const home = (lang: Lang, options?: { body?: string; robots?: string }) => page(lang, '/', options)
+
+describe('builtPages', () => {
+  it('reads the paths Astro gives files with build.format preserve, without its assets', () => {
+    const dir = build({
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      'tools/rtl-check.html': page('ar', '/tools/rtl-check'),
+      '_astro/chunk.html': '<p>not a page</p>',
+    })
+    expect(builtPages(dir)).toEqual([
+      { path: '/', file: 'index.html', lang: 'ar' },
+      { path: '/en/', file: 'en/index.html', lang: 'en' },
+      { path: '/tools/rtl-check', file: 'tools/rtl-check.html', lang: 'ar' },
+    ])
+  })
+})
+
+describe('auditBuiltSite', () => {
+  it('passes a site whose pages come in both languages and link to each other', () => {
+    const link = (lang: Lang) =>
+      `<p><a href="${localePath(lang === 'ar' ? 'en' : 'ar', '/')}">${lang === 'ar' ? 'English' : 'العربية'}</a></p>`
+    const dir = build({
+      'index.html': home('ar', { body: link('ar') }),
+      'en/index.html': home('en', { body: link('en') }),
+    })
+    expect(auditBuiltSite(dir, SITE)).toEqual({
+      pages: [
+        { path: '/', file: 'index.html', lang: 'ar' },
+        { path: '/en/', file: 'en/index.html', lang: 'en' },
+      ],
+      problems: [],
+    })
+  })
+
+  it('wants every page in both languages, Arabic first', () => {
+    const missingEnglish = build({ 'index.html': home('ar') })
+    expect(auditBuiltSite(missingEnglish, SITE).problems).toEqual([
+      { page: '/', check: 'reciprocal', message: 'no English page /en/' },
+    ])
+    const missingArabic = build({
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      'en/about.html': page('en', '/about'),
+    })
+    expect(auditBuiltSite(missingArabic, SITE).problems.map((problem) => problem.check)).toEqual([
+      'reciprocal',
+    ])
+  })
+
+  it('finds a link to a page the site did not build', () => {
+    const dir = build({
+      'index.html': home('ar', { body: '<a href="/tools">الأدوات</a>' }),
+      'en/index.html': home('en'),
+    })
+    expect(auditBuiltSite(dir, SITE).problems).toEqual([
+      {
+        page: `${SITE.origin}/`,
+        check: 'links',
+        message: 'no such page on the site: /tools',
+      },
+    ])
+  })
+
+  it('keeps the site indexable', () => {
+    const dir = build({
+      'index.html': home('ar', { robots: 'noindex' }),
+      'en/index.html': home('en'),
+    })
+    expect(auditBuiltSite(dir, SITE).problems.map((problem) => problem.check)).toContain(
+      'indexable',
+    )
+  })
+
+  it('keeps the report page out of search engines', () => {
+    const dir = build({
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      'r/index.html':
+        '<!doctype html><html lang="ar" dir="rtl"><head><title>تقرير</title></head><body></body></html>',
+    })
+    expect(auditBuiltSite(dir, SITE).problems).toEqual([
+      {
+        page: '/r/',
+        check: 'noindex',
+        message: 'report pages need <meta name="robots" content="noindex"> in <head>',
+      },
+    ])
+  })
+})
