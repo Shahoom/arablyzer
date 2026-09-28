@@ -6,7 +6,8 @@ import type { Alternate } from './site'
 export interface OpenGraph {
   readonly title: string
   readonly description: string
-  readonly url: string
+  /** None for a page that serves many links, as a report's does: the preview uses the link. */
+  readonly url?: string
 }
 
 export interface HeadOptions {
@@ -48,8 +49,8 @@ export function renderHead(options: HeadOptions): string {
       '<meta property="og:site_name" content="Arablyzer">',
       `<meta property="og:title" content="${escapeHtml(title)}">`,
       `<meta property="og:description" content="${escapeHtml(description)}">`,
-      `<meta property="og:url" content="${escapeHtml(url)}">`,
     )
+    if (url !== undefined) lines.push(`<meta property="og:url" content="${escapeHtml(url)}">`)
   }
   for (const data of options.jsonLd ?? []) lines.push(jsonLdScript(data))
   return lines.join('\n')

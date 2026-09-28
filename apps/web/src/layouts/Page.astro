@@ -28,8 +28,14 @@ const { lang, path, title, description, jsonLd = [], report = false } = Astro.pr
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, path)
 // One source for <head>, shared with the templates the self-audit has checked since Phase 0.
+// A report is never indexed, but its link is shared: its preview has the report page's title.
 const head = report
-  ? renderHead({ title, description, robots: 'noindex, nofollow' })
+  ? renderHead({
+      title,
+      description,
+      robots: 'noindex, nofollow',
+      openGraph: { title, description },
+    })
   : renderHead({
       title,
       description,
