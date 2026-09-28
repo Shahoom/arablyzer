@@ -304,6 +304,8 @@ importers:
         specifier: workspace:*
         version: link:../../fixtures
 
+  packages/plans: {}
+
   packages/report-schema:
     dependencies:
       zod:
