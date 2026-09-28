@@ -50,7 +50,7 @@ Pages are built for `https://arablyzer.example` until the domain is chosen; `ARA
 
 ### The API and the worker / الخادم والعامل
 
-`apps/api` takes a scan (`POST /api/scans`), streams its steps (`GET /api/scans/:id/events`) and serves its report (`GET /api/reports/:id`, never indexed); `apps/worker` runs the engine on each queued scan. `packages/store` keeps scans in PostgreSQL and the queue, the events and the limits in Valkey, with in-memory versions for tests and development.
+`apps/api` takes a scan (`POST /api/scans`), streams its steps (`GET /api/scans/:id/events`) and serves its report (`GET /api/reports/:id`, never indexed); `apps/worker` takes each queued scan and has `apps/scanner`, the engine and its browsers, run it. `packages/store` keeps scans in PostgreSQL and the queue, the events and the limits in Valkey, with in-memory versions for tests and development.
 
 ```bash
 pnpm --filter @arablyzer/api dev   # the API and a worker in one process, on http://127.0.0.1:8787
@@ -60,6 +60,20 @@ ARABLYZER_TEST_DATABASE_URL=postgres://user:pass@127.0.0.1:5432/db pnpm test:ser
 ```
 
 `ARABLYZER_ALLOW_PRIVATE=1` lets the development API scan local pages, such as the fixture sites; production refuses it. The limits' numbers are the owner's decision: `packages/plans` holds development values, and production will not start without its own (`ARABLYZER_LIMIT_*`), `TURNSTILE_SECRET`, `ARABLYZER_SITE` and `ARABLYZER_LIMIT_SECRET`. The API's and the worker's production entrypoints (`server.ts`, `main.ts`) apply those checks whatever `NODE_ENV` says; `dev.ts` is the development one.
+
+### The stack / تشغيل كل شيء معاً
+
+`infra/compose.yaml` runs everything on one host: the site's server (Caddy), the API, the worker, the scanner with its browsers, the egress proxy (Smokescreen, with a port check and the egress package's deny list), Valkey and PostgreSQL. The scanner's browsers see the egress proxy alone, and no store; every name they ask for is resolved and vetted there.
+
+```bash
+cp infra/.env.example infra/.env        # then fill it in
+docker compose -f infra/compose.yaml up --build
+# End to end, with golden site 04 served inside the stack, as CI does:
+docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml up --detach --build --wait
+pnpm test:stack
+```
+
+The egress proxy's deny list is generated from `packages/egress`: `pnpm --filter @arablyzer/egress smokescreen-config` writes `infra/egress/smokescreen.yaml`, and the egress tests check the two agree.
 
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
 - Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md), [Phase 2](docs/design/phase-2.md)
