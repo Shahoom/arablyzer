@@ -90,7 +90,8 @@ export interface ScanSummary {
 export type ScanEvent =
   /** Scans ahead of this one in the queue. */
   | { readonly type: 'queued'; readonly ahead: number }
-  | { readonly type: 'started' }
+  /** The engines this scan renders in, in order: the page shows only those. */
+  | { readonly type: 'started'; readonly engines: readonly EngineName[] }
   | {
       readonly type: 'page'
       readonly status: number | null

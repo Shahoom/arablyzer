@@ -51,7 +51,7 @@ describe('runScan', () => {
       report,
     })
     expect(await stored(events)).toEqual([
-      { type: 'started' },
+      { type: 'started', engines: [] },
       { type: 'page', status: 200, contentType: 'text/html', error: null },
       { type: 'render-start', engine: 'firefox' },
       { type: 'rules', rules: 47 },
@@ -74,7 +74,7 @@ describe('runScan', () => {
       },
     )
     expect(await store.get(ID)).toMatchObject({ state: 'failed', report: null })
-    expect(await stored(events)).toEqual([{ type: 'started' }, { type: 'error' }])
+    expect(await stored(events)).toEqual([{ type: 'started', engines: [] }, { type: 'error' }])
     expect(logged).toEqual([`Scan ${ID} could not run: the browser crashed`])
   })
 
@@ -100,7 +100,7 @@ describe('runScan', () => {
       expect(record?.state).toBe('complete')
       expect(record?.report?.target.url).toBe(site.url('/'))
       const seen = await stored(events)
-      expect(seen[0]).toEqual({ type: 'started' })
+      expect(seen[0]).toEqual({ type: 'started', engines: [] })
       expect(seen[1]).toEqual({
         type: 'page',
         status: 200,

@@ -79,7 +79,7 @@ describe('scan events', () => {
   it('takes every step of a scan, and refuses what is not one', () => {
     const steps: ScanEvent[] = [
       { type: 'queued', ahead: 2 },
-      { type: 'started' },
+      { type: 'started', engines: ['chromium', 'firefox', 'webkit'] },
       { type: 'page', status: 200, contentType: 'text/html', error: null },
       { type: 'robots', outcome: 'fetched', status: 200 },
       { type: 'crux', outcome: 'skipped' },

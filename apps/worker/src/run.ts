@@ -24,7 +24,10 @@ export interface WorkerDeps {
 export async function runScan(job: ScanJob, deps: WorkerDeps): Promise<void> {
   const now = deps.now ?? (() => new Date())
   await deps.store.start(job.id, now())
-  let published: Promise<unknown> = deps.events.publish(job.id, { type: 'started' })
+  let published: Promise<unknown> = deps.events.publish(job.id, {
+    type: 'started',
+    engines: deps.options.render?.engines ?? [],
+  })
   const publish = (event: ScanEvent) => {
     published = published.then(
       () => deps.events.publish(job.id, event),

@@ -220,7 +220,7 @@ describe('GET /api/scans/:id/events', () => {
     const { app, scanOf, events } = setup()
     const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
     const steps: ScanEvent[] = [
-      { type: 'started' },
+      { type: 'started', engines: ['chromium'] },
       { type: 'page', status: 200, contentType: 'text/html', error: null },
       { type: 'done', state: 'complete' },
     ]
@@ -239,7 +239,7 @@ describe('GET /api/scans/:id/events', () => {
   it('resumes after the last event the page saw', async () => {
     const { app, scanOf, events } = setup()
     const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
-    await events.publish(id, { type: 'started' })
+    await events.publish(id, { type: 'started', engines: ['chromium'] })
     await events.publish(id, { type: 'error' })
     const response = await app.request(`/api/scans/${id}/events`, {
       headers: { 'last-event-id': '2' },

@@ -30,7 +30,7 @@ describe.skipIf(!hasValkey)('Valkey', () => {
     const events = new ValkeyScanEvents(redis, 200)
     const sent: ScanEvent[] = [
       { type: 'queued', ahead: 0 },
-      { type: 'started' },
+      { type: 'started', engines: ['chromium'] },
       { type: 'done', state: 'complete' },
     ]
     const ids: string[] = []
@@ -56,10 +56,10 @@ describe.skipIf(!hasValkey)('Valkey', () => {
       }
     })()
     await new Promise((resolve) => setTimeout(resolve, 250))
-    await events.publish(other, { type: 'started' })
+    await events.publish(other, { type: 'started', engines: ['chromium'] })
     await following
     expect(seen.filter((stored) => stored === null).length).toBeGreaterThan(0)
-    expect(seen.at(-1)?.event).toEqual({ type: 'started' })
+    expect(seen.at(-1)?.event).toEqual({ type: 'started', engines: ['chromium'] })
   })
 
   it('refuses to store what is not a scan event', async () => {

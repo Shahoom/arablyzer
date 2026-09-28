@@ -49,7 +49,7 @@ const status = z.number().int().min(100).max(599).nullable()
 /** The events a scan's stream carries; the API checks each before it stores it. */
 export const ScanEvent = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('queued'), ahead: z.number().int().min(0) }),
-  z.strictObject({ type: z.literal('started') }),
+  z.strictObject({ type: z.literal('started'), engines: z.array(engine).max(3) }),
   z.strictObject({
     type: z.literal('page'),
     status,
