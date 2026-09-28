@@ -48,4 +48,5 @@ export {
   type Resolver,
 } from './resolve'
 export { redactUrl } from './redact'
+export { smokescreenConfig } from './smokescreen'
 export { MAX_URL_LENGTH, checkUrl, type UrlCheck } from './url'

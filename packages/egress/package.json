@@ -10,7 +10,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run test/unit",
-    "test:ssrf": "vitest run test/ssrf"
+    "test:ssrf": "vitest run test/ssrf",
+    "smokescreen-config": "tsx scripts/smokescreen-config.ts"
   },
   "dependencies": {
     "ipaddr.js": "^2.5.0"
