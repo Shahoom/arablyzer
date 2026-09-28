@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41014/",
-    "finalUrl": "http://127.0.0.1:41014/",
+    "url": "http://127.0.0.1:30014/",
+    "finalUrl": "http://127.0.0.1:30014/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "jsonld-syntax-error",
       "severity": "serious",
-      "fingerprint": "fc95ca0f46e83f90",
+      "fingerprint": "19572c4afd67a281",
       "message": {
         "ar": "كتلة JSON-LD رقم 1 فيها فاصلة قبل قوس الإغلاق في السطر 15، وJSON لا يسمح بذلك.",
         "en": "JSON-LD block 1 has a comma before a closing bracket on line 15, which JSON does not allow."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41014/",
+        "url": "http://127.0.0.1:30014/",
         "selector": "head > script",
         "snippet": "\"name\": \"دهن العود\",",
         "location": {
@@ -678,7 +678,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41014/robots.txt",
+      "url": "http://127.0.0.1:30014/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41019/",
-    "finalUrl": "http://127.0.0.1:41019/",
+    "url": "http://127.0.0.1:30019/",
+    "finalUrl": "http://127.0.0.1:30019/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -23,7 +23,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -33,7 +33,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -43,7 +43,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -646,25 +646,25 @@
     {
       "ruleId": "cwv-cls-poor",
       "severity": "serious",
-      "fingerprint": "52810783cd0f062a",
+      "fingerprint": "fdc8e86c21b795fe",
       "message": {
-        "ar": "على الجوال، في ربع الزيارات التي سجّلها Chrome لصفحات هذا الموقع، تحرّك محتواها أثناء التحميل بمقدار 0.31 أو أكثر (الشريحة المئوية 75 لمقياس CLS)؛ وليس عند CrUX بيانات عن هذه الصفحة وحدها. وGoogle يعدّ ما فوق 0.25 ضعيفاً. الزيارات من 0000-00-00 إلى 0000-00-00.",
-        "en": "On phones, in a quarter of the visits Chrome recorded to this site's pages, their content shifted by 0.31 or more while they loaded (the 75th percentile of Cumulative Layout Shift); CrUX has no data for this page alone. Google counts more than 0.25 as poor. Visits from 0000-00-00 to 0000-00-00."
+        "ar": "على الجوال، في ربع الزيارات التي سجّلها Chrome لصفحات هذا الموقع، تحرّك محتواها أثناء التحميل بمقدار 0.31 أو أكثر (الشريحة المئوية 75 لمقياس CLS)؛ وليس عند CrUX بيانات عن هذه الصفحة وحدها. وGoogle يعدّ ما فوق 0.25 ضعيفاً. الزيارات من 2026-08-30 إلى 2026-09-26.",
+        "en": "On phones, in a quarter of the visits Chrome recorded to this site's pages, their content shifted by 0.31 or more while they loaded (the 75th percentile of Cumulative Layout Shift); CrUX has no data for this page alone. Google counts more than 0.25 as poor. Visits from 2026-08-30 to 2026-09-26."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41019/",
+        "url": "http://127.0.0.1:30019/",
         "values": {
           "value": 0.31,
           "limit": 0.25,
-          "first": "0000-00-00",
-          "last": "0000-00-00"
+          "first": "2026-08-30",
+          "last": "2026-09-26"
         }
       }
     }
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41019/robots.txt",
+      "url": "http://127.0.0.1:30019/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {
@@ -717,10 +717,10 @@
     "crux": {
       "outcome": "found",
       "scope": "origin",
-      "key": "http://127.0.0.1:41019",
+      "key": "http://127.0.0.1:30019",
       "period": {
-        "first": "0000-00-00",
-        "last": "0000-00-00"
+        "first": "2026-08-30",
+        "last": "2026-09-26"
       },
       "lcp": 2100,
       "inp": 180,

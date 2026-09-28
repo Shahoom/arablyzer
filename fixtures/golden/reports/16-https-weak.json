@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "https://shop-tls.example:41016/",
-    "finalUrl": "https://shop-tls.example:41016/",
+    "url": "https://shop-tls.example:30016/",
+    "finalUrl": "https://shop-tls.example:30016/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -408,13 +408,13 @@
     {
       "ruleId": "mixed-content",
       "severity": "serious",
-      "fingerprint": "901aa35d108f6af1",
+      "fingerprint": "68f1279bef6cee24",
       "message": {
         "ar": "الصفحة على HTTPS، لكن العنصر img يحمّل http://cdn.example/about.jpg عبر HTTP. Chrome وFirefox يطلبانه عبر HTTPS بدلاً منه، فلا يظهر إن لم يكن متاحاً هناك.",
         "en": "The page is on HTTPS, but the img element loads http://cdn.example/about.jpg over HTTP. Chrome and Firefox ask for it over HTTPS instead, so it does not show if it is not there."
       },
       "evidence": {
-        "url": "https://shop-tls.example:41016/",
+        "url": "https://shop-tls.example:30016/",
         "selector": "body > main > img",
         "snippet": "<img src=\"http://cdn.example/about.jpg\" width=\"320\" height=\"180\" alt=\"واجهة المتجر في مسقط\" />",
         "location": {
@@ -430,13 +430,13 @@
     {
       "ruleId": "tls-expiring",
       "severity": "serious",
-      "fingerprint": "32f247be6940e781",
+      "fingerprint": "aacb05003e3482ac",
       "message": {
         "ar": "شهادة الموقع تنتهي في 0000-00-00 (الأيام الباقية: 9). بعدها يوقف المتصفح الزيارة بصفحة تحذير.",
         "en": "The site's certificate expires on 0000-00-00 (days left: 9). After that, browsers stop visits with a warning page."
       },
       "evidence": {
-        "url": "https://shop-tls.example:41016/",
+        "url": "https://shop-tls.example:30016/",
         "values": {
           "days": 9,
           "date": "0000-00-00"
@@ -446,19 +446,19 @@
     {
       "ruleId": "hsts-missing",
       "severity": "moderate",
-      "fingerprint": "0926cb730fd926da",
+      "fingerprint": "98b2b0541f84316c",
       "message": {
         "ar": "هذه الصفحة على HTTPS لكنها لا ترسل الترويسة Strict-Transport-Security، فلا يعرف المتصفح أن عليه استخدام HTTPS وحده لهذا الموقع: من يكتب العنوان أو يتبع رابط http: قد يصلها أولاً عبر HTTP.",
         "en": "This page is on HTTPS but sends no Strict-Transport-Security header, so browsers are not told to use HTTPS alone for this site: a visitor who types the address or follows an http: link may reach it over HTTP first."
       },
       "evidence": {
-        "url": "https://shop-tls.example:41016/"
+        "url": "https://shop-tls.example:30016/"
       }
     }
   ],
   "facts": {
     "robots": {
-      "url": "https://shop-tls.example:41016/robots.txt",
+      "url": "https://shop-tls.example:30016/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41018/",
-    "finalUrl": "http://127.0.0.1:41018/",
+    "url": "http://127.0.0.1:30018/",
+    "finalUrl": "http://127.0.0.1:30018/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -23,7 +23,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -33,7 +33,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -43,7 +43,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -646,43 +646,43 @@
     {
       "ruleId": "cwv-inp-poor",
       "severity": "serious",
-      "fingerprint": "1b556b031cb21791",
+      "fingerprint": "3a607a55290a8017",
       "message": {
-        "ar": "على الجوال، في ربع الزيارات التي سجّلها Chrome لهذه الصفحة، تأخر ظهور أثر لمسة أو ضغطة زر على الشاشة 650 ملّي ثانية أو أكثر (الشريحة المئوية 75). وGoogle يعدّ ما فوق 500 ملّي ثانية ضعيفاً. الزيارات من 0000-00-00 إلى 0000-00-00.",
-        "en": "On phones, in a quarter of the visits Chrome recorded to this page, a tap or key press took 650 ms or longer to show a response on screen (the 75th percentile). Google counts more than 500 ms as poor. Visits from 0000-00-00 to 0000-00-00."
+        "ar": "على الجوال، في ربع الزيارات التي سجّلها Chrome لهذه الصفحة، تأخر ظهور أثر لمسة أو ضغطة زر على الشاشة 650 ملّي ثانية أو أكثر (الشريحة المئوية 75). وGoogle يعدّ ما فوق 500 ملّي ثانية ضعيفاً. الزيارات من 2026-08-30 إلى 2026-09-26.",
+        "en": "On phones, in a quarter of the visits Chrome recorded to this page, a tap or key press took 650 ms or longer to show a response on screen (the 75th percentile). Google counts more than 500 ms as poor. Visits from 2026-08-30 to 2026-09-26."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41018/",
+        "url": "http://127.0.0.1:30018/",
         "values": {
           "value": 650,
           "limit": 500,
-          "first": "0000-00-00",
-          "last": "0000-00-00"
+          "first": "2026-08-30",
+          "last": "2026-09-26"
         }
       }
     },
     {
       "ruleId": "cwv-lcp-poor",
       "severity": "serious",
-      "fingerprint": "cf776018de37cdaf",
+      "fingerprint": "fa0de61f55ac6cb0",
       "message": {
-        "ar": "على الجوال، في ربع الزيارات التي سجّلها Chrome لهذه الصفحة، ظهر أكبر محتوى فيها بعد 5.2 ثانية أو أكثر (الشريحة المئوية 75). وGoogle يعدّ ما فوق 4 ثوانٍ ضعيفاً. الزيارات من 0000-00-00 إلى 0000-00-00.",
-        "en": "On phones, in a quarter of the visits Chrome recorded to this page, its largest content took 5.2 s or longer to appear (the 75th percentile). Google counts more than 4 s as poor. Visits from 0000-00-00 to 0000-00-00."
+        "ar": "على الجوال، في ربع الزيارات التي سجّلها Chrome لهذه الصفحة، ظهر أكبر محتوى فيها بعد 5.2 ثانية أو أكثر (الشريحة المئوية 75). وGoogle يعدّ ما فوق 4 ثوانٍ ضعيفاً. الزيارات من 2026-08-30 إلى 2026-09-26.",
+        "en": "On phones, in a quarter of the visits Chrome recorded to this page, its largest content took 5.2 s or longer to appear (the 75th percentile). Google counts more than 4 s as poor. Visits from 2026-08-30 to 2026-09-26."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41018/",
+        "url": "http://127.0.0.1:30018/",
         "values": {
           "value": 5.2,
           "limit": 4,
-          "first": "0000-00-00",
-          "last": "0000-00-00"
+          "first": "2026-08-30",
+          "last": "2026-09-26"
         }
       }
     }
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41018/robots.txt",
+      "url": "http://127.0.0.1:30018/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {
@@ -735,10 +735,10 @@
     "crux": {
       "outcome": "found",
       "scope": "url",
-      "key": "http://127.0.0.1:41018/",
+      "key": "http://127.0.0.1:30018/",
       "period": {
-        "first": "0000-00-00",
-        "last": "0000-00-00"
+        "first": "2026-08-30",
+        "last": "2026-09-26"
       },
       "lcp": 5200,
       "inp": 650,

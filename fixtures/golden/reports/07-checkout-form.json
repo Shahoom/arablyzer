@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41007/",
-    "finalUrl": "http://127.0.0.1:41007/",
+    "url": "http://127.0.0.1:30007/",
+    "finalUrl": "http://127.0.0.1:30007/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "form-label-missing",
       "severity": "critical",
-      "fingerprint": "e7a3d45bead25d5a",
+      "fingerprint": "f0c923180c3cb858",
       "message": {
         "ar": "هذا الحقل بلا عنوان (label)، فيعلن عنه قارئ الشاشة دون أن يقول ماذا يُكتب فيه.",
         "en": "This form field has no label, so a screen reader announces it without saying what to type in it."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41007/",
+        "url": "http://127.0.0.1:30007/",
         "selector": "#email",
         "snippet": "<input id=\"email\" name=\"email\" type=\"email\">",
         "engines": [
@@ -673,13 +673,13 @@
     {
       "ruleId": "form-arabic-name-rejected",
       "severity": "serious",
-      "fingerprint": "1b73087d84fbdd55",
+      "fingerprint": "c6568dddce4b0699",
       "message": {
         "ar": "حقل الاسم هذا يقبل «Omar Alabri» ويرفض «محمد العبري»، لأن نمطه [A-Za-z ]{3,40} لا يسمح بكل الحروف العربية.",
         "en": "This name field accepts «Omar Alabri» but rejects «محمد العبري»: its pattern [A-Za-z ]{3,40} does not allow every Arabic letter."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41007/",
+        "url": "http://127.0.0.1:30007/",
         "selector": "#name",
         "snippet": "<input id=\"name\" name=\"full_name\" autocomplete=\"name\" pattern=\"[A-Za-z ]{3,40}\" required />",
         "location": {
@@ -696,13 +696,13 @@
     {
       "ruleId": "form-arabic-digits-rejected",
       "severity": "moderate",
-      "fingerprint": "d55e33d18fd9db07",
+      "fingerprint": "03163ecc8a6b5ce4",
       "message": {
         "ar": "هذا الحقل يقبل «91234567» ويرفض الرقم نفسه بالأرقام العربية المشرقية «٩١٢٣٤٥٦٧»، ونمطه [0-9]{8}.",
         "en": "This field accepts «91234567» but rejects the same number in Arabic-Indic digits, «٩١٢٣٤٥٦٧»: its pattern is [0-9]{8}."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41007/",
+        "url": "http://127.0.0.1:30007/",
         "selector": "#mobile",
         "snippet": "<input id=\"mobile\" name=\"mobile\" inputmode=\"tel\" autocomplete=\"tel\" pattern=\"[0-9]{8}\" required />",
         "location": {
@@ -719,13 +719,13 @@
     {
       "ruleId": "form-phone-direction",
       "severity": "moderate",
-      "fingerprint": "d48efaf649fc0e23",
+      "fingerprint": "30443489544f4d98",
       "message": {
         "ar": "حقل الهاتف هذا يُعرض من اليمين إلى اليسار، فالرقم المكتوب «+968 9123 4567» يظهر «4567 9123 968+».",
         "en": "This phone field is shown right to left, so a number typed as «+968 9123 4567» shows as «4567 9123 968+»."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41007/",
+        "url": "http://127.0.0.1:30007/",
         "selector": "#mobile",
         "engines": [
           "chromium",
@@ -743,7 +743,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41007/robots.txt",
+      "url": "http://127.0.0.1:30007/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

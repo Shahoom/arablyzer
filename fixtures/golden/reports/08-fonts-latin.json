@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41008/",
-    "finalUrl": "http://127.0.0.1:41008/",
+    "url": "http://127.0.0.1:30008/",
+    "finalUrl": "http://127.0.0.1:30008/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "ar-font-fallback",
       "severity": "moderate",
-      "fingerprint": "f12e65838d62f631",
+      "fingerprint": "f3a43c490c93df1c",
       "message": {
         "ar": "الخط «Brand Arabic» المحدد لهذا النص العربي لم يُحمَّل، فرسم المتصفح النص بخط آخر.",
         "en": "The web font \"Brand Arabic\" set for this Arabic text did not load, so the browser drew the text in another font."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41008/",
+        "url": "http://127.0.0.1:30008/",
         "selector": "html > body > main > p:nth-of-type(2)",
         "engines": [
           "chromium",
@@ -681,13 +681,13 @@
     {
       "ruleId": "ar-font-no-arabic",
       "severity": "moderate",
-      "fingerprint": "b939aa9a9df2836f",
+      "fingerprint": "d0c369c62c34a5f9",
       "message": {
         "ar": "الخط «Brand Latin» المحدد لهذا النص العربي ليس فيه حروف عربية، فرسم المتصفح النص بخط آخر.",
         "en": "The web font \"Brand Latin\" set for this Arabic text has no Arabic letters, so the browser drew the text in another font."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41008/",
+        "url": "http://127.0.0.1:30008/",
         "selector": "html > body > main > h1",
         "engines": [
           "chromium"
@@ -706,7 +706,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41008/robots.txt",
+      "url": "http://127.0.0.1:30008/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

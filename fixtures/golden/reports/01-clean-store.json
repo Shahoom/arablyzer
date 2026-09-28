@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "https://store.example:41001/",
-    "finalUrl": "https://store.example:41001/",
+    "url": "https://store.example:30001/",
+    "finalUrl": "https://store.example:30001/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -400,7 +400,7 @@
   "findings": [],
   "facts": {
     "robots": {
-      "url": "https://store.example:41001/robots.txt",
+      "url": "https://store.example:30001/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {
@@ -453,10 +453,10 @@
     "crux": {
       "outcome": "found",
       "scope": "url",
-      "key": "https://store.example:41001/",
+      "key": "https://store.example:30001/",
       "period": {
-        "first": "0000-00-00",
-        "last": "0000-00-00"
+        "first": "2026-08-30",
+        "last": "2026-09-26"
       },
       "lcp": 2100,
       "inp": 180,

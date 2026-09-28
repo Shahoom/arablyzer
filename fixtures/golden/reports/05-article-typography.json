@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41005/",
-    "finalUrl": "http://127.0.0.1:41005/",
+    "url": "http://127.0.0.1:30005/",
+    "finalUrl": "http://127.0.0.1:30005/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,26 +654,26 @@
     {
       "ruleId": "h1-missing",
       "severity": "moderate",
-      "fingerprint": "1e518d8a5843ab42",
+      "fingerprint": "3e8f5bdb8348bc2d",
       "message": {
         "ar": "ليس في الصفحة عنوان رئيسي <h1>، فلا يجد قارئ الشاشة ولا محرك البحث عنواناً يدل على موضوعها.",
         "en": "The page has no <h1> main heading, so neither screen readers nor search engines find a heading that names its topic."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41005/",
+        "url": "http://127.0.0.1:30005/",
         "selector": "body"
       }
     },
     {
       "ruleId": "ar-digits-mixed",
       "severity": "minor",
-      "fingerprint": "4c3935da4235949e",
+      "fingerprint": "0bb0d7b6c0e53ff7",
       "message": {
         "ar": "تكتب الصفحة الأرقام بنظامين مختلفين: الأرقام الغربية مثل «9»، والأرقام العربية المشرقية مثل «١٠».",
         "en": "The page writes numbers in two different systems: Western digits such as «9», and Eastern Arabic digits such as «١٠»."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41005/",
+        "url": "http://127.0.0.1:30005/",
         "selector": "body > main > p:nth-of-type(3)",
         "location": {
           "line": 17
@@ -689,13 +689,13 @@
     {
       "ruleId": "ar-latin-punctuation",
       "severity": "minor",
-      "fingerprint": "71e6d10fe6876408",
+      "fingerprint": "4da6eafdaa1159f2",
       "message": {
         "ar": "علامة «?» اللاتينية بعد حرف عربي؛ استخدم «؟».",
         "en": "Latin \"?\" right after an Arabic letter; use \"؟\" instead."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41005/",
+        "url": "http://127.0.0.1:30005/",
         "selector": "body > main > p:nth-of-type(1)",
         "snippet": "هل تبحث عن أقرب فرع? فروعنا في مسقط, وصلالة, ونزوى; وكلها تفتح يومياً.",
         "location": {
@@ -710,13 +710,13 @@
     {
       "ruleId": "ar-latin-punctuation",
       "severity": "minor",
-      "fingerprint": "6d3c74a95f2944a2",
+      "fingerprint": "1aed7b4683f701ab",
       "message": {
         "ar": "علامة «,» اللاتينية بعد حرف عربي؛ استخدم «،».",
         "en": "Latin \",\" right after an Arabic letter; use \"،\" instead."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41005/",
+        "url": "http://127.0.0.1:30005/",
         "selector": "body > main > p:nth-of-type(1)",
         "snippet": "هل تبحث عن أقرب فرع? فروعنا في مسقط, وصلالة, ونزوى; وكلها تفتح يومياً.",
         "location": {
@@ -731,13 +731,13 @@
     {
       "ruleId": "ar-latin-punctuation",
       "severity": "minor",
-      "fingerprint": "d334bc6249f96e22",
+      "fingerprint": "8688b9bba93d446f",
       "message": {
         "ar": "علامة «,» اللاتينية بعد حرف عربي؛ استخدم «،».",
         "en": "Latin \",\" right after an Arabic letter; use \"،\" instead."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41005/",
+        "url": "http://127.0.0.1:30005/",
         "selector": "body > main > p:nth-of-type(1)",
         "snippet": "هل تبحث عن أقرب فرع? فروعنا في مسقط, وصلالة, ونزوى; وكلها تفتح يومياً.",
         "location": {
@@ -752,13 +752,13 @@
     {
       "ruleId": "ar-latin-punctuation",
       "severity": "minor",
-      "fingerprint": "567aa9811269a533",
+      "fingerprint": "c4fdf1bc6ebd0822",
       "message": {
         "ar": "علامة «;» اللاتينية بعد حرف عربي؛ استخدم «؛».",
         "en": "Latin \";\" right after an Arabic letter; use \"؛\" instead."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41005/",
+        "url": "http://127.0.0.1:30005/",
         "selector": "body > main > p:nth-of-type(1)",
         "snippet": "هل تبحث عن أقرب فرع? فروعنا في مسقط, وصلالة, ونزوى; وكلها تفتح يومياً.",
         "location": {
@@ -773,13 +773,13 @@
     {
       "ruleId": "ar-tatweel",
       "severity": "minor",
-      "fingerprint": "ed4272511824fec5",
+      "fingerprint": "db4d053349130ca1",
       "message": {
         "ar": "كلمة «تخفيضــــات» ممدودة بالتطويل (ـ) بين حروفها، فقد لا يجدها من يبحث عن «تخفيضات».",
         "en": "The word «تخفيضــــات» is stretched with tatweel (ـ) between its letters, so people searching for «تخفيضات» may not find it."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41005/",
+        "url": "http://127.0.0.1:30005/",
         "selector": "body > main > p:nth-of-type(2)",
         "location": {
           "line": 16
@@ -794,7 +794,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41005/robots.txt",
+      "url": "http://127.0.0.1:30005/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41006/",
-    "finalUrl": "http://127.0.0.1:41006/",
+    "url": "http://127.0.0.1:30006/",
+    "finalUrl": "http://127.0.0.1:30006/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "ar-html-lang",
       "severity": "serious",
-      "fingerprint": "b9493cd049822bc2",
+      "fingerprint": "e9f4ec7f2c66acba",
       "message": {
         "ar": "أغلب نص الصفحة عربي، لكن وسم <html> لا يعلن أي لغة.",
         "en": "Most of the page's text is Arabic, but <html> declares no language."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41006/",
+        "url": "http://127.0.0.1:30006/",
         "selector": "html",
         "snippet": "<html>",
         "location": {
@@ -678,13 +678,13 @@
     {
       "ruleId": "ar-mojibake",
       "severity": "serious",
-      "fingerprint": "aedf1f5ac4171f0e",
+      "fingerprint": "f83b0e739167795c",
       "message": {
         "ar": "نص عربي بترميز UTF-8 يظهر في الصفحة رموزاً غير مفهومة، لأنه قُرئ بترميز Windows-1252: «Ù…Ù†ØªØ¬ Ø±Ø§Ø¦Ø¹ ÙˆØµÙ„Ù†ÙŠ Ø¨Ø³Ø±Ø¹Ø©»، وأصله «منتج رائع وصلني بسرعة».",
         "en": "UTF-8 Arabic text shows on the page as meaningless symbols, because it was read as Windows-1252: «Ù…Ù†ØªØ¬ Ø±Ø§Ø¦Ø¹ ÙˆØµÙ„Ù†ÙŠ Ø¨Ø³Ø±Ø¹Ø©», which was «منتج رائع وصلني بسرعة»."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41006/",
+        "url": "http://127.0.0.1:30006/",
         "selector": "body > main > blockquote",
         "location": {
           "line": 16
@@ -698,13 +698,13 @@
     {
       "ruleId": "rtl-html-dir",
       "severity": "serious",
-      "fingerprint": "80f6590728430f3f",
+      "fingerprint": "597136cb71cc0fb2",
       "message": {
         "ar": "أغلب نص الصفحة عربي، لكن وسم <html> بلا سمة dir=\"rtl\".",
         "en": "Most of the page's text is Arabic, but <html> has no dir=\"rtl\" attribute."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41006/",
+        "url": "http://127.0.0.1:30006/",
         "selector": "html",
         "snippet": "<html>",
         "location": {
@@ -722,7 +722,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41006/robots.txt",
+      "url": "http://127.0.0.1:30006/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

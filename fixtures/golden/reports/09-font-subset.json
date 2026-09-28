@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41009/",
-    "finalUrl": "http://127.0.0.1:41009/",
+    "url": "http://127.0.0.1:30009/",
+    "finalUrl": "http://127.0.0.1:30009/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "ar-font-missing-letters",
       "severity": "moderate",
-      "fingerprint": "d67b799ca7f54344",
+      "fingerprint": "a2dddcb0957e5831",
       "message": {
         "ar": "الخط «Brand Arabic» ليس فيه «٣» «ڤ»، وهي في نص هذه الصفحة، فيرسمها المتصفح بخط آخر وسط الكلمات.",
         "en": "The font «Brand Arabic» lacks «٣» «ڤ», which this page's text uses, so the browser draws them in another font, in the middle of words."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41009/",
+        "url": "http://127.0.0.1:30009/",
         "selector": "html > body > main > h1",
         "engines": [
           "chromium",
@@ -683,7 +683,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41009/robots.txt",
+      "url": "http://127.0.0.1:30009/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

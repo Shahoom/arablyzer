@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41011/",
-    "finalUrl": "http://127.0.0.1:41011/",
+    "url": "http://127.0.0.1:30011/",
+    "finalUrl": "http://127.0.0.1:30011/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "a11y-color-contrast-review",
       "severity": "serious",
-      "fingerprint": "8d3f6e70c663fe6c",
+      "fingerprint": "9c3f15e4daebe49b",
       "message": {
         "ar": "لم يستطع axe-core قياس تباين هذا النص (nonBmp)؛ تأكد بعينك أنه سهل القراءة.",
         "en": "axe-core could not measure this text's contrast (nonBmp); check by eye that it is easy to read."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41011/",
+        "url": "http://127.0.0.1:30011/",
         "selector": "span",
         "snippet": "<span aria-hidden=\"true\">→</span>",
         "engines": [
@@ -676,13 +676,13 @@
     {
       "ruleId": "rtl-bidi-isolation",
       "severity": "serious",
-      "fingerprint": "50d5d401c729870c",
+      "fingerprint": "5448847a74a8125a",
       "message": {
         "ar": "رقم في هذا النص المكتوب من اليمين إلى اليسار يظهر بترتيب خطأ، فلم يعد يُقرأ كما كُتب.",
         "en": "A number in this right-to-left text is drawn out of order, so it no longer reads as written."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41011/",
+        "url": "http://127.0.0.1:30011/",
         "selector": "html > body > main > p:nth-of-type(1)",
         "snippet": "+966 50 123 4567",
         "engines": [
@@ -704,13 +704,13 @@
     {
       "ruleId": "rtl-bidi-isolation",
       "severity": "serious",
-      "fingerprint": "ac9d2ddb2c337668",
+      "fingerprint": "469c2489088c960a",
       "message": {
         "ar": "كلمة لاتينية في هذا النص المكتوب من اليمين إلى اليسار تظهر بترتيب خطأ، فلم تعد تُقرأ كما كُتبت.",
         "en": "A Latin word in this right-to-left text is drawn out of order, so it no longer reads as written."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41011/",
+        "url": "http://127.0.0.1:30011/",
         "selector": "html > body > main > p:nth-of-type(2)",
         "snippet": "C++",
         "engines": [
@@ -732,13 +732,13 @@
     {
       "ruleId": "rtl-mirrored-icons",
       "severity": "minor",
-      "fingerprint": "4acb229c2a5be8d5",
+      "fingerprint": "ae1b9863b773135e",
       "message": {
         "ar": "السهم «→» يشير إلى اليمين في نص عربي. إذا كان يعني «التالي» أو «المزيد» فيجب أن يشير إلى اليسار: «←».",
         "en": "The arrow «→» points right in Arabic text. If it means \"next\" or \"more\", it should point left: «←»."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41011/",
+        "url": "http://127.0.0.1:30011/",
         "selector": "html > body > main > p:nth-of-type(3) > a > span",
         "engines": [
           "chromium",
@@ -759,7 +759,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41011/robots.txt",
+      "url": "http://127.0.0.1:30011/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

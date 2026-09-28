@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "https://blog.example:41002/",
-    "finalUrl": "https://blog.example:41002/",
+    "url": "https://blog.example:30002/",
+    "finalUrl": "https://blog.example:30002/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -407,7 +407,7 @@
   "findings": [],
   "facts": {
     "robots": {
-      "url": "https://blog.example:41002/robots.txt",
+      "url": "https://blog.example:30002/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

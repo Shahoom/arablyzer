@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://shop-http.example:41015/",
-    "finalUrl": "http://shop-http.example:41015/",
+    "url": "http://shop-http.example:30015/",
+    "finalUrl": "http://shop-http.example:30015/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,22 +654,22 @@
     {
       "ruleId": "https-missing",
       "severity": "critical",
-      "fingerprint": "fdc28a4770e04eb1",
+      "fingerprint": "aace0d0eaf382878",
       "message": {
-        "ar": "هذه الصفحة تُحمَّل عبر HTTP دون تشفير: http://shop-http.example:41015/",
-        "en": "This page is served over HTTP, without encryption: http://shop-http.example:41015/"
+        "ar": "هذه الصفحة تُحمَّل عبر HTTP دون تشفير: http://shop-http.example:30015/",
+        "en": "This page is served over HTTP, without encryption: http://shop-http.example:30015/"
       },
       "evidence": {
-        "url": "http://shop-http.example:41015/",
+        "url": "http://shop-http.example:30015/",
         "values": {
-          "url": "http://shop-http.example:41015/"
+          "url": "http://shop-http.example:30015/"
         }
       }
     }
   ],
   "facts": {
     "robots": {
-      "url": "http://shop-http.example:41015/robots.txt",
+      "url": "http://shop-http.example:30015/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

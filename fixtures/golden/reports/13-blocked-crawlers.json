@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41013/",
-    "finalUrl": "http://127.0.0.1:41013/",
+    "url": "http://127.0.0.1:30013/",
+    "finalUrl": "http://127.0.0.1:30013/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "page-noindex",
       "severity": "critical",
-      "fingerprint": "689f66c1bc8db01b",
+      "fingerprint": "3361708036ec99f6",
       "message": {
         "ar": "ترويسة X-Robots-Tag: noindex تطلب ألا تُؤرشف هذه الصفحة في محركات البحث.",
         "en": "The X-Robots-Tag: noindex header asks for this page not to be indexed by search engines."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41013/",
+        "url": "http://127.0.0.1:30013/",
         "snippet": "X-Robots-Tag: noindex",
         "values": {
           "value": "noindex",
@@ -671,13 +671,13 @@
     {
       "ruleId": "robots-blocks-googlebot",
       "severity": "critical",
-      "fingerprint": "2ded93b23614d989",
+      "fingerprint": "d7a5b54ec2346051",
       "message": {
         "ar": "ملف robots.txt يمنع Googlebot من هذه الصفحة بالقاعدة «Disallow: /» في السطر 3.",
         "en": "robots.txt blocks Googlebot from this page with \"Disallow: /\" on line 3."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41013/robots.txt",
+        "url": "http://127.0.0.1:30013/robots.txt",
         "snippet": "Disallow: /",
         "location": {
           "line": 3
@@ -693,13 +693,13 @@
     {
       "ruleId": "robots-blocks-ai-search",
       "severity": "moderate",
-      "fingerprint": "9374b29923582e2e",
+      "fingerprint": "a3e844997f9293a2",
       "message": {
         "ar": "ملف robots.txt يمنع Claude-SearchBot، زاحف البحث لدى Anthropic، من هذه الصفحة بالقاعدة «Disallow: /» في السطر 3.",
         "en": "robots.txt blocks Claude-SearchBot, Anthropic's search crawler, from this page with \"Disallow: /\" on line 3."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41013/robots.txt",
+        "url": "http://127.0.0.1:30013/robots.txt",
         "snippet": "Disallow: /",
         "location": {
           "line": 3
@@ -716,13 +716,13 @@
     {
       "ruleId": "robots-blocks-ai-search",
       "severity": "moderate",
-      "fingerprint": "0fa9331381d9af3e",
+      "fingerprint": "2235bb7d063a6863",
       "message": {
         "ar": "ملف robots.txt يمنع PerplexityBot، زاحف البحث لدى Perplexity، من هذه الصفحة بالقاعدة «Disallow: /» في السطر 3.",
         "en": "robots.txt blocks PerplexityBot, Perplexity's search crawler, from this page with \"Disallow: /\" on line 3."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41013/robots.txt",
+        "url": "http://127.0.0.1:30013/robots.txt",
         "snippet": "Disallow: /",
         "location": {
           "line": 3
@@ -739,13 +739,13 @@
     {
       "ruleId": "robots-blocks-ai-search",
       "severity": "moderate",
-      "fingerprint": "514c20ae2b2c9390",
+      "fingerprint": "4d847d114b991175",
       "message": {
         "ar": "ملف robots.txt يمنع OAI-SearchBot، زاحف البحث لدى OpenAI، من هذه الصفحة بالقاعدة «Disallow: /» في السطر 6.",
         "en": "robots.txt blocks OAI-SearchBot, OpenAI's search crawler, from this page with \"Disallow: /\" on line 6."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41013/robots.txt",
+        "url": "http://127.0.0.1:30013/robots.txt",
         "snippet": "Disallow: /",
         "location": {
           "line": 6
@@ -762,7 +762,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41013/robots.txt",
+      "url": "http://127.0.0.1:30013/robots.txt",
       "status": 200,
       "aiCrawlers": [
         {

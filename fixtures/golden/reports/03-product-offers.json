@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41003/",
-    "finalUrl": "http://127.0.0.1:41003/",
+    "url": "http://127.0.0.1:30003/",
+    "finalUrl": "http://127.0.0.1:30003/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "whatsapp-link-format",
       "severity": "serious",
-      "fingerprint": "6b7c4bc30b12e619",
+      "fingerprint": "6a1a40049f090209",
       "message": {
         "ar": "رقم رابط واتساب «+968 9123-4567» فيه رموز غير الأرقام، مثل + أو المسافات أو الشرطات.",
         "en": "The WhatsApp link number \"+968 9123-4567\" contains characters other than digits, such as +, spaces or dashes."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41003/",
+        "url": "http://127.0.0.1:30003/",
         "selector": "body > main > p:nth-of-type(2) > a",
         "snippet": "<a href=\"https://wa.me/+968 9123-4567\">",
         "location": {
@@ -677,13 +677,13 @@
     {
       "ruleId": "whatsapp-link-format",
       "severity": "serious",
-      "fingerprint": "982e3c4ef9a11fd3",
+      "fingerprint": "8db2aaea0b90a176",
       "message": {
         "ar": "رقم رابط واتساب «0501234567» يبدأ بالصفر؛ اكتبه بالصيغة الدولية الكاملة، بدءاً برمز الدولة.",
         "en": "The WhatsApp link number \"0501234567\" starts with 0; write it in full international format, starting with the country code."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41003/",
+        "url": "http://127.0.0.1:30003/",
         "selector": "body > main > p:nth-of-type(3) > a",
         "snippet": "<a href=\"https://wa.me/0501234567\">",
         "location": {
@@ -700,13 +700,13 @@
     {
       "ruleId": "product-offer-invalid",
       "severity": "moderate",
-      "fingerprint": "7073c48173c10ffd",
+      "fingerprint": "aa62ed6a2fe46a5d",
       "message": {
         "ar": "في كتلة JSON-LD رقم 1، قيمة price مكتوبة «١٢٫٥٠٠» في السطر 13، وSchema.org يطلب الأرقام 0–9 وحدها، مع النقطة للكسر العشري.",
         "en": "In JSON-LD block 1, price is written as «١٢٫٥٠٠» on line 13; Schema.org asks for the digits 0–9 only, with a full stop for the decimal point."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41003/",
+        "url": "http://127.0.0.1:30003/",
         "selector": "head > script",
         "snippet": "\"offers\": { \"@type\": \"Offer\", \"price\": \"١٢٫٥٠٠\", \"priceCurrency\": \"ر.ع.\" }",
         "location": {
@@ -724,13 +724,13 @@
     {
       "ruleId": "product-offer-invalid",
       "severity": "moderate",
-      "fingerprint": "413ed19753701208",
+      "fingerprint": "4dcab993ed58aa02",
       "message": {
         "ar": "في كتلة JSON-LD رقم 1، العملة مكتوبة «ر.ع.» في السطر 13، وهي ليست رمزاً من ثلاثة أحرف حسب ISO 4217 مثل OMR أو SAR.",
         "en": "In JSON-LD block 1, the currency is written as «ر.ع.» on line 13, which is not a three-letter ISO 4217 code such as OMR or SAR."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41003/",
+        "url": "http://127.0.0.1:30003/",
         "selector": "head > script",
         "snippet": "…s\": { \"@type\": \"Offer\", \"price\": \"١٢٫٥٠٠\", \"priceCurrency\": \"ر.ع.\" }",
         "location": {
@@ -747,13 +747,13 @@
     {
       "ruleId": "og-tags-missing",
       "severity": "minor",
-      "fingerprint": "84659c5b2b1a71d7",
+      "fingerprint": "9b1460c5992995e1",
       "message": {
         "ar": "ليس في الصفحة وسم og:title فيه نص، فتأخذ معاينة الرابط عند مشاركته عنواناً يختاره التطبيق من الصفحة.",
         "en": "The page has no og:title tag with text, so the link's preview, when it is shared, takes a title the app picks from the page."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41003/",
+        "url": "http://127.0.0.1:30003/",
         "selector": "head",
         "values": {
           "tag": "og:title"
@@ -763,13 +763,13 @@
     {
       "ruleId": "og-tags-missing",
       "severity": "minor",
-      "fingerprint": "fa33d2bf83336816",
+      "fingerprint": "0ed96ddcd3cffe40",
       "message": {
         "ar": "ليس في الصفحة وسم og:description فيه نص، فقد تظهر معاينة الرابط عند مشاركته بلا وصف، أو بنص يختاره التطبيق من الصفحة.",
         "en": "The page has no og:description tag with text, so the link's preview, when it is shared, may show no description, or text the app picks from the page."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41003/",
+        "url": "http://127.0.0.1:30003/",
         "selector": "head",
         "values": {
           "tag": "og:description"
@@ -779,13 +779,13 @@
     {
       "ruleId": "og-tags-missing",
       "severity": "minor",
-      "fingerprint": "6e318b89fef2978c",
+      "fingerprint": "2bb934919a15c56e",
       "message": {
         "ar": "ليس في الصفحة وسم og:image فيه رابط صورة، فتظهر معاينة الرابط عند مشاركته بلا صورة، أو بصورة يختارها التطبيق من الصفحة.",
         "en": "The page has no og:image tag with an image URL, so the link's preview, when it is shared, shows no image, or an image the app picks from the page."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41003/",
+        "url": "http://127.0.0.1:30003/",
         "selector": "head",
         "values": {
           "tag": "og:image"
@@ -795,13 +795,13 @@
     {
       "ruleId": "price-decimals",
       "severity": "minor",
-      "fingerprint": "6a4be3c5edcba7ec",
+      "fingerprint": "1a5ae18d56eff9e3",
       "message": {
         "ar": "السعر «12.50 ر.ع.» مكتوب بمنزلتين عشريتين، وهذه العملة لها ثلاث منازل عشرية حسب ISO 4217: «12.500 ر.ع.».",
         "en": "The price «12.50 ر.ع.» is written with two decimal places; ISO 4217 gives this currency three: «12.500 ر.ع.»."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41003/",
+        "url": "http://127.0.0.1:30003/",
         "selector": "body > main > ul > li:nth-of-type(1) > span > bdi",
         "location": {
           "line": 23
@@ -817,7 +817,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41003/robots.txt",
+      "url": "http://127.0.0.1:30003/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

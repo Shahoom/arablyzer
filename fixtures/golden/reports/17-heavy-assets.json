@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41017/",
-    "finalUrl": "http://127.0.0.1:41017/",
+    "url": "http://127.0.0.1:30017/",
+    "finalUrl": "http://127.0.0.1:30017/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,20 +654,20 @@
     {
       "ruleId": "text-compression-missing",
       "severity": "moderate",
-      "fingerprint": "6c2ac014cb0eeb9d",
+      "fingerprint": "10b5f35117cd13d8",
       "message": {
-        "ar": "يُرسَل http://127.0.0.1:41017/app.js دون ضغط (30.8 KB). مضغوطاً بـ gzip يصير 1.2 KB، فيوفّر 29.6 KB على كل زائر.",
-        "en": "http://127.0.0.1:41017/app.js is sent without compression (30.8 KB). Gzipped, it is 1.2 KB, which saves 29.6 KB for every visitor."
+        "ar": "يُرسَل http://127.0.0.1:30017/app.js دون ضغط (30.8 KB). مضغوطاً بـ gzip يصير 1.2 KB، فيوفّر 29.6 KB على كل زائر.",
+        "en": "http://127.0.0.1:30017/app.js is sent without compression (30.8 KB). Gzipped, it is 1.2 KB, which saves 29.6 KB for every visitor."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41017/app.js",
+        "url": "http://127.0.0.1:30017/app.js",
         "engines": [
           "chromium",
           "firefox",
           "webkit"
         ],
         "values": {
-          "url": "http://127.0.0.1:41017/app.js",
+          "url": "http://127.0.0.1:30017/app.js",
           "size": 30.8,
           "gzipped": 1.2,
           "saved": 29.6
@@ -677,20 +677,20 @@
     {
       "ruleId": "text-compression-missing",
       "severity": "moderate",
-      "fingerprint": "68a33334ca4d26f4",
+      "fingerprint": "fb30a7046e52dba4",
       "message": {
-        "ar": "يُرسَل http://127.0.0.1:41017/ دون ضغط (17.7 KB). مضغوطاً بـ gzip يصير 0.8 KB، فيوفّر 16.9 KB على كل زائر.",
-        "en": "http://127.0.0.1:41017/ is sent without compression (17.7 KB). Gzipped, it is 0.8 KB, which saves 16.9 KB for every visitor."
+        "ar": "يُرسَل http://127.0.0.1:30017/ دون ضغط (17.7 KB). مضغوطاً بـ gzip يصير 0.8 KB، فيوفّر 16.9 KB على كل زائر.",
+        "en": "http://127.0.0.1:30017/ is sent without compression (17.7 KB). Gzipped, it is 0.8 KB, which saves 16.9 KB for every visitor."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41017/",
+        "url": "http://127.0.0.1:30017/",
         "engines": [
           "chromium",
           "firefox",
           "webkit"
         ],
         "values": {
-          "url": "http://127.0.0.1:41017/",
+          "url": "http://127.0.0.1:30017/",
           "size": 17.7,
           "gzipped": 0.8,
           "saved": 16.9
@@ -700,13 +700,13 @@
     {
       "ruleId": "image-format-legacy",
       "severity": "minor",
-      "fingerprint": "1f977980a08e520b",
+      "fingerprint": "8e9a0efc5f979fa5",
       "message": {
-        "ar": "الصورة http://127.0.0.1:41017/images/sadu.png بصيغة PNG وحجمها 42.7 KB. بصيغة AVIF يُقدَّر حجمها بنحو 2.7 KB.",
-        "en": "The image http://127.0.0.1:41017/images/sadu.png is a PNG of 42.7 KB. As AVIF, it is estimated at about 2.7 KB."
+        "ar": "الصورة http://127.0.0.1:30017/images/sadu.png بصيغة PNG وحجمها 42.7 KB. بصيغة AVIF يُقدَّر حجمها بنحو 2.7 KB.",
+        "en": "The image http://127.0.0.1:30017/images/sadu.png is a PNG of 42.7 KB. As AVIF, it is estimated at about 2.7 KB."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41017/",
+        "url": "http://127.0.0.1:30017/",
         "selector": "html > body > main > img",
         "engines": [
           "chromium",
@@ -720,7 +720,7 @@
           "height": 128
         },
         "values": {
-          "url": "http://127.0.0.1:41017/images/sadu.png",
+          "url": "http://127.0.0.1:30017/images/sadu.png",
           "format": "PNG",
           "size": 42.7,
           "avif": 2.7
@@ -730,7 +730,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41017/robots.txt",
+      "url": "http://127.0.0.1:30017/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

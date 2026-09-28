@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41010/",
-    "finalUrl": "http://127.0.0.1:41010/",
+    "url": "http://127.0.0.1:30010/",
+    "finalUrl": "http://127.0.0.1:30010/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "a11y-button-name",
       "severity": "critical",
-      "fingerprint": "0e00a68f7a176a24",
+      "fingerprint": "fed202e1d615469a",
       "message": {
         "ar": "هذا الزر بلا اسم يقرؤه قارئ الشاشة، فيعلن عنه زراً دون أن يقول ماذا يفعل.",
         "en": "This button has no accessible name, so a screen reader announces it as a button without saying what it does."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41010/",
+        "url": "http://127.0.0.1:30010/",
         "selector": "#wishlist",
         "snippet": "<button id=\"wishlist\" type=\"button\"> <svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\"> <circle cx=\"8\" cy=\"8\" r=\"8\"></circle> </svg> </button>",
         "engines": [
@@ -673,13 +673,13 @@
     {
       "ruleId": "a11y-image-alt",
       "severity": "critical",
-      "fingerprint": "893605b01f2c6789",
+      "fingerprint": "6c2b457944926f06",
       "message": {
         "ar": "هذه الصورة بلا نص بديل (alt)، فقد يتجاوزها قارئ الشاشة أو يقرأ اسم ملفها.",
         "en": "This image has no text alternative (alt), so a screen reader may skip it or read out its file name."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41010/",
+        "url": "http://127.0.0.1:30010/",
         "selector": "#product",
         "snippet": "<img id=\"product\" src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGP4z8CAFWEXHbQSACj/P8Fu7N9hAAAAAElFTkSuQmCC\" width=\"160\" height=\"160\">",
         "engines": [
@@ -692,13 +692,13 @@
     {
       "ruleId": "a11y-color-contrast",
       "severity": "serious",
-      "fingerprint": "4b8b711a5385ff42",
+      "fingerprint": "8f7a88aef439da69",
       "message": {
         "ar": "تباين هذا النص 2.84:1 (#999999 على #ffffff)، أقل من 4.5:1 التي تطلبها WCAG لنص بحجمه.",
         "en": "This text's contrast is 2.84:1 (#999999 on #ffffff), below the 4.5:1 WCAG asks for text of its size."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41010/",
+        "url": "http://127.0.0.1:30010/",
         "selector": "#note",
         "snippet": "<p id=\"note\" style=\"color: #999999; background: #ffffff\"> الأسعار تشمل ضريبة القيمة المضافة. </p>",
         "engines": [
@@ -717,13 +717,13 @@
     {
       "ruleId": "a11y-color-contrast-review",
       "severity": "serious",
-      "fingerprint": "6e81afed33132ca5",
+      "fingerprint": "0c08f3558403ce07",
       "message": {
         "ar": "هذا النص فوق صورة، ولا يمكن قياس ألوانها خلف كل حرف؛ تأكد بعينك أنه سهل القراءة.",
         "en": "This text sits over an image, whose colours behind each letter cannot be measured; check by eye that it is easy to read."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41010/",
+        "url": "http://127.0.0.1:30010/",
         "selector": "#banner",
         "snippet": "<p id=\"banner\" style=\" color: #ffffff; background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGP4z8CAFWEXHbQSACj/P8Fu7N9hAAAAAElFTkSuQmCC); background-siz",
         "engines": [
@@ -736,13 +736,13 @@
     {
       "ruleId": "a11y-link-name",
       "severity": "serious",
-      "fingerprint": "75e971787181fc66",
+      "fingerprint": "fd8cca1877d03a5a",
       "message": {
         "ar": "هذا الرابط بلا اسم يقرؤه قارئ الشاشة، فيعلن عنه رابطاً دون أن يقول إلى أين يأخذ.",
         "en": "This link has no accessible name, so a screen reader announces it as a link without saying where it leads."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41010/",
+        "url": "http://127.0.0.1:30010/",
         "selector": "#cart",
         "snippet": "<a id=\"cart\" href=\"/cart\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\"> <rect width=\"16\" height=\"16\"></rect></svg></a>",
         "engines": [
@@ -755,13 +755,13 @@
     {
       "ruleId": "a11y-valid-lang",
       "severity": "serious",
-      "fingerprint": "0ae1ef0a311d0908",
+      "fingerprint": "e183371a09f9c318",
       "message": {
         "ar": "خاصية lang في هذا العنصر ليست رمز لغة، فلا يستطيع قارئ الشاشة التحوّل إلى الصوت المناسب له.",
         "en": "This element's lang attribute is not a language code, so screen readers cannot switch to the right voice for it."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41010/",
+        "url": "http://127.0.0.1:30010/",
         "selector": "#pay",
         "snippet": "<span id=\"pay\" lang=\"english\">Apple Pay</span>",
         "engines": [
@@ -774,7 +774,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41010/robots.txt",
+      "url": "http://127.0.0.1:30010/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {

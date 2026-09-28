@@ -6,8 +6,8 @@
     "rulesetVersion": "0.4.0"
   },
   "target": {
-    "url": "http://127.0.0.1:41004/",
-    "finalUrl": "http://127.0.0.1:41004/",
+    "url": "http://127.0.0.1:30004/",
+    "finalUrl": "http://127.0.0.1:30004/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -31,7 +31,7 @@
     "render": [
       {
         "engine": "chromium",
-        "version": null,
+        "version": "153.0.8010.12",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -41,7 +41,7 @@
       },
       {
         "engine": "firefox",
-        "version": null,
+        "version": "155.0",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -51,7 +51,7 @@
       },
       {
         "engine": "webkit",
-        "version": null,
+        "version": "26.6",
         "status": "rendered",
         "durationMs": 0,
         "requests": {
@@ -654,13 +654,13 @@
     {
       "ruleId": "rtl-horizontal-overflow",
       "severity": "serious",
-      "fingerprint": "67c6e51e15548b20",
+      "fingerprint": "f510494d80996a8e",
       "message": {
         "ar": "هذا العنصر يتجاوز حافة شاشة هاتف عرضها 390 بكسل بمقدار 280 بكسل، فتتحرك الصفحة أفقياً.",
         "en": "This element reaches 280 pixels past the edge of a phone screen 390 pixels wide, so the page scrolls sideways."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41004/",
+        "url": "http://127.0.0.1:30004/",
         "selector": "html > body > nav",
         "engines": [
           "chromium",
@@ -682,13 +682,13 @@
     {
       "ruleId": "ar-letter-spacing",
       "severity": "moderate",
-      "fingerprint": "7701204c1277d31f",
+      "fingerprint": "a0adec3506fcdf5d",
       "message": {
         "ar": "على هذا النص العربي letter-spacing: 3.2px، وقد رسمها المتصفح: تظهر فراغات بين حروف يجب أن تتصل.",
         "en": "Arabic text here has letter-spacing: 3.2px, and the browser drew it: gaps open between letters that should join."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41004/",
+        "url": "http://127.0.0.1:30004/",
         "selector": "html > body > main > h1",
         "engines": [
           "webkit"
@@ -707,13 +707,13 @@
     {
       "ruleId": "rtl-physical-css",
       "severity": "info",
-      "fingerprint": "cff1627425050293",
+      "fingerprint": "f1d540231b3cc45a",
       "message": {
         "ar": "يحدد ملف CSS هذا الجهة باليمين أو اليسار بدل البداية والنهاية في 5 من خصائصه، وأولها معروض هنا.",
         "en": "This stylesheet sets sides by left or right rather than by start and end in 5 of its declarations; the first is shown here."
       },
       "evidence": {
-        "url": "http://127.0.0.1:41004/",
+        "url": "http://127.0.0.1:30004/",
         "snippet": "main { margin-left: 24px }",
         "engines": [
           "chromium",
@@ -728,7 +728,7 @@
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:41004/robots.txt",
+      "url": "http://127.0.0.1:30004/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {
