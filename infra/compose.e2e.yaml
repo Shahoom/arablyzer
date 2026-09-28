@@ -1,0 +1,27 @@
+# The end-to-end test's additions to compose.yaml (M2.1 plan §5b), never used to run Arablyzer:
+#
+#   docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml up -d --build --wait
+#   pnpm test:stack
+#
+# Golden site 04 is served inside the stack, on a network of its own whose subnet is public
+# address space. No packet leaves for it: the network is internal. So the API and the egress
+# proxy treat the site as any public site, and nothing is opened in either for the test.
+services:
+  fixture:
+    image: caddy:2.11-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+    command: [caddy, file-server, --root, /srv, --listen, ':80']
+    volumes: ['../fixtures/golden/sites/04-rtl-layout:/srv:ro']
+    networks:
+      testnet:
+        ipv4_address: 93.184.215.50
+
+  egress:
+    networks:
+      testnet: {}
+
+networks:
+  testnet:
+    internal: true
+    ipam:
+      config:
+        - subnet: 93.184.215.0/24
