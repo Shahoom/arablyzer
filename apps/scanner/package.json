@@ -1,5 +1,5 @@
 {
-  "name": "@arablyzer/worker",
+  "name": "@arablyzer/scanner",
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
@@ -14,14 +14,15 @@
   },
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/browser": "workspace:*",
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/engine": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/scanner-client": "workspace:*",
-    "@arablyzer/store": "workspace:*",
-    "bullmq": "6.3.9",
-    "ioredis": "5.11.1",
-    "pg": "8.23.0"
+    "@hono/node-server": "2.1.1",
+    "hono": "4.13.10"
   },
   "devDependencies": {
-    "@types/pg": "8.23.1"
+    "@arablyzer/fixtures": "workspace:*"
   }
 }

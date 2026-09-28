@@ -65,6 +65,9 @@ importers:
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../../packages/report-schema
+      '@arablyzer/scanner':
+        specifier: workspace:*
+        version: link:../scanner
       '@arablyzer/store':
         specifier: workspace:*
         version: link:../../packages/store
@@ -102,6 +105,37 @@ importers:
       bullmq:
         specifier: 6.3.9
         version: 6.3.9(ioredis@5.11.1)(pg@8.23.0)
+
+  apps/scanner:
+    dependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
+      '@arablyzer/browser':
+        specifier: workspace:*
+        version: link:../../packages/browser
+      '@arablyzer/egress':
+        specifier: workspace:*
+        version: link:../../packages/egress
+      '@arablyzer/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../../packages/report-schema
+      '@arablyzer/scanner-client':
+        specifier: workspace:*
+        version: link:../../packages/scanner-client
+      '@hono/node-server':
+        specifier: 2.1.1
+        version: 2.1.1(hono@4.13.10)
+      hono:
+        specifier: 4.13.10
+        version: 4.13.10
+    devDependencies:
+      '@arablyzer/fixtures':
+        specifier: workspace:*
+        version: link:../../fixtures
 
   apps/web:
     dependencies:
@@ -190,18 +224,12 @@ importers:
       '@arablyzer/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
-      '@arablyzer/browser':
-        specifier: workspace:*
-        version: link:../../packages/browser
-      '@arablyzer/egress':
-        specifier: workspace:*
-        version: link:../../packages/egress
-      '@arablyzer/engine':
-        specifier: workspace:*
-        version: link:../../packages/engine
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../../packages/report-schema
+      '@arablyzer/scanner-client':
+        specifier: workspace:*
+        version: link:../../packages/scanner-client
       '@arablyzer/store':
         specifier: workspace:*
         version: link:../../packages/store
@@ -215,9 +243,6 @@ importers:
         specifier: 8.23.0
         version: 8.23.0
     devDependencies:
-      '@arablyzer/fixtures':
-        specifier: workspace:*
-        version: link:../../fixtures
       '@types/pg':
         specifier: 8.23.1
         version: 8.23.1
@@ -429,6 +454,18 @@ importers:
       '@arablyzer/fixtures':
         specifier: workspace:*
         version: link:../../fixtures
+
+  packages/scanner-client:
+    dependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
 
   packages/scoring:
     dependencies:

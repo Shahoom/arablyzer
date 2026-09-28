@@ -18,6 +18,7 @@
     "@arablyzer/engine": "workspace:*",
     "@arablyzer/plans": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/scanner": "workspace:*",
     "@arablyzer/store": "workspace:*",
     "@hono/node-server": "2.1.1",
     "hono": "4.13.10",
