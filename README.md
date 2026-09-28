@@ -59,7 +59,7 @@ ARABLYZER_TEST_VALKEY_URL=redis://127.0.0.1:6379 \
 ARABLYZER_TEST_DATABASE_URL=postgres://user:pass@127.0.0.1:5432/db pnpm test:services
 ```
 
-`ARABLYZER_ALLOW_PRIVATE=1` lets the development API scan local pages, such as the fixture sites; production refuses it. The limits' numbers are the owner's decision: `packages/plans` holds development values, and production will not start without its own (`ARABLYZER_LIMIT_*`), `TURNSTILE_SECRET` and `ARABLYZER_LIMIT_SECRET`.
+`ARABLYZER_ALLOW_PRIVATE=1` lets the development API scan local pages, such as the fixture sites; production refuses it. The limits' numbers are the owner's decision: `packages/plans` holds development values, and production will not start without its own (`ARABLYZER_LIMIT_*`), `TURNSTILE_SECRET`, `ARABLYZER_SITE` and `ARABLYZER_LIMIT_SECRET`. The API's and the worker's production entrypoints (`server.ts`, `main.ts`) apply those checks whatever `NODE_ENV` says; `dev.ts` is the development one.
 
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
 - Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md), [Phase 2](docs/design/phase-2.md)
