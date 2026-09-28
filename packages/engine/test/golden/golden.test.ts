@@ -1,10 +1,25 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createPolicy } from '@arablyzer/egress'
-import { loadSiteConfig, serveCrux, serveSite, trustFixtureCa } from '@arablyzer/fixtures'
+import {
+  type CruxStandIn,
+  loadSiteConfig,
+  serveCrux,
+  serveSite,
+  trustFixtureCa,
+} from '@arablyzer/fixtures'
 import { describe, expect, it } from 'vitest'
 import { scan } from '../../src/index'
 import { resolverFor, schemaErrors } from '../helpers'
-import { GOLDEN_NAMES, normalize, REPORTS, SITES } from './golden'
+import {
+  CRUX_PORT,
+  FONTS,
+  GOLDEN_NAMES,
+  IMAGE_FONTS,
+  normalize,
+  portOf,
+  REPORTS,
+  SITES,
+} from './golden'
 
 // Fixture sites served over HTTPS carry certificates from the test authority.
 trustFixtureCa()
@@ -12,28 +27,51 @@ trustFixtureCa()
 /**
  * The fonts a browser falls back to differ between machines, so the reports come from the scanner
  * image alone (Phase 1 design §5), which sets ARABLYZER_IMAGE. There, with its network isolated
- * (docker run --network none), all three engines render.
+ * (docker run --network none), all three engines render the pages served over HTTP.
  */
 const IN_IMAGE = process.env.ARABLYZER_IMAGE === '1'
-/** Writes the reports instead of comparing them: a change needs approval in its PR (§16.3). */
-const UPDATE = process.env.ARABLYZER_GOLDEN_UPDATE === '1'
-/** Where to write the reports that differ, for CI to keep. */
+/**
+ * Where to write what differs from the committed files, or has none yet, for CI to keep: they are
+ * committed from there, and a change needs approval in its PR (BUILD-PLAN §16.3).
+ */
 const OUT = process.env.ARABLYZER_GOLDEN_OUT
 
-/** Fixed ports, so each page's URL, and its findings' fingerprints, stay the same. */
-const CRUX_PORT = 41_000
-const FIRST_PORT = 41_001
+// Outside the image the reports are skipped, and a skipped comparison must not pass for one.
+if (OUT !== undefined && !IN_IMAGE) {
+  throw new Error(
+    'ARABLYZER_GOLDEN_OUT is set outside the scanner image, where nothing is compared',
+  )
+}
+
+/** The committed file, or null; what differs from it is kept in OUT. */
+function committed(file: string, name: string, actual: string): string | null {
+  const expected = existsSync(file) ? readFileSync(file, 'utf8') : null
+  if (actual !== expected && OUT !== undefined) {
+    mkdirSync(OUT, { recursive: true })
+    writeFileSync(`${OUT}/${name}`, actual)
+  }
+  return expected
+}
 
 describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
-  it.each(GOLDEN_NAMES.map((name, index) => [name, index] as const))(
+  // Debian's font packages are not pinned: a change of fonts shows here, not only as reports
+  // that differ.
+  it('the image has the fonts the reports were made with', () => {
+    const actual = readFileSync(IMAGE_FONTS, 'utf8')
+    const expected = committed(FONTS, 'fonts.txt', actual)
+    expect(expected, 'no fonts.txt yet').not.toBeNull()
+    expect(actual).toBe(expected)
+  })
+
+  it.each(GOLDEN_NAMES)(
     '%s',
-    async (name, index) => {
+    async (name) => {
       const dir = `${SITES}${name}`
       const config = await loadSiteConfig(dir)
-      const data = config.crux
-      const site = await serveSite(dir, { port: FIRST_PORT + index })
-      const crux = data === undefined ? undefined : await serveCrux(data, { port: CRUX_PORT })
+      const site = await serveSite(dir, { port: portOf(name) })
+      let crux: CruxStandIn | undefined
       try {
+        if (config.crux !== undefined) crux = await serveCrux(config.crux, { port: CRUX_PORT })
         const report = await scan(site.url('/'), {
           policy: createPolicy({
             allowTargets: [
@@ -51,19 +89,10 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
             ? {}
             : { crux: { apiKey: 'golden-key', endpoint: crux.endpoint } }),
         })
-        expect(schemaErrors(report)).toBe('')
         const actual = `${JSON.stringify(normalize(report), null, 2)}\n`
-        const file = `${REPORTS}${name}.json`
-        if (UPDATE) {
-          writeFileSync(file, actual)
-          return
-        }
-        // A page without a report yet counts as changed: CI keeps what it gave, to be committed.
-        const expected = existsSync(file) ? readFileSync(file, 'utf8') : null
-        if (actual !== expected && OUT !== undefined) {
-          mkdirSync(OUT, { recursive: true })
-          writeFileSync(`${OUT}/${name}.json`, actual)
-        }
+        // Kept before anything is checked, so CI has it whatever fails.
+        const expected = committed(`${REPORTS}${name}.json`, `${name}.json`, actual)
+        expect(schemaErrors(report)).toBe('')
         expect(expected, `${name}: no golden report yet`).not.toBeNull()
         expect(JSON.parse(actual), `${name}: its report changed`).toEqual(
           JSON.parse(expected ?? 'null'),
