@@ -48,6 +48,33 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(vite@8.3.0(@types/node@22.20.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
+  apps/api:
+    dependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
+      '@arablyzer/egress':
+        specifier: workspace:*
+        version: link:../../packages/egress
+      '@arablyzer/plans':
+        specifier: workspace:*
+        version: link:../../packages/plans
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../../packages/report-schema
+      '@hono/node-server':
+        specifier: 2.1.1
+        version: 2.1.1(hono@4.13.10)
+      hono:
+        specifier: 4.13.10
+        version: 4.13.10
+      ipaddr.js:
+        specifier: ^2.5.0
+        version: 2.5.0
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+
   apps/web:
     dependencies:
       '@arablyzer/api-contract':
@@ -912,6 +939,12 @@ packages:
 
   '@formatjs/intl-localematcher@0.6.2':
     resolution: {integrity: sha512-XOMO2Hupl0wdd172Y06h6kLpBz6Dv+J4okPLl4LPtzbr8f66WbIoy4ev98EBuZ6ZK4h5ydTN6XneT4QVpD7cdA==}
+
+  '@hono/node-server@2.1.1':
+    resolution: {integrity: sha512-ELuehkj5VCBdgEw9zs+ivkKwyzzUCSQuE96YmiPvn1ECBoZCczbFXJLeEGMTYjphP6gydh4pHMqEYPVMYUVgQg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      hono: ^4
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2194,6 +2227,10 @@ packages:
 
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
+
+  hono@4.13.10:
+    resolution: {integrity: sha512-dQuLsa5oO+47QVMVMaaD9cIv8ctmVtK1iRvwWngkfloFJMeFeuoUFDswIqZGxmGX3hrRzREgEArjkK9OgsQEhA==}
+    engines: {node: '>=16.9.0'}
 
   hookified@1.15.1:
     resolution: {integrity: sha512-MvG/clsADq1GPM2KGo2nyfaWVyn9naPiXrqIe4jYjXNZQt238kWyOGrsyc/DmRAQ+Re6yeo6yX/yoNCG5KAEVg==}
@@ -3917,6 +3954,10 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@hono/node-server@2.1.1(hono@4.13.10)':
+    dependencies:
+      hono: 4.13.10
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -5196,6 +5237,8 @@ snapshots:
   hast-util-whitespace@3.0.0:
     dependencies:
       '@types/hast': 3.0.5
+
+  hono@4.13.10: {}
 
   hookified@1.15.1: {}
 

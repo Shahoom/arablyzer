@@ -1,0 +1,28 @@
+{
+  "name": "@arablyzer/api",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "tsx src/dev.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --exclude \"test/ssrf/**\" --exclude \"test/services/**\"",
+    "test:ssrf": "vitest run test/ssrf",
+    "test:services": "vitest run test/services"
+  },
+  "dependencies": {
+    "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/plans": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@hono/node-server": "2.1.1",
+    "hono": "4.13.10",
+    "ipaddr.js": "^2.5.0",
+    "zod": "^4.6.5"
+  }
+}

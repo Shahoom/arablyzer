@@ -30,6 +30,7 @@ export const SCAN_FORM: Copy<ScanFormStrings> = {
     errors: {
       empty: 'اكتب رابط الصفحة أولاً.',
       network: 'لم نصل إلى خدمة الفحص. تأكد من اتصالك وأعد المحاولة.',
+      'bad-request': 'تعذّر قراءة الطلب. حدّث الصفحة وأعد المحاولة.',
       'invalid-url': 'هذا ليس رابطاً كاملاً. اكتبه ببدايته، مثل https://example.com',
       'unsupported-scheme': 'نفحص روابط http وhttps وحدها.',
       'url-too-long': `الرابط أطول من ${MAX_URL_LENGTH} حرفاً، فلا نفحصه.`,
@@ -53,6 +54,7 @@ export const SCAN_FORM: Copy<ScanFormStrings> = {
     errors: {
       empty: 'Enter the page URL first.',
       network: 'We could not reach the scan service. Check your connection and try again.',
+      'bad-request': 'We could not read the request. Reload the page and try again.',
       'invalid-url': 'That is not a full URL. Include its start, as in https://example.com',
       'unsupported-scheme': 'We scan http and https URLs only.',
       'url-too-long': `The URL is longer than ${MAX_URL_LENGTH} characters, so we do not scan it.`,

@@ -26,6 +26,8 @@ export const URL_ERROR_CODES = [
 
 /** Why the API did not start a scan. */
 export const SCAN_ERROR_CODES = [
+  /** Not a request the form sends: not JSON, too large, or other fields. */
+  'bad-request',
   ...URL_ERROR_CODES,
   /** Turnstile could not tell that a person sent the form. */
   'turnstile-failed',
