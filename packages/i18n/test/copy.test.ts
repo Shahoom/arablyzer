@@ -105,7 +105,7 @@ describe('report copy', () => {
   it('counts rules and the queue as each language counts', () => {
     expect(REPORT.ar.progress.rules(47)).toBe('47 قاعدة')
     expect(REPORT.ar.progress.rules(3)).toBe('3 قواعد')
-    expect(REPORT.ar.progress.queued(0)).toBe('في الطابور، والدور لنا')
+    expect(REPORT.ar.progress.queued(0)).toBe('في الطابور، وهو التالي')
     expect(REPORT.ar.progress.queued(2)).toBe('في الطابور، وعدد الفحوص قبلنا: 2')
     expect(REPORT.en.progress.queued(1)).toBe('Queued, with 1 scan ahead')
     expect([1, 2, 3, 12, 100].map((n) => REPORT.ar.engines.requests(n))).toEqual([

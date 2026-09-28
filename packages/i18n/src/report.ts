@@ -49,7 +49,11 @@ export interface ReportStrings {
     readonly rules: (count: number) => string
     readonly note: string
     /** A step's state, for a screen reader: the page shows it by its box alone. */
-    readonly state: Readonly<Record<'done' | 'active' | 'waiting', string>>
+    readonly state: Readonly<Record<'done' | 'active' | 'waiting' | 'failed', string>>
+    /** Before the scan starts, when its engines are not known yet. */
+    readonly waitingStart: string
+    /** The page could not be fetched. */
+    readonly pageFailed: string
   }
   readonly header: {
     readonly kicker: string
@@ -102,11 +106,23 @@ export interface ReportStrings {
     readonly filter: string
   }
   readonly notices: string
+  /** The results' section: the problems, the passed and the not-applicable rules. */
+  readonly results: string
+  /** A tab with no rule in it. */
+  readonly noRules: string
+  /** Said to a screen reader when the report replaces the progress. */
+  readonly ready: string
   /** When a scan does not go as it should (the approved States design). */
   readonly states: {
     readonly blocked: { readonly title: string; readonly text: (status: string) => string }
     readonly partial: { readonly title: string; readonly text: string }
-    readonly failed: { readonly title: string; readonly text: string }
+    readonly failed: {
+      readonly title: string
+      /** No report: the scan could not run. */
+      readonly text: string
+      /** A report that says why the page could not be scanned. */
+      readonly why: string
+    }
     readonly missing: { readonly title: string; readonly text: string }
     readonly offline: { readonly title: string; readonly text: string }
     readonly another: string
@@ -153,7 +169,7 @@ export const REPORT: Copy<ReportStrings> = {
       },
       // The number last, so the noun needs no agreement with it.
       queued: (ahead) =>
-        ahead === 0 ? 'في الطابور، والدور لنا' : `في الطابور، وعدد الفحوص قبلنا: ${ahead}`,
+        ahead === 0 ? 'في الطابور، وهو التالي' : `في الطابور، وعدد الفحوص قبلنا: ${ahead}`,
       robots: {
         fetched: 'قرأناه',
         unavailable: 'لا ملف، فالفحص مسموح',
@@ -177,7 +193,9 @@ export const REPORT: Copy<ReportStrings> = {
       },
       rules: (count) => arabicCount(count, RULES_NOMINATIVE),
       note: 'إن طال الفحص على صفحة ثقيلة، نعطيك تقريراً جزئياً ونقول بوضوح ما لم نستطع فحصه. والتقرير برابط خاص، لا يظهر في محركات البحث.',
-      state: { done: 'اكتملت', active: 'جارية الآن', waiting: 'لم تبدأ' },
+      state: { done: 'اكتملت', active: 'جارية الآن', waiting: 'لم تبدأ', failed: 'تعذّرت' },
+      waitingStart: 'بانتظار بدء الفحص',
+      pageFailed: 'تعذّر جلبها',
     },
     header: {
       kicker: 'التقرير',
@@ -228,6 +246,9 @@ export const REPORT: Copy<ReportStrings> = {
     passed: { title: 'فحوص نجحت', notApplicable: 'لا تنطبق على هذه الصفحة' },
     tabs: { problems: 'المخالفات', pass: 'نجحت', notApplicable: 'لا تنطبق', filter: 'حسب الخطورة' },
     notices: 'تنبيهات',
+    results: 'النتائج',
+    noRules: 'لا قواعد هنا.',
+    ready: 'التقرير جاهز.',
     states: {
       blocked: {
         title: 'الموقع حجب الفحص',
@@ -241,14 +262,15 @@ export const REPORT: Copy<ReportStrings> = {
       failed: {
         title: 'تعذّر الفحص',
         text: 'لم نستطع إكمال هذا الفحص، ولا تقرير له. أعد المحاولة بعد قليل.',
+        why: 'لم نستطع فحص هذه الصفحة، وهذا ما حدث:',
       },
       missing: {
         title: 'لا تقرير بهذا الرابط',
         text: 'الرابط غير صحيح، أو انتهت مدة حفظ التقرير.',
       },
       offline: {
-        title: 'انقطع الاتصال بخدمة الفحص',
-        text: 'الفحص مستمر عندنا. حدّث الصفحة بعد قليل لترى التقرير.',
+        title: 'تعذّر الوصول إلى خدمة الفحص',
+        text: 'تواصل الصفحة المحاولة، وتعرض الفحص حين تجيب الخدمة.',
       },
       another: 'افحص صفحة أخرى',
       again: 'أعد الفحص',
@@ -316,7 +338,9 @@ export const REPORT: Copy<ReportStrings> = {
       },
       rules: (count) => englishCount(count, 'rule', 'rules'),
       note: 'If a heavy page takes too long, you get a partial report that says clearly what could not be checked. The report is at a private link, and never appears in search engines.',
-      state: { done: 'done', active: 'in progress', waiting: 'not started' },
+      state: { done: 'done', active: 'in progress', waiting: 'not started', failed: 'failed' },
+      waitingStart: 'Waiting for the scan to start',
+      pageFailed: 'Could not be fetched',
     },
     header: {
       kicker: 'Report',
@@ -372,6 +396,9 @@ export const REPORT: Copy<ReportStrings> = {
       filter: 'By severity',
     },
     notices: 'Notices',
+    results: 'Results',
+    noRules: 'No rules here.',
+    ready: 'The report is ready.',
     states: {
       blocked: {
         title: 'The site blocked the scan',
@@ -385,14 +412,15 @@ export const REPORT: Copy<ReportStrings> = {
       failed: {
         title: 'The scan could not run',
         text: 'We could not finish this scan, and it has no report. Try again shortly.',
+        why: 'We could not scan this page. This is what happened:',
       },
       missing: {
         title: 'No report at this link',
         text: 'The link is wrong, or the report is no longer kept.',
       },
       offline: {
-        title: 'Lost the connection to the scan service',
-        text: 'The scan goes on at our end. Reload the page in a moment to see the report.',
+        title: 'Cannot reach the scan service',
+        text: 'The page keeps trying, and shows the scan as soon as the service answers.',
       },
       another: 'Check another page',
       again: 'Scan again',

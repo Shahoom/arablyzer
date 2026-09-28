@@ -1,8 +1,9 @@
 import { SCAN_ID_PATTERN, type ScanSummary } from '@arablyzer/api-contract/codes'
+import { REPORT } from '@arablyzer/i18n/report'
 import type { Report } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
 import { useEffect, useState } from 'react'
-import { fetchReport, fetchSummary } from './api'
+import { fetchReport } from './api'
 import { followScan } from './events'
 import { Progress } from './report/Progress'
 import { ReportView, type Fixes } from './report/ReportView'
@@ -44,9 +45,19 @@ async function loadFixes(lang: Lang): Promise<Fixes | null> {
   }
 }
 
+/** How often a report the scan said it stored is read again before the page says it cannot. */
+const REPORT_TRIES = 4
+
+const wait = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+
 /** /r/{id}: the scan while it runs, then its report, or what went wrong (M2.1 plan §5). */
 export default function ReportApp({ lang }: { lang: Lang }) {
   const [view, setView] = useState<View>({ kind: 'loading' })
+  // Said to a screen reader when the report, or a state, replaces the progress.
+  const [said, setSaid] = useState('')
 
   useEffect(() => {
     const id = idFromPath(window.location.pathname)
@@ -54,51 +65,84 @@ export default function ReportApp({ lang }: { lang: Lang }) {
       setView({ kind: 'missing' })
       return
     }
+    const t = REPORT[lang]
     let active = true
     // Read afresh after each await: the page may have been left meanwhile.
     const left = () => !active
-    let stop: () => void = () => undefined
-    const showReport = async (summary: ScanSummary) => {
-      const [loaded, fixes] = await Promise.all([fetchReport(id), loadFixes(lang)])
-      if (left()) return
-      if (loaded.ok) setView({ kind: 'report', id, report: loaded.value, fixes })
-      else if (loaded.reason === 'missing') setView({ kind: 'failed', summary })
-      else setView({ kind: 'offline', url: summary.url })
+    /** The scan being followed, for what its events and the offline state need. */
+    let following: ScanSummary | null = null
+
+    const showFailed = (summary: ScanSummary) => {
+      setView({ kind: 'failed', summary })
+      setSaid(t.states.failed.title)
     }
-    void (async () => {
-      const summary = await fetchSummary(id)
-      if (left()) return
-      if (!summary.ok) {
-        setView(summary.reason === 'missing' ? { kind: 'missing' } : { kind: 'offline', url: null })
-        return
+    const showOffline = () => {
+      setView({ kind: 'offline', url: following?.url ?? null })
+      setSaid(t.states.offline.title)
+    }
+    // The report is stored before its scan says done; a read that fails is tried again.
+    const showReport = async (summary: ScanSummary) => {
+      for (let attempt = 0; attempt < REPORT_TRIES; attempt++) {
+        const [loaded, fixes] = await Promise.all([fetchReport(id), loadFixes(lang)])
+        if (left()) return
+        if (loaded.ok) {
+          setView({ kind: 'report', id, report: loaded.value, fixes })
+          setSaid(t.ready)
+          return
+        }
+        if (loaded.reason === 'missing') {
+          showFailed(summary)
+          return
+        }
+        await wait(1000 * 2 ** attempt)
+        if (left()) return
       }
-      if (summary.value.state !== 'queued' && summary.value.state !== 'running') {
-        await showReport(summary.value)
-        return
-      }
-      setView({ kind: 'progress', summary: summary.value, progress: START })
-      stop = followScan(
-        id,
-        (event) => {
-          setView((current) =>
-            current.kind === 'progress'
-              ? { ...current, progress: advance(current.progress, event) }
-              : current,
-          )
-          if (event.type === 'done') void showReport(summary.value)
-          if (event.type === 'error') setView({ kind: 'failed', summary: summary.value })
-        },
-        () => {
-          setView({ kind: 'offline', url: summary.value.url })
-        },
-      )
-    })()
+      showOffline()
+    }
+
+    const stop = followScan(id, {
+      onFollowing: (summary) => {
+        following = summary
+        setView({ kind: 'progress', summary, progress: START })
+      },
+      onEvent: (event) => {
+        setView((current) =>
+          current.kind === 'progress'
+            ? { ...current, progress: advance(current.progress, event) }
+            : current,
+        )
+        if (following === null) return
+        if (event.type === 'done') void showReport(following)
+        if (event.type === 'error') showFailed(following)
+      },
+      onEnded: (summary) => {
+        following = summary
+        void showReport(summary)
+      },
+      onMissing: () => {
+        setView({ kind: 'missing' })
+      },
+      onReachable: (reachable) => {
+        if (!reachable) showOffline()
+      },
+    })
     return () => {
       active = false
       stop()
     }
   }, [lang])
 
+  return (
+    <>
+      <Shown view={view} lang={lang} />
+      <p className="sr-only" role="status">
+        {said}
+      </p>
+    </>
+  )
+}
+
+function Shown({ view, lang }: { view: View; lang: Lang }) {
   switch (view.kind) {
     case 'loading':
       return <div aria-busy="true" className="min-h-[60vh]" />

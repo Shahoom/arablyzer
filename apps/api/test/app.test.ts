@@ -301,6 +301,14 @@ describe('GET /api/scans/:id/events', () => {
     expect(response.status).toBe(204)
   })
 
+  it('pings while nothing happens, as a named event the page can see', async () => {
+    // Streams end after 100 ms here, and the stores' heartbeat comes every 20 ms.
+    const { app, scanOf } = setup({ streamMs: 100 })
+    const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    const text = await (await app.request(`/api/scans/${id}/events`)).text()
+    expect(text).toContain('event: ping\ndata: \n\n')
+  })
+
   it('sends the real end when it comes after the scan is seen finished', async () => {
     const { deps, scanOf, store, events } = setup()
     const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
@@ -380,11 +388,11 @@ async function setupRead(store: MemoryScanStore) {
   return app.request('/api/scans/AbCdEfGhIjKlMnOpQrSt_-')
 }
 
-/** The stream's events, with their IDs. */
+/** The stream's events, with their IDs; its pings aside. */
 function parse(text: string): { id: string | null; event: unknown }[] {
   return text
     .split('\n\n')
-    .filter((block) => block.includes('data:'))
+    .filter((block) => block.includes('data:') && !block.split('\n').includes('event: ping'))
     .map((block) => {
       const lines = block.split('\n')
       const id =
