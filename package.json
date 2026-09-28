@@ -8,7 +8,7 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "lint": "pnpm --silent --filter @arablyzer/web exec astro sync && eslint . --max-warnings=0",
+    "lint": "pnpm --silent --filter @arablyzer/web run generate && pnpm --silent --filter @arablyzer/web exec astro sync && eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "turbo run typecheck",

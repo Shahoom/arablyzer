@@ -11,3 +11,5 @@ coverage/
 golden-actual/
 # Astro writes its generated types here (apps/web).
 .astro/
+# What apps/web/scripts/generate.ts writes before Astro runs.
+apps/web/src/generated/
