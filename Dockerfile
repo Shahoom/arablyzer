@@ -26,8 +26,9 @@ WORKDIR /arablyzer
 COPY package.json ./
 RUN npm install --global "$(node -p "require('./package.json').packageManager.split('+')[0]")"
 
-# The code belongs to root: the user the scanner runs as reads it and cannot change it.
-COPY . .
+# The user the tests run as owns the code: Vite writes its bundled config next to vitest.config.ts
+# (CI run 36427884836). The production scanner's image will carry only what it runs, read-only.
+COPY --chown=arablyzer:arablyzer . .
 RUN pnpm install --frozen-lockfile
 # The browsers of the Playwright the workspace pins, with the libraries (and fonts) they need.
 RUN pnpm --filter @arablyzer/browser exec playwright-core install --with-deps chromium firefox webkit \
