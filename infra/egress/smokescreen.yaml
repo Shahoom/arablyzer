@@ -1,5 +1,11 @@
-# Generated from packages/egress/src/ranges.ts by
+# Generated from packages/egress/src/{proxy,ranges}.ts by
 # `pnpm --filter @arablyzer/egress smokescreen-config`; the egress tests check it matches.
+# The limits of the browsers’ own proxy: a connect, a request’s headers, a quiet connection.
+connect_timeout: 10s
+read_header_timeout: 10s
+idle_timeout: 30s
+# Twice a page load’s requests (BUILD-PLAN §11): one scan at a time, and the API’s checks.
+max_concurrent_connect_tunnels: 600
 # Every range Arablyzer refuses, which Smokescreen refuses too. The server’s own public
 # address is added when the proxy starts, from ARABLYZER_DENY_CIDRS (infra/egress/main.go).
 deny_ranges:

@@ -17,3 +17,12 @@ it('refuses every range the package refuses, and IPv6 outside global unicast', (
   expect(IPV6_GLOBAL_UNICAST).toBe('2000::/3')
   expect(listed).toEqual(expect.arrayContaining(['::/3', '4000::/2', '8000::/1']))
 })
+
+it("gives Smokescreen the browsers' proxy's limits, so nothing that goes around it gets more", () => {
+  const config = smokescreenConfig()
+  expect(config).toMatch(/^connect_timeout: 10s$/m)
+  expect(config).toMatch(/^read_header_timeout: 10s$/m)
+  expect(config).toMatch(/^idle_timeout: 30s$/m)
+  // Two page loads' requests (BUILD-PLAN §11: 300 each).
+  expect(config).toMatch(/^max_concurrent_connect_tunnels: 600$/m)
+})

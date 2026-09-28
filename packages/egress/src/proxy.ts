@@ -20,10 +20,10 @@ import { checkUrl } from './url'
 export const DEFAULT_MAX_REQUESTS = 300
 /** Refusals kept in the log; the rest are counted only. */
 export const PROXY_LOG_LIMIT = 100
-/** DNS and the TCP connect for one request. */
-const CONNECT_TIMEOUT_MS = 10_000
-/** A connection without traffic for this long is closed. */
-const IDLE_TIMEOUT_MS = 30_000
+/** DNS and the TCP connect for one request; the egress proxy's too (smokescreen.ts). */
+export const PROXY_CONNECT_TIMEOUT_MS = 10_000
+/** A connection without traffic for this long is closed, here and in the egress proxy. */
+export const PROXY_IDLE_TIMEOUT_MS = 30_000
 const MAX_REQUESTS = 10_000
 const MAX_TARGET_LENGTH = 300
 const MAX_HEADER_SIZE = 16 * 1024
@@ -189,7 +189,10 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
     }
     pending += 1
     try {
-      const signal = AbortSignal.any([AbortSignal.timeout(CONNECT_TIMEOUT_MS), closing.signal])
+      const signal = AbortSignal.any([
+        AbortSignal.timeout(PROXY_CONNECT_TIMEOUT_MS),
+        closing.signal,
+      ])
       const endpoint = await untilAborted(
         resolveEndpoint(url, host, port, policy, resolver, signal),
         signal,
@@ -306,7 +309,7 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
     )
     upstream.on('socket', (socket) => {
       track(socket)
-      socket.setTimeout(IDLE_TIMEOUT_MS, () => socket.destroy())
+      socket.setTimeout(PROXY_IDLE_TIMEOUT_MS, () => socket.destroy())
     })
     // A request forwarded here never asks to upgrade (browsers tunnel WebSockets through CONNECT),
     // so a 101 is a server misbehaving; unanswered, it held the request until the idle timeout.
@@ -400,7 +403,7 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
         return
       }
       const through = opened.socket
-      through.setTimeout(IDLE_TIMEOUT_MS, () => through.destroy())
+      through.setTimeout(PROXY_IDLE_TIMEOUT_MS, () => through.destroy())
       through.on('error', () => client.destroy())
       through.on('close', () => client.destroy())
       client.on('close', () => through.destroy())
@@ -415,10 +418,10 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
       lookup: pinnedLookup(admission.addresses),
     })
     track(upstream)
-    upstream.setTimeout(CONNECT_TIMEOUT_MS)
+    upstream.setTimeout(PROXY_CONNECT_TIMEOUT_MS)
     upstream.once('connect', () => {
       open = true
-      upstream.setTimeout(IDLE_TIMEOUT_MS)
+      upstream.setTimeout(PROXY_IDLE_TIMEOUT_MS)
       established(upstream)
     })
     upstream.on('timeout', () => {
@@ -445,7 +448,7 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
   const server = http.createServer({ insecureHTTPParser: false, maxHeaderSize: MAX_HEADER_SIZE })
   server.on('connection', (socket: net.Socket) => {
     track(socket)
-    socket.setTimeout(IDLE_TIMEOUT_MS, () => socket.destroy())
+    socket.setTimeout(PROXY_IDLE_TIMEOUT_MS, () => socket.destroy())
   })
   server.on('request', (req: IncomingMessage, res: ServerResponse) => {
     onRequest(req, res).catch(() => {
