@@ -2,14 +2,14 @@ import type { ScanEvent } from '@arablyzer/api-contract'
 import type { Redis } from 'ioredis'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ValkeyRateLimiter, ValkeyScanEvents, type StoredEvent } from '../../src/index'
-import { hasValkey, valkey } from './services'
+import { hasValkey, valkey, VALKEY_DB } from './services'
 
 const ID = 'AbCdEfGhIjKlMnOpQrSt_-'
 
 describe.skipIf(!hasValkey)('Valkey', () => {
   let redis: Redis
   beforeAll(async () => {
-    redis = await valkey()
+    redis = await valkey(VALKEY_DB.valkey)
   })
   afterAll(async () => {
     await redis.quit()
@@ -62,6 +62,29 @@ describe.skipIf(!hasValkey)('Valkey', () => {
     expect(seen.at(-1)?.event).toEqual({ type: 'started', engines: ['chromium'] })
   })
 
+  it('reads the events there are without waiting, and any ID it could not have given from the start', async () => {
+    const events = new ValkeyScanEvents(redis, 100)
+    const scan = 'SiNcEsInCeSiNcEsInCe_-'
+    expect(await events.since(scan, null)).toEqual([])
+    const first = await events.publish(scan, { type: 'queued', ahead: 0 })
+    const second = await events.publish(scan, { type: 'error' })
+    expect(await events.since(scan, null)).toEqual([
+      { id: first, event: { type: 'queued', ahead: 0 } },
+      { id: second, event: { type: 'error' } },
+    ])
+    expect(await events.since(scan, first)).toEqual([{ id: second, event: { type: 'error' } }])
+    expect(await events.since(scan, second)).toEqual([])
+    // Past 2^64 − 1, which XREAD and XRANGE refuse: read from the start instead of failing.
+    const huge = '99999999999999999999-0'
+    expect(await events.since(scan, huge)).toHaveLength(2)
+    const stop = new AbortController()
+    for await (const next of events.follow(scan, huge, stop.signal)) {
+      expect(next?.id).toBe(first)
+      break
+    }
+    stop.abort()
+  })
+
   it('refuses to store what is not a scan event', async () => {
     const events = new ValkeyScanEvents(redis)
     await expect(events.publish(ID, { type: 'teapot' } as unknown as ScanEvent)).rejects.toThrow()
@@ -87,5 +110,17 @@ describe.skipIf(!hasValkey)('Valkey', () => {
     expect(pttl).toBeLessThanOrEqual(3_600_000)
     // A fifth of the window later, one scan is back.
     expect(await first.take('connection:k', window, now + 720_000)).toEqual({ ok: true })
+  })
+
+  it('adds no scans for a process whose clock lags', async () => {
+    const window = { scans: 5, seconds: 3600 }
+    const limiter = new ValkeyRateLimiter(redis)
+    const ahead = Date.parse('2026-09-28T12:45:00Z')
+    const behind = Date.parse('2026-09-28T12:00:00Z')
+    const taken = []
+    for (let i = 0; i < 6; i++) {
+      taken.push(await limiter.take('connection:skew', window, i % 2 === 0 ? ahead : behind))
+    }
+    expect(taken.filter((result) => result.ok)).toHaveLength(5)
   })
 })

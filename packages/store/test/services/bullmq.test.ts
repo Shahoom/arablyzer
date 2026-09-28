@@ -2,13 +2,13 @@ import { Worker } from 'bullmq'
 import type { Redis } from 'ioredis'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { BullMQScanQueue, SCAN_QUEUE, type ScanJob } from '../../src/index'
-import { hasValkey, valkey } from './services'
+import { hasValkey, valkey, VALKEY_DB } from './services'
 
 describe.skipIf(!hasValkey)('BullMQ', () => {
   let redis: Redis
   let queue: BullMQScanQueue
   beforeAll(async () => {
-    redis = await valkey()
+    redis = await valkey(VALKEY_DB.bullmq)
     queue = new BullMQScanQueue(redis)
   })
   afterAll(async () => {

@@ -1,4 +1,4 @@
-import type { ScanEvent } from '@arablyzer/api-contract'
+import type { ScanEvent, ScanState } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
 import type { ScanEvents, ScanJob, ScanQueue, ScanRecord, ScanStore, StoredEvent } from './types'
 
@@ -23,23 +23,33 @@ export class MemoryScanStore implements ScanStore {
     return Promise.resolve(this.#scans.get(id) ?? null)
   }
 
-  start(id: string, at: Date): Promise<void> {
-    return this.#update(id, { state: 'running', startedAt: at })
+  start(id: string, at: Date): Promise<boolean> {
+    return this.#move(id, ['queued'], { state: 'running', startedAt: at })
   }
 
-  finish(id: string, report: Report, at: Date): Promise<void> {
-    return this.#update(id, { state: report.scan.status, finishedAt: at, report })
+  finish(id: string, report: Report, at: Date): Promise<boolean> {
+    return this.#move(id, ['running'], { state: report.scan.status, finishedAt: at, report })
   }
 
-  fail(id: string, at: Date): Promise<void> {
-    return this.#update(id, { state: 'failed', finishedAt: at })
+  fail(id: string, at: Date): Promise<boolean> {
+    return this.#move(id, ['queued', 'running'], { state: 'failed', finishedAt: at })
   }
 
-  #update(id: string, change: Partial<ScanRecord>): Promise<void> {
+  async failStale(startedBefore: Date, at: Date): Promise<string[]> {
+    const stale = [...this.#scans.values()].filter(
+      (scan) =>
+        scan.state === 'running' && scan.startedAt !== null && scan.startedAt < startedBefore,
+    )
+    for (const scan of stale) await this.fail(scan.id, at)
+    return stale.map((scan) => scan.id)
+  }
+
+  /** The change, when the scan is in one of the states it moves from. */
+  #move(id: string, from: readonly ScanState[], change: Partial<ScanRecord>): Promise<boolean> {
     const scan = this.#scans.get(id)
-    if (scan === undefined) return Promise.reject(new Error(`No scan ${id}`))
+    if (scan === undefined || !from.includes(scan.state)) return Promise.resolve(false)
     this.#scans.set(id, { ...scan, ...change })
-    return Promise.resolve()
+    return Promise.resolve(true)
   }
 }
 
@@ -105,13 +115,16 @@ export class MemoryScanEvents implements ScanEvents {
     return Promise.resolve(stored.id)
   }
 
+  since(scanId: string, after: string | null): Promise<StoredEvent[]> {
+    return Promise.resolve((this.#events.get(scanId) ?? []).slice(position(after)))
+  }
+
   async *follow(
     scanId: string,
     after: string | null,
     signal: AbortSignal,
   ): AsyncGenerator<StoredEvent | null> {
-    const from = after === null ? 0 : Number(after)
-    let next = Number.isSafeInteger(from) && from > 0 ? from : 0
+    let next = position(after)
     while (!signal.aborted) {
       const list = this.#events.get(scanId) ?? []
       while (next < list.length) {
@@ -147,4 +160,10 @@ export class MemoryScanEvents implements ScanEvents {
       signal.addEventListener('abort', aborted, { once: true })
     })
   }
+}
+
+/** Where the events after an ID begin: IDs count from 1, and one that is not a count reads all. */
+function position(after: string | null): number {
+  const from = after === null ? 0 : Number(after)
+  return Number.isSafeInteger(from) && from > 0 ? from : 0
 }

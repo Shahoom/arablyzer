@@ -12,6 +12,11 @@ export interface ScanRecord {
   readonly report: Report | null
 }
 
+/**
+ * Scans and their reports. A scan moves one way, queued → running → finished, and each move is
+ * made only from the state before it: a move that does not apply answers false and changes
+ * nothing, so a job run twice never scans twice or overwrites a report.
+ */
 export interface ScanStore {
   create(scan: {
     readonly id: string
@@ -19,11 +24,14 @@ export interface ScanStore {
     readonly createdAt: Date
   }): Promise<void>
   get(id: string): Promise<ScanRecord | null>
-  start(id: string, at: Date): Promise<void>
-  /** Stores the report; the scan's state is the report's. */
-  finish(id: string, report: Report, at: Date): Promise<void>
-  /** The scan could not run at all: no report. */
-  fail(id: string, at: Date): Promise<void>
+  /** Queued → running. */
+  start(id: string, at: Date): Promise<boolean>
+  /** Running → the report's state, with the report. */
+  finish(id: string, report: Report, at: Date): Promise<boolean>
+  /** Queued or running → failed, with no report: the scan could not run. */
+  fail(id: string, at: Date): Promise<boolean>
+  /** Fails the scans still running that started before the time, and names them. */
+  failStale(startedBefore: Date, at: Date): Promise<string[]>
 }
 
 /** What the worker is given: the scan and its page, and nothing else. */
@@ -47,6 +55,8 @@ export interface StoredEvent {
 
 export interface ScanEvents {
   publish(scanId: string, event: ScanEvent): Promise<string>
+  /** The events after `after` (all of them for null) that are there now, without waiting. */
+  since(scanId: string, after: string | null): Promise<StoredEvent[]>
   /** Events after `after` (all of them for null), and those still to come, until the signal. */
   follow(
     scanId: string,

@@ -9,10 +9,26 @@ const PREFIX = 'arablyzer'
 const EVENTS_TTL_SECONDS = 24 * 60 * 60
 /** More than any scan sends, so trimming never loses one. */
 const EVENTS_MAX = 1000
-/** A stream ID: milliseconds, a dash, a sequence. */
-const STREAM_ID = /^\d{1,20}-\d{1,20}$/
+/** A stream ID: milliseconds, a dash, a sequence, each at most 2^64 − 1 as Valkey keeps them. */
+const STREAM_ID = /^(\d{1,20})-(\d{1,20})$/
+const U64_MAX = 2n ** 64n - 1n
+
+/** The ID to read after: one Valkey could have given, or the stream's start. */
+function readAfter(after: string | null): string {
+  const parts = after === null ? null : STREAM_ID.exec(after)
+  if (parts === null) return '0-0'
+  return BigInt(parts[1] ?? '') <= U64_MAX && BigInt(parts[2] ?? '') <= U64_MAX ? parts[0] : '0-0'
+}
 
 const eventsKey = (scanId: string) => `${PREFIX}:scan:${scanId}:events`
+
+/** Entries as XRANGE and XREAD give them, as the page reads them. */
+function stored(entries: [id: string, fields: string[]][]): StoredEvent[] {
+  return entries.flatMap(([id, fields]) => {
+    const value = fields[fields.indexOf('e') + 1]
+    return value === undefined ? [] : [{ id, event: ScanEvent.parse(JSON.parse(value)) }]
+  })
+}
 
 /** Read afresh: an await may have passed since the signal was last looked at. */
 const stopped = (signal: AbortSignal): boolean => signal.aborted
@@ -47,9 +63,15 @@ export class ValkeyScanEvents implements ScanEvents {
     return id
   }
 
+  async since(scanId: string, after: string | null): Promise<StoredEvent[]> {
+    return stored(await this.#redis.xrange(eventsKey(scanId), `(${readAfter(after)}`, '+'))
+  }
+
   /**
    * Blocking reads need a connection of their own, so each follower gets one, closed when it
-   * stops; the signal closes it too, which ends a read that is waiting.
+   * stops; the signal closes it too, which ends a read that is waiting. The API caps how many
+   * follow at once (apps/api). The reader queues its commands until it is connected, and gives
+   * up on a read that outlasts the heartbeat, as when Valkey stops answering.
    */
   async *follow(
     scanId: string,
@@ -57,8 +79,11 @@ export class ValkeyScanEvents implements ScanEvents {
     signal: AbortSignal,
   ): AsyncGenerator<StoredEvent | null> {
     const key = eventsKey(scanId)
-    let last = after !== null && STREAM_ID.test(after) ? after : '0-0'
-    const reader = this.#redis.duplicate()
+    let last = readAfter(after)
+    const reader = this.#redis.duplicate({
+      enableOfflineQueue: true,
+      commandTimeout: this.#heartbeatMs + 5_000,
+    })
     const close = () => {
       reader.disconnect()
     }
@@ -78,11 +103,8 @@ export class ValkeyScanEvents implements ScanEvents {
           continue
         }
         for (const [, entries] of reply) {
-          for (const [id, fields] of entries) {
-            last = id
-            const value = fields[fields.indexOf('e') + 1]
-            if (value !== undefined) yield { id, event: ScanEvent.parse(JSON.parse(value)) }
-          }
+          last = entries.at(-1)?.[0] ?? last
+          yield* stored(entries)
         }
       }
     } finally {
@@ -96,6 +118,7 @@ export class ValkeyScanEvents implements ScanEvents {
  * The token bucket in one step on the server, so two API processes cannot both take the last
  * scan. Numbers go back as strings: Valkey turns a script's numbers into integers. The key
  * expires when the bucket would be full again, so nothing is kept longer than the limit needs.
+ * The last update never moves back, so a process whose clock lags adds no tokens.
  */
 const TAKE = `
 local capacity = tonumber(ARGV[1])
@@ -111,7 +134,7 @@ if tokens >= 1 then
   tokens = tokens - 1
   taken = 1
 end
-redis.call('HSET', KEYS[1], 'tokens', tostring(tokens), 'updated', tostring(now))
+redis.call('HSET', KEYS[1], 'tokens', tostring(tokens), 'updated', tostring(math.max(updated, now)))
 redis.call('PEXPIRE', KEYS[1], math.max(1, math.ceil((capacity - tokens) / rate)))
 return { taken, tostring(tokens) }
 `

@@ -15,10 +15,16 @@ if (required && (valkeyUrl === undefined || databaseUrl === undefined)) {
 export const hasValkey = valkeyUrl !== undefined
 export const hasPostgres = databaseUrl !== undefined
 
-/** A connection to its own logical database, emptied first, so runs never share state. */
-export async function valkey(): Promise<Redis> {
+/**
+ * The logical database of each test file: vitest runs the files at once, and each empties its
+ * own first, so one must never be another's (apps/api's scan path uses 4).
+ */
+export const VALKEY_DB = { valkey: 3, bullmq: 5 } as const
+
+/** A connection to a file's own logical database, emptied first, so runs never share state. */
+export async function valkey(db: number): Promise<Redis> {
   if (valkeyUrl === undefined) throw new Error('No ARABLYZER_TEST_VALKEY_URL')
-  const redis = new Redis(valkeyUrl, { db: 3, maxRetriesPerRequest: null })
+  const redis = new Redis(valkeyUrl, { db, maxRetriesPerRequest: null })
   await redis.flushdb()
   return redis
 }
