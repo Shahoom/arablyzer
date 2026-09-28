@@ -52,6 +52,7 @@ import { boundSelector, boundText, boundValues } from './bounds'
 import { fetchCrux, type CruxOptions } from './crux'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
+import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
 
 export { ENGINE_VERSION, USER_AGENT }
 /** Keeps reports small; the rest of a rule's findings are counted in findingsOmitted. */
@@ -136,6 +137,11 @@ export interface ScanOptions {
   readonly crux?: CruxOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
   readonly lab?: LabRequest
+  /**
+   * Receives each step as it happens (M2.1b), for a page that follows the scan live. It never
+   * changes the report, and cannot break the scan.
+   */
+  readonly onProgress?: ProgressListener
 }
 
 /** The selected rules, sorted by id; a TypeError names any unknown id. */
@@ -162,6 +168,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     throw new TypeError(`parseTimeoutMs must be a positive number, got ${String(parseTimeoutMs)}`)
   }
   const started = performance.now()
+  const progress = progressEmitter(options.onProgress)
   const { rules, renderSkipped, engineSkipped } = chooseRules(
     options.rules ?? RULES,
     options.ruleIds,
@@ -228,6 +235,12 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       facts: {},
     })
 
+  progress({
+    step: 'page',
+    status: target.http.status,
+    contentType: target.http.contentType,
+    error: fetched.error?.code ?? null,
+  })
   if (fetched.error !== null || response === null) {
     return failed(fetched.error === null ? [] : [notice(fetched.error.code)], 'page-unavailable')
   }
@@ -257,6 +270,13 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   const robots = rules.some((rule) => rule.needs.includes('robots'))
     ? await fetchRobots(response.url, { ...base, policy: robotsPolicy })
     : undefined
+  if (robots !== undefined) {
+    progress({
+      step: 'robots',
+      outcome: robots.outcome,
+      status: 'status' in robots ? robots.status : null,
+    })
+  }
   // Real-user data, when a rule reads it: the page's URL goes to Google with the key.
   const cruxSkipped: NoticeCode | null = !rules.some((rule) => rule.needs.includes('crux'))
     ? null
@@ -269,6 +289,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     cruxSkipped === null && options.crux !== undefined && isSuccess(page.status)
       ? await fetchCrux(response.url, options.crux, { ...base, policy })
       : undefined
+  if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
+  else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
   // The browser gets the same lockdown: a public page never opens private addresses to it.
   const rendering =
     options.render === undefined
@@ -278,21 +300,24 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
             policy: robotsPolicy,
             resolver: base.resolver ?? defaultResolver(robotsPolicy),
             started,
+            progress,
             ...(options.signal === undefined ? {} : { signal: options.signal }),
           })
         : { runs: [], rendered: [], notices: [] }
 
   // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
   // lockdown. Information only, so its failure leaves the scan complete, with a notice.
+  const labRequest = isSuccess(page.status) && page.isHtml ? options.lab : undefined
+  if (labRequest !== undefined) progress({ step: 'lab-start' })
   const lab =
-    options.lab !== undefined && isSuccess(page.status) && page.isHtml
-      ? await measureLab(response.url, options.lab, {
+    labRequest === undefined
+      ? undefined
+      : await measureLab(response.url, labRequest, {
           policy: robotsPolicy,
           resolver: base.resolver ?? defaultResolver(robotsPolicy),
           started,
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         })
-      : undefined
   const notices = [
     ...pageNotices(page, robots),
     ...(renderSkipped ? [notice('render-skipped')] : []),
@@ -312,6 +337,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
     ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
   ]
+  if (lab !== undefined) progress({ step: 'lab', status: lab.status })
+  progress({ step: 'rules', rules: rules.length })
   const { results, findings } = evaluateRules(rules, page, robots, rendering?.rendered, crux)
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
@@ -394,6 +421,7 @@ async function renderAll(
     readonly policy: EgressPolicy
     readonly resolver: Resolver
     readonly started: number
+    readonly progress: (progress: ScanProgress) => void
     readonly signal?: AbortSignal
   },
 ): Promise<Rendering> {
@@ -406,13 +434,15 @@ async function renderAll(
   } catch {
     // Playwright is an optional dependency: without it, no engine is there (M1.3b review).
     for (const engine of request.engines) {
-      runs.push({
+      const run: RenderRun = {
         engine,
         version: null,
         status: 'unavailable',
         durationMs: 0,
         requests: { total: 0, refused: 0 },
-      })
+      }
+      runs.push(run)
+      context.progress({ step: 'render', run })
       notices.push(notice('engine-unavailable', { engine: ENGINE_NAMES[engine] }))
     }
     return { runs, rendered, notices }
@@ -426,16 +456,19 @@ async function renderAll(
         : (request.extraEngineTimeoutMs ?? EXTRA_ENGINE_TIMEOUT_MS)
     const budget = Math.min(own, SCAN_BUDGET_MS - (performance.now() - context.started))
     if (budget < MIN_RENDER_MS) {
-      runs.push({
+      const run: RenderRun = {
         engine,
         version: null,
         status: 'timeout',
         durationMs: 0,
         requests: { total: 0, refused: 0 },
-      })
+      }
+      runs.push(run)
+      context.progress({ step: 'render', run })
       notices.push(notice('render-timeout', { engine: name }))
       continue
     }
+    context.progress({ step: 'render-start', engine })
     const [outcome] = await renderPage(url, {
       engines: [engine],
       policy: context.policy,
@@ -451,7 +484,9 @@ async function renderAll(
       ...(context.signal === undefined ? {} : { signal: context.signal }),
     })
     if (outcome === undefined) continue
-    runs.push(renderRun(outcome))
+    const run = renderRun(outcome)
+    runs.push(run)
+    context.progress({ step: 'render', run })
     if (outcome.facts !== null) {
       rendered.push(outcome.facts)
       if (outcome.facts.truncated) notices.push(notice('render-truncated', { engine: name }))

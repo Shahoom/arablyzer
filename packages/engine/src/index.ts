@@ -9,6 +9,7 @@ export {
 } from './bounds'
 export { CRUX_ENDPOINT, fetchCrux, type CruxOptions } from './crux'
 export { notice, type NoticeCode } from './notices'
+export { type ProgressListener, type ScanProgress } from './progress'
 export {
   ENGINE_VERSION,
   evaluatePage,
