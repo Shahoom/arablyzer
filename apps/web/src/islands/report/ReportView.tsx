@@ -5,13 +5,12 @@ import { STRINGS } from '@arablyzer/seo/strings'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { Braces, Check, Copy, EyeOff, RotateCcw } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
+import { METHODOLOGY } from '../../lib/site'
 import { ENGINES, problemsOf, valueOf, type RuleFindings } from '../report-model'
 import { Bidi } from './Bidi'
 import { Crosshairs, ENGINE_LABEL, SectionHead, SeverityPill } from './ui'
 
 export type Fixes = Readonly<Record<string, { readonly fix: string }>>
-
-const METHODOLOGY = 'https://github.com/Shahoom/arablyzer/blob/main/docs/methodology.md'
 
 /** The finished report (the approved Report design). */
 export function ReportView({
@@ -181,7 +180,7 @@ function ScoreCard({ report, lang }: { report: Report; lang: Lang }) {
         <h2 id="score-title" className="m-0 text-xs font-semibold">
           {t.title}
         </h2>
-        <span dir="ltr" className="font-mono">
+        <span dir="ltr" lang="en" className="font-mono">
           {rules.ran} / {rules.total} rules
         </span>
       </div>
@@ -274,11 +273,15 @@ function Contents({
   onOpen: (tab: Tab) => void
 }) {
   const t = REPORT[lang].contents
-  const rendered = (report.scan.render ?? []).filter((run) => run.status === 'rendered').length
+  const runs = report.scan.render ?? []
+  const rendered = runs.filter((run) => run.status === 'rendered').length
   const items: [string, string, string, Tab | null][] = [
-    ['#results', t.findings, String(problems), 'problems'],
-    ['#engines-title', t.engines, String(rendered), null],
-    ['#results', t.passed, String(report.summary.pass), 'pass'],
+    ['#results-title', t.findings, String(problems), 'problems'],
+    // No browser ran (a page that is not HTML): no section to go to.
+    ...(runs.length === 0
+      ? []
+      : [['#engines-title', t.engines, String(rendered), null] as [string, string, string, null]]),
+    ['#results-title', t.passed, String(report.summary.pass), 'pass'],
   ]
   return (
     <nav
@@ -314,16 +317,24 @@ function Engines({ report, lang }: { report: Report; lang: Lang }) {
   const t = REPORT[lang]
   const runs = report.scan.render ?? []
   if (runs.length === 0) return null
-  // An engine that shows a problem no other engine shows is the one worth a look.
+  const rendered = runs.filter((run) => run.status === 'rendered').length
+  // An engine that shows a problem no other engine shows is the one worth a look: said only
+  // where at least two rendered, so there are others to compare it with.
   const alone = new Set(
-    report.findings
-      .map((finding) => finding.evidence.engines)
-      .filter((engines) => engines?.length === 1)
-      .map((engines) => engines?.[0]),
+    rendered < 2
+      ? []
+      : report.findings
+          .map((finding) => finding.evidence.engines)
+          .filter((engines) => engines?.length === 1)
+          .map((engines) => engines?.[0]),
   )
   return (
     <section aria-labelledby="engines-title" className="flex flex-col gap-3.5">
-      <SectionHead number={1} id="engines-title" title={t.engines.title(runs.length)} />
+      <SectionHead
+        number={1}
+        id="engines-title"
+        title={rendered === 0 ? t.contents.engines : t.engines.title(rendered)}
+      />
       <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-3">
         {ENGINES.map((engine) => {
           const run = runs.find((candidate) => candidate.engine === engine)
@@ -406,7 +417,12 @@ function Results({
     document.getElementById(`tab-${key}`)?.focus()
   }
   return (
-    <section id="results" aria-label={t.findings.title} className="flex scroll-mt-6 flex-col gap-4">
+    <section
+      id="results"
+      aria-labelledby="results-title"
+      className="flex scroll-mt-6 flex-col gap-4"
+    >
+      <SectionHead number={2} id="results-title" title={t.results} />
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b-2 border-ink">
         <div
           role="tablist"
@@ -623,6 +639,8 @@ function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
       {snippet !== undefined && (
         <pre
           dir="ltr"
+          // Focusable, so a keyboard can scroll a line wider than the card.
+          tabIndex={0}
           className="m-0 overflow-x-auto bg-panel px-4 py-3 font-mono text-[13px] text-panel-soft"
         >
           <code>{snippet}</code>
@@ -707,6 +725,9 @@ function OverflowDiagram({
 }
 
 function RuleList({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang }) {
+  if (rules.length === 0) {
+    return <p className="m-0 px-1 py-2 text-ink-3">{REPORT[lang].noRules}</p>
+  }
   return (
     <ul className="m-0 flex list-none flex-col border border-rule-strong bg-white p-0">
       {rules.map((rule) => (

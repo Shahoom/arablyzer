@@ -1,5 +1,5 @@
 import type { EngineName, ScanEvent } from '@arablyzer/api-contract/codes'
-import type { EngineState } from '@arablyzer/i18n/report'
+import type { EngineState, ReportStrings } from '@arablyzer/i18n/report'
 import type { Finding, Report, RuleResult, Severity } from '@arablyzer/report-schema'
 
 /** The engines a free scan renders in, in the order it renders them (M2.1 plan §4). */
@@ -15,13 +15,13 @@ export interface EngineProgress {
 export interface Progress {
   readonly queued: number | null
   readonly started: boolean
-  /** The engines this scan renders in, once it says; all three until then. */
+  /** The engines this scan renders in, once it says; none until then. */
   readonly planned: readonly EngineName[]
   readonly page: Extract<ScanEvent, { type: 'page' }> | null
   readonly robots: Extract<ScanEvent, { type: 'robots' }> | null
   readonly crux: Extract<ScanEvent, { type: 'crux' }> | null
   readonly engines: Readonly<Record<EngineName, EngineProgress>>
-  /** Engines the scan rendered or tried, of those it asked for. */
+  /** Engines that rendered, or failed to, whatever events repeat. */
   readonly enginesDone: number
   readonly rules: number | null
   readonly done: Extract<ScanEvent, { type: 'done' }> | null
@@ -31,7 +31,7 @@ export interface Progress {
 export const START: Progress = {
   queued: null,
   started: false,
-  planned: ENGINES,
+  planned: [],
   page: null,
   robots: null,
   crux: null,
@@ -71,19 +71,23 @@ export function advance(progress: Progress, event: ScanEvent): Progress {
           [event.engine]: { state: 'rendering', version: null, requests: null },
         },
       }
-    case 'render':
+    case 'render': {
+      const engines = {
+        ...progress.engines,
+        [event.engine]: {
+          state: event.status,
+          version: event.version,
+          requests: event.requests.total,
+        },
+      }
       return {
         ...progress,
-        engines: {
-          ...progress.engines,
-          [event.engine]: {
-            state: event.status,
-            version: event.version,
-            requests: event.requests.total,
-          },
-        },
-        enginesDone: progress.enginesDone + 1,
+        engines,
+        enginesDone: ENGINES.filter(
+          (engine) => engines[engine].state !== 'waiting' && engines[engine].state !== 'rendering',
+        ).length,
       }
+    }
     case 'lab-start':
     case 'lab':
       return progress
@@ -141,4 +145,106 @@ export function problemsOf(report: Report): RuleFindings[] {
 export function valueOf(finding: Finding, key: string): number | null {
   const value = finding.evidence.values?.[key]
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+export type StepState = 'done' | 'active' | 'waiting' | 'failed'
+
+export interface Step {
+  readonly key: 'page' | 'robots' | 'crux' | 'render' | 'rules' | 'score'
+  readonly label: string
+  readonly state: StepState
+  readonly detail: string | null
+  /** A technical reading, such as "200 · text/html" or "1 / 3", read left to right in Arabic too. */
+  readonly ltr: boolean
+}
+
+/**
+ * The scan's steps, in the order the engine takes them (the approved Audit-Progress design). A
+ * step the scan has no use for (no rule reads robots.txt or real-user data, no browser was asked
+ * for) leaves the list once a later one began. One step is active at a time: the first not done.
+ */
+export function stepsOf(progress: Progress, t: ReportStrings['progress']): Step[] {
+  const engines = progress.planned
+  const renderBegun = engines.some((engine) => progress.engines[engine].state !== 'waiting')
+  const pastCrux = renderBegun || progress.rules !== null
+  const pastRobots = progress.crux !== null || pastCrux
+  const page = progress.page
+  const listed: (Omit<Step, 'state'> & { readonly done: boolean; readonly failed?: boolean })[] = [
+    page !== null && page.error !== null
+      ? {
+          key: 'page',
+          label: t.steps.page,
+          done: false,
+          failed: true,
+          detail: t.pageFailed,
+          ltr: false,
+        }
+      : {
+          key: 'page',
+          label: t.steps.page,
+          done: page !== null,
+          detail:
+            page === null
+              ? null
+              : [page.status, page.contentType?.split(';')[0]]
+                  .filter((part) => part !== null && part !== undefined)
+                  .join(' · '),
+          ltr: true,
+        },
+    ...(progress.robots === null && pastRobots
+      ? []
+      : [
+          {
+            key: 'robots' as const,
+            label: t.steps.robots,
+            done: progress.robots !== null,
+            detail: progress.robots === null ? null : t.robots[progress.robots.outcome],
+            ltr: false,
+          },
+        ]),
+    ...(progress.crux === null && pastCrux
+      ? []
+      : [
+          {
+            key: 'crux' as const,
+            label: t.steps.crux,
+            done: progress.crux !== null,
+            detail: progress.crux === null ? null : t.crux[progress.crux.outcome],
+            ltr: false,
+          },
+        ]),
+    ...(progress.started && engines.length === 0
+      ? []
+      : [
+          {
+            key: 'render' as const,
+            label: t.steps.render,
+            done:
+              (engines.length > 0 && progress.enginesDone >= engines.length) ||
+              progress.rules !== null,
+            detail: engines.length === 0 ? null : `${progress.enginesDone} / ${engines.length}`,
+            ltr: true,
+          },
+        ]),
+    {
+      key: 'rules',
+      label: t.steps.rules,
+      done: progress.rules !== null,
+      detail: progress.rules === null ? null : t.rules(progress.rules),
+      ltr: false,
+    },
+    { key: 'score', label: t.steps.score, done: progress.done !== null, detail: null, ltr: false },
+  ]
+  const open = listed.findIndex((step) => !step.done)
+  return listed.map(({ done, failed, ...step }, index) => ({
+    ...step,
+    state:
+      failed === true
+        ? 'failed'
+        : done
+          ? 'done'
+          : progress.started && index === open
+            ? 'active'
+            : 'waiting',
+  }))
 }

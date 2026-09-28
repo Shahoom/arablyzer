@@ -24,7 +24,12 @@ export function StateCard({
 }) {
   const t = REPORT[lang].states
   const title = kind === 'blocked' ? t.blocked.title : t[kind].title
-  const text = kind === 'blocked' ? t.blocked.text(String(status ?? '')) : t[kind].text
+  const text =
+    kind === 'blocked'
+      ? t.blocked.text(String(status ?? ''))
+      : kind === 'failed' && notices.length > 0
+        ? t.failed.why
+        : t[kind].text
   const home = localePath(lang, '/')
   return (
     <section

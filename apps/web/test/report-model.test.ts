@@ -1,9 +1,18 @@
 import type { ScanEvent } from '@arablyzer/api-contract/codes'
 import checkoutFormJson from '@arablyzer/fixtures/golden/reports/07-checkout-form.json'
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
+import { REPORT } from '@arablyzer/i18n/report'
 import { Report } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
-import { advance, outcomeOf, problemsOf, START } from '../src/islands/report-model'
+import { idFromPath } from '../src/islands/ReportApp'
+import {
+  advance,
+  outcomeOf,
+  problemsOf,
+  START,
+  stepsOf,
+  type Progress,
+} from '../src/islands/report-model'
 
 const rtlLayout = Report.parse(rtlLayoutJson)
 
@@ -43,6 +52,88 @@ describe('advance', () => {
     })
     expect([finished.rules, finished.done?.state]).toEqual([47, 'complete'])
     expect(advance(START, { type: 'error' }).error).toBe(true)
+  })
+
+  it('knows no engine before the scan names them, and counts engines, not events', () => {
+    expect(START.planned).toEqual([])
+    const render: ScanEvent = {
+      type: 'render',
+      engine: 'chromium',
+      version: '153',
+      status: 'rendered',
+      requests: { total: 1, refused: 0 },
+    }
+    // The same render, twice, as a stream replayed without its progress reset would give it.
+    expect([render, render].reduce(advance, START).enginesDone).toBe(1)
+  })
+})
+
+const t = REPORT.en.progress
+const steps = (progress: Progress) =>
+  stepsOf(progress, t).map((step) => [step.key, step.state, step.detail])
+const fold = (events: ScanEvent[]) => events.reduce(advance, START)
+
+describe('stepsOf', () => {
+  it('waits, all of it, until the scan starts', () => {
+    expect(steps(fold([{ type: 'queued', ahead: 2 }])).map(([, state]) => state)).toEqual([
+      'waiting',
+      'waiting',
+      'waiting',
+      'waiting',
+      'waiting',
+      'waiting',
+    ])
+  })
+
+  it('follows the engine: one step at a time, readings as they come', () => {
+    expect(
+      steps(
+        fold([
+          { type: 'started', engines: ['chromium', 'firefox'] },
+          { type: 'page', status: 200, contentType: 'text/html; charset=utf-8', error: null },
+          { type: 'robots', outcome: 'fetched', status: 200 },
+        ]),
+      ),
+    ).toEqual([
+      ['page', 'done', '200 · text/html'],
+      ['robots', 'done', 'Read'],
+      ['crux', 'active', null],
+      ['render', 'waiting', '0 / 2'],
+      ['rules', 'waiting', null],
+      ['score', 'waiting', null],
+    ])
+  })
+
+  it('drops the steps a scan has no use for once a later one began', () => {
+    const shown = steps(
+      fold([
+        { type: 'started', engines: [] },
+        { type: 'page', status: 200, contentType: 'text/html', error: null },
+        { type: 'rules', rules: 47 },
+      ]),
+    ).map(([key]) => key)
+    expect(shown).toEqual(['page', 'rules', 'score'])
+  })
+
+  it('shows a page that could not be fetched as failed, not done', () => {
+    expect(
+      steps(
+        fold([
+          { type: 'started', engines: ['chromium'] },
+          { type: 'page', status: null, contentType: null, error: 'connect-failed' },
+        ]),
+      )[0],
+    ).toEqual(['page', 'failed', 'Could not be fetched'])
+  })
+})
+
+describe('idFromPath', () => {
+  it('reads the ID from a report link, in either language, and nothing else', () => {
+    expect(idFromPath('/r/AbCdEfGhIjKlMnOpQrSt_-')).toBe('AbCdEfGhIjKlMnOpQrSt_-')
+    expect(idFromPath('/en/r/AbCdEfGhIjKlMnOpQrSt_-/')).toBe('AbCdEfGhIjKlMnOpQrSt_-')
+    expect(idFromPath('/r/')).toBeNull()
+    expect(idFromPath('/r/short')).toBeNull()
+    expect(idFromPath('/r/AbCdEfGhIjKlMnOpQrSt_-x')).toBeNull()
   })
 })
 

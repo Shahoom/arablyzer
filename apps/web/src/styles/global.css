@@ -107,6 +107,8 @@
     *::after {
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
+      /* An infinite animation, however short, still flickers: once is enough. */
+      animation-iteration-count: 1 !important;
     }
   }
 }
