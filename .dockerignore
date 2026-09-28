@@ -3,6 +3,12 @@
 **/.turbo
 **/.probe
 **/coverage
+**/*.log
+**/.DS_Store
 .git
 .github
-*.log
+golden-actual
+# Secrets stay out of the image, as they stay out of git, at any depth.
+**/.env
+**/.env.*
+!**/.env.example

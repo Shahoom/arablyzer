@@ -1,9 +1,10 @@
 # The scanner image (Phase 1 design §6, decision 9): Node 24, the three browsers Playwright pins with
-# the system libraries they need, and a fixed set of fonts, so what the browsers draw, and so the
-# golden reports, do not depend on the machine. Built in CI, not published.
+# the system libraries they need, and the fonts they draw with, listed in /arablyzer/fonts.txt, so
+# what the browsers draw, and so the golden reports, do not depend on the machine. The reports hold
+# for linux/amd64, where CI builds the image; it is not published.
 #
 #   docker build --platform linux/amd64 -t arablyzer .
-#   docker run --rm --network none -e ARABLYZER_NETWORK_ISOLATED=1 --entrypoint pnpm arablyzer test:golden
+#   docker run --rm --platform linux/amd64 --network none -e ARABLYZER_NETWORK_ISOLATED=1 --entrypoint pnpm arablyzer test:golden
 #
 # --network none leaves the container its loopback alone, which is what isolation means for WebKit
 # (plan §13); scanning the web needs the egress network of Phase 2 instead.
@@ -17,21 +18,23 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates fontconfig fonts-dejavu-core fonts-noto-core \
  && rm -rf /var/lib/apt/lists/*
 
-# pnpm for every user, installed once: corepack would fetch it again for the unprivileged user,
-# and the golden reports run with no network (CI run 36419120972).
-RUN npm install --global pnpm@10.32.1
-
 RUN useradd --create-home --uid 10001 arablyzer
 WORKDIR /arablyzer
-COPY --chown=arablyzer:arablyzer . .
+
+# The pnpm package.json names, for every user: pnpm would otherwise fetch that version when a
+# script runs, and the golden reports run with no network (CI run 36419120972).
+COPY package.json ./
+RUN npm install --global "$(node -p "require('./package.json').packageManager.split('+')[0]")"
+
+# The code belongs to root: the user the scanner runs as reads it and cannot change it.
+COPY . .
 RUN pnpm install --frozen-lockfile
 # The browsers of the Playwright the workspace pins, with the libraries (and fonts) they need.
 RUN pnpm --filter @arablyzer/browser exec playwright-core install --with-deps chromium firefox webkit \
  && rm -rf /var/lib/apt/lists/* \
  && chmod -R a+rX /opt/ms-playwright
-RUN pnpm --filter @arablyzer/cli build \
- && chown -R arablyzer:arablyzer /arablyzer/packages/cli/dist
-# The fonts as the browsers find them: a change here changes the golden reports.
+RUN pnpm --filter @arablyzer/cli build
+# The fonts as the browsers find them; the golden run compares them with fixtures/golden/fonts.txt.
 RUN fc-list --format '%{family[0]}|%{style[0]}|%{file}\n' | sort > /arablyzer/fonts.txt
 
 USER arablyzer

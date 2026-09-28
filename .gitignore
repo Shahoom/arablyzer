@@ -7,3 +7,5 @@ coverage/
 .env
 .env.*
 !.env.example
+# What the golden run keeps when a report differs (README).
+golden-actual/
