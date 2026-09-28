@@ -63,7 +63,7 @@ ARABLYZER_TEST_DATABASE_URL=postgres://user:pass@127.0.0.1:5432/db pnpm test:ser
 
 ### The stack / تشغيل كل شيء معاً
 
-`infra/compose.yaml` runs everything on one host: the site's server (Caddy), the API, the worker, the scanner with its browsers, the egress proxy (Smokescreen, with a port check and the egress package's deny list), Valkey and PostgreSQL. The scanner's browsers see the egress proxy alone, and no store; every name they ask for is resolved and vetted there.
+`infra/compose.yaml` runs everything on one host: the site's server (Caddy), the API, the worker, the scanner with its browsers, the egress proxy (Smokescreen, with a port check and the egress package's deny list), Valkey and PostgreSQL. The scanner's browsers see the egress proxy alone, and no store; every name they ask for is resolved and vetted there. The internal networks give the host no address, so nothing on them reaches the host's own services either: that takes Docker Engine 28 or later, and since Docker ignores a network option it does not know, `pnpm test:stack` checks it on the Docker that runs it. The site's server listens on the host's loopback, for the host's own proxy, which terminates TLS in front of it. Every container runs read-only, without privileges, with caps on memory, CPU and processes.
 
 ```bash
 cp infra/.env.example infra/.env        # then fill it in
@@ -73,7 +73,7 @@ docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml up --detach --bui
 pnpm test:stack
 ```
 
-The egress proxy's deny list is generated from `packages/egress`: `pnpm --filter @arablyzer/egress smokescreen-config` writes `infra/egress/smokescreen.yaml`, and the egress tests check the two agree.
+The egress proxy's configuration is generated from `packages/egress`, its deny list and its limits: `pnpm --filter @arablyzer/egress smokescreen-config` writes `infra/egress/smokescreen.yaml`, and the egress tests check the two agree. The proxy's own tests (`infra/egress/main_test.go`) run as its image is built.
 
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
 - Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md), [Phase 2](docs/design/phase-2.md)
