@@ -1,5 +1,5 @@
 import type { Engine } from '@arablyzer/collectors'
-import { createPolicy, type ResolvedAddress, type Resolver } from '@arablyzer/egress'
+import { createPolicy } from '@arablyzer/egress'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   NEEDS_ISOLATION,
@@ -7,7 +7,14 @@ import {
   renderPage,
   type RenderOutcome,
 } from '../../src/index'
-import { enginesUnderTest, pages, serve, trap, type Site, type Trap } from './helpers'
+import {
+  serveHostileSite,
+  SSRF_RESOLVER,
+  trap,
+  type HostileSite,
+  type Trap,
+} from '@arablyzer/fixtures'
+import { enginesUnderTest } from './helpers'
 
 const engines = await enginesUnderTest()
 const cleanup: (() => Promise<void>)[] = []
@@ -16,123 +23,28 @@ afterEach(async () => {
   for (const close of cleanup.splice(0).reverse()) await close()
 })
 
-/** internal.test is a public-looking name that resolves to loopback. */
-const dns: Resolver = (hostname) =>
-  hostname === 'internal.test'
-    ? Promise.resolve<readonly ResolvedAddress[]>([{ address: '127.0.0.1', family: 4 }])
-    : Promise.reject(Object.assign(new Error(`ENOTFOUND ${hostname}`), { code: 'ENOTFOUND' }))
-
-/** WebRTC towards the trap: STUN, and TURN over UDP and over TCP. */
-function webrtc(port: number): string {
-  return `
-try {
-  const pc = new RTCPeerConnection({ iceServers: [
-    { urls: 'stun:127.0.0.1:${port}' },
-    { urls: 'turn:127.0.0.1:${port}?transport=udp', username: 'a', credential: 'b' },
-    { urls: 'turn:127.0.0.1:${port}?transport=tcp', username: 'a', credential: 'b' },
-  ] });
-  pc.createDataChannel('x');
-  pc.createOffer().then((offer) => pc.setLocalDescription(offer)).catch(() => {});
-} catch {}`
-}
-
-/**
- * Every way this page can make a browser send a request, towards a local service: the trap's
- * port on 127.0.0.1, localhost, [::1] and a name that resolves to loopback, plus the metadata
- * address and loopback on port 80, which the proxy log must show refused. Engines that render
- * only where the network is isolated get it without WebRTC, which they send around the proxy.
- */
-function hostilePage(port: number, withWebrtc: boolean): string {
-  const at = (path: string) => `http://127.0.0.1:${port}${path}`
-  return `<!doctype html>
-<html lang="ar" dir="rtl"><head><meta charset="utf-8">
-<link rel="stylesheet" href="/style.css">
-<link rel="prefetch" href="${at('/prefetch')}">
-<link rel="preload" as="image" href="${at('/preload')}">
-<link rel="preconnect" href="${at('')}">
-<link rel="dns-prefetch" href="http://internal.test">
-<link rel="icon" href="${at('/icon')}">
-</head><body>
-<p>صفحة تحاول الوصول إلى خدمات داخلية.</p>
-<img src="${at('/img')}">
-<img src="http://localhost:${port}/localhost">
-<img src="http://[::1]:${port}/ipv6">
-<img src="http://internal.test:${port}/dns">
-<img src="http://internal.test/dns-80">
-<img src="http://127.0.0.1/loopback-80">
-<img src="http://169.254.169.254/latest/meta-data/">
-<img src="/redirect">
-<img srcset="${at('/srcset')} 2x">
-<iframe src="${at('/iframe')}"></iframe>
-<video src="${at('/video')}"></video>
-<audio src="${at('/audio')}"></audio>
-<object data="${at('/object')}"></object>
-<embed src="${at('/embed')}">
-<a href="${at('/link')}" ping="${at('/ping')}">link</a>
-<form action="${at('/form')}" method="post"><input name="q" value="x"></form>
-<script>
-const port = ${port};
-const at = (path) => 'http://127.0.0.1:' + port + path;
-fetch(at('/fetch')).catch(() => {});
-fetch(at('/fetch-post'), { method: 'POST', body: 'x', mode: 'no-cors' }).catch(() => {});
-try { const x = new XMLHttpRequest(); x.open('GET', at('/xhr')); x.send(); } catch {}
-try { new WebSocket('ws://127.0.0.1:' + port + '/ws'); } catch {}
-try { new EventSource(at('/sse')); } catch {}
-try { navigator.sendBeacon(at('/beacon'), 'x'); } catch {}
-try { new Worker('/worker.js'); } catch {}
-try { navigator.serviceWorker.register('/sw.js').catch(() => {}); } catch {}
-try { import(at('/module.js')).catch(() => {}); } catch {}
-try { new WebTransport('https://127.0.0.1:' + port + '/webtransport').ready.catch(() => {}); } catch {}
-${withWebrtc ? webrtc(port) : ''}
-try { window.open(at('/popup')); } catch {}
-</script></body></html>`
-}
-
-async function hostileSite(port: number, withWebrtc: boolean): Promise<Site> {
-  const at = (path: string) => `http://127.0.0.1:${port}${path}`
-  const site = await serve(
-    pages({
-      '/': hostilePage(port, withWebrtc),
-      '/webrtc': `<!doctype html><p>نص</p><script>${webrtc(port)}</script>`,
-      '/style.css': [
-        200,
-        { 'content-type': 'text/css' },
-        `@import url(${at('/import.css')}); body { background: url(${at('/background')}); }
-         @font-face { font-family: Trap; src: url(${at('/font.woff2')}); }
-         p { font-family: Trap, serif; }`,
-      ],
-      '/redirect': [302, { location: at('/redirected') }, ''],
-      '/worker.js': [
-        200,
-        { 'content-type': 'text/javascript' },
-        `fetch('${at('/from-worker')}').catch(() => {})`,
-      ],
-      '/sw.js': [200, { 'content-type': 'text/javascript' }, ''],
-      '/refresh': `<!doctype html><meta http-equiv="refresh" content="0;url=${at('/refreshed')}"><p>نص</p>`,
-      '/navigate': `<!doctype html><p>نص</p><script>location.href = '${at('/navigated')}'</script>`,
-      '/leave': [302, { location: at('/') }, ''],
-    }),
-  )
-  cleanup.push(() => site.close())
-  return site
-}
-
 /**
  * This machine's network is not isolated. Engines that need isolation are rendered here all the
  * same, because their pages leave out the one route they send around the proxy (WebRTC); the
  * last suite shows that route still leaks, which is why they need isolation.
  */
-async function render(site: Site, path: string, engine: Engine, platform?: NodeJS.Platform) {
+async function render(site: HostileSite, path: string, engine: Engine, platform?: NodeJS.Platform) {
   const [outcome] = await renderPage(site.url(path), {
     engines: [engine],
     policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
-    resolver: dns,
+    resolver: SSRF_RESOLVER,
     timeoutMs: 20_000,
     networkIsolated: true,
     ...(platform === undefined ? {} : { platform }),
   })
   if (outcome === undefined) throw new Error('No outcome')
   return outcome
+}
+
+async function hostileSite(port: number, withWebrtc: boolean): Promise<HostileSite> {
+  const site = await serveHostileSite(port, withWebrtc)
+  cleanup.push(() => site.close())
+  return site
 }
 
 /** Waits up to `ms` for anything to reach the trap. */

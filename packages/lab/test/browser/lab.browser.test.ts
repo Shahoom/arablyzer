@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { createPolicy } from '@arablyzer/egress'
+import { serveHostileSite, SSRF_RESOLVER, trap } from '@arablyzer/fixtures'
 import { afterEach, describe, expect, it } from 'vitest'
 import { runLab } from '../../src/index'
 
@@ -171,6 +172,26 @@ describe('runLab', () => {
     const run = await runLab(site.url, { policy: only(site), timeoutMs: 25_000 })
     expect(run.status).toBe('timeout')
     expect(run.metrics).toBeNull()
+  })
+
+  it("reaches no local service from the render SSRF suite's hostile page, by any route (M1.3b review)", async () => {
+    const local = await trap()
+    const site = await serveHostileSite(local.port, true)
+    try {
+      for (const path of ['/', '/refresh', '/navigate', '/leave']) {
+        await runLab(site.url(path), {
+          policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+          resolver: SSRF_RESOLVER,
+          timeoutMs: 30_000,
+        })
+      }
+      // Give anything the page started (WebRTC gathering, retries) time to show up.
+      await new Promise((resolve) => setTimeout(resolve, 1_500))
+      expect(local.hits).toEqual([])
+    } finally {
+      await site.close()
+      await local.close()
+    }
   })
 
   it('reaches nothing the policy does not allow', async () => {

@@ -18,6 +18,16 @@ export {
 } from './server'
 export { sitePath } from './sites'
 export {
+  hostilePage,
+  hostileRoutes,
+  serveHostileSite,
+  SSRF_RESOLVER,
+  trap,
+  webrtcScript,
+  type HostileSite,
+  type Trap,
+} from './ssrf'
+export {
   certificateWindow,
   fixtureCa,
   fixtureCaFile,
