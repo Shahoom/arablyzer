@@ -29,7 +29,8 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
     '%s',
     async (name, index) => {
       const dir = `${SITES}${name}`
-      const data = (await loadSiteConfig(dir)).crux
+      const config = await loadSiteConfig(dir)
+      const data = config.crux
       const site = await serveSite(dir, { port: FIRST_PORT + index })
       const crux = data === undefined ? undefined : await serveCrux(data, { port: CRUX_PORT })
       try {
@@ -41,7 +42,11 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
             ],
           }),
           resolver: resolverFor(site),
-          render: { engines: ['chromium', 'firefox', 'webkit'] },
+          // A page over HTTPS carries a certificate of the test authority, which only this process
+          // trusts: the browsers refuse it, and Arablyzer never loosens that, so it is not rendered.
+          ...(config.tls === undefined
+            ? { render: { engines: ['chromium', 'firefox', 'webkit'] as const } }
+            : {}),
           ...(crux === undefined
             ? {}
             : { crux: { apiKey: 'golden-key', endpoint: crux.endpoint } }),
