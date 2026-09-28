@@ -5,7 +5,9 @@
 #
 # Golden site 04 is served inside the stack, on a network of its own whose subnet is public
 # address space. No packet leaves for it: the network is internal. So the API and the egress
-# proxy treat the site as any public site, and nothing is opened in either for the test.
+# proxy treat the site as any public site, and nothing is opened in either for the test. Like
+# compose.yaml's internal networks, it gives the host no address, which the egress proxy would
+# take for a public one.
 services:
   fixture:
     image: caddy:2.11-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
@@ -22,6 +24,9 @@ services:
 networks:
   testnet:
     internal: true
+    driver_opts:
+      com.docker.network.bridge.gateway_mode_ipv4: isolated
+      com.docker.network.bridge.inhibit_ipv4: 'true'
     ipam:
       config:
         - subnet: 93.184.215.0/24

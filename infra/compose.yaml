@@ -1,6 +1,7 @@
 # Arablyzer on one host (M2.1 plan §5b): the site's server, the API, the worker, the scanner with
 # its browsers, the egress proxy, Valkey and PostgreSQL, within the memory budget of BUILD-PLAN
-# §18.3.1.
+# §18.3.1, and with CPU and process caps so the browsers never slow the host's other services.
+# The caps are a start, not a measurement: tune them to the host.
 #
 #   cp infra/.env.example infra/.env        # then fill it in
 #   docker compose -f infra/compose.yaml up --build
@@ -11,6 +12,10 @@
 #   data      internal: the API and the worker, and Valkey and PostgreSQL
 #   scan      internal: the worker and the scanner
 #   isolated  internal: the scanner and the egress proxy; the browsers' only way out
+# The internal networks give the host no address on their bridges: with one, a container on them
+# reaches every service the host runs, around the egress proxy (M2.1d review). Docker ignores a
+# network option it does not know, so the stack's test checks it on the Docker that runs it:
+# `pnpm test:stack` (README, "The stack").
 name: arablyzer
 
 x-hardened: &hardened
@@ -18,6 +23,18 @@ x-hardened: &hardened
   read_only: true
   cap_drop: [ALL]
   security_opt: [no-new-privileges:true]
+  # Docker keeps what a service writes; this much, no more.
+  logging:
+    driver: json-file
+    options: { max-size: 10m, max-file: '3' }
+
+x-internal: &internal
+  internal: true
+  driver_opts:
+    # No address for the host on the bridge. Gateway mode `isolated` (Docker Engine 28 and
+    # later) is Docker's own way; inhibit_ipv4 does the same on an Engine that ignores the first.
+    com.docker.network.bridge.gateway_mode_ipv4: isolated
+    com.docker.network.bridge.inhibit_ipv4: 'true'
 
 services:
   web:
@@ -28,9 +45,13 @@ services:
       args:
         ARABLYZER_SITE: ${ARABLYZER_SITE:?}
         PUBLIC_TURNSTILE_SITE_KEY: ${PUBLIC_TURNSTILE_SITE_KEY:?}
-    # Caddy binds a port above 1024, so it needs no capability.
-    ports: ['${ARABLYZER_PORT:-8080}:8080']
-    tmpfs: [/data, /config]
+    # For the host's own proxy, which terminates TLS in front, alone: on loopback unless
+    # ARABLYZER_BIND says otherwise. Caddy binds a port above 1024, so it needs no capability.
+    ports: ['${ARABLYZER_BIND:-127.0.0.1}:${ARABLYZER_PORT:-8080}:8080']
+    tmpfs: ['/data:uid=65534,gid=65534', '/config:uid=65534,gid=65534']
+    environment:
+      # Whose X-Forwarded-For the site's server believes: the host's proxy (infra/Caddyfile).
+      ARABLYZER_TRUSTED_PROXIES: ${ARABLYZER_TRUSTED_PROXIES:-private_ranges}
     networks: [edge]
     depends_on:
       api: { condition: service_healthy }
@@ -39,10 +60,14 @@ services:
       interval: 10s
       retries: 5
     mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.5
+    pids_limit: 128
 
   api:
     <<: *hardened
     build: { context: .., target: api }
+    init: true
     tmpfs: [/tmp]
     environment:
       VALKEY_URL: redis://:${VALKEY_PASSWORD:?}@valkey:6379
@@ -58,7 +83,7 @@ services:
       # The site's server puts the visitor's address last in X-Forwarded-For (infra/Caddyfile).
       ARABLYZER_TRUST_PROXY: proxy
       ARABLYZER_EGRESS_PROXY: http://egress:4750
-      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:-}
+      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
     networks: [edge, data]
     depends_on:
       valkey: { condition: service_healthy }
@@ -73,10 +98,14 @@ services:
       interval: 10s
       retries: 10
     mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 1
+    pids_limit: 256
 
   worker:
     <<: *hardened
     build: { context: .., target: worker }
+    init: true
     tmpfs: [/tmp]
     environment:
       VALKEY_URL: redis://:${VALKEY_PASSWORD:?}@valkey:6379
@@ -87,22 +116,32 @@ services:
     depends_on:
       api: { condition: service_healthy }
       scanner: { condition: service_healthy }
-    # The scan running finishes before the worker stops: longer than a scan's budget (120 s).
-    stop_grace_period: 180s
+    # The scan running finishes before the worker stops: longer than the longest it waits for
+    # the scanner (SCANNER_TIMEOUT_MS, 240 s).
+    stop_grace_period: 270s
     mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    pids_limit: 256
 
   scanner:
     <<: *hardened
     build: { context: .., target: scanner }
+    # Reaps the browsers' processes whose parent has gone.
+    init: true
     # The browsers' profiles and caches, in memory; Firefox needs a home it can write to.
     tmpfs: [/tmp, '/home/arablyzer:uid=10001,gid=10001,mode=0700']
     shm_size: 512m
     environment:
       ARABLYZER_SCANNER_TOKEN: ${ARABLYZER_SCANNER_TOKEN:?}
       ARABLYZER_EGRESS_PROXY: http://egress:4750
-      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:-}
+      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
       ARABLYZER_ENGINES: ${ARABLYZER_ENGINES:-chromium,firefox,webkit}
       ARABLYZER_CRUX_KEY: ${ARABLYZER_CRUX_KEY:-}
+      # The network sees the egress proxy alone, so WebKit may run (plan §13).
+      ARABLYZER_NETWORK_ISOLATED: '1'
+      # No shader cache kept from one scan to the next.
+      MESA_SHADER_CACHE_DISABLE: 'true'
     networks: [scan, isolated]
     depends_on:
       egress: { condition: service_healthy }
@@ -114,21 +153,28 @@ services:
         - "fetch('http://127.0.0.1:8788/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
       interval: 10s
       retries: 10
-    stop_grace_period: 180s
+    stop_grace_period: 270s
     mem_limit: 1200m
+    memswap_limit: 1200m
+    cpus: 2
+    # The browsers' threads count too.
+    pids_limit: 1024
 
   egress:
     <<: *hardened
     build: { context: egress }
     environment:
-      # The server's own public address, refused like every private range (§18.3.1).
-      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:-}
+      # The server's own public address, refused like every private range (§18.3.1): required.
+      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
     networks: [edge, isolated]
     healthcheck:
       test: ['CMD', '/egress', 'check']
       interval: 10s
       retries: 5
     mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.5
+    pids_limit: 128
 
   valkey:
     <<: *hardened
@@ -157,10 +203,16 @@ services:
     environment:
       VALKEY_PASSWORD: ${VALKEY_PASSWORD:?}
     mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    pids_limit: 128
 
   postgres:
+    <<: *hardened
     image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
-    restart: unless-stopped
+    # Its own user from the start, like Valkey; its data on the volume, its socket in memory.
+    user: postgres
+    tmpfs: [/tmp, /var/run/postgresql]
     environment:
       POSTGRES_USER: arablyzer
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
@@ -172,12 +224,15 @@ services:
       interval: 5s
       retries: 10
     mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1
+    pids_limit: 256
 
 networks:
   edge: {}
-  data: { internal: true }
-  scan: { internal: true }
-  isolated: { internal: true }
+  data: *internal
+  scan: *internal
+  isolated: *internal
 
 volumes:
   postgres: {}

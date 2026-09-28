@@ -76,11 +76,10 @@ RUN fc-list --format '%{family[0]}|%{style[0]}|%{file}\n' | sort > /arablyzer/fo
 FROM browser-base AS browsers
 COPY --from=workspace --chown=arablyzer:arablyzer /arablyzer /arablyzer
 
-# The scanner: the engine and its browsers, whose only way out is the egress proxy (Compose), so
-# WebKit may run.
+# The scanner: the engine and its browsers. Where its only way out is the egress proxy, Compose
+# says so (ARABLYZER_NETWORK_ISOLATED), and WebKit may run; the image claims nothing of the kind.
 FROM browsers AS scanner
 USER arablyzer
-ENV ARABLYZER_NETWORK_ISOLATED=1
 EXPOSE 8788
 CMD ["node", "--import", "tsx", "apps/scanner/src/main.ts"]
 

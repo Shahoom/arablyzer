@@ -1,19 +1,36 @@
 # The site's server (M2.1 plan §5b): the pages, /api to the API, every report's link to its
-# language's report page, compressed, with the security headers. It writes no access log, so no
-# visitor's address is kept anywhere (BUILD-PLAN §14).
+# language's report page, compressed, with the security headers, errors included. It writes no
+# access log, and its error log keeps no visitor's address and no request header (BUILD-PLAN §14).
 {
 	admin off
-	# Behind the host's proxy, which terminates TLS: its X-Forwarded-For is read right to left,
-	# past the private addresses of proxies, to the visitor's own.
+	# Behind the host's proxy, which terminates TLS: X-Forwarded-For is read right to left, past
+	# the proxies trusted here, to the visitor's own address. The port is published on loopback,
+	# so only the host reaches it; ARABLYZER_TRUSTED_PROXIES narrows or widens the list, with a
+	# CDN's published ranges when one is in front (infra/.env.example).
 	servers {
-		trusted_proxies static private_ranges
+		trusted_proxies static {$ARABLYZER_TRUSTED_PROXIES:private_ranges}
 		trusted_proxies_strict
+	}
+	# An error the server answers (handle_errors) is logged at the debug level alone, which is off;
+	# one it cannot answer is logged with the request, whose addresses and headers go (§14).
+	log default {
+		output stderr
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				request>headers delete
+				request>tls delete
+			}
+		}
 	}
 }
 
-:{$PORT:8080} {
-	encode zstd gzip
-
+# Deleting a header defers the lot to the response, which an error writes around: so the
+# errors import them too.
+(security) {
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options nosniff
@@ -23,6 +40,11 @@
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		-Server
 	}
+}
+
+:{$PORT:8080} {
+	encode zstd gzip
+	import security
 
 	handle /api/* {
 		reverse_proxy api:8787 {
@@ -45,5 +67,10 @@
 	handle {
 		root * /srv
 		file_server
+	}
+
+	handle_errors {
+		import security
+		respond "{err.status_code} {err.status_text}"
 	}
 }
