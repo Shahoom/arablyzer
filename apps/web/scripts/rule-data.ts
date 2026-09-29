@@ -24,12 +24,14 @@ const NEAR = 3
 const DESCRIPTION = 160
 
 /**
- * What the rule reads, most telling first: a browser, Chrome's data, robots.txt, the server's
- * response (its headers, redirects or connection), or the HTML.
+ * What the rule reads, most telling first: a browser, Chrome's data, the sitemaps (with
+ * robots.txt, which names them), robots.txt, the server's response (its headers, redirects or
+ * connection), or the HTML.
  */
 export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('render')) return 'render'
   if (rule.needs.includes('crux')) return 'crux'
+  if (rule.needs.includes('sitemap')) return 'sitemap'
   if (rule.needs.includes('robots')) return 'robots'
   if (SERVER_RESPONSE_RULES.has(rule.id)) return 'http'
   return 'html'

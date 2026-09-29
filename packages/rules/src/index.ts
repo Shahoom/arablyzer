@@ -46,6 +46,7 @@ import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/r
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
+import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
 import { rule as textCompressionMissing } from './rules/text-compression-missing/rule'
 import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as tlsExpiring } from './rules/tls-expiring/rule'
@@ -105,6 +106,7 @@ export const RULES: readonly Rule[] = [
   rtlHtmlDir,
   rtlMirroredIcons,
   rtlPhysicalCss,
+  sitemapMissing,
   textCompressionMissing,
   titleMissing,
   tlsExpiring,
