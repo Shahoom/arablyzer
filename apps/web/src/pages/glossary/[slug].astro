@@ -1,0 +1,12 @@
+---
+import TermPage from '../../components/guides/TermPage.astro'
+import { GUIDES_DATA } from '../../lib/guide-data'
+
+export function getStaticPaths() {
+  return GUIDES_DATA.glossary.map((term) => ({ params: { slug: term.slug } }))
+}
+
+const { slug } = Astro.params
+---
+
+<TermPage lang="ar" slug={slug} />

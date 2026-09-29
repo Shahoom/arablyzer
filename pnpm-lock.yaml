@@ -166,6 +166,9 @@ importers:
       '@arablyzer/fixtures':
         specifier: workspace:*
         version: link:../../fixtures
+      '@arablyzer/guides':
+        specifier: workspace:*
+        version: link:../../packages/guides
       '@arablyzer/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
@@ -399,6 +402,19 @@ importers:
       ajv-formats:
         specifier: ^3.0.1
         version: 3.0.1(ajv@8.20.0)
+
+  packages/guides:
+    dependencies:
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+    devDependencies:
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../rules
+      '@arablyzer/tools':
+        specifier: workspace:*
+        version: link:../tools
 
   packages/i18n:
     dependencies:
