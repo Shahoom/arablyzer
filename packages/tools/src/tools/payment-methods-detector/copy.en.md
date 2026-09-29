@@ -34,6 +34,13 @@ Reads your page and lists the Gulf payment methods it shows, of mada, Apple Pay,
 
 Name each payment method's logo in its text alternative, so a screen reader knows it as the detector does: WCAG asks that all non-text content have a text alternative that serves the same purpose, and a logo without a name says nothing to those who cannot see it.
 
+```html
+<img src="/pay/mada.svg" alt="مدى" />
+<svg role="img" aria-labelledby="tamara-logo">
+  <title id="tamara-logo">تمارا</title>
+</svg>
+```
+
 - An image: `alt="مدى"` or `alt="Apple Pay"`, or with a word such as `alt="mada logo"`.
 - An SVG icon: a `<title>` inside it, or `aria-label`.
 - Tabby's and Tamara's messages: use the script each gives in its guide, as it is. Both ask for their message to show near the price on the product page, and near the total in the cart.

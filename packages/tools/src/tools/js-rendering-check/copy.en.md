@@ -32,7 +32,15 @@ Renders your page in browsers and compares its Arabic text, as visitors see it, 
 
 ## How to fix
 
-Send the page's text in the HTML from the server, and let scripts add only what interaction needs:
+Send the page's text in the HTML from the server, and let scripts add only what interaction needs, so the text arrives before them:
+
+```html
+<main id="app">
+  <h1>قهوة عربية بالهيل</h1>
+  <p>قهوة عربية محمّصة تحميصاً خفيفاً ومطحونة مع الهيل، في علب تُشحن خلال يومين.</p>
+</main>
+<script src="/app.js" defer></script>
+```
 
 - **Server-side rendering** (SSR): the server builds the page's whole HTML for each request, and JavaScript takes it over in the browser. Common frameworks support it, such as Next.js, Nuxt, SvelteKit and Astro.
 - **Pre-rendering** (static generation): each page's HTML is built once, when the site is published, which suits pages whose content is the same for every visitor.
