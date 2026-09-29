@@ -83,7 +83,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'trust',
   severity: 'moderate',
-  needs: ['http'],
+  needs: ['headers'],
   messages: ['missing', 'zero', 'invalid'],
   appliesTo: (page) => {
     const hostname = hostnameOf(page.url)

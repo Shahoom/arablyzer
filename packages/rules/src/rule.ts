@@ -11,14 +11,16 @@ import type { Category, JsonValue, Severity } from '@arablyzer/report-schema'
 import { loadRuleCopy, type RuleCopy } from './copy'
 
 /**
- * What a rule needs collected. `http`: a 2xx page response (headers; HTML optional).
- * `html` and `text`: a 2xx HTML page. `robots`: robots.txt for the final URL. `render`: the page
- * rendered in a browser (only with --render; M1.1). `files`, with `render`: the files the page
- * loaded, read after the render (stylesheets, fonts, text responses, image files); the rule sees
- * only the engines that read them. `crux`: real-user data from the Chrome UX Report, which needs
- * an API key; without one the rule does not apply (M1.3b).
+ * What a rule needs collected. `http`: a 2xx page response (headers; HTML optional). `headers`:
+ * the same, for a rule that reads the response's headers, which an HTTP example on a tool's page
+ * can show (M2.3). `html` and `text`: a 2xx HTML page. `robots`: robots.txt for the final URL.
+ * `render`: the page rendered in a browser (only with --render; M1.1). `files`, with `render`: the
+ * files the page loaded, read after the render (stylesheets, fonts, text responses, image files);
+ * the rule sees only the engines that read them. `crux`: real-user data from the Chrome UX
+ * Report, which needs an API key; without one the rule does not apply (M1.3b).
  */
-export type CollectorId = 'http' | 'html' | 'text' | 'robots' | 'render' | 'files' | 'crux'
+export type CollectorId =
+  'http' | 'headers' | 'html' | 'text' | 'robots' | 'render' | 'files' | 'crux'
 
 export interface Evidence {
   readonly page: PageFacts

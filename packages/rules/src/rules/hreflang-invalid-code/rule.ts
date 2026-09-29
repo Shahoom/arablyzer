@@ -24,7 +24,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'intl',
   severity: 'moderate',
-  needs: ['http'],
+  needs: ['headers'],
   messages: [
     'underscore',
     'unknown-language',
