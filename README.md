@@ -147,6 +147,12 @@ These read TXT records of the page's domain (its organizational domain, by the P
 | [`spf-missing`](packages/rules/src/rules/spf-missing/copy.en.md) | The page's domain has one SPF record (`v=spf1`) |
 | [`dmarc-missing`](packages/rules/src/rules/dmarc-missing/copy.en.md) | The page's domain has one DMARC record (`v=DMARC1` at `_dmarc`) |
 
+This one asks for the page's links to its own origin, the first 50, each with one `HEAD` (and a `GET` where `HEAD` answers an error), through the egress proxy, following no redirect:
+
+| Rule | Checks |
+|---|---|
+| [`link-broken`](packages/rules/src/rules/link-broken/copy.en.md) | No link to the site's own pages answers a `4xx` or `5xx` error |
+
 These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
 
 | Rule | Checks |

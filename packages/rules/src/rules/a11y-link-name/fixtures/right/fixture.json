@@ -1,0 +1,14 @@
+{
+  "/cart": {
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8"
+    },
+    "body": "<!doctype html><title>السلة</title>"
+  },
+  "/offers": {
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8"
+    },
+    "body": "<!doctype html><title>العروض</title>"
+  }
+}
