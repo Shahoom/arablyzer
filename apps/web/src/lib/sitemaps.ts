@@ -12,6 +12,8 @@ const PAGES: readonly string[] = [
   PATHS.home,
   PATHS.tools,
   PATHS.rules,
+  PATHS.fix,
+  PATHS.glossary,
   PATHS.methodology,
   PATHS.bot,
 ]
