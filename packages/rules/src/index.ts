@@ -36,6 +36,7 @@ import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as priceDecimals } from './rules/price-decimals/rule'
 import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
+import { rule as referrerPolicyMissing } from './rules/referrer-policy-missing/rule'
 import { rule as robotsBlocksAiSearch } from './rules/robots-blocks-ai-search/rule'
 import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/rule'
 import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
@@ -91,6 +92,7 @@ export const RULES: readonly Rule[] = [
   pageNoindex,
   priceDecimals,
   productOfferInvalid,
+  referrerPolicyMissing,
   robotsBlocksAiSearch,
   robotsBlocksGooglebot,
   rtlBidiIsolation,

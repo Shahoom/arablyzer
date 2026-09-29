@@ -61,6 +61,7 @@ const SERVER_RULES = new Set([
   'csp-missing',
   'x-content-type-options-missing',
   'frame-protection-missing',
+  'referrer-policy-missing',
 ])
 
 /** robots.txt rules are left out too: a rendered page has none to read. */
