@@ -80,7 +80,13 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
           client:idle
           lang={lang}
           tool={slug}
-          reads={tool.renders ? 'render' : tool.tag === 'robots' ? 'robots' : 'html'}
+          reads={
+            tool.renders
+              ? 'render'
+              : tool.tag === 'robots' || tool.tag === 'dns' || tool.tag === 'links'
+                ? tool.tag
+                : 'html'
+          }
         />
       </div>
 

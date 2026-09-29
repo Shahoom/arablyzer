@@ -10,8 +10,11 @@ export interface ToolAppStrings {
     readonly urlLabel: string
     readonly submit: string
     readonly submitting: string
-    /** Under the form: free, and what the tool reads: the page, robots.txt, or the page drawn. */
-    readonly note: Readonly<Record<'html' | 'robots' | 'render', string>>
+    /**
+     * Under the form: free, and what the tool reads: the page, robots.txt, the page drawn, the
+     * domain's DNS records, or the page and its links.
+     */
+    readonly note: Readonly<Record<'html' | 'robots' | 'render' | 'dns' | 'links', string>>
   }
   readonly result: {
     readonly running: string
@@ -50,6 +53,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         html: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم.',
         robots: 'مجاني وبلا تسجيل. نقرأ ملف robots.txt كما يرسله الخادم.',
         render: 'مجاني وبلا تسجيل. نعرض الصفحة في المتصفحات كما يعرضها زائرك.',
+        dns: 'مجاني وبلا تسجيل. نقرأ سجلات DNS لنطاق الصفحة.',
+        links: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم، ونطلب روابطها إلى موقعها.',
       },
     },
     result: {
@@ -97,6 +102,9 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         html: 'Free, no sign-up. We read the page as the server sends it.',
         robots: 'Free, no sign-up. We read robots.txt as the server sends it.',
         render: 'Free, no sign-up. We render the page in browsers, as your visitor sees it.',
+        dns: 'Free, no sign-up. We read the DNS records of the page’s domain.',
+        links:
+          'Free, no sign-up. We read the page as the server sends it, and ask for its links to its own site.',
       },
     },
     result: {

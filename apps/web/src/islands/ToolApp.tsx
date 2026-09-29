@@ -30,8 +30,11 @@ interface Props {
   lang: Lang
   /** The tool's slug: its scan runs its rules alone (M2.2). */
   tool: string
-  /** What the tool reads, which the note under the form says: the page, robots.txt, or browsers. */
-  reads: 'html' | 'robots' | 'render'
+  /**
+   * What the tool reads, which the note under the form says: the page, robots.txt, browsers, DNS
+   * records, or the page and its links.
+   */
+  reads: 'html' | 'robots' | 'render' | 'dns' | 'links'
 }
 
 type Run =
