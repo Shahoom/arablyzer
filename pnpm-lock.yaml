@@ -400,6 +400,19 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1(ajv@8.20.0)
 
+  packages/generators:
+    dependencies:
+      '@arablyzer/collectors':
+        specifier: workspace:*
+        version: link:../collectors
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../rules
+    devDependencies:
+      '@arablyzer/engine':
+        specifier: workspace:*
+        version: link:../engine
+
   packages/i18n:
     dependencies:
       '@arablyzer/api-contract':
