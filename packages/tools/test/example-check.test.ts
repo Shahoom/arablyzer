@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CodeExample, Tool, ToolCopy } from '../src/index'
-import { evaluateExample, exampleProblems, speaksTo } from './example-check'
+import { evaluateExample, exampleProblems, reportsOnly, speaksTo } from './example-check'
 
 const http = (code: string): CodeExample => ({ lang: 'http', code })
 
@@ -140,6 +140,26 @@ describe('a DNS example', () => {
     expect(status('www.example.com. TXT "v=spf1 -all"')).toEqual([
       ['dmarc-missing', 'fail'],
       ['spf-missing', 'fail'],
+    ])
+  })
+})
+
+const html = (code: string): CodeExample => ({ lang: 'html', code })
+
+describe('an information tool', () => {
+  const unnamed = html('<img src="/pay/mada.svg">')
+  const named = html('<img src="/pay/mada.svg" alt="مدى">')
+
+  it('is one whose rules are all information', () => {
+    expect(reportsOnly(toolOf(['payment-methods'], unnamed, named))).toBe(true)
+    expect(reportsOnly(toolOf(['payment-methods', 'title-missing'], unnamed, named))).toBe(false)
+  })
+
+  it('shows as wrong what it can name nothing on, and as right what it reports', () => {
+    expect(exampleProblems(toolOf(['payment-methods'], unnamed, named), 'ar')).toEqual([])
+    expect(exampleProblems(toolOf(['payment-methods'], named, unnamed), 'en')).toEqual([
+      'payment-methods is fail on the wrong example, which names nothing',
+      'none of payment-methods reports on the right example',
     ])
   })
 })

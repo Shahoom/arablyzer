@@ -148,6 +148,15 @@ function fixtureTexts(ruleId: string, kind: 'wrong' | 'right'): string[] {
   return texts
 }
 
+/**
+ * Whether every rule the tool runs is information (severity info): it lists what a page shows
+ * and judges nothing. Its page's wrong example is then one it can name nothing on, and its right
+ * example one it reports on (M2.3c's payment-methods-detector: logos without names, and with).
+ */
+export function reportsOnly(tool: Tool): boolean {
+  return tool.rules.every((id) => ruleById(id)?.severity === 'info')
+}
+
 /** What is wrong with a tool's examples in one language: nothing, when the page tells the truth. */
 export function exampleProblems(tool: Tool, lang: Lang): string[] {
   const { wrong, right } = tool.copy[lang].example
@@ -166,6 +175,21 @@ export function exampleProblems(tool: Tool, lang: Lang): string[] {
           `the ${kind} example is not in a ${kind} fixture of ${tool.rules.join(', ')} (whitespace aside)`,
         )
       }
+    }
+    return problems
+  }
+  if (reportsOnly(tool)) {
+    for (const result of evaluateExample(tool, wrong)) {
+      if (result.status === 'fail' || result.status === 'error') {
+        problems.push(`${result.id} is ${result.status} on the wrong example, which names nothing`)
+      }
+    }
+    const reported = evaluateExample(tool, right)
+    if (!reported.some((result) => result.status === 'fail')) {
+      problems.push(`none of ${tool.rules.join(', ')} reports on the right example`)
+    }
+    for (const result of reported) {
+      if (result.status === 'error') problems.push(`${result.id} errs on the right example`)
     }
     return problems
   }

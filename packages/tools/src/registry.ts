@@ -21,6 +21,7 @@ import { definition as letterSpacingCheck } from './tools/letter-spacing-check/t
 import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
 import { definition as mirroredIconsCheck } from './tools/mirrored-icons-check/tool'
 import { definition as mixedContent } from './tools/mixed-content/tool'
+import { definition as paymentMethodsDetector } from './tools/payment-methods-detector/tool'
 import { definition as phoneFormatCheck } from './tools/phone-format-check/tool'
 import { definition as priceFormatCheck } from './tools/price-format-check/tool'
 import { definition as productPageCheck } from './tools/product-page-check/tool'
@@ -63,6 +64,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   logicalCssCheck,
   mirroredIconsCheck,
   mixedContent,
+  paymentMethodsDetector,
   phoneFormatCheck,
   priceFormatCheck,
   productPageCheck,
