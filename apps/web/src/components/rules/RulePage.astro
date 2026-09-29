@@ -2,6 +2,7 @@
 import { RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList, techArticle } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
 import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
@@ -10,6 +11,7 @@ import Page from '../../layouts/Page.astro'
 import { METHODOLOGY, scanFormHref, siteOf } from '../../lib/site'
 import { LIBRARY_DATA, ruleData } from '../../lib/rule-data'
 import { toolData } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
 import SeverityPill from '../SeverityPill.astro'
 
 interface Props {
@@ -44,6 +46,7 @@ const jsonLd = [
     version: rule.version,
   }),
   breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
     { name: t.library.title, url: pageUrl(site, lang, PATHS.rules) },
     { name: copy.title, url },
   ]),
@@ -80,7 +83,7 @@ const card = 'flex flex-col border bg-white p-[22px]'
           </ol>
         </nav>
         <h1 class="m-0 text-[30px] leading-[1.25] font-semibold text-balance md:text-[46px]">
-          {copy.title}
+          <Bidi text={copy.title} lang={lang} />
         </h1>
         <ul class="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-[13px]">
           <li>
@@ -210,7 +213,7 @@ const card = 'flex flex-col border bg-white p-[22px]'
               index < tools.length && 'border-b border-rule-soft',
             ]}
           >
-            {link.title}
+            <Bidi text={link.title} lang={lang} />
             <Next size={16} stroke-width={2} aria-hidden="true" class="shrink-0" />
           </a>
         ))}
@@ -229,7 +232,9 @@ const card = 'flex flex-col border bg-white p-[22px]'
                 index < near.length - 1 && 'border-b border-rule-soft',
               ]}
             >
-              <span class="text-[15px] leading-[1.6] font-semibold">{other.title}</span>
+              <span class="text-[15px] leading-[1.6] font-semibold">
+                <Bidi text={other.title} lang={lang} />
+              </span>
               <span dir="ltr" class="self-start font-mono text-xs text-ink-3">
                 {other.id}
               </span>
