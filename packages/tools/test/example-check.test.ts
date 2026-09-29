@@ -108,3 +108,38 @@ describe('an HTTP example', () => {
     expect(exampleProblems(tool, 'ar')).toEqual([])
   })
 })
+
+const dns = (code: string): CodeExample => ({ lang: 'dns', code })
+
+describe('a DNS example', () => {
+  it('speaks to the rules that read DNS, and to no other', () => {
+    const example = dns('example.com. TXT "v=spf1 -all"')
+    for (const id of ['spf-missing', 'dmarc-missing']) expect(speaksTo(example, id), id).toBe(true)
+    for (const id of ['hsts-missing', 'title-missing', 'robots-blocks-googlebot']) {
+      expect(speaksTo(example, id), id).toBe(false)
+    }
+    expect(speaksTo({ lang: 'html', code: '<p>x</p>' }, 'spf-missing')).toBe(false)
+  })
+
+  it("is what DNS answers for the page's domain: its records, and none where it gives none", () => {
+    const rules = ['spf-missing', 'dmarc-missing']
+    const status = (code: string) =>
+      evaluateExample(toolOf(rules, dns(code), dns(code)), dns(code)).map((result) => [
+        result.id,
+        result.status,
+      ])
+    expect(status('example.com. TXT "v=spf1 -all"')).toEqual([
+      ['dmarc-missing', 'fail'],
+      ['spf-missing', 'pass'],
+    ])
+    expect(status('_dmarc.example.com. TXT "v=DMARC1; p=reject"')).toEqual([
+      ['dmarc-missing', 'pass'],
+      ['spf-missing', 'fail'],
+    ])
+    // Records at another name are not the domain's.
+    expect(status('www.example.com. TXT "v=spf1 -all"')).toEqual([
+      ['dmarc-missing', 'fail'],
+      ['spf-missing', 'fail'],
+    ])
+  })
+})

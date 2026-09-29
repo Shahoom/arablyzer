@@ -15,7 +15,7 @@ export interface ToolRuleData {
 
 /** An example's code, highlighted and escaped (src/lib/code.ts). */
 export interface ExampleData {
-  readonly lang: 'html' | 'robots.txt' | 'http'
+  readonly lang: 'html' | 'robots.txt' | 'http' | 'dns'
   readonly html: string
 }
 

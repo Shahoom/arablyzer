@@ -1,15 +1,17 @@
 import { readFileSync } from 'node:fs'
 import { KEBAB_ID } from '@arablyzer/report-schema'
+import { parseDnsExample } from './dns'
 import { parseHttpExample } from './http'
 
 export type Lang = 'ar' | 'en'
 
 export interface CodeExample {
   /**
-   * What the code is: an HTML page (or part of one), a robots.txt file, or the HTTP responses a
-   * page's address gets, redirects included (src/http.ts).
+   * What the code is: an HTML page (or part of one), a robots.txt file, the HTTP responses a
+   * page's address gets, redirects included (src/http.ts), or the TXT records DNS has for its
+   * domain (src/dns.ts).
    */
-  readonly lang: 'html' | 'robots.txt' | 'http'
+  readonly lang: 'html' | 'robots.txt' | 'http' | 'dns'
   readonly code: string
 }
 
@@ -68,7 +70,7 @@ export const TOOL_HEADINGS: Readonly<
 
 const SECTIONS: readonly SectionKey[] = ['checks', 'example', 'fix', 'faq', 'methodology']
 const EXAMPLES: readonly ExampleKey[] = ['wrong', 'right']
-const CODE_LANGS: readonly CodeExample['lang'][] = ['html', 'robots.txt', 'http']
+const CODE_LANGS: readonly CodeExample['lang'][] = ['html', 'robots.txt', 'http', 'dns']
 
 /** Harakat, superscript alef and tatweel: "كيف تصلح" and "كيف تُصلح" are the same heading. */
 const ARABIC_MARKS = /[\u064B-\u065F\u0670\u0640]/g
@@ -258,11 +260,12 @@ function codeBlock(
   const lang = (match?.[2] ?? '').trim()
   const known = CODE_LANGS.find((candidate) => candidate === lang)
   if (known === undefined) {
-    return fail(`${where}: the code block must be html, robots.txt or http, not "${lang}"`)
+    return fail(`${where}: the code block must be html, robots.txt, http or dns, not "${lang}"`)
   }
-  if (known === 'http') {
+  if (known === 'http' || known === 'dns') {
     try {
-      parseHttpExample(code)
+      if (known === 'http') parseHttpExample(code)
+      else parseDnsExample(code)
     } catch (error) {
       fail(`${where}: ${error instanceof Error ? error.message : String(error)}`)
     }

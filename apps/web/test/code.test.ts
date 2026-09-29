@@ -52,6 +52,18 @@ describe('highlight', () => {
     )
   })
 
+  it("mutes a DNS record's name and type, and colours its strings", () => {
+    expect(
+      highlight(
+        'example.com.  TXT  "v=spf1 -all"\n\n_dmarc.example.com.  TXT  "v=DMARC1; p=<reject>"',
+        'dns',
+        'right',
+      ),
+    ).toBe(
+      '<span class="text-ink-3">example.com.  TXT  </span><span class="text-pass">&quot;v=spf1 -all&quot;</span>\n\n<span class="text-ink-3">_dmarc.example.com.  TXT  </span><span class="text-pass">&quot;v=DMARC1; p=&lt;reject&gt;&quot;</span>',
+    )
+  })
+
   it("colours a JSON member's value, and mutes its name", () => {
     expect(highlight('"price": "12.500",\n"offers": {', 'json', 'right')).toBe(
       '<span class="text-ink-3">&quot;price&quot;: </span><span class="text-pass">&quot;12.500&quot;</span><span class="text-ink-3">,</span>\n<span class="text-ink-3">&quot;offers&quot;: {</span>',

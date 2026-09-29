@@ -18,15 +18,26 @@ const span = (className: string, text: string) =>
 
 /**
  * An example's code as the design draws it (the Tool-WhatsApp board): its markup muted, the
- * values in quotes, a CSS declaration's value, a robots.txt rule's path or an HTTP header's value
- * in the colour of the example, the signal for the wrong one and pass for the right one; the text
- * between tags as it is. Escaped throughout.
+ * values in quotes, a CSS declaration's value, a robots.txt rule's path, an HTTP header's value
+ * or a DNS record's strings in the colour of the example, the signal for the wrong one and pass
+ * for the right one; the text between tags as it is. Escaped throughout.
  */
 export function highlight(
   code: string,
-  lang: 'html' | 'css' | 'json' | 'robots.txt' | 'http',
+  lang: 'html' | 'css' | 'json' | 'robots.txt' | 'http' | 'dns',
   tone: keyof typeof TONE,
 ): string {
+  if (lang === 'dns') {
+    // TXT records: each one's name and type muted, its strings in the example's colour.
+    return code
+      .split('\n')
+      .map((line) => {
+        const start = line.indexOf('"')
+        if (start === -1) return escapeHtml(line)
+        return `${span(MUTED, line.slice(0, start))}${span(TONE[tone], line.slice(start))}`
+      })
+      .join('\n')
+  }
   if (lang === 'http') {
     // An HTTP exchange: each status line muted, each header's name muted and its value in the
     // example's colour, blank lines between the responses as they are.

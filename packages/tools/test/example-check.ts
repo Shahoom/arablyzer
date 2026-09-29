@@ -1,10 +1,24 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { collectPage, collectRobots, type RobotsFacts } from '@arablyzer/collectors'
+import {
+  collectPage,
+  collectRobots,
+  organizationalDomain,
+  type DnsFacts,
+  type RobotsFacts,
+} from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
 import type { Redirect } from '@arablyzer/report-schema'
 import { RULES, ruleById } from '@arablyzer/rules'
-import { locationOf, parseHttpExample, type CodeExample, type Lang, type Tool } from '../src/index'
+import {
+  locationOf,
+  parseDnsExample,
+  parseHttpExample,
+  txtOf,
+  type CodeExample,
+  type Lang,
+  type Tool,
+} from '../src/index'
 
 // BUILD-PLAN §6.1: the example on a tool's page is live. A tool that reads the HTML, robots.txt
 // or the response's headers and redirects judges its examples as the page says; one that renders
@@ -24,11 +38,32 @@ export function rendersPage(tool: Tool): boolean {
 }
 
 /**
- * The tool's rules on an example: HTML as the page itself, robots.txt beside a plain page, and an
+ * The tool's rules on an example: HTML as the page itself, robots.txt beside a plain page, an
  * HTTP example as the answers to a request for PAGE_URL: each redirect's Location is where the
- * next response came from, and the last response is the page, without a body.
+ * next response came from, and the last response is the page, without a body. A DNS example is
+ * what DNS answers for the TXT records of PAGE_URL's domain, beside a plain page: each name the
+ * rules read has the records the example gives it, and none when it gives none.
  */
 export function evaluateExample(tool: Tool, example: CodeExample) {
+  if (example.lang === 'dns') {
+    const records = parseDnsExample(example.code)
+    const domain = organizationalDomain(new URL(PAGE_URL).hostname) ?? ''
+    const dns: DnsFacts = {
+      domain,
+      txt: RULES.flatMap((rule) =>
+        rule.txtName === undefined
+          ? []
+          : [{ name: rule.txtName(domain), ...txtOf(records, rule.txtName(domain)) }],
+      ),
+    }
+    const page = collectPage({
+      url: PAGE_URL,
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: encode('<!doctype html><p>مرحبا</p>'),
+    })
+    return evaluatePage(page, { rules: RULES, ruleIds: tool.rules, dns }).results
+  }
   if (example.lang === 'http') {
     const responses = parseHttpExample(example.code)
     const redirects: Redirect[] = []
@@ -70,8 +105,9 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
 
 /**
  * Whether an example can speak to a rule: robots.txt to the rules that read it, an HTTP exchange
- * to those that read the response's headers or its redirects, HTML to the rest. A rule an example
- * cannot speak to, such as one that reads the certificate, need not pass it: it must not fail.
+ * to those that read the response's headers or its redirects, DNS records to those that read
+ * DNS, HTML to the rest. A rule an example cannot speak to, such as one that reads the
+ * certificate, need not pass it: it must not fail.
  */
 export function speaksTo(example: CodeExample, ruleId: string): boolean {
   const reads = ruleById(ruleId)?.needs ?? []
@@ -80,8 +116,10 @@ export function speaksTo(example: CodeExample, ruleId: string): boolean {
       return reads.includes('robots')
     case 'http':
       return reads.includes('headers') || reads.includes('redirects')
+    case 'dns':
+      return reads.includes('dns')
     case 'html':
-      return !reads.includes('robots')
+      return !reads.includes('robots') && !reads.includes('dns')
   }
 }
 
