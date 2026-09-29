@@ -19,14 +19,21 @@ import type { LibraryData, RuleCopyData, RuleData, RuleHeadings } from '../src/l
 /** How many rules of its category a rule's page lists beside it. */
 const NEAR = 3
 
+/** What the server's response alone tells: its connection, headers and redirects. */
+const SERVER_NEEDS: ReadonlySet<string> = new Set(['http', 'headers', 'redirects'])
+
 /** A meta description's length, past which search results cut it. */
 const DESCRIPTION = 160
 
-/** What the rule reads, most telling first: a browser, Chrome's data, robots.txt, or the HTML. */
+/**
+ * What the rule reads, most telling first: a browser, Chrome's data, robots.txt, the server's
+ * response (its headers, redirects or connection), or the HTML.
+ */
 export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('render')) return 'render'
   if (rule.needs.includes('crux')) return 'crux'
   if (rule.needs.includes('robots')) return 'robots'
+  if (rule.needs.some((need) => SERVER_NEEDS.has(need))) return 'http'
   return 'html'
 }
 

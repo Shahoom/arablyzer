@@ -71,6 +71,10 @@ describe('ruleReads', () => {
     expect(reads('cwv-lcp-poor')).toBe('crux')
     expect(reads('robots-blocks-googlebot')).toBe('robots')
     expect(reads('title-missing')).toBe('html')
+    // The server's response: its headers, even with a <meta> that counts too, and its redirects.
+    expect(reads('csp-missing')).toBe('http')
+    expect(reads('redirect-chain')).toBe('http')
+    expect(reads('tls-expiring')).toBe('http')
   })
 })
 

@@ -32,6 +32,8 @@ describe('the tools as their pages have them', () => {
     expect(tag('ai-crawler-check')).toBe('robots')
     expect(tag('rtl-check')).toBe('html')
     expect(tag('whatsapp-link-check')).toBe('html')
+    expect(tag('security-headers')).toBe('http')
+    expect(tag('redirect-chain-check')).toBe('http')
   })
 
   it('names each tool in both languages, for the report page of its result', () => {

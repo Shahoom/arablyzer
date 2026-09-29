@@ -26,6 +26,9 @@ export function toolTag(tool: Tool): ToolTag {
   if (needs.includes('render')) return 'render'
   if (needs.includes('crux')) return 'crux'
   if (needs.length > 0 && needs.every((need) => need === 'robots')) return 'robots'
+  if (needs.some((need) => need === 'http' || need === 'headers' || need === 'redirects')) {
+    return 'http'
+  }
   return 'html'
 }
 
