@@ -35,6 +35,7 @@ import {
   type LabFact,
   type Notice,
   type Page,
+  type Redirect,
   type RenderRun,
   type RuleResult,
   type RuleStatus,
@@ -443,7 +444,12 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
   progress({ step: 'rules', rules: rules.length })
-  const { results, findings } = evaluateRules(rules, page, robots, rendering?.rendered, crux)
+  const { results, findings } = evaluateRules(rules, page, {
+    robots,
+    rendered: rendering?.rendered,
+    crux,
+    redirects: target.http.redirects,
+  })
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
 
@@ -632,6 +638,11 @@ export interface EvaluateOptions {
   readonly rendered?: readonly RenderedFacts[]
   /** Real-user data; without it, rules that need `crux` do not apply. */
   readonly crux?: CruxFacts
+  /**
+   * The redirects the page's fetch followed, in order (the report's target.http.redirects);
+   * without them, rules that need them do not apply.
+   */
+  readonly redirects?: readonly Redirect[]
 }
 
 export interface Evaluation {
@@ -650,20 +661,22 @@ export function evaluatePage(page: PageFacts, options: EvaluateOptions = {}): Ev
     options.ruleIds,
     options.rendered === undefined ? undefined : ENGINES,
   )
-  return evaluateRules(rules, page, options.robots, options.rendered, options.crux)
+  return evaluateRules(rules, page, options)
 }
 
-function evaluateRules(
-  rules: readonly Rule[],
-  page: PageFacts,
-  robots: RobotsFacts | undefined,
-  rendered?: readonly RenderedFacts[],
-  crux?: CruxFacts,
-): Evaluation {
+/** What was collected beside the page, each for the rules that need it. */
+interface Collected {
+  readonly robots?: RobotsFacts | undefined
+  readonly rendered?: readonly RenderedFacts[] | undefined
+  readonly crux?: CruxFacts | undefined
+  readonly redirects?: readonly Redirect[] | undefined
+}
+
+function evaluateRules(rules: readonly Rule[], page: PageFacts, collected: Collected): Evaluation {
   const results: RuleResult[] = []
   const findings: Finding[] = []
   for (const rule of rules) {
-    const outcome = evaluate(rule, page, robots, rendered, crux)
+    const outcome = evaluate(rule, page, collected)
     results.push(
       ruleResult(rule, outcome.status, {
         ...(outcome.error === undefined ? {} : { error: outcome.error }),
@@ -732,13 +745,8 @@ interface Outcome {
   readonly omitted?: number
 }
 
-function evaluate(
-  rule: Rule,
-  page: PageFacts,
-  robots: RobotsFacts | undefined,
-  rendered: readonly RenderedFacts[] | undefined,
-  crux: CruxFacts | undefined,
-): Outcome {
+function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
+  const { robots, rendered, crux } = collected
   const needsPage = rule.needs.some((need) => need !== 'robots')
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
@@ -759,6 +767,11 @@ function evaluate(
   if (rule.needs.includes('crux') && crux?.outcome === 'failed') {
     return { status: 'error', error: 'crux-unchecked', findings: [] }
   }
+  // Only for the rules that read them: the others see the evidence they always did.
+  const redirects = rule.needs.includes('redirects') ? collected.redirects : undefined
+  if (rule.needs.includes('redirects') && redirects === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
   // Only the engines the rule can read; none of them rendered means it could not check.
   const seen = needsRender
     ? (rendered ?? []).filter(
@@ -771,6 +784,7 @@ function evaluate(
   if (read?.length === 0) return { status: 'error', error: 'files-unread', findings: [] }
   const evidence: Evidence = {
     page,
+    ...(redirects === undefined ? {} : { redirects }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),

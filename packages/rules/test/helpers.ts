@@ -25,6 +25,7 @@ import {
   loadSiteConfig,
   resolveFixtureResponse,
 } from '@arablyzer/fixtures'
+import type { Redirect } from '@arablyzer/report-schema'
 import type { DetectorFinding, Evidence, Rule } from '../src/rule'
 
 /** Rule tests read fixtures without HTTP; the engine test serves the same sites for real. */
@@ -41,25 +42,49 @@ export function fixtureNames(ruleId: string): string[] {
     .sort()
 }
 
+/** The statuses a fetch follows (egress's safeFetch), and how many redirects it follows. */
+const REDIRECT_STATUSES: ReadonlySet<number> = new Set([301, 302, 303, 307, 308])
+const MAX_REDIRECTS = 10
+
 /**
  * Evidence for fixtures/<name>/ exactly as the fixture server would answer / and /robots.txt:
- * under its site.json host and over HTTPS when it asks, with the certificate it would have.
+ * under its site.json host and over HTTPS when it asks, with the certificate it would have. A
+ * redirect is followed, as the engine follows it, to a path of the site or to one of its names,
+ * and each one is in the evidence's `redirects`.
  */
 export async function fixtureEvidence(ruleId: string, name: string): Promise<Evidence> {
   const root = `${fixturesDir(ruleId)}${name}`
   const config = await loadFixtureConfig(root)
   const site = await loadSiteConfig(root)
-  const origin = `${site.tls === undefined ? 'http' : 'https'}://${site.host ?? 'fixture.test'}`
-  const page = await resolveFixtureResponse(root, config, '/')
-  if (page.status >= 300 && page.status < 400) {
-    throw new Error(`${ruleId}/${name}: redirects are exercised by the engine tests, not here`)
+  const scheme = site.tls === undefined ? 'http:' : 'https:'
+  const names = site.host === undefined ? [] : [site.host, ...(site.aliases ?? [])]
+  let url = `${scheme}//${site.host ?? 'fixture.test'}/`
+  const answer = (at: URL) =>
+    resolveFixtureResponse(root, config, at.pathname, {
+      ...(names.includes(at.hostname) ? { host: at.hostname } : {}),
+    })
+  let page = await answer(new URL(url))
+  const redirects: Redirect[] = []
+  for (;;) {
+    const [location] = [page.headers.location ?? []].flat()
+    if (!REDIRECT_STATUSES.has(page.status) || location === undefined) break
+    if (redirects.length === MAX_REDIRECTS) throw new Error(`${ruleId}/${name}: too many redirects`)
+    redirects.push({ url, status: page.status })
+    const next = new URL(location, url)
+    const own = next.protocol === scheme && next.port === ''
+    if (!own || (next.hostname !== new URL(url).hostname && !names.includes(next.hostname))) {
+      throw new Error(`${ruleId}/${name}: a redirect leaves the fixture site, to ${next.href}`)
+    }
+    url = next.href
+    page = await answer(next)
   }
-  const robots = await resolveFixtureResponse(root, config, '/robots.txt')
+  const robots = await answer(new URL('/robots.txt', url))
   const window =
     site.tls === undefined ? null : certificateWindow(site.tls.lifetimeDays, site.tls.daysLeft)
   return {
+    redirects,
     page: collectPage({
-      url: `${origin}/`,
+      url,
       status: page.status,
       headers: headerList(page.headers),
       body: page.body,
@@ -73,12 +98,12 @@ export async function fixtureEvidence(ruleId: string, name: string): Promise<Evi
             },
     }),
     robots: collectRobots({
-      url: `${origin}/robots.txt`,
+      url: new URL('/robots.txt', url).href,
       response: { status: robots.status, body: robots.body, truncated: false },
       errorCode: null,
     }),
     // CrUX's answers as the engine asks for them: the URL, then the origin when it has none.
-    ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, `${origin}/`) }),
+    ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, url) }),
   }
 }
 

@@ -7,23 +7,31 @@ import type {
   RobotsFacts,
   SourceLocation,
 } from '@arablyzer/collectors'
-import type { Category, JsonValue, Severity } from '@arablyzer/report-schema'
+import type { Category, JsonValue, Redirect, Severity } from '@arablyzer/report-schema'
 import { loadRuleCopy, type RuleCopy } from './copy'
 
 /**
  * What a rule needs collected. `http`: a 2xx page response (headers; HTML optional). `headers`:
  * the same, for a rule that reads the response's headers, which an HTTP example on a tool's page
- * can show (M2.3). `html` and `text`: a 2xx HTML page. `robots`: robots.txt for the final URL.
- * `render`: the page rendered in a browser (only with --render; M1.1). `files`, with `render`: the
- * files the page loaded, read after the render (stylesheets, fonts, text responses, image files);
- * the rule sees only the engines that read them. `crux`: real-user data from the Chrome UX
- * Report, which needs an API key; without one the rule does not apply (M1.3b).
+ * can show (M2.3). `redirects`: with a 2xx page, the redirects its fetch followed to reach it,
+ * which the report gives as target.http.redirects (M2.3a). `html` and `text`: a 2xx HTML page.
+ * `robots`: robots.txt for the final URL. `render`: the page rendered in a browser (only with
+ * --render; M1.1). `files`, with `render`: the files the page loaded, read after the render
+ * (stylesheets, fonts, text responses, image files); the rule sees only the engines that read
+ * them. `crux`: real-user data from the Chrome UX Report, which needs an API key; without one the
+ * rule does not apply (M1.3b).
  */
 export type CollectorId =
-  'http' | 'headers' | 'html' | 'text' | 'robots' | 'render' | 'files' | 'crux'
+  'http' | 'headers' | 'redirects' | 'html' | 'text' | 'robots' | 'render' | 'files' | 'crux'
 
 export interface Evidence {
   readonly page: PageFacts
+  /**
+   * Present when the rule needs `redirects`: each redirect the page's fetch followed, in order,
+   * the URL that answered it and its status; the last one's Location is page.url. Empty when the
+   * page answered at once.
+   */
+  readonly redirects?: readonly Redirect[]
   /** Present when the rule needs `robots`; never `failed` (the engine reports an error instead). */
   readonly robots?: RobotsFacts
   /**
