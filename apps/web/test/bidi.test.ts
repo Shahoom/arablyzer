@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isolateLatin } from '../src/lib/bidi'
+import { isolateLatin, revealControls } from '../src/lib/bidi'
 
 const isolated = (text: string) =>
   isolateLatin(text)
@@ -67,5 +67,53 @@ describe('isolateLatin', () => {
         .map((part) => part.text)
         .join(''),
     ).toBe(text)
+  })
+})
+
+describe('revealControls', () => {
+  it('names a hostile page’s override instead of obeying it', () => {
+    // Obeyed, the U+202E draws the title as `text=<"live`.
+    expect(revealControls('<a title=text=\u202eevil">')).toEqual([
+      { text: '<a title=text=', control: false },
+      { text: '⟨U+202E⟩', control: true },
+      { text: 'evil">', control: false },
+    ])
+  })
+
+  it('names every embedding, override, isolate and mark, and nothing else', () => {
+    const controls = [
+      '\u202a',
+      '\u202b',
+      '\u202c',
+      '\u202d',
+      '\u202e',
+      '\u2066',
+      '\u2067',
+      '\u2068',
+      '\u2069',
+      '\u200e',
+      '\u200f',
+      '\u061c',
+    ]
+    const shown = revealControls(controls.join('a'))
+    expect(shown.filter((part) => part.control).map((part) => part.text)).toEqual([
+      '⟨U+202A⟩',
+      '⟨U+202B⟩',
+      '⟨U+202C⟩',
+      '⟨U+202D⟩',
+      '⟨U+202E⟩',
+      '⟨U+2066⟩',
+      '⟨U+2067⟩',
+      '⟨U+2068⟩',
+      '⟨U+2069⟩',
+      '⟨U+200E⟩',
+      '⟨U+200F⟩',
+      '⟨U+061C⟩',
+    ])
+    // Arabic, a joiner and a no-break space are text, not controls.
+    expect(revealControls('متجر\u200dالعطور\u202f٣')).toEqual([
+      { text: 'متجر\u200dالعطور\u202f٣', control: false },
+    ])
+    expect(revealControls('')).toEqual([])
   })
 })

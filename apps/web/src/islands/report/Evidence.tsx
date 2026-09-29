@@ -2,9 +2,13 @@ import { REPORT } from '@arablyzer/i18n/report'
 import type { Finding } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
 import { valueOf } from '../report-model'
+import { Revealed } from './Bidi'
 import { ENGINE_LABEL } from './ui'
 
-/** A finding's evidence: where it is, the engines that saw it, and its code; the tool pages show it too. */
+/**
+ * A finding's evidence: where it is, the engines that saw it, and its code; the tool pages show it
+ * too. The page's own text in it cannot turn round what is drawn around it (Revealed).
+ */
 export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
   const t = REPORT[lang].findings
   const { selector, snippet, engines, location, box } = finding.evidence
@@ -31,7 +35,7 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
                 dir="ltr"
                 className="inline-block max-w-full bg-paper px-2 py-0.5 text-start font-mono text-sm break-all"
               >
-                {selector}
+                <Revealed text={selector} />
               </code>
               {location !== undefined && (
                 <span dir="ltr" className="ms-2 font-mono text-xs text-ink-3">
@@ -65,7 +69,9 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
           tabIndex={0}
           className="m-0 overflow-x-auto bg-panel px-4 py-3 font-mono text-[13px] text-panel-soft"
         >
-          <code>{snippet}</code>
+          <code>
+            <Revealed text={snippet} muted="text-panel-dim" />
+          </code>
         </pre>
       )}
     </div>
