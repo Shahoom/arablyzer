@@ -16,6 +16,10 @@ export type ScanProgress =
       readonly error: string | null
     }
   | {
+      /**
+       * robots.txt, read before the page, and again for the site a redirect led to (M2.4 plan
+       * §2). Where it asks the bot not to check the page, the scan ends there.
+       */
       readonly step: 'robots'
       readonly outcome: 'fetched' | 'unavailable' | 'unreachable' | 'failed'
       readonly status: number | null

@@ -5,6 +5,7 @@ export type NoticeCode =
   | EgressErrorCode
   | 'robots-unchecked'
   | 'robots-truncated'
+  | 'opted-out'
   | 'page-status'
   | 'not-html'
   | 'little-text'
@@ -109,6 +110,11 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'robots-truncated': {
     ar: 'ملف robots.txt أكبر من 500 كيلوبايت، فقرأنا أول 500 كيلوبايت فقط كما يفعل Google.',
     en: 'robots.txt is larger than 500 KiB, so only the first 500 KiB were read, as Google does.',
+  },
+  // M2.4 plan §2: the site's own words, the rule and where it is, so its owner can find it.
+  'opted-out': {
+    ar: 'يطلب ملف robots.txt في الموقع ألّا يفحص {bot} هذه الصفحة، فلم نفحصها. القاعدة «{rule}» في السطر {line} من {robots}.',
+    en: 'The site’s robots.txt asks {bot} not to check this page, so it was not scanned. The rule “{rule}” is on line {line} of {robots}.',
   },
   'page-status': {
     ar: 'الصفحة ردّت بالحالة HTTP {status}، فلم نفحص محتواها.',

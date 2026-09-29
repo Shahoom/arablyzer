@@ -452,12 +452,14 @@ describe('scan: robots.txt', () => {
         : [{ message: 'found', values: { what: robots?.outcome ?? '' } }],
   })
 
-  it('fetches robots.txt only when a selected rule needs it', async () => {
+  it('keeps robots.txt in the report only when a selected rule needs it', async () => {
     const local = await site({
       'index.html': ARABIC_PAGE,
       'robots.txt': 'User-agent: *\nDisallow: /\n',
     })
     const without = await scan(local.url('/'), { rules: [flagRule()], policy: policyFor(local) })
+    // Read all the same, before the page: it may ask ArablyzerBot not to check it.
+    expect(local.requests).toEqual(['GET /robots.txt', 'GET /'])
     expect(without.facts).toEqual({})
     const withRobots = await scan(local.url('/'), { rules: [robotsRule], policy: policyFor(local) })
     expect(withRobots.facts.robots).toMatchObject({ url: local.url('/robots.txt'), status: 200 })
@@ -534,12 +536,13 @@ describe('scan: robots.txt', () => {
   })
 
   // Security review 2026-09-24: under --allow-private, a chain that starts on a public address
-  // loses private access. The robots.txt fetch for the same site must not get it back.
-  it('keeps a public chain’s lockdown when it fetches robots.txt', async () => {
+  // loses private access. robots.txt is read first (M2.4 plan §2): the page's fetch for the same
+  // site must not get private access back.
+  it('keeps the lockdown robots.txt found when it fetches the page', async () => {
     const local = await site({ 'index.html': ARABIC_PAGE, 'robots.txt': 'User-agent: *\n' })
     let lookups = 0
-    // The page's host resolves to the exact test target, standing in for a public site; by the
-    // time robots.txt is fetched, DNS points it at a loopback address only --allow-private opens.
+    // The site's name resolves to the exact test target, standing in for a public site; by the
+    // time the page is fetched, DNS points it at a loopback address only --allow-private opens.
     const resolver: Resolver = () => {
       lookups++
       return Promise.resolve([{ address: lookups === 1 ? '127.0.0.1' : '127.0.0.2', family: 4 }])
@@ -552,8 +555,36 @@ describe('scan: robots.txt', () => {
       }),
       resolver,
     })
-    expect(report.target.http.status).toBe(200)
     expect(lookups).toBe(2)
+    expect(local.requests).toEqual(['GET /robots.txt'])
+    expect(report.scan.status).toBe('failed')
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['blocked-address'])
+  })
+
+  // The robots.txt of the site a redirect led to keeps the page's lockdown too.
+  it('keeps a public chain’s lockdown when it fetches robots.txt for another site', async () => {
+    const final = await site({ 'final/index.html': ARABIC_PAGE, 'robots.txt': 'User-agent: *\n' })
+    const first = await site(
+      { 'robots.txt': 'User-agent: *\n' },
+      { '/': { status: 301, headers: { location: `http://other.test:${final.port}/final/` } } },
+    )
+    let lookups = 0
+    // Both names stand in for public sites until the second one's robots.txt is fetched.
+    const resolver: Resolver = () => {
+      lookups++
+      return Promise.resolve([{ address: lookups <= 3 ? '127.0.0.1' : '127.0.0.2', family: 4 }])
+    }
+    const report = await scan(`http://fixture.test:${first.port}/`, {
+      rules: [robotsRule],
+      policy: createPolicy({
+        allowPrivate: true,
+        allowTargets: [first, final].map((one) => ({ address: '127.0.0.1', port: one.port })),
+      }),
+      resolver,
+    })
+    expect(lookups).toBe(4)
+    expect(report.target.http.status).toBe(200)
+    expect(final.requests).toEqual(['GET /final/'])
     expect(report.rules[0]).toMatchObject({ status: 'error', error: 'robots-unchecked' })
     expect(report.scan.notices.map((item) => item.code)).toEqual(['robots-unchecked'])
   })

@@ -11,11 +11,14 @@ import {
   type PageFacts,
   type RenderedFacts,
   type RobotsFacts,
+  type RobotsRule,
 } from '@arablyzer/collectors'
 import {
+  checkUrl,
   DEFAULT_POLICY,
   DEFAULT_TIMEOUT_MS,
   defaultResolver,
+  redactUrl,
   safeFetch,
   type EgressPolicy,
   type FetchResult,
@@ -36,11 +39,13 @@ import {
   type RuleResult,
   type RuleStatus,
   type Summary,
+  type Target,
 } from '@arablyzer/report-schema'
 import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
   crawlerAccess,
+  matchRobots,
   renderMessage,
   RULES,
   RULESET_VERSION,
@@ -121,6 +126,10 @@ export interface ScanOptions {
    * default. Past it, the rules that need the HTML report an error and the scan is partial.
    */
   readonly parseTimeoutMs?: number
+  /**
+   * USER_AGENT by default. robots.txt names the bot by its part before the first "/", and a
+   * group naming it can keep the scan from a page.
+   */
   readonly userAgent?: string
   readonly signal?: AbortSignal
   /**
@@ -154,7 +163,8 @@ export function selectRules(rules: readonly Rule[], ids?: readonly string[]): Ru
 
 /**
  * Scans one URL (docs/design/phase-0.md §3). Deterministic: the same responses give the same
- * report, apart from fetchedAt and durationMs.
+ * report, apart from fetchedAt and durationMs. robots.txt comes first: a page its site asks the
+ * bot not to check is never fetched (M2.4 plan §2).
  */
 export async function scan(url: string, options: ScanOptions = {}): Promise<Report> {
   if (url.trim() === '') throw new TypeError('A URL is required')
@@ -175,38 +185,32 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   )
   progress({ step: 'start', engines: [...(options.render?.engines ?? [])] })
   const userAgent = options.userAgent ?? USER_AGENT
+  // The name robots.txt gives the bot: ArablyzerBot, for USER_AGENT.
+  const bot = productToken(userAgent)
   const policy = options.policy ?? DEFAULT_POLICY
+  // The default rules, for a site found on a public address under --allow-private.
+  const lockdown: EgressPolicy = { ...policy, allowPrivate: false }
   const base: SafeFetchOptions = {
     userAgent,
     policy,
-    // Chosen once, so the robots.txt fetch resolves names the way the page fetch did.
+    // Chosen once, so robots.txt and the page resolve names the same way.
     resolver: options.resolver ?? defaultResolver(policy),
     ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   }
 
-  const fetched = await safeFetch(url, { ...base, accept: PAGE_ACCEPT })
-  const response = fetched.response
-  const target = {
-    url: fetched.requestedUrl,
-    finalUrl: response?.url ?? null,
-    fetchedAt: fetched.startedAt,
-    userAgent,
-    http: {
-      status: response?.status ?? null,
-      contentType: response === null ? null : lastHeader(response.headers, 'content-type'),
-      redirects: fetched.redirects.map(({ url: hop, status }) => ({ url: hop, status })),
+  const finish = (
+    target: Target,
+    parts: {
+      status: 'complete' | 'partial' | 'failed'
+      notices: Notice[]
+      page: Page | null
+      results: RuleResult[]
+      findings: Finding[]
+      facts: Facts
+      render?: RenderRun[]
     },
-  }
-  const finish = (parts: {
-    status: 'complete' | 'partial' | 'failed'
-    notices: Notice[]
-    page: Page | null
-    results: RuleResult[]
-    findings: Finding[]
-    facts: Facts
-    render?: RenderRun[]
-  }): Report =>
+  ): Report =>
     Report.parse({
       schemaVersion: SCHEMA_VERSION,
       generator: { name: 'arablyzer', version: ENGINE_VERSION, rulesetVersion: RULESET_VERSION },
@@ -225,8 +229,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       facts: parts.facts,
     })
 
-  const failed = (notices: Notice[], error: string): Report =>
-    finish({
+  const failed = (target: Target, notices: Notice[], error: string): Report =>
+    finish(target, {
       status: 'failed',
       notices,
       page: null,
@@ -235,6 +239,74 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       facts: {},
     })
 
+  // Where the site asks the bot not to check the page, the scan stops and keeps nothing of it.
+  const optedOut = (target: Target, robots: RobotsFacts, rule: RobotsRule): Report =>
+    failed(
+      target,
+      [
+        notice('opted-out', {
+          bot,
+          robots: robots.url,
+          line: String(rule.line),
+          rule: boundText(rule.text, MAX_SNIPPET_LENGTH),
+        }),
+      ],
+      'opted-out',
+    )
+
+  const readRobots = async (pageUrl: string, fetchPolicy: EgressPolicy): Promise<RobotsRead> => {
+    const read = await fetchRobots(pageUrl, { ...base, policy: fetchPolicy })
+    progress({
+      step: 'robots',
+      outcome: read.facts.outcome,
+      status: 'status' in read.facts ? read.facts.status : null,
+    })
+    return read
+  }
+
+  // robots.txt before the page (M2.4 plan §2), so a page its site asks the bot not to check is
+  // never asked for. A URL the egress rules refuse before any lookup has none to read: the
+  // page's fetch says why.
+  const requested = checkUrl(url, policy)
+  let first: RobotsRead | null = null
+  if (requested.ok) {
+    first = await readRobots(requested.url.href, policy)
+    const rule = optOutRule(first.facts, bot, requested.url.href)
+    if (rule !== null) {
+      return optedOut(
+        {
+          url: redactUrl(url),
+          finalUrl: null,
+          fetchedAt: first.startedAt,
+          userAgent,
+          http: { status: null, contentType: null, redirects: [] },
+        },
+        first.facts,
+        rule,
+      )
+    }
+  }
+
+  // Under --allow-private, a site whose robots.txt was on a public address keeps the default
+  // rules for its page, so DNS cannot move the page onto a private address.
+  const fetched = await safeFetch(url, {
+    ...base,
+    policy: first === null || first.privateAccess ? policy : lockdown,
+    accept: PAGE_ACCEPT,
+  })
+  const response = fetched.response
+  const target: Target = {
+    url: fetched.requestedUrl,
+    finalUrl: response?.url ?? null,
+    fetchedAt: fetched.startedAt,
+    userAgent,
+    http: {
+      status: response?.status ?? null,
+      contentType: response === null ? null : lastHeader(response.headers, 'content-type'),
+      redirects: fetched.redirects.map(({ url: hop, status }) => ({ url: hop, status })),
+    },
+  }
+
   progress({
     step: 'page',
     status: target.http.status,
@@ -242,8 +314,24 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     error: fetched.error?.code ?? null,
   })
   if (fetched.error !== null || response === null) {
-    return failed(fetched.error === null ? [] : [notice(fetched.error.code)], 'page-unavailable')
+    return failed(
+      target,
+      fetched.error === null ? [] : [notice(fetched.error.code)],
+      'page-unavailable',
+    )
   }
+
+  // Under --allow-private, a chain that started on a public address lost private access; the
+  // robots.txt fetch for the same site keeps that, so DNS cannot move it onto a private address.
+  const robotsPolicy = fetched.privateAccess ? policy : lockdown
+  // A redirect to another site: that site's robots.txt may ask the same, and it is the one the
+  // rules read. Where the page stayed on its site, the robots.txt read first serves.
+  const robotsRead =
+    first !== null && requested.ok && new URL(response.url).origin === requested.url.origin
+      ? first
+      : await readRobots(response.url, robotsPolicy)
+  const refused = optOutRule(robotsRead.facts, bot, response.url)
+  if (refused !== null) return optedOut(target, robotsRead.facts, refused)
 
   let page: PageFacts
   try {
@@ -262,21 +350,11 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     )
   } catch {
     // A collector bug, or an input it cannot handle: the report says so instead of the scan crashing.
-    return failed([notice('page-unreadable')], 'page-unreadable')
+    return failed(target, [notice('page-unreadable')], 'page-unreadable')
   }
-  // Under --allow-private, a chain that started on a public address lost private access; the
-  // robots.txt fetch for the same site keeps that, so DNS cannot move it onto a private address.
-  const robotsPolicy = fetched.privateAccess ? policy : { ...policy, allowPrivate: false }
-  const robots = rules.some((rule) => rule.needs.includes('robots'))
-    ? await fetchRobots(response.url, { ...base, policy: robotsPolicy })
-    : undefined
-  if (robots !== undefined) {
-    progress({
-      step: 'robots',
-      outcome: robots.outcome,
-      status: 'status' in robots ? robots.status : null,
-    })
-  }
+  // For the rules that read it, and in the report only then: a scan without them reports as it
+  // did before robots.txt came first.
+  const robots = rules.some((rule) => rule.needs.includes('robots')) ? robotsRead.facts : undefined
   // Real-user data, when a rule reads it: the page's URL goes to Google with the key.
   const cruxSkipped: NoticeCode | null = !rules.some((rule) => rule.needs.includes('crux'))
     ? null
@@ -343,7 +421,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
 
-  return finish({
+  return finish(target, {
     status:
       unrendered || results.some((result) => result.status === 'error') ? 'partial' : 'complete',
     notices,
@@ -572,7 +650,16 @@ function evaluateRules(
   return { results, findings }
 }
 
-async function fetchRobots(pageUrl: string, base: SafeFetchOptions): Promise<RobotsFacts> {
+/** robots.txt as a scan read it. */
+interface RobotsRead {
+  readonly facts: RobotsFacts
+  /** When the fetch began: the report's fetchedAt, when the page was never fetched. */
+  readonly startedAt: string
+  /** Whether private addresses were still open when it ended (FetchResult.privateAccess). */
+  readonly privateAccess: boolean
+}
+
+async function fetchRobots(pageUrl: string, base: SafeFetchOptions): Promise<RobotsRead> {
   const url = new URL('/robots.txt', pageUrl).href
   const fetched: FetchResult = await safeFetch(url, {
     ...base,
@@ -582,14 +669,34 @@ async function fetchRobots(pageUrl: string, base: SafeFetchOptions): Promise<Rob
     maxRedirects: ROBOTS_MAX_REDIRECTS,
   })
   const response = fetched.response
-  return collectRobots({
-    url,
-    response:
-      response === null
-        ? null
-        : { status: response.status, body: response.body, truncated: response.truncated },
-    errorCode: fetched.error?.code ?? null,
-  })
+  return {
+    facts: collectRobots({
+      url,
+      response:
+        response === null
+          ? null
+          : { status: response.status, body: response.body, truncated: response.truncated },
+      errorCode: fetched.error?.code ?? null,
+    }),
+    startedAt: fetched.startedAt,
+    privateAccess: fetched.privateAccess,
+  }
+}
+
+/** The name robots.txt gives a bot (RFC 9309 §2.2.1): its user agent before the first "/". */
+function productToken(userAgent: string): string {
+  return userAgent.split('/', 1)[0]?.trim() ?? ''
+}
+
+/**
+ * The rule by which robots.txt asks the bot not to check a URL (M2.4 plan §2), or null. Only a
+ * group that names the bot counts: `User-agent: *` speaks to crawlers, and a scan someone asks
+ * for is a visit, not a crawl. A robots.txt that could not be read asks nothing.
+ */
+function optOutRule(robots: RobotsFacts, bot: string, url: string): RobotsRule | null {
+  if (robots.outcome !== 'fetched') return null
+  const match = matchRobots(robots.robots, bot, url)
+  return match.group === 'specific' && !match.allowed ? match.rule : null
 }
 
 interface Outcome {
