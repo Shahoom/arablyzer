@@ -28,20 +28,30 @@ export type ScanRequest = z.infer<typeof ScanRequest>
 export const MAX_ERROR_LENGTH = 500
 
 /** The engine's steps, once each in a scan (packages/engine, scan.ts). */
-const ONCE = ['started', 'page', 'robots', 'crux', 'lab-start', 'lab', 'rules'] as const
+const ONCE = ['started', 'page', 'crux', 'lab-start', 'lab', 'rules'] as const
+/** A site's robots.txt, read before the scan asks it for a page (M2.4 plan §2). */
+const PER_SITE = ['robots'] as const
+/**
+ * The redirects a scan follows for its page (BUILD-PLAN §11), as `@arablyzer/egress` has it; the
+ * scanner's tests check the two agree. Written here so the worker loads no egress package.
+ */
+export const MAX_REDIRECTS = 10
+/** The sites a scan asks for a page: the page's own, and one for each redirect it follows. */
+const MAX_SITES = 1 + MAX_REDIRECTS
 /** The render's steps, once for each engine. */
 const PER_ENGINE = ['render-start', 'render'] as const
 /**
  * The events the scanner sends: a scan's own steps. The queue's, and a scan's end, are the
  * API's and the worker's to tell.
  */
-export const SCANNER_EVENT_TYPES = [...ONCE, ...PER_ENGINE] as const
+export const SCANNER_EVENT_TYPES = [...ONCE, ...PER_SITE, ...PER_ENGINE] as const
 export type ScannerEvent = Extract<
   ScanEventShape,
   { readonly type: (typeof SCANNER_EVENT_TYPES)[number] }
 >
-/** The most a scan sends: each step once, the render's for every engine. */
-export const MAX_SCANNER_EVENTS = ONCE.length + PER_ENGINE.length * Engine.options.length
+/** The most a scan sends: each step once, robots.txt once a site, the render's for every engine. */
+export const MAX_SCANNER_EVENTS =
+  ONCE.length + PER_SITE.length * MAX_SITES + PER_ENGINE.length * Engine.options.length
 
 const scannerEvent = ScanEvent.refine(
   (event) => (SCANNER_EVENT_TYPES as readonly string[]).includes(event.type),

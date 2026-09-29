@@ -3,11 +3,12 @@ import type { Notice } from '@arablyzer/report-schema'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { Bidi } from './Bidi'
 
-export type StateKind = 'blocked' | 'failed' | 'missing' | 'offline'
+export type StateKind = 'blocked' | 'opted-out' | 'failed' | 'missing' | 'offline'
 
 /**
  * When a scan does not go as it should (the approved States design): what happened, in plain
  * words, and what the visitor can do. Never a vague error, never a report of what was not scanned.
+ * A site that asked not to be checked (M2.4 plan §2) is told with its rule, from the notice.
  */
 export function StateCard({
   kind,
@@ -23,13 +24,16 @@ export function StateCard({
   notices?: readonly Notice[]
 }) {
   const t = REPORT[lang].states
-  const title = kind === 'blocked' ? t.blocked.title : t[kind].title
+  const title =
+    kind === 'blocked' ? t.blocked.title : kind === 'opted-out' ? t.optedOut.title : t[kind].title
   const text =
     kind === 'blocked'
       ? t.blocked.text(String(status ?? ''))
-      : kind === 'failed' && notices.length > 0
-        ? t.failed.why
-        : t[kind].text
+      : kind === 'opted-out'
+        ? t.optedOut.text
+        : kind === 'failed' && notices.length > 0
+          ? t.failed.why
+          : t[kind].text
   const home = localePath(lang, '/')
   return (
     <section

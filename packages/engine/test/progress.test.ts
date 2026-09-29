@@ -34,10 +34,11 @@ describe('scan: onProgress', () => {
         ? { step: 'render', engine: step.run.engine, status: step.run.status }
         : step,
     )
+    // robots.txt first, in case it asks ArablyzerBot not to check the page (M2.4 plan §2).
     expect(shown).toEqual([
       { step: 'start', engines: ['chromium', 'firefox'] },
-      { step: 'page', status: 200, contentType: 'text/html; charset=utf-8', error: null },
       { step: 'robots', outcome: 'fetched', status: 200 },
+      { step: 'page', status: 200, contentType: 'text/html; charset=utf-8', error: null },
       { step: 'render-start', engine: 'chromium' },
       { step: 'render', engine: 'chromium', status: 'unavailable' },
       { step: 'render-start', engine: 'firefox' },
@@ -51,7 +52,17 @@ describe('scan: onProgress', () => {
     await scan('http://10.0.0.1/', { rules: [flagRule()], onProgress: (step) => steps.push(step) })
     expect(steps).toEqual([
       { step: 'start', engines: [] },
+      { step: 'robots', outcome: 'failed', status: null },
       { step: 'page', status: null, contentType: null, error: 'blocked-address' },
+    ])
+  })
+
+  it('reads no robots.txt for a URL refused before any lookup', async () => {
+    const steps: ScanProgress[] = []
+    await scan('http://localhost/', { rules: [flagRule()], onProgress: (step) => steps.push(step) })
+    expect(steps).toEqual([
+      { step: 'start', engines: [] },
+      { step: 'page', status: null, contentType: null, error: 'blocked-host' },
     ])
   })
 
@@ -63,8 +74,8 @@ describe('scan: onProgress', () => {
       policy: policyFor(local),
       onProgress: (step) => steps.push(step),
     })
-    expect(steps.map((step) => step.step)).toEqual(['start', 'page', 'crux', 'rules'])
-    expect(steps[2]).toEqual({ step: 'crux', outcome: 'skipped' })
+    expect(steps.map((step) => step.step)).toEqual(['start', 'robots', 'page', 'crux', 'rules'])
+    expect(steps[3]).toEqual({ step: 'crux', outcome: 'skipped' })
   })
 
   it('never lets a listener change or break the scan', async () => {

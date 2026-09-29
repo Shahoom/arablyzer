@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -176,6 +176,24 @@ describe('arablyzer (built bundle)', () => {
       )
     } finally {
       await site.close()
+    }
+  })
+
+  it('never asks for a page its site keeps ArablyzerBot from, says so, and exits 2', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'arablyzer-cli-opt-out-'))
+    writeFileSync(path.join(root, 'robots.txt'), 'User-agent: ArablyzerBot\nDisallow: /\n')
+    writeFileSync(path.join(root, 'index.html'), '<p>مرحبا</p>')
+    const site = await serveSite(root)
+    try {
+      const result = await arablyzer([site.url('/'), '--allow-private', '--lang', 'en'])
+      expect(result.code).toBe(2)
+      expect(result.stdout).toContain(
+        `• The site’s robots.txt asks ArablyzerBot not to check this page, so it was not scanned. The rule “Disallow: /” is on line 2 of ${site.url('/robots.txt')}.`,
+      )
+      expect(site.requests).toEqual(['GET /robots.txt'])
+    } finally {
+      await site.close()
+      rmSync(root, { recursive: true, force: true })
     }
   })
 })

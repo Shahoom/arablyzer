@@ -29,7 +29,9 @@ describe('localScanner', () => {
       expect(report.scan.status).toBe('complete')
       expect(report.target.url).toBe(site.url('/'))
       expect(seen[0]).toEqual({ type: 'started', engines: [] })
-      expect(seen[1]).toEqual({
+      // robots.txt first, in case it asks ArablyzerBot not to check the page (M2.4 plan §2).
+      expect(seen[1]).toEqual({ type: 'robots', outcome: 'unavailable', status: 404 })
+      expect(seen[2]).toEqual({
         type: 'page',
         status: 200,
         contentType: 'text/html; charset=utf-8',
