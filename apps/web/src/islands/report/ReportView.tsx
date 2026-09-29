@@ -19,23 +19,26 @@ export function ReportView({
   report,
   fixes,
   lang,
+  tool,
 }: {
   id: string
   report: Report
   fixes: Fixes | null
   lang: Lang
+  /** The tool a tool page's scan ran (M2.2): its rules alone, so no overall score. */
+  tool?: string | undefined
 }) {
   const problems = problemsOf(report)
   const [tab, setTab] = useState<Tab>('problems')
   return (
     <div className="flex flex-col">
-      <ReportHeader id={id} report={report} lang={lang} />
+      <ReportHeader id={id} report={report} lang={lang} tool={tool} />
       <div className="grid items-start gap-8 px-5 pt-8 pb-16 md:px-16 lg:grid-cols-12 lg:gap-x-8">
         <aside
           className="flex flex-col gap-5 lg:sticky lg:top-6 lg:col-span-4"
           aria-label={REPORT[lang].contents.title}
         >
-          <ScoreCard report={report} lang={lang} />
+          {tool === undefined && <ScoreCard report={report} lang={lang} />}
           <Contents report={report} problems={problems.length} lang={lang} onOpen={setTab} />
         </aside>
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-8">
@@ -81,7 +84,17 @@ export function ReportView({
   )
 }
 
-function ReportHeader({ id, report, lang }: { id: string; report: Report; lang: Lang }) {
+function ReportHeader({
+  id,
+  report,
+  lang,
+  tool,
+}: {
+  id: string
+  report: Report
+  lang: Lang
+  tool: string | undefined
+}) {
   const t = REPORT[lang].header
   const [copied, setCopied] = useState(false)
   const url = report.target.finalUrl ?? report.target.url
@@ -93,7 +106,12 @@ function ReportHeader({ id, report, lang }: { id: string; report: Report; lang: 
       })
       .catch(() => undefined)
   }
-  const rescan = `${localePath(lang, '/')}?url=${encodeURIComponent(report.target.url)}#scan`
+  // Again with the same page: the tool's page for a tool's result, the home page's form otherwise.
+  const again = encodeURIComponent(report.target.url)
+  const rescan =
+    tool === undefined
+      ? `${localePath(lang, '/')}?url=${again}#scan`
+      : `${localePath(lang, `/tools/${tool}`)}?url=${again}`
   const button =
     'flex h-[46px] items-center gap-2 border-[1.5px] border-ink bg-white px-4 text-[15px] font-semibold hover:text-signal'
   return (
@@ -103,7 +121,20 @@ function ReportHeader({ id, report, lang }: { id: string; report: Report; lang: 
     >
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex min-w-0 flex-col gap-3">
-          <span className="text-sm font-semibold text-signal">{t.kicker}</span>
+          {tool === undefined ? (
+            <span className="text-sm font-semibold text-signal">{t.kicker}</span>
+          ) : (
+            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-signal">
+              {t.tool}
+              <a
+                href={localePath(lang, `/tools/${tool}`)}
+                dir="ltr"
+                className="font-mono font-normal text-ink-2 underline underline-offset-4 hover:text-signal"
+              >
+                {tool}
+              </a>
+            </span>
+          )}
           <h1 id="report-title" className="m-0 text-3xl leading-tight font-semibold md:text-[38px]">
             {t.title}
           </h1>
@@ -420,7 +451,12 @@ function Results({
       aria-labelledby="results-title"
       className="flex scroll-mt-6 flex-col gap-4"
     >
-      <SectionHead number={2} id="results-title" title={t.results} />
+      {/* The browsers are § 01 when the scan rendered the page; without them, the results are. */}
+      <SectionHead
+        number={(report.scan.render ?? []).length > 0 ? 2 : 1}
+        id="results-title"
+        title={t.results}
+      />
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b-2 border-ink">
         <div
           role="tablist"
@@ -581,7 +617,8 @@ function FindingCard({
   )
 }
 
-function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
+/** A finding's evidence: where it is, the engines that saw it, and its code; the tool pages show it too. */
+export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
   const t = REPORT[lang].findings
   const { selector, snippet, engines, location, box } = finding.evidence
   const overflow = valueOf(finding, 'overflow')

@@ -20,6 +20,8 @@ type View =
       readonly id: string
       readonly report: Report
       readonly fixes: Fixes | null
+      /** The tool a tool page's scan ran, from the scan's summary. */
+      readonly tool: string | undefined
     }
   | { readonly kind: 'failed'; readonly summary: ScanSummary }
 
@@ -86,7 +88,7 @@ export default function ReportApp({ lang }: { lang: Lang }) {
         const [loaded, fixes] = await Promise.all([fetchReport(id), loadFixes(lang)])
         if (left()) return
         if (loaded.ok) {
-          setView({ kind: 'report', id, report: loaded.value, fixes })
+          setView({ kind: 'report', id, report: loaded.value, fixes, tool: summary.tool })
           setSaid(t.ready)
           return
         }
@@ -167,7 +169,15 @@ function Shown({ view, lang }: { view: View; lang: Lang }) {
           />
         )
       }
-      return <ReportView id={view.id} report={view.report} fixes={view.fixes} lang={lang} />
+      return (
+        <ReportView
+          id={view.id}
+          report={view.report}
+          fixes={view.fixes}
+          lang={lang}
+          tool={view.tool}
+        />
+      )
     }
   }
 }

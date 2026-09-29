@@ -65,6 +65,8 @@ export interface ReportStrings {
     readonly copied: string
     readonly json: string
     readonly rescan: string
+    /** A tool page's scan (M2.2): its kicker, before the tool's slug. */
+    readonly tool: string
   }
   readonly score: {
     readonly title: string
@@ -207,6 +209,7 @@ export const REPORT: Copy<ReportStrings> = {
       copied: 'نُسخ الرابط',
       json: 'JSON',
       rescan: 'أعد الفحص',
+      tool: 'نتيجة أداة',
     },
     score: {
       title: 'الدرجة',
@@ -352,6 +355,7 @@ export const REPORT: Copy<ReportStrings> = {
       copied: 'Link copied',
       json: 'JSON',
       rescan: 'Scan again',
+      tool: 'A tool’s result',
     },
     score: {
       title: 'Score',
