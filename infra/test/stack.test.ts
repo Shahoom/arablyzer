@@ -328,6 +328,21 @@ describe('the site server', () => {
     }
   })
 
+  it('serves robots.txt, the sitemaps and the pages’ images, for search engines and previews', async () => {
+    for (const [path, type] of [
+      ['/robots.txt', 'text/plain'],
+      ['/sitemap.xml', 'application/xml'],
+      ['/sitemaps/tools.xml', 'application/xml'],
+      ['/og/tools/rtl-check.png', 'image/png'],
+      ['/og/en/index.png', 'image/png'],
+    ] as const) {
+      const response = await fetch(`${SITE}${path}`)
+      expect(response.status, path).toBe(200)
+      expect(response.headers.get('content-type'), path).toContain(type)
+    }
+    expect(await (await fetch(`${SITE}/robots.txt`)).text()).toContain('Sitemap: ')
+  })
+
   it("is published on the host's loopback alone, for the host's own proxy", () => {
     expect(compose('port', 'web', '8080')).toMatch(/^127\.0\.0\.1:\d+$/)
   })
