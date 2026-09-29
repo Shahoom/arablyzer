@@ -1,10 +1,11 @@
 import type { RuleReads } from '@arablyzer/i18n'
 import {
   loadRuleExample,
-  RULES,
-  SECTION_HEADINGS,
   type Rule,
   type RuleCopy,
+  RULES,
+  SECTION_HEADINGS,
+  SERVER_RESPONSE_RULES,
 } from '@arablyzer/rules'
 import { SEVERITY_WEIGHTS } from '@arablyzer/scoring'
 import { renderMarkdown } from '@arablyzer/seo/markdown'
@@ -19,9 +20,6 @@ import type { LibraryData, RuleCopyData, RuleData, RuleHeadings } from '../src/l
 /** How many rules of its category a rule's page lists beside it. */
 const NEAR = 3
 
-/** What the server's response alone tells: its connection, headers and redirects. */
-const SERVER_NEEDS: ReadonlySet<string> = new Set(['http', 'headers', 'redirects'])
-
 /** A meta description's length, past which search results cut it. */
 const DESCRIPTION = 160
 
@@ -33,7 +31,7 @@ export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('render')) return 'render'
   if (rule.needs.includes('crux')) return 'crux'
   if (rule.needs.includes('robots')) return 'robots'
-  if (rule.needs.some((need) => SERVER_NEEDS.has(need))) return 'http'
+  if (SERVER_RESPONSE_RULES.has(rule.id)) return 'http'
   return 'html'
 }
 

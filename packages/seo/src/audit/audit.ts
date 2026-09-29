@@ -1,7 +1,7 @@
 import { collectPage } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
 import type { Finding } from '@arablyzer/report-schema'
-import { RULES } from '@arablyzer/rules'
+import { RULES, SERVER_RESPONSE_RULES } from '@arablyzer/rules'
 import type { DefaultTreeAdapterMap } from 'parse5'
 import { localePath, PATHS, type Lang } from '../site'
 import { isWithin, tagsOf, textOf, type Tag } from './dom'
@@ -50,23 +50,13 @@ export interface ExpectedPage {
 }
 
 /**
- * Rules that judge the server's response rather than the page: its scheme, its certificate and
- * its security headers, which the site's server sets (infra/Caddyfile), not the template. The
- * audit reads the HTML alone; the deployment is checked with the live site (Phase 2).
+ * Rules that judge the server's response rather than the page (SERVER_RESPONSE_RULES), which the
+ * site's server sets (infra/Caddyfile), not the template, are left out: the audit reads the HTML
+ * alone, and the deployment is checked with the live site. robots.txt rules are left out too: a
+ * rendered page has none to read.
  */
-const SERVER_RULES = new Set([
-  'https-missing',
-  'hsts-missing',
-  'tls-expiring',
-  'csp-missing',
-  'x-content-type-options-missing',
-  'frame-protection-missing',
-  'referrer-policy-missing',
-])
-
-/** robots.txt rules are left out too: a rendered page has none to read. */
 const PAGE_RULES = RULES.filter(
-  (rule) => !rule.needs.includes('robots') && !SERVER_RULES.has(rule.id),
+  (rule) => !rule.needs.includes('robots') && !SERVER_RESPONSE_RULES.has(rule.id),
 )
 
 /**
