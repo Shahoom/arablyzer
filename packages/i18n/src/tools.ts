@@ -78,6 +78,8 @@ export interface ToolsStrings {
     readonly share: string
     readonly howToFix: string
     readonly blocked: string
+    /** The site's robots.txt asks ArablyzerBot not to check the page (M2.4 plan §2). */
+    readonly optedOut: string
     readonly failed: string
     readonly offline: string
   }
@@ -232,6 +234,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       share: 'رابط هذه النتيجة',
       howToFix: 'كيف تُصلح',
       blocked: 'لم نتمكن من فحص الصفحة: ردّ الخادم بخطأ أو منع الفحص.',
+      optedOut: 'طلب الموقع ألّا يفحص ArablyzerBot هذه الصفحة.',
       failed: 'تعذّر إكمال الفحص. جرّب بعد قليل.',
       offline: 'تعذّر الوصول إلى خدمة الفحص. تواصل الصفحة المحاولة.',
     },
@@ -372,6 +375,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       howToFix: 'How to fix',
       blocked:
         'We could not check the page: the server answered with an error, or refused the check.',
+      optedOut: 'The site asked ArablyzerBot not to check this page.',
       failed: 'The check could not finish. Try again shortly.',
       offline: 'We cannot reach the checking service. The page keeps trying.',
     },
