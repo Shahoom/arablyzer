@@ -112,6 +112,50 @@ export function outcomeOf(report: Report): Outcome {
   return report.scan.status
 }
 
+/** What a tool's result says first (M2.2). */
+export type ToolVerdict =
+  'blocked' | 'problems' | 'incomplete' | 'review' | 'passed' | 'not-applicable'
+
+/**
+ * A tool's result in a word: the site refused the scan; a rule failed, which is said even when
+ * the scan did not finish; the scan did not finish (partial, failed, or a rule that could not
+ * run), so the page cannot be said to pass; a rule needs a human's eye; every rule that applies
+ * passed; or none applies.
+ */
+export function toolVerdict(report: Report): ToolVerdict {
+  const any = (status: RuleResult['status']) => report.rules.some((rule) => rule.status === status)
+  if (outcomeOf(report) === 'blocked') return 'blocked'
+  if (any('fail')) return 'problems'
+  if (report.scan.status !== 'complete' || any('error')) return 'incomplete'
+  if (any('needs-review')) return 'review'
+  return any('pass') ? 'passed' : 'not-applicable'
+}
+
+/**
+ * What the report says when it lists no problem: that the rules found none, only when every rule
+ * finished; that the ones that finished found none, when some could not run; and that nothing can
+ * be said, when none finished. A rule that could not run found nothing, and cannot vouch for the
+ * page (M2.2a review).
+ */
+export function noProblemsNote(report: Report): 'none' | 'incomplete' | 'unknown' {
+  const errored = report.rules.filter((rule) => rule.status === 'error').length
+  if (errored === 0) return 'none'
+  return errored === report.rules.length ? 'unknown' : 'incomplete'
+}
+
+/**
+ * The problems a tool's result counts: every finding of its failed rules, those the report left
+ * out past its cap too; a failed rule without findings counts once.
+ */
+export function problemCount(report: Report): number {
+  return report.rules
+    .filter((rule) => rule.status === 'fail')
+    .reduce((sum, rule) => {
+      const found = report.findings.filter((finding) => finding.ruleId === rule.id).length
+      return sum + Math.max(found + (rule.findingsOmitted ?? 0), 1)
+    }, 0)
+}
+
 const SEVERITY_RANK: Readonly<Record<Severity, number>> = {
   critical: 0,
   serious: 1,

@@ -1,6 +1,6 @@
 import { TOOLS } from '@arablyzer/tools'
 import { describe, expect, it } from 'vitest'
-import { toolsData, toolTag } from '../scripts/tool-data'
+import { toolsData, toolTag, toolTitles } from '../scripts/tool-data'
 
 describe('the tools as their pages have them', () => {
   const data = toolsData()
@@ -32,5 +32,11 @@ describe('the tools as their pages have them', () => {
     expect(tag('ai-crawler-check')).toBe('robots')
     expect(tag('rtl-check')).toBe('html')
     expect(tag('whatsapp-link-check')).toBe('html')
+  })
+
+  it('names each tool in both languages, for the report page of its result', () => {
+    const titles = toolTitles(data)
+    expect(Object.keys(titles)).toEqual(TOOLS.map((tool) => tool.slug))
+    expect(titles['rtl-check']).toEqual({ ar: 'فحص RTL واتجاه الصفحة', en: 'RTL checker' })
   })
 })

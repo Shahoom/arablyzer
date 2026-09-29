@@ -209,6 +209,12 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['lighthouse', 'chrome-launcher'] }),
   },
   {
+    // A tool page driven in the browsers as a visitor uses it (M2.2a review): the site's own
+    // pages on loopback, the API's answers the test's, and every request off the site refused.
+    files: ['apps/web/test/browser/tool.browser.test.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
     // The egress package is the network boundary; the fixture server is local test infrastructure.
     files: ['packages/egress/**', 'fixtures/**'],
     rules: {

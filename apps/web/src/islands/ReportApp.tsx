@@ -3,6 +3,7 @@ import { REPORT } from '@arablyzer/i18n/report'
 import type { Report } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
 import { useEffect, useState } from 'preact/hooks'
+import type { ToolTitles } from '../lib/tool-data'
 import { fetchReport } from './api'
 import { followScan } from './events'
 import { Progress } from './report/Progress'
@@ -20,8 +21,8 @@ type View =
       readonly id: string
       readonly report: Report
       readonly fixes: Fixes | null
-      /** The tool a tool page's scan ran, from the scan's summary. */
-      readonly tool: string | undefined
+      /** The tool a tool page's scan ran, from the scan's summary, and its name. */
+      readonly tool: { readonly slug: string; readonly title: string | null } | undefined
     }
   | { readonly kind: 'failed'; readonly summary: ScanSummary }
 
@@ -42,6 +43,16 @@ async function loadFixes(lang: Lang): Promise<Fixes | null> {
       ? import('../generated/rules.ar.json')
       : import('../generated/rules.en.json'))) as { default: Fixes }
     return module.default
+  } catch {
+    return null
+  }
+}
+
+/** A tool's name in the page's language, loaded with its result's report; null if unknown. */
+async function loadToolTitle(slug: string, lang: Lang): Promise<string | null> {
+  try {
+    const module = (await import('../generated/tool-titles.json')) as { default: ToolTitles }
+    return module.default[slug]?.[lang] ?? null
   } catch {
     return null
   }
@@ -85,10 +96,16 @@ export default function ReportApp({ lang }: { lang: Lang }) {
     // The report is stored before its scan says done; a read that fails is tried again.
     const showReport = async (summary: ScanSummary) => {
       for (let attempt = 0; attempt < REPORT_TRIES; attempt++) {
-        const [loaded, fixes] = await Promise.all([fetchReport(id), loadFixes(lang)])
+        const slug = summary.tool
+        const [loaded, fixes, title] = await Promise.all([
+          fetchReport(id),
+          loadFixes(lang),
+          slug === undefined ? null : loadToolTitle(slug, lang),
+        ])
         if (left()) return
         if (loaded.ok) {
-          setView({ kind: 'report', id, report: loaded.value, fixes, tool: summary.tool })
+          const tool = slug === undefined ? undefined : { slug, title }
+          setView({ kind: 'report', id, report: loaded.value, fixes, tool })
           setSaid(t.ready)
           return
         }

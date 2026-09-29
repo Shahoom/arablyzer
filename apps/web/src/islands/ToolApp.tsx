@@ -1,24 +1,26 @@
-import { URL_ERROR_CODES, type ScanSummary } from '@arablyzer/api-contract/codes'
+import { URL_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
-import { TOOLS_UI } from '@arablyzer/i18n/tools'
-import type { Report } from '@arablyzer/report-schema'
+import { TOOL_APP } from '@arablyzer/i18n/tool-app'
+import type { Report, RuleResult } from '@arablyzer/report-schema'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
-import { ArrowLeft, ArrowRight, Check, X } from 'lucide-preact'
+import { ArrowLeft, ArrowRight, Check, Minus, X } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { fetchReport, startScan } from './api'
 import { followScan } from './events'
 import { Bidi } from './report/Bidi'
-import { Evidence } from './report/ReportView'
+import { Evidence } from './report/Evidence'
+import { Notices } from './report/Notices'
 import { SeverityPill } from './report/ui'
 import {
   advance,
-  outcomeOf,
+  problemCount,
   problemsOf,
   START,
   stepsOf,
+  toolVerdict,
   type Progress as ProgressState,
 } from './report-model'
 import { askedUrl, precheck, type FormError } from './scan-request'
@@ -28,8 +30,8 @@ interface Props {
   lang: Lang
   /** The tool's slug: its scan runs its rules alone (M2.2). */
   tool: string
-  /** Whether the tool renders the page in browsers, which the note under the form says. */
-  renders: boolean
+  /** What the tool reads, which the note under the form says: the page, robots.txt, or browsers. */
+  reads: 'html' | 'robots' | 'render'
 }
 
 type Run =
@@ -51,8 +53,8 @@ const wait = (ms: number) =>
  * alone, and its result under the form as the scan runs: each problem with its evidence, or the
  * page passing. The result has its own link, the scan's report page.
  */
-export default function ToolApp({ lang, tool, renders }: Props) {
-  const t = TOOLS_UI[lang]
+export default function ToolApp({ lang, tool, reads }: Props) {
+  const t = TOOL_APP[lang].form
   const f = SCAN_FORM[lang]
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<FormError | null>(null)
@@ -95,9 +97,10 @@ export default function ToolApp({ lang, tool, renders }: Props) {
       }
       setRun({ phase: 'failed', id })
     }
-    const ended = (summary: ScanSummary) => {
-      if (summary.state === 'failed') setRun({ phase: 'failed', id })
-      else void showReport()
+    // A failed scan may still have a report, which says why: it is read as any other, and a scan
+    // without one is shown as failed.
+    const ended = () => {
+      void showReport()
     }
     const stop = followScan(id, {
       onFollowing: () => undefined,
@@ -171,12 +174,25 @@ export default function ToolApp({ lang, tool, renders }: Props) {
         ? `${f.errors[error.code]} ${f.retryAfter(error.retryAfterSeconds)}`
         : f.errors[error.code]
   const busy = starting || run?.phase === 'running'
+  // Said to a screen reader as the check goes, in one line: that it runs, then its headline. The
+  // result itself is read like the rest of the page, not aloud as it changes.
+  const r = TOOL_APP[lang].result
+  const said =
+    run === null
+      ? ''
+      : run.phase === 'running'
+        ? r.running
+        : run.phase === 'done'
+          ? headlineOf(run.report, lang)
+          : run.phase === 'offline'
+            ? r.offline
+            : r.failed
 
   return (
     <div className="flex flex-col gap-8">
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-2.5">
         <label htmlFor="tool-url" className="text-sm font-semibold">
-          {t.page.urlLabel}
+          {t.urlLabel}
         </label>
         <div className="flex flex-col gap-2 sm:h-[60px] sm:flex-row sm:gap-0 sm:border-[1.5px] sm:border-ink sm:bg-white">
           <input
@@ -203,25 +219,41 @@ export default function ToolApp({ lang, tool, renders }: Props) {
             aria-disabled={busy ? true : undefined}
             className="flex h-[52px] shrink-0 cursor-pointer items-center justify-center gap-2.5 bg-ink px-7 text-[17px] font-semibold text-white hover:bg-signal disabled:cursor-wait aria-disabled:cursor-wait sm:h-auto"
           >
-            {busy ? t.page.submitting : t.page.submit}
+            {busy ? t.submitting : t.submit}
             <Forward size={20} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
         <div ref={box} />
         <p id="tool-note" className="m-0 text-sm text-ink-3">
-          {renders ? t.page.note.render : t.page.note.html}
+          {t.note[reads]}
         </p>
         <p id="tool-error" role="alert" className="m-0 text-sm text-signal empty:hidden">
           {message}
         </p>
       </form>
-      <div aria-live="polite">{run !== null && <Result run={run} lang={lang} />}</div>
+      {run !== null && <Result run={run} lang={lang} />}
+      <p role="status" className="sr-only">
+        {said}
+      </p>
     </div>
   )
 }
 
+/** What a tool's result says first, in the page's words (toolVerdict). */
+function headlineOf(report: Report, lang: Lang): string {
+  const t = TOOL_APP[lang].result
+  return {
+    blocked: t.blocked,
+    problems: t.problems(problemCount(report)),
+    incomplete: t.incomplete,
+    review: t.review,
+    passed: t.passed,
+    'not-applicable': t.notApplicable,
+  }[toolVerdict(report)]
+}
+
 function Result({ run, lang }: { run: Run; lang: Lang }) {
-  const t = TOOLS_UI[lang].result
+  const t = TOOL_APP[lang].result
   const r = REPORT[lang]
   const frame = 'flex flex-col border border-ink bg-white'
   const head =
@@ -274,23 +306,9 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
   }
 
   const { report, id } = run
-  const outcome = outcomeOf(report)
+  const verdict = toolVerdict(report)
   const problems = problemsOf(report)
   const failed = problems.filter((entry) => entry.rule.status === 'fail')
-  const count = failed.reduce((sum, entry) => sum + Math.max(entry.findings.length, 1), 0)
-  const applied = report.rules.filter((rule) => rule.status !== 'not-applicable')
-  const headline =
-    outcome === 'blocked'
-      ? t.blocked
-      : outcome === 'failed'
-        ? t.failed
-        : failed.length > 0
-          ? t.problems(count)
-          : problems.length > 0
-            ? t.review
-            : applied.length > 0
-              ? t.passed
-              : t.notApplicable
   const worst = failed[0]?.rule.severity
   const shareHref = localePath(lang, `/r/${id}`)
 
@@ -300,13 +318,18 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
         <div className="flex flex-wrap items-center gap-3">
           {worst !== undefined && <SeverityPill severity={worst} lang={lang} />}
           <h2 id="result-title" className="m-0 text-xl font-semibold">
-            {headline}
+            {headlineOf(report, lang)}
           </h2>
         </div>
         <span dir="ltr" className="font-mono text-[13px] break-all text-ink-3">
           {report.target.url}
         </span>
       </div>
+      {report.scan.notices.length > 0 && (
+        <div className="border-b border-rule-soft px-5 py-4 md:px-6">
+          <Notices notices={report.scan.notices} lang={lang} id="result-notices" level={3} />
+        </div>
+      )}
       {problems.map((entry) => (
         <article
           key={entry.rule.id}
@@ -315,7 +338,7 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
         >
           <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-5 pt-5 md:px-6">
             <h3 id={`result-${entry.rule.id}`} className="m-0 text-lg leading-snug font-semibold">
-              {entry.rule.title[lang]}
+              <Bidi text={entry.rule.title[lang]} lang={lang} />
             </h3>
             {entry.rule.status === 'needs-review' && (
               <span className="bg-measure-soft px-2 py-px text-xs text-measure">
@@ -343,27 +366,11 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           </ul>
         </article>
       ))}
-      {problems.length === 0 && applied.length > 0 && (
-        <ul className="m-0 flex list-none flex-col p-0">
-          {applied.map((rule) => (
-            <li
-              key={rule.id}
-              className="flex items-center gap-3 border-b border-rule-soft px-5 py-3.5 md:px-6"
-            >
-              <Check
-                size={16}
-                strokeWidth={2.4}
-                aria-hidden="true"
-                className="shrink-0 text-pass"
-              />
-              {rule.title[lang]}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Nothing was checked on a page the site refused to send. */}
+      {verdict !== 'blocked' && <Checked rules={report.rules} lang={lang} />}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-ink-3 md:px-6">
         <span className="flex flex-wrap gap-x-2">
-          {t.ruleLabel}
+          {t.rules(report.rules.length)}
           {report.rules.map((rule) => (
             <code key={rule.id} dir="ltr" className="font-mono text-ink-2">
               {rule.id}
@@ -381,6 +388,66 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           </a>
         </span>
       </div>
+    </section>
+  )
+}
+
+const STATUS_STYLE: Readonly<Record<RuleResult['status'], string>> = {
+  pass: 'bg-pass-soft text-pass',
+  fail: 'bg-signal-soft text-signal',
+  'needs-review': 'bg-measure-soft text-measure',
+  error: 'bg-moderate-soft text-moderate',
+  'not-applicable': 'bg-paper text-ink-3',
+}
+
+/** Each rule the tool ran, with what became of it: a green check for a rule that passed alone. */
+function Checked({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang }) {
+  const t = TOOL_APP[lang].result
+  return (
+    <section aria-labelledby="result-checked" className="flex flex-col border-b border-rule-soft">
+      <h3
+        id="result-checked"
+        className="m-0 px-5 pt-4 pb-2 text-sm font-semibold text-ink-3 md:px-6"
+      >
+        {t.checked}
+      </h3>
+      <ul className="m-0 flex list-none flex-col p-0">
+        {rules.map((rule) => (
+          <li
+            key={rule.id}
+            className="flex items-start gap-3 border-t border-rule-soft px-5 py-3 md:px-6"
+          >
+            {rule.status === 'pass' ? (
+              <Check
+                size={16}
+                strokeWidth={2.4}
+                aria-hidden="true"
+                className="mt-1 shrink-0 text-pass"
+              />
+            ) : rule.status === 'fail' ? (
+              <X
+                size={16}
+                strokeWidth={2.4}
+                aria-hidden="true"
+                className="mt-1 shrink-0 text-signal"
+              />
+            ) : (
+              <Minus
+                size={16}
+                strokeWidth={2.4}
+                aria-hidden="true"
+                className="mt-1 shrink-0 text-ink-3"
+              />
+            )}
+            <span className="grow leading-[1.6]">
+              <Bidi text={rule.title[lang]} lang={lang} />
+            </span>
+            <span className={`shrink-0 px-2 py-px text-xs ${STATUS_STYLE[rule.status]}`}>
+              {t.status[rule.status]}
+            </span>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

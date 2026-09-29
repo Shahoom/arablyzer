@@ -7,6 +7,7 @@ import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
 import Search from '@lucide/astro/icons/search'
 import Page from '../../layouts/Page.astro'
+import { searchable } from '../../lib/search'
 import { siteOf } from '../../lib/site'
 import { ARABIC_LAYER, CATEGORY_STYLE, categoryNumber, toolsByCategory } from '../../lib/tool-data'
 
@@ -18,9 +19,12 @@ const t = TOOLS_UI[lang]
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, PATHS.tools)
 const groups = toolsByCategory()
+// The Arabic layer first, in the sidebar as in the list.
 const general = groups.filter((group) => !ARABIC_LAYER.has(group.category))
 const arabic = groups.filter((group) => ARABIC_LAYER.has(group.category))
 const count = groups.reduce((sum, group) => sum + group.tools.length, 0)
+// What the search says it shows, for each number of tools it can: the script has no plural rules.
+const shown = Array.from({ length: count + 1 }, (_, n) => t.directory.shown(n, count))
 const Next = lang === 'ar' ? ChevronLeft : ChevronRight
 const jsonLd = [
   breadcrumbList([
@@ -89,7 +93,12 @@ const jsonLd = [
         />
       </div>
     </div>
-    <p class="m-0 text-sm text-ink-3" id="tools-count" aria-live="polite">
+    <p
+      class="m-0 text-sm text-ink-3"
+      id="tools-count"
+      aria-live="polite"
+      data-shown={JSON.stringify(shown)}
+    >
       {t.directory.count(count)}
     </p>
   </section>
@@ -104,26 +113,13 @@ const jsonLd = [
       </h2>
       <a
         href="#tools-list"
-        class="flex items-center justify-between bg-ink px-3 py-[9px] font-semibold text-white hover:text-white"
+        class="all flex items-center justify-between bg-ink px-3 py-[9px] font-semibold text-white hover:text-white"
       >
         {t.directory.all}
       </a>
-      {general.map((group) => (
-        <a
-          href={`#cat-${group.category}`}
-          class="flex items-center gap-2.5 px-3 py-[9px] hover:text-signal"
-        >
-          <span
-            aria-hidden="true"
-            class:list={['size-2 shrink-0', CATEGORY_STYLE[group.category].dot]}
-          />
-          {t.categories[group.category].name}
-        </a>
-      ))}
       {arabic.length > 0 && (
         <>
-          <span aria-hidden="true" class="my-2.5 h-px bg-rule" />
-          <span class="px-3 pb-1.5 text-xs font-semibold text-signal">
+          <span class="px-3 pt-3 pb-1.5 text-xs font-semibold text-signal">
             {t.directory.arabicLayer}
           </span>
           {arabic.map((group) => (
@@ -138,8 +134,21 @@ const jsonLd = [
               {t.categories[group.category].name}
             </a>
           ))}
+          {general.length > 0 && <span aria-hidden="true" class="my-2.5 h-px bg-rule" />}
         </>
       )}
+      {general.map((group) => (
+        <a
+          href={`#cat-${group.category}`}
+          class="flex items-center gap-2.5 px-3 py-[9px] hover:text-signal"
+        >
+          <span
+            aria-hidden="true"
+            class:list={['size-2 shrink-0', CATEGORY_STYLE[group.category].dot]}
+          />
+          {t.categories[group.category].name}
+        </a>
+      ))}
     </nav>
 
     <div id="tools-list" class="flex min-w-0 flex-col gap-12 md:gap-14">
@@ -181,14 +190,11 @@ const jsonLd = [
             {group.tools.map((tool) => (
               <li
                 data-tool
-                data-search={[
-                  tool.slug,
-                  tool.copy.ar.title,
-                  tool.copy.en.title,
-                  tool.copy[lang].summary,
-                ]
-                  .join(' ')
-                  .toLowerCase()}
+                data-search={searchable(
+                  [tool.slug, tool.copy.ar.title, tool.copy.en.title, tool.copy[lang].summary].join(
+                    ' ',
+                  ),
+                )}
               >
                 <a
                   href={localePath(lang, PATHS.tool(tool.slug))}
@@ -233,24 +239,25 @@ const jsonLd = [
 </Page>
 
 <script>
-  // The directory's search: cards whose name or line holds every word typed, and the sections
-  // they are in; the page works without it, every tool listed.
+  import { matchesAll, searchWords } from '../../lib/search'
+
+  // The directory's search: cards whose name or line holds every word typed, read as people type
+  // Arabic (lib/search.ts), and the sections they are in; the page works without it, every tool
+  // listed.
   const input = document.querySelector<HTMLInputElement>('#tools-search')
   const count = document.querySelector<HTMLElement>('#tools-count')
   const none = document.querySelector<HTMLElement>('#tools-none')
   const sections = [...document.querySelectorAll<HTMLElement>('[data-category]')]
   const all = count?.textContent ?? ''
+  // What to say for each number of tools shown, in the page's language (TOOLS_UI).
+  const said = JSON.parse(count?.dataset.shown ?? '[]') as string[]
   input?.addEventListener('input', () => {
-    const words = input.value
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((word) => word !== '')
+    const words = searchWords(input.value)
     let shown = 0
     for (const section of sections) {
       let inSection = 0
       for (const card of section.querySelectorAll<HTMLElement>('[data-tool]')) {
-        const text = card.dataset.search ?? ''
-        const match = words.every((word) => text.includes(word))
+        const match = matchesAll(card.dataset.search ?? '', words)
         card.hidden = !match
         if (match) inSection++
       }
@@ -258,6 +265,18 @@ const jsonLd = [
       shown += inSection
     }
     if (none !== null) none.hidden = shown > 0
-    if (count !== null) count.textContent = words.length === 0 ? all : `${String(shown)} / ${all}`
+    if (count !== null) count.textContent = words.length === 0 ? all : (said[shown] ?? all)
   })
 </script>
+
+<style>
+  /* "All" looks chosen until a category is (the address's #cat-…), which the list then shows. */
+  :global(:root:has([data-category]:target)) .all {
+    background-color: transparent;
+    color: inherit;
+    font-weight: 400;
+  }
+  :global(:root:has([data-category]:target)) .all:hover {
+    color: var(--color-signal);
+  }
+</style>

@@ -17,6 +17,8 @@ export interface SiteStrings {
   readonly otherLang: { readonly label: string; readonly short: string }
   readonly footer: {
     readonly about: string
+    /** Over the site's sections (NAV), as the header lists them. */
+    readonly sections: string
     readonly project: string
     readonly github: string
     readonly license: string
@@ -38,6 +40,7 @@ export const SITE: Copy<SiteStrings> = {
     otherLang: { label: 'English', short: 'EN' },
     footer: {
       about: 'محلّل المواقع العربية: أدوات مجانية تفحص ما يراه الزبون العربي فعلاً.',
+      sections: 'الأقسام',
       project: 'المشروع',
       github: 'الكود على GitHub',
       license: 'مفتوح المصدر بترخيص AGPL-3.0',
@@ -57,6 +60,7 @@ export const SITE: Copy<SiteStrings> = {
     footer: {
       about:
         'The Arabic website analyzer: free tools that check what Arabic-speaking customers actually see.',
+      sections: 'Sections',
       project: 'Project',
       github: 'The code on GitHub',
       license: 'Open source under AGPL-3.0',

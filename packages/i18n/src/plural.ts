@@ -31,8 +31,13 @@ export function arabicCount(count: number, forms: ArabicForms): string {
   return form.replaceAll('{n}', String(count))
 }
 
+/** The English form a count gives a noun, without the number: "Rule:", "Rules:". */
+export function englishForm(count: number, one: string, other: string): string {
+  return ENGLISH.select(count) === 'one' ? one : other
+}
+
 export function englishCount(count: number, one: string, other: string): string {
-  return `${count} ${ENGLISH.select(count) === 'one' ? one : other}`
+  return `${count} ${englishForm(count, one, other)}`
 }
 
 /** Rules as the subject of a sentence: «فشلت 3 قواعد»، «نجحت قاعدتان». */
