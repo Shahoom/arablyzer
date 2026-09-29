@@ -59,3 +59,12 @@ export function hostnameOf(url: string): string | null {
     return null
   }
 }
+
+/**
+ * Whether the URL is on a public site rather than a local development host (isLocalHost): the
+ * checks of what a public site sends its visitors, such as its security headers, run there alone.
+ */
+export function isPublicUrl(url: string): boolean {
+  const hostname = hostnameOf(url)
+  return hostname !== null && !isLocalHost(hostname)
+}

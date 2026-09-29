@@ -15,6 +15,7 @@ import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
 import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
 import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
@@ -67,6 +68,7 @@ export const RULES: readonly Rule[] = [
   arMojibake,
   arTatweel,
   canonicalConflict,
+  cspMissing,
   cwvClsPoor,
   cwvInpPoor,
   cwvLcpPoor,
