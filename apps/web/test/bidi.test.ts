@@ -21,6 +21,22 @@ describe('isolateLatin', () => {
     ])
   })
 
+  it('isolates a rule’s title whole, its quotes with its code', () => {
+    expect(isolated('صفحة عربية بلا dir="rtl" في وسم html')).toEqual(['dir="rtl"', 'html'])
+    expect(isolated('خطأ في صيغة JSON داخل البيانات المنظّمة (JSON-LD)')).toEqual([
+      'JSON',
+      '(JSON-LD)',
+    ])
+  })
+
+  it('isolates a tag with its angle brackets, which a lone bracket would turn round', () => {
+    expect(isolated('أغلب نص الصفحة عربي، لكن وسم <html> بلا سمة dir="rtl".')).toEqual([
+      '<html>',
+      'dir="rtl"',
+    ])
+    expect(isolated('ضع </body> في آخر الصفحة، لا <عربي>')).toEqual(['</body>'])
+  })
+
   it('leaves brackets around Arabic alone, which a lone isolated bracket would turn round', () => {
     expect(isolated('اختبر الصفحة (الرئيسية) الآن')).toEqual([])
     expect(isolated('الأرقام (١٢٣) و[٤٥٦]')).toEqual([])

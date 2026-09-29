@@ -569,7 +569,7 @@ function FindingCard({
           )}
         </div>
         <h3 id={`${code}-title`} className="m-0 text-xl leading-snug font-semibold md:text-[23px]">
-          {rule.title[lang]}
+          <Bidi text={rule.title[lang]} lang={lang} />
         </h3>
       </header>
       <ul className="m-0 flex list-none flex-col p-0">
@@ -615,7 +615,9 @@ function RuleList({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang })
           key={rule.id}
           className="flex flex-wrap items-center justify-between gap-3 border-b border-rule-soft px-5 py-3 last:border-b-0"
         >
-          <span className="text-[15px]">{rule.title[lang]}</span>
+          <span className="text-[15px]">
+            <Bidi text={rule.title[lang]} lang={lang} />
+          </span>
           <code dir="ltr" className="font-mono text-xs text-ink-3">
             {rule.id}
           </code>

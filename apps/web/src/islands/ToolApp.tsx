@@ -317,7 +317,7 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
         >
           <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-5 pt-5 md:px-6">
             <h3 id={`result-${entry.rule.id}`} className="m-0 text-lg leading-snug font-semibold">
-              {entry.rule.title[lang]}
+              <Bidi text={entry.rule.title[lang]} lang={lang} />
             </h3>
             {entry.rule.status === 'needs-review' && (
               <span className="bg-measure-soft px-2 py-px text-xs text-measure">

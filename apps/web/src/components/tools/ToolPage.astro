@@ -10,6 +10,7 @@ import ToolApp from '../../islands/ToolApp'
 import Page from '../../layouts/Page.astro'
 import { METHODOLOGY, scanFormHref, siteOf } from '../../lib/site'
 import { TOOLS_DATA, toolData } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
 import SeverityPill from '../SeverityPill.astro'
 
 interface Props {
@@ -165,7 +166,9 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
                 <code dir="ltr" class="self-start font-mono text-sm text-ink-2">
                   {rule.id}
                 </code>
-                <span class="text-base leading-[1.6] font-semibold">{rule.title[lang]}</span>
+                <span class="text-base leading-[1.6] font-semibold">
+                  <Bidi text={rule.title[lang]} lang={lang} />
+                </span>
                 <span class="self-start">
                   <SeverityPill severity={rule.severity} lang={lang} />
                 </span>
