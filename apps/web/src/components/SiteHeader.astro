@@ -32,10 +32,7 @@ const o = SITE[lang].otherLang
       </span>
     </a>
     {NAV.length > 0 && (
-      <nav
-        aria-label={t.navLabel}
-        class="hidden items-center gap-8 text-[15px] font-medium lg:flex"
-      >
+      <nav aria-label={t.navLabel} class="hidden items-center gap-8 text-[15px] lg:flex">
         {NAV.map((item) => (
           <a href={localePath(lang, item.path)} class="hover:text-signal">
             {item.key}
