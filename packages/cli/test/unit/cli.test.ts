@@ -427,6 +427,17 @@ describe('run', () => {
     expect(version.out.join('')).toBe('arablyzer 0.1.0\n')
   })
 
+  it('says in its help that a site can ask ArablyzerBot not to check a page (M2.4 plan §2)', () => {
+    expect(STRINGS.en.help).toContain(
+      'Arablyzer reads robots.txt before it asks a site for a page, and does not check a page\nthat a group naming ArablyzerBot disallows there; User-agent: * alone does not stop it.',
+    )
+    expect(STRINGS.en.help).toContain('the site asked in robots.txt not to be checked')
+    expect(STRINGS.ar.help).toContain(
+      'يقرأ Arablyzer ملف robots.txt قبل أن يطلب من الموقع أي صفحة، ولا يفحص صفحة تمنعها فيه مجموعة\nتسمّي ArablyzerBot؛ ومجموعة User-agent: * وحدها لا توقف الفحص.',
+    )
+    expect(STRINGS.ar.help).toContain('طلب الموقع في robots.txt ألّا يُفحص')
+  })
+
   it('reports usage errors on stderr with exit code 2', async () => {
     const bad = io()
     expect(await run(['x.test', '--fail-on', 'high'], bad.io)).toBe(2)

@@ -64,8 +64,12 @@ Options:
 Real visitors' speed (Core Web Vitals) comes from Google's Chrome UX Report with an API key
 in ARABLYZER_CRUX_API_KEY; the page's URL is sent to Google. Without it, those checks do not run.
 
+Arablyzer reads robots.txt before it asks a site for a page, and does not check a page
+that a group naming ArablyzerBot disallows there; User-agent: * alone does not stop it.
+
 Exit codes: 0 scan complete; 1 failures at --fail-on or above; 2 scan not complete
-(address blocked or unreachable, time limit, partial scan) or invalid options.
+(address blocked or unreachable, the site asked in robots.txt not to be checked, time limit,
+partial scan) or invalid options.
 `
 
 const HELP_AR = `الاستخدام: arablyzer <الرابط> [خيارات]
@@ -96,8 +100,12 @@ const HELP_AR = `الاستخدام: arablyzer <الرابط> [خيارات]
 سرعة الزوار الحقيقيين (Core Web Vitals) من تقرير Google (Chrome UX Report)، بمفتاح API في
 ARABLYZER_CRUX_API_KEY، ويُرسَل رابط الصفحة إلى Google. دونه لا تعمل هذه الفحوص.
 
+يقرأ Arablyzer ملف robots.txt قبل أن يطلب من الموقع أي صفحة، ولا يفحص صفحة تمنعها فيه مجموعة
+تسمّي ArablyzerBot؛ ومجموعة User-agent: * وحدها لا توقف الفحص.
+
 رموز الخروج: 0 اكتمل الفحص؛ 1 مخالفات عند --fail-on أو أعلى؛ 2 لم يكتمل الفحص
-(رابط محجوب أو غير قابل للوصول، انتهاء المهلة، فحص جزئي) أو خيارات غير صالحة.
+(رابط محجوب أو غير قابل للوصول، طلب الموقع في robots.txt ألّا يُفحص، انتهاء المهلة، فحص
+جزئي) أو خيارات غير صالحة.
 `
 
 export const STRINGS: Readonly<Record<Lang, Strings>> = {
