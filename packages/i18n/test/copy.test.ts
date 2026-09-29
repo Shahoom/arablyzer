@@ -9,6 +9,7 @@ import {
   REPORT,
   SCAN_FORM,
   SITE,
+  TOOL_APP,
   TOPICS,
 } from '../src/index'
 
@@ -93,6 +94,19 @@ describe('interface copy', () => {
       { text: '.', code: false },
     ])
     expect(SITE.ar.tagline).toBe('محلّل المواقع العربية')
+  })
+})
+
+describe('a tool’s copy', () => {
+  it('names the rules a result lists as many as they are', () => {
+    expect([1, 2, 3, 11, 100].map((n) => TOOL_APP.ar.result.rules(n))).toEqual([
+      'القاعدة:',
+      'القاعدتان:',
+      'القواعد:',
+      'القواعد:',
+      'القواعد:',
+    ])
+    expect([1, 2, 0].map((n) => TOOL_APP.en.result.rules(n))).toEqual(['Rule:', 'Rules:', 'Rules:'])
   })
 })
 

@@ -1,5 +1,5 @@
 import type { Copy } from './copy'
-import { arabicCount } from './plural'
+import { arabicCount, englishForm } from './plural'
 
 /**
  * A tool page's tool (M2.2): its form, and its result under it. The page's island loads these
@@ -10,8 +10,8 @@ export interface ToolAppStrings {
     readonly urlLabel: string
     readonly submit: string
     readonly submitting: string
-    /** Under the form: free, and what the tool reads. */
-    readonly note: Readonly<Record<'html' | 'render', string>>
+    /** Under the form: free, and what the tool reads: the page, robots.txt, or the page drawn. */
+    readonly note: Readonly<Record<'html' | 'robots' | 'render', string>>
   }
   readonly result: {
     readonly running: string
@@ -27,7 +27,8 @@ export interface ToolAppStrings {
     readonly status: Readonly<
       Record<'pass' | 'fail' | 'needs-review' | 'not-applicable' | 'error', string>
     >
-    readonly ruleLabel: string
+    /** Before the ids of the rules the tool ran. */
+    readonly rules: (count: number) => string
     readonly share: string
     readonly howToFix: string
     readonly blocked: string
@@ -45,6 +46,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       submitting: 'نفحص…',
       note: {
         html: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم.',
+        robots: 'مجاني وبلا تسجيل. نقرأ ملف robots.txt كما يرسله الخادم.',
         render: 'مجاني وبلا تسجيل. نعرض الصفحة في المتصفحات كما يعرضها زائرك.',
       },
     },
@@ -69,7 +71,13 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         'not-applicable': 'لا تنطبق',
         error: 'تعذّر تشغيلها',
       },
-      ruleLabel: 'القاعدة:',
+      rules: (count) =>
+        arabicCount(count, {
+          one: 'القاعدة:',
+          two: 'القاعدتان:',
+          few: 'القواعد:',
+          many: 'القواعد:',
+        }),
       share: 'رابط هذه النتيجة',
       howToFix: 'كيف تُصلح',
       blocked: 'لم نتمكن من فحص الصفحة: ردّ الخادم بخطأ أو منع الفحص.',
@@ -84,6 +92,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       submitting: 'Checking…',
       note: {
         html: 'Free, no sign-up. We read the page as the server sends it.',
+        robots: 'Free, no sign-up. We read robots.txt as the server sends it.',
         render: 'Free, no sign-up. We render the page in browsers, as your visitor sees it.',
       },
     },
@@ -102,7 +111,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         'not-applicable': 'Does not apply',
         error: 'Could not run',
       },
-      ruleLabel: 'Rule:',
+      rules: (count) => englishForm(count, 'Rule:', 'Rules:'),
       share: 'Link to this result',
       howToFix: 'How to fix',
       blocked:

@@ -16,6 +16,7 @@ import { Notices } from './report/Notices'
 import { SeverityPill } from './report/ui'
 import {
   advance,
+  problemCount,
   problemsOf,
   START,
   stepsOf,
@@ -29,8 +30,8 @@ interface Props {
   lang: Lang
   /** The tool's slug: its scan runs its rules alone (M2.2). */
   tool: string
-  /** Whether the tool renders the page in browsers, which the note under the form says. */
-  renders: boolean
+  /** What the tool reads, which the note under the form says: the page, robots.txt, or browsers. */
+  reads: 'html' | 'robots' | 'render'
 }
 
 type Run =
@@ -52,7 +53,7 @@ const wait = (ms: number) =>
  * alone, and its result under the form as the scan runs: each problem with its evidence, or the
  * page passing. The result has its own link, the scan's report page.
  */
-export default function ToolApp({ lang, tool, renders }: Props) {
+export default function ToolApp({ lang, tool, reads }: Props) {
   const t = TOOL_APP[lang].form
   const f = SCAN_FORM[lang]
   const [ready, setReady] = useState(false)
@@ -224,7 +225,7 @@ export default function ToolApp({ lang, tool, renders }: Props) {
         </div>
         <div ref={box} />
         <p id="tool-note" className="m-0 text-sm text-ink-3">
-          {renders ? t.note.render : t.note.html}
+          {t.note[reads]}
         </p>
         <p id="tool-error" role="alert" className="m-0 text-sm text-signal empty:hidden">
           {message}
@@ -241,18 +242,14 @@ export default function ToolApp({ lang, tool, renders }: Props) {
 /** What a tool's result says first, in the page's words (toolVerdict). */
 function headlineOf(report: Report, lang: Lang): string {
   const t = TOOL_APP[lang].result
-  const verdict = toolVerdict(report)
-  if (verdict !== 'problems') {
-    return {
-      blocked: t.blocked,
-      incomplete: t.incomplete,
-      review: t.review,
-      passed: t.passed,
-      'not-applicable': t.notApplicable,
-    }[verdict]
-  }
-  const failed = problemsOf(report).filter((entry) => entry.rule.status === 'fail')
-  return t.problems(failed.reduce((sum, entry) => sum + Math.max(entry.findings.length, 1), 0))
+  return {
+    blocked: t.blocked,
+    problems: t.problems(problemCount(report)),
+    incomplete: t.incomplete,
+    review: t.review,
+    passed: t.passed,
+    'not-applicable': t.notApplicable,
+  }[toolVerdict(report)]
 }
 
 function Result({ run, lang }: { run: Run; lang: Lang }) {
@@ -373,7 +370,7 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
       {verdict !== 'blocked' && <Checked rules={report.rules} lang={lang} />}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-ink-3 md:px-6">
         <span className="flex flex-wrap gap-x-2">
-          {t.ruleLabel}
+          {t.rules(report.rules.length)}
           {report.rules.map((rule) => (
             <code key={rule.id} dir="ltr" className="font-mono text-ink-2">
               {rule.id}

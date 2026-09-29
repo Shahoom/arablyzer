@@ -131,6 +131,19 @@ export function toolVerdict(report: Report): ToolVerdict {
   return any('pass') ? 'passed' : 'not-applicable'
 }
 
+/**
+ * The problems a tool's result counts: every finding of its failed rules, those the report left
+ * out past its cap too; a failed rule without findings counts once.
+ */
+export function problemCount(report: Report): number {
+  return report.rules
+    .filter((rule) => rule.status === 'fail')
+    .reduce((sum, rule) => {
+      const found = report.findings.filter((finding) => finding.ruleId === rule.id).length
+      return sum + Math.max(found + (rule.findingsOmitted ?? 0), 1)
+    }, 0)
+}
+
 const SEVERITY_RANK: Readonly<Record<Severity, number>> = {
   critical: 0,
   serious: 1,

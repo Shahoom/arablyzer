@@ -1,6 +1,6 @@
 export { codeParts, type Copy, type Lang } from './copy'
 export { HOME, TOPICS, type HomeStrings, type Topic } from './home'
-export { arabicCount, englishCount, type ArabicForms } from './plural'
+export { arabicCount, englishCount, englishForm, type ArabicForms } from './plural'
 export {
   CATEGORIES,
   REPORT,

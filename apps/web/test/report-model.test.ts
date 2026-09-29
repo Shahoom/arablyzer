@@ -8,6 +8,7 @@ import { idFromPath } from '../src/islands/ReportApp'
 import {
   advance,
   outcomeOf,
+  problemCount,
   problemsOf,
   START,
   stepsOf,
@@ -232,5 +233,24 @@ describe('toolVerdict', () => {
         target: { ...refused.target, http: { ...refused.target.http, status: 403 } },
       }),
     ).toBe('blocked')
+  })
+})
+
+describe('problemCount', () => {
+  it('counts every finding of the failed rules, those the report left out too', () => {
+    // Golden report 04: three rules failed, with a finding each.
+    expect(problemCount(rtlLayout)).toBe(3)
+    const capped = {
+      ...rtlLayout,
+      rules: rtlLayout.rules.map((rule) =>
+        rule.id === 'rtl-physical-css' ? { ...rule, findingsOmitted: 17 } : rule,
+      ),
+    }
+    expect(problemCount(capped)).toBe(20)
+  })
+
+  it('counts a failed rule without findings once, and nothing for a review', () => {
+    expect(problemCount(rtlCheck(['fail', 'pass']))).toBe(1)
+    expect(problemCount(rtlCheck(['needs-review', 'pass']))).toBe(0)
   })
 })
