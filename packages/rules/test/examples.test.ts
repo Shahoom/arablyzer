@@ -17,6 +17,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'https-missing': 'the address the page answers at',
   'redirect-chain': 'the redirects before the page, which no excerpt shows',
   'redirect-temporary': 'the redirects before the page, which no excerpt shows',
+  'spf-missing': 'DNS records, which no excerpt of the page shows',
   'text-compression-missing': 'how the server sends the page’s files',
   'tls-expiring': 'the server’s certificate',
   'x-content-type-options-missing': 'a response header, whose absence no excerpt shows',

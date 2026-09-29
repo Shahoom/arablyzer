@@ -1,0 +1,11 @@
+{
+  "host": "shop.example",
+  "tls": {
+    "lifetimeDays": 90,
+    "daysLeft": 60
+  },
+  "txt": {
+    "shop.example": ["v=spf1 include:_spf.google.com ~all", "v=spf1 include:mail.zendesk.com ~all"],
+    "_dmarc.shop.example": ["v=DMARC1; p=quarantine; rua=mailto:dmarc@shop.example"]
+  }
+}

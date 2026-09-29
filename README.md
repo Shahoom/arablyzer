@@ -140,6 +140,12 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`redirect-chain`](packages/rules/src/rules/redirect-chain/copy.en.md) | The page is reached through one redirect at most |
 | [`redirect-temporary`](packages/rules/src/rules/redirect-temporary/copy.en.md) | A move to HTTPS, or between a name and its `www.`, is a permanent redirect (301 or 308) |
 
+These read TXT records of the page's domain (its organizational domain, by the Public Suffix List) from the resolver the scan resolves names with; behind the egress proxy, which resolves every name, they report that they could not run:
+
+| Rule | Checks |
+|---|---|
+| [`spf-missing`](packages/rules/src/rules/spf-missing/copy.en.md) | The page's domain has one SPF record (`v=spf1`) |
+
 These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
 
 | Rule | Checks |
