@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A sample rule — Arablyzer</title>
+<meta name="description" content="A rule page written by hand to test the self-audit.">
+<link rel="canonical" href="https://arablyzer.example/en/rules/sample-rule">
+<link rel="alternate" hreflang="ar" href="https://arablyzer.example/rules/sample-rule">
+<link rel="alternate" hreflang="en" href="https://arablyzer.example/en/rules/sample-rule">
+<link rel="alternate" hreflang="x-default" href="https://arablyzer.example/rules/sample-rule">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Arablyzer">
+<meta property="og:title" content="A sample rule — Arablyzer">
+<meta property="og:description" content="A rule page written by hand to test the self-audit.">
+<meta property="og:url" content="https://arablyzer.example/en/rules/sample-rule">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "A sample rule",
+  "url": "https://arablyzer.example/en/rules/sample-rule",
+  "inLanguage": "en",
+  "version": "1.0.0"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Rule library", "item": "https://arablyzer.example/en/rules" },
+    { "@type": "ListItem", "position": 2, "name": "A sample rule", "item": "https://arablyzer.example/en/rules/sample-rule" }
+  ]
+}
+</script>
+</head>
+<body>
+<main>
+<h1>A sample rule</h1>
+<section id="why"><h2>Why it matters</h2><ul><li>Because the page reads from the right.</li></ul></section>
+<section id="example"><h2>Example</h2><pre>&lt;html lang="en"&gt;</pre><pre>&lt;html lang="ar" dir="rtl"&gt;</pre></section>
+<section id="fix"><h2>How to fix</h2><p>Put the direction on the html tag.</p></section>
+<section id="detect"><h2>How we detect</h2><ol><li>We read the HTML as the server sends it.</li></ol></section>
+<section id="references"><h2>References</h2><ul><li><a href="https://www.w3.org/International/">W3C Internationalization articles</a></li></ul></section>
+<nav><a href="/en/rules">Rule library</a> <a href="/en/tools/rtl-check">RTL checker</a></nav>
+</main>
+</body>
+</html>
