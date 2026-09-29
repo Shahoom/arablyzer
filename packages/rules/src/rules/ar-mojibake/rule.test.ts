@@ -44,6 +44,10 @@ describe('ar-mojibake', () => {
     expect(detectAll(rule, await fixtureEvidence(rule.id, 'right'))).toEqual([])
   })
 
+  it('passes the same reviews once they are read as UTF-8', async () => {
+    expect(detectAll(rule, await fixtureEvidence(rule.id, 'right-reviews'))).toEqual([])
+  })
+
   it.each(['Crème brûlée', 'Ça va très bien', 'Ñandú', 'ÆØÅ', 'Ø', 'Øresund', 'Ù'])(
     'leaves %j alone',
     (text) => {
