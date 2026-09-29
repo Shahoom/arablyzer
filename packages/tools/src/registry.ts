@@ -15,6 +15,7 @@ import { definition as headingStructure } from './tools/heading-structure/tool'
 import { definition as hreflangCheck } from './tools/hreflang-check/tool'
 import { definition as imageWeight } from './tools/image-weight/tool'
 import { definition as indexabilityCheck } from './tools/indexability-check/tool'
+import { definition as jsRenderingCheck } from './tools/js-rendering-check/tool'
 import { definition as languageCheck } from './tools/language-check/tool'
 import { definition as letterSpacingCheck } from './tools/letter-spacing-check/tool'
 import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
@@ -56,6 +57,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   hreflangCheck,
   imageWeight,
   indexabilityCheck,
+  jsRenderingCheck,
   languageCheck,
   letterSpacingCheck,
   logicalCssCheck,
