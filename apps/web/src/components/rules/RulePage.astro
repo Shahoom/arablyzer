@@ -1,0 +1,293 @@
+---
+import { RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
+import { breadcrumbList, techArticle } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import Check from '@lucide/astro/icons/check'
+import ChevronLeft from '@lucide/astro/icons/chevron-left'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+import X from '@lucide/astro/icons/x'
+import Page from '../../layouts/Page.astro'
+import { METHODOLOGY, scanFormHref, siteOf } from '../../lib/site'
+import { LIBRARY_DATA, ruleData } from '../../lib/rule-data'
+import { toolData } from '../../lib/tool-data'
+import SeverityPill from '../SeverityPill.astro'
+
+interface Props {
+  lang: Lang
+  id: string
+}
+const { lang, id } = Astro.props
+const rule = ruleData(id)
+const copy = rule.copy[lang]
+const t = RULES_UI[lang]
+const site = siteOf(Astro.site)
+const path = PATHS.rule(id)
+const url = pageUrl(site, lang, path)
+const libraryPath = localePath(lang, PATHS.rules)
+const category = TOOLS_UI[lang].categories[rule.category].name
+const Next = lang === 'ar' ? ChevronLeft : ChevronRight
+const tools = rule.tools.map((slug) => ({
+  href: localePath(lang, PATHS.tool(slug)),
+  title: toolData(slug).copy[lang].title,
+}))
+const near = rule.near.map((other) => ({
+  id: other,
+  href: localePath(lang, PATHS.rule(other)),
+  title: ruleData(other).copy[lang].title,
+}))
+const jsonLd = [
+  techArticle({
+    headline: copy.title,
+    description: copy.description,
+    url,
+    lang,
+    version: rule.version,
+  }),
+  breadcrumbList([
+    { name: t.library.title, url: pageUrl(site, lang, PATHS.rules) },
+    { name: copy.title, url },
+  ]),
+]
+const headings = LIBRARY_DATA.headings[lang]
+const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[28px]'
+const chip = 'border border-rule-strong px-2.5 py-0.5'
+const card = 'flex flex-col border bg-white p-[22px]'
+---
+
+<Page
+  lang={lang}
+  path={path}
+  title={`${copy.title} — Arablyzer`}
+  description={copy.description}
+  jsonLd={jsonLd}
+>
+  <div class="rule-layout px-5 pt-7 pb-16 md:px-16 md:pt-10 md:pb-[88px]">
+    <div class="rule-main flex min-w-0 flex-col gap-12">
+      <div class="flex flex-col gap-5">
+        <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
+          <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
+            <li class="flex items-center gap-2">
+              <a href={libraryPath} class="text-ink-3 hover:text-signal">
+                {t.library.title}
+              </a>
+              <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
+            </li>
+            <li>
+              <a href={`${libraryPath}#cat-${rule.category}`} class="text-ink-3 hover:text-signal">
+                {category}
+              </a>
+            </li>
+          </ol>
+        </nav>
+        <h1 class="m-0 text-[30px] leading-[1.25] font-semibold text-balance md:text-[46px]">
+          {copy.title}
+        </h1>
+        <ul class="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-[13px]">
+          <li>
+            <code dir="ltr" class="block bg-ink px-2.5 py-[3px] font-mono text-[13px] text-white">
+              {rule.id}
+            </code>
+          </li>
+          <li>
+            <SeverityPill severity={rule.severity} lang={lang} />
+          </li>
+          <li class={chip}>{category}</li>
+          <li class={chip}>
+            {t.page.version}{' '}
+            <span dir="ltr" class="font-mono">
+              {rule.version}
+            </span>
+          </li>
+          <li class={chip}>{t.page.reads[rule.reads]}</li>
+          {rule.manual && <li class={chip}>{t.page.manual}</li>}
+          {rule.wcag.map((criterion) => (
+            <li class={chip} dir="ltr">
+              WCAG <span class="font-mono">{criterion}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <section id="why" aria-labelledby="why-title" class="flex flex-col gap-4">
+        <h2 id="why-title" class={heading}>
+          {headings.why}
+        </h2>
+        <div
+          class="prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]"
+          set:html={copy.why}
+        />
+      </section>
+
+      {rule.example !== null && (
+        <section id="example" aria-labelledby="example-title" class="flex flex-col gap-4">
+          <h2 id="example-title" class={heading}>
+            {t.page.example}
+          </h2>
+          <div class="grid gap-4 md:grid-cols-2">
+            {(['wrong', 'right'] as const).map((kind) => (
+              <figure class="m-0 flex min-w-0 flex-col border border-rule-strong bg-white">
+                <figcaption
+                  class:list={[
+                    'flex items-center gap-2 border-b border-rule-soft px-4 py-2.5 text-sm font-semibold',
+                    kind === 'wrong' ? 'text-signal' : 'text-pass',
+                  ]}
+                >
+                  {kind === 'wrong' ? (
+                    <X size={14} stroke-width={2.6} aria-hidden="true" />
+                  ) : (
+                    <Check size={14} stroke-width={2.6} aria-hidden="true" />
+                  )}
+                  {t.page[kind]}
+                </figcaption>
+                {/* Wrapped, not scrolled: the examples are short, and often a sentence long. */}
+                <pre
+                  dir="ltr"
+                  class="m-0 px-4 py-[18px] text-start font-mono text-[13px] leading-[1.7] whitespace-pre-wrap [overflow-wrap:anywhere] md:text-sm"
+                  set:html={rule.example?.[kind]}
+                />
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section id="fix" aria-labelledby="fix-title" class="flex flex-col gap-4">
+        <h2 id="fix-title" class={heading}>
+          {headings.fix}
+        </h2>
+        <div
+          class="prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]"
+          set:html={copy.fix}
+        />
+      </section>
+
+      <section id="detect" aria-labelledby="detect-title" class="flex flex-col gap-4">
+        <h2 id="detect-title" class={heading}>
+          {headings.detect}
+        </h2>
+        <div
+          class="rule-detect prose-fix prose-tool text-base leading-[1.85] text-ink-2"
+          set:html={copy.detect}
+        />
+      </section>
+
+      <section id="references" aria-labelledby="references-title" class="flex flex-col gap-3">
+        <h2 id="references-title" class="m-0 text-[22px] font-semibold">
+          {headings.references}
+        </h2>
+        <div class="rule-references prose-fix text-base leading-[1.8]" set:html={copy.references} />
+      </section>
+    </div>
+
+    <aside class="rule-aside flex min-w-0 flex-col gap-4">
+      <section aria-labelledby="weight-title" class:list={[card, 'gap-2.5 border-ink']}>
+        <h2 id="weight-title" class="m-0 text-sm font-semibold text-ink-3">
+          {t.page.weight.title}
+        </h2>
+        <span dir="ltr" class="self-start font-mono text-5xl leading-none">
+          {rule.weight}
+        </span>
+        <p class="m-0 text-sm leading-[1.8] text-ink-2">
+          {rule.manual ? t.page.weight.manual : t.page.weight.scale(LIBRARY_DATA.weights)}
+        </p>
+        <a
+          href={METHODOLOGY}
+          class="self-start text-sm font-semibold underline underline-offset-4 hover:text-signal"
+        >
+          {t.page.weight.methodology}
+        </a>
+      </section>
+
+      <nav aria-labelledby="in-tools-title" class:list={[card, 'gap-1 border-rule-strong']}>
+        <h2 id="in-tools-title" class="m-0 mb-2 text-sm font-semibold text-ink-3">
+          {t.page.inTools}
+        </h2>
+        {[...tools, { href: scanFormHref(lang), title: t.page.fullScan }].map((link, index) => (
+          <a
+            href={link.href}
+            class:list={[
+              'flex items-center justify-between gap-3 py-2.5 text-base hover:text-signal',
+              index < tools.length && 'border-b border-rule-soft',
+            ]}
+          >
+            {link.title}
+            <Next size={16} stroke-width={2} aria-hidden="true" class="shrink-0" />
+          </a>
+        ))}
+      </nav>
+
+      {near.length > 0 && (
+        <nav aria-labelledby="near-title" class:list={[card, 'gap-1 border-rule-strong']}>
+          <h2 id="near-title" class="m-0 mb-2 text-sm font-semibold text-ink-3">
+            {t.page.near}
+          </h2>
+          {near.map((other, index) => (
+            <a
+              href={other.href}
+              class:list={[
+                'flex flex-col gap-0.5 py-2.5 hover:text-signal',
+                index < near.length - 1 && 'border-b border-rule-soft',
+              ]}
+            >
+              <span class="text-[15px] leading-[1.6] font-semibold">{other.title}</span>
+              <span dir="ltr" class="self-start font-mono text-xs text-ink-3">
+                {other.id}
+              </span>
+            </a>
+          ))}
+        </nav>
+      )}
+    </aside>
+  </div>
+</Page>
+
+<style>
+  .rule-layout {
+    display: grid;
+    gap: 3rem;
+  }
+  @media (min-width: 1024px) {
+    /* The design's twelve columns: the rule in eight, its weight and its neighbours in four. */
+    .rule-layout {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      column-gap: 56px;
+      align-items: start;
+    }
+    .rule-aside {
+      padding-block-start: 48px;
+    }
+  }
+  /* How we detect, as the Rule board draws it: numbered steps between rules. */
+  .rule-detect > :global(ol) {
+    list-style: none;
+    counter-reset: step;
+    padding: 0;
+    gap: 0;
+    border-top: 1px solid var(--color-ink);
+  }
+  .rule-detect > :global(ol > li) {
+    counter-increment: step;
+    position: relative;
+    padding-block: 18px;
+    padding-inline-start: 60px;
+    border-bottom: 1px solid var(--color-rule);
+  }
+  .rule-detect > :global(ol > li)::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    inset-inline-start: 0;
+    width: 48px;
+    text-align: end;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--color-signal);
+  }
+  .rule-references :global(ul) {
+    list-style: none;
+    padding: 0;
+    gap: 0.75rem;
+  }
+  .rule-references :global(a) {
+    color: var(--color-ink);
+  }
+</style>

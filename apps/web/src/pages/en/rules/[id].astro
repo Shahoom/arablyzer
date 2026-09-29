@@ -1,0 +1,12 @@
+---
+import RulePage from '../../../components/rules/RulePage.astro'
+import { LIBRARY_DATA } from '../../../lib/rule-data'
+
+export function getStaticPaths() {
+  return LIBRARY_DATA.rules.map((rule) => ({ params: { id: rule.id } }))
+}
+
+const { id } = Astro.params
+---
+
+<RulePage lang="en" id={id} />

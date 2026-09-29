@@ -23,4 +23,23 @@ describe('highlight', () => {
       '<span class="text-ink-3">User-agent:</span><span class="text-signal"> GPTBot</span>\n<span class="text-ink-3">Disallow:</span><span class="text-signal"> /</span>\n# x',
     )
   })
+
+  it("colours a CSS declaration's value, and mutes the rest", () => {
+    expect(highlight('.menu {\n  left: -280px;\n}', 'css', 'wrong')).toBe(
+      '<span class="text-ink-3">.menu {</span>\n  <span class="text-ink-3">left: </span><span class="text-signal">-280px</span><span class="text-ink-3">;</span>\n<span class="text-ink-3">}</span>',
+    )
+    expect(highlight("  font-family: 'Tajawal', sans-serif;", 'css', 'right')).toBe(
+      '  <span class="text-ink-3">font-family: </span><span class="text-pass">&#39;Tajawal&#39;, sans-serif</span><span class="text-ink-3">;</span>',
+    )
+    expect(highlight('a:focus,\na:hover {', 'css', 'right')).not.toContain('text-pass')
+    expect(highlight('a:hover {\n\n  color: "x";\n}', 'css', 'right')).toBe(
+      '<span class="text-ink-3">a:hover {</span>\n\n  <span class="text-ink-3">color: </span><span class="text-pass">&quot;x&quot;</span><span class="text-ink-3">;</span>\n<span class="text-ink-3">}</span>',
+    )
+  })
+
+  it("colours a JSON member's value, and mutes its name", () => {
+    expect(highlight('"price": "12.500",\n"offers": {', 'json', 'right')).toBe(
+      '<span class="text-ink-3">&quot;price&quot;: </span><span class="text-pass">&quot;12.500&quot;</span><span class="text-ink-3">,</span>\n<span class="text-ink-3">&quot;offers&quot;: {</span>',
+    )
+  })
 })

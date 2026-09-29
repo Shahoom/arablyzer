@@ -175,6 +175,9 @@ importers:
       '@arablyzer/rules':
         specifier: workspace:*
         version: link:../../packages/rules
+      '@arablyzer/scoring':
+        specifier: workspace:*
+        version: link:../../packages/scoring
       '@arablyzer/seo':
         specifier: workspace:*
         version: link:../../packages/seo
