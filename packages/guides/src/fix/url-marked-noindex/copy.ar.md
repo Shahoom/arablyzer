@@ -60,7 +60,7 @@ reviewed: false
 
 ## المراجع
 
-- [Google Search Central: منع الفهرسة باستخدام noindex](https://developers.google.com/search/docs/crawling-indexing/block-indexing) (بالإنجليزية)
+- [Google Search Central: منع الفهرسة باستخدام noindex](https://developers.google.com/search/docs/crawling-indexing/block-indexing?hl=ar)
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
 - [مساعدة Search Console: أداة فحص عنوان URL](https://support.google.com/webmasters/answer/9012289?hl=ar)
-- [Google Search Central: أساسيات JavaScript وتحسين محركات البحث](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics) (بالإنجليزية)
+- [Google Search Central: أساسيات JavaScript وتحسين محركات البحث](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics?hl=ar)

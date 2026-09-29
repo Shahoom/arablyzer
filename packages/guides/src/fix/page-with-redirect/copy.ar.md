@@ -69,7 +69,7 @@ location = /old {
 ## المراجع
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
-- [Google Search Central: عمليات التحويل وبحث Google](https://developers.google.com/search/docs/crawling-indexing/301-redirects) (بالإنجليزية)
-- [Google Search Central: كيف تنقل موقعاً](https://developers.google.com/search/docs/crawling-indexing/site-move-with-url-changes) (بالإنجليزية)
-- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes) (بالإنجليزية)
+- [Google Search Central: عمليات التحويل وبحث Google](https://developers.google.com/search/docs/crawling-indexing/301-redirects?hl=ar)
+- [Google Search Central: كيف تنقل موقعاً](https://developers.google.com/search/docs/crawling-indexing/site-move-with-url-changes?hl=ar)
+- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes?hl=ar)
 - [مساعدة Search Console: أداة فحص عنوان URL](https://support.google.com/webmasters/answer/9012289?hl=ar)

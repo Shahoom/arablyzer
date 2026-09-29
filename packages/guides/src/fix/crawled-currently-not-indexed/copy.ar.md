@@ -54,7 +54,7 @@ reviewed: false
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
 - [مساعدة Search Console: أداة فحص عنوان URL](https://support.google.com/webmasters/answer/9012289?hl=ar)
-- [Google Search Central: دليل مفصل لطريقة عمل بحث Google](https://developers.google.com/search/docs/fundamentals/how-search-works) (بالإنجليزية)
-- [Google Search Central: إنشاء محتوى مفيد وموثوق يضع الناس أولاً](https://developers.google.com/search/docs/fundamentals/creating-helpful-content) (بالإنجليزية)
-- [Google Search Central: اطلب من Google إعادة الزحف إلى روابطك](https://developers.google.com/search/docs/crawling-indexing/ask-google-to-recrawl) (بالإنجليزية)
-- [Google Crawling Infrastructure: تحسين ميزانية الزحف](https://developers.google.com/crawling/docs/crawl-budget) (بالإنجليزية)
+- [Google Search Central: دليل مفصل لطريقة عمل بحث Google](https://developers.google.com/search/docs/fundamentals/how-search-works?hl=ar)
+- [Google Search Central: إنشاء محتوى مفيد وموثوق يضع الناس أولاً](https://developers.google.com/search/docs/fundamentals/creating-helpful-content?hl=ar)
+- [Google Search Central: اطلب من Google إعادة الزحف إلى روابطك](https://developers.google.com/search/docs/crawling-indexing/ask-google-to-recrawl?hl=ar)
+- [Google Crawling Infrastructure: تحسين ميزانية الزحف](https://developers.google.com/crawling/docs/crawl-budget?hl=ar)

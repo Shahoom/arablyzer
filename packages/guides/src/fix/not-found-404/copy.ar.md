@@ -59,6 +59,6 @@ Redirect permanent "/old" "https://example.com/new"
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
 - [مساعدة Search Console: أخطاء 404](https://support.google.com/webmasters/answer/2445990?hl=ar)
-- [Google Search Central: عمليات إعادة التوجيه وبحث Google](https://developers.google.com/search/docs/crawling-indexing/301-redirects) (بالإنجليزية)
-- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes) (بالإنجليزية)
+- [Google Search Central: عمليات إعادة التوجيه وبحث Google](https://developers.google.com/search/docs/crawling-indexing/301-redirects?hl=ar)
+- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes?hl=ar)
 - [MDN: 410 Gone](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/410) (بالإنجليزية)

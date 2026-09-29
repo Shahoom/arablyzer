@@ -60,7 +60,7 @@ Disallow: /ar/drafts/
 ## المراجع
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
-- [Google Search Central: مقدمة عن ملف robots.txt](https://developers.google.com/search/docs/crawling-indexing/robots/intro) (بالإنجليزية)
-- [Google Crawling Infrastructure: كيف يفسّر Google مواصفات robots.txt](https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec) (بالإنجليزية)
-- [Google Crawling Infrastructure: تحديث ملف robots.txt](https://developers.google.com/crawling/docs/robots-txt/submit-updated-robots-txt) (بالإنجليزية)
+- [Google Search Central: مقدمة عن ملف robots.txt](https://developers.google.com/search/docs/crawling-indexing/robots/intro?hl=ar)
+- [Google Crawling Infrastructure: كيف يفسّر Google مواصفات robots.txt](https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec?hl=ar)
+- [Google Crawling Infrastructure: تحديث ملف robots.txt](https://developers.google.com/crawling/docs/robots-txt/submit-updated-robots-txt?hl=ar)
 - [مساعدة Search Console: تقرير ملفات robots.txt](https://support.google.com/webmasters/answer/6062598?hl=ar)

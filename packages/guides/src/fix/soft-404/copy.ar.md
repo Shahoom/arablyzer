@@ -68,6 +68,6 @@ if (!product.exists) {
 ## المراجع
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
-- [Google Search Central: أخطاء soft 404](https://developers.google.com/search/docs/crawling-indexing/troubleshoot-crawling-errors#soft-404-errors) (بالإنجليزية)
+- [Google Search Central: أخطاء soft 404](https://developers.google.com/search/docs/crawling-indexing/troubleshoot-crawling-errors?hl=ar#soft-404-errors)
 - [مساعدة Search Console: أخطاء 404](https://support.google.com/webmasters/answer/2445990?hl=ar)
-- [Google Search Central: أساسيات JavaScript وتحسين محركات البحث](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics) (بالإنجليزية)
+- [Google Search Central: أساسيات JavaScript وتحسين محركات البحث](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics?hl=ar)

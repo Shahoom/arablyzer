@@ -62,8 +62,8 @@ host crawl-66-249-66-1.googlebot.com
 ## المراجع
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
-- [Google Crawling Infrastructure: التحقق من طلبات زواحف Google](https://developers.google.com/crawling/docs/crawlers-fetchers/verify-google-requests) (بالإنجليزية)
-- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes) (بالإنجليزية)
-- [Google Crawling Infrastructure: تخفيض معدل زحف Google](https://developers.google.com/crawling/docs/crawlers-fetchers/reduce-crawl-rate) (بالإنجليزية)
-- [Google Search Central: كيف يزحف Google إلى الصفحات التي تتغير حسب بلد الزائر](https://developers.google.com/search/docs/specialty/international/locale-adaptive-pages) (بالإنجليزية)
+- [Google Crawling Infrastructure: التحقق من طلبات زواحف Google](https://developers.google.com/crawling/docs/crawlers-fetchers/verify-google-requests?hl=ar)
+- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes?hl=ar)
+- [Google Crawling Infrastructure: تخفيض معدل زحف Google](https://developers.google.com/crawling/docs/crawlers-fetchers/reduce-crawl-rate?hl=ar)
+- [Google Search Central: كيف يزحف Google إلى الصفحات التي تتغير حسب بلد الزائر](https://developers.google.com/search/docs/specialty/international/locale-adaptive-pages?hl=ar)
 - [MDN: 403 Forbidden](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/403) (بالإنجليزية)

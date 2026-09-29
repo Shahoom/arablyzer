@@ -55,6 +55,6 @@ reviewed: false
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
 - [مساعدة Search Console: أداة فحص عنوان URL](https://support.google.com/webmasters/answer/9012289?hl=ar)
 - [مساعدة Search Console: تقرير إحصاءات الزحف](https://support.google.com/webmasters/answer/9679690?hl=ar)
-- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes) (بالإنجليزية)
-- [Google Crawling Infrastructure: تحسين ميزانية الزحف](https://developers.google.com/crawling/docs/crawl-budget) (بالإنجليزية)
+- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes?hl=ar)
+- [Google Crawling Infrastructure: تحسين ميزانية الزحف](https://developers.google.com/crawling/docs/crawl-budget?hl=ar)
 - [MDN: رموز حالة الرد في HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status) (بالإنجليزية)

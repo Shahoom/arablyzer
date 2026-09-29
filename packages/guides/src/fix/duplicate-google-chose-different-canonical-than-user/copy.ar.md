@@ -54,7 +54,7 @@ reviewed: false
 ## المراجع
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
-- [Google Search Central: إصلاح مشكلات توحيد الروابط](https://developers.google.com/search/docs/crawling-indexing/canonicalization-troubleshooting) (بالإنجليزية)
-- [Google Search Central: كيف تحدد الرابط الأساسي](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls) (بالإنجليزية)
-- [Google Search Central: ما هو توحيد عناوين URL](https://developers.google.com/search/docs/crawling-indexing/canonicalization) (بالإنجليزية)
+- [Google Search Central: إصلاح مشكلات توحيد الروابط](https://developers.google.com/search/docs/crawling-indexing/canonicalization-troubleshooting?hl=ar)
+- [Google Search Central: كيف تحدد الرابط الأساسي](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls?hl=ar)
+- [Google Search Central: ما هو توحيد عناوين URL](https://developers.google.com/search/docs/crawling-indexing/canonicalization?hl=ar)
 - [مساعدة Search Console: أداة فحص عنوان URL](https://support.google.com/webmasters/answer/9012289?hl=ar)

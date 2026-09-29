@@ -53,6 +53,6 @@ reviewed: false
 ## المراجع
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
-- [Google Crawling Infrastructure: تحسين ميزانية الزحف](https://developers.google.com/crawling/docs/crawl-budget) (بالإنجليزية)
+- [Google Crawling Infrastructure: تحسين ميزانية الزحف](https://developers.google.com/crawling/docs/crawl-budget?hl=ar)
 - [مساعدة Search Console: تقرير إحصاءات الزحف](https://support.google.com/webmasters/answer/9679690?hl=ar)
 - [مساعدة Search Console: أداة فحص عنوان URL](https://support.google.com/webmasters/answer/9012289?hl=ar)

@@ -57,7 +57,7 @@ curl -sIL http://example.com/old-page | grep -iE '^(HTTP|location)'
 ## المراجع
 
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
-- [Google Search Central: عمليات إعادة التوجيه وبحث Google](https://developers.google.com/search/docs/crawling-indexing/301-redirects) (بالإنجليزية)
-- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes) (بالإنجليزية)
-- [Google Search Central: تحديد أخطاء الزحف في بحث Google وحلّها](https://developers.google.com/search/docs/crawling-indexing/troubleshoot-crawling-errors) (بالإنجليزية)
+- [Google Search Central: عمليات إعادة التوجيه وبحث Google](https://developers.google.com/search/docs/crawling-indexing/301-redirects?hl=ar)
+- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes?hl=ar)
+- [Google Search Central: تحديد أخطاء الزحف في بحث Google وحلّها](https://developers.google.com/search/docs/crawling-indexing/troubleshoot-crawling-errors?hl=ar)
 - [MDN: التحويلات في HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Redirections) (بالإنجليزية)

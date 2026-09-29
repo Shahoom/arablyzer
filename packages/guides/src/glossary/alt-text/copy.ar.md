@@ -44,4 +44,4 @@ reviewed: false
 - [W3C: شرح WCAG 2.2، المحتوى غير النصي (1.1.1)](https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html) (بالإنجليزية)
 - [W3C WAI: شجرة قرار النص البديل](https://www.w3.org/WAI/tutorials/images/decision-tree/) (بالإنجليزية)
 - [مواصفة HTML: متطلبات النص البديل للصور](https://html.spec.whatwg.org/multipage/images.html#alt) (بالإنجليزية)
-- [Google Search Central: أفضل الممارسات لتحسين الصور لمحركات البحث](https://developers.google.com/search/docs/appearance/google-images) (بالإنجليزية)
+- [Google Search Central: أفضل الممارسات لتحسين الصور لمحركات البحث](https://developers.google.com/search/docs/appearance/google-images?hl=ar)

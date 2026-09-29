@@ -35,5 +35,5 @@ reviewed: false
 
 ## المراجع
 
-- [Google Search Central: ما هو توحيد عناوين URL](https://developers.google.com/search/docs/crawling-indexing/canonicalization) (بالإنجليزية)
-- [Google Search Central: كيف تحدد الرابط الأساسي](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls) (بالإنجليزية)
+- [Google Search Central: ما هو توحيد عناوين URL](https://developers.google.com/search/docs/crawling-indexing/canonicalization?hl=ar)
+- [Google Search Central: كيف تحدد الرابط الأساسي](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls?hl=ar)

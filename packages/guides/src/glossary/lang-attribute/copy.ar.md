@@ -43,4 +43,4 @@ reviewed: false
 - [W3C: إعلان اللغة في HTML](https://www.w3.org/International/questions/qa-html-language-declarations) (بالإنجليزية)
 - [مواصفة HTML: سمة lang](https://html.spec.whatwg.org/multipage/dom.html#the-lang-and-xml:lang-attributes) (بالإنجليزية)
 - [WCAG 2.2: شرح المعيار 3.1.1 «لغة الصفحة»](https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html) (بالإنجليزية)
-- [Google Search Central: إدارة المواقع متعددة المناطق واللغات](https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites) (بالإنجليزية)
+- [Google Search Central: إدارة المواقع متعددة المناطق واللغات](https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites?hl=ar)

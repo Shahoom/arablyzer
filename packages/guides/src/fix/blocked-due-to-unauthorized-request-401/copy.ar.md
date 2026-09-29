@@ -61,6 +61,6 @@ WWW-Authenticate: Basic realm="staging"
 - [مساعدة Search Console: تقرير فهرسة الصفحات](https://support.google.com/webmasters/answer/7440203?hl=ar)
 - [مساعدة Search Console: تقرير إحصاءات الزحف](https://support.google.com/webmasters/answer/9679690?hl=ar)
 - [مساعدة Search Console: أداة فحص عنوان URL](https://support.google.com/webmasters/answer/9012289?hl=ar)
-- [Google Crawling Infrastructure: التحقق من طلبات زواحف Google](https://developers.google.com/crawling/docs/crawlers-fetchers/verify-google-requests) (بالإنجليزية)
-- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes) (بالإنجليزية)
+- [Google Crawling Infrastructure: التحقق من طلبات زواحف Google](https://developers.google.com/crawling/docs/crawlers-fetchers/verify-google-requests?hl=ar)
+- [Google Crawling Infrastructure: كيف تؤثر رموز حالة HTTP في زواحف Google](https://developers.google.com/crawling/docs/troubleshooting/http-status-codes?hl=ar)
 - [MDN: 401 Unauthorized](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/401) (بالإنجليزية)
