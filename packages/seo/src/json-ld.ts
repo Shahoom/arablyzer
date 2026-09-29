@@ -47,6 +47,29 @@ export function techArticle(options: {
   }
 }
 
+/** A glossary term's page (BUILD-PLAN §6.3): the term, defined, in the glossary's set. */
+export function definedTerm(options: {
+  readonly name: string
+  readonly description: string
+  readonly url: string
+  readonly lang: Lang
+  /** The term as developers write it, in English. */
+  readonly termCode: string
+  /** The glossary's own page. */
+  readonly set: { readonly name: string; readonly url: string }
+}): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTerm',
+    name: options.name,
+    description: options.description,
+    url: options.url,
+    inLanguage: options.lang,
+    termCode: options.termCode,
+    inDefinedTermSet: { '@type': 'DefinedTermSet', name: options.set.name, url: options.set.url },
+  }
+}
+
 /** A directory page (the tools', the rules'): its entries in order, each with its own page. */
 export function itemList(
   items: readonly { readonly name: string; readonly url: string }[],

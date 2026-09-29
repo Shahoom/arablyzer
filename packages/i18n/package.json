@@ -11,6 +11,7 @@
     "./tools": "./src/tools.ts",
     "./rules": "./src/rules.ts",
     "./pages": "./src/pages.ts",
+    "./guides": "./src/guides.ts",
     "./tool-app": "./src/tool-app.ts"
   },
   "scripts": {

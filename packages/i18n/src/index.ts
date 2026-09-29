@@ -1,4 +1,5 @@
 export { codeParts, type Copy, type Lang } from './copy'
+export { GUIDES_UI, type GuidesStrings } from './guides'
 export { HOME, TOPICS, type HomeStrings, type Topic } from './home'
 export { arabicCount, englishCount, englishForm, type ArabicForms } from './plural'
 export {
@@ -16,6 +17,7 @@ export { TOOL_APP, type ToolAppStrings } from './tool-app'
 export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from './tools'
 
 import type { Copy } from './copy'
+import { GUIDES_UI } from './guides'
 import { HOME } from './home'
 import { PAGES_UI } from './pages'
 import { REPORT } from './report'
@@ -34,5 +36,6 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'tools.ts': TOOLS_UI,
   'rules.ts': RULES_UI,
   'pages.ts': PAGES_UI,
+  'guides.ts': GUIDES_UI,
   'tool-app.ts': TOOL_APP,
 }

@@ -12,7 +12,7 @@ export interface SitemapPage {
 }
 
 /** The sections, each one sitemap, in the order the index lists them. */
-export const SITEMAP_SECTIONS = ['pages', 'tools', 'rules'] as const
+export const SITEMAP_SECTIONS = ['pages', 'tools', 'rules', 'fix', 'glossary'] as const
 export type SitemapSection = (typeof SITEMAP_SECTIONS)[number]
 
 /** Where a section's sitemap is, on the site: /sitemaps/tools.xml. */
