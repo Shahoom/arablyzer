@@ -37,6 +37,7 @@ import { rule as metaDescriptionMissing } from './rules/meta-description-missing
 import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
+import { rule as paymentMethods } from './rules/payment-methods/rule'
 import { rule as priceDecimals } from './rules/price-decimals/rule'
 import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
 import { rule as redirectChain } from './rules/redirect-chain/rule'
@@ -100,6 +101,7 @@ export const RULES: readonly Rule[] = [
   mixedContent,
   ogTagsMissing,
   pageNoindex,
+  paymentMethods,
   priceDecimals,
   productOfferInvalid,
   redirectChain,

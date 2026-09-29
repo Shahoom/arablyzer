@@ -16,6 +16,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'frame-protection-missing': 'response headers, whose absence no excerpt shows',
   'hsts-missing': 'a response header, whose absence no excerpt shows',
   'https-missing': 'the address the page answers at',
+  'payment-methods': 'nothing: it lists the payment methods the page shows, as information',
   'redirect-chain': 'the redirects before the page, which no excerpt shows',
   'redirect-temporary': 'the redirects before the page, which no excerpt shows',
   'spf-missing': 'DNS records, which no excerpt of the page shows',

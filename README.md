@@ -127,6 +127,7 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`ar-tatweel`](packages/rules/src/rules/ar-tatweel/copy.en.md) | No words stretched with tatweel (ـ) |
 | [`product-offer-invalid`](packages/rules/src/rules/product-offer-invalid/copy.en.md) | JSON-LD product offers have a price and an ISO 4217 currency, written as Schema.org asks |
 | [`price-decimals`](packages/rules/src/rules/price-decimals/copy.en.md) | Prices in Omani rials and Kuwaiti or Bahraini dinars have three decimals |
+| [`payment-methods`](packages/rules/src/rules/payment-methods/copy.en.md) | Which of mada, Apple Pay, STC Pay, Tabby and Tamara the page shows, by its logos' names and the providers' scripts (information) |
 | [`form-arabic-name-rejected`](packages/rules/src/rules/form-arabic-name-rejected/copy.en.md) | Name fields' `pattern` accepts Arabic names |
 | [`form-arabic-digits-rejected`](packages/rules/src/rules/form-arabic-digits-rejected/copy.en.md) | Number fields' `pattern` accepts Arabic-Indic digits |
 | [`https-missing`](packages/rules/src/rules/https-missing/copy.en.md) | A public page is served over HTTPS |
