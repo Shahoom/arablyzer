@@ -45,6 +45,7 @@ describe('every tool', () => {
       const { ar } = tool.copy
       expect(ar.title).toMatch(ARABIC_LETTER)
       expect(ar.description).toMatch(ARABIC_LETTER)
+      expect(ar.summary).toMatch(ARABIC_LETTER)
       expect(typeof ar.reviewed).toBe('boolean')
     })
 
