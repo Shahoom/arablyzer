@@ -394,7 +394,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ? checkLinks(page, {
           base: { ...base, policy: robotsPolicy },
           optedOut: (link) => optOutRule(robotsRead.facts, bot, link) !== null,
-        })
+        }).catch((): LinkFacts => UNCHECKED_LINKS)
       : undefined
   // Real-user data, when a rule the scan runs reads it: the page's URL goes to Google with the
   // key. A scan none of whose rules reads it (a tool's, M2.2) asks nothing and says nothing of it.
@@ -1017,6 +1017,13 @@ function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[]
   if (robots?.outcome === 'fetched' && robots.truncated) notices.push(notice('robots-truncated'))
   return notices
 }
+
+/**
+ * The page's links when their checks failed as a whole, which they are awaited too late to throw:
+ * links none of which answered, so the rules that read them report that they could not run,
+ * rather than pass a page without links.
+ */
+const UNCHECKED_LINKS: LinkFacts = { total: 1, checks: [], skipped: { limit: 0, robots: 0 } }
 
 /**
  * What the report says of the page's links it did not check (M2.3c): past the limit, kept from
