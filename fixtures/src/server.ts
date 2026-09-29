@@ -13,6 +13,11 @@ export interface FixtureSite {
   readonly port: number
   /** The host name the site is scanned under: 127.0.0.1, or its site.json host. */
   readonly hostname: string
+  /**
+   * Each request it answered, in order, as "GET /path?query": what a scan asked the site for,
+   * and what it never did.
+   */
+  readonly requests: readonly string[]
   url(pathname?: string): string
   close(): Promise<void>
 }
@@ -97,7 +102,10 @@ export async function serveSite(
   const config = await loadFixtureConfig(siteRoot)
   const site = await loadSiteConfig(siteRoot)
   const hostname = site.host ?? '127.0.0.1'
+  // One array for the site's life: a copy of the site object still sees every request.
+  const requests: string[] = []
   const handler: http.RequestListener = (req, res) => {
+    requests.push(`${req.method ?? ''} ${req.url ?? ''}`)
     respond(siteRoot, config, { compressText, cleanUrls }, req, res).catch((error: unknown) => {
       res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
       res.end(String(error))
@@ -126,6 +134,7 @@ export async function serveSite(
     origin,
     port: address.port,
     hostname,
+    requests,
     url: (pathname = '/') => new URL(pathname, origin).href,
     close: () =>
       new Promise((resolve, reject) => {

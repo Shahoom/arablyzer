@@ -114,6 +114,16 @@ describe('serveSite', () => {
     await other.close()
   })
 
+  it('keeps each request it answered, in order, so a test can tell what was asked for', async () => {
+    const other = await serveSite(sitePath('sample'))
+    await request(other.url('/robots.txt'))
+    await request(other.url('/missing?q=1'))
+    await request(other.url('/'), 'HEAD')
+    await request(other.url('/'), 'POST')
+    expect(other.requests).toEqual(['GET /robots.txt', 'GET /missing?q=1', 'HEAD /', 'POST /'])
+    await other.close()
+  })
+
   it('does not serve expect.json, the rule tests’ metadata', async () => {
     const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-fixture-'))
     await writeFile(path.join(dir, 'expect.json'), '{}')
