@@ -355,6 +355,20 @@ describe.each<[string, string, AuditCheck[]]>([
   ],
   ['the tool of another page in its island', island(AR, 'rtl-check'), ['tool-first']],
   ['an island with no tool', island(AR, null), ['tool-first']],
+  [
+    'a breadcrumb that starts past the home page',
+    edit(
+      AR,
+      '"name": "الرئيسية", "item": "https://arablyzer.example/" }',
+      '"name": "الأدوات", "item": "https://arablyzer.example/tools" }',
+    ),
+    ['json-ld'],
+  ],
+  [
+    'a breadcrumb from the other language’s home page',
+    edit(AR, '"item": "https://arablyzer.example/" }', '"item": "https://arablyzer.example/en/" }'),
+    ['json-ld'],
+  ],
 ])('auditToolPage on an Arabic page with %s', (_name, html, checks) => {
   it(`fails ${checks.join(', ')}`, () => {
     const alone = failing(auditToolPage(html, EXPECTED.ar))

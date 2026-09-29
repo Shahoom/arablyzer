@@ -3,7 +3,7 @@ import { evaluatePage } from '@arablyzer/engine'
 import type { Finding } from '@arablyzer/report-schema'
 import { RULES } from '@arablyzer/rules'
 import type { DefaultTreeAdapterMap } from 'parse5'
-import type { Lang } from '../site'
+import { localePath, PATHS, type Lang } from '../site'
 import { isWithin, tagsOf, textOf, type Tag } from './dom'
 
 type Node = DefaultTreeAdapterMap['node']
@@ -561,6 +561,12 @@ function checkJsonLd(tags: readonly Tag[], expected: ExpectedPage, problem: Repo
     )
   } else if (urls.at(-1) !== expected.url) {
     problem('json-ld', `the BreadcrumbList must end at the page itself (${expected.url})`)
+  } else if (urls[0] !== `${expected.origin}${localePath(expected.lang, PATHS.home)}`) {
+    // The trail a search result shows starts where the site does, in the page's language.
+    problem(
+      'json-ld',
+      `the BreadcrumbList must start at the home page (${expected.origin}${localePath(expected.lang, PATHS.home)})`,
+    )
   }
 }
 

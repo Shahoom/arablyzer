@@ -2,6 +2,7 @@
 import { TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList, webApplication } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
 import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
@@ -34,7 +35,9 @@ const near = tool.related.map((other) => ({
 }))
 const jsonLd = [
   webApplication({ name: copy.title, description: copy.description, url, lang }),
+  // From the home page, as the directory's: a search result shows this trail.
   breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
     { name: t.directory.title, url: pageUrl(site, lang, PATHS.tools) },
     { name: copy.title, url },
   ]),
