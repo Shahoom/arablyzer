@@ -12,12 +12,36 @@ import {
   TOPICS,
 } from '../src/index'
 
+/** What copy that takes an object of numbers is called with: the score's weights, the bot's limits. */
+const SAMPLE = {
+  critical: 10,
+  serious: 5,
+  moderate: 3,
+  minor: 1,
+  pageRedirects: 10,
+  robotsRedirects: 5,
+  robotsKib: 500,
+  requestsPerLoad: 300,
+  mibPerLoad: 25,
+  viewport: { width: 390, height: 844 },
+}
+
+/** A function of the copy with sample numbers, or with SAMPLE when it takes an object of them. */
+function call(fn: (...args: unknown[]) => unknown): unknown {
+  try {
+    const out = fn(3, 18, 390)
+    if (!JSON.stringify(out).includes('undefined')) return out
+  } catch {
+    // It reads an object's fields.
+  }
+  return fn(SAMPLE)
+}
+
 /** Every leaf of an object, with its path; functions are called with sample numbers. */
 function leaves(value: unknown, path = ''): [string, string][] {
   if (typeof value === 'string') return [[path, value]]
   if (typeof value === 'function') {
-    const sample = (value as (...args: number[]) => unknown)(3, 18, 390)
-    return leaves(sample, `${path}()`)
+    return leaves(call(value as (...args: unknown[]) => unknown), `${path}()`)
   }
   if (Array.isArray(value)) return value.flatMap((item, index) => leaves(item, `${path}[${index}]`))
   if (typeof value === 'object' && value !== null) {
@@ -35,7 +59,10 @@ describe('interface copy', () => {
         ar.map(([path]) => path),
         file,
       ).toEqual(en.map(([path]) => path))
-      for (const [path, text] of [...ar, ...en]) expect(text.trim(), `${file} ${path}`).not.toBe('')
+      for (const [path, text] of [...ar, ...en]) {
+        expect(text.trim(), `${file} ${path}`).not.toBe('')
+        expect(text, `${file} ${path}`).not.toMatch(/undefined|NaN|\[object/)
+      }
     }
   })
 
