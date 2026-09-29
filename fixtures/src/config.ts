@@ -11,6 +11,8 @@ export const RouteOverride = z.strictObject({
   body: z.string().optional(),
   /** Sent gzipped, with Content-Encoding, to a client that accepts gzip. */
   compress: z.literal('gzip').optional(),
+  /** The status a HEAD request gets instead, as a server that does not take HEAD answers (405). */
+  headStatus: z.number().int().min(100).max(999).optional(),
 })
 export type RouteOverride = z.infer<typeof RouteOverride>
 

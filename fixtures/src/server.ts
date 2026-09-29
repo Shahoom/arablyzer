@@ -195,6 +195,7 @@ async function respond(
   const host = requestHost(req)
   const resolved = await resolveFixtureResponse(root, config, pathname, {
     cleanUrls,
+    method: req.method,
     ...(host === null || !own.names.includes(host) ? {} : { host }),
   })
   const { status, body } = resolved
@@ -262,14 +263,18 @@ export interface FixtureResponse {
 }
 
 /**
- * What the server answers for a path, on one of the site's aliases when `host` names it; rule
- * tests use it to read fixtures without HTTP.
+ * What the server answers for a path, on one of the site's aliases when `host` names it, and to
+ * a HEAD request when `method` says so; rule tests use it to read fixtures without HTTP.
  */
 export async function resolveFixtureResponse(
   root: string,
   config: FixtureConfig,
   pathname: string,
-  { cleanUrls = false, host }: { cleanUrls?: boolean; host?: string } = {},
+  {
+    cleanUrls = false,
+    host,
+    method = 'GET',
+  }: { cleanUrls?: boolean; host?: string; method?: string } = {},
 ): Promise<FixtureResponse> {
   const siteRoot = path.resolve(root)
   const override: RouteOverride | undefined =
@@ -280,7 +285,10 @@ export async function resolveFixtureResponse(
       ? await readSiteFile(siteRoot, `${pathname}.html`)
       : null)
   // An inline body stands in for the file, so it is a 200 unless the override says otherwise.
-  const status = override?.status ?? (file === null && override?.body === undefined ? 404 : 200)
+  const status =
+    (method === 'HEAD' ? override?.headStatus : undefined) ??
+    override?.status ??
+    (file === null && override?.body === undefined ? 404 : 200)
   const body =
     override?.body !== undefined
       ? Buffer.from(override.body, 'utf8')

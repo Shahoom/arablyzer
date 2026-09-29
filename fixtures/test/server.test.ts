@@ -108,6 +108,23 @@ describe('serveSite', () => {
     expect(head.body.length).toBe(0)
   })
 
+  it('answers HEAD with a status of its own where a route says so, as a server that refuses it', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-fixture-'))
+    await writeFile(path.join(dir, 'index.html'), '<p>نص</p>')
+    await writeFile(path.join(dir, 'fixture.json'), JSON.stringify({ '/': { headStatus: 405 } }))
+    const refusing = await serveSite(dir)
+    try {
+      expect((await request(refusing.url('/'), 'HEAD')).status).toBe(405)
+      expect((await request(refusing.url('/'))).status).toBe(200)
+      const config = await loadFixtureConfig(dir)
+      expect((await resolveFixtureResponse(dir, config, '/', { method: 'HEAD' })).status).toBe(405)
+      expect((await resolveFixtureResponse(dir, config, '/')).status).toBe(200)
+    } finally {
+      await refusing.close()
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
   it('gives every site its own origin', async () => {
     const other = await serveSite(sitePath('sample'))
     expect(other.origin).not.toBe(site.origin)

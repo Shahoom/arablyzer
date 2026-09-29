@@ -9,6 +9,7 @@ import {
   type CruxFacts,
   type DnsFacts,
   type Engine,
+  type LinkFacts,
   type PageFacts,
   type RenderedFacts,
   type RobotsFacts,
@@ -59,6 +60,7 @@ import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
 import { lookupDns } from './dns'
+import { checkLinks, MAX_LINKS } from './links'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
@@ -382,6 +384,18 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   // For the rules that read it, and in the report only then: a scan without them reports as it
   // did before robots.txt came first.
   const robots = rules.some((rule) => rule.needs.includes('robots')) ? robotsRead.facts : undefined
+  // The page's links to its own site, for the rules that read them (M2.3c): asked for while the
+  // rest of the scan goes on, under the page's own lockdown, and never in a path robots.txt keeps
+  // the bot from, as it would keep it from the page.
+  const linking =
+    rules.some((rule) => rule.needs.includes('links')) &&
+    isSuccess(page.status) &&
+    page.html !== null
+      ? checkLinks(page, {
+          base: { ...base, policy: robotsPolicy },
+          optedOut: (link) => optOutRule(robotsRead.facts, bot, link) !== null,
+        })
+      : undefined
   // Real-user data, when a rule the scan runs reads it: the page's URL goes to Google with the
   // key. A scan none of whose rules reads it (a tool's, M2.2) asks nothing and says nothing of it.
   const readsCrux = rules.some((rule) => rule.needs.includes('crux'))
@@ -422,6 +436,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
           })
         : { runs: [], rendered: [], notices: [] }
 
+  const links = await linking
   // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
   // lockdown. Information only, so its failure leaves the scan complete, with a notice.
   const labRequest = isSuccess(page.status) && page.isHtml ? options.lab : undefined
@@ -457,6 +472,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ? [notice('dns-unchecked', { domain: dns.facts.domain })]
       : []),
     ...(dns?.notice === 'dns-unavailable' ? [notice('dns-unavailable')] : []),
+    ...linkNotices(links, bot),
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
   progress({ step: 'rules', rules: rules.length })
@@ -466,6 +482,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     crux,
     redirects: target.http.redirects,
     dns: dns?.facts,
+    links,
   })
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
@@ -662,6 +679,8 @@ export interface EvaluateOptions {
   readonly redirects?: readonly Redirect[]
   /** The page's DNS records (M2.3c); without them, rules that need `dns` do not apply. */
   readonly dns?: DnsFacts
+  /** How the checks of the page's links ended (M2.3c); without them, rules that need `links` do not apply. */
+  readonly links?: LinkFacts
 }
 
 export interface Evaluation {
@@ -690,6 +709,7 @@ interface Collected {
   readonly crux?: CruxFacts | undefined
   readonly redirects?: readonly Redirect[] | undefined
   readonly dns?: DnsFacts | undefined
+  readonly links?: LinkFacts | undefined
 }
 
 function evaluateRules(rules: readonly Rule[], page: PageFacts, collected: Collected): Evaluation {
@@ -802,6 +822,15 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
       return { status: 'error', error: 'dns-unchecked', findings: [] }
     }
   }
+  // The page's links to its own site (M2.3c): none asked for, nothing to judge; links, but none
+  // answered, the rule could not check.
+  const links = rule.needs.includes('links') ? collected.links : undefined
+  if (rule.needs.includes('links')) {
+    if (links === undefined) return { status: 'not-applicable', findings: [] }
+    if (links.total > 0 && !links.checks.some((check) => check.outcome === 'answered')) {
+      return { status: 'error', error: 'links-unchecked', findings: [] }
+    }
+  }
   // Only the engines the rule can read; none of them rendered means it could not check.
   const seen = needsRender
     ? (rendered ?? []).filter(
@@ -816,6 +845,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
     page,
     ...(redirects === undefined ? {} : { redirects }),
     ...(dns === undefined ? {} : { dns }),
+    ...(links === undefined ? {} : { links }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
@@ -986,6 +1016,30 @@ function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[]
   if (robots?.outcome === 'failed') notices.push(notice('robots-unchecked'))
   if (robots?.outcome === 'fetched' && robots.truncated) notices.push(notice('robots-truncated'))
   return notices
+}
+
+/**
+ * What the report says of the page's links it did not check (M2.3c): past the limit, kept from
+ * the bot by robots.txt, or without an answer. None of them counts as broken.
+ */
+function linkNotices(links: LinkFacts | undefined, bot: string): Notice[] {
+  if (links === undefined) return []
+  const unanswered = links.checks.filter((check) => check.outcome === 'unanswered').length
+  return [
+    ...(links.skipped.limit > 0
+      ? [
+          notice('links-limit', {
+            total: String(links.total),
+            limit: String(MAX_LINKS),
+            count: String(links.skipped.limit),
+          }),
+        ]
+      : []),
+    ...(links.skipped.robots > 0
+      ? [notice('links-robots', { count: String(links.skipped.robots), bot })]
+      : []),
+    ...(unanswered > 0 ? [notice('links-unanswered', { count: String(unanswered) })] : []),
+  ]
 }
 
 /** The report's `page`: the declared language and direction, and the text's dominant script. */

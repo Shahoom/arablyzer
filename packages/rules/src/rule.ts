@@ -3,6 +3,7 @@ import type {
   CruxFacts,
   DnsFacts,
   Engine,
+  LinkFacts,
   PageFacts,
   RenderedFacts,
   RobotsFacts,
@@ -21,7 +22,8 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * (stylesheets, fonts, text responses, image files); the rule sees only the engines that read
  * them. `crux`: real-user data from the Chrome UX Report, which needs an API key; without one the
  * rule does not apply (M1.3b). `dns`: with a 2xx page on a public name, the TXT records of the
- * name the rule's `txtName` gives from the page's organizational domain (M2.3c).
+ * name the rule's `txtName` gives from the page's organizational domain (M2.3c). `links`: with a
+ * 2xx HTML page, how the checks of its links to its own site ended (M2.3c).
  */
 export type CollectorId =
   | 'http'
@@ -34,6 +36,7 @@ export type CollectorId =
   | 'files'
   | 'crux'
   | 'dns'
+  | 'links'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -58,6 +61,11 @@ export interface Evidence {
    * did not, the engine reports an error instead.
    */
   readonly dns?: DnsFacts
+  /**
+   * Present when the rule needs `links`: the page's links to its own site and how each check
+   * ended. At least one answered, when it has any: when none did, the engine reports an error.
+   */
+  readonly links?: LinkFacts
 }
 
 /** Detectors return data only; the wording comes from the copy files (docs/design/phase-0.md §1). */

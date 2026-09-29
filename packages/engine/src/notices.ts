@@ -31,6 +31,9 @@ export type NoticeCode =
   | 'lab-skipped'
   | 'dns-unchecked'
   | 'dns-unavailable'
+  | 'links-limit'
+  | 'links-robots'
+  | 'links-unanswered'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -214,6 +217,19 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'dns-unchecked': {
     ar: 'تعذّرت قراءة سجلات DNS للنطاق {domain}: لم يصل جواب في الوقت المحدد، أو ردّ خادم DNS بخطأ، فلم تعمل الفحوص التي تقرؤها.',
     en: 'The DNS records of {domain} could not be read: no answer came in time, or the DNS server answered with an error, so the checks that read them did not run.',
+  },
+  // M2.3c: the page's links to its own site that were not checked, none of them counted broken.
+  'links-limit': {
+    ar: 'في الصفحة روابط إلى موقعها عددها {total}، ففحصنا أول {limit} منها، ولم نفحص الباقي وعدده {count}.',
+    en: 'The page links to {total} addresses on its own site: the scan checked the first {limit}, and not the other {count}.',
+  },
+  'links-robots': {
+    ar: 'روابط في الصفحة عددها {count} تقود إلى مسارات يطلب ملف robots.txt في الموقع ألّا يفحصها {bot}، فلم نفحصها.',
+    en: '{count} of the page’s links lead to paths the site’s robots.txt asks {bot} not to check, so they were not checked.',
+  },
+  'links-unanswered': {
+    ar: 'روابط في الصفحة إلى موقعها عددها {count} لم نستطع فحصها: لم يصل جوابها في الوقت المحدد، أو تعذّر الاتصال، أو طلب الخادم إبطاء الطلبات (429)، فلم نحكم عليها.',
+    en: '{count} of the page’s links to its own site could not be checked: no answer came in time, the connection failed, or the server asked for fewer requests (429), so they were not judged.',
   },
   'dns-unavailable': {
     ar: 'لا يسأل هذا الخادم DNS عن السجلات بنفسه، فلم تعمل الفحوص التي تقرأ سجلات DNS للنطاق.',

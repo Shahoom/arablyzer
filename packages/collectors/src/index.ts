@@ -30,6 +30,7 @@ export {
 } from './html'
 export { fontCoverage, MAX_FONT_DATA } from './font-coverage'
 export { parseLinkHeader, type LinkHeaderEntry } from './link-header'
+export { linkUrl, siteLinks, type LinkCheck, type LinkFacts } from './links'
 export {
   collectPage,
   HTML_PARSE_LIMIT,

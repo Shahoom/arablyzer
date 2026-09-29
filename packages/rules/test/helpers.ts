@@ -6,8 +6,11 @@ import {
   collectPage,
   collectRobots,
   organizationalDomain,
+  siteLinks,
   type CruxFacts,
   type DnsFacts,
+  type LinkCheck,
+  type LinkFacts,
   type A11yNodeFact,
   type A11yRuleFact,
   type A11yRuleId,
@@ -27,6 +30,7 @@ import {
   type CruxData,
   loadSiteConfig,
   resolveFixtureResponse,
+  type FixtureConfig,
   type SiteConfig,
 } from '@arablyzer/fixtures'
 import type { Redirect } from '@arablyzer/report-schema'
@@ -57,7 +61,8 @@ const MAX_REDIRECTS = 10
  * redirect is followed, as the engine follows it, to a path of the site or to one of its names,
  * and each one is in the evidence's `redirects`. On a public name, the TXT records of the page's
  * organizational domain are those site.json gives (fixtureTxt), for the names `txtNames` lists:
- * those the rule reads.
+ * those the rule reads. The page's links to its own site are checked as the engine checks them,
+ * against the fixture's own answers.
  */
 export async function fixtureEvidence(
   ruleId: string,
@@ -92,22 +97,23 @@ export async function fixtureEvidence(
   const robots = await answer(new URL('/robots.txt', url))
   const window =
     site.tls === undefined ? null : certificateWindow(site.tls.lifetimeDays, site.tls.daysLeft)
+  const facts = collectPage({
+    url,
+    status: page.status,
+    headers: headerList(page.headers),
+    body: page.body,
+    certificate:
+      window === null
+        ? null
+        : {
+            validFrom: window[0].toISOString(),
+            validTo: window[1].toISOString(),
+            checkedAt: new Date().toISOString(),
+          },
+  })
   return {
     redirects,
-    page: collectPage({
-      url,
-      status: page.status,
-      headers: headerList(page.headers),
-      body: page.body,
-      certificate:
-        window === null
-          ? null
-          : {
-              validFrom: window[0].toISOString(),
-              validTo: window[1].toISOString(),
-              checkedAt: new Date().toISOString(),
-            },
-    }),
+    page: facts,
     robots: collectRobots({
       url: new URL('/robots.txt', url).href,
       response: { status: robots.status, body: robots.body, truncated: false },
@@ -116,6 +122,40 @@ export async function fixtureEvidence(
     // CrUX's answers as the engine asks for them: the URL, then the origin when it has none.
     ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, url) }),
     ...dnsOf(site, url, txtNames),
+    links: await linksOf(root, config, names, facts),
+  }
+}
+
+/**
+ * How the engine's checks of the page's links to its own site end on the fixture server
+ * (M2.3c): HEAD's status, or GET's where HEAD answers an error, a redirect's being its own; a 429
+ * is no answer. Fixtures are small, so every link is checked.
+ */
+async function linksOf(
+  root: string,
+  config: FixtureConfig,
+  names: readonly string[],
+  page: PageFacts,
+): Promise<LinkFacts> {
+  const links = siteLinks(page)
+  const check = async (url: string): Promise<LinkCheck> => {
+    const at = new URL(url)
+    const ask = async (method: 'HEAD' | 'GET'): Promise<LinkCheck> => {
+      const { status } = await resolveFixtureResponse(root, config, at.pathname, {
+        method,
+        ...(names.includes(at.hostname) ? { host: at.hostname } : {}),
+      })
+      return status === 429
+        ? { url, outcome: 'unanswered', reason: 'rate-limited' }
+        : { url, outcome: 'answered', status, method }
+    }
+    const head = await ask('HEAD')
+    return head.outcome === 'answered' && head.status >= 400 ? ask('GET') : head
+  }
+  return {
+    total: links.length,
+    checks: await Promise.all(links.map(check)),
+    skipped: { limit: 0, robots: 0 },
   }
 }
 
