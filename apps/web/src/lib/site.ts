@@ -23,8 +23,13 @@ export function otherLang(lang: Lang): Lang {
  */
 export const REPOSITORY = 'https://github.com/Shahoom/arablyzer'
 
-/** The methodology, Arabic first, in the repository (docs/methodology.md). */
-export const METHODOLOGY = `${REPOSITORY}/blob/main/docs/methodology.md`
+/** The methodology's source, Arabic then English, in the repository (docs/methodology.md). */
+export const METHODOLOGY_SOURCE = `${REPOSITORY}/blob/main/docs/methodology.md`
+
+/** The methodology on the site, in the page's language (M2.4b). */
+export function methodologyHref(lang: Lang): string {
+  return localePath(lang, PATHS.methodology)
+}
 
 export const CLOUDTOPIA = 'https://cloudtopia.net'
 

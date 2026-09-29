@@ -7,7 +7,7 @@ import ShieldCheck from '@lucide/astro/icons/shield-check'
 import Bidi from '../Bidi.astro'
 import Crosshairs from '../Crosshairs.astro'
 import SectionHead from '../SectionHead.astro'
-import { METHODOLOGY, REPOSITORY } from '../../lib/site'
+import { methodologyHref, REPOSITORY } from '../../lib/site'
 import { SHOWCASE, terminalLines } from '../../lib/showcase'
 
 interface Props {
@@ -60,7 +60,7 @@ const kind = (line: string) =>
               {index === 1 && [
                 ' ',
                 <a
-                  href={METHODOLOGY}
+                  href={methodologyHref(lang)}
                   class="font-semibold text-ink underline underline-offset-4 hover:text-signal"
                 >
                   {t.methodology}

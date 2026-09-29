@@ -4,7 +4,7 @@ import { createPolicy } from '@arablyzer/egress'
 import { scan } from '@arablyzer/engine'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
 import type { Engine, Report } from '@arablyzer/report-schema'
-import { builtPages, isKnownGap, representativePages } from '@arablyzer/seo/audit'
+import { builtPages, isKnownGap, isNoindexPage, representativePages } from '@arablyzer/seo/audit'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The site scanned by Arablyzer, in its three engines, as a visitor's scan would (M2.1 plan §3,
@@ -25,10 +25,10 @@ const ENGINES = (['chromium', 'firefox', 'webkit'] as const).filter(
  */
 const SERVER_RULES = new Set(['https-missing', 'hsts-missing', 'tls-expiring'])
 
-/** Every page the build wrote, report pages aside: they are noindex, and audited as such. */
+/** Every page the build wrote, reports and the 404 page aside: they are noindex, and audited as such. */
 const PAGES = builtPages(DIST)
   .map((page) => page.path)
-  .filter((path) => !/^\/(?:en\/)?r(?:\/|$)/.test(path))
+  .filter((path) => !isNoindexPage(path))
 /**
  * The pages that stand for the rest render in the three engines; the other tool pages, one
  * template with other words, in Chromium, which keeps the run short as the tools grow (M2.2).

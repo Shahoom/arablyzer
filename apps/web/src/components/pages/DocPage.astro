@@ -1,0 +1,79 @@
+---
+import type { JsonLd } from '@arablyzer/seo/json-ld'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import ChevronLeft from '@lucide/astro/icons/chevron-left'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+import Page from '../../layouts/Page.astro'
+
+/**
+ * A page that is a document (the methodology, the bot's page): the breadcrumb, then its heading
+ * (slot "head"), and its sections in eight of the design's twelve columns beside their contents
+ * (slot "aside"), which stay in view on a wide screen.
+ */
+interface Props {
+  lang: Lang
+  path: string
+  title: string
+  description: string
+  jsonLd: readonly JsonLd[]
+  /** The breadcrumb's last step, this page. */
+  crumb: string
+  breadcrumbLabel: string
+}
+const { lang, path, title, description, jsonLd, crumb, breadcrumbLabel } = Astro.props
+const Next = lang === 'ar' ? ChevronLeft : ChevronRight
+---
+
+<Page lang={lang} path={path} title={title} description={description} jsonLd={jsonLd}>
+  <div class="doc-layout px-5 pt-7 pb-16 md:px-16 md:pt-10 md:pb-[88px]">
+    <div class="doc-head flex flex-col gap-5">
+      <nav aria-label={breadcrumbLabel} class="text-sm text-ink-3">
+        <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
+          <li class="flex items-center gap-2">
+            <a href={localePath(lang, PATHS.home)} class="text-ink-3 hover:text-signal">
+              {STRINGS[lang].home}
+            </a>
+            <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
+          </li>
+          <li aria-current="page">{crumb}</li>
+        </ol>
+      </nav>
+      <slot name="head" />
+    </div>
+    <div class="doc-aside self-start">
+      <slot name="aside" />
+    </div>
+    <div class="doc-main flex min-w-0 flex-col gap-12">
+      <slot />
+    </div>
+  </div>
+</Page>
+
+<style>
+  .doc-layout {
+    display: grid;
+    gap: 2.5rem;
+  }
+  @media (min-width: 1024px) {
+    .doc-layout {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      grid-template-areas:
+        'head .'
+        'main aside';
+      column-gap: 56px;
+      row-gap: 48px;
+    }
+    .doc-head {
+      grid-area: head;
+    }
+    .doc-main {
+      grid-area: main;
+    }
+    .doc-aside {
+      grid-area: aside;
+      position: sticky;
+      top: 24px;
+    }
+  }
+</style>

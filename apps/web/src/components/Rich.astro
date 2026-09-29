@@ -1,0 +1,22 @@
+---
+import { codeParts } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+import Bidi from './Bidi.astro'
+
+/** Interface copy with `code` in backticks: the code left to right, the rest as Bidi sets it. */
+interface Props {
+  text: string
+  lang: Lang
+}
+const { text, lang } = Astro.props
+---
+
+{codeParts(text).map((part) =>
+  part.code ? (
+    <code dir="ltr" class="bg-paper px-1.5 py-px font-mono text-[0.875em] whitespace-nowrap">
+      {part.text}
+    </code>
+  ) : (
+    <Bidi text={part.text} lang={lang} />
+  ),
+)}

@@ -8,7 +8,7 @@ import ChevronRight from '@lucide/astro/icons/chevron-right'
 import X from '@lucide/astro/icons/x'
 import ToolApp from '../../islands/ToolApp'
 import Page from '../../layouts/Page.astro'
-import { METHODOLOGY, scanFormHref, siteOf } from '../../lib/site'
+import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
 import { TOOLS_DATA, toolData } from '../../lib/tool-data'
 import SeverityPill from '../SeverityPill.astro'
 
@@ -222,7 +222,7 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
             {tool.updated}
           </time>
         </span>
-        <a href={METHODOLOGY} class="underline underline-offset-4 hover:text-signal">
+        <a href={methodologyHref(lang)} class="underline underline-offset-4 hover:text-signal">
           {t.page.methodology}
         </a>
         <a href={scanFormHref(lang)} class="underline underline-offset-4 hover:text-signal">
