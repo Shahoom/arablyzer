@@ -1,5 +1,5 @@
 import { defineSite, PREVIEW_SITE } from '@arablyzer/seo/site'
-import react from '@astrojs/react'
+import preact from '@astrojs/preact'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, envField } from 'astro/config'
 import { fontsource } from './src/fonts'
@@ -18,7 +18,9 @@ export default defineConfig({
   // phone, a stylesheet request delayed the first paint (M2.1 plan §3, measured).
   build: { format: 'preserve', inlineStylesheets: 'always' },
   trailingSlash: 'ignore',
-  integrations: [react()],
+  // Preact, not React: the same components, and a tenth of the script a page loads before its
+  // largest paint on a phone (M2.1 plan §3, measured).
+  integrations: [preact()],
   vite: {
     plugins: [tailwindcss()],
     server: { proxy: { '/api': api } },
@@ -40,7 +42,8 @@ export default defineConfig({
       provider: fontsource(),
       name: 'IBM Plex Sans Arabic',
       cssVariable: '--font-plex-arabic',
-      weights: [400, 500, 600, 700],
+      // Two weights, regular and semibold: each is another file on the page's first paint.
+      weights: [400, 600],
       styles: ['normal'],
       subsets: ['arabic', 'latin'],
       fallbacks: ['Segoe UI', 'Tahoma', 'sans-serif'],
@@ -49,7 +52,7 @@ export default defineConfig({
       provider: fontsource(),
       name: 'IBM Plex Mono',
       cssVariable: '--font-plex-mono',
-      weights: [400, 500, 600],
+      weights: [400, 600],
       styles: ['normal'],
       subsets: ['latin'],
       fallbacks: ['ui-monospace', 'monospace'],
