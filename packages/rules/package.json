@@ -16,6 +16,7 @@
   "dependencies": {
     "@arablyzer/collectors": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
+    "@eslint-community/regexpp": "4.12.2",
     "libphonenumber-js": "^1.13.13"
   },
   "devDependencies": {
