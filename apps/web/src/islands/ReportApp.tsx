@@ -158,14 +158,15 @@ function Shown({ view, lang }: { view: View; lang: Lang }) {
       return <Progress summary={view.summary} progress={view.progress} lang={lang} />
     case 'report': {
       const outcome = outcomeOf(view.report)
-      if (outcome === 'blocked' || outcome === 'failed') {
+      if (outcome === 'blocked' || outcome === 'opted-out' || outcome === 'failed') {
         return (
           <StateCard
             kind={outcome}
             lang={lang}
             status={view.report.target.http.status}
             url={view.report.target.url}
-            notices={outcome === 'failed' ? view.report.scan.notices : []}
+            // An opt-out's notice names the site's rule and where it is.
+            notices={outcome === 'blocked' ? [] : view.report.scan.notices}
           />
         )
       }

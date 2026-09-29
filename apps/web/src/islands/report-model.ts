@@ -1,6 +1,6 @@
 import type { EngineName, ScanEvent } from '@arablyzer/api-contract/codes'
 import type { EngineState, ReportStrings } from '@arablyzer/i18n/report'
-import type { Finding, Report, RuleResult, Severity } from '@arablyzer/report-schema'
+import type { Finding, Notice, Report, RuleResult, Severity } from '@arablyzer/report-schema'
 
 /** The engines a free scan renders in, in the order it renders them (M2.1 plan §4). */
 export const ENGINES: readonly EngineName[] = ['chromium', 'firefox', 'webkit']
@@ -103,10 +103,23 @@ export function advance(progress: Progress, event: ScanEvent): Progress {
 /** HTTP answers by which a site refuses a visitor it takes for a bot (the States design, S-01). */
 const REFUSALS = new Set([401, 403, 407, 429, 503])
 
-export type Outcome = 'complete' | 'partial' | 'blocked' | 'failed'
+/**
+ * The notice of a scan that stopped because the site's robots.txt asks ArablyzerBot not to check
+ * the page (packages/engine, notices.ts; M2.4 plan §2).
+ */
+const OPTED_OUT = 'opted-out'
 
-/** How the report opens: whole, partial, refused by the site, or failed. */
+/** The notice that says the site asked not to be checked, with its rule; null for other reports. */
+export function optOutOf(report: Report): Notice | null {
+  return report.scan.notices.find((notice) => notice.code === OPTED_OUT) ?? null
+}
+
+export type Outcome = 'complete' | 'partial' | 'blocked' | 'opted-out' | 'failed'
+
+/** How the report opens: whole, partial, refused by the site, opted out by it, or failed. */
 export function outcomeOf(report: Report): Outcome {
+  // The site's own wish comes first, whatever a redirect on the way answered.
+  if (optOutOf(report) !== null) return 'opted-out'
   const status = report.target.http.status
   if (status !== null && REFUSALS.has(status)) return 'blocked'
   return report.scan.status
@@ -159,17 +172,31 @@ export interface Step {
 }
 
 /**
- * The scan's steps, in the order the engine takes them (the approved Audit-Progress design). A
- * step the scan has no use for (no rule reads robots.txt or real-user data, no browser was asked
- * for) leaves the list once a later one began. One step is active at a time: the first not done.
+ * The scan's steps, in the order the engine takes them (the approved Audit-Progress design):
+ * robots.txt first, since a site can ask ArablyzerBot not to check a page (M2.4 plan §2), then
+ * the page. A step the scan has no use for (no rule reads real-user data, no browser was asked
+ * for, no robots.txt for a URL refused before any lookup) leaves the list once a later one began.
+ * One step is active at a time: the first not done.
  */
 export function stepsOf(progress: Progress, t: ReportStrings['progress']): Step[] {
   const engines = progress.planned
   const renderBegun = engines.some((engine) => progress.engines[engine].state !== 'waiting')
   const pastCrux = renderBegun || progress.rules !== null
-  const pastRobots = progress.crux !== null || pastCrux
+  const pastRobots = progress.page !== null || progress.crux !== null || pastCrux
   const page = progress.page
   const listed: (Omit<Step, 'state'> & { readonly done: boolean; readonly failed?: boolean })[] = [
+    // After a redirect to another site, the robots.txt shown is that site's, the latest read.
+    ...(progress.robots === null && pastRobots
+      ? []
+      : [
+          {
+            key: 'robots' as const,
+            label: t.steps.robots,
+            done: progress.robots !== null,
+            detail: progress.robots === null ? null : t.robots[progress.robots.outcome],
+            ltr: false,
+          },
+        ]),
     page !== null && page.error !== null
       ? {
           key: 'page',
@@ -191,17 +218,6 @@ export function stepsOf(progress: Progress, t: ReportStrings['progress']): Step[
                   .join(' · '),
           ltr: true,
         },
-    ...(progress.robots === null && pastRobots
-      ? []
-      : [
-          {
-            key: 'robots' as const,
-            label: t.steps.robots,
-            done: progress.robots !== null,
-            detail: progress.robots === null ? null : t.robots[progress.robots.outcome],
-            ltr: false,
-          },
-        ]),
     ...(progress.crux === null && pastCrux
       ? []
       : [

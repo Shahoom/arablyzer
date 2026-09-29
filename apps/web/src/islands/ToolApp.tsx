@@ -1,4 +1,4 @@
-import { URL_ERROR_CODES, type ScanSummary } from '@arablyzer/api-contract/codes'
+import { URL_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import { TOOLS_UI } from '@arablyzer/i18n/tools'
@@ -15,6 +15,7 @@ import { Evidence } from './report/ReportView'
 import { SeverityPill } from './report/ui'
 import {
   advance,
+  optOutOf,
   outcomeOf,
   problemsOf,
   START,
@@ -95,9 +96,10 @@ export default function ToolApp({ lang, tool, renders }: Props) {
       }
       setRun({ phase: 'failed', id })
     }
-    const ended = (summary: ScanSummary) => {
-      if (summary.state === 'failed') setRun({ phase: 'failed', id })
-      else void showReport()
+    // A failed scan can still have a report that says why, such as a site's opt-out, which can
+    // end a scan before this page opens its stream. One with no report reads as missing.
+    const ended = () => {
+      void showReport()
     }
     const stop = followScan(id, {
       onFollowing: () => undefined,
@@ -275,22 +277,30 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
 
   const { report, id } = run
   const outcome = outcomeOf(report)
+  // The site's rule, when its robots.txt asks ArablyzerBot not to check the page (M2.4 plan §2).
+  const optOut = optOutOf(report)
   const problems = problemsOf(report)
   const failed = problems.filter((entry) => entry.rule.status === 'fail')
   const count = failed.reduce((sum, entry) => sum + Math.max(entry.findings.length, 1), 0)
-  const applied = report.rules.filter((rule) => rule.status !== 'not-applicable')
+  // A scan that stopped ran no rule, so none is listed as passed.
+  const applied =
+    outcome === 'opted-out' || outcome === 'failed'
+      ? []
+      : report.rules.filter((rule) => rule.status !== 'not-applicable')
   const headline =
     outcome === 'blocked'
       ? t.blocked
-      : outcome === 'failed'
-        ? t.failed
-        : failed.length > 0
-          ? t.problems(count)
-          : problems.length > 0
-            ? t.review
-            : applied.length > 0
-              ? t.passed
-              : t.notApplicable
+      : outcome === 'opted-out'
+        ? t.optedOut
+        : outcome === 'failed'
+          ? t.failed
+          : failed.length > 0
+            ? t.problems(count)
+            : problems.length > 0
+              ? t.review
+              : applied.length > 0
+                ? t.passed
+                : t.notApplicable
   const worst = failed[0]?.rule.severity
   const shareHref = localePath(lang, `/r/${id}`)
 
@@ -307,6 +317,11 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           {report.target.url}
         </span>
       </div>
+      {optOut !== null && (
+        <p className="m-0 border-b border-rule-soft px-5 py-4 text-base leading-[1.8] text-ink-2 md:px-6">
+          <Bidi text={optOut.message[lang]} lang={lang} />
+        </p>
+      )}
       {problems.map((entry) => (
         <article
           key={entry.rule.id}
