@@ -37,6 +37,21 @@ describe('highlight', () => {
     )
   })
 
+  it("mutes an HTTP exchange's status lines and header names, and colours the values", () => {
+    expect(
+      highlight(
+        'HTTP/1.1 301 Moved Permanently\nLocation: https://www.example.com/\n\nHTTP/2 200\nX-Frame-Options: <DENY>',
+        'http',
+        'right',
+      ),
+    ).toBe(
+      '<span class="text-ink-3">HTTP/1.1 301 Moved Permanently</span>\n<span class="text-ink-3">Location:</span><span class="text-pass"> https://www.example.com/</span>\n\n<span class="text-ink-3">HTTP/2 200</span>\n<span class="text-ink-3">X-Frame-Options:</span><span class="text-pass"> &lt;DENY&gt;</span>',
+    )
+    expect(highlight('Referrer-Policy:', 'http', 'wrong')).toBe(
+      '<span class="text-ink-3">Referrer-Policy:</span>',
+    )
+  })
+
   it("colours a JSON member's value, and mutes its name", () => {
     expect(highlight('"price": "12.500",\n"offers": {', 'json', 'right')).toBe(
       '<span class="text-ink-3">&quot;price&quot;: </span><span class="text-pass">&quot;12.500&quot;</span><span class="text-ink-3">,</span>\n<span class="text-ink-3">&quot;offers&quot;: {</span>',
