@@ -1,8 +1,10 @@
 import type { ScanEvent } from '@arablyzer/api-contract'
+import { DEFAULT_MAX_REDIRECTS } from '@arablyzer/egress'
 import { SCAN_BUDGET_MS as ENGINE_BUDGET_MS } from '@arablyzer/engine/budgets'
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
 import { Report } from '@arablyzer/report-schema'
 import {
+  MAX_REDIRECTS,
   remoteScanner,
   SCAN_BUDGET_MS,
   type Scanner,
@@ -225,5 +227,11 @@ describe('the scanner and its client', () => {
 
   it("keeps the client's budget the engine's", () => {
     expect(SCAN_BUDGET_MS).toBe(ENGINE_BUDGET_MS)
+  })
+
+  // A scan reads robots.txt once for each site it asks for a page, so the events it may send
+  // grow with the redirects its page follows.
+  it("keeps the client's redirects the egress package's", () => {
+    expect(MAX_REDIRECTS).toBe(DEFAULT_MAX_REDIRECTS)
   })
 })
