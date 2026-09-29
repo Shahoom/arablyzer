@@ -14,28 +14,52 @@ export const RouteOverride = z.strictObject({
 })
 export type RouteOverride = z.infer<typeof RouteOverride>
 
+/** A reserved .example name (RFC 2606), which real DNS never answers. */
+const EXAMPLE_NAME = /^(?:[a-z0-9-]+\.)+example$/
+
 /**
  * site.json: how a site is served. `host` is the name it is scanned under, which tests map to
- * 127.0.0.1: a reserved .example name (RFC 2606), which real DNS never answers, so a site can
- * look public without any request leaving the machine. `tls` serves it over HTTPS with a
- * certificate from the test authority, this many days long with this many left.
+ * 127.0.0.1: a reserved .example name, so a site can look public without any request leaving the
+ * machine. `aliases` are other names the same server answers to, in its certificate too, so a
+ * page can redirect from one name to another, as example.com does to www.example.com (M2.3a).
+ * `tls` serves it over HTTPS with a certificate from the test authority, this many days long
+ * with this many left.
  */
-export const SiteConfig = z.strictObject({
-  /** What the CrUX stand-in answers for the site (see serveCrux): the CrUX rules' fixtures. */
-  crux: CruxData.optional(),
-  host: z
-    .string()
-    .regex(/^(?:[a-z0-9-]+\.)+example$/)
-    .optional(),
-  tls: z
-    .strictObject({
-      lifetimeDays: z.number().positive().max(3650),
-      daysLeft: z.number().min(-3650).max(3650),
-    })
-    .optional(),
-})
+export const SiteConfig = z
+  .strictObject({
+    /** What the CrUX stand-in answers for the site (see serveCrux): the CrUX rules' fixtures. */
+    crux: CruxData.optional(),
+    host: z.string().regex(EXAMPLE_NAME).optional(),
+    aliases: z.array(z.string().regex(EXAMPLE_NAME)).min(1).optional(),
+    tls: z
+      .strictObject({
+        lifetimeDays: z.number().positive().max(3650),
+        daysLeft: z.number().min(-3650).max(3650),
+      })
+      .optional(),
+  })
+  .refine(
+    (site) =>
+      site.aliases === undefined ||
+      (site.host !== undefined &&
+        !site.aliases.includes(site.host) &&
+        new Set(site.aliases).size === site.aliases.length),
+    { message: 'aliases need a host, and each names another host once', path: ['aliases'] },
+  )
 export type SiteConfig = z.infer<typeof SiteConfig>
 
-/** fixture.json: per-path overrides of status, headers and body (docs/design/phase-0.md §1). */
-export const FixtureConfig = z.record(z.string().regex(/^\/\S*$/), RouteOverride)
+/**
+ * fixture.json: per-path overrides of status, headers and body (docs/design/phase-0.md §1). A key
+ * is a path, the same on every name of the site, or //name/path for one of its aliases alone,
+ * which takes the path's place there.
+ */
+export const FixtureConfig = z.record(
+  z.string().regex(/^(?:\/\/(?:[a-z0-9-]+\.)+example)?\/\S*$/),
+  RouteOverride,
+)
 export type FixtureConfig = z.infer<typeof FixtureConfig>
+
+/** The key of a path's route on one name of a site: //name/path, which a plain path stands in for. */
+export function routeKey(name: string, pathname: string): string {
+  return `//${name}${pathname}`
+}

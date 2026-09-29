@@ -43,12 +43,12 @@ export function policyFor(site: FixtureSite): EgressPolicy {
 }
 
 /**
- * Resolves the site's own host name (its site.json .example name) to 127.0.0.1, and no other
- * name at all: a scan of a fixture never asks real DNS.
+ * Resolves the site's own host names (its site.json .example name and aliases) to 127.0.0.1, and
+ * no other name at all: a scan of a fixture never asks real DNS.
  */
 export function resolverFor(site: FixtureSite): Resolver {
   return (hostname) =>
-    Promise.resolve(hostname === site.hostname ? [{ address: '127.0.0.1', family: 4 }] : [])
+    Promise.resolve(site.hostnames.includes(hostname) ? [{ address: '127.0.0.1', family: 4 }] : [])
 }
 
 const ajv = new Ajv2020({ strict: true, allErrors: true })

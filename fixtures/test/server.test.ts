@@ -275,3 +275,105 @@ describe('serveSite: compressed paths', () => {
     expect(gzipped.body.length).toBeLessThan(plain.body.length)
   })
 })
+
+describe('serveSite: a site under several names', () => {
+  let root = ''
+  let site: FixtureSite
+
+  beforeAll(async () => {
+    root = await mkdtemp(path.join(tmpdir(), 'arablyzer-names-'))
+    await writeFile(path.join(root, 'index.html'), '<p>page</p>')
+    await writeFile(
+      path.join(root, 'site.json'),
+      JSON.stringify({ host: 'shop.example', aliases: ['www.shop.example'] }),
+    )
+    await writeFile(
+      path.join(root, 'fixture.json'),
+      JSON.stringify({
+        '/': { status: 302, headers: { location: 'http://www.shop.example/' } },
+        '//www.shop.example/': { headers: { 'x-name': 'www' } },
+        '/elsewhere': { status: 301, headers: { location: 'http://other.example/' } },
+        '/pinned': { status: 301, headers: { location: 'http://www.shop.example:8080/' } },
+      }),
+    )
+    site = await serveSite(root)
+  })
+
+  afterAll(async () => {
+    await site.close()
+    await rm(root, { recursive: true, force: true })
+  })
+
+  /** A request to the site's own port, for one of its names. */
+  function requestAs(host: string, pathname: string): Promise<RawResponse> {
+    return new Promise((resolve, reject) => {
+      const req = http.request(
+        {
+          host: '127.0.0.1',
+          port: site.port,
+          path: pathname,
+          agent: false,
+          headers: { host: `${host}:${String(site.port)}` },
+        },
+        (res) => {
+          const chunks: Buffer[] = []
+          res.on('data', (chunk: Buffer) => chunks.push(chunk))
+          res.on('end', () => {
+            const headers: [string, string][] = []
+            for (let i = 0; i + 1 < res.rawHeaders.length; i += 2) {
+              headers.push([(res.rawHeaders[i] ?? '').toLowerCase(), res.rawHeaders[i + 1] ?? ''])
+            }
+            resolve({ status: res.statusCode ?? 0, headers, body: Buffer.concat(chunks) })
+          })
+        },
+      )
+      req.on('error', reject)
+      req.end()
+    })
+  }
+
+  it('names every name it answers to', () => {
+    expect(site.hostnames).toEqual(['shop.example', 'www.shop.example'])
+  })
+
+  it('sends a redirect to one of its names back to its own port', async () => {
+    const moved = await requestAs('shop.example', '/')
+    expect(moved.status).toBe(302)
+    expect(header(moved, 'location')).toEqual([`http://www.shop.example:${String(site.port)}/`])
+    // Another site's address, or one with a port of its own, stays as written.
+    expect(header(await requestAs('shop.example', '/elsewhere'), 'location')).toEqual([
+      'http://other.example/',
+    ])
+    expect(header(await requestAs('shop.example', '/pinned'), 'location')).toEqual([
+      'http://www.shop.example:8080/',
+    ])
+  })
+
+  it('answers an alias with its own route, and the site’s files', async () => {
+    const page = await requestAs('www.shop.example', '/')
+    expect(page.status).toBe(200)
+    expect(header(page, 'x-name')).toEqual(['www'])
+    expect(page.body.toString('utf8')).toBe('<p>page</p>')
+    // A path without a route of the alias's own is the same on every name.
+    expect((await requestAs('www.shop.example', '/elsewhere')).status).toBe(301)
+    const config = await loadFixtureConfig(root)
+    const resolved = await resolveFixtureResponse(root, config, '/', { host: 'www.shop.example' })
+    expect([resolved.status, resolved.headers['x-name']]).toEqual([200, 'www'])
+  })
+
+  it('refuses a route for a name it does not have, and aliases without a host', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-names-bad-'))
+    try {
+      await writeFile(path.join(dir, 'site.json'), JSON.stringify({ host: 'shop.example' }))
+      await writeFile(path.join(dir, 'fixture.json'), JSON.stringify({ '//www.shop.example/': {} }))
+      await expect(serveSite(dir)).rejects.toThrow(/names no host of the site/)
+      await writeFile(
+        path.join(dir, 'site.json'),
+        JSON.stringify({ aliases: ['www.shop.example'] }),
+      )
+      await expect(serveSite(dir)).rejects.toThrow(/aliases need a host/)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+})
