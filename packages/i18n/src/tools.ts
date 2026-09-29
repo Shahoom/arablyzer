@@ -1,5 +1,5 @@
 import type { Copy } from './copy'
-import { arabicCount, englishCount } from './plural'
+import { arabicCount, englishCount, type ArabicForms } from './plural'
 
 /** The toolbox's categories (BUILD-PLAN §5.1), in the table's order: packages/tools has them too. */
 export type ToolCategoryName =
@@ -38,6 +38,8 @@ export interface ToolsStrings {
     /** The categories that are Arablyzer's own (§5.1: «فريد»). */
     readonly arabicLayer: string
     readonly count: (count: number) => string
+    /** What the search shows: this many tools, of all. */
+    readonly shown: (shown: number, total: number) => string
     /** When the search matches no tool. */
     readonly none: string
   }
@@ -65,6 +67,14 @@ export interface ToolsStrings {
   }
 }
 
+/** Tools, as a count on its own: «أداة واحدة»، «3 أدوات»، «12 أداة». */
+const TOOLS: ArabicForms = {
+  one: 'أداة واحدة',
+  two: 'أداتان',
+  few: '{n} أدوات',
+  many: '{n} أداة',
+}
+
 export const TOOLS_UI: Copy<ToolsStrings> = {
   reviewed: false,
   ar: {
@@ -81,13 +91,8 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       categories: 'الفئات',
       all: 'الكل',
       arabicLayer: 'الطبقة العربية',
-      count: (count) =>
-        arabicCount(count, {
-          one: 'أداة واحدة',
-          two: 'أداتان',
-          few: '{n} أدوات',
-          many: '{n} أداة',
-        }),
+      count: (count) => arabicCount(count, TOOLS),
+      shown: (shown, total) => `${arabicCount(shown, TOOLS)} من ${total}`,
       none: 'لا أداة بهذا الاسم بعد.',
     },
     categories: {
@@ -207,6 +212,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       all: 'All',
       arabicLayer: 'The Arabic layer',
       count: (count) => englishCount(count, 'tool', 'tools'),
+      shown: (shown, total) => `${shown} of ${englishCount(total, 'tool', 'tools')}`,
       none: 'No tool by that name yet.',
     },
     categories: {
