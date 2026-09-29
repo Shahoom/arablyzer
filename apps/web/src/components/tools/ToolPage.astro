@@ -165,7 +165,12 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
                 <code dir="ltr" class="self-start font-mono text-sm text-ink-2">
                   {rule.id}
                 </code>
-                <span class="text-base leading-[1.6] font-semibold">{rule.title[lang]}</span>
+                <a
+                  href={localePath(lang, PATHS.rule(rule.id))}
+                  class="text-base leading-[1.6] font-semibold underline decoration-tick underline-offset-4 hover:text-signal"
+                >
+                  {rule.title[lang]}
+                </a>
                 <span class="self-start">
                   <SeverityPill severity={rule.severity} lang={lang} />
                 </span>
