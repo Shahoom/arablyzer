@@ -7,6 +7,7 @@ import { escapeHtml } from './html'
 import { breadcrumbList, webApplication } from './json-ld'
 import { renderInline, renderMarkdown } from './markdown'
 import { alternates, localePath, pageUrl, PATHS, type Lang, type Site } from './site'
+import { ogImagePath } from './sitemap'
 import { dirOf, otherLang, STRINGS } from './strings'
 
 /**
@@ -34,7 +35,17 @@ export function renderToolPage(tool: Tool, lang: Lang, site: Site): string {
     title,
     description: copy.description,
     canonical: url,
-    openGraph: { title, description: copy.description, url },
+    openGraph: {
+      title,
+      description: copy.description,
+      url,
+      image: {
+        url: `${site.origin}${ogImagePath(localePath(lang, path))}`,
+        alt: title,
+        width: 1200,
+        height: 630,
+      },
+    },
     alternates: alternates(site, path),
     jsonLd: [
       webApplication({ name: copy.title, description: copy.description, url, lang }),

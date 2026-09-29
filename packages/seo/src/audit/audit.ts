@@ -25,6 +25,8 @@ export type AuditCheck =
   | 'reciprocal'
   | 'noindex'
   | 'content'
+  | 'sitemap'
+  | 'og-image'
 
 export interface AuditProblem {
   readonly check: AuditCheck
@@ -68,11 +70,7 @@ export const KNOWN_GAPS: readonly {
   readonly tag: string
   readonly why: string
 }[] = [
-  {
-    ruleId: 'og-tags-missing',
-    tag: 'og:image',
-    why: 'the site build makes an Open Graph image for every page (BUILD-PLAN §6.5, M2.4)',
-  },
+  // None now: the Open Graph image, the last one, came with the site's build (M2.4c).
 ]
 
 /** A finding of a gap the site knows it has, and closes in a later milestone. */

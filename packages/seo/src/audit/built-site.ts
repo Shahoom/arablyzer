@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { localePath, pageUrl, type Lang, type Site } from '../site'
 import {
@@ -154,5 +154,71 @@ export function auditBuiltSite(dir: string, site: Site): BuiltSiteAudit {
       ),
     )
   }
+  problems.push(...sitemapProblems(dir, site, pages), ...ogImageProblems(dir, site, pages, html))
   return { pages, problems }
+}
+
+/**
+ * The sitemaps (BUILD-PLAN §6.5) against the pages: an index at /sitemap.xml, and in its
+ * sitemaps every page search engines should index, in both languages, and no other address.
+ */
+function sitemapProblems(dir: string, site: Site, pages: readonly BuiltPage[]): PageProblem[] {
+  const problem = (message: string): PageProblem => ({
+    page: '/sitemap.xml',
+    check: 'sitemap',
+    message,
+  })
+  const read = (url: string): string | null => {
+    if (!url.startsWith(`${site.origin}/`)) return null
+    const file = path.join(dir, new URL(url).pathname)
+    return existsSync(file) ? readFileSync(file, 'utf8') : null
+  }
+  const locs = (xml: string) =>
+    [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1] ?? '')
+  const index = read(`${site.origin}/sitemap.xml`)
+  if (index === null) return [problem('no sitemap index at /sitemap.xml')]
+  const listed = new Set<string>()
+  const problems: PageProblem[] = []
+  for (const sitemap of locs(index)) {
+    const xml = read(sitemap)
+    if (xml === null) {
+      problems.push(problem(`the index names ${sitemap}, which the build did not write`))
+      continue
+    }
+    for (const url of locs(xml)) listed.add(url)
+  }
+  const indexable = new Set(
+    pages.filter((page) => !isNoindexPage(page.path)).map((page) => `${site.origin}${page.path}`),
+  )
+  for (const url of indexable) {
+    if (!listed.has(url)) problems.push(problem(`${url} is in no sitemap`))
+  }
+  for (const url of listed) {
+    if (!indexable.has(url))
+      problems.push(problem(`${url} is in a sitemap, but not a page to index`))
+  }
+  return problems
+}
+
+/** Every page shared as a link has its Open Graph image, on the site, where the build drew it. */
+function ogImageProblems(
+  dir: string,
+  site: Site,
+  pages: readonly BuiltPage[],
+  html: (page: BuiltPage) => string,
+): PageProblem[] {
+  const problems: PageProblem[] = []
+  for (const page of pages) {
+    if (isNotFound(page.path)) continue
+    const image = /<meta property="og:image" content="([^"]+)"/.exec(html(page))?.[1]
+    const problem = (message: string) => {
+      problems.push({ page: page.path, check: 'og-image', message })
+    }
+    if (image === undefined) problem('no og:image')
+    else if (!image.startsWith(`${site.origin}/`)) problem(`the og:image is off the site: ${image}`)
+    else if (!existsSync(path.join(dir, new URL(image).pathname))) {
+      problem(`the og:image ${image} is not in the build`)
+    }
+  }
+  return problems
 }
