@@ -85,6 +85,12 @@ export function isKnownGap(finding: Finding): boolean {
 /** The §6.1 sections, in the order the template puts them. */
 const SECTIONS = ['checks', 'example', 'fix', 'faq', 'links', 'about'] as const
 
+/** Every rule's id: a tool page lists the rules it runs by them. */
+const RULE_IDS: ReadonlySet<string> = new Set(RULES.map((rule) => rule.id))
+
+/** A tool's page, in either language, and its slug. */
+const TOOL_PATH = /^(?:\/en)?\/tools\/([a-z0-9]+(?:-[a-z0-9]+)*)$/
+
 /** The tool page template of BUILD-PLAN §6.1, its metadata, and our own rules. */
 export function auditToolPage(html: string, expected: ExpectedPage): AuditProblem[] {
   const tags = tagsOf(html)
@@ -132,8 +138,24 @@ export function auditToolPage(html: string, expected: ExpectedPage): AuditProble
   } else if (firstSection !== undefined && firstSection.order < form.order) {
     problem('tool-first', 'the tool form comes after a section; it belongs above the fold')
   }
+  if (form !== undefined) {
+    // §6.1 item 2: a field and a button, and the tool the page is about.
+    if (!tags.some((tag) => isSubmit(tag) && isWithin(tag.node, form.node))) {
+      problem('tool-first', 'the tool form has no submit button')
+    }
+    const island = tags
+      .filter((tag) => tag.name === 'astro-island' && isWithin(form.node, tag.node))
+      .at(-1)
+    const slug = toolSlugOf(expected.url)
+    if (island !== undefined && islandProp(island, 'tool') !== slug) {
+      problem(
+        'tool-first',
+        `the tool form's island runs ${islandProp(island, 'tool') ?? 'no tool'}, not ${slug ?? 'this page'}'s`,
+      )
+    }
+  }
 
-  checkSections(tags, problem)
+  checkSections(tags, expected, problem)
   checkCanonical(tags, expected.url, problem)
   for (const message of hreflangProblems(tags, expected.alternates)) problem('hreflang', message)
   checkJsonLd(tags, expected, problem)
@@ -288,7 +310,7 @@ function checkLangDir(tags: readonly Tag[], lang: Lang, problem: Report): void {
   }
 }
 
-function checkSections(tags: readonly Tag[], problem: Report): void {
+function checkSections(tags: readonly Tag[], expected: ExpectedPage, problem: Report): void {
   const inside = (section: Tag, name: string) =>
     tags.filter((tag) => tag.name === name && tag !== section && isWithin(tag.node, section.node))
   const sections = SECTIONS.map((id) => ({
@@ -326,14 +348,65 @@ function checkSections(tags: readonly Tag[], problem: Report): void {
       (question) => filled(question) && answered(question),
     ), 'questions (<h3>), each followed by its answer')
   require('links', (tag) => inside(tag, 'a').some((a) => a.attr('href') !== null), 'links')
+  // §6.1 item 7: the rules the tool runs, each by its id, and the tools near it.
+  const links = sections.find((section) => section.id === 'links')?.tag
+  if (links !== undefined && !isHidden(links)) {
+    const listed = inside(links, 'li').flatMap((item) => inside(item, 'code'))
+    if (listed.length === 0 || !listed.every((code) => RULE_IDS.has(textOf(code.node)))) {
+      problem(
+        'sections',
+        "#links needs the rules the tool runs, a list with each rule's id in <code>",
+      )
+    }
+    const own = toolSlugOf(expected.url)
+    const toolLinks = inside(links, 'a').filter((a) => {
+      const slug = toolSlugOf(a.attr('href') ?? '', expected.url)
+      return slug !== null && slug !== own
+    })
+    if (toolLinks.length === 0) problem('sections', '#links needs a link to another tool')
+  }
   require('about', (tag) => {
     const times = inside(tag, 'time').filter((time) => isDate(time.attr('datetime') ?? ''))
-    const dated = times.map((time) => time.node.parentNode).filter((node) => node !== null)
+    // The block the date is in is not the methodology, however deep in it the date sits.
     const methodology = ['p', 'ul', 'ol']
       .flatMap((name) => inside(tag, name))
-      .some((block) => filled(block) && !dated.some((node) => node === block.node))
+      .some((block) => filled(block) && !times.some((time) => isWithin(time.node, block.node)))
     return times.length > 0 && methodology
   }, 'the methodology and a <time datetime> of the last update')
+}
+
+/** A button that submits its form: a <button> of no other type, or an input of type submit or image. */
+function isSubmit(tag: Tag): boolean {
+  const type = (tag.attr('type') ?? '').trim().toLowerCase()
+  if (tag.name === 'button') return type !== 'button' && type !== 'reset'
+  return tag.name === 'input' && (type === 'submit' || type === 'image')
+}
+
+/** The tool's slug of a link to a tool's page on the site (/tools/<slug>, /en/tools/<slug>). */
+function toolSlugOf(href: string, base?: string): string | null {
+  let url: URL
+  try {
+    url = new URL(href, base)
+  } catch {
+    return null
+  }
+  if (base !== undefined && url.origin !== new URL(base).origin) return null
+  return TOOL_PATH.exec(url.pathname)?.[1] ?? null
+}
+
+/**
+ * A string prop of an Astro island, as the build writes it into the page: its props attribute is
+ * JSON, each value as [type, value], 0 for a plain value.
+ */
+function islandProp(island: Tag, name: string): string | null {
+  let props: unknown
+  try {
+    props = JSON.parse(island.attr('props') ?? '')
+  } catch {
+    return null
+  }
+  const value = isObject(props) ? props[name] : undefined
+  return Array.isArray(value) && value[0] === 0 && typeof value[1] === 'string' ? value[1] : null
 }
 
 /** Each question is an <h3> followed by its answer: text, or an element with text that is not a heading. */

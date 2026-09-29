@@ -41,6 +41,19 @@ function failing(problems: readonly { check: AuditCheck }[]): AuditCheck[] {
   return [...new Set(problems.map((problem) => problem.check))].sort()
 }
 
+/**
+ * The right page with its form inside an island, as Astro writes one: its props JSON, each value
+ * as [type, value]; a tool slug, or none.
+ */
+function island(html: string, tool: string | null): string {
+  const props = JSON.stringify({ lang: [0, 'ar'], ...(tool === null ? {} : { tool: [0, tool] }) })
+  return edit(
+    html,
+    /<form [^\n]*<\/form>/,
+    `<astro-island uid="Z1" component-url="/_astro/ToolApp.js" props="${props.replaceAll('"', '&quot;')}" ssr client="idle">$&</astro-island>`,
+  )
+}
+
 /** A copy of the right page with one defect. */
 function edit(html: string, find: string | RegExp, replace: string): string {
   const next = html.replace(find, replace)
@@ -181,7 +194,7 @@ describe.each<[string, string, AuditCheck[]]>([
   ['a link over plain http', edit(AR, 'https://www.w3.org/', 'http://www.w3.org/'), ['links']],
   [
     'a javascript: link',
-    edit(AR, 'href="/tools/rtl-check"', 'href="javascript:alert(1)"'),
+    edit(AR, 'href="/rules/rtl-html-dir"', 'href="javascript:alert(1)"'),
     ['links'],
   ],
   ['Latin punctuation in Arabic copy', edit(AR, 'الذاتي، بلا', 'الذاتي, بلا'), ['own-rules']],
@@ -292,9 +305,56 @@ describe.each<[string, string, AuditCheck[]]>([
   ],
   [
     'a link with a backslash',
-    edit(AR, 'href="/tools/rtl-check"', 'href="/\\evil.example/"'),
+    edit(AR, 'href="/rules/rtl-html-dir"', 'href="/\\evil.example/"'),
     ['links'],
   ],
+  // M2.2a review: template breakage the audit let through.
+  [
+    '#about without the methodology, its date in a <span> beside links',
+    edit(
+      AR,
+      /<p>نقرأ HTML كما يرسله الخادم.<\/p><p>(.*?<\/time>)<\/p>/,
+      '<p><span>$1</span> <a href="/">الرئيسية</a></p>',
+    ),
+    ['sections'],
+  ],
+  ['no submit button', edit(AR, '<button>افحص</button>', ''), ['tool-first']],
+  [
+    'a button that does not submit',
+    edit(AR, '<button>افحص</button>', '<button type="button">افحص</button>'),
+    ['tool-first'],
+  ],
+  [
+    'no link to another tool',
+    edit(AR, '<li><a href="/tools/rtl-check">فحص الاتجاه</a></li>', ''),
+    ['sections'],
+  ],
+  [
+    'a link to the page itself as its neighbour',
+    edit(AR, 'href="/tools/rtl-check"', 'href="/tools/sample-check"'),
+    ['sections'],
+  ],
+  [
+    'the related links replaced by one external link',
+    edit(
+      AR,
+      /<section id="links">[\s\S]*?<\/section>/,
+      '<section id="links"><h2>روابط ذات صلة</h2><ul><li><a href="https://www.w3.org/International/">مقالات W3C عن التدويل</a></li></ul></section>',
+    ),
+    ['sections'],
+  ],
+  [
+    'no list of the rules the tool runs',
+    edit(AR, ' <code dir="ltr">rtl-html-dir</code>', ''),
+    ['sections'],
+  ],
+  [
+    'a rule the rules do not have',
+    edit(AR, '<code dir="ltr">rtl-html-dir</code>', '<code dir="ltr">no-such-rule</code>'),
+    ['sections'],
+  ],
+  ['the tool of another page in its island', island(AR, 'rtl-check'), ['tool-first']],
+  ['an island with no tool', island(AR, null), ['tool-first']],
 ])('auditToolPage on an Arabic page with %s', (_name, html, checks) => {
   it(`fails ${checks.join(', ')}`, () => {
     const alone = failing(auditToolPage(html, EXPECTED.ar))
@@ -318,6 +378,19 @@ describe.each([
     'a date and time',
     edit(AR, '<time datetime="2026-09-24">', '<time datetime="2026-09-24T00:00:00Z">'),
   ],
+  [
+    'its date in a <span> beside links',
+    edit(AR, /<p>(آخر تحديث: .*?<\/time>)<\/p>/, '<p><span>$1</span> <a href="/">الرئيسية</a></p>'),
+  ],
+  [
+    'submit buttons of every kind',
+    edit(AR, '<button>افحص</button>', '<button type="submit">افحص</button>'),
+  ],
+  [
+    'an input that submits',
+    edit(AR, '<button>افحص</button>', '<input type="submit" value="افحص">'),
+  ],
+  ['the tool in its own island', island(AR, 'sample-check')],
   [
     'an answer written as bare text',
     edit(
