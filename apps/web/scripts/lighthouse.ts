@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { serveSite } from '@arablyzer/fixtures'
-import { builtPages } from '@arablyzer/seo/audit'
+import { builtPages, representativePages } from '@arablyzer/seo/audit'
 import * as chromeLauncher from 'chrome-launcher'
 import lighthouse from 'lighthouse'
 import desktopConfig from 'lighthouse/core/config/desktop-config.js'
@@ -31,10 +31,11 @@ if (chromePath === undefined || chromePath === '') {
 }
 
 const DIST = fileURLToPath(new URL('../dist/', import.meta.url))
-/** Every page the build wrote, report pages aside. */
-const PAGES = builtPages(DIST)
-  .map((page) => page.path)
-  .filter((path) => !/^\/(?:en\/)?r(?:\/|$)/.test(path))
+/**
+ * The pages that stand for the rest (packages/seo): every page but the report pages and the
+ * tool pages past the first in each language, which share its template.
+ */
+const PAGES = representativePages(builtPages(DIST)).map((page) => page.path)
 const CATEGORIES = ['performance', 'accessibility', 'best-practices', 'seo'] as const
 const FORMS = ['mobile', 'desktop'] as const
 
