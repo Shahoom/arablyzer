@@ -20,12 +20,12 @@ import {
   type Tool,
 } from '../src/index'
 
-// BUILD-PLAN §6.1: the example on a tool's page is live. A tool that reads the HTML, robots.txt
-// or the response's headers and redirects judges its examples as the page says; one that renders
-// the page shows examples taken from its rules' own fixtures, which the engine's browser suite
-// renders in every engine (packages/engine, fixtures.browser.test.ts), and whose wrong ones fail
-// and right ones pass. Shared by the test and by scripts/check-copy.ts, which checks one tool's
-// copy as it is written.
+// BUILD-PLAN §6.1: the example on a tool's page is live. A tool that reads the HTML, robots.txt,
+// DNS records or the response's headers and redirects judges its examples as the page says; one
+// that renders the page, or asks for its links, shows examples taken from its rules' own
+// fixtures, which the engine's suites serve and scan for real (fixtures.test.ts, and
+// fixtures.browser.test.ts in every engine), and whose wrong ones fail and right ones pass. Shared
+// by the test and by scripts/check-copy.ts, which checks one tool's copy as it is written.
 
 const PAGE_URL = 'https://example.com/'
 const encode = (text: string) => new TextEncoder().encode(text)
@@ -33,8 +33,15 @@ const RULES_DIR = fileURLToPath(new URL('../../rules/src/rules/', import.meta.ur
 
 const fold = (text: string) => text.replace(/\s+/g, ' ').trim()
 
-export function rendersPage(tool: Tool): boolean {
-  return tool.rules.some((id) => ruleById(id)?.needs.includes('render') === true)
+/**
+ * Whether the tool's examples come from its rules' fixtures: a rendered page, or the answers of
+ * the page's links, are not in the example's code.
+ */
+export function fromFixtures(tool: Tool): boolean {
+  return tool.rules.some((id) => {
+    const needs = ruleById(id)?.needs ?? []
+    return needs.includes('render') || needs.includes('links')
+  })
 }
 
 /**
@@ -145,7 +152,7 @@ function fixtureTexts(ruleId: string, kind: 'wrong' | 'right'): string[] {
 export function exampleProblems(tool: Tool, lang: Lang): string[] {
   const { wrong, right } = tool.copy[lang].example
   const problems: string[] = []
-  if (rendersPage(tool)) {
+  if (fromFixtures(tool)) {
     for (const [kind, example] of [
       ['wrong', wrong],
       ['right', right],

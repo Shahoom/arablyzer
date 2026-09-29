@@ -6,6 +6,7 @@ import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
 import { definition as arabicPunctuationCheck } from './tools/arabic-punctuation-check/tool'
 import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
+import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
@@ -46,6 +47,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   arabicPunctuationCheck,
   arabicShapingCheck,
   bidiIsolationCheck,
+  brokenLinks,
   canonicalCheck,
   digitsConsistency,
   emailSecurity,
