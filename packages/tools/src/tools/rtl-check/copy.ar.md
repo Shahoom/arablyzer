@@ -1,5 +1,6 @@
 ---
-reviewed: true
+reviewed: false # the card line (summary) is new in M2.2
+summary: هل تعلن صفحتك أنها عربية وتُقرأ من اليمين إلى اليسار؟
 ---
 
 # فحص RTL واتجاه الصفحة

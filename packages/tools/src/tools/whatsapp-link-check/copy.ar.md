@@ -1,5 +1,6 @@
 ---
-reviewed: true
+reviewed: false # the card line (summary) is new in M2.2
+summary: هل الرقم في روابطك بالصيغة الدولية التي يفتحها واتساب؟
 ---
 
 # فحص رابط واتساب

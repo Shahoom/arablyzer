@@ -1,3 +1,7 @@
+---
+summary: Are the numbers in your WhatsApp links in the international format WhatsApp opens?
+---
+
 # WhatsApp link checker
 
 Checks that the WhatsApp links on your page use the format WhatsApp documents: the full international number, in digits only.
