@@ -20,11 +20,15 @@ export function toolRenders(tool: Tool): boolean {
   return rulesOf(tool).some((rule) => rule.needs.includes('render'))
 }
 
-/** What the tool reads, for its card: browsers, Chrome's data, robots.txt, or the page's HTML. */
+/**
+ * What the tool reads, for its card: browsers, Chrome's data, the sitemaps, robots.txt, the
+ * server's response, or the page's HTML.
+ */
 export function toolTag(tool: Tool): ToolTag {
   const needs = rulesOf(tool).flatMap((rule) => rule.needs)
   if (needs.includes('render')) return 'render'
   if (needs.includes('crux')) return 'crux'
+  if (needs.includes('sitemap')) return 'sitemap'
   if (needs.length > 0 && needs.every((need) => need === 'robots')) return 'robots'
   if (rulesOf(tool).every((rule) => SERVER_RESPONSE_RULES.has(rule.id))) return 'http'
   return 'html'

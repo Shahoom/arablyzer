@@ -177,3 +177,33 @@ describe('a Chrome UX Report example', () => {
     ])
   })
 })
+
+describe('a robots.txt example', () => {
+  const robots = (code: string): CodeExample => ({ lang: 'robots.txt', code })
+  const rules = ['sitemap-missing', 'sitemap-invalid']
+
+  it('shows the sitemaps it names, which are not in it: the rules judge its Sitemap lines', () => {
+    const none = robots('User-agent: *\nDisallow: /cart/')
+    const named = robots(
+      'User-agent: *\nDisallow: /cart/\n\nSitemap: https://www.example.com/sitemap.xml',
+    )
+    const relative = robots('Sitemap: /sitemap.xml')
+    const tool = toolOf(rules, none, named)
+    const statuses = (example: CodeExample) =>
+      evaluateExample(tool, example).map((result) => [result.id, result.status])
+    // Naming none, the site has no /sitemap.xml either, as far as the example shows.
+    expect(statuses(none)).toEqual([
+      ['sitemap-invalid', 'not-applicable'],
+      ['sitemap-missing', 'fail'],
+    ])
+    expect(statuses(named)).toEqual([
+      ['sitemap-invalid', 'pass'],
+      ['sitemap-missing', 'pass'],
+    ])
+    expect(statuses(relative)).toEqual([
+      ['sitemap-invalid', 'fail'],
+      ['sitemap-missing', 'fail'],
+    ])
+    expect(exampleProblems(tool, 'en')).toEqual([])
+  })
+})

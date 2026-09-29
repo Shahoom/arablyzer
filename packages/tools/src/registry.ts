@@ -26,6 +26,7 @@ import { definition as robotsCheck } from './tools/robots-check/tool'
 import { definition as rtlCheck } from './tools/rtl-check/tool'
 import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
 import { definition as securityHeaders } from './tools/security-headers/tool'
+import { definition as sitemapCheck } from './tools/sitemap-check/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
 import { definition as structuredDataCheck } from './tools/structured-data-check/tool'
 import { definition as tatweelCheck } from './tools/tatweel-check/tool'
@@ -65,6 +66,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   rtlCheck,
   rtlOverflowCheck,
   securityHeaders,
+  sitemapCheck,
   socialPreview,
   structuredDataCheck,
   tatweelCheck,

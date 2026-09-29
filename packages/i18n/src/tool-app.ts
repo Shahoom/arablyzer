@@ -10,8 +10,11 @@ export interface ToolAppStrings {
     readonly urlLabel: string
     readonly submit: string
     readonly submitting: string
-    /** Under the form: free, and what the tool reads: the page, robots.txt, or the page drawn. */
-    readonly note: Readonly<Record<'html' | 'robots' | 'render', string>>
+    /**
+     * Under the form: free, and what the tool reads: the page, robots.txt, the page drawn, or
+     * robots.txt and the sitemaps.
+     */
+    readonly note: Readonly<Record<'html' | 'robots' | 'render' | 'sitemap', string>>
   }
   readonly result: {
     readonly running: string
@@ -50,6 +53,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         html: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم.',
         robots: 'مجاني وبلا تسجيل. نقرأ ملف robots.txt كما يرسله الخادم.',
         render: 'مجاني وبلا تسجيل. نعرض الصفحة في المتصفحات كما يعرضها زائرك.',
+        sitemap: 'مجاني وبلا تسجيل. نقرأ robots.txt وخرائط الموقع كما يرسلها الخادم.',
       },
     },
     result: {
@@ -97,6 +101,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         html: 'Free, no sign-up. We read the page as the server sends it.',
         robots: 'Free, no sign-up. We read robots.txt as the server sends it.',
         render: 'Free, no sign-up. We render the page in browsers, as your visitor sees it.',
+        sitemap: 'Free, no sign-up. We read robots.txt and the sitemaps as the server sends them.',
       },
     },
     result: {

@@ -4,8 +4,10 @@ import {
   collectCrux,
   collectPage,
   collectRobots,
+  sitemapTargets,
   type CruxFacts,
   type RobotsFacts,
+  type SitemapFacts,
 } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
 import type { Redirect } from '@arablyzer/report-schema'
@@ -42,6 +44,24 @@ function cruxAnswer(code: string): CruxFacts {
   return byOrigin
     ? collectCrux({ url: { status: 404, body: null }, origin: { status: 200, body } })
     : collectCrux({ url: { status: 200, body } })
+}
+
+/**
+ * The sitemaps as a robots.txt example shows them: the ones it names, which are not in it, so
+ * none is fetched, and no /sitemap.xml when it names none.
+ */
+function exampleSitemaps(robots: RobotsFacts): SitemapFacts | undefined {
+  if (robots.outcome !== 'fetched') return undefined
+  const { fetch } = sitemapTargets(robots.robots.sitemaps, PAGE_URL)
+  const probe = fetch.find((target) => !target.named)
+  return {
+    named: robots.robots.sitemaps,
+    checked:
+      probe === undefined
+        ? []
+        : [{ outcome: 'unavailable', url: probe.url, named: false, status: 404 }],
+    unchecked: probe === undefined ? fetch.length : 0,
+  }
 }
 
 /**
@@ -93,10 +113,12 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
           errorCode: null,
         })
       : undefined
+  const sitemap = robots === undefined ? undefined : exampleSitemaps(robots)
   return evaluatePage(page, {
     rules: RULES,
     ruleIds: tool.rules,
     ...(robots === undefined ? {} : { robots }),
+    ...(sitemap === undefined ? {} : { sitemap }),
   }).results
 }
 
