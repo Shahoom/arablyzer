@@ -31,10 +31,10 @@ interface Props {
   /** The tool's slug: its scan runs its rules alone (M2.2). */
   tool: string
   /**
-   * What the tool reads, which the note under the form says: the page, robots.txt, browsers, or
-   * robots.txt and the sitemaps.
+   * What the tool reads, which the note under the form says: the page, robots.txt, browsers,
+   * robots.txt and the sitemaps, or Chrome's data on real visitors.
    */
-  reads: 'html' | 'robots' | 'render' | 'sitemap'
+  reads: 'html' | 'robots' | 'render' | 'sitemap' | 'crux'
 }
 
 type Run =

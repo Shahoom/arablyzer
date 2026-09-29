@@ -11,10 +11,10 @@ export interface ToolAppStrings {
     readonly submit: string
     readonly submitting: string
     /**
-     * Under the form: free, and what the tool reads: the page, robots.txt, the page drawn, or
-     * robots.txt and the sitemaps.
+     * Under the form: free, and what the tool reads: the page, robots.txt, the page drawn,
+     * robots.txt and the sitemaps, or real visitors' data from Chrome.
      */
-    readonly note: Readonly<Record<'html' | 'robots' | 'render' | 'sitemap', string>>
+    readonly note: Readonly<Record<'html' | 'robots' | 'render' | 'sitemap' | 'crux', string>>
   }
   readonly result: {
     readonly running: string
@@ -54,6 +54,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         robots: 'مجاني وبلا تسجيل. نقرأ ملف robots.txt كما يرسله الخادم.',
         render: 'مجاني وبلا تسجيل. نعرض الصفحة في المتصفحات كما يعرضها زائرك.',
         sitemap: 'مجاني وبلا تسجيل. نقرأ robots.txt وخرائط الموقع كما يرسلها الخادم.',
+        crux: 'مجاني وبلا تسجيل. نقرأ بيانات الزوار الحقيقيين من تقرير تجربة مستخدمي Chrome.',
       },
     },
     result: {
@@ -102,6 +103,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         robots: 'Free, no sign-up. We read robots.txt as the server sends it.',
         render: 'Free, no sign-up. We render the page in browsers, as your visitor sees it.',
         sitemap: 'Free, no sign-up. We read robots.txt and the sitemaps as the server sends them.',
+        crux: 'Free, no sign-up. We read real visitors’ data from the Chrome UX Report.',
       },
     },
     result: {

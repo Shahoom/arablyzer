@@ -8,6 +8,7 @@ import { definition as arabicPunctuationCheck } from './tools/arabic-punctuation
 import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
+import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
 import { definition as headingStructure } from './tools/heading-structure/tool'
@@ -49,6 +50,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   arabicShapingCheck,
   bidiIsolationCheck,
   canonicalCheck,
+  coreWebVitals,
   digitsConsistency,
   fontFallbackCheck,
   headingStructure,
