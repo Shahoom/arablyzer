@@ -38,6 +38,7 @@ export {
 } from './upstream'
 export {
   createDnsResolver,
+  createTxtResolver,
   defaultResolver,
   dnsResolver,
   resolveEndpoint,
@@ -46,6 +47,8 @@ export {
   type EndpointCheck,
   type ResolvedAddress,
   type Resolver,
+  type TxtAnswer,
+  type TxtResolver,
 } from './resolve'
 export { redactUrl } from './redact'
 export { smokescreenConfig } from './smokescreen'

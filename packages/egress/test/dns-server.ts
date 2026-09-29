@@ -4,6 +4,10 @@ import ipaddr from 'ipaddr.js'
 export interface ZoneEntry {
   readonly A?: readonly string[]
   readonly AAAA?: readonly string[]
+  /** Each record, one string or the several strings one record holds (RFC 1035 §3.3.14). */
+  readonly TXT?: readonly (string | readonly string[])[]
+  /** Answer with this RCODE and nothing else: 2 SERVFAIL, 5 REFUSED. */
+  readonly rcode?: number
   /** Never answer: simulates a nameserver that hangs. */
   readonly hang?: boolean
 }
@@ -11,14 +15,25 @@ export interface ZoneEntry {
 export interface DnsServer {
   /** "127.0.0.1:<port>", ready for Resolver#setServers. */
   readonly server: string
+  /** Every question asked, as "name TYPE": "example.test A", "_dmarc.example.test TXT". */
   readonly queries: string[]
   close(): Promise<void>
 }
 
 const TYPE_A = 1
+const TYPE_TXT = 16
 const TYPE_AAAA = 28
+const TYPE_NAMES: Readonly<Record<number, string>> = {
+  [TYPE_A]: 'A',
+  [TYPE_TXT]: 'TXT',
+  [TYPE_AAAA]: 'AAAA',
+}
 
-/** A tiny DNS server on 127.0.0.1 for tests: A/AAAA answers, NXDOMAIN for unknown names, or silence. */
+/**
+ * A tiny DNS server on 127.0.0.1 for tests: A, AAAA and TXT answers, NXDOMAIN for unknown names,
+ * an RCODE of the zone's choosing, or silence. It logs every question with its type, so a test
+ * can show what was asked and what never was.
+ */
 export async function startDnsServer(
   zone: Readonly<Record<string, ZoneEntry>>,
 ): Promise<DnsServer> {
@@ -27,7 +42,7 @@ export async function startDnsServer(
   socket.on('message', (message, remote) => {
     const query = parseQuery(message)
     if (query === null) return
-    queries.push(`${query.name} ${query.type === TYPE_AAAA ? 'AAAA' : 'A'}`)
+    queries.push(`${query.name} ${TYPE_NAMES[query.type] ?? `TYPE${String(query.type)}`}`)
     const entry = zone[query.name]
     if (entry?.hang === true) return
     socket.send(buildAnswer(message, query, entry), remote.port, remote.address)
@@ -73,16 +88,37 @@ function parseQuery(message: Buffer): Query | null {
   }
 }
 
+/** A TXT record's data: each string with its length before it, 255 bytes at most each. */
+function txtData(record: string | readonly string[]): Buffer {
+  const strings = typeof record === 'string' ? [record] : record
+  return Buffer.concat(
+    strings.map((text) => {
+      const bytes = Buffer.from(text, 'utf8')
+      if (bytes.length > 255) throw new Error('A TXT string holds 255 bytes at most')
+      return Buffer.concat([Buffer.from([bytes.length]), bytes])
+    }),
+  )
+}
+
+function recordsOf(query: Query, entry: ZoneEntry | undefined): Buffer[] {
+  switch (query.type) {
+    case TYPE_A:
+      return (entry?.A ?? []).map((address) => Buffer.from(ipaddr.parse(address).toByteArray()))
+    case TYPE_AAAA:
+      return (entry?.AAAA ?? []).map((address) => Buffer.from(ipaddr.parse(address).toByteArray()))
+    case TYPE_TXT:
+      return (entry?.TXT ?? []).map(txtData)
+    default:
+      return []
+  }
+}
+
 function buildAnswer(message: Buffer, query: Query, entry: ZoneEntry | undefined): Buffer {
-  const records =
-    query.type === TYPE_A
-      ? (entry?.A ?? []).map((address) => Buffer.from(ipaddr.parse(address).toByteArray()))
-      : query.type === TYPE_AAAA
-        ? (entry?.AAAA ?? []).map((address) => Buffer.from(ipaddr.parse(address).toByteArray()))
-        : []
+  const records = entry?.rcode === undefined ? recordsOf(query, entry) : []
   const header = Buffer.from(message.subarray(0, 12))
   // Response, recursion desired + available; NXDOMAIN (rcode 3) when the name is unknown.
-  header.writeUInt16BE(0x8180 | (entry === undefined ? 3 : 0), 2)
+  const rcode = entry === undefined ? 3 : (entry.rcode ?? 0)
+  header.writeUInt16BE(0x8180 | rcode, 2)
   header.writeUInt16BE(1, 4)
   header.writeUInt16BE(records.length, 6)
   header.writeUInt16BE(0, 8)
