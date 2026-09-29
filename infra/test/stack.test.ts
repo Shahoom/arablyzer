@@ -246,6 +246,21 @@ describe('the site server', () => {
     expect(response.headers.get('server')).toBeNull()
   })
 
+  it("answers it with the 404 page of the address's language, never indexed", async () => {
+    for (const [path, lang] of [
+      ['/no-such-page', 'ar'],
+      ['/tools/no-such-tool', 'ar'],
+      ['/en/no-such-page', 'en'],
+    ] as const) {
+      const response = await fetch(`${SITE}${path}`)
+      expect(response.status, path).toBe(404)
+      expect(response.headers.get('x-robots-tag'), path).toBe('noindex, nofollow')
+      const html = await response.text()
+      expect(html, path).toContain(`lang="${lang}"`)
+      expect(html, path).toContain('content="noindex, nofollow"')
+    }
+  })
+
   it('opens every report link on its language page, never indexed', async () => {
     for (const [path, lang] of [
       ['/r/AbCdEfGhIjKlMnOpQrSt_-', 'ar'],
