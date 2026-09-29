@@ -38,6 +38,10 @@ describe('the tools as their pages have them', () => {
     expect(tag('canonical-check')).toBe('html')
     expect(tag('mixed-content')).toBe('html')
     expect(tag('hreflang-check')).toBe('html')
+    expect(tag('email-security')).toBe('dns')
+    expect(tag('broken-links')).toBe('links')
+    expect(tag('js-rendering-check')).toBe('render')
+    expect(tag('payment-methods-detector')).toBe('html')
   })
 
   it('names each tool in both languages, for the report page of its result', () => {
