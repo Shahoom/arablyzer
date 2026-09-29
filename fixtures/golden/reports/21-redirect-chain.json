@@ -6,14 +6,23 @@
     "rulesetVersion": "0.5.0"
   },
   "target": {
-    "url": "http://127.0.0.1:30008/",
-    "finalUrl": "http://127.0.0.1:30008/",
+    "url": "https://chain.example:30021/",
+    "finalUrl": "https://chain.example:30021/ar/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
       "status": 200,
       "contentType": "text/html; charset=utf-8",
-      "redirects": []
+      "redirects": [
+        {
+          "url": "https://chain.example:30021/",
+          "status": 301
+        },
+        {
+          "url": "https://chain.example:30021/ar",
+          "status": 301
+        }
+      ]
     }
   },
   "scan": {
@@ -21,42 +30,17 @@
     "durationMs": 0,
     "notices": [
       {
+        "code": "render-skipped",
+        "message": {
+          "ar": "بعض الفحوص تحتاج عرض الصفحة في متصفح، ولم يُطلب العرض في هذا الفحص، فلم تعمل.",
+          "en": "Some checks need the page rendered in a browser; this scan did not render it, so they did not run."
+        }
+      },
+      {
         "code": "crux-no-key",
         "message": {
           "ar": "فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.",
           "en": "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run."
-        }
-      }
-    ],
-    "render": [
-      {
-        "engine": "chromium",
-        "version": "153.0.8010.12",
-        "status": "rendered",
-        "durationMs": 0,
-        "requests": {
-          "total": 3,
-          "refused": 0
-        }
-      },
-      {
-        "engine": "firefox",
-        "version": "155.0",
-        "status": "rendered",
-        "durationMs": 0,
-        "requests": {
-          "total": 3,
-          "refused": 0
-        }
-      },
-      {
-        "engine": "webkit",
-        "version": "26.6",
-        "status": "rendered",
-        "durationMs": 0,
-        "requests": {
-          "total": 3,
-          "refused": 0
         }
       }
     ]
@@ -67,128 +51,42 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 20,
-    "fail": 2,
+    "pass": 23,
+    "fail": 1,
     "needsReview": 0,
-    "notApplicable": 31,
+    "notApplicable": 11,
     "error": 0,
     "bySeverity": {
       "critical": 0,
       "serious": 0,
-      "moderate": 2,
-      "minor": 0,
+      "moderate": 0,
+      "minor": 1,
       "info": 0
     }
   },
   "score": {
-    "overall": 93,
+    "overall": 99,
     "categories": {
       "ai": 100,
       "ar-content": 100,
-      "ar-render": 33,
       "commerce": null,
-      "crawl": 100,
+      "crawl": 92,
       "forms": null,
       "index": 100,
       "intl": 100,
       "onpage": 100,
       "rtl": 100,
       "schema": null,
-      "speed": 100,
+      "speed": null,
       "trust": 100
     },
     "partial": false,
     "rules": {
-      "ran": 53,
+      "ran": 35,
       "total": 53
     }
   },
   "rules": [
-    {
-      "id": "a11y-button-name",
-      "version": "1.0.0",
-      "category": "trust",
-      "severity": "critical",
-      "wcag": [
-        "4.1.2"
-      ],
-      "status": "not-applicable",
-      "title": {
-        "ar": "زر بلا اسم يقرؤه قارئ الشاشة",
-        "en": "Button without an accessible name"
-      }
-    },
-    {
-      "id": "a11y-color-contrast",
-      "version": "1.0.0",
-      "category": "trust",
-      "severity": "serious",
-      "wcag": [
-        "1.4.3"
-      ],
-      "status": "pass",
-      "title": {
-        "ar": "نص بتباين ضعيف",
-        "en": "Text with too little contrast"
-      }
-    },
-    {
-      "id": "a11y-color-contrast-review",
-      "version": "1.0.0",
-      "category": "trust",
-      "severity": "serious",
-      "wcag": [
-        "1.4.3"
-      ],
-      "status": "not-applicable",
-      "title": {
-        "ar": "نص يحتاج تباينه فحصاً بالعين",
-        "en": "Text whose contrast needs checking by eye"
-      }
-    },
-    {
-      "id": "a11y-image-alt",
-      "version": "1.0.0",
-      "category": "trust",
-      "severity": "critical",
-      "wcag": [
-        "1.1.1"
-      ],
-      "status": "not-applicable",
-      "title": {
-        "ar": "صورة بلا نص بديل",
-        "en": "Image without a text alternative"
-      }
-    },
-    {
-      "id": "a11y-link-name",
-      "version": "1.0.0",
-      "category": "trust",
-      "severity": "serious",
-      "wcag": [
-        "2.4.4",
-        "4.1.2"
-      ],
-      "status": "not-applicable",
-      "title": {
-        "ar": "رابط بلا اسم يقرؤه قارئ الشاشة",
-        "en": "Link without an accessible name"
-      }
-    },
-    {
-      "id": "a11y-valid-lang",
-      "version": "1.0.0",
-      "category": "trust",
-      "severity": "serious",
-      "wcag": [
-        "3.1.2"
-      ],
-      "status": "not-applicable",
-      "title": {
-        "ar": "خاصية lang لا تسمّي لغة",
-        "en": "lang attribute that names no language"
-      }
-    },
     {
       "id": "ar-digits-mixed",
       "version": "1.0.0",
@@ -198,39 +96,6 @@
       "title": {
         "ar": "أنظمة أرقام مختلطة في نص عربي",
         "en": "Mixed digit systems in Arabic text"
-      }
-    },
-    {
-      "id": "ar-font-fallback",
-      "version": "1.0.0",
-      "category": "ar-render",
-      "severity": "moderate",
-      "status": "fail",
-      "title": {
-        "ar": "خط ويب عربي لم يُحمَّل",
-        "en": "Arabic web font that did not load"
-      }
-    },
-    {
-      "id": "ar-font-missing-letters",
-      "version": "1.0.0",
-      "category": "ar-render",
-      "severity": "moderate",
-      "status": "not-applicable",
-      "title": {
-        "ar": "خط عربي تنقصه حروف يستخدمها النص",
-        "en": "Arabic font missing letters its text uses"
-      }
-    },
-    {
-      "id": "ar-font-no-arabic",
-      "version": "1.0.0",
-      "category": "ar-render",
-      "severity": "moderate",
-      "status": "fail",
-      "title": {
-        "ar": "خط ويب بلا حروف عربية",
-        "en": "Web font without Arabic letters"
       }
     },
     {
@@ -256,17 +121,6 @@
       "title": {
         "ar": "علامات ترقيم لاتينية في نص عربي",
         "en": "Latin punctuation in Arabic text"
-      }
-    },
-    {
-      "id": "ar-letter-spacing",
-      "version": "1.0.0",
-      "category": "ar-render",
-      "severity": "moderate",
-      "status": "pass",
-      "title": {
-        "ar": "تباعد الحروف في النص العربي",
-        "en": "Letter-spacing on Arabic text"
       }
     },
     {
@@ -307,7 +161,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "minor",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "صفحة بلا سياسة أمان المحتوى (CSP)",
         "en": "No Content Security Policy"
@@ -369,36 +223,11 @@
       }
     },
     {
-      "id": "form-label-missing",
-      "version": "1.0.0",
-      "category": "forms",
-      "severity": "critical",
-      "wcag": [
-        "4.1.2"
-      ],
-      "status": "not-applicable",
-      "title": {
-        "ar": "حقل نموذج بلا عنوان",
-        "en": "Form field without a label"
-      }
-    },
-    {
-      "id": "form-phone-direction",
-      "version": "1.0.0",
-      "category": "forms",
-      "severity": "moderate",
-      "status": "not-applicable",
-      "title": {
-        "ar": "حقل هاتف يُعرض من اليمين إلى اليسار",
-        "en": "Phone field shown right to left"
-      }
-    },
-    {
       "id": "frame-protection-missing",
       "version": "1.0.0",
       "category": "trust",
       "severity": "minor",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "أي موقع يستطيع عرض الصفحة داخل إطار",
         "en": "Any site may show the page in a frame"
@@ -431,7 +260,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "moderate",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "HTTPS بلا HSTS",
         "en": "HTTPS without HSTS"
@@ -442,21 +271,10 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "critical",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "صفحة بلا HTTPS",
         "en": "Page without HTTPS"
-      }
-    },
-    {
-      "id": "image-format-legacy",
-      "version": "1.0.0",
-      "category": "speed",
-      "severity": "minor",
-      "status": "not-applicable",
-      "title": {
-        "ar": "صور بصيغ قديمة",
-        "en": "Images in older formats"
       }
     },
     {
@@ -486,7 +304,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "serious",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "محتوى مختلط: صفحة HTTPS تحمّل عبر HTTP",
         "en": "Mixed content: an HTTPS page that loads over HTTP"
@@ -541,7 +359,7 @@
       "version": "1.0.0",
       "category": "crawl",
       "severity": "minor",
-      "status": "not-applicable",
+      "status": "fail",
       "title": {
         "ar": "سلسلة تحويلات قبل الصفحة",
         "en": "A chain of redirects before the page"
@@ -552,7 +370,7 @@
       "version": "1.0.0",
       "category": "crawl",
       "severity": "minor",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "تحويل مؤقت لانتقال دائم",
         "en": "A temporary redirect for a move made for good"
@@ -563,7 +381,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "info",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "صفحة بلا سياسة للمُحيل (Referrer-Policy)",
         "en": "No referrer policy"
@@ -592,28 +410,6 @@
       }
     },
     {
-      "id": "rtl-bidi-isolation",
-      "version": "1.0.0",
-      "category": "rtl",
-      "severity": "serious",
-      "status": "pass",
-      "title": {
-        "ar": "أرقام وكلمات لاتينية بترتيب خطأ في نص من اليمين إلى اليسار",
-        "en": "Numbers and Latin words out of order in right-to-left text"
-      }
-    },
-    {
-      "id": "rtl-horizontal-overflow",
-      "version": "1.0.0",
-      "category": "rtl",
-      "severity": "serious",
-      "status": "pass",
-      "title": {
-        "ar": "صفحة من اليمين إلى اليسار أعرض من شاشة الهاتف",
-        "en": "Right-to-left page wider than a phone screen"
-      }
-    },
-    {
       "id": "rtl-html-dir",
       "version": "1.0.0",
       "category": "rtl",
@@ -622,39 +418,6 @@
       "title": {
         "ar": "صفحة عربية بلا dir=\"rtl\" في وسم html",
         "en": "Arabic page without dir=\"rtl\" on the html element"
-      }
-    },
-    {
-      "id": "rtl-mirrored-icons",
-      "version": "1.0.0",
-      "category": "rtl",
-      "severity": "minor",
-      "status": "not-applicable",
-      "title": {
-        "ar": "أيقونات اتجاه لا تنعكس في النص العربي",
-        "en": "Direction icons not mirrored in Arabic text"
-      }
-    },
-    {
-      "id": "rtl-physical-css",
-      "version": "1.0.0",
-      "category": "rtl",
-      "severity": "info",
-      "status": "pass",
-      "title": {
-        "ar": "CSS يحدد الجهات باليمين واليسار",
-        "en": "CSS that sets sides by left and right"
-      }
-    },
-    {
-      "id": "text-compression-missing",
-      "version": "1.0.0",
-      "category": "speed",
-      "severity": "moderate",
-      "status": "pass",
-      "title": {
-        "ar": "نصوص تُرسَل دون ضغط",
-        "en": "Text sent without compression"
       }
     },
     {
@@ -676,7 +439,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "serious",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "شهادة TLS توشك أن تنتهي",
         "en": "TLS certificate about to expire"
@@ -709,7 +472,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "minor",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "صفحة بلا X-Content-Type-Options: nosniff",
         "en": "No X-Content-Type-Options: nosniff"
@@ -718,61 +481,27 @@
   ],
   "findings": [
     {
-      "ruleId": "ar-font-fallback",
-      "severity": "moderate",
-      "fingerprint": "f3a43c490c93df1c",
+      "ruleId": "redirect-chain",
+      "severity": "minor",
+      "fingerprint": "aecfc5077c579689",
       "message": {
-        "ar": "الخط «Brand Arabic» المحدد لهذا النص العربي لم يُحمَّل، فرسم المتصفح النص بخط آخر.",
-        "en": "The web font \"Brand Arabic\" set for this Arabic text did not load, so the browser drew the text in another font."
+        "ar": "عدد التحويلات المتتالية قبل الوصول إلى هذه الصفحة 2، بدءاً من https://chain.example:30021/. اجعل ذلك العنوان يصل إلى https://chain.example:30021/ar/ بتحويل واحد، أو باثنين إن كان الأول لا يفعل إلا نقله إلى HTTPS على الاسم نفسه.",
+        "en": "Reaching this page takes 2 redirects, one after another, from https://chain.example:30021/. Send that address to https://chain.example:30021/ar/ in one redirect, or in two when the first only moves it to HTTPS on the same name."
       },
       "evidence": {
-        "url": "http://127.0.0.1:30008/",
-        "selector": "html > body > main > p:nth-of-type(2)",
-        "engines": [
-          "chromium",
-          "firefox",
-          "webkit"
-        ],
-        "box": {
-          "x": 16,
-          "y": 116,
-          "width": 358,
-          "height": 20
-        },
+        "url": "https://chain.example:30021/",
+        "snippet": "301 https://chain.example:30021/ → 301 https://chain.example:30021/ar → https://chain.example:30021/ar/",
         "values": {
-          "family": "Brand Arabic"
-        }
-      }
-    },
-    {
-      "ruleId": "ar-font-no-arabic",
-      "severity": "moderate",
-      "fingerprint": "d0c369c62c34a5f9",
-      "message": {
-        "ar": "الخط «Brand Latin» المحدد لهذا النص العربي ليس فيه حروف عربية، فرسم المتصفح النص بخط آخر.",
-        "en": "The web font \"Brand Latin\" set for this Arabic text has no Arabic letters, so the browser drew the text in another font."
-      },
-      "evidence": {
-        "url": "http://127.0.0.1:30008/",
-        "selector": "html > body > main > h1",
-        "engines": [
-          "chromium"
-        ],
-        "box": {
-          "x": 16,
-          "y": 21,
-          "width": 358,
-          "height": 38
-        },
-        "values": {
-          "family": "Brand Latin"
+          "count": 2,
+          "from": "https://chain.example:30021/",
+          "to": "https://chain.example:30021/ar/"
         }
       }
     }
   ],
   "facts": {
     "robots": {
-      "url": "http://127.0.0.1:30008/robots.txt",
+      "url": "https://chain.example:30021/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {
