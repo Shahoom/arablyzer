@@ -1,24 +1,25 @@
-import { URL_ERROR_CODES, type ScanSummary } from '@arablyzer/api-contract/codes'
+import { URL_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import { TOOL_APP } from '@arablyzer/i18n/tool-app'
-import type { Report } from '@arablyzer/report-schema'
+import type { Report, RuleResult } from '@arablyzer/report-schema'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
-import { ArrowLeft, ArrowRight, Check, X } from 'lucide-preact'
+import { ArrowLeft, ArrowRight, Check, Minus, X } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { fetchReport, startScan } from './api'
 import { followScan } from './events'
 import { Bidi } from './report/Bidi'
 import { Evidence } from './report/Evidence'
+import { Notices } from './report/Notices'
 import { SeverityPill } from './report/ui'
 import {
   advance,
-  outcomeOf,
   problemsOf,
   START,
   stepsOf,
+  toolVerdict,
   type Progress as ProgressState,
 } from './report-model'
 import { askedUrl, precheck, type FormError } from './scan-request'
@@ -95,9 +96,10 @@ export default function ToolApp({ lang, tool, renders }: Props) {
       }
       setRun({ phase: 'failed', id })
     }
-    const ended = (summary: ScanSummary) => {
-      if (summary.state === 'failed') setRun({ phase: 'failed', id })
-      else void showReport()
+    // A failed scan may still have a report, which says why: it is read as any other, and a scan
+    // without one is shown as failed.
+    const ended = () => {
+      void showReport()
     }
     const stop = followScan(id, {
       onFollowing: () => undefined,
@@ -274,23 +276,18 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
   }
 
   const { report, id } = run
-  const outcome = outcomeOf(report)
+  const verdict = toolVerdict(report)
   const problems = problemsOf(report)
   const failed = problems.filter((entry) => entry.rule.status === 'fail')
   const count = failed.reduce((sum, entry) => sum + Math.max(entry.findings.length, 1), 0)
-  const applied = report.rules.filter((rule) => rule.status !== 'not-applicable')
-  const headline =
-    outcome === 'blocked'
-      ? t.blocked
-      : outcome === 'failed'
-        ? t.failed
-        : failed.length > 0
-          ? t.problems(count)
-          : problems.length > 0
-            ? t.review
-            : applied.length > 0
-              ? t.passed
-              : t.notApplicable
+  const headline = {
+    blocked: t.blocked,
+    problems: t.problems(count),
+    incomplete: t.incomplete,
+    review: t.review,
+    passed: t.passed,
+    'not-applicable': t.notApplicable,
+  }[verdict]
   const worst = failed[0]?.rule.severity
   const shareHref = localePath(lang, `/r/${id}`)
 
@@ -307,6 +304,11 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           {report.target.url}
         </span>
       </div>
+      {report.scan.notices.length > 0 && (
+        <div className="border-b border-rule-soft px-5 py-4 md:px-6">
+          <Notices notices={report.scan.notices} lang={lang} id="result-notices" level={3} />
+        </div>
+      )}
       {problems.map((entry) => (
         <article
           key={entry.rule.id}
@@ -343,24 +345,8 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           </ul>
         </article>
       ))}
-      {problems.length === 0 && applied.length > 0 && (
-        <ul className="m-0 flex list-none flex-col p-0">
-          {applied.map((rule) => (
-            <li
-              key={rule.id}
-              className="flex items-center gap-3 border-b border-rule-soft px-5 py-3.5 md:px-6"
-            >
-              <Check
-                size={16}
-                strokeWidth={2.4}
-                aria-hidden="true"
-                className="shrink-0 text-pass"
-              />
-              {rule.title[lang]}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Nothing was checked on a page the site refused to send. */}
+      {verdict !== 'blocked' && <Checked rules={report.rules} lang={lang} />}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-ink-3 md:px-6">
         <span className="flex flex-wrap gap-x-2">
           {t.ruleLabel}
@@ -381,6 +367,66 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           </a>
         </span>
       </div>
+    </section>
+  )
+}
+
+const STATUS_STYLE: Readonly<Record<RuleResult['status'], string>> = {
+  pass: 'bg-pass-soft text-pass',
+  fail: 'bg-signal-soft text-signal',
+  'needs-review': 'bg-measure-soft text-measure',
+  error: 'bg-moderate-soft text-moderate',
+  'not-applicable': 'bg-paper text-ink-3',
+}
+
+/** Each rule the tool ran, with what became of it: a green check for a rule that passed alone. */
+function Checked({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang }) {
+  const t = TOOL_APP[lang].result
+  return (
+    <section aria-labelledby="result-checked" className="flex flex-col border-b border-rule-soft">
+      <h3
+        id="result-checked"
+        className="m-0 px-5 pt-4 pb-2 text-sm font-semibold text-ink-3 md:px-6"
+      >
+        {t.checked}
+      </h3>
+      <ul className="m-0 flex list-none flex-col p-0">
+        {rules.map((rule) => (
+          <li
+            key={rule.id}
+            className="flex items-start gap-3 border-t border-rule-soft px-5 py-3 md:px-6"
+          >
+            {rule.status === 'pass' ? (
+              <Check
+                size={16}
+                strokeWidth={2.4}
+                aria-hidden="true"
+                className="mt-1 shrink-0 text-pass"
+              />
+            ) : rule.status === 'fail' ? (
+              <X
+                size={16}
+                strokeWidth={2.4}
+                aria-hidden="true"
+                className="mt-1 shrink-0 text-signal"
+              />
+            ) : (
+              <Minus
+                size={16}
+                strokeWidth={2.4}
+                aria-hidden="true"
+                className="mt-1 shrink-0 text-ink-3"
+              />
+            )}
+            <span className="grow leading-[1.6]">
+              <Bidi text={rule.title[lang]} lang={lang} />
+            </span>
+            <span className={`shrink-0 px-2 py-px text-xs ${STATUS_STYLE[rule.status]}`}>
+              {t.status[rule.status]}
+            </span>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

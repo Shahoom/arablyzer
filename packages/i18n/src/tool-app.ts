@@ -19,6 +19,14 @@ export interface ToolAppStrings {
     readonly passed: string
     readonly notApplicable: string
     readonly review: string
+    /** The scan did not finish (partial or failed), or a rule could not run. */
+    readonly incomplete: string
+    /** Over the list of the tool's rules, each with what became of it. */
+    readonly checked: string
+    /** A rule's status, next to its title in that list. */
+    readonly status: Readonly<
+      Record<'pass' | 'fail' | 'needs-review' | 'not-applicable' | 'error', string>
+    >
     readonly ruleLabel: string
     readonly share: string
     readonly howToFix: string
@@ -52,6 +60,15 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       passed: 'الصفحة تجتاز هذا الفحص',
       notApplicable: 'لا ينطبق هذا الفحص على الصفحة',
       review: 'فيها ما يحتاج أن تراجعه بنفسك',
+      incomplete: 'لم يكتمل الفحص',
+      checked: 'ما فحصناه',
+      status: {
+        pass: 'نجحت',
+        fail: 'فشلت',
+        'needs-review': 'تحتاج مراجعة',
+        'not-applicable': 'لا تنطبق',
+        error: 'تعذّر تشغيلها',
+      },
       ruleLabel: 'القاعدة:',
       share: 'رابط هذه النتيجة',
       howToFix: 'كيف تُصلح',
@@ -76,6 +93,15 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       passed: 'The page passes this check',
       notApplicable: 'This check does not apply to the page',
       review: 'Something here needs your own review',
+      incomplete: 'The check did not finish',
+      checked: 'What we checked',
+      status: {
+        pass: 'Passed',
+        fail: 'Failed',
+        'needs-review': 'Needs review',
+        'not-applicable': 'Does not apply',
+        error: 'Could not run',
+      },
       ruleLabel: 'Rule:',
       share: 'Link to this result',
       howToFix: 'How to fix',

@@ -112,6 +112,25 @@ export function outcomeOf(report: Report): Outcome {
   return report.scan.status
 }
 
+/** What a tool's result says first (M2.2). */
+export type ToolVerdict =
+  'blocked' | 'problems' | 'incomplete' | 'review' | 'passed' | 'not-applicable'
+
+/**
+ * A tool's result in a word: the site refused the scan; a rule failed, which is said even when
+ * the scan did not finish; the scan did not finish (partial, failed, or a rule that could not
+ * run), so the page cannot be said to pass; a rule needs a human's eye; every rule that applies
+ * passed; or none applies.
+ */
+export function toolVerdict(report: Report): ToolVerdict {
+  const any = (status: RuleResult['status']) => report.rules.some((rule) => rule.status === status)
+  if (outcomeOf(report) === 'blocked') return 'blocked'
+  if (any('fail')) return 'problems'
+  if (report.scan.status !== 'complete' || any('error')) return 'incomplete'
+  if (any('needs-review')) return 'review'
+  return any('pass') ? 'passed' : 'not-applicable'
+}
+
 const SEVERITY_RANK: Readonly<Record<Severity, number>> = {
   critical: 0,
   serious: 1,

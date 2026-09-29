@@ -2,7 +2,7 @@ import type { ScanEvent } from '@arablyzer/api-contract/codes'
 import checkoutFormJson from '@arablyzer/fixtures/golden/reports/07-checkout-form.json'
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
 import { REPORT } from '@arablyzer/i18n/report'
-import { Report } from '@arablyzer/report-schema'
+import { Report, type RuleStatus } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
 import { idFromPath } from '../src/islands/ReportApp'
 import {
@@ -11,6 +11,7 @@ import {
   problemsOf,
   START,
   stepsOf,
+  toolVerdict,
   type Progress,
 } from '../src/islands/report-model'
 
@@ -164,5 +165,72 @@ describe('problemsOf', () => {
       'moderate',
       'moderate',
     ])
+  })
+})
+
+/**
+ * Golden report 04 as the RTL checker's scan gives it (M2.2): its two rules alone, with these
+ * statuses, and the scan as given.
+ */
+function rtlCheck(
+  statuses: readonly [RuleStatus, RuleStatus],
+  scan: Partial<Report['scan']> = {},
+): Report {
+  const ids = ['rtl-html-dir', 'ar-html-lang']
+  return {
+    ...rtlLayout,
+    scan: { ...rtlLayout.scan, ...scan },
+    rules: ids.map((id, index) => {
+      const rule = rtlLayout.rules.find((candidate) => candidate.id === id)
+      if (rule === undefined) throw new Error(id)
+      const status = statuses[index] ?? 'pass'
+      return { ...rule, status, ...(status === 'error' ? { error: 'page-unavailable' } : {}) }
+    }),
+    findings: [],
+  }
+}
+
+describe('toolVerdict', () => {
+  it('says the page passes when every rule that applies passed, in a whole scan', () => {
+    expect(toolVerdict(rtlCheck(['pass', 'pass']))).toBe('passed')
+    expect(toolVerdict(rtlCheck(['pass', 'not-applicable']))).toBe('passed')
+  })
+
+  it('says there are problems when a rule failed, even in a scan that did not finish', () => {
+    expect(toolVerdict(rtlCheck(['fail', 'pass']))).toBe('problems')
+    expect(toolVerdict(rtlCheck(['fail', 'error'], { status: 'partial' }))).toBe('problems')
+  })
+
+  it('never says a scan that did not finish passes', () => {
+    // A rule that could not run, in a partial scan.
+    expect(toolVerdict(rtlCheck(['error', 'pass'], { status: 'partial' }))).toBe('incomplete')
+    // A failed scan: the page could not be fetched, and no rule ran.
+    const failed = rtlCheck(['error', 'error'], {
+      status: 'failed',
+      notices: [
+        { code: 'connect-failed', message: { ar: 'تعذّر الاتصال.', en: 'Could not connect.' } },
+      ],
+    })
+    expect(toolVerdict({ ...failed, page: null })).toBe('incomplete')
+    // Every rule passed, but the scan says it is partial (a browser did not render).
+    expect(toolVerdict(rtlCheck(['pass', 'pass'], { status: 'partial' }))).toBe('incomplete')
+    // A rule that could not run, whatever the scan says.
+    expect(toolVerdict(rtlCheck(['pass', 'error']))).toBe('incomplete')
+  })
+
+  it('asks for a review when a rule needs one and nothing failed', () => {
+    expect(toolVerdict(rtlCheck(['needs-review', 'pass']))).toBe('review')
+    expect(toolVerdict(rtlCheck(['needs-review', 'error']))).toBe('incomplete')
+  })
+
+  it('says the check does not apply when no rule applied, and when the site refused it', () => {
+    expect(toolVerdict(rtlCheck(['not-applicable', 'not-applicable']))).toBe('not-applicable')
+    const refused = rtlCheck(['not-applicable', 'not-applicable'])
+    expect(
+      toolVerdict({
+        ...refused,
+        target: { ...refused.target, http: { ...refused.target.http, status: 403 } },
+      }),
+    ).toBe('blocked')
   })
 })

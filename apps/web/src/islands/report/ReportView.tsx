@@ -10,6 +10,7 @@ import { METHODOLOGY } from '../../lib/site'
 import { ENGINES, problemsOf, type RuleFindings } from '../report-model'
 import { Bidi } from './Bidi'
 import { Evidence } from './Evidence'
+import { Notices } from './Notices'
 import { Crosshairs, ENGINE_LABEL, SectionHead, SeverityPill } from './ui'
 
 export type Fixes = Readonly<Record<string, { readonly fix: string }>>
@@ -55,22 +56,7 @@ export function ReportView({
             </div>
           )}
           <Engines report={report} lang={lang} />
-          {report.scan.notices.length > 0 && (
-            <section aria-labelledby="notices-title" className="flex flex-col gap-2">
-              <h2 id="notices-title" className="sr-only">
-                {REPORT[lang].notices}
-              </h2>
-              {report.scan.notices.map((notice) => (
-                <p
-                  key={notice.code}
-                  role="note"
-                  className="m-0 border border-measure-soft bg-measure-soft px-5 py-3.5 text-[15px] leading-[1.7] text-ink-2"
-                >
-                  <Bidi text={notice.message[lang]} lang={lang} />
-                </p>
-              ))}
-            </section>
-          )}
+          <Notices notices={report.scan.notices} lang={lang} id="notices-title" />
           <Results
             report={report}
             problems={problems}
