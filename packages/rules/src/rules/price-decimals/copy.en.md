@@ -13,14 +13,14 @@ The price «{price}» is written with two decimal places; ISO 4217 gives this cu
 ## Why it matters
 
 - ISO 4217, the international standard for currencies, gives the Omani rial, the Kuwaiti dinar and the Bahraini dinar three decimal places: a rial is 1,000 baisa, and a dinar 1,000 fils. Formatting that follows the currency, such as `Intl.NumberFormat` in browsers, writes prices in them with three decimals: «KWD 3.750».
-- A price with one or two decimals, such as «12.50 ر.ع.», is written in the format of two-decimal currencies such as the US dollar or the Saudi riyal.
+- A price with one or two decimals, such as «`12.50 ر.ع.`», is written in the format of two-decimal currencies such as the US dollar or the Saudi riyal.
 - A shop whose price format has two decimals shows every price that way, and rounds a price with a third decimal to fit: 1.245 is shown as 1.25.
 
 ## How to fix
 
 - Show prices in these currencies with three decimals: «12.500 ر.ع.»، «KD 3.750»، «BD 1.500».
 - In your shop platform's currency settings, set the number of decimals for these currencies to three, and check that prices with a third decimal are not rounded on the way to the page.
-- In code, format with the currency's own decimals rather than a fixed two: `new Intl.NumberFormat('ar-OM', { style: 'currency', currency: 'OMR' }).format(12.5)` gives «١٢٫٥٠٠ ر.ع.».
+- In code, format with the currency's own decimals rather than a fixed two: `new Intl.NumberFormat('ar-OM', { style: 'currency', currency: 'OMR' }).format(12.5)` gives «`١٢٫٥٠٠ ر.ع.`».
 
 ## How we detect
 

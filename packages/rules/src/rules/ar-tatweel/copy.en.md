@@ -8,13 +8,13 @@ The word «{word}» is stretched with tatweel (ـ) between its letters, so peopl
 
 ## Why it matters
 
-- **Search**, on the site, in the browser's find tool and in many search engines, treats «مـحـمـد» as a different word from «محمد», since tatweel is a character of its own in the text.
+- **Search**, on the site, in the browser's find tool and in many search engines, treats «`مـحـمـد`» as a different word from «محمد», since tatweel is a character of its own in the text.
 - **Copying and pasting** carries the tatweel characters with the word into messages and documents, where the word stays stretched.
 - Tatweel used to shape the text on screen ties the look to the content: screen widths and fonts change, and the extra characters stay in the text.
 
 ## How to fix
 
-- Remove tatweel characters from inside words: write «العروض» instead of «الـعـروض».
+- Remove tatweel characters from inside words: write «العروض» instead of «`الـعـروض`».
 - For prominent headings, use CSS: the font, its weight and its size, and `text-align: justify` if you want to fill the lines.
 - Tatweel after a word's final letter, such as «بـ» before a Latin word («الدفع بـ Apple Pay»), is an accepted use, and the rule does not count it.
 

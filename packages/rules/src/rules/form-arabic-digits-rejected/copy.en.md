@@ -8,7 +8,7 @@ This field accepts «{western}» but rejects the same number in Arabic-Indic dig
 
 ## Why it matters
 
-- Arabic keyboards, especially on phones, can type Arabic-Indic digits (١٢٣), and numbers copied from Arabic text carry them. In a pattern, `\d` and `[0-9]` match the Western digits 0–9 only, so a phone number or a code typed that way is refused: the browser stops the form, and its message only asks to match the requested format.
+- Arabic keyboards, especially on phones, can type Arabic-Indic digits (`١٢٣`), and numbers copied from Arabic text carry them. In a pattern, `\d` and `[0-9]` match the Western digits 0–9 only, so a phone number or a code typed that way is refused: the browser stops the form, and its message only asks to match the requested format.
 - These fields sit in checkout and sign-in forms: a phone number for delivery, a verification code, a card's security code.
 
 ## How to fix

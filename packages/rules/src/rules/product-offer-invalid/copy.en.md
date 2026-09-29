@@ -22,7 +22,7 @@ In JSON-LD block {block}, the currency is written as «{currency}» on line {lin
 
 - Google reads a product's price from `offers` in its structured data, to show it with the product in search results: in product snippets, and in merchant listings.
 - For an `Offer`, Google requires `price` or `priceSpecification.price`; for an `AggregateOffer`, `lowPrice` and `priceCurrency`. Merchant listings require `priceCurrency` in every offer, and Google recommends it for product snippets to determine the currency more accurately. Google says the required properties must be there for a page to be eligible for rich results.
-- Schema.org asks for prices in the digits 0–9 rather than characters that look like them, with a full stop rather than a comma for the decimal point, and for the currency in `priceCurrency` rather than as a symbol in the price. A price formatted for Arabic readers, such as «١٢٫٥٠٠ ر.ع.», is right on the page but does not meet this in the data.
+- Schema.org asks for prices in the digits 0–9 rather than characters that look like them, with a full stop rather than a comma for the decimal point, and for the currency in `priceCurrency` rather than as a symbol in the price. A price formatted for Arabic readers, such as «`١٢٫٥٠٠ ر.ع.`», is right on the page but does not meet this in the data.
 
 ## How to fix
 
