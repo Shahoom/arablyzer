@@ -29,6 +29,7 @@ import { definition as socialPreview } from './tools/social-preview/tool'
 import { definition as structuredDataCheck } from './tools/structured-data-check/tool'
 import { definition as tatweelCheck } from './tools/tatweel-check/tool'
 import { definition as titleMetaCheck } from './tools/title-meta-check/tool'
+import { definition as tlsCheck } from './tools/tls-check/tool'
 import { definition as whatsappLinkCheck } from './tools/whatsapp-link-check/tool'
 
 /**
@@ -66,6 +67,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   structuredDataCheck,
   tatweelCheck,
   titleMetaCheck,
+  tlsCheck,
   whatsappLinkCheck,
 ]
 

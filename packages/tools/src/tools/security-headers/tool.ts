@@ -10,6 +10,6 @@ export const definition: ToolDefinition = {
     'frame-protection-missing',
     'referrer-policy-missing',
   ],
-  related: ['mixed-content', 'indexability-check'],
+  related: ['tls-check', 'mixed-content', 'indexability-check'],
   updated: '2026-09-29',
 }
