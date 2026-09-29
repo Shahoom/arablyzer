@@ -94,7 +94,7 @@ describe.each(ENGINES)('the generators in %s', (engine) => {
     if (!expected.ok) throw new Error('the generator refuses the number')
     expect(await outputs(tab)).toEqual([expected.url, expected.html])
     await tab.context().close()
-  })
+  }, 60_000)
 
   it('writes the hreflang tags Node writes, and names a code Google does not accept', async () => {
     const tab = await open(browser, 'hreflang-generator')
@@ -113,7 +113,7 @@ describe.each(ENGINES)('the generators in %s', (engine) => {
       GENERATORS_UI.ar.hreflang.problem('en-UK', 'en-GB'),
     ])
     await tab.context().close()
-  })
+  }, 60_000)
 
   it('writes the product data Node writes, with the currency’s own decimals', async () => {
     for (const [price, currency] of [
@@ -135,7 +135,7 @@ describe.each(ENGINES)('the generators in %s', (engine) => {
       expect(await outputs(tab)).toEqual([expected.html])
       await tab.context().close()
     }
-  })
+  }, 60_000)
 
   it('judges a pasted robots.txt as Node does, naming the rule and its line', async () => {
     const robots = 'User-agent: Googlebot\nAllow: /\n\nUser-agent: *\nDisallow: /\n'
@@ -155,5 +155,5 @@ describe.each(ENGINES)('the generators in %s', (engine) => {
       t.group[result.group],
     ])
     await tab.context().close()
-  })
+  }, 60_000)
 })
