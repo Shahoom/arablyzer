@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /cart/
+
+Sitemap: https://spices.example/sitemap.xml
