@@ -46,6 +46,14 @@ describe('whatsAppLink', () => {
     expect(saudi.ok && saudi.number).toBe('966501234567')
   })
 
+  it('keeps a full international number typed without + while a country is chosen', () => {
+    const typed = whatsAppLink({ number: '968 9123 4567', country: '968', label: 'x' })
+    expect(typed.ok && typed.number).toBe('96891234567')
+    // The chosen country still comes first when both readings are numbers.
+    const local = whatsAppLink({ number: '501234567', country: '966', label: 'x' })
+    expect(local.ok && local.number).toBe('966501234567')
+  })
+
   it('refuses a number it cannot complete without guessing its country', () => {
     expect(whatsAppLink({ number: '9123 4567', label: 'x' })).toEqual({
       ok: false,

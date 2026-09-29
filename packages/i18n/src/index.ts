@@ -1,4 +1,5 @@
 export { codeParts, type Copy, type Lang } from './copy'
+export { GENERATORS_UI, type GeneratorsStrings } from './generators'
 export { HOME, TOPICS, type HomeStrings, type Topic } from './home'
 export { arabicCount, englishCount, englishForm, type ArabicForms } from './plural'
 export {
@@ -16,6 +17,7 @@ export { TOOL_APP, type ToolAppStrings } from './tool-app'
 export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from './tools'
 
 import type { Copy } from './copy'
+import { GENERATORS_UI } from './generators'
 import { HOME } from './home'
 import { PAGES_UI } from './pages'
 import { REPORT } from './report'
@@ -32,6 +34,7 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'scan-form.ts': SCAN_FORM,
   'report.ts': REPORT,
   'tools.ts': TOOLS_UI,
+  'generators.ts': GENERATORS_UI,
   'rules.ts': RULES_UI,
   'pages.ts': PAGES_UI,
   'tool-app.ts': TOOL_APP,

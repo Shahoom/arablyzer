@@ -7,6 +7,10 @@ import Check from '@lucide/astro/icons/check'
 import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
 import X from '@lucide/astro/icons/x'
+import HreflangGenerator from '../../islands/generators/HreflangGenerator'
+import RobotsTester from '../../islands/generators/RobotsTester'
+import SchemaGenerator from '../../islands/generators/SchemaGenerator'
+import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
 import ToolApp from '../../islands/ToolApp'
 import Page from '../../layouts/Page.astro'
 import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
@@ -76,12 +80,21 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
         <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
           {copy.description}
         </p>
-        <ToolApp
-          client:idle
-          lang={lang}
-          tool={slug}
-          reads={tool.renders ? 'render' : tool.tag === 'robots' ? 'robots' : 'html'}
-        />
+        {/* One island per tool that runs in the browser: Astro hydrates only islands it can name. */}
+        {tool.kind === 'scan' && (
+          <ToolApp
+            client:idle
+            lang={lang}
+            tool={slug}
+            reads={tool.renders ? 'render' : tool.tag === 'robots' ? 'robots' : 'html'}
+          />
+        )}
+        {slug === 'whatsapp-link-generator' && (
+          <WhatsAppGenerator client:idle lang={lang} tool={slug} />
+        )}
+        {slug === 'hreflang-generator' && <HreflangGenerator client:idle lang={lang} tool={slug} />}
+        {slug === 'schema-generator' && <SchemaGenerator client:idle lang={lang} tool={slug} />}
+        {slug === 'robots-tester' && <RobotsTester client:idle lang={lang} tool={slug} />}
       </div>
 
       <section id="checks" aria-labelledby="checks-title" class="flex flex-col gap-4 md:gap-[18px]">

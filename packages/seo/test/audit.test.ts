@@ -70,6 +70,17 @@ describe('auditToolPage on the right pages', () => {
     ).toEqual([])
   })
 
+  it('takes a paste or a generator form in place of the URL field (M2.3 plan §1)', () => {
+    const scanForm = /<form [^\n]*<\/form>/
+    for (const form of [
+      '<form data-tool-kind="generator"><label>الرقم <input type="tel" name="number"></label><button>أنشئ الرابط</button></form>',
+      '<form data-tool-kind="paste"><label>الملف <textarea name="robots"></textarea></label><button>اختبر</button></form>',
+      '<form data-tool-kind="generator"><label>العملة <select name="currency"><option>OMR</option></select></label><button>أنشئ الكود</button></form>',
+    ]) {
+      expect(auditToolPage(edit(AR, scanForm, form), EXPECTED.ar), form).toEqual([])
+    }
+  })
+
   it('lets only a missing og:image through, which the site build will add', () => {
     const noTitle = edit(AR, /<meta property="og:title"[^>]*>\n/, '')
     expect(auditToolPage(noTitle, EXPECTED.ar)).toEqual([
@@ -107,6 +118,33 @@ describe.each<[string, string, AuditCheck[]]>([
     ['tool-first'],
   ],
   ['no URL field', edit(AR, 'type="url"', 'type="text"'), ['tool-first']],
+  [
+    'a generator form with no field',
+    edit(
+      AR,
+      /<form [^\n]*<\/form>/,
+      '<form data-tool-kind="generator"><button>أنشئ</button></form>',
+    ),
+    ['tool-first'],
+  ],
+  [
+    'a generator form with a hidden field alone',
+    edit(
+      AR,
+      /<form [^\n]*<\/form>/,
+      '<form data-tool-kind="generator"><input type="hidden" name="x"><button>أنشئ</button></form>',
+    ),
+    ['tool-first'],
+  ],
+  [
+    'a form of a kind the tools do not have',
+    edit(
+      AR,
+      /<form [^\n]*<\/form>/,
+      '<form data-tool-kind="upload"><label>الملف <input type="file" name="file"></label><button>ارفع</button></form>',
+    ),
+    ['tool-first'],
+  ],
   ['no FAQ', edit(AR, /<section id="faq">.*<\/section>\n/, ''), ['sections']],
   [
     'an empty "what it checks"',

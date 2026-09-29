@@ -32,6 +32,15 @@ describe('the tools as their pages have them', () => {
     expect(tag('ai-crawler-check')).toBe('robots')
     expect(tag('rtl-check')).toBe('html')
     expect(tag('whatsapp-link-check')).toBe('html')
+    expect(tag('robots-tester')).toBe('robots')
+    expect(tag('whatsapp-link-generator')).toBe('generator')
+  })
+
+  it('says where each tool runs: the scanner, or the visitor’s browser', () => {
+    const kind = (slug: string) => data.tools.find((tool) => tool.slug === slug)?.kind
+    expect(kind('rtl-check')).toBe('scan')
+    expect(kind('robots-tester')).toBe('paste')
+    expect(kind('schema-generator')).toBe('generator')
   })
 
   it('names each tool in both languages, for the report page of its result', () => {

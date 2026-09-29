@@ -16,7 +16,14 @@ export interface WhatsAppInput {
 }
 
 export type WhatsAppResult =
-  | { readonly ok: true; readonly number: string; readonly url: string; readonly html: string }
+  | {
+      readonly ok: true
+      readonly number: string
+      readonly url: string
+      readonly html: string
+      /** What was wrong with the number as typed, and put right. */
+      readonly fixed: NumberProblem | null
+    }
   | { readonly ok: false; readonly problem: NumberProblem }
 
 /** Arabic and Persian digits as Western ones, for what the visitor typed. */
@@ -30,18 +37,29 @@ export function whatsAppLink(input: WhatsAppInput): WhatsAppResult {
   const typed = westernDigits(input.number).trim()
   const international = typed.startsWith('+') || typed.startsWith('00')
   const digits = typed.replace(/[^0-9]/g, '')
-  // A number typed without its country: the country's code, then the number without its trunk 0.
-  const candidate =
-    international || input.country === undefined || input.country === ''
-      ? digits.replace(/^00/, '')
-      : `${input.country.replace(/[^0-9]/g, '')}${digits.replace(/^0+/, '')}`
-  const check = checkWhatsAppNumber(candidate)
-  const number = check === null ? candidate : check.suggestion
-  if (number === null || checkWhatsAppNumber(number) !== null) {
-    return { ok: false, problem: check?.problem ?? 'not-international' }
+  const country = input.country?.replace(/[^0-9]/g, '') ?? ''
+  // A number typed without its country: the country's code, then the number without its trunk 0;
+  // failing that, the digits as typed, for a full number typed without its + (968 9123 4567).
+  const candidates =
+    international || country === ''
+      ? [digits.replace(/^00/, '')]
+      : [`${country}${digits.replace(/^0+/, '')}`, digits]
+  const readings = candidates.map((candidate) => {
+    const check = checkWhatsAppNumber(candidate)
+    const number = check === null ? candidate : check.suggestion
+    return {
+      check,
+      number: number !== null && checkWhatsAppNumber(number) === null ? number : null,
+    }
+  })
+  const reading = readings.find((candidate) => candidate.number !== null)
+  const number = reading?.number ?? null
+  if (reading === undefined || number === null) {
+    return { ok: false, problem: readings[0]?.check?.problem ?? 'not-international' }
   }
+  const { check } = reading
   const text = input.text?.trim() ?? ''
   const url = `https://wa.me/${number}${text === '' ? '' : `?text=${encodeURIComponent(text)}`}`
   const html = `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(input.label)}</a>`
-  return { ok: true, number, url, html }
+  return { ok: true, number, url, html, fixed: check?.problem ?? null }
 }
