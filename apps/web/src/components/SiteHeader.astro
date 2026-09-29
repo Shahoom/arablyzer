@@ -37,13 +37,14 @@ const o = SITE[lang].otherLang
       <nav aria-label={t.navLabel} class="hidden items-center gap-8 text-[15px] lg:flex">
         {NAV.map((item) => {
           const href = localePath(lang, item.path)
-          // The section the page is in: the section's own page, or one under it.
-          const here =
-            localePath(lang, path) === href || localePath(lang, path).startsWith(`${href}/`)
+          // The section the page is in: its own page is the current page; a page under it, a
+          // tool's, is in the current section. Both are marked.
+          const page = localePath(lang, path) === href
+          const here = page || localePath(lang, path).startsWith(`${href}/`)
           return (
             <a
               href={href}
-              aria-current={here ? 'page' : undefined}
+              aria-current={page ? 'page' : here ? 'true' : undefined}
               class:list={[
                 'py-1.5 hover:text-signal',
                 here && 'font-semibold shadow-[inset_0_-2px_0_var(--color-signal)]',
