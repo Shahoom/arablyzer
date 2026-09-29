@@ -14,34 +14,36 @@ let dir = ''
 const trusted = tls.getCACertificates('default')
 
 // A CA of this test's own, trusted in this process only, signs a certificate for 127.0.0.1.
+// Elliptic-curve keys: made in milliseconds, where RSA keys took a busy CI runner past the hook's
+// time (M2.4 CI).
 beforeAll(async () => {
   dir = mkdtempSync(path.join(tmpdir(), 'arablyzer-cert-'))
   const file = (name: string) => path.join(dir, name)
   const openssl = (...args: string[]) => execFileSync('openssl', args, { stdio: 'ignore' })
+  const key = (name: string) => {
+    openssl('ecparam', '-name', 'prime256v1', '-genkey', '-noout', '-out', file(name))
+  }
+  key('ca.key')
   openssl(
     'req',
     '-x509',
-    '-newkey',
-    'rsa:2048',
-    '-nodes',
+    '-key',
+    file('ca.key'),
     '-days',
     '2',
     '-subj',
     '/CN=Arablyzer Test CA',
-    '-keyout',
-    file('ca.key'),
     '-out',
     file('ca.pem'),
   )
+  key('leaf.key')
   openssl(
     'req',
-    '-newkey',
-    'rsa:2048',
-    '-nodes',
+    '-new',
+    '-key',
+    file('leaf.key'),
     '-subj',
     '/CN=127.0.0.1',
-    '-keyout',
-    file('leaf.key'),
     '-out',
     file('leaf.csr'),
   )
@@ -75,7 +77,7 @@ beforeAll(async () => {
   })
   const address = server.address()
   port = typeof address === 'object' && address !== null ? address.port : 0
-})
+}, 30_000)
 
 afterAll(() => {
   tls.setDefaultCACertificates(trusted)
