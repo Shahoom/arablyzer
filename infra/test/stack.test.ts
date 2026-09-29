@@ -259,6 +259,20 @@ describe('the site server', () => {
     }
   })
 
+  it('serves every page at its clean address: the tools, and each tool', async () => {
+    for (const [path, lang] of [
+      ['/tools', 'ar'],
+      ['/tools/rtl-check', 'ar'],
+      ['/en/tools', 'en'],
+      ['/en/tools/rtl-check', 'en'],
+    ] as const) {
+      const response = await fetch(`${SITE}${path}`)
+      expect(response.status, path).toBe(200)
+      expect(response.headers.get('x-content-type-options'), path).toBe('nosniff')
+      expect(await response.text(), path).toContain(`lang="${lang}"`)
+    }
+  })
+
   it("is published on the host's loopback alone, for the host's own proxy", () => {
     expect(compose('port', 'web', '8080')).toMatch(/^127\.0\.0\.1:\d+$/)
   })
@@ -292,6 +306,25 @@ describe('a scan through the whole stack', () => {
       expect.arrayContaining(['rtl-horizontal-overflow', 'ar-letter-spacing', 'rtl-physical-css']),
     )
   }, 300_000)
+
+  it("runs a tool page's scan with the tool's rules alone, and no browser", async () => {
+    const created = await fetch(`${SITE}/api/scans`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url: FIXTURE, turnstileToken: DUMMY_TOKEN, tool: 'rtl-check' }),
+    })
+    expect(created.status).toBe(202)
+    const { id } = (await created.json()) as { id: string }
+    const events = await scanEvents(id)
+    expect(events.at(-1)?.type).toBe('done')
+    expect(events.map((event) => event.type)).not.toContain('render-start')
+    const summary = (await (await fetch(`${SITE}/api/scans/${id}`)).json()) as { tool?: string }
+    expect(summary.tool).toBe('rtl-check')
+    const report = (await (await fetch(`${SITE}/api/reports/${id}`)).json()) as {
+      rules: { id: string }[]
+    }
+    expect(report.rules.map((rule) => rule.id).sort()).toEqual(['ar-html-lang', 'rtl-html-dir'])
+  }, 120_000)
 
   it('leaves the scanner no browser and no zombie once the scan is over', () => {
     const left = processes('scanner')
