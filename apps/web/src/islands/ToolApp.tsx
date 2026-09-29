@@ -173,6 +173,19 @@ export default function ToolApp({ lang, tool, renders }: Props) {
         ? `${f.errors[error.code]} ${f.retryAfter(error.retryAfterSeconds)}`
         : f.errors[error.code]
   const busy = starting || run?.phase === 'running'
+  // Said to a screen reader as the check goes, in one line: that it runs, then its headline. The
+  // result itself is read like the rest of the page, not aloud as it changes.
+  const r = TOOL_APP[lang].result
+  const said =
+    run === null
+      ? ''
+      : run.phase === 'running'
+        ? r.running
+        : run.phase === 'done'
+          ? headlineOf(run.report, lang)
+          : run.phase === 'offline'
+            ? r.offline
+            : r.failed
 
   return (
     <div className="flex flex-col gap-8">
@@ -217,9 +230,29 @@ export default function ToolApp({ lang, tool, renders }: Props) {
           {message}
         </p>
       </form>
-      <div aria-live="polite">{run !== null && <Result run={run} lang={lang} />}</div>
+      {run !== null && <Result run={run} lang={lang} />}
+      <p role="status" className="sr-only">
+        {said}
+      </p>
     </div>
   )
+}
+
+/** What a tool's result says first, in the page's words (toolVerdict). */
+function headlineOf(report: Report, lang: Lang): string {
+  const t = TOOL_APP[lang].result
+  const verdict = toolVerdict(report)
+  if (verdict !== 'problems') {
+    return {
+      blocked: t.blocked,
+      incomplete: t.incomplete,
+      review: t.review,
+      passed: t.passed,
+      'not-applicable': t.notApplicable,
+    }[verdict]
+  }
+  const failed = problemsOf(report).filter((entry) => entry.rule.status === 'fail')
+  return t.problems(failed.reduce((sum, entry) => sum + Math.max(entry.findings.length, 1), 0))
 }
 
 function Result({ run, lang }: { run: Run; lang: Lang }) {
@@ -279,15 +312,6 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
   const verdict = toolVerdict(report)
   const problems = problemsOf(report)
   const failed = problems.filter((entry) => entry.rule.status === 'fail')
-  const count = failed.reduce((sum, entry) => sum + Math.max(entry.findings.length, 1), 0)
-  const headline = {
-    blocked: t.blocked,
-    problems: t.problems(count),
-    incomplete: t.incomplete,
-    review: t.review,
-    passed: t.passed,
-    'not-applicable': t.notApplicable,
-  }[verdict]
   const worst = failed[0]?.rule.severity
   const shareHref = localePath(lang, `/r/${id}`)
 
@@ -297,7 +321,7 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
         <div className="flex flex-wrap items-center gap-3">
           {worst !== undefined && <SeverityPill severity={worst} lang={lang} />}
           <h2 id="result-title" className="m-0 text-xl font-semibold">
-            {headline}
+            {headlineOf(report, lang)}
           </h2>
         </div>
         <span dir="ltr" className="font-mono text-[13px] break-all text-ink-3">
