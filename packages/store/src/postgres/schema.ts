@@ -15,7 +15,7 @@ export const scans = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
-    /** The overall score, for listing without reading reports. */
+    /** The overall score, for listing without reading reports: a whole scan's; null for a tool's. */
     score: integer('score'),
     report: jsonb('report').$type<Report>(),
   },

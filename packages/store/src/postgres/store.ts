@@ -1,9 +1,10 @@
 import { fileURLToPath } from 'node:url'
 import type { ScanState } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
-import { and, eq, inArray, lt, type SQL } from 'drizzle-orm'
+import { and, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
+import type { PgUpdateSetSource } from 'drizzle-orm/pg-core'
 import type { Pool } from 'pg'
 import type { NewScan, ScanRecord, ScanStore } from '../types'
 import { scans } from './schema'
@@ -71,7 +72,8 @@ export class PostgresScanStore implements ScanStore {
       state: report.scan.status,
       finishedAt: at,
       report,
-      score: report.score.overall,
+      // The overall score is a whole scan's: a tool's scan ran the tool's rules alone (M2.2).
+      score: sql`CASE WHEN ${scans.tool} IS NULL THEN ${report.score.overall}::integer END`,
     })
   }
 
@@ -91,13 +93,13 @@ export class PostgresScanStore implements ScanStore {
   async #move(
     id: string,
     from: readonly ScanState[],
-    change: Partial<typeof scans.$inferInsert>,
+    change: PgUpdateSetSource<typeof scans>,
   ): Promise<boolean> {
     const rows = await this.#update(and(eq(scans.id, id), inArray(scans.state, [...from])), change)
     return rows.length > 0
   }
 
-  #update(where: SQL | undefined, change: Partial<typeof scans.$inferInsert>) {
+  #update(where: SQL | undefined, change: PgUpdateSetSource<typeof scans>) {
     return this.#db.update(scans).set(change).where(where).returning({ id: scans.id })
   }
 }
