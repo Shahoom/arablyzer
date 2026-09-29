@@ -27,16 +27,14 @@ export function webApplication(options: {
   }
 }
 
-/**
- * A rule's page in the library (BUILD-PLAN §6.2): a technical article about one check, with the
- * rule's version, which changes when what it judges does.
- */
+/** A technical article: a rule's page in the library (BUILD-PLAN §6.2), the methodology. */
 export function techArticle(options: {
   readonly headline: string
   readonly description: string
   readonly url: string
   readonly lang: Lang
-  readonly version: string
+  /** A rule's version, which changes when what it judges does. */
+  readonly version?: string
 }): JsonLd {
   return {
     '@context': 'https://schema.org',
@@ -45,7 +43,7 @@ export function techArticle(options: {
     description: options.description,
     url: options.url,
     inLanguage: options.lang,
-    version: options.version,
+    ...(options.version === undefined ? {} : { version: options.version }),
   }
 }
 

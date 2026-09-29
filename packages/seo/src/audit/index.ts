@@ -17,6 +17,7 @@ export { auditSite, sampleReport, type RenderedPage, type SiteAudit } from './si
 export {
   auditBuiltSite,
   builtPages,
+  isNoindexPage,
   representativePages,
   type BuiltPage,
   type BuiltSiteAudit,

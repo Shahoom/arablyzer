@@ -56,6 +56,16 @@ function isReport(page: string): boolean {
   return /^\/(?:en\/)?r(?:\/|$)/.test(page)
 }
 
+/** The page for an address that has none, /404 and /en/404: never indexed, like a report. */
+function isNotFound(page: string): boolean {
+  return /^(?:\/en)?\/404$/.test(page)
+}
+
+/** Pages search engines must not index: a user's report, and the 404 page. */
+export function isNoindexPage(page: string): boolean {
+  return isReport(page) || isNotFound(page)
+}
+
 /** A tool's page, /tools/<slug>: the tool page template of BUILD-PLAN §6.1 applies whole. */
 function isTool(page: string): boolean {
   return /^(?:\/en)?\/tools\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
@@ -82,7 +92,8 @@ export function representativePages(pages: readonly BuiltPage[]): BuiltPage[] {
   )
   return pages.filter(
     (page) =>
-      !isReport(page.path) && ((!isTool(page.path) && !isRule(page.path)) || first.has(page.path)),
+      !isNoindexPage(page.path) &&
+      ((!isTool(page.path) && !isRule(page.path)) || first.has(page.path)),
   )
 }
 
@@ -102,7 +113,7 @@ export function auditBuiltSite(dir: string, site: Site): BuiltSiteAudit {
   const html = (page: BuiltPage) => readFileSync(path.join(dir, page.file), 'utf8')
 
   for (const page of pages) {
-    if (isReport(page.path)) {
+    if (isNoindexPage(page.path)) {
       for (const found of auditReportPage(html(page), page.lang)) {
         problems.push({ page: page.path, ...found })
       }
