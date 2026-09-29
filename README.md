@@ -145,6 +145,7 @@ These read TXT records of the page's domain (its organizational domain, by the P
 | Rule | Checks |
 |---|---|
 | [`spf-missing`](packages/rules/src/rules/spf-missing/copy.en.md) | The page's domain has one SPF record (`v=spf1`) |
+| [`dmarc-missing`](packages/rules/src/rules/dmarc-missing/copy.en.md) | The page's domain has one DMARC record (`v=DMARC1` at `_dmarc`) |
 
 These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
 
