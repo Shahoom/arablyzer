@@ -23,6 +23,7 @@ import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rej
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
 import { rule as formLabelMissing } from './rules/form-label-missing/rule'
 import { rule as formPhoneDirection } from './rules/form-phone-direction/rule'
+import { rule as frameProtectionMissing } from './rules/frame-protection-missing/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
@@ -77,6 +78,7 @@ export const RULES: readonly Rule[] = [
   formArabicNameRejected,
   formLabelMissing,
   formPhoneDirection,
+  frameProtectionMissing,
   h1Missing,
   hreflangInvalidCode,
   hstsMissing,

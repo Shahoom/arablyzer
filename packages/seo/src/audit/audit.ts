@@ -60,6 +60,7 @@ const SERVER_RULES = new Set([
   'tls-expiring',
   'csp-missing',
   'x-content-type-options-missing',
+  'frame-protection-missing',
 ])
 
 /** robots.txt rules are left out too: a rendered page has none to read. */

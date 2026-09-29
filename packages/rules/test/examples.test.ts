@@ -12,6 +12,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'cwv-cls-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-inp-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-lcp-poor': "real visitors' data from the Chrome UX Report, not the page",
+  'frame-protection-missing': 'response headers, whose absence no excerpt shows',
   'hsts-missing': 'a response header, whose absence no excerpt shows',
   'https-missing': 'the address the page answers at',
   'text-compression-missing': 'how the server sends the page’s files',
