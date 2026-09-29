@@ -117,7 +117,12 @@ export interface ReportStrings {
   /** When a scan does not go as it should (the approved States design). */
   readonly states: {
     readonly blocked: { readonly title: string; readonly text: (status: string) => string }
-    readonly partial: { readonly title: string; readonly text: string }
+    readonly partial: {
+      readonly title: string
+      readonly text: string
+      /** A tool's result, which has no score. */
+      readonly tool: string
+    }
     readonly failed: {
       readonly title: string
       /** No report: the scan could not run. */
@@ -261,6 +266,7 @@ export const REPORT: Copy<ReportStrings> = {
       partial: {
         title: 'تقرير جزئي',
         text: 'بعض الفحوص لم تكتمل. الدرجة محسوبة على القواعد التي عملت، والتقرير يسمّي ما لم يعمل.',
+        tool: 'بعض الفحوص لم تكتمل، والتقرير يسمّي ما لم يعمل.',
       },
       failed: {
         title: 'تعذّر الفحص',
@@ -412,6 +418,7 @@ export const REPORT: Copy<ReportStrings> = {
       partial: {
         title: 'Partial report',
         text: 'Some checks did not finish. The score counts the rules that ran, and the report names what did not.',
+        tool: 'Some checks did not finish, and the report names what did not.',
       },
       failed: {
         title: 'The scan could not run',

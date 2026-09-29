@@ -15,6 +15,12 @@ import { Crosshairs, ENGINE_LABEL, SectionHead, SeverityPill } from './ui'
 
 export type Fixes = Readonly<Record<string, { readonly fix: string }>>
 
+/** A tool's result's tool: its slug, and its name in the page's language when it is known. */
+export interface ToolRef {
+  readonly slug: string
+  readonly title: string | null
+}
+
 /** The finished report (the approved Report design). */
 export function ReportView({
   id,
@@ -28,7 +34,7 @@ export function ReportView({
   fixes: Fixes | null
   lang: Lang
   /** The tool a tool page's scan ran (M2.2): its rules alone, so no overall score. */
-  tool?: string | undefined
+  tool?: ToolRef | undefined
 }) {
   const problems = problemsOf(report)
   const [tab, setTab] = useState<Tab>('problems')
@@ -51,7 +57,10 @@ export function ReportView({
             >
               <strong className="text-moderate">{REPORT[lang].states.partial.title}</strong>
               <span className="text-[15px] leading-[1.7] text-ink-2">
-                {REPORT[lang].states.partial.text}
+                {/* A tool's result has no score to speak of. */}
+                {tool === undefined
+                  ? REPORT[lang].states.partial.text
+                  : REPORT[lang].states.partial.tool}
               </span>
             </div>
           )}
@@ -80,7 +89,7 @@ function ReportHeader({
   id: string
   report: Report
   lang: Lang
-  tool: string | undefined
+  tool: ToolRef | undefined
 }) {
   const t = REPORT[lang].header
   const [copied, setCopied] = useState(false)
@@ -98,7 +107,7 @@ function ReportHeader({
   const rescan =
     tool === undefined
       ? `${localePath(lang, '/')}?url=${again}#scan`
-      : `${localePath(lang, `/tools/${tool}`)}?url=${again}`
+      : `${localePath(lang, `/tools/${tool.slug}`)}?url=${again}`
   const button =
     'flex h-[46px] items-center gap-2 border-[1.5px] border-ink bg-white px-4 text-[15px] font-semibold hover:text-signal'
   return (
@@ -113,13 +122,23 @@ function ReportHeader({
           ) : (
             <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-signal">
               {t.tool}
-              <a
-                href={localePath(lang, `/tools/${tool}`)}
-                dir="ltr"
-                className="font-mono font-normal text-ink-2 underline underline-offset-4 hover:text-signal"
-              >
-                {tool}
-              </a>
+              {/* The tool's name; its slug when the name could not be read. */}
+              {tool.title === null ? (
+                <a
+                  href={localePath(lang, `/tools/${tool.slug}`)}
+                  dir="ltr"
+                  className="font-mono font-normal text-ink-2 underline underline-offset-4 hover:text-signal"
+                >
+                  {tool.slug}
+                </a>
+              ) : (
+                <a
+                  href={localePath(lang, `/tools/${tool.slug}`)}
+                  className="font-normal text-ink-2 underline underline-offset-4 hover:text-signal"
+                >
+                  <Bidi text={tool.title} lang={lang} />
+                </a>
+              )}
             </span>
           )}
           <h1 id="report-title" className="m-0 text-3xl leading-tight font-semibold md:text-[38px]">
