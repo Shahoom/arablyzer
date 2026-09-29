@@ -8,6 +8,7 @@ export {
   type EngineState,
   type ReportStrings,
 } from './report'
+export { RULES_UI, type RuleReads, type RulesStrings } from './rules'
 export { SCAN_FORM, type FormProblem, type ScanFormStrings } from './scan-form'
 export { SITE, type SiteStrings } from './site'
 export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from './tools'
@@ -15,6 +16,7 @@ export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from
 import type { Copy } from './copy'
 import { HOME } from './home'
 import { REPORT } from './report'
+import { RULES_UI } from './rules'
 import { SCAN_FORM } from './scan-form'
 import { SITE } from './site'
 import { TOOLS_UI } from './tools'
@@ -26,4 +28,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'scan-form.ts': SCAN_FORM,
   'report.ts': REPORT,
   'tools.ts': TOOLS_UI,
+  'rules.ts': RULES_UI,
 }

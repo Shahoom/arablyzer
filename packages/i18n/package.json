@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./scan-form": "./src/scan-form.ts",
     "./report": "./src/report.ts",
-    "./tools": "./src/tools.ts"
+    "./tools": "./src/tools.ts",
+    "./rules": "./src/rules.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
