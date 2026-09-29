@@ -3,7 +3,7 @@ import type { Report } from '@arablyzer/report-schema'
 import type { Scanner } from '@arablyzer/scanner-client'
 import { MemoryScanEvents, MemoryScanStore } from '@arablyzer/store'
 import { describe, expect, it } from 'vitest'
-import { failScan, runScan } from '../src/run'
+import { failScan, runScan, scanJobOf } from '../src/run'
 
 const NOW = new Date('2026-09-28T12:00:00Z')
 const ID = 'AbCdEfGhIjKlMnOpQrSt_-'
@@ -186,5 +186,25 @@ describe('runScan', () => {
     await failScan(ID, { store, events })
     expect(await store.get(ID)).toMatchObject({ state: 'partial', report })
     expect(await events.since(ID, null)).toEqual([])
+  })
+})
+
+describe('scanJobOf', () => {
+  it("reads a queued job's scan, with the tool a tool page asked for", () => {
+    expect(scanJobOf({ id: ID, url: 'https://example.com/' })).toEqual({
+      id: ID,
+      url: 'https://example.com/',
+    })
+    expect(scanJobOf({ id: ID, url: 'https://example.com/', tool: 'rtl-check' })).toEqual({
+      id: ID,
+      url: 'https://example.com/',
+      tool: 'rtl-check',
+    })
+  })
+
+  it('refuses what is not a scan', () => {
+    for (const data of [null, 'scan', { id: ID }, { url: 'x' }, { id: ID, url: 'x', tool: 3 }]) {
+      expect(() => scanJobOf(data)).toThrow('Not a scan')
+    }
   })
 })

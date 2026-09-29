@@ -16,6 +16,20 @@ export interface WorkerDeps {
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 /**
+ * A queued job's data as a scan: its ID and page, and the tool a tool page asked for (M2.2).
+ * Anything else is not a scan, and throws.
+ */
+export function scanJobOf(data: unknown): ScanJob {
+  const { id, url, tool } = (typeof data === 'object' && data !== null ? data : {}) as Record<
+    string,
+    unknown
+  >
+  if (typeof id !== 'string' || typeof url !== 'string') throw new Error('Not a scan')
+  if (tool !== undefined && typeof tool !== 'string') throw new Error('Not a scan')
+  return { id, url, ...(tool === undefined ? {} : { tool }) }
+}
+
+/**
  * One scan, from the queue to its stored report (M2.1 plan §4): each step the scan reports, from
  * `started`, then done with the report's state. A scan that throws is failed, with no report,
  * and its page is told. Events keep their order, each waiting for the one before it; one that
