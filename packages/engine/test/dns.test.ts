@@ -79,9 +79,8 @@ describe('lookupDns', () => {
 
   it('asks nothing when no rule reads DNS, or the page has no public name', async () => {
     const resolver = loggedResolver(found([]))
-    expect(await lookupDns('https://shop.example/', [testRule({})], context(resolver))).toBe(
-      undefined,
-    )
+    const html = testRule({ detect: () => [] })
+    expect(await lookupDns('https://shop.example/', [html], context(resolver))).toBeUndefined()
     for (const url of [
       'http://127.0.0.1:8080/',
       'http://[::1]/',
