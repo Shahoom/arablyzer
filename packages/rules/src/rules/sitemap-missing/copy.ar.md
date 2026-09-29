@@ -59,4 +59,4 @@ Sitemap: https://www.example.com/sitemap.xml
 - [Google Search Central: مزيد من المعلومات حول خرائط الموقع](https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview?hl=ar)
 - [Google Search Central: إنشاء خريطة موقع وإرسالها](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap?hl=ar)
 - [Google: طريقة محرّك بحث Google في تفسير مواصفات ملف robots.txt](https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec?hl=ar)
-- [sitemaps.org: تنسيق خرائط الموقع بلغة XML](https://www.sitemaps.org/protocol.html) (بالإنجليزية)
+- [sitemaps.org: بروتوكول خرائط الموقع](https://www.sitemaps.org/protocol.html) (بالإنجليزية)

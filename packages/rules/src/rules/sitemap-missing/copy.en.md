@@ -55,4 +55,4 @@ Sitemap: https://www.example.com/sitemap.xml
 - [Google Search Central: Learn about sitemaps](https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview)
 - [Google Search Central: Build and submit a sitemap](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
 - [Google: How Google interprets the robots.txt specification](https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec)
-- [sitemaps.org: Sitemaps XML format](https://www.sitemaps.org/protocol.html)
+- [sitemaps.org: the sitemaps protocol](https://www.sitemaps.org/protocol.html)
