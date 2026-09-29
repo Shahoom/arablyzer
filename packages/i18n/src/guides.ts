@@ -41,11 +41,11 @@ export const GUIDES_UI: Copy<GuidesStrings> = {
       meta: {
         title: 'أدلة إصلاح رسائل Search Console بالعربية — Arablyzer',
         description:
-          'دليل بالعربية لكل رسالة في تقرير فهرسة الصفحات في Google Search Console: ماذا تعني، ولماذا تظهر، وكيف تُصلحها وتتحقق من الإصلاح.',
+          'أدلة بالعربية لرسائل تقرير فهرسة الصفحات في Google Search Console، رسالةً رسالة: ماذا تعني، ولماذا تظهر، وكيف تُصلحها وتتحقق من الإصلاح.',
       },
       title: 'أدلة الإصلاح',
       intro:
-        'لكل رسالة في تقرير فهرسة الصفحات في Search Console دليل: ماذا تعني، ولماذا تظهر، وكيف تُصلحها، وكيف تتحقق من أن الإصلاح نجح.',
+        'أدلة لرسائل تقرير فهرسة الصفحات في Search Console، رسالةً رسالة: ماذا تعني، ولماذا تظهر، وكيف تُصلحها، وكيف تتحقق من أن الإصلاح نجح.',
       breadcrumb: 'مسار الصفحة',
       source: 'تقرير فهرسة الصفحات في Search Console',
       groups: { 'not-indexed': 'صفحات لم تتم فهرستها', warning: 'صفحات مفهرسة مع تحذير' },
@@ -80,11 +80,11 @@ export const GUIDES_UI: Copy<GuidesStrings> = {
       meta: {
         title: 'Search Console message fix guides — Arablyzer',
         description:
-          "A guide for each message of Google Search Console's Page indexing report: what it means, why it shows, how to fix it and how to check the fix.",
+          "Guides to the messages of Google Search Console's Page indexing report, one per message: what it means, why it shows, how to fix it and how to check the fix.",
       },
       title: 'Fix guides',
       intro:
-        "A guide for each message of Search Console's Page indexing report: what it means, why it shows, how to fix it, and how to check that the fix worked.",
+        "Guides to the messages of Search Console's Page indexing report, one per message: what it means, why it shows, how to fix it, and how to check that the fix worked.",
       breadcrumb: 'Breadcrumb',
       source: "Search Console's Page indexing report",
       groups: { 'not-indexed': 'Pages not indexed', warning: 'Indexed, with a warning' },
