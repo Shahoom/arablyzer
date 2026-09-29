@@ -44,9 +44,10 @@ describe('advance', () => {
       { type: 'queued', ahead: 1 },
       { type: 'started', engines: ['firefox', 'chromium'] },
       { type: 'robots', outcome: 'fetched', status: 200 },
-      { type: 'page', status: 200, contentType: 'text/html', error: null },
-      // The site a redirect led to has its own robots.txt: the latest one read is shown.
+      // A redirect to another site: its robots.txt comes before its page, and the latest one
+      // read is shown.
       { type: 'robots', outcome: 'unavailable', status: 404 },
+      { type: 'page', status: 200, contentType: 'text/html', error: null },
       { type: 'crux', outcome: 'skipped' },
       { type: 'render-start', engine: 'chromium' },
       {
