@@ -47,6 +47,7 @@ import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as tlsExpiring } from './rules/tls-expiring/rule'
 import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
+import { rule as xContentTypeOptionsMissing } from './rules/x-content-type-options-missing/rule'
 
 export { RULESET_VERSION } from './version'
 
@@ -100,6 +101,7 @@ export const RULES: readonly Rule[] = [
   tlsExpiring,
   viewportMissing,
   whatsappLinkFormat,
+  xContentTypeOptionsMissing,
 ]
 
 export function ruleById(id: string): Rule | undefined {

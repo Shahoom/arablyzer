@@ -16,6 +16,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'https-missing': 'the address the page answers at',
   'text-compression-missing': 'how the server sends the page’s files',
   'tls-expiring': 'the server’s certificate',
+  'x-content-type-options-missing': 'a response header, whose absence no excerpt shows',
 }
 
 const fold = (text: string) => text.replace(/\s+/g, ' ').trim()

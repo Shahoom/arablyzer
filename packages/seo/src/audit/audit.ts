@@ -54,7 +54,13 @@ export interface ExpectedPage {
  * its security headers, which the site's server sets (infra/Caddyfile), not the template. The
  * audit reads the HTML alone; the deployment is checked with the live site (Phase 2).
  */
-const SERVER_RULES = new Set(['https-missing', 'hsts-missing', 'tls-expiring', 'csp-missing'])
+const SERVER_RULES = new Set([
+  'https-missing',
+  'hsts-missing',
+  'tls-expiring',
+  'csp-missing',
+  'x-content-type-options-missing',
+])
 
 /** robots.txt rules are left out too: a rendered page has none to read. */
 const PAGE_RULES = RULES.filter(

@@ -132,6 +132,7 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`https-missing`](packages/rules/src/rules/https-missing/copy.en.md) | A public page is served over HTTPS |
 | [`hsts-missing`](packages/rules/src/rules/hsts-missing/copy.en.md) | An HTTPS page sends `Strict-Transport-Security` |
 | [`csp-missing`](packages/rules/src/rules/csp-missing/copy.en.md) | A public page enforces a Content Security Policy, in its header or a `<meta>` in `<head>` |
+| [`x-content-type-options-missing`](packages/rules/src/rules/x-content-type-options-missing/copy.en.md) | A public page sends `X-Content-Type-Options: nosniff` |
 | [`mixed-content`](packages/rules/src/rules/mixed-content/copy.en.md) | An HTTPS page loads nothing over `http:`, and its forms send nothing there |
 | [`tls-expiring`](packages/rules/src/rules/tls-expiring/copy.en.md) | The TLS certificate is not about to expire |
 
