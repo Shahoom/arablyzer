@@ -6,6 +6,10 @@
 
 Nothing keeps other sites from showing this page in a frame: it sends no `frame-ancestors` directive in a `Content-Security-Policy` header, and no `X-Frame-Options` of `DENY` or `SAMEORIGIN`.
 
+### any-ancestor
+
+This page's `Content-Security-Policy` lets any site show it in a frame (`frame-ancestors {value}`), and browsers then ignore `X-Frame-Options`. Name the sites that may frame the page, or use `'self'` or `'none'`.
+
 ### x-frame-options-ignored
 
 Browsers ignore this `X-Frame-Options` header (`{value}`): only `DENY` and `SAMEORIGIN` keep the page out of other sites' frames, and `ALLOW-FROM` is obsolete.
@@ -39,7 +43,7 @@ X-Frame-Options: SAMEORIGIN
 ## How we detect
 
 1. The rule applies to HTML pages that answer 2xx on a public site. Local development hosts, such as `localhost`, private addresses and names ending in `.test`, are left out, as for the HTTPS rule: the headers protect a public site's visitors.
-2. The page passes with a `frame-ancestors` directive, whatever its sources, in a `Content-Security-Policy` header, read as browsers read the policy. A `Content-Security-Policy-Report-Only` header and a `<meta>` do not count.
+2. The page passes with a `frame-ancestors` directive in a `Content-Security-Policy` header, read as browsers read the policy, unless its sources let any site in: `*`, a scheme alone such as `https:`, or `https://*`. Browsers then ignore `X-Frame-Options`. A `Content-Security-Policy-Report-Only` header and a `<meta>` do not count.
 3. Otherwise we read `X-Frame-Options` as the HTML standard says: all its values, split at commas and lowercased. A single `DENY` or `SAMEORIGIN` passes. Different values that include `DENY`, `SAMEORIGIN` or `ALLOWALL` make browsers refuse every frame, so they pass too. Any other value, `ALLOW-FROM` among them, is ignored.
 4. A `<meta>` that tries either one is named in the findings.
 

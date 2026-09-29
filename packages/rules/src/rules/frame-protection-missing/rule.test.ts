@@ -51,10 +51,6 @@ describe('frame-protection-missing', () => {
     expect(
       detectAll(rule, page('<p>نص</p>', ['content-security-policy', "FRAME-ANCESTORS 'none'"])),
     ).toEqual([])
-    // Any frame-ancestors counts: who may frame the page is then stated, however widely.
-    expect(
-      detectAll(rule, page('<p>نص</p>', ['content-security-policy', 'frame-ancestors *'])),
-    ).toEqual([])
     expect(
       detectAll(
         rule,
@@ -64,6 +60,36 @@ describe('frame-protection-missing', () => {
     expect(
       detectAll(rule, page('<p>نص</p>', ['content-security-policy', "default-src 'self'"])),
     ).toEqual([{ message: 'missing' }])
+  })
+
+  it('fires on a frame-ancestors that lets any site in, which X-Frame-Options cannot undo', async () => {
+    // Browsers ignore X-Frame-Options once an enforced policy has frame-ancestors (HTML).
+    expect(detectAll(rule, await fixtureEvidence(rule.id, 'wrong-frame-ancestors-any'))).toEqual([
+      {
+        message: 'any-ancestor',
+        values: { value: '*' },
+        snippet: 'Content-Security-Policy: frame-ancestors *',
+      },
+    ])
+    const csp = (value: string) =>
+      detectAll(rule, page('<p>نص</p>', ['content-security-policy', value]))
+    for (const any of [
+      'frame-ancestors https:',
+      'frame-ancestors https://*',
+      "frame-ancestors 'none' *",
+    ]) {
+      expect(csp(any), any).toMatchObject([{ message: 'any-ancestor' }])
+    }
+    // Named sites, and an empty list, which matches none, keep the others out.
+    for (const some of [
+      'frame-ancestors https://partner.example',
+      'frame-ancestors https://*.partner.example',
+      'frame-ancestors',
+    ]) {
+      expect(csp(some), some).toEqual([])
+    }
+    // Browsers enforce every policy they get: one that keeps others out is enough.
+    expect(csp("frame-ancestors *, frame-ancestors 'self'")).toEqual([])
   })
 
   it('names a <meta> that tries, since browsers read neither from one', () => {

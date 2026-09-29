@@ -10,6 +10,10 @@ reviewed: false
 
 لا شيء يمنع المواقع الأخرى من عرض هذه الصفحة داخل إطار: فلا توجيه `frame-ancestors` في ترويسة `Content-Security-Policy`، ولا ترويسة `X-Frame-Options` بقيمة `DENY` أو `SAMEORIGIN`.
 
+### any-ancestor
+
+سياسة `Content-Security-Policy` في هذه الصفحة تسمح لأي موقع بعرضها داخل إطار (`frame-ancestors {value}`)، ويتجاهل المتصفح عندها `X-Frame-Options`. سمِّ المواقع التي يحق لها عرض الصفحة في إطار، أو استخدم `'self'` أو `'none'`.
+
 ### x-frame-options-ignored
 
 المتصفح يتجاهل الترويسة `X-Frame-Options` بهذه القيمة (`{value}`): فلا يمنع عرض الصفحة في إطارات المواقع الأخرى إلا `DENY` و`SAMEORIGIN`، أما `ALLOW-FROM` فقيمة مهجورة.
@@ -44,7 +48,7 @@ X-Frame-Options: SAMEORIGIN
 ## كيف نكشف
 
 1. تنطبق القاعدة على صفحات HTML التي ترد بحالة 2xx على موقع عام. ونستثني عناوين التطوير المحلية، مثل `localhost` والعناوين الخاصة والأسماء التي آخرها `.test`، كما تفعل قاعدة HTTPS: فهذه الترويسات تحمي زوار الموقع العام.
-2. تنجح الصفحة إذا كان فيها التوجيه `frame-ancestors`، أياً كانت المواقع التي يسمح بها، في ترويسة `Content-Security-Policy`، نقرؤها كما يقرأ المتصفح السياسة. ولا تُحسب ترويسة `Content-Security-Policy-Report-Only`، ولا وسم `<meta>`.
+2. تنجح الصفحة إذا كان فيها التوجيه `frame-ancestors` في ترويسة `Content-Security-Policy`، نقرؤها كما يقرأ المتصفح السياسة، إلا إذا سمح لأي موقع: `*`، أو بروتوكول وحده مثل `https:`، أو `https://*`. ويتجاهل المتصفح عندها `X-Frame-Options`. ولا تُحسب ترويسة `Content-Security-Policy-Report-Only`، ولا وسم `<meta>`.
 3. وإلا قرأنا `X-Frame-Options` كما يقول معيار HTML: كل قيمها، مقسومة عند الفواصل، بأحرف صغيرة. تنجح القيمة الوحيدة `DENY` أو `SAMEORIGIN`. والقيم المختلفة التي بينها `DENY` أو `SAMEORIGIN` أو `ALLOWALL` تجعل المتصفح يرفض كل إطار، فتنجح أيضاً. وأي قيمة أخرى، ومنها `ALLOW-FROM`، يتجاهلها المتصفح.
 4. ونذكر في النتائج كل وسم `<meta>` يحاول أياً منهما.
 

@@ -42,7 +42,7 @@ Content-Security-Policy: default-src 'self'; frame-ancestors 'self'; form-action
 2. We read the `Content-Security-Policy` headers as browsers do (CSP Level 3): a header may hold several policies separated by commas, a policy counts when it has at least one directive, directive names are read whatever their case, and a directive with non-ASCII characters is skipped.
 3. A `<meta http-equiv="Content-Security-Policy">` counts inside `<head>`, less `frame-ancestors`, `report-uri` and `sandbox`, which browsers drop from a `<meta>`.
 4. A `Content-Security-Policy-Report-Only` header does not count, since it blocks nothing.
-5. We check that a policy is enforced, not what it allows: a loose policy passes this rule.
+5. We check that a policy is enforced, not what it allows: a loose policy passes this rule, and so does one without `default-src` or `script-src`, which limits no scripts at all.
 
 ## References
 
