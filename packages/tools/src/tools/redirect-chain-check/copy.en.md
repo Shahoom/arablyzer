@@ -9,7 +9,7 @@ Follows your address's redirects and shows each one: more than one before the pa
 ## What it checks
 
 - How many redirects the address takes before the page answers: more than one is a chain, and Google advises redirecting to the final address at once.
-- Each redirect's status: a move to HTTPS, or between `example.com` and `www.example.com`, made with a temporary `302` or `307` rather than a permanent `301` or `308`.
+- Each redirect's status: a move to HTTPS, or between `example.com` and `www.example.com`, made with a temporary `302`, `303` or `307` rather than a permanent `301` or `308`.
 
 ## Example
 
@@ -62,11 +62,11 @@ Because the address you gave answered with the page itself, without a redirect: 
 
 ### Is one redirect a problem?
 
-No. One redirect, such as from HTTP to HTTPS, passes; the check fails from two. Google's crawlers follow up to 10 redirects in a chain, and Google advises redirecting to the final address directly.
+No. One redirect, such as from HTTP to HTTPS, passes; the check fails from two. A first redirect that only moves the address to HTTPS on the same name is not counted, since the HSTS preload list asks for it. Google's crawlers follow up to 10 redirects in a chain, and Google advises redirecting to the final address directly.
 
 ### Why should the move to HTTPS be a 301 and not a 302?
 
-A `302` says the move is temporary, so clients ought to keep using the old address. Google takes a permanent redirect as a signal that the new address should be canonical, and a temporary one as no such signal, so the old `http://` address can stay the one Google keeps.
+A `302` says the move is temporary, so clients ought to keep using the old address. Google takes a permanent redirect as a strong signal that the new address should be canonical, and a temporary one as a weak signal, and a move to HTTPS is made for good.
 
 ### Does the tool follow redirects in `<meta>` tags or JavaScript?
 
@@ -74,4 +74,4 @@ No, it follows HTTP redirects alone: `301`, `302`, `303`, `307` and `308`.
 
 ## Methodology
 
-We fetch the address you give as `ArablyzerBot` and follow its HTTP redirects, up to 10, reading each site's robots.txt before we follow a redirect to it. We keep each redirect's address and status, in order, and the address of the page they lead to. The chain fails from two redirects before a page that answers with a 2xx status. Each `302` or `307` fails when it only moves the scheme from `http:` to `https:`, only moves between a name and its `www.`, or both, keeping port, path and query. The same address gives the same result on every check, as long as the server answers the same.
+We fetch the address you give as `ArablyzerBot` and follow its HTTP redirects, up to 10, reading each site's robots.txt before we follow a redirect to it. We keep each redirect's address and status, in order, and the address of the page they lead to. The chain fails from two redirects before a page that answers with a 2xx status, not counting a first redirect that only moves the address to HTTPS on the same name. Each `302`, `303` or `307` fails when it only moves the scheme from `http:` to `https:`, only moves between a name and its `www.`, or both, keeping port, path and query. The same address gives the same result on every check, as long as the server answers the same.

@@ -8,8 +8,8 @@ This {status} redirect is temporary, but the move from {from} to {to} is made fo
 
 ## Why it matters
 
-- `301` and `308` say the address changed for good: RFC 9110 says that future references to the page ought to use the new address. `302` and `307` say the move is temporary, and that clients ought to keep using the original address.
-- Google takes a permanent redirect as a signal that the new address should be canonical, and a temporary redirect as no such signal. After a move to HTTPS made with `302`, the old `http://` address can stay canonical for Google.
+- `301` and `308` say the address changed for good: RFC 9110 says that future references to the page ought to use the new address. `302` and `307` say the move is temporary, and that clients ought to keep using the original address; `303` sends the client elsewhere for this answer alone.
+- Google takes a permanent redirect (`301`, `308`) as a strong signal that the new address should be canonical, and a temporary one (`302`, `303`, `307`) as a weak signal. A move made for good is best said with the strong one.
 - A move to HTTPS, or between `example.com` and `www.example.com`, is not meant to be undone: this rule looks at those moves alone.
 - A temporary redirect has its uses, such as sending visitors to their language's pages, or to another page while one is down. The rule leaves those alone.
 
@@ -28,8 +28,8 @@ return 301 https://www.example.com$request_uri;
 ## How we detect
 
 1. We fetch the address you give as `ArablyzerBot` and follow its redirects. The rule applies when there was one at least.
-2. Each `302` or `307` fails whose move only changes the scheme from `http:` to `https:`, only changes the name between `example.com` and `www.example.com`, or both, keeping the port, the path and the query.
-3. Other temporary moves, to another path, name or query, pass: they may be meant. So does `303`, which is mostly the answer to a form sent with POST.
+2. Each `302`, `303` or `307` fails whose move only changes the scheme from `http:` to `https:`, only changes the name between `example.com` and `www.example.com`, or both, keeping the port, the path and the query.
+3. Other temporary moves, to another path, name or query, pass: they may be meant.
 
 ## References
 

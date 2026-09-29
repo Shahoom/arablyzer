@@ -1,7 +1,11 @@
 import { defineRule, type DetectorFinding } from '../../rule'
 
-/** The temporary redirects that keep the request's method (RFC 9110 §15.4.3, §15.4.8). */
-const TEMPORARY: ReadonlySet<number> = new Set([302, 307])
+/**
+ * The temporary redirects, as Google lists them: 302, 303 and 307, a weak signal that the target
+ * should be canonical (301 and 308 are a strong one). A scan sends GET alone, so a 303 here is no
+ * answer to a form.
+ */
+const TEMPORARY: ReadonlySet<number> = new Set([302, 303, 307])
 
 function parse(url: string): URL | null {
   try {
@@ -35,10 +39,10 @@ function movesForGood(from: URL, to: URL): boolean {
 }
 
 /**
- * A temporary redirect (302 or 307) where the move is for good: to HTTPS, or between example.com
- * and www.example.com. Search engines take a permanent redirect as a sign that the new address
- * is the page's own, and a temporary one as none. Other temporary moves, to a language's path say,
- * may be meant: they are left alone.
+ * A temporary redirect (302, 303 or 307) where the move is for good: to HTTPS, or between
+ * example.com and www.example.com. Google takes a permanent redirect as a strong signal that the
+ * new address is the page's own, and a temporary one as a weak signal. Other temporary moves, to
+ * a language's path say, may be meant: they are left alone.
  */
 export const rule = defineRule({
   id: 'redirect-temporary',

@@ -26,21 +26,47 @@ describe('redirect-chain', () => {
     expect(detectAll(rule, evidence)).toEqual([])
   })
 
-  it('counts every kind of redirect, across names and schemes', () => {
+  it('counts every kind of redirect, across names and paths', () => {
     const findings = detectAll(
       rule,
       reached(
-        'https://www.example.com/',
-        { url: 'http://example.com/', status: 302 },
-        { url: 'https://example.com/', status: 308 },
+        'https://www.example.com/ar/',
+        { url: 'https://example.com/', status: 302 },
+        { url: 'https://www.example.com/', status: 308 },
       ),
     )
     expect(findings).toMatchObject([
       {
-        values: { count: 2, from: 'http://example.com/', to: 'https://www.example.com/' },
-        snippet: '302 http://example.com/ → 308 https://example.com/ → https://www.example.com/',
+        values: { count: 2, from: 'https://example.com/', to: 'https://www.example.com/ar/' },
+        snippet:
+          '302 https://example.com/ → 308 https://www.example.com/ → https://www.example.com/ar/',
       },
     ])
+  })
+
+  it('does not count a first move to HTTPS on the same name, which HSTS preload asks for', () => {
+    // hstspreload.org: redirect from HTTP to HTTPS on the same host, then to the canonical name.
+    const preload = reached(
+      'https://www.example.com/',
+      { url: 'http://example.com/', status: 301 },
+      { url: 'https://example.com/', status: 301 },
+    )
+    expect(detectAll(rule, preload)).toEqual([])
+    // One more step after it is a chain again, counted in full.
+    const longer = reached(
+      'https://www.example.com/ar/',
+      { url: 'http://example.com/', status: 301 },
+      { url: 'https://example.com/', status: 301 },
+      { url: 'https://www.example.com/', status: 301 },
+    )
+    expect(detectAll(rule, longer)).toMatchObject([{ values: { count: 3 } }])
+    // A first step that changes the name too is not that move.
+    const renamed = reached(
+      'https://www.example.com/ar/',
+      { url: 'http://example.com/', status: 301 },
+      { url: 'https://www.example.com/', status: 301 },
+    )
+    expect(detectAll(rule, renamed)).toMatchObject([{ values: { count: 2 } }])
   })
 
   it('does not apply to a page that answered at once', () => {

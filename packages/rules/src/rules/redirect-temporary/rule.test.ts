@@ -28,7 +28,7 @@ describe('redirect-temporary', () => {
     expect(detectAll(rule, await fixtureEvidence(rule.id, 'right-language'))).toEqual([])
   })
 
-  it('flags 302 and 307 to HTTPS, between a name and its www, or both', () => {
+  it('flags 302, 303 and 307 to HTTPS, between a name and its www, or both', () => {
     const forGood: [string, string][] = [
       ['http://example.com/', 'https://example.com/'],
       ['https://www.example.com/p?q=1', 'https://example.com/p?q=1'],
@@ -36,13 +36,13 @@ describe('redirect-temporary', () => {
       ['http://example.com:8443/shop', 'https://example.com:8443/shop'],
     ]
     for (const [from, to] of forGood) {
-      for (const status of [302, 307]) {
+      // Google lists 302, 303 and 307 together as temporary, and a scan only sends GET.
+      for (const status of [302, 303, 307]) {
         expect(moved(status, from, to), `${String(status)} ${from}`).toMatchObject([
           { message: 'temporary', values: { status, from, to } },
         ])
       }
-      // Permanent redirects, and 303, which answers a form sent with POST, are left alone.
-      for (const status of [301, 303, 308]) {
+      for (const status of [301, 308]) {
         expect(moved(status, from, to), `${String(status)} ${from}`).toEqual([])
       }
     }
