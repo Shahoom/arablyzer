@@ -21,6 +21,7 @@ import { definition as mixedContent } from './tools/mixed-content/tool'
 import { definition as phoneFormatCheck } from './tools/phone-format-check/tool'
 import { definition as priceFormatCheck } from './tools/price-format-check/tool'
 import { definition as productPageCheck } from './tools/product-page-check/tool'
+import { definition as redirectChainCheck } from './tools/redirect-chain-check/tool'
 import { definition as robotsCheck } from './tools/robots-check/tool'
 import { definition as rtlCheck } from './tools/rtl-check/tool'
 import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
@@ -59,6 +60,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   phoneFormatCheck,
   priceFormatCheck,
   productPageCheck,
+  redirectChainCheck,
   robotsCheck,
   rtlCheck,
   rtlOverflowCheck,
