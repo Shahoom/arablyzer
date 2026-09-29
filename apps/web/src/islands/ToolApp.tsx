@@ -1,7 +1,7 @@
 import { URL_ERROR_CODES, type ScanSummary } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
-import { TOOLS_UI } from '@arablyzer/i18n/tools'
+import { TOOL_APP } from '@arablyzer/i18n/tool-app'
 import type { Report } from '@arablyzer/report-schema'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
@@ -11,7 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { fetchReport, startScan } from './api'
 import { followScan } from './events'
 import { Bidi } from './report/Bidi'
-import { Evidence } from './report/ReportView'
+import { Evidence } from './report/Evidence'
 import { SeverityPill } from './report/ui'
 import {
   advance,
@@ -52,7 +52,7 @@ const wait = (ms: number) =>
  * page passing. The result has its own link, the scan's report page.
  */
 export default function ToolApp({ lang, tool, renders }: Props) {
-  const t = TOOLS_UI[lang]
+  const t = TOOL_APP[lang].form
   const f = SCAN_FORM[lang]
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<FormError | null>(null)
@@ -176,7 +176,7 @@ export default function ToolApp({ lang, tool, renders }: Props) {
     <div className="flex flex-col gap-8">
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-2.5">
         <label htmlFor="tool-url" className="text-sm font-semibold">
-          {t.page.urlLabel}
+          {t.urlLabel}
         </label>
         <div className="flex flex-col gap-2 sm:h-[60px] sm:flex-row sm:gap-0 sm:border-[1.5px] sm:border-ink sm:bg-white">
           <input
@@ -203,13 +203,13 @@ export default function ToolApp({ lang, tool, renders }: Props) {
             aria-disabled={busy ? true : undefined}
             className="flex h-[52px] shrink-0 cursor-pointer items-center justify-center gap-2.5 bg-ink px-7 text-[17px] font-semibold text-white hover:bg-signal disabled:cursor-wait aria-disabled:cursor-wait sm:h-auto"
           >
-            {busy ? t.page.submitting : t.page.submit}
+            {busy ? t.submitting : t.submit}
             <Forward size={20} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
         <div ref={box} />
         <p id="tool-note" className="m-0 text-sm text-ink-3">
-          {renders ? t.page.note.render : t.page.note.html}
+          {renders ? t.note.render : t.note.html}
         </p>
         <p id="tool-error" role="alert" className="m-0 text-sm text-signal empty:hidden">
           {message}
@@ -221,7 +221,7 @@ export default function ToolApp({ lang, tool, renders }: Props) {
 }
 
 function Result({ run, lang }: { run: Run; lang: Lang }) {
-  const t = TOOLS_UI[lang].result
+  const t = TOOL_APP[lang].result
   const r = REPORT[lang]
   const frame = 'flex flex-col border border-ink bg-white'
   const head =
