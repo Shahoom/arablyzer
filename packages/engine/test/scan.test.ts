@@ -561,7 +561,7 @@ describe('scan: robots.txt', () => {
     expect(report.scan.notices.map((item) => item.code)).toEqual(['blocked-address'])
   })
 
-  // The robots.txt of the site a redirect led to keeps the page's lockdown too.
+  // The robots.txt of the site a redirect leads to keeps the page's lockdown too.
   it('keeps a public chain’s lockdown when it fetches robots.txt for another site', async () => {
     const final = await site({ 'final/index.html': ARABIC_PAGE, 'robots.txt': 'User-agent: *\n' })
     const first = await site(
@@ -569,10 +569,11 @@ describe('scan: robots.txt', () => {
       { '/': { status: 301, headers: { location: `http://other.test:${final.port}/final/` } } },
     )
     let lookups = 0
-    // Both names stand in for public sites until the second one's robots.txt is fetched.
+    // Both names stand in for public sites, but for the lookup of the second one's robots.txt,
+    // the third: there DNS points at a loopback address only --allow-private opens.
     const resolver: Resolver = () => {
       lookups++
-      return Promise.resolve([{ address: lookups <= 3 ? '127.0.0.1' : '127.0.0.2', family: 4 }])
+      return Promise.resolve([{ address: lookups === 3 ? '127.0.0.2' : '127.0.0.1', family: 4 }])
     }
     const report = await scan(`http://fixture.test:${first.port}/`, {
       rules: [robotsRule],

@@ -13,9 +13,9 @@ import {
 } from './helpers'
 
 // M2.4 plan §2 (BUILD-PLAN §13): a site that names ArablyzerBot in its robots.txt and disallows
-// a page is not scanned there. robots.txt is read before the page, and the page is never asked
-// for; only a group that names the bot counts, since a scan someone asks for is a visit, not a
-// crawl.
+// a page is not scanned there. robots.txt is read before the page, and before a redirect is
+// followed to another page, so a page the bot is disallowed from is never asked for; only a
+// group that names the bot counts, since a scan someone asks for is a visit, not a crawl.
 
 let sites: TempSite[] = []
 let standIn: CruxStandIn | undefined
@@ -172,25 +172,50 @@ describe('scan: the opt-out in robots.txt', () => {
     expect(steps.map((step) => step.step)).toEqual(['start', 'robots', 'page', 'rules'])
   })
 
-  it('reads the robots.txt of the site a redirect led to, which the rules then read', async () => {
-    const final = await site({ 'index.html': PAGE, 'robots.txt': 'User-agent: *\nAllow: /\n' })
+  it('reads the robots.txt of a site a redirect leads to before its first page, once', async () => {
+    const final = await site(
+      { 'shop/index.html': PAGE, 'robots.txt': 'User-agent: *\nAllow: /\n' },
+      { '/': { status: 302, headers: { location: '/shop/' } } },
+    )
     const first = await site(
       { 'robots.txt': 'User-agent: *\nDisallow: /\n' },
       { '/': { status: 302, headers: { location: final.url('/') } } },
     )
+    const steps: ScanProgress[] = []
     const report = await scan(first.url('/'), {
       rules: RULES,
       policy: createPolicy({
         allowTargets: [first, final].map((one) => ({ address: '127.0.0.1', port: one.port })),
       }),
+      onProgress: (step) => steps.push(step),
     })
     expect(report.scan.status).toBe('complete')
-    expect(report.facts.robots).toMatchObject({ url: final.url('/robots.txt'), status: 200 })
     expect(first.requests).toEqual(['GET /robots.txt', 'GET /'])
-    expect(final.requests).toEqual(['GET /', 'GET /robots.txt'])
+    expect(final.requests).toEqual(['GET /robots.txt', 'GET /', 'GET /shop/'])
+    // The rules read the robots.txt of the final page's site.
+    expect(report.facts.robots).toMatchObject({ url: final.url('/robots.txt'), status: 200 })
+    expect(steps.map((step) => step.step)).toEqual(['start', 'robots', 'robots', 'page', 'rules'])
   })
 
-  it('stops when that site opts out: no render, no CrUX, no rules, nothing of the page', async () => {
+  it('never follows a redirect to a page its site disallows, on the same site', async () => {
+    const local = await site(
+      {
+        'private/index.html': PAGE,
+        'robots.txt': 'User-agent: ArablyzerBot\nDisallow: /private\n',
+      },
+      { '/': { status: 302, headers: { location: '/private/' } } },
+    )
+    const report = await scan(local.url('/'), { rules: RULES, policy: policyFor(local) })
+    expect(local.requests).toEqual(['GET /robots.txt', 'GET /'])
+    expect(report.scan.status).toBe('failed')
+    expect(report.scan.notices[0]?.message.en).toContain('“Disallow: /private” is on line 2')
+    expect(report.target).toMatchObject({
+      finalUrl: null,
+      http: { status: null, redirects: [{ url: local.url('/'), status: 302 }] },
+    })
+  })
+
+  it('never follows a redirect to a site that opts out: no page, no render, no CrUX, no rules', async () => {
     const final = await site({
       'index.html': PAGE,
       'robots.txt': 'User-agent: ArablyzerBot\nDisallow: /\n',
@@ -221,17 +246,18 @@ describe('scan: the opt-out in robots.txt', () => {
       onProgress: (step) => steps.push(step),
     })
     expect(schemaErrors(report)).toBe('')
-    expect(steps.map((step) => step.step)).toEqual(['start', 'robots', 'page', 'robots'])
+    expect(steps.map((step) => step.step)).toEqual(['start', 'robots', 'robots'])
     expect(standIn.queries).toEqual([])
-    expect(final.requests).toEqual(['GET /', 'GET /robots.txt'])
+    expect(first.requests).toEqual(['GET /robots.txt', 'GET /'])
+    expect(final.requests).toEqual(['GET /robots.txt'])
     expect(report.scan.status).toBe('failed')
     expect(report.scan.render).toBeUndefined()
     expect(report.scan.notices.map((notice) => notice.code)).toEqual(['opted-out'])
     expect(report.scan.notices[0]?.message.en).toContain(final.url('/robots.txt'))
     expect(report.target).toMatchObject({
       url: first.url('/'),
-      finalUrl: final.url('/'),
-      http: { status: 200, redirects: [{ url: first.url('/'), status: 301 }] },
+      finalUrl: null,
+      http: { status: null, contentType: null, redirects: [{ url: first.url('/'), status: 301 }] },
     })
     expect(report.page).toBeNull()
     expect(report.facts).toEqual({})

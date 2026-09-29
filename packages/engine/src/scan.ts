@@ -163,8 +163,9 @@ export function selectRules(rules: readonly Rule[], ids?: readonly string[]): Ru
 
 /**
  * Scans one URL (docs/design/phase-0.md §3). Deterministic: the same responses give the same
- * report, apart from fetchedAt and durationMs. robots.txt comes first: a page its site asks the
- * bot not to check is never fetched (M2.4 plan §2).
+ * report, apart from fetchedAt and durationMs. robots.txt comes first, for the page and for any
+ * page a redirect leads to: a page its site asks the bot not to check is never fetched (M2.4
+ * plan §2).
  */
 export async function scan(url: string, options: ScanOptions = {}): Promise<Report> {
   if (url.trim() === '') throw new TypeError('A URL is required')
@@ -254,45 +255,73 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       'opted-out',
     )
 
-  const readRobots = async (pageUrl: string, fetchPolicy: EgressPolicy): Promise<RobotsRead> => {
-    const read = await fetchRobots(pageUrl, { ...base, policy: fetchPolicy })
-    progress({
-      step: 'robots',
-      outcome: read.facts.outcome,
-      status: 'status' in read.facts ? read.facts.status : null,
-    })
-    return read
+  // Each site's robots.txt, read once, the first time the scan comes to one of its pages.
+  const robotsBySite = new Map<string, RobotsRead>()
+  /**
+   * robots.txt for a page's site, and the rule by which it keeps the bot from that page, if
+   * any (M2.4 plan §2). Inside the page's fetch, the read gets that fetch's signal.
+   */
+  const robotsFor = async (
+    pageUrl: string,
+    fetchPolicy: EgressPolicy,
+    signal?: AbortSignal,
+  ): Promise<{ readonly read: RobotsRead; readonly rule: RobotsRule | null }> => {
+    const site = new URL(pageUrl).origin
+    let read = robotsBySite.get(site)
+    if (read === undefined) {
+      read = await fetchRobots(pageUrl, {
+        ...base,
+        policy: fetchPolicy,
+        ...(signal === undefined ? {} : { signal }),
+      })
+      robotsBySite.set(site, read)
+      progress({
+        step: 'robots',
+        outcome: read.facts.outcome,
+        status: 'status' in read.facts ? read.facts.status : null,
+      })
+    }
+    return { read, rule: optOutRule(read.facts, bot, pageUrl) }
   }
 
-  // robots.txt before the page (M2.4 plan §2), so a page its site asks the bot not to check is
-  // never asked for. A URL the egress rules refuse before any lookup has none to read: the
-  // page's fetch says why.
+  // robots.txt before the page, so a page its site asks the bot not to check is never asked
+  // for. A URL the egress rules refuse before any lookup has none to read: the page's fetch
+  // says why.
   const requested = checkUrl(url, policy)
   let first: RobotsRead | null = null
   if (requested.ok) {
-    first = await readRobots(requested.url.href, policy)
-    const rule = optOutRule(first.facts, bot, requested.url.href)
+    const { read, rule } = await robotsFor(requested.url.href, policy)
     if (rule !== null) {
       return optedOut(
         {
           url: redactUrl(url),
           finalUrl: null,
-          fetchedAt: first.startedAt,
+          fetchedAt: read.startedAt,
           userAgent,
           http: { status: null, contentType: null, redirects: [] },
         },
-        first.facts,
+        read.facts,
         rule,
       )
     }
+    first = read
   }
 
-  // Under --allow-private, a site whose robots.txt was on a public address keeps the default
-  // rules for its page, so DNS cannot move the page onto a private address.
+  // A redirect the next page's site keeps the bot from: the fetch ends before that page.
+  let declined = null as { readonly robots: RobotsFacts; readonly rule: RobotsRule } | null
   const fetched = await safeFetch(url, {
     ...base,
+    // Under --allow-private, a site whose robots.txt was on a public address keeps the default
+    // rules for its page, so DNS cannot move the page onto a private address.
     policy: first === null || first.privateAccess ? policy : lockdown,
     accept: PAGE_ACCEPT,
+    // The next page's site may keep the bot from it too: its robots.txt is read before the
+    // redirect is followed, with the chain's lockdown.
+    beforeRedirect: async (to, hop) => {
+      const { read, rule } = await robotsFor(to, hop.privateAccess ? policy : lockdown, hop.signal)
+      if (rule !== null) declined = { robots: read.facts, rule }
+      return rule === null
+    },
   })
   const response = fetched.response
   const target: Target = {
@@ -306,6 +335,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       redirects: fetched.redirects.map(({ url: hop, status }) => ({ url: hop, status })),
     },
   }
+  if (declined !== null) return optedOut(target, declined.robots, declined.rule)
 
   progress({
     step: 'page',
@@ -321,17 +351,11 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     )
   }
 
-  // Under --allow-private, a chain that started on a public address lost private access; the
-  // robots.txt fetch for the same site keeps that, so DNS cannot move it onto a private address.
+  // Under --allow-private, a chain that started on a public address lost private access; what
+  // the scan fetches for the same site keeps that, so DNS cannot move it onto a private address.
   const robotsPolicy = fetched.privateAccess ? policy : lockdown
-  // A redirect to another site: that site's robots.txt may ask the same, and it is the one the
-  // rules read. Where the page stayed on its site, the robots.txt read first serves.
-  const robotsRead =
-    first !== null && requested.ok && new URL(response.url).origin === requested.url.origin
-      ? first
-      : await readRobots(response.url, robotsPolicy)
-  const refused = optOutRule(robotsRead.facts, bot, response.url)
-  if (refused !== null) return optedOut(target, robotsRead.facts, refused)
+  // The rules read the robots.txt of the final page's site, read before that page was asked for.
+  const { read: robotsRead } = await robotsFor(response.url, robotsPolicy)
 
   let page: PageFacts
   try {

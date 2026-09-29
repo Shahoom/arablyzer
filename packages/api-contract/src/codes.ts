@@ -109,8 +109,9 @@ export type ScanEvent =
     }
   | {
       /**
-       * robots.txt, read before the page, and again for the site a redirect led to (M2.4 plan
-       * §2). Where it asks ArablyzerBot not to check the page, the scan ends there.
+       * A site's robots.txt, read before the scan asks it for a page (M2.4 plan §2): the page's
+       * site first, then each other site a redirect leads to. Where it asks ArablyzerBot not to
+       * check the page, the scan ends there.
        */
       readonly type: 'robots'
       readonly outcome: 'fetched' | 'unavailable' | 'unreachable' | 'failed'
