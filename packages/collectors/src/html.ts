@@ -1,9 +1,11 @@
+import { html as namespaces } from 'parse5'
 import {
   attr,
   collapseWhitespace,
   isElement,
   isHtmlElement,
   locationOf,
+  truncate,
   type DocumentIndex,
   type Element,
   type ElementRef,
@@ -98,6 +100,17 @@ export interface InsecureLoadElement extends ElementRef {
   readonly kind: 'blockable' | 'upgradable' | 'form'
 }
 
+/**
+ * A name the page gives a graphic or a control for those who cannot see it (M2.3c): an image's
+ * `alt` (`<img>`, `<area>`, `<input type="image">`), an `<svg>`'s `<title>`, or an `aria-label`.
+ */
+export interface TextAlternative extends ElementRef {
+  readonly tag: string
+  readonly source: 'alt' | 'svg-title' | 'aria-label'
+  /** Whitespace collapsed, at most SNIPPET_MAX_LENGTH characters; never empty. */
+  readonly text: string
+}
+
 export interface HtmlFacts {
   readonly encoding: EncodingInfo
   /** The document base URL: the first <base href>, else the page URL. */
@@ -116,6 +129,8 @@ export interface HtmlFacts {
   readonly fields: readonly FieldElement[]
   /** The first MAX_INSECURE_LOADS, in document order. */
   readonly insecureLoads: readonly InsecureLoadElement[]
+  /** The first MAX_TEXT_ALTERNATIVES, in document order. */
+  readonly textAlternatives: readonly TextAlternative[]
 }
 
 export interface HtmlOptions {
@@ -160,10 +175,18 @@ export function collectHtml(
   const headings: HeadingElement[] = []
   const fields: FieldElement[] = []
   const insecureLoads: InsecureLoadElement[] = []
+  const textAlternatives: TextAlternative[] = []
   const walk: Walk = { left: options.walkBudget ?? WALK_BUDGET }
   const labels = labelsByField(all, walk)
   const forms = formIds(all)
   for (const element of all) {
+    if (textAlternatives.length < MAX_TEXT_ALTERNATIVES) {
+      for (const [source, text] of textAlternativesOf(element)) {
+        if (textAlternatives.length < MAX_TEXT_ALTERNATIVES) {
+          textAlternatives.push({ ...index.ref(element), tag: element.tagName, source, text })
+        }
+      }
+    }
     if (insecureLoads.length < MAX_INSECURE_LOADS && isHtmlElement(element, element.tagName)) {
       for (const load of insecureLoadsOf(element, baseUrl, forms)) {
         if (insecureLoads.length < MAX_INSECURE_LOADS)
@@ -268,10 +291,42 @@ export function collectHtml(
     headings,
     fields,
     insecureLoads,
+    textAlternatives,
   }
 }
 
 export const MAX_INSECURE_LOADS = 100
+/** Text alternatives kept from one page: enough for any page's images and labels. */
+export const MAX_TEXT_ALTERNATIVES = 2_000
+
+/**
+ * An element's names for those who cannot see it: an image's alt, an <svg>'s first <title>, and
+ * an aria-label, each whitespace collapsed and never empty.
+ */
+function textAlternativesOf(element: Element): [TextAlternative['source'], string][] {
+  const found: [TextAlternative['source'], string][] = []
+  const add = (source: TextAlternative['source'], value: string | null) => {
+    const text = value === null ? '' : truncate(collapseWhitespace(value))
+    if (text !== '') found.push([source, text])
+  }
+  if (
+    isHtmlElement(element, element.tagName) &&
+    (element.tagName === 'img' ||
+      element.tagName === 'area' ||
+      (element.tagName === 'input' && inputType(attr(element, 'type')) === 'image'))
+  ) {
+    add('alt', attr(element, 'alt'))
+  }
+  if (element.tagName === 'svg' && element.namespaceURI === namespaces.NS.SVG) {
+    const title = element.childNodes.find(
+      (child): child is Element =>
+        isElement(child) && child.tagName === 'title' && child.namespaceURI === namespaces.NS.SVG,
+    )
+    if (title !== undefined) add('svg-title', textOf(title, { left: WALK_BUDGET }))
+  }
+  add('aria-label', attr(element, 'aria-label'))
+  return found
+}
 /** Candidates read from one srcset. */
 export const MAX_SRCSET_CANDIDATES = 50
 
