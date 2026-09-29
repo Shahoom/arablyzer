@@ -1,13 +1,20 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { collectPage, collectRobots, type RobotsFacts } from '@arablyzer/collectors'
+import {
+  collectCrux,
+  collectPage,
+  collectRobots,
+  type CruxFacts,
+  type RobotsFacts,
+} from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
 import type { Redirect } from '@arablyzer/report-schema'
 import { RULES, ruleById } from '@arablyzer/rules'
 import { locationOf, parseHttpExample, type CodeExample, type Lang, type Tool } from '../src/index'
 
-// BUILD-PLAN §6.1: the example on a tool's page is live. A tool that reads the HTML, robots.txt
-// or the response's headers and redirects judges its examples as the page says; one that renders
+// BUILD-PLAN §6.1: the example on a tool's page is live. A tool that reads the HTML, robots.txt,
+// the response's headers and redirects, or real visitors' data from the Chrome UX Report (a JSON
+// answer of its API, M2.3c) judges its examples as the page says; one that renders
 // the page shows examples taken from its rules' own fixtures, which the engine's browser suite
 // renders in every engine (packages/engine, fixtures.browser.test.ts), and whose wrong ones fail
 // and right ones pass. Shared by the test and by scripts/check-copy.ts, which checks one tool's
@@ -24,9 +31,24 @@ export function rendersPage(tool: Tool): boolean {
 }
 
 /**
- * The tool's rules on an example: HTML as the page itself, robots.txt beside a plain page, and an
- * HTTP example as the answers to a request for PAGE_URL: each redirect's Location is where the
- * next response came from, and the last response is the page, without a body.
+ * A Chrome UX Report answer as the engine reads it: for the page's URL, or, when the answer names
+ * an origin, for the origin the engine asks about when the URL has no data.
+ */
+function cruxAnswer(code: string): CruxFacts {
+  const body: unknown = JSON.parse(code)
+  const record = typeof body === 'object' && body !== null && 'record' in body ? body.record : null
+  const key = typeof record === 'object' && record !== null && 'key' in record ? record.key : null
+  const byOrigin = typeof key === 'object' && key !== null && 'origin' in key
+  return byOrigin
+    ? collectCrux({ url: { status: 404, body: null }, origin: { status: 200, body } })
+    : collectCrux({ url: { status: 200, body } })
+}
+
+/**
+ * The tool's rules on an example: HTML as the page itself, robots.txt beside a plain page, an
+ * HTTP example as the answers to a request for PAGE_URL (each redirect's Location is where the
+ * next response came from, and the last response is the page, without a body), and JSON as the
+ * Chrome UX Report's answer about a plain page.
  */
 export function evaluateExample(tool: Tool, example: CodeExample) {
   if (example.lang === 'http') {
@@ -45,6 +67,16 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
       body: encode(''),
     })
     return evaluatePage(page, { rules: RULES, ruleIds: tool.rules, redirects }).results
+  }
+  if (example.lang === 'json') {
+    const page = collectPage({
+      url: PAGE_URL,
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: encode('<!doctype html><p>مرحبا</p>'),
+    })
+    return evaluatePage(page, { rules: RULES, ruleIds: tool.rules, crux: cruxAnswer(example.code) })
+      .results
   }
   const html = example.lang === 'html' ? example.code : '<!doctype html><p>مرحبا</p>'
   const page = collectPage({
@@ -70,8 +102,9 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
 
 /**
  * Whether an example can speak to a rule: robots.txt to the rules that read it, an HTTP exchange
- * to those that read the response's headers or its redirects, HTML to the rest. A rule an example
- * cannot speak to, such as one that reads the certificate, need not pass it: it must not fail.
+ * to those that read the response's headers or its redirects, a Chrome UX Report answer to those
+ * that read it, HTML to the rest. A rule an example cannot speak to, such as one that reads the
+ * certificate, need not pass it: it must not fail.
  */
 export function speaksTo(example: CodeExample, ruleId: string): boolean {
   const reads = ruleById(ruleId)?.needs ?? []
@@ -80,8 +113,10 @@ export function speaksTo(example: CodeExample, ruleId: string): boolean {
       return reads.includes('robots')
     case 'http':
       return reads.includes('headers') || reads.includes('redirects')
+    case 'json':
+      return reads.includes('crux')
     case 'html':
-      return !reads.includes('robots')
+      return !reads.includes('robots') && !reads.includes('crux')
   }
 }
 

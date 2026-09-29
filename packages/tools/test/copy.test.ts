@@ -123,6 +123,12 @@ describe('parseToolCopy', () => {
     expect(copy.example.wrong).toEqual({ lang: 'http', code: exchange })
   })
 
+  it('reads a JSON example as written', () => {
+    const answer = '{ "record": { "metrics": {} } }'
+    const copy = parse(AR.replace('```html\n<html lang="en">', `\`\`\`json\n${answer}`))
+    expect(copy.example.wrong).toEqual({ lang: 'json', code: answer })
+  })
+
   it('reads English headings and robots.txt examples, and leaves reviewed unset without it', () => {
     const copy = parse(EN, 'en')
     expect(copy.example.wrong).toEqual({ lang: 'robots.txt', code: 'User-agent: *\nDisallow: /' })
@@ -205,7 +211,12 @@ describe('parseToolCopy', () => {
     [
       'an example in another language',
       AR.replace('```html\n<html lang="en">', '```css\n<html lang="en">'),
-      /code block must be html, robots.txt or http/,
+      /code block must be html, robots.txt, http or json/,
+    ],
+    [
+      'a JSON example that does not parse',
+      AR.replace('```html\n<html lang="en">', '```json\n{ "record": '),
+      /"### خطأ": the JSON does not parse/,
     ],
     [
       'an HTTP example its test cannot read',

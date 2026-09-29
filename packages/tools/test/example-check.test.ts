@@ -108,3 +108,72 @@ describe('an HTTP example', () => {
     expect(exampleProblems(tool, 'ar')).toEqual([])
   })
 })
+
+/** An answer of the Chrome UX Report API, as its documentation shows one, for a URL or an origin. */
+function answer(key: Record<string, string>, lcp: number, inp: number, cls: string): string {
+  const metric = (p75: number | string) => ({ percentiles: { p75 } })
+  return JSON.stringify({
+    record: {
+      key: { formFactor: 'PHONE', ...key },
+      metrics: {
+        largest_contentful_paint: metric(lcp),
+        interaction_to_next_paint: metric(inp),
+        cumulative_layout_shift: metric(cls),
+      },
+      collectionPeriod: {
+        firstDate: { year: 2026, month: 8, day: 30 },
+        lastDate: { year: 2026, month: 9, day: 26 },
+      },
+    },
+  })
+}
+
+describe('a Chrome UX Report example', () => {
+  const json = (code: string): CodeExample => ({ lang: 'json', code })
+  const vitals = ['cwv-lcp-poor', 'cwv-inp-poor', 'cwv-cls-poor']
+  const url = { url: 'https://www.example.com/' }
+
+  it('speaks to the rules that read real visitors’ data, and to no other', () => {
+    for (const id of vitals) expect(speaksTo(json('{}'), id), id).toBe(true)
+    for (const id of ['title-missing', 'hsts-missing', 'robots-blocks-googlebot']) {
+      expect(speaksTo(json('{}'), id), id).toBe(false)
+    }
+    expect(speaksTo({ lang: 'html', code: '<p>x</p>' }, 'cwv-lcp-poor')).toBe(false)
+  })
+
+  it('is the API’s answer about the page, or about its origin', () => {
+    const tool = toolOf(vitals, json('{}'), json('{}'))
+    const statuses = (code: string) =>
+      evaluateExample(tool, json(code)).map((result) => [result.id, result.status])
+    expect(statuses(answer(url, 5_200, 180, '0.05'))).toEqual([
+      ['cwv-cls-poor', 'pass'],
+      ['cwv-inp-poor', 'pass'],
+      ['cwv-lcp-poor', 'fail'],
+    ])
+    expect(statuses(answer({ origin: 'https://www.example.com' }, 2_100, 650, '0.31'))).toEqual([
+      ['cwv-cls-poor', 'fail'],
+      ['cwv-inp-poor', 'fail'],
+      ['cwv-lcp-poor', 'pass'],
+    ])
+  })
+
+  it('holds a page whose wrong answer fails a rule and whose right one passes them all', () => {
+    const good = json(answer(url, 2_100, 180, '0.05'))
+    expect(
+      exampleProblems(toolOf(vitals, json(answer(url, 5_200, 180, '0.05')), good), 'en'),
+    ).toEqual([])
+    expect(exampleProblems(toolOf(vitals, good, good), 'ar')).toEqual([
+      'none of cwv-lcp-poor, cwv-inp-poor, cwv-cls-poor fails the wrong example',
+    ])
+    // An answer that is not the API's is no data: the rules report an error.
+    const slow = json(answer(url, 5_200, 180, '0.05'))
+    expect(exampleProblems(toolOf(vitals, slow, json('{}')), 'en')).toEqual([
+      'cwv-cls-poor errors on the right example',
+      'cwv-inp-poor errors on the right example',
+      'cwv-lcp-poor errors on the right example',
+      'cwv-cls-poor is error on the right example',
+      'cwv-inp-poor is error on the right example',
+      'cwv-lcp-poor is error on the right example',
+    ])
+  })
+})
