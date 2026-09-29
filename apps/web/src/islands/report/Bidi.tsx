@@ -1,5 +1,5 @@
 import type { Lang } from '@arablyzer/seo/site'
-import { Fragment } from 'react'
+import { Fragment } from 'preact'
 import { isolateLatin } from '../../lib/bidi'
 
 /** Text in the page's language; in Arabic, its Latin words and code isolated, as on the site. */

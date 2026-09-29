@@ -3,8 +3,9 @@ import { CATEGORIES, REPORT } from '@arablyzer/i18n/report'
 import type { Finding, Report, RuleResult, Severity } from '@arablyzer/report-schema'
 import { STRINGS } from '@arablyzer/seo/strings'
 import { localePath, type Lang } from '@arablyzer/seo/site'
-import { Braces, Check, Copy, EyeOff, RotateCcw } from 'lucide-react'
-import { useState, type KeyboardEvent } from 'react'
+import { Braces, Check, Copy, EyeOff, RotateCcw } from 'lucide-preact'
+import type { TargetedKeyboardEvent } from 'preact'
+import { useState } from 'preact/hooks'
 import { METHODOLOGY } from '../../lib/site'
 import { ENGINES, problemsOf, valueOf, type RuleFindings } from '../report-model'
 import { Bidi } from './Bidi'
@@ -103,7 +104,7 @@ function ReportHeader({ id, report, lang }: { id: string; report: Report; lang: 
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex min-w-0 flex-col gap-3">
           <span className="text-sm font-semibold text-signal">{t.kicker}</span>
-          <h1 id="report-title" className="m-0 text-3xl leading-tight font-bold md:text-[38px]">
+          <h1 id="report-title" className="m-0 text-3xl leading-tight font-semibold md:text-[38px]">
             {t.title}
           </h1>
           <a
@@ -185,10 +186,7 @@ function ScoreCard({ report, lang }: { report: Report; lang: Lang }) {
         </span>
       </div>
       <div className="flex flex-col gap-3 px-5 pt-6 pb-5">
-        <span
-          dir="ltr"
-          className="self-end font-mono text-[88px] leading-[0.85] font-medium text-white"
-        >
+        <span dir="ltr" className="self-end font-mono text-[88px] leading-[0.85] text-white">
           {overall ?? '—'}
           <span className="text-xl text-panel-dim">/100</span>
         </span>
@@ -211,7 +209,7 @@ function ScoreCard({ report, lang }: { report: Report; lang: Lang }) {
             className="flex flex-col gap-1 border-e border-panel-line px-5 py-3.5 last:border-e-0"
           >
             <dt className="text-xs text-panel-dim">{STRINGS[lang].report.status[status]}</dt>
-            <dd dir="ltr" className={`m-0 self-start font-mono text-2xl font-medium ${colour}`}>
+            <dd dir="ltr" className={`m-0 self-start font-mono text-2xl ${colour}`}>
               {count}
             </dd>
           </div>
@@ -396,7 +394,7 @@ function Results({
     ['not-applicable', t.tabs.notApplicable, report.summary.notApplicable],
   ]
   // The tabs as one control (WAI-ARIA tabs): the arrows move along them, in the page's direction.
-  const move = (event: KeyboardEvent<HTMLButtonElement>) => {
+  const move = (event: TargetedKeyboardEvent<HTMLButtonElement>) => {
     const index = tabs.findIndex(([key]) => key === tab)
     const next = lang === 'ar' ? 'ArrowLeft' : 'ArrowRight'
     const previous = lang === 'ar' ? 'ArrowRight' : 'ArrowLeft'
@@ -443,7 +441,7 @@ function Results({
               }}
               onKeyDown={move}
               className={`flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[15px] leading-tight sm:flex-row sm:gap-1.5 sm:px-4 sm:text-base ${
-                tab === key ? 'bg-ink font-bold text-white' : 'bg-transparent hover:text-signal'
+                tab === key ? 'bg-ink font-semibold text-white' : 'bg-transparent hover:text-signal'
               }`}
             >
               <span>{label}</span>

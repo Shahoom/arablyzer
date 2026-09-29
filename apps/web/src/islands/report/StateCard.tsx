@@ -36,7 +36,7 @@ export function StateCard({
       aria-labelledby="state-title"
       className="mx-5 my-10 flex max-w-3xl flex-col gap-4 border-[1.5px] border-ink bg-white p-6 shadow-key md:mx-16 md:p-8"
     >
-      <h1 id="state-title" className="m-0 text-2xl font-bold md:text-3xl">
+      <h1 id="state-title" className="m-0 text-2xl font-semibold md:text-3xl">
         {title}
       </h1>
       <p className="m-0 text-base leading-[1.8] text-ink-2">

@@ -1,9 +1,10 @@
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import { URL_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { localePath, type Lang } from '@arablyzer/seo/site'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
-import { useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react'
+import { ArrowLeft, ArrowRight } from 'lucide-preact'
+import type { TargetedSubmitEvent } from 'preact'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { startScan } from './api'
 import { askedUrl, precheck, type FormError } from './scan-request'
 import { challenge } from './turnstile'
@@ -64,7 +65,7 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
     }
   }, [])
 
-  async function onSubmit(event: SubmitEvent<HTMLFormElement>) {
+  async function onSubmit(event: TargetedSubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (busy) return
     const value = new FormData(event.currentTarget).get('url')
@@ -118,7 +119,7 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
           inputMode="url"
           autoComplete="url"
           autoCapitalize="none"
-          spellCheck={false}
+          spellcheck={false}
           placeholder={t.placeholder}
           onFocus={() => {
             check.warm()
