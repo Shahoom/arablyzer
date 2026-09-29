@@ -251,6 +251,10 @@ describe('the site server', () => {
       ['/r/AbCdEfGhIjKlMnOpQrSt_-', 'ar'],
       ['/en/r/AbCdEfGhIjKlMnOpQrSt_-', 'en'],
       ['/r/', 'ar'],
+      ['/en/r/', 'en'],
+      // By its file's name, through the redirect to the page.
+      ['/r/index', 'ar'],
+      ['/en/r/index.html', 'en'],
     ] as const) {
       const response = await fetch(`${SITE}${path}`)
       expect(response.status, path).toBe(200)
@@ -270,6 +274,42 @@ describe('the site server', () => {
       expect(response.status, path).toBe(200)
       expect(response.headers.get('x-content-type-options'), path).toBe('nosniff')
       expect(await response.text(), path).toContain(`lang="${lang}"`)
+    }
+  })
+
+  it("sends a page's other addresses to its own for good, with the security headers", async () => {
+    for (const [path, own] of [
+      // A slash after a page's address.
+      ['/tools/', '/tools'],
+      ['/tools/rtl-check/', '/tools/rtl-check'],
+      ['/en/tools/', '/en/tools'],
+      // A page's file, or a directory's index, by its name.
+      ['/index', '/'],
+      ['/index.html', '/'],
+      ['/en/index', '/en/'],
+      ['/en/index.html', '/en/'],
+      ['/tools.html', '/tools'],
+      ['/tools/rtl-check.html', '/tools/rtl-check'],
+      ['/r/index', '/r/'],
+      ['/en/r/index', '/en/r/'],
+      // A directory's page without its slash.
+      ['/en', '/en/'],
+      // The query goes along: a tool page reads the address to scan from it.
+      [
+        '/tools/rtl-check/?url=https%3A%2F%2Fexample.com%2F',
+        '/tools/rtl-check?url=https%3A%2F%2Fexample.com%2F',
+      ],
+    ] as const) {
+      const response = await fetch(`${SITE}${path}`, { redirect: 'manual' })
+      expect(response.status, path).toBe(308)
+      expect(response.headers.get('location'), path).toBe(own)
+      expect(response.headers.get('x-content-type-options'), path).toBe('nosniff')
+      expect(response.headers.get('strict-transport-security'), path).toBe('max-age=31536000')
+      expect(response.headers.get('server'), path).toBeNull()
+    }
+    // A directory's page keeps its slash.
+    for (const path of ['/', '/en/']) {
+      expect((await fetch(`${SITE}${path}`, { redirect: 'manual' })).status, path).toBe(200)
     }
   })
 
