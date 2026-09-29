@@ -28,20 +28,26 @@ export type ScanRequest = z.infer<typeof ScanRequest>
 export const MAX_ERROR_LENGTH = 500
 
 /** The engine's steps, once each in a scan (packages/engine, scan.ts). */
-const ONCE = ['started', 'page', 'robots', 'crux', 'lab-start', 'lab', 'rules'] as const
+const ONCE = ['started', 'page', 'crux', 'lab-start', 'lab', 'rules'] as const
+/**
+ * robots.txt, read before the page, and read again for the site a redirect led to (M2.4 plan
+ * §2): twice at most.
+ */
+const TWICE = ['robots'] as const
 /** The render's steps, once for each engine. */
 const PER_ENGINE = ['render-start', 'render'] as const
 /**
  * The events the scanner sends: a scan's own steps. The queue's, and a scan's end, are the
  * API's and the worker's to tell.
  */
-export const SCANNER_EVENT_TYPES = [...ONCE, ...PER_ENGINE] as const
+export const SCANNER_EVENT_TYPES = [...ONCE, ...TWICE, ...PER_ENGINE] as const
 export type ScannerEvent = Extract<
   ScanEventShape,
   { readonly type: (typeof SCANNER_EVENT_TYPES)[number] }
 >
-/** The most a scan sends: each step once, the render's for every engine. */
-export const MAX_SCANNER_EVENTS = ONCE.length + PER_ENGINE.length * Engine.options.length
+/** The most a scan sends: each step once, robots.txt twice, the render's for every engine. */
+export const MAX_SCANNER_EVENTS =
+  ONCE.length + 2 * TWICE.length + PER_ENGINE.length * Engine.options.length
 
 const scannerEvent = ScanEvent.refine(
   (event) => (SCANNER_EVENT_TYPES as readonly string[]).includes(event.type),
