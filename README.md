@@ -137,6 +137,7 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`referrer-policy-missing`](packages/rules/src/rules/referrer-policy-missing/copy.en.md) | A public page states its referrer policy, in a `Referrer-Policy` header or a `<meta name="referrer">` (information) |
 | [`mixed-content`](packages/rules/src/rules/mixed-content/copy.en.md) | An HTTPS page loads nothing over `http:`, and its forms send nothing there |
 | [`tls-expiring`](packages/rules/src/rules/tls-expiring/copy.en.md) | The TLS certificate is not about to expire |
+| [`redirect-chain`](packages/rules/src/rules/redirect-chain/copy.en.md) | The page is reached through one redirect at most |
 
 These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
 

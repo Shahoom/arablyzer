@@ -1,0 +1,4 @@
+{
+  "/": { "status": 301, "headers": { "Location": "/ar" } },
+  "/ar": { "status": 301, "headers": { "Location": "/ar/" } }
+}
