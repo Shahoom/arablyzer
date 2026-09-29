@@ -114,6 +114,12 @@ export function optOutOf(report: Report): Notice | null {
   return report.scan.notices.find((notice) => notice.code === OPTED_OUT) ?? null
 }
 
+/**
+ * The notice of a page that answered with a bot challenge, which a service may send with any
+ * status, 2xx included (packages/engine, notices.ts; M2.3c).
+ */
+const BOT_CHALLENGE = 'bot-challenge'
+
 export type Outcome = 'complete' | 'partial' | 'blocked' | 'opted-out' | 'failed'
 
 /** How the report opens: whole, partial, refused by the site, opted out by it, or failed. */
@@ -122,6 +128,7 @@ export function outcomeOf(report: Report): Outcome {
   if (optOutOf(report) !== null) return 'opted-out'
   const status = report.target.http.status
   if (status !== null && REFUSALS.has(status)) return 'blocked'
+  if (report.scan.notices.some((notice) => notice.code === BOT_CHALLENGE)) return 'blocked'
   return report.scan.status
 }
 

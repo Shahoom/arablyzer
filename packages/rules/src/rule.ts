@@ -22,6 +22,8 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * them. `crux`: real-user data from the Chrome UX Report, which needs an API key; without one the
  * rule does not apply (M1.3b). `sitemap`: the site's sitemaps, those robots.txt names or
  * /sitemap.xml (M2.3c); like robots.txt, they are the site's, read whatever the page answered.
+ * `response`: the page's answer whatever its status, its status and headers, for a rule that
+ * judges how the server answered, such as with a bot challenge (M2.3c).
  */
 export type CollectorId =
   | 'http'
@@ -34,6 +36,7 @@ export type CollectorId =
   | 'files'
   | 'crux'
   | 'sitemap'
+  | 'response'
 
 export interface Evidence {
   readonly page: PageFacts

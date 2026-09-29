@@ -8,6 +8,7 @@ export type NoticeCode =
   | 'sitemap-unchecked'
   | 'opted-out'
   | 'page-status'
+  | 'bot-challenge'
   | 'not-html'
   | 'little-text'
   | 'page-too-complex'
@@ -124,6 +125,11 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'page-status': {
     ar: 'الصفحة ردّت بالحالة HTTP {status}، فلم نفحص محتواها.',
     en: 'The page answered HTTP {status}, so its content was not checked.',
+  },
+  // BUILD-PLAN §13: a site that blocks the bot says so, honestly; the scan never gets past it.
+  'bot-challenge': {
+    ar: 'ردّ الموقع بتحدٍّ للبوتات من {service} (HTTP {status}) بدل الصفحة، فلم نفحص محتواها: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'The site answered with a {service} bot challenge (HTTP {status}) instead of the page, so its content was not checked: Arablyzer never tries to get past a challenge.',
   },
   'not-html': {
     ar: 'الاستجابة ليست صفحة HTML، ففحصنا ترويساتها فقط.',

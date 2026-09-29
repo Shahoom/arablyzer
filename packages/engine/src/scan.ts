@@ -46,12 +46,14 @@ import {
 import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
+  challengeOf,
   crawlerAccess,
   isPublicUrl,
   matchRobots,
   renderMessage,
   RULES,
   RULESET_VERSION,
+  type CollectorId,
   type DetectorFinding,
   type Evidence,
   type Rule,
@@ -380,6 +382,9 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     // A collector bug, or an input it cannot handle: the report says so instead of the scan crashing.
     return failed(target, [notice('page-unreadable')], 'page-unreadable')
   }
+  // A bot challenge in place of the page (M2.3c) is not the page: nothing judges it as one, and
+  // no browser and no Lighthouse opens it, where its script could get past it (BUILD-PLAN §13).
+  const reached = pageReached(page)
   // For the rules that read it, and in the report only then: a scan without them reports as it
   // did before robots.txt came first.
   const robots = rules.some((rule) => rule.needs.includes('robots')) ? robotsRead.facts : undefined
@@ -408,7 +413,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
         ? 'crux-private'
         : null
   const crux =
-    readsCrux && cruxSkipped === null && options.crux !== undefined && isSuccess(page.status)
+    readsCrux && cruxSkipped === null && options.crux !== undefined && reached
       ? await fetchCrux(response.url, options.crux, { ...base, policy })
       : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
@@ -417,7 +422,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   const rendering =
     options.render === undefined
       ? undefined
-      : isSuccess(page.status) && page.isHtml
+      : reached && page.isHtml
         ? await renderAll(response.url, options.render, {
             policy: robotsPolicy,
             resolver: base.resolver ?? defaultResolver(robotsPolicy),
@@ -429,7 +434,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
 
   // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
   // lockdown. Information only, so its failure leaves the scan complete, with a notice.
-  const labRequest = isSuccess(page.status) && page.isHtml ? options.lab : undefined
+  const labRequest = reached && page.isHtml ? options.lab : undefined
   if (labRequest !== undefined) progress({ step: 'lab-start' })
   const lab =
     labRequest === undefined
@@ -477,7 +482,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     status:
       unrendered || results.some((result) => result.status === 'error') ? 'partial' : 'complete',
     notices,
-    page: pageSummary(page),
+    // A challenge's language and script are not the page's.
+    page: challengeOf(page.headers) === null ? pageSummary(page) : null,
     results,
     findings,
     facts: {
@@ -700,8 +706,9 @@ interface Collected {
 function evaluateRules(rules: readonly Rule[], page: PageFacts, collected: Collected): Evaluation {
   const results: RuleResult[] = []
   const findings: Finding[] = []
+  const reached = pageReached(page)
   for (const rule of rules) {
-    const outcome = evaluate(rule, page, collected)
+    const outcome = evaluate(rule, page, collected, reached)
     results.push(
       ruleResult(rule, outcome.status, {
         ...(outcome.error === undefined ? {} : { error: outcome.error }),
@@ -733,14 +740,16 @@ async function fetchRobots(pageUrl: string, base: SafeFetchOptions): Promise<Rob
     maxRedirects: ROBOTS_MAX_REDIRECTS,
   })
   const response = fetched.response
+  // A bot challenge in place of robots.txt is not the site's robots.txt: it tells nothing.
+  const challenged = response !== null && challengeOf(response.headers) !== null
   return {
     facts: collectRobots({
       url,
       response:
-        response === null
+        response === null || challenged
           ? null
           : { status: response.status, body: response.body, truncated: response.truncated },
-      errorCode: fetched.error?.code ?? null,
+      errorCode: challenged ? 'bot-challenge' : (fetched.error?.code ?? null),
     }),
     startedAt: fetched.startedAt,
     privateAccess: fetched.privateAccess,
@@ -770,13 +779,18 @@ interface Outcome {
   readonly omitted?: number
 }
 
-function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
+/**
+ * What a rule reads beside the page itself: robots.txt and the sitemaps are the site's, and
+ * `response` is the page's answer, whatever it was. Their rules run whatever the page answered.
+ */
+const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set(['robots', 'sitemap', 'response'])
+
+function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: boolean): Outcome {
   const { robots, rendered, crux } = collected
-  // robots.txt and the sitemaps are the site's: their rules run whatever the page answered.
-  const needsPage = rule.needs.some((need) => need !== 'robots' && need !== 'sitemap')
+  const needsPage = rule.needs.some((need) => !BESIDE_THE_PAGE.has(need))
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
-  if (needsPage && !isSuccess(page.status)) return { status: 'not-applicable', findings: [] }
+  if (needsPage && !reached) return { status: 'not-applicable', findings: [] }
   if (needsHtml && page.htmlTimedOut) {
     return { status: 'error', error: 'page-too-complex', findings: [] }
   }
@@ -964,9 +978,16 @@ export function summarize(results: readonly RuleResult[]): Summary {
 
 function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[] {
   const notices: Notice[] = []
-  if (!isSuccess(page.status)) notices.push(notice('page-status', { status: String(page.status) }))
-  else if (!page.isHtml) notices.push(notice('not-html'))
-  else {
+  const challenge = challengeOf(page.headers)
+  if (challenge !== null) {
+    notices.push(
+      notice('bot-challenge', { service: challenge.service, status: String(page.status) }),
+    )
+  } else if (!isSuccess(page.status)) {
+    notices.push(notice('page-status', { status: String(page.status) }))
+  } else if (!page.isHtml) {
+    notices.push(notice('not-html'))
+  } else {
     if (page.htmlTimedOut) notices.push(notice('page-too-complex'))
     else if (page.text !== null && page.html !== null) {
       const loadsScripts = page.html.scripts.some(
@@ -1073,6 +1094,14 @@ function isJavaScript(type: string | null): boolean {
 
 function isSuccess(status: number): boolean {
   return status >= 200 && status < 300
+}
+
+/**
+ * Whether the scan reached the page: a 2xx answer that is not a bot challenge, which some services
+ * send as 2xx (AWS WAF's answers 202).
+ */
+function pageReached(page: PageFacts): boolean {
+  return isSuccess(page.status) && challengeOf(page.headers) === null
 }
 
 function lastHeader(headers: readonly (readonly [string, string])[], name: string): string | null {

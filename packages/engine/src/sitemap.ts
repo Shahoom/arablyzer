@@ -8,6 +8,7 @@ import {
   type SitemapFacts,
 } from '@arablyzer/collectors'
 import { DEFAULT_MAX_BYTES, safeFetch, type SafeFetchOptions } from '@arablyzer/egress'
+import { challengeOf } from '@arablyzer/rules'
 
 export { SITEMAP_LIMIT }
 
@@ -45,7 +46,8 @@ export interface SitemapContext {
  * /sitemap.xml at the page's origin when it names none; nothing else, the sitemaps an index lists
  * included. Each goes through the egress package, within SITEMAP_TIMEOUT_MS for them all, and is
  * read up to SITEMAP_MAX_BYTES, decompressed when the file is gzipped. One that could not be
- * read, for a reason that is not the site's answer, leaves the rules nothing to judge.
+ * read, for a reason that is not the site's answer (a bot challenge among them), leaves the rules
+ * nothing to judge.
  */
 export async function fetchSitemaps(
   robots: RobotsFacts,
@@ -90,6 +92,8 @@ async function fetchSitemap(
   const response = fetched.response
   // No answer, or a redirect the next site's robots.txt declined.
   if (response === null) return { failed: fetched.error?.code ?? 'opted-out' }
+  // A bot challenge in place of the sitemap says nothing of it; the scan never gets past one.
+  if (challengeOf(response.headers) !== null) return { failed: 'bot-challenge' }
   const read = isGzip(response.body)
     ? await gunzip(response.body, response.truncated)
     : { body: response.body, truncated: response.truncated }

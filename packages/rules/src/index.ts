@@ -139,6 +139,12 @@ export {
   type RuleExample,
 } from './example'
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
+export {
+  CHALLENGE_SIGNALS,
+  challengeOf,
+  type Challenge,
+  type ChallengeSignal,
+} from './lib/challenges'
 export { isPublicUrl } from './lib/hosts'
 export {
   crawlerAccess,

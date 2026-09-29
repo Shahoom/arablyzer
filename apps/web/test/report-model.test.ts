@@ -197,6 +197,16 @@ describe('outcomeOf', () => {
       target: { ...rtlLayout.target, http: { ...rtlLayout.target.http, status: 403 } },
     }
     expect(outcomeOf(refused)).toBe('blocked')
+    // A bot challenge, whatever its status: AWS WAF's answers 202.
+    const challenged: Report = {
+      ...rtlLayout,
+      target: { ...rtlLayout.target, http: { ...rtlLayout.target.http, status: 202 } },
+      scan: {
+        ...rtlLayout.scan,
+        notices: [{ code: 'bot-challenge', message: { ar: 'تحدٍّ', en: 'A challenge' } }],
+      },
+    }
+    expect(outcomeOf(challenged)).toBe('blocked')
     const partial = { ...rtlLayout, scan: { ...rtlLayout.scan, status: 'partial' as const } }
     expect(outcomeOf(partial)).toBe('partial')
   })
