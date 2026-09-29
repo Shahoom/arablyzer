@@ -9,6 +9,8 @@ import {
   REPORT,
   SCAN_FORM,
   SITE,
+  TOOL_APP,
+  TOOLS_UI,
   TOPICS,
 } from '../src/index'
 
@@ -120,6 +122,35 @@ describe('interface copy', () => {
       { text: '.', code: false },
     ])
     expect(SITE.ar.tagline).toBe('محلّل المواقع العربية')
+  })
+})
+
+describe('a tool’s copy', () => {
+  it('says how many tools the directory’s search shows, of how many', () => {
+    expect([0, 1, 2, 3, 12].map((n) => TOOLS_UI.ar.directory.shown(n, 12))).toEqual([
+      '0 أداة من 12',
+      'أداة واحدة من 12',
+      'أداتان من 12',
+      '3 أدوات من 12',
+      '12 أداة من 12',
+    ])
+    expect([0, 1, 3].map((n) => TOOLS_UI.en.directory.shown(n, 3))).toEqual([
+      '0 of 3 tools',
+      '1 of 3 tools',
+      '3 of 3 tools',
+    ])
+    expect(TOOLS_UI.en.directory.shown(1, 1)).toBe('1 of 1 tool')
+  })
+
+  it('names the rules a result lists as many as they are', () => {
+    expect([1, 2, 3, 11, 100].map((n) => TOOL_APP.ar.result.rules(n))).toEqual([
+      'القاعدة:',
+      'القاعدتان:',
+      'القواعد:',
+      'القواعد:',
+      'القواعد:',
+    ])
+    expect([1, 2, 0].map((n) => TOOL_APP.en.result.rules(n))).toEqual(['Rule:', 'Rules:', 'Rules:'])
   })
 })
 

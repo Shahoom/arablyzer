@@ -45,10 +45,11 @@ export function renderToolPage(tool: Tool, lang: Lang, site: Site): string {
     ],
   })
 
+  // Each rule by its title and its id, as the site's tool pages list them.
   const rules = tool.rules.map((id) => {
     const rule = ruleById(id)
     if (rule === undefined) throw new Error(`${tool.slug}: unknown rule ${id}`)
-    return link(localePath(lang, PATHS.rule(id)), rule.copy[lang].title)
+    return `${link(localePath(lang, PATHS.rule(id)), rule.copy[lang].title)} <code dir="ltr">${escapeHtml(id)}</code>`
   })
   const related = tool.related.map((slug) => {
     const other = toolBySlug(slug)

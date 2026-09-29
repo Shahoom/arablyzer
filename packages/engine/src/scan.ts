@@ -129,9 +129,9 @@ export interface ScanOptions {
    */
   readonly render?: RenderRequest
   /**
-   * Real-user data from the Chrome UX Report, asked with this key (M1.3b). Without it, the rules
-   * that need `crux` do not apply, and a notice says so. A page on a private address is not asked
-   * about.
+   * Real-user data from the Chrome UX Report, asked with this key (M1.3b) when a rule the scan
+   * runs needs `crux`. Without it, those rules do not apply, and a notice says so. A page on a
+   * private address is not asked about.
    */
   readonly crux?: CruxOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
@@ -277,8 +277,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       status: 'status' in robots ? robots.status : null,
     })
   }
-  // Real-user data, when a rule reads it: the page's URL goes to Google with the key.
-  const cruxSkipped: NoticeCode | null = !rules.some((rule) => rule.needs.includes('crux'))
+  // Real-user data, when a rule the scan runs reads it: the page's URL goes to Google with the
+  // key. A scan none of whose rules reads it (a tool's, M2.2) asks nothing and says nothing of it.
+  const readsCrux = rules.some((rule) => rule.needs.includes('crux'))
+  const cruxSkipped: NoticeCode | null = !readsCrux
     ? null
     : options.crux === undefined
       ? 'crux-no-key'
@@ -286,7 +288,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
         ? 'crux-private'
         : null
   const crux =
-    cruxSkipped === null && options.crux !== undefined && isSuccess(page.status)
+    readsCrux && cruxSkipped === null && options.crux !== undefined && isSuccess(page.status)
       ? await fetchCrux(response.url, options.crux, { ...base, policy })
       : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })

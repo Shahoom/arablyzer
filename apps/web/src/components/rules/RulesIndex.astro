@@ -10,6 +10,7 @@ import Page from '../../layouts/Page.astro'
 import { rulesByCategory } from '../../lib/rule-data'
 import { siteOf } from '../../lib/site'
 import { ARABIC_LAYER, CATEGORY_STYLE, categoryNumber } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
 import SeverityPill from '../SeverityPill.astro'
 
 interface Props {
@@ -171,7 +172,7 @@ const jsonLd = [
                   class="group flex h-full flex-col gap-3 border border-rule-strong bg-white p-[22px] hover:border-ink hover:text-ink"
                 >
                   <span class="flex items-start justify-between gap-3 text-lg leading-snug font-semibold">
-                    {rule.copy[lang].title}
+                    <Bidi text={rule.copy[lang].title} lang={lang} />
                     <Next
                       size={18}
                       stroke-width={2}

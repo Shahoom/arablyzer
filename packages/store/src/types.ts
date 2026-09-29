@@ -14,11 +14,6 @@ export interface ScanRecord {
   readonly report: Report | null
 }
 
-/**
- * Scans and their reports. A scan moves one way, queued → running → finished, and each move is
- * made only from the state before it: a move that does not apply answers false and changes
- * nothing, so a job run twice never scans twice or overwrites a report.
- */
 /** A scan as the API records it, before it is queued. */
 export interface NewScan {
   readonly id: string
@@ -28,6 +23,11 @@ export interface NewScan {
   readonly tool?: string
 }
 
+/**
+ * Scans and their reports. A scan moves one way, queued → running → finished, and each move is
+ * made only from the state before it: a move that does not apply answers false and changes
+ * nothing, so a job run twice never scans twice or overwrites a report.
+ */
 export interface ScanStore {
   create(scan: NewScan): Promise<void>
   get(id: string): Promise<ScanRecord | null>

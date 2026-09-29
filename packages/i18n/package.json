@@ -10,7 +10,8 @@
     "./report": "./src/report.ts",
     "./tools": "./src/tools.ts",
     "./rules": "./src/rules.ts",
-    "./pages": "./src/pages.ts"
+    "./pages": "./src/pages.ts",
+    "./tool-app": "./src/tool-app.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

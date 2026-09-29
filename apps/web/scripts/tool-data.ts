@@ -4,7 +4,7 @@ import { renderInline, renderMarkdown } from '@arablyzer/seo/markdown'
 import { TOOL_CATEGORIES, TOOL_HEADINGS, TOOLS, type Tool, type ToolCopy } from '@arablyzer/tools'
 import { highlight } from '../src/lib/code'
 import { fixHtml } from '../src/lib/fix-html'
-import type { ToolCopyData, ToolData, ToolsData } from '../src/lib/tool-data'
+import type { ToolCopyData, ToolData, ToolsData, ToolTitles } from '../src/lib/tool-data'
 
 // The tools as their pages need them (M2.2), for src/generated/tools.json: generate.ts writes it.
 
@@ -73,4 +73,14 @@ export function toolsData(): ToolsData {
       copy: { ar: copyData(tool.copy.ar), en: copyData(tool.copy.en) },
     })),
   }
+}
+
+/**
+ * Each tool's name in both languages, for src/generated/tool-titles.json: the report page names
+ * a tool's result's tool, and its island cannot read the tools' copy.
+ */
+export function toolTitles(data: ToolsData): ToolTitles {
+  return Object.fromEntries(
+    data.tools.map((tool) => [tool.slug, { ar: tool.copy.ar.title, en: tool.copy.en.title }]),
+  )
 }

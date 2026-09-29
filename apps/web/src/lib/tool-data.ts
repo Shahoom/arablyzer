@@ -65,6 +65,9 @@ export interface ToolsData {
   readonly tools: readonly ToolData[]
 }
 
+/** Each tool's name in both languages, by slug: src/generated/tool-titles.json. */
+export type ToolTitles = Readonly<Record<string, Readonly<Record<Lang, string>>>>
+
 export const TOOLS_DATA = raw as ToolsData
 
 export function toolData(slug: string): ToolData {
