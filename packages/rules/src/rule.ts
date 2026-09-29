@@ -1,6 +1,7 @@
 import type {
   Box,
   CruxFacts,
+  DnsFacts,
   Engine,
   PageFacts,
   RenderedFacts,
@@ -19,10 +20,20 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * --render; M1.1). `files`, with `render`: the files the page loaded, read after the render
  * (stylesheets, fonts, text responses, image files); the rule sees only the engines that read
  * them. `crux`: real-user data from the Chrome UX Report, which needs an API key; without one the
- * rule does not apply (M1.3b).
+ * rule does not apply (M1.3b). `dns`: with a 2xx page on a public name, the TXT records of the
+ * name the rule's `txtName` gives from the page's organizational domain (M2.3c).
  */
 export type CollectorId =
-  'http' | 'headers' | 'redirects' | 'html' | 'text' | 'robots' | 'render' | 'files' | 'crux'
+  | 'http'
+  | 'headers'
+  | 'redirects'
+  | 'html'
+  | 'text'
+  | 'robots'
+  | 'render'
+  | 'files'
+  | 'crux'
+  | 'dns'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -41,6 +52,12 @@ export interface Evidence {
   readonly rendered?: readonly RenderedFacts[]
   /** Present when the rule needs `crux` and CrUX answered; never `failed` (an error instead). */
   readonly crux?: CruxFacts
+  /**
+   * Present when the rule needs `dns` and the page is on a public name: the page's organizational
+   * domain and each TXT lookup made for it. The rule's own lookup (txtName) answered: when it
+   * did not, the engine reports an error instead.
+   */
+  readonly dns?: DnsFacts
 }
 
 /** Detectors return data only; the wording comes from the copy files (docs/design/phase-0.md §1). */
@@ -78,6 +95,12 @@ export interface Rule<M extends string = string> {
    * that drew a text); all engines by default. The rule sees only those engines' facts.
    */
   readonly renderEngines?: readonly Engine[]
+  /**
+   * With `dns`: the name whose TXT records the rule reads, from the page's organizational domain,
+   * such as the domain itself for SPF or its `_dmarc` name for DMARC. The engine asks for these
+   * names' TXT records, and for nothing else.
+   */
+  readonly txtName?: (domain: string) => string
   readonly messages: readonly M[]
   /**
    * False → not-applicable: the page has nothing this rule checks. Rules that need `render`

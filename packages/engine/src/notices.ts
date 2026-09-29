@@ -29,6 +29,8 @@ export type NoticeCode =
   | 'lab-timeout'
   | 'lab-unavailable'
   | 'lab-skipped'
+  | 'dns-unchecked'
+  | 'dns-unavailable'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -207,6 +209,15 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'crux-failed': {
     ar: 'تعذّر جلب بيانات الزوار الحقيقيين من Google (CrUX)، فلم تعمل فحوصها.',
     en: "Real visitors' data could not be fetched from Google (CrUX), so its checks could not run.",
+  },
+  // M2.3c: a lookup that got no answer says nothing of the records, so its rules do not judge.
+  'dns-unchecked': {
+    ar: 'تعذّرت قراءة سجلات DNS للنطاق {domain}: لم يصل جواب في الوقت المحدد، أو ردّ خادم DNS بخطأ، فلم تعمل الفحوص التي تقرؤها.',
+    en: 'The DNS records of {domain} could not be read: no answer came in time, or the DNS server answered with an error, so the checks that read them did not run.',
+  },
+  'dns-unavailable': {
+    ar: 'لا يسأل هذا الخادم DNS عن السجلات بنفسه، فلم تعمل الفحوص التي تقرأ سجلات DNS للنطاق.',
+    en: 'This server does not look up DNS records itself, so the checks that read the domain’s DNS records did not run.',
   },
 }
 

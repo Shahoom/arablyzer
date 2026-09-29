@@ -5,7 +5,9 @@ import {
   collectCrux,
   collectPage,
   collectRobots,
+  organizationalDomain,
   type CruxFacts,
+  type DnsFacts,
   type A11yNodeFact,
   type A11yRuleFact,
   type A11yRuleId,
@@ -20,12 +22,15 @@ import {
 import {
   answerCrux,
   certificateWindow,
+  fixtureTxt,
   loadFixtureConfig,
   type CruxData,
   loadSiteConfig,
   resolveFixtureResponse,
+  type SiteConfig,
 } from '@arablyzer/fixtures'
 import type { Redirect } from '@arablyzer/report-schema'
+import { isLocalHost } from '../src/lib/hosts'
 import type { DetectorFinding, Evidence, Rule } from '../src/rule'
 
 /** Rule tests read fixtures without HTTP; the engine test serves the same sites for real. */
@@ -50,9 +55,15 @@ const MAX_REDIRECTS = 10
  * Evidence for fixtures/<name>/ exactly as the fixture server would answer / and /robots.txt:
  * under its site.json host and over HTTPS when it asks, with the certificate it would have. A
  * redirect is followed, as the engine follows it, to a path of the site or to one of its names,
- * and each one is in the evidence's `redirects`.
+ * and each one is in the evidence's `redirects`. On a public name, the TXT records of the page's
+ * organizational domain are those site.json gives (fixtureTxt), for the names `txtNames` lists:
+ * those the rule reads.
  */
-export async function fixtureEvidence(ruleId: string, name: string): Promise<Evidence> {
+export async function fixtureEvidence(
+  ruleId: string,
+  name: string,
+  txtNames: (domain: string) => readonly string[] = () => [],
+): Promise<Evidence> {
   const root = `${fixturesDir(ruleId)}${name}`
   const config = await loadFixtureConfig(root)
   const site = await loadSiteConfig(root)
@@ -104,6 +115,24 @@ export async function fixtureEvidence(ruleId: string, name: string): Promise<Evi
     }),
     // CrUX's answers as the engine asks for them: the URL, then the origin when it has none.
     ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, url) }),
+    ...dnsOf(site, url, txtNames),
+  }
+}
+
+/** The TXT records the engine would look up for the page's domain, as the site answers them. */
+function dnsOf(
+  site: SiteConfig,
+  pageUrl: string,
+  txtNames: (domain: string) => readonly string[],
+): { dns?: DnsFacts } {
+  const host = new URL(pageUrl).hostname
+  const domain = isLocalHost(host) ? null : organizationalDomain(host)
+  if (domain === null) return {}
+  return {
+    dns: {
+      domain,
+      txt: txtNames(domain).map((txtName) => ({ name: txtName, ...fixtureTxt(site, txtName) })),
+    },
   }
 }
 

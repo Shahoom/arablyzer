@@ -7,6 +7,7 @@ import {
   ENGINES,
   headerValues,
   type CruxFacts,
+  type DnsFacts,
   type Engine,
   type PageFacts,
   type RenderedFacts,
@@ -57,6 +58,7 @@ import {
 import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
+import { lookupDns } from './dns'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
@@ -396,6 +398,16 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
   else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
+  // The TXT records the rules that read DNS ask for (M2.3c), and those alone, from the resolver
+  // the page's name went to; none for a page on a local or private address.
+  const dns = isSuccess(page.status)
+    ? await lookupDns(response.url, rules, {
+        policy,
+        resolver: base.resolver ?? defaultResolver(policy),
+        privateAccess: fetched.privateAccess,
+        ...(options.signal === undefined ? {} : { signal: options.signal }),
+      })
+    : undefined
   // The browser gets the same lockdown: a public page never opens private addresses to it.
   const rendering =
     options.render === undefined
@@ -441,6 +453,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : []),
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
     ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
+    ...(dns?.notice === 'dns-unchecked'
+      ? [notice('dns-unchecked', { domain: dns.facts.domain })]
+      : []),
+    ...(dns?.notice === 'dns-unavailable' ? [notice('dns-unavailable')] : []),
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
   progress({ step: 'rules', rules: rules.length })
@@ -449,6 +465,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     rendered: rendering?.rendered,
     crux,
     redirects: target.http.redirects,
+    dns: dns?.facts,
   })
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
@@ -643,6 +660,8 @@ export interface EvaluateOptions {
    * without them, rules that need them do not apply.
    */
   readonly redirects?: readonly Redirect[]
+  /** The page's DNS records (M2.3c); without them, rules that need `dns` do not apply. */
+  readonly dns?: DnsFacts
 }
 
 export interface Evaluation {
@@ -670,6 +689,7 @@ interface Collected {
   readonly rendered?: readonly RenderedFacts[] | undefined
   readonly crux?: CruxFacts | undefined
   readonly redirects?: readonly Redirect[] | undefined
+  readonly dns?: DnsFacts | undefined
 }
 
 function evaluateRules(rules: readonly Rule[], page: PageFacts, collected: Collected): Evaluation {
@@ -772,6 +792,16 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
   if (rule.needs.includes('redirects') && redirects === undefined) {
     return { status: 'not-applicable', findings: [] }
   }
+  // DNS records (M2.3c): none for a page on a local or private address, nothing to judge; the
+  // rule's own lookup without an answer, it could not check.
+  const dns = rule.needs.includes('dns') ? collected.dns : undefined
+  if (rule.needs.includes('dns')) {
+    if (dns === undefined) return { status: 'not-applicable', findings: [] }
+    const own = ownLookup(rule, dns)
+    if (own === undefined || own.outcome === 'failed') {
+      return { status: 'error', error: 'dns-unchecked', findings: [] }
+    }
+  }
   // Only the engines the rule can read; none of them rendered means it could not check.
   const seen = needsRender
     ? (rendered ?? []).filter(
@@ -785,6 +815,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
   const evidence: Evidence = {
     page,
     ...(redirects === undefined ? {} : { redirects }),
+    ...(dns === undefined ? {} : { dns }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
@@ -799,6 +830,16 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
     // A bug in a rule (a throw, a missing message, output the schema rejects) must not take the
     // whole scan down; the report says which rule failed.
     return { status: 'error', error: 'rule-failed', findings: [] }
+  }
+}
+
+/** The TXT lookup of the name the rule reads (txtName); undefined when there is none. */
+function ownLookup(rule: Rule, dns: DnsFacts): DnsFacts['txt'][number] | undefined {
+  try {
+    const name = rule.txtName?.(dns.domain)
+    return dns.txt.find((lookup) => lookup.name === name)
+  } catch {
+    return undefined
   }
 }
 

@@ -7,6 +7,7 @@ export {
   type CruxQuery,
   type CruxStandIn,
 } from './crux'
+export { fixtureTxt, NO_MAIL_DMARC, NO_MAIL_SPF, type FixtureTxtAnswer } from './dns'
 export {
   loadFixtureConfig,
   loadSiteConfig,

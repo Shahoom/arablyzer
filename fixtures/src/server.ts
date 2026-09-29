@@ -6,6 +6,7 @@ import { gzipSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { FixtureConfig, routeKey, SiteConfig, type RouteOverride } from './config'
+import { fixtureTxt, type FixtureTxtAnswer } from './dns'
 import { certificateWindow, serverCertificate } from './tls'
 
 export interface FixtureSite {
@@ -20,6 +21,8 @@ export interface FixtureSite {
    * and what it never did.
    */
   readonly requests: readonly string[]
+  /** What DNS answers for a name's TXT records, from site.json (fixtureTxt). */
+  txt(name: string): FixtureTxtAnswer
   url(pathname?: string): string
   close(): Promise<void>
 }
@@ -153,6 +156,7 @@ export async function serveSite(
     hostname,
     hostnames: names.length === 0 ? [hostname] : names,
     requests,
+    txt: (name) => fixtureTxt(site, name),
     url: (pathname = '/') => new URL(pathname, origin).href,
     close: () =>
       new Promise((resolve, reject) => {

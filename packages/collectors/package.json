@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "css-tree": "^3.2.1",
-    "parse5": "^8.0.1"
+    "parse5": "^8.0.1",
+    "tldts": "7.4.16"
   },
   "devDependencies": {
     "@types/css-tree": "^3.2.0"
