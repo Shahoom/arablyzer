@@ -1,0 +1,10 @@
+{
+  "host": "shop.example",
+  "aliases": [
+    "www.shop.example"
+  ],
+  "tls": {
+    "lifetimeDays": 90,
+    "daysLeft": 60
+  }
+}
