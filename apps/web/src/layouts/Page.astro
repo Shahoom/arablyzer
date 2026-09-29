@@ -2,11 +2,13 @@
 import { SITE } from '@arablyzer/i18n'
 import { renderHead } from '@arablyzer/seo/head'
 import type { JsonLd } from '@arablyzer/seo/json-ld'
-import { alternates, pageUrl, type Lang } from '@arablyzer/seo/site'
+import { alternates, localePath, pageUrl, type Lang } from '@arablyzer/seo/site'
+import { ogImagePath } from '@arablyzer/seo/sitemap'
 import { Font } from 'astro:assets'
 import SiteFooter from '../components/SiteFooter.astro'
 import SiteHeader from '../components/SiteHeader.astro'
 import StatusBar from '../components/StatusBar.astro'
+import { OG_HEIGHT, OG_WIDTH } from '../lib/og'
 import { dirOf, siteOf } from '../lib/site'
 import '../styles/global.css'
 
@@ -34,13 +36,20 @@ const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, path)
 // One source for <head>, shared with the templates the self-audit has checked since Phase 0.
 // A report is never indexed, but its link is shared: its preview has the report page's title.
+// Drawn for each page by the build (scripts/og-images.ts); the 404 page, never shared, has none.
+const image = {
+  url: `${site.origin}${ogImagePath(localePath(lang, path))}`,
+  alt: title,
+  width: OG_WIDTH,
+  height: OG_HEIGHT,
+}
 const head =
   report || noindex
     ? renderHead({
         title,
         description,
         robots: 'noindex, nofollow',
-        openGraph: { title, description },
+        openGraph: report ? { title, description, image } : { title, description },
       })
     : renderHead({
         title,
@@ -48,7 +57,7 @@ const head =
         canonical: url,
         alternates: alternates(site, path),
         jsonLd,
-        openGraph: { title, description, url },
+        openGraph: { title, description, url, image },
       })
 ---
 

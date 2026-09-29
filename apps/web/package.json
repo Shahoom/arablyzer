@@ -6,13 +6,14 @@
   "type": "module",
   "scripts": {
     "dev": "tsx scripts/generate.ts && astro dev",
-    "build": "tsx scripts/generate.ts && astro build",
+    "build": "tsx scripts/generate.ts && astro build && tsx scripts/og-images.ts && tsx scripts/indexnow.ts --write-key",
     "preview": "astro preview",
     "typecheck": "tsx scripts/generate.ts && astro check && tsc --noEmit",
     "test": "vitest run --exclude \"test/browser/**\"",
     "test:browser": "vitest run test/browser",
     "lighthouse": "tsx scripts/lighthouse.ts",
-    "generate": "tsx scripts/generate.ts"
+    "generate": "tsx scripts/generate.ts",
+    "indexnow": "tsx scripts/indexnow.ts --submit"
   },
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
