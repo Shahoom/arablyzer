@@ -1,7 +1,7 @@
 import type { ScanSummary } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import type { Lang } from '@arablyzer/seo/site'
-import { Check, X } from 'lucide-react'
+import { Check, X } from 'lucide-preact'
 import { stepsOf, type Progress as ProgressState } from '../report-model'
 import { Crosshairs, ENGINE_LABEL } from './ui'
 
@@ -36,7 +36,7 @@ export function Progress({
     <div className="flex flex-col">
       <section className="flex flex-col gap-3 border-b border-ink bg-white px-5 pt-7 pb-6 md:px-16">
         <span className="text-sm font-semibold text-signal">{t.kicker}</span>
-        <h1 className="m-0 text-3xl leading-tight font-bold md:text-[38px]">{t.title}</h1>
+        <h1 className="m-0 text-3xl leading-tight font-semibold md:text-[38px]">{t.title}</h1>
         <span dir="ltr" className="self-start font-mono text-base break-all text-ink-2 md:text-lg">
           {summary.url}
         </span>

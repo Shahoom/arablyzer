@@ -2,7 +2,7 @@ import { SCAN_ID_PATTERN, type ScanSummary } from '@arablyzer/api-contract/codes
 import { REPORT } from '@arablyzer/i18n/report'
 import type { Report } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'preact/hooks'
 import { fetchReport } from './api'
 import { followScan } from './events'
 import { Progress } from './report/Progress'
