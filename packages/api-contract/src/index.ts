@@ -24,14 +24,14 @@ export type ScanSummary = ScanSummaryShape
 /** Turnstile's tokens are at most 2,048 characters (Cloudflare's server-side validation docs). */
 const TURNSTILE_TOKEN_MAX = 2048
 
-/**
- * The URL is checked by the egress package after this, which gives the precise reason; here it
- * only has to be a string of a size worth checking.
- */
 function toolSlug() {
   return z.string().max(MAX_TOOL_SLUG_LENGTH).regex(TOOL_SLUG_PATTERN)
 }
 
+/**
+ * The URL is checked by the egress package after this, which gives the precise reason; here it
+ * only has to be a string of a size worth checking.
+ */
 export const CreateScanRequest = z.strictObject({
   url: z
     .string()

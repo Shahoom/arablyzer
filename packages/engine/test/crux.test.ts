@@ -2,11 +2,13 @@ import { serveCrux, type CruxData, type CruxStandIn } from '@arablyzer/fixtures'
 import { createPolicy } from '@arablyzer/egress'
 import { RULES } from '@arablyzer/rules'
 import { afterEach, describe, expect, it } from 'vitest'
-import { scan } from '../src/index'
+import { scan, type ScanOptions, type ScanProgress } from '../src/index'
 import { tempSite, type TempSite } from './helpers'
 
 const KEY = 'crux-test-key-5c1d'
 const CRUX_RULES = ['cwv-cls-poor', 'cwv-inp-poor', 'cwv-lcp-poor']
+/** A tool's rules (M2.2): the RTL checker's, which read the page's HTML alone. */
+const HTML_RULES = ['ar-html-lang', 'rtl-html-dir']
 const PAGE = '<!doctype html><html lang="ar" dir="rtl"><body><h1>متجر</h1></body></html>'
 
 let site: TempSite | undefined
@@ -19,14 +21,21 @@ afterEach(async () => {
   standIn = undefined
 })
 
-/** Scans a local page with the CrUX rules alone, against a stand-in answering `data`. */
-async function scanWith(data: CruxData | null, key: string | null = KEY) {
+/**
+ * Scans a local page, with the CrUX rules alone unless `options` choose others, against a
+ * stand-in answering `data`.
+ */
+async function scanWith(
+  data: CruxData | null,
+  key: string | null = KEY,
+  options: Pick<ScanOptions, 'ruleIds' | 'onProgress'> = { ruleIds: CRUX_RULES },
+) {
   site = await tempSite({ 'index.html': PAGE })
   standIn = data === null ? undefined : await serveCrux(data)
   const targets = [{ address: '127.0.0.1', port: site.port }]
   if (standIn !== undefined) targets.push({ address: '127.0.0.1', port: standIn.port })
   return scan(site.url('/'), {
-    ruleIds: CRUX_RULES,
+    ...options,
     policy: createPolicy({ allowTargets: targets }),
     ...(key === null || standIn === undefined
       ? {}
@@ -80,6 +89,24 @@ describe('CrUX in a scan (M1.3b)', () => {
     expect(Object.values(statuses(report))).toEqual(Array(3).fill('not-applicable'))
     expect(report.scan.notices.map((notice) => notice.code)).toContain('crux-not-found')
     expect(report.facts.crux).toMatchObject({ outcome: 'not-found', scope: null })
+  })
+
+  it('asks nothing, and says nothing of CrUX, when no rule the scan runs reads it', async () => {
+    const steps: ScanProgress[] = []
+    const report = await scanWith({ url: { lcp: 9_000 } }, KEY, {
+      ruleIds: HTML_RULES,
+      onProgress: (step) => steps.push(step),
+    })
+    expect(standIn?.queries).toEqual([])
+    expect(steps.map((step) => step.step)).not.toContain('crux')
+    expect(report.scan.notices.filter((notice) => notice.code.startsWith('crux'))).toEqual([])
+    expect(report.facts.crux).toBeUndefined()
+  })
+
+  it('asks for a whole scan, whose rules read it', async () => {
+    const report = await scanWith({ url: { lcp: 5_200 } }, KEY, {})
+    expect(standIn?.queries).toHaveLength(1)
+    expect(report.facts.crux).toMatchObject({ outcome: 'found', lcp: 5_200 })
   })
 
   it('does not apply without a key, and asks nothing', async () => {

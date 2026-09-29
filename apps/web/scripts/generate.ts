@@ -3,7 +3,7 @@ import { RULES } from '@arablyzer/rules'
 import { renderMarkdown } from '@arablyzer/seo'
 import { fixHtml } from '../src/lib/fix-html'
 import { libraryData } from './rule-data'
-import { toolsData } from './tool-data'
+import { toolsData, toolTitles } from './tool-data'
 
 // What the report page needs of each rule, the tool pages of each tool, and the rule library of
 // each rule, which Astro cannot bundle: rules and tools read their copy from Markdown files, which Astro's build cannot follow.
@@ -17,5 +17,7 @@ for (const lang of ['ar', 'en'] as const) {
   )
   await writeFile(new URL(`rules.${lang}.json`, out), `${JSON.stringify(rules)}\n`)
 }
-await writeFile(new URL('tools.json', out), `${JSON.stringify(toolsData())}\n`)
+const tools = toolsData()
+await writeFile(new URL('tools.json', out), `${JSON.stringify(tools)}\n`)
+await writeFile(new URL('tool-titles.json', out), `${JSON.stringify(toolTitles(tools))}\n`)
 await writeFile(new URL('library.json', out), `${JSON.stringify(libraryData())}\n`)

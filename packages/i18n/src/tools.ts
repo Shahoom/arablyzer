@@ -1,5 +1,5 @@
 import type { Copy } from './copy'
-import { arabicCount, englishCount } from './plural'
+import { arabicCount, englishCount, type ArabicForms } from './plural'
 
 /** The toolbox's categories (BUILD-PLAN §5.1), in the table's order: packages/tools has them too. */
 export type ToolCategoryName =
@@ -38,6 +38,8 @@ export interface ToolsStrings {
     /** The categories that are Arablyzer's own (§5.1: «فريد»). */
     readonly arabicLayer: string
     readonly count: (count: number) => string
+    /** What the search shows: this many tools, of all. */
+    readonly shown: (shown: number, total: number) => string
     /** When the search matches no tool. */
     readonly none: string
   }
@@ -54,33 +56,23 @@ export interface ToolsStrings {
     /** What a tool reads, on its card there. */
     readonly reads: Readonly<Record<ToolTag, string>>
   }
+  /** A tool page around its tool, whose own words are TOOL_APP's (tool-app.ts). */
   readonly page: {
     readonly breadcrumb: string
-    readonly urlLabel: string
-    readonly submit: string
-    readonly submitting: string
-    /** Under the form: free, and what the tool reads. */
-    readonly note: Readonly<Record<'html' | 'render', string>>
     readonly runs: string
     readonly near: string
     readonly updated: string
     readonly methodology: string
     readonly fullScan: string
   }
-  readonly result: {
-    readonly title: string
-    readonly running: string
-    readonly problems: (count: number) => string
-    readonly passed: string
-    readonly notApplicable: string
-    readonly review: string
-    readonly ruleLabel: string
-    readonly share: string
-    readonly howToFix: string
-    readonly blocked: string
-    readonly failed: string
-    readonly offline: string
-  }
+}
+
+/** Tools, as a count on its own: «أداة واحدة»، «3 أدوات»، «12 أداة». */
+const TOOLS: ArabicForms = {
+  one: 'أداة واحدة',
+  two: 'أداتان',
+  few: '{n} أدوات',
+  many: '{n} أداة',
 }
 
 export const TOOLS_UI: Copy<ToolsStrings> = {
@@ -99,13 +91,8 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       categories: 'الفئات',
       all: 'الكل',
       arabicLayer: 'الطبقة العربية',
-      count: (count) =>
-        arabicCount(count, {
-          one: 'أداة واحدة',
-          two: 'أداتان',
-          few: '{n} أدوات',
-          many: '{n} أداة',
-        }),
+      count: (count) => arabicCount(count, TOOLS),
+      shown: (shown, total) => `${arabicCount(shown, TOOLS)} من ${total}`,
       none: 'لا أداة بهذا الاسم بعد.',
     },
     categories: {
@@ -202,38 +189,11 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
     },
     page: {
       breadcrumb: 'مسار الصفحة',
-      urlLabel: 'رابط الصفحة',
-      submit: 'افحص الصفحة',
-      submitting: 'نفحص…',
-      note: {
-        html: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم.',
-        render: 'مجاني وبلا تسجيل. نعرض الصفحة في المتصفحات كما يعرضها زائرك.',
-      },
       runs: 'ما تشغّله هذه الأداة',
       near: 'أدوات قريبة',
       updated: 'آخر تحديث',
       methodology: 'المنهجية وحساب الدرجة',
       fullScan: 'الفحص الكامل لصفحتك',
-    },
-    result: {
-      title: 'النتيجة',
-      running: 'نفحص الصفحة…',
-      problems: (count) =>
-        arabicCount(count, {
-          one: 'مشكلة واحدة تحتاج إصلاحاً',
-          two: 'مشكلتان تحتاجان إصلاحاً',
-          few: '{n} مشكلات تحتاج إصلاحاً',
-          many: '{n} مشكلة تحتاج إصلاحاً',
-        }),
-      passed: 'الصفحة تجتاز هذا الفحص',
-      notApplicable: 'لا ينطبق هذا الفحص على الصفحة',
-      review: 'فيها ما يحتاج أن تراجعه بنفسك',
-      ruleLabel: 'القاعدة:',
-      share: 'رابط هذه النتيجة',
-      howToFix: 'كيف تُصلح',
-      blocked: 'لم نتمكن من فحص الصفحة: ردّ الخادم بخطأ أو منع الفحص.',
-      failed: 'تعذّر إكمال الفحص. جرّب بعد قليل.',
-      offline: 'تعذّر الوصول إلى خدمة الفحص. تواصل الصفحة المحاولة.',
     },
   },
   en: {
@@ -252,6 +212,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       all: 'All',
       arabicLayer: 'The Arabic layer',
       count: (count) => englishCount(count, 'tool', 'tools'),
+      shown: (shown, total) => `${shown} of ${englishCount(total, 'tool', 'tools')}`,
       none: 'No tool by that name yet.',
     },
     categories: {
@@ -347,33 +308,11 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
     },
     page: {
       breadcrumb: 'Breadcrumb',
-      urlLabel: 'Page URL',
-      submit: 'Check the page',
-      submitting: 'Checking…',
-      note: {
-        html: 'Free, no sign-up. We read the page as the server sends it.',
-        render: 'Free, no sign-up. We render the page in browsers, as your visitor sees it.',
-      },
       runs: 'What this tool runs',
       near: 'Nearby tools',
       updated: 'Last updated',
       methodology: 'Methodology and scoring',
       fullScan: 'A full check of your page',
-    },
-    result: {
-      title: 'Result',
-      running: 'Checking the page…',
-      problems: (count) => (count === 1 ? '1 problem to fix' : `${String(count)} problems to fix`),
-      passed: 'The page passes this check',
-      notApplicable: 'This check does not apply to the page',
-      review: 'Something here needs your own review',
-      ruleLabel: 'Rule:',
-      share: 'Link to this result',
-      howToFix: 'How to fix',
-      blocked:
-        'We could not check the page: the server answered with an error, or refused the check.',
-      failed: 'The check could not finish. Try again shortly.',
-      offline: 'We cannot reach the checking service. The page keeps trying.',
     },
   },
 }
