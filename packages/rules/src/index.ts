@@ -30,6 +30,7 @@ import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
 import { rule as httpsMissing } from './rules/https-missing/rule'
 import { rule as imageFormatLegacy } from './rules/image-format-legacy/rule'
+import { rule as jsOnlyContent } from './rules/js-only-content/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
 import { rule as linkBroken } from './rules/link-broken/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
@@ -92,6 +93,7 @@ export const RULES: readonly Rule[] = [
   hstsMissing,
   httpsMissing,
   imageFormatLegacy,
+  jsOnlyContent,
   jsonldSyntaxError,
   linkBroken,
   metaDescriptionMissing,
