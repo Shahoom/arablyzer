@@ -1,7 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { localePath, pageUrl, type Lang, type Site } from '../site'
-import { auditBuiltPair, auditReportPage, type ExpectedPage, type PageProblem } from './audit'
+import {
+  auditBuiltPair,
+  auditPair,
+  auditReportPage,
+  type ExpectedPage,
+  type PageProblem,
+} from './audit'
 
 export interface BuiltPage {
   /** The page's path on the site: "/", "/en/", "/tools/rtl-check". */
@@ -47,6 +53,28 @@ function arabicPath(page: string): string {
 
 function isReport(page: string): boolean {
   return /^\/(?:en\/)?r(?:\/|$)/.test(page)
+}
+
+/** A tool's page, /tools/<slug>: the tool page template of BUILD-PLAN §6.1 applies whole. */
+function isTool(page: string): boolean {
+  return /^(?:\/en)?\/tools\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
+}
+
+/**
+ * The pages that stand for the rest, for the checks too slow to run on every page (Lighthouse,
+ * the site scanning itself in three engines): every page but the tool pages and the report
+ * pages, and the first tool page in each language, since every tool page is the same template.
+ */
+export function representativePages(pages: readonly BuiltPage[]): BuiltPage[] {
+  const firstTool = new Set(
+    (['ar', 'en'] as const).flatMap((lang) => {
+      const first = pages.find((page) => page.lang === lang && isTool(page.path))
+      return first === undefined ? [] : [first.path]
+    }),
+  )
+  return pages.filter(
+    (page) => !isReport(page.path) && (!isTool(page.path) || firstTool.has(page.path)),
+  )
 }
 
 export interface BuiltSiteAudit {
@@ -98,8 +126,9 @@ export function auditBuiltSite(dir: string, site: Site): BuiltSiteAudit {
       origin: site.origin,
       knownPaths: known,
     })
+    const pair = isTool(page.path) ? auditPair : auditBuiltPair
     problems.push(
-      ...auditBuiltPair(
+      ...pair(
         { html: html(page), expected: expected('ar') },
         { html: html(english), expected: expected('en') },
       ),

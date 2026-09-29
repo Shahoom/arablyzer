@@ -64,8 +64,11 @@
 		file_server
 	}
 
+	# A page is its path's .html file (Astro's build.format 'preserve'): /tools is tools.html,
+	# /tools/rtl-check is tools/rtl-check.html; a directory's page is its index.html.
 	handle {
 		root * /srv
+		try_files {path}.html {path}
 		file_server
 	}
 

@@ -9,6 +9,8 @@ export interface SiteStrings {
   readonly skipToContent: string
   readonly statusBar: string
   readonly navLabel: string
+  /** The header's sections, each named as its page is built (apps/web, NAV). */
+  readonly nav: { readonly tools: string }
   /** The header's call to action, to the scan form. */
   readonly scanCta: string
   /** The link to the same page in the other language, written in that language. */
@@ -31,6 +33,7 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'انتقل إلى المحتوى',
     statusBar: 'أدوات مجانية وبلا تسجيل · الكود مفتوح المصدر',
     navLabel: 'أقسام الموقع',
+    nav: { tools: 'الأدوات' },
     scanCta: 'افحص موقعك',
     otherLang: { label: 'English', short: 'EN' },
     footer: {
@@ -48,6 +51,7 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'Skip to content',
     statusBar: 'Free tools, no sign-up · Open source',
     navLabel: 'Site sections',
+    nav: { tools: 'Tools' },
     scanCta: 'Check your site',
     otherLang: { label: 'العربية', short: 'العربية' },
     footer: {

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { auditBuiltSite, builtPages } from '../src/audit/index'
+import { auditBuiltSite, builtPages, representativePages } from '../src/audit/index'
 import { renderHead } from '../src/head'
 import { alternates, localePath, pageUrl, PREVIEW_SITE, type Lang } from '../src/site'
 
@@ -63,6 +63,28 @@ describe('builtPages', () => {
       { path: '/en/', file: 'en/index.html', lang: 'en' },
       { path: '/tools/noindex', file: 'tools/noindex.html', lang: 'ar' },
       { path: '/tools/rtl-check', file: 'tools/rtl-check.html', lang: 'ar' },
+    ])
+  })
+})
+
+describe('representativePages', () => {
+  it('keeps every page but the tool pages past the first in each language, and the reports', () => {
+    const dir = build({
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      'tools.html': page('ar', '/tools'),
+      'tools/a-check.html': page('ar', '/tools/a-check'),
+      'tools/b-check.html': page('ar', '/tools/b-check'),
+      'en/tools/a-check.html': page('en', '/tools/a-check'),
+      'en/tools/b-check.html': page('en', '/tools/b-check'),
+      'r/index.html': '<!doctype html><title>تقرير</title>',
+    })
+    expect(representativePages(builtPages(dir)).map((built) => built.path)).toEqual([
+      '/',
+      '/en/',
+      '/en/tools/a-check',
+      '/tools',
+      '/tools/a-check',
     ])
   })
 })
@@ -137,5 +159,19 @@ describe('auditBuiltSite', () => {
         message: 'report pages need <meta name="robots" content="noindex"> in <head>',
       },
     ])
+  })
+
+  it('holds a tool page, /tools/<slug>, to the whole tool page template of §6.1', () => {
+    // A page any other page may be, which a tool page may not: no form, no sections.
+    const dir = build({
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      'tools/rtl-check.html': page('ar', '/tools/rtl-check'),
+      'en/tools/rtl-check.html': page('en', '/tools/rtl-check'),
+    })
+    const checks = auditBuiltSite(dir, SITE)
+      .problems.filter((problem) => problem.page.endsWith('/tools/rtl-check'))
+      .map((problem) => problem.check)
+    expect(checks).toEqual(expect.arrayContaining(['tool-first', 'sections', 'json-ld']))
   })
 })

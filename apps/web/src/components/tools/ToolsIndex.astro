@@ -1,0 +1,263 @@
+---
+import { TOOLS_UI } from '@arablyzer/i18n'
+import { breadcrumbList } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import ChevronLeft from '@lucide/astro/icons/chevron-left'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+import Search from '@lucide/astro/icons/search'
+import Page from '../../layouts/Page.astro'
+import { siteOf } from '../../lib/site'
+import { ARABIC_LAYER, CATEGORY_STYLE, categoryNumber, toolsByCategory } from '../../lib/tool-data'
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = TOOLS_UI[lang]
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, PATHS.tools)
+const groups = toolsByCategory()
+const general = groups.filter((group) => !ARABIC_LAYER.has(group.category))
+const arabic = groups.filter((group) => ARABIC_LAYER.has(group.category))
+const count = groups.reduce((sum, group) => sum + group.tools.length, 0)
+const Next = lang === 'ar' ? ChevronLeft : ChevronRight
+const jsonLd = [
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.directory.title, url },
+  ]),
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: t.directory.title,
+    numberOfItems: count,
+    itemListElement: groups
+      .flatMap((group) => group.tools)
+      .map((tool, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: tool.copy[lang].title,
+        url: pageUrl(site, lang, PATHS.tool(tool.slug)),
+      })),
+  },
+]
+---
+
+<Page
+  lang={lang}
+  path={PATHS.tools}
+  title={t.directory.meta.title}
+  description={t.directory.meta.description}
+  jsonLd={jsonLd}
+>
+  <section class="flex flex-col gap-5 border-b border-rule px-5 pt-8 pb-8 md:gap-[22px] md:px-16 md:pt-12 md:pb-10">
+    <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
+      <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
+        <li class="flex items-center gap-2">
+          <a href={localePath(lang, PATHS.home)} class="text-ink-3 hover:text-signal">
+            {STRINGS[lang].home}
+          </a>
+          <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
+        </li>
+        <li aria-current="page">{t.directory.title}</li>
+      </ol>
+    </nav>
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+      <div class="flex max-w-[760px] flex-col gap-3.5">
+        <h1 class="m-0 text-[36px] leading-[1.15] font-semibold md:text-[56px]">
+          {t.directory.title}
+        </h1>
+        <p class="m-0 text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+          {t.directory.intro}
+        </p>
+      </div>
+      <div
+        role="search"
+        class="flex h-14 w-full shrink-0 items-center gap-3 border-[1.5px] border-ink bg-white px-[18px] lg:w-[480px]"
+      >
+        <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
+        <label for="tools-search" class="sr-only">
+          {t.directory.search}
+        </label>
+        <input
+          id="tools-search"
+          type="search"
+          autocomplete="off"
+          placeholder={t.directory.searchPlaceholder}
+          class="h-full min-w-0 grow border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-3 md:text-[17px]"
+        />
+      </div>
+    </div>
+    <p class="m-0 text-sm text-ink-3" id="tools-count" aria-live="polite">
+      {t.directory.count(count)}
+    </p>
+  </section>
+
+  <div class="grid gap-10 px-5 pt-8 pb-16 md:px-16 md:pt-10 md:pb-20 lg:grid-cols-[272px_minmax(0,1fr)] lg:gap-x-14">
+    <nav
+      aria-labelledby="categories-title"
+      class="hidden flex-col gap-0.5 self-start text-[15px] lg:sticky lg:top-6 lg:flex"
+    >
+      <h2 id="categories-title" class="m-0 pb-3 text-[13px] font-semibold text-ink-3">
+        {t.directory.categories}
+      </h2>
+      <a
+        href="#tools-list"
+        class="flex items-center justify-between bg-ink px-3 py-[9px] font-semibold text-white hover:text-white"
+      >
+        {t.directory.all}
+      </a>
+      {general.map((group) => (
+        <a
+          href={`#cat-${group.category}`}
+          class="flex items-center gap-2.5 px-3 py-[9px] hover:text-signal"
+        >
+          <span
+            aria-hidden="true"
+            class:list={['size-2 shrink-0', CATEGORY_STYLE[group.category].dot]}
+          />
+          {t.categories[group.category].name}
+        </a>
+      ))}
+      {arabic.length > 0 && (
+        <>
+          <span aria-hidden="true" class="my-2.5 h-px bg-rule" />
+          <span class="px-3 pb-1.5 text-xs font-semibold text-signal">
+            {t.directory.arabicLayer}
+          </span>
+          {arabic.map((group) => (
+            <a
+              href={`#cat-${group.category}`}
+              class="flex items-center gap-2.5 px-3 py-[9px] hover:text-signal"
+            >
+              <span
+                aria-hidden="true"
+                class:list={['size-2 shrink-0', CATEGORY_STYLE[group.category].dot]}
+              />
+              {t.categories[group.category].name}
+            </a>
+          ))}
+        </>
+      )}
+    </nav>
+
+    <div id="tools-list" class="flex min-w-0 flex-col gap-12 md:gap-14">
+      {[...arabic, ...general].map((group) => (
+        <section
+          id={`cat-${group.category}`}
+          aria-labelledby={`cat-${group.category}-title`}
+          data-category
+          class="flex scroll-mt-6 flex-col gap-5"
+        >
+          <div
+            class:list={[
+              'flex flex-col gap-2 border-b-2 pb-4',
+              CATEGORY_STYLE[group.category].line,
+            ]}
+          >
+            <div class="flex items-baseline gap-3.5">
+              <span
+                dir="ltr"
+                class:list={[
+                  'px-2 py-0.5 font-mono text-[13px] font-semibold',
+                  CATEGORY_STYLE[group.category].chip,
+                ]}
+              >
+                {categoryNumber(group.category)}
+              </span>
+              <h2
+                id={`cat-${group.category}-title`}
+                class="m-0 text-2xl font-semibold md:text-[28px]"
+              >
+                {t.categories[group.category].name}
+              </h2>
+            </div>
+            <p class="m-0 text-[15px] leading-[1.7] text-ink-2 md:text-base">
+              {t.categories[group.category].blurb}
+            </p>
+          </div>
+          <ul class="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3">
+            {group.tools.map((tool) => (
+              <li
+                data-tool
+                data-search={[
+                  tool.slug,
+                  tool.copy.ar.title,
+                  tool.copy.en.title,
+                  tool.copy[lang].summary,
+                ]
+                  .join(' ')
+                  .toLowerCase()}
+              >
+                <a
+                  href={localePath(lang, PATHS.tool(tool.slug))}
+                  class="group flex h-full flex-col gap-3 border border-rule-strong bg-white p-[22px] hover:border-ink hover:text-ink"
+                >
+                  <span class="flex items-start justify-between gap-3 text-lg leading-snug font-semibold">
+                    {tool.copy[lang].title}
+                    <Next
+                      size={18}
+                      stroke-width={2}
+                      aria-hidden="true"
+                      class="mt-1 shrink-0 text-ink-3 group-hover:text-signal"
+                    />
+                  </span>
+                  <span class="text-[15px] leading-[1.7] text-ink-2">
+                    {tool.copy[lang].summary}
+                  </span>
+                  <span
+                    class:list={[
+                      'mt-auto self-start border border-rule-strong px-2 py-0.5 text-xs text-ink-2',
+                      (tool.tag === 'html' || tool.tag === 'robots') && 'font-mono',
+                    ]}
+                    dir={tool.tag === 'html' || tool.tag === 'robots' ? 'ltr' : undefined}
+                  >
+                    {t.tags[tool.tag]}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      <p
+        id="tools-none"
+        hidden
+        class="m-0 border border-dashed border-tick p-6 text-base text-ink-2"
+      >
+        {t.directory.none}
+      </p>
+    </div>
+  </div>
+</Page>
+
+<script>
+  // The directory's search: cards whose name or line holds every word typed, and the sections
+  // they are in; the page works without it, every tool listed.
+  const input = document.querySelector<HTMLInputElement>('#tools-search')
+  const count = document.querySelector<HTMLElement>('#tools-count')
+  const none = document.querySelector<HTMLElement>('#tools-none')
+  const sections = [...document.querySelectorAll<HTMLElement>('[data-category]')]
+  const all = count?.textContent ?? ''
+  input?.addEventListener('input', () => {
+    const words = input.value
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((word) => word !== '')
+    let shown = 0
+    for (const section of sections) {
+      let inSection = 0
+      for (const card of section.querySelectorAll<HTMLElement>('[data-tool]')) {
+        const text = card.dataset.search ?? ''
+        const match = words.every((word) => text.includes(word))
+        card.hidden = !match
+        if (match) inSection++
+      }
+      section.hidden = inSection === 0
+      shown += inSection
+    }
+    if (none !== null) none.hidden = shown > 0
+    if (count !== null) count.textContent = words.length === 0 ? all : `${String(shown)} / ${all}`
+  })
+</script>

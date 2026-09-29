@@ -10,7 +10,8 @@
     "./head": "./src/head.ts",
     "./json-ld": "./src/json-ld.ts",
     "./strings": "./src/strings.ts",
-    "./audit": "./src/audit/index.ts"
+    "./audit": "./src/audit/index.ts",
+    "./markdown": "./src/markdown.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

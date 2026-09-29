@@ -169,6 +169,17 @@
   contain-intrinsic-size: auto 900px;
 }
 
+/* Code inside a tool page's text: its checks, its fix and its answers. */
+@layer components {
+  .prose-tool code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+  }
+  .prose-tool li::marker {
+    color: var(--color-ink-3);
+  }
+}
+
 /* A rule's "how to fix", as packages/seo's Markdown writes it: paragraphs, lists, code. */
 @layer components {
   .prose-fix {

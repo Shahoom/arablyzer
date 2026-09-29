@@ -12,4 +12,10 @@ export {
   type PageProblem,
 } from './audit'
 export { auditSite, sampleReport, type RenderedPage, type SiteAudit } from './site'
-export { auditBuiltSite, builtPages, type BuiltPage, type BuiltSiteAudit } from './built-site'
+export {
+  auditBuiltSite,
+  builtPages,
+  representativePages,
+  type BuiltPage,
+  type BuiltSiteAudit,
+} from './built-site'
