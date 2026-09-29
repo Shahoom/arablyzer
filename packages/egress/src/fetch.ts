@@ -40,6 +40,16 @@ export interface SafeFetchOptions {
   /** Sent as-is: Arablyzer always identifies itself and never poses as another bot. */
   readonly userAgent: string
   readonly accept?: string
+  /**
+   * GET by default, and on every redirect; HEAD asks for the headers alone (M2.3c: a link's
+   * status). A request with `json` is a POST, which HEAD cannot be.
+   */
+  readonly method?: 'GET' | 'HEAD'
+  /**
+   * The status and headers alone: the body is not read, nor decoded, and the connection is
+   * closed at once. The response's body is then empty.
+   */
+  readonly discardBody?: boolean
   readonly policy?: EgressPolicy
   readonly resolver?: Resolver
   /** Budget for the whole fetch, redirects included. */
@@ -168,6 +178,9 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
   checkLimit('maxBytes', options.maxBytes, 1, DEFAULT_MAX_BYTES)
   checkLimit('maxRedirects', options.maxRedirects, 0, MAX_REDIRECTS)
   const postBody = jsonBody(options.json)
+  if (postBody !== undefined && options.method === 'HEAD') {
+    throw new TypeError('A request with a JSON body is a POST, not a HEAD')
+  }
   const addedHeaders = extraHeaders(options.headers)
   const policy = options.policy ?? DEFAULT_POLICY
   const resolver = options.resolver ?? defaultResolver(policy)
@@ -280,11 +293,14 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
       const remoteAddress = upstream === undefined ? (res.socket.remoteAddress ?? null) : null
       const certificate = res.socket instanceof TLSSocket ? validityOf(res.socket) : null
       const headers = headerPairs(res.rawHeaders)
-      const { body, truncated } = await readBody(
-        res,
-        options.maxBytes ?? DEFAULT_MAX_BYTES,
-        options.onTooLarge ?? 'error',
-      )
+      const { body, truncated } =
+        options.discardBody === true || options.method === 'HEAD'
+          ? unread(res)
+          : await readBody(
+              res,
+              options.maxBytes ?? DEFAULT_MAX_BYTES,
+              options.onTooLarge ?? 'error',
+            )
       return finish(
         { url: url.href, status, headers, body, truncated, remoteAddress, certificate },
         null,
@@ -338,6 +354,11 @@ function extraHeaders(given: Readonly<Record<string, string>> | undefined): Reco
   return headers
 }
 
+/** POST with a JSON body, else the method asked for, GET by default. */
+function methodOf(options: SafeFetchOptions, body: Buffer | undefined): 'GET' | 'HEAD' | 'POST' {
+  return body === undefined ? (options.method ?? 'GET') : 'POST'
+}
+
 /** The request's headers: added ones first, so none can replace the fetch's own. */
 function requestHeaders(
   options: SafeFetchOptions,
@@ -365,7 +386,7 @@ function sendRequest(
 ): Promise<IncomingMessage> {
   const lookup = pinnedLookup(addresses)
   const requestOptions: https.RequestOptions = {
-    method: body === undefined ? 'GET' : 'POST',
+    method: methodOf(options, body),
     // A fresh agent: no shared sockets and no proxy settings picked up from the environment.
     agent: false,
     lookup,
@@ -415,7 +436,7 @@ async function sendThrough(
   return new Promise((resolve, reject) => {
     const request = http.request(
       {
-        method: body === undefined ? 'GET' : 'POST',
+        method: methodOf(options, body),
         host,
         port,
         path: `${url.pathname}${url.search}`,
@@ -435,6 +456,12 @@ async function sendThrough(
     })
     request.end(body)
   })
+}
+
+/** A response whose body is not read: its connection is closed, and its body is empty. */
+function unread(res: IncomingMessage): { body: Uint8Array; truncated: boolean } {
+  res.destroy()
+  return { body: new Uint8Array(), truncated: false }
 }
 
 async function readBody(

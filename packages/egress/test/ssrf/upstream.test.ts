@@ -129,6 +129,31 @@ describe('safeFetch through an egress proxy', () => {
     expect(Object.keys(smokescreen.headers[0] ?? {})).toEqual(['host'])
   })
 
+  it('sends a HEAD through the tunnel as it is, and a GET whose body it leaves (M2.3c)', async () => {
+    const methods: string[] = []
+    const site = await server((req, res) => {
+      methods.push(req.method ?? '')
+      res.writeHead(404, { 'content-type': 'text/html' })
+      res.end(req.method === 'HEAD' ? undefined : 'not found')
+    })
+    const smokescreen = await fakeSmokescreen({ 'shop.example.test:80': site.port })
+    const ask = (method: 'GET' | 'HEAD') =>
+      safeFetch('http://shop.example.test/gone', {
+        userAgent: UA,
+        policy: through(smokescreen),
+        method,
+        discardBody: true,
+      })
+    for (const method of ['HEAD', 'GET'] as const) {
+      const result = await ask(method)
+      expect(result.error).toBeNull()
+      expect(result.response?.status).toBe(404)
+      expect(result.response?.body).toHaveLength(0)
+    }
+    expect(methods).toEqual(['HEAD', 'GET'])
+    expect(smokescreen.connects).toEqual(['shop.example.test:80', 'shop.example.test:80'])
+  })
+
   it('still refuses here what needs no DNS: a refused address, a port, an internal name', async () => {
     const smokescreen = await fakeSmokescreen({})
     const policy = through(smokescreen)
