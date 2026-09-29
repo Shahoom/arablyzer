@@ -31,5 +31,5 @@ reviewed: false
 
 ## المراجع
 
-- [W3C: متطلبات تخطيط النص العربي، الكشيدة والتطويل](https://www.w3.org/TR/alreq/#h_justification) (بالإنجليزية)
-- [يونيكود: الأسئلة الشائعة عن الحروف العربية](https://www.unicode.org/faq/middleeast.html) (بالإنجليزية)
+- [W3C: متطلبات تخطيط النص العربي، الكشيدة والتطويل](https://www.w3.org/TR/alreq/#h_justification_tatweel) (بالإنجليزية)
+- [يونيكود: جدول الحروف العربية، التطويل في `U+0640`](https://www.unicode.org/charts/PDF/U0600.pdf) (بالإنجليزية)

@@ -27,5 +27,5 @@ The word «{word}» is stretched with tatweel (ـ) between its letters, so peopl
 
 ## References
 
-- [W3C: Arabic and Persian Layout Requirements, kashida and tatweel](https://www.w3.org/TR/alreq/#h_justification)
-- [Unicode: Frequently asked questions about Arabic](https://www.unicode.org/faq/middleeast.html)
+- [W3C: Arabic and Persian Layout Requirements, kashida and tatweel](https://www.w3.org/TR/alreq/#h_justification_tatweel)
+- [Unicode: the Arabic code chart, tatweel at `U+0640`](https://www.unicode.org/charts/PDF/U0600.pdf)

@@ -40,4 +40,4 @@ reviewed: false
 - [web.dev: تحسين INP](https://web.dev/articles/optimize-inp) (بالإنجليزية)
 - [Chrome: واجهة CrUX البرمجية](https://developer.chrome.com/docs/crux/api) (بالإنجليزية)
 - [Chrome: منهجية CrUX](https://developer.chrome.com/docs/crux/methodology) (بالإنجليزية)
-- [Google Search Central: تجربة الصفحة](https://developers.google.com/search/docs/appearance/page-experience)
+- [Google Search Central: تجربة الصفحة](https://developers.google.com/search/docs/appearance/page-experience?hl=ar)

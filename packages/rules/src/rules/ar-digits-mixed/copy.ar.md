@@ -35,5 +35,5 @@ reviewed: false
 
 ## المراجع
 
-- [W3C: متطلبات تخطيط النص العربي، الأرقام](https://www.w3.org/TR/alreq/#h_digits) (بالإنجليزية)
+- [W3C: متطلبات تخطيط النص العربي، الأرقام](https://www.w3.org/TR/alreq/#h_families_of_numerals) (بالإنجليزية)
 - [يونيكود: جدول الحروف العربية، الأرقام في U+0660 وU+06F0](https://www.unicode.org/charts/PDF/U0600.pdf) (بالإنجليزية)
