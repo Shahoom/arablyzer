@@ -31,6 +31,9 @@ describe('the tools as their pages have them', () => {
     }
     expect(tag('ai-crawler-check')).toBe('robots')
     expect(tag('sitemap-check')).toBe('sitemap')
+    expect(tag('ai-access')).toBe('robots')
+    expect(tag('robots-check')).toBe('robots')
+    expect(tag('indexability-check')).toBe('html')
     expect(tag('rtl-check')).toBe('html')
     expect(tag('whatsapp-link-check')).toBe('html')
     expect(tag('security-headers')).toBe('http')

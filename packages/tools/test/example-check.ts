@@ -86,7 +86,13 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
       headers: last?.headers ?? [],
       body: encode(''),
     })
-    return evaluatePage(page, { rules: RULES, ruleIds: tool.rules, redirects }).results
+    // The exchange has no robots.txt in it: the rules that read one see a site without one.
+    const robots = collectRobots({
+      url: new URL('/robots.txt', url).href,
+      response: { status: 404, body: encode(''), truncated: false },
+      errorCode: null,
+    })
+    return evaluatePage(page, { rules: RULES, ruleIds: tool.rules, redirects, robots }).results
   }
   if (example.lang === 'json') {
     const page = collectPage({
@@ -124,9 +130,9 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
 
 /**
  * Whether an example can speak to a rule: robots.txt to the rules that read it, an HTTP exchange
- * to those that read the response's headers or its redirects, a Chrome UX Report answer to those
- * that read it, HTML to the rest. A rule an example cannot speak to, such as one that reads the
- * certificate, need not pass it: it must not fail.
+ * to those that read the response, its headers or its redirects, a Chrome UX Report answer to
+ * those that read it, HTML to the rest. A rule an example cannot speak to, such as one that reads
+ * the certificate, need not pass it: it must not fail.
  */
 export function speaksTo(example: CodeExample, ruleId: string): boolean {
   const reads = ruleById(ruleId)?.needs ?? []
@@ -134,7 +140,7 @@ export function speaksTo(example: CodeExample, ruleId: string): boolean {
     case 'robots.txt':
       return reads.includes('robots')
     case 'http':
-      return reads.includes('headers') || reads.includes('redirects')
+      return reads.includes('headers') || reads.includes('redirects') || reads.includes('response')
     case 'json':
       return reads.includes('crux')
     case 'html':

@@ -207,3 +207,24 @@ describe('a robots.txt example', () => {
     expect(exampleProblems(tool, 'en')).toEqual([])
   })
 })
+
+describe('an HTTP example of a bot challenge', () => {
+  const rules = ['robots-blocks-ai-search', 'bot-challenge']
+  const challenge = http(
+    'HTTP/1.1 403 Forbidden\nContent-Type: text/html; charset=UTF-8\ncf-mitigated: challenge',
+  )
+
+  it('speaks to the rule that reads the answer, whatever its status', () => {
+    expect(speaksTo(challenge, 'bot-challenge')).toBe(true)
+    expect(speaksTo(challenge, 'robots-blocks-ai-search')).toBe(false)
+  })
+
+  it('shows a site without robots.txt to the rules that read one, which it does not speak to', () => {
+    const tool = toolOf(rules, challenge, http(PAGE))
+    expect(evaluateExample(tool, challenge).map((result) => [result.id, result.status])).toEqual([
+      ['bot-challenge', 'fail'],
+      ['robots-blocks-ai-search', 'pass'],
+    ])
+    expect(exampleProblems(tool, 'ar')).toEqual([])
+  })
+})
