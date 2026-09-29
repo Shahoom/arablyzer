@@ -42,13 +42,13 @@ function pair(scanner: Scanner) {
 describe('the scanner and its client', () => {
   it('answers with the scan events, in order, then the report', async () => {
     const report = await validReport()
-    const { client } = pair((url, onEvent) => {
-      expect(url).toBe('https://example.com/')
+    const { client } = pair((request, onEvent) => {
+      expect(request).toEqual({ url: 'https://example.com/' })
       for (const event of EVENTS) onEvent(event)
       return Promise.resolve(report)
     })
     const seen: ScanEvent[] = []
-    const got = await client()('https://example.com/', (event) => seen.push(event))
+    const got = await client()({ url: 'https://example.com/' }, (event) => seen.push(event))
     expect(seen).toEqual(EVENTS)
     expect(got).toEqual(report)
   })
@@ -56,7 +56,10 @@ describe('the scanner and its client', () => {
   it('answers no one without the worker token', async () => {
     const { app, client } = pair(() => Promise.resolve(REPORT))
     await expect(
-      client('another-token-of-the-very-same-length-ok')('https://example.com/', () => undefined),
+      client('another-token-of-the-very-same-length-ok')(
+        { url: 'https://example.com/' },
+        () => undefined,
+      ),
     ).rejects.toThrow(/answered 401/)
     const unsigned = await app.request('/scan', {
       method: 'POST',
@@ -86,16 +89,18 @@ describe('the scanner and its client', () => {
           }
         }),
     )
-    const first = client()('https://example.com/1', () => undefined)
+    const first = client()({ url: 'https://example.com/1' }, () => undefined)
     await new Promise((resolve) => setTimeout(resolve, 20))
-    await expect(client()('https://example.com/2', () => undefined)).rejects.toThrow(/answered 503/)
+    await expect(client()({ url: 'https://example.com/2' }, () => undefined)).rejects.toThrow(
+      /answered 503/,
+    )
     release()
     await expect(first).resolves.toEqual(report)
   })
 
   it('says why a scan could not run, and the client throws it', async () => {
     const { client } = pair(() => Promise.reject(new Error('Firefox did not start')))
-    await expect(client()('https://example.com/', () => undefined)).rejects.toThrow(
+    await expect(client()({ url: 'https://example.com/' }, () => undefined)).rejects.toThrow(
       'The scanner could not run the scan: Firefox did not start',
     )
   })
@@ -113,9 +118,9 @@ describe('the scanner and its client', () => {
     const client = remoteScanner('http://scanner:8788', TOKEN, (input, init) =>
       Promise.resolve(forged.request(input, init)),
     )
-    await expect(client('https://example.com/', (event) => seen.push(event))).rejects.toThrow(
-      /protocol does not have/,
-    )
+    await expect(
+      client({ url: 'https://example.com/' }, (event) => seen.push(event)),
+    ).rejects.toThrow(/protocol does not have/)
     expect(seen).toEqual([])
     // A report that is not one is refused as well.
     const bad = new Hono().post('/scan', (c) =>
@@ -124,7 +129,7 @@ describe('the scanner and its client', () => {
     const badClient = remoteScanner('http://scanner:8788', TOKEN, (input, init) =>
       Promise.resolve(bad.request(input, init)),
     )
-    await expect(badClient('https://example.com/', () => undefined)).rejects.toThrow(
+    await expect(badClient({ url: 'https://example.com/' }, () => undefined)).rejects.toThrow(
       /protocol does not have/,
     )
     // An answer that ends before its report is a scan that did not finish.
@@ -134,7 +139,7 @@ describe('the scanner and its client', () => {
     const cutClient = remoteScanner('http://scanner:8788', TOKEN, (input, init) =>
       Promise.resolve(cut.request(input, init)),
     )
-    await expect(cutClient('https://example.com/', () => undefined)).rejects.toThrow(
+    await expect(cutClient({ url: 'https://example.com/' }, () => undefined)).rejects.toThrow(
       /without a report/,
     )
   })
@@ -169,7 +174,7 @@ describe('the scanner and its client', () => {
     try {
       const hangUp = new AbortController()
       const scanning = remoteScanner(`http://127.0.0.1:${String(port)}`, TOKEN)(
-        'https://example.com/',
+        { url: 'https://example.com/' },
         () => {
           hangUp.abort()
         },

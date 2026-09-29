@@ -5,7 +5,7 @@ import { and, eq, inArray, lt, type SQL } from 'drizzle-orm'
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import type { Pool } from 'pg'
-import type { ScanRecord, ScanStore } from '../types'
+import type { NewScan, ScanRecord, ScanStore } from '../types'
 import { scans } from './schema'
 
 const MIGRATIONS = fileURLToPath(new URL('../../drizzle/', import.meta.url))
@@ -37,8 +37,14 @@ export class PostgresScanStore implements ScanStore {
     }
   }
 
-  async create(scan: { id: string; url: string; createdAt: Date }): Promise<void> {
-    await this.#db.insert(scans).values({ ...scan, state: 'queued' })
+  async create(scan: NewScan): Promise<void> {
+    await this.#db.insert(scans).values({
+      id: scan.id,
+      url: scan.url,
+      createdAt: scan.createdAt,
+      tool: scan.tool ?? null,
+      state: 'queued',
+    })
   }
 
   async get(id: string): Promise<ScanRecord | null> {
@@ -47,6 +53,7 @@ export class PostgresScanStore implements ScanStore {
     return {
       id: row.id,
       url: row.url,
+      tool: row.tool,
       state: row.state,
       createdAt: row.createdAt,
       startedAt: row.startedAt,

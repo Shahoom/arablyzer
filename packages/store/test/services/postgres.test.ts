@@ -28,6 +28,7 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
     expect(await store.get(id)).toEqual({
       id,
       url: 'https://example.com/',
+      tool: null,
       state: 'queued',
       createdAt: NOW,
       startedAt: null,
@@ -52,6 +53,12 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
       [id],
     )
     expect(rows[0]?.score).toBe(81)
+  })
+
+  it("keeps the tool a tool page's scan ran", async () => {
+    const id = 'AbCdEfGhIjKlMnOpQrSt_t'
+    await store.create({ id, url: 'https://example.com/', createdAt: NOW, tool: 'rtl-check' })
+    expect((await store.get(id))?.tool).toBe('rtl-check')
   })
 
   it('fails a scan that could not run, and knows no scan it was not given', async () => {

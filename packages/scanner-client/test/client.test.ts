@@ -28,7 +28,11 @@ describe('remoteScanner', () => {
       `${JSON.stringify({ type: 'error', message: 'stop' })}\n`,
     ])
     await expect(
-      remoteScanner('http://scanner:8788', TOKEN, fetcher)('https://example.com/', () => undefined),
+      remoteScanner(
+        'http://scanner:8788',
+        TOKEN,
+        fetcher,
+      )({ url: 'https://example.com/' }, () => undefined),
     ).rejects.toThrow('stop')
     expect(asked).toHaveLength(1)
     expect(asked[0]?.url).toBe('http://scanner:8788/scan')
@@ -38,6 +42,22 @@ describe('remoteScanner', () => {
       'content-type': 'application/json',
     })
     expect(asked[0]?.init.body).toBe(JSON.stringify({ url: 'https://example.com/' }))
+  })
+
+  it("asks for a tool page's scan with its tool", async () => {
+    const { fetcher, asked } = answering([
+      `${JSON.stringify({ type: 'error', message: 'stop' })}\n`,
+    ])
+    await expect(
+      remoteScanner(
+        'http://scanner:8788',
+        TOKEN,
+        fetcher,
+      )({ url: 'https://example.com/', tool: 'rtl-check' }, () => undefined),
+    ).rejects.toThrow('stop')
+    expect(asked[0]?.init.body).toBe(
+      JSON.stringify({ url: 'https://example.com/', tool: 'rtl-check' }),
+    )
   })
 
   it('reads a line cut across chunks, a letter cut across bytes, and a last line with no newline', async () => {
@@ -56,7 +76,7 @@ describe('remoteScanner', () => {
         'http://scanner:8788',
         TOKEN,
         fetcher,
-      )('https://example.com/', (event) => seen.push(event)),
+      )({ url: 'https://example.com/' }, (event) => seen.push(event)),
     ).rejects.toThrow('The scanner could not run the scan: تعذّر تشغيل المتصفح')
     expect(seen).toEqual([{ type: 'started', engines: [] }])
   })
@@ -95,7 +115,7 @@ describe('remoteScanner', () => {
         'http://scanner:8788',
         TOKEN,
         fetcher,
-      )('https://example.com/', (event) => seen.push(event)),
+      )({ url: 'https://example.com/' }, (event) => seen.push(event)),
     ).rejects.toThrow('stop')
     expect(seen).toEqual(events)
   })
@@ -113,7 +133,7 @@ describe('remoteScanner', () => {
           'http://scanner:8788',
           TOKEN,
           fetcher,
-        )('https://example.com/', (seenEvent) => seen.push(seenEvent)),
+        )({ url: 'https://example.com/' }, (seenEvent) => seen.push(seenEvent)),
         event.type,
       ).rejects.toThrow('The scanner sent a line its protocol does not have')
       expect(seen, event.type).toEqual([])
@@ -129,7 +149,7 @@ describe('remoteScanner', () => {
         'http://scanner:8788',
         TOKEN,
         fetcher,
-      )('https://example.com/', (event) => seen.push(event)),
+      )({ url: 'https://example.com/' }, (event) => seen.push(event)),
     ).rejects.toThrow('The scanner sent more events than a scan has')
     expect(seen).toHaveLength(MAX_SCANNER_EVENTS)
   })
@@ -141,7 +161,7 @@ describe('remoteScanner', () => {
         'http://scanner:8788',
         TOKEN,
         long.fetcher,
-      )('https://example.com/', () => undefined),
+      )({ url: 'https://example.com/' }, () => undefined),
     ).rejects.toThrow(/too long/)
     const busy = answering(['{"error":"busy"}'], 503)
     await expect(
@@ -149,7 +169,7 @@ describe('remoteScanner', () => {
         'http://scanner:8788',
         TOKEN,
         busy.fetcher,
-      )('https://example.com/', () => undefined),
+      )({ url: 'https://example.com/' }, () => undefined),
     ).rejects.toThrow('The scanner answered 503')
   })
 
@@ -166,7 +186,7 @@ describe('remoteScanner', () => {
         TOKEN,
         hanging,
         20,
-      )('https://example.com/', () => undefined),
+      )({ url: 'https://example.com/' }, () => undefined),
     ).rejects.toThrow('aborted')
   })
 })

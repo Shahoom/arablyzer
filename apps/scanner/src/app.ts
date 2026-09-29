@@ -96,7 +96,7 @@ export function createScannerApp(deps: ScannerDeps): Hono {
         let written: Promise<unknown> = Promise.resolve()
         try {
           const report = await deps.scanner(
-            request.data.url,
+            request.data,
             (event) => {
               written = written.then(() => send({ type: 'event', event })).catch(() => undefined)
             },

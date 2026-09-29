@@ -1,5 +1,9 @@
 import { ScanEvent, type ScanEvent as ScanEventShape } from '@arablyzer/api-contract'
-import { MAX_URL_LENGTH } from '@arablyzer/api-contract/codes'
+import {
+  MAX_TOOL_SLUG_LENGTH,
+  MAX_URL_LENGTH,
+  TOOL_SLUG_PATTERN,
+} from '@arablyzer/api-contract/codes'
 import { Engine, Report, type Report as ReportShape } from '@arablyzer/report-schema'
 import { z } from 'zod'
 
@@ -10,8 +14,14 @@ import { z } from 'zod'
 /** The path the worker asks for a scan on. */
 export const SCAN_PATH = '/scan'
 
-/** What the worker sends: the page, and nothing about who asked for it. */
-export const ScanRequest = z.strictObject({ url: z.string().min(1).max(MAX_URL_LENGTH) })
+/**
+ * What the worker sends: the page, and the tool whose rules alone to run when a tool page asked
+ * (M2.2); nothing about who asked for it.
+ */
+export const ScanRequest = z.strictObject({
+  url: z.string().min(1).max(MAX_URL_LENGTH),
+  tool: z.string().max(MAX_TOOL_SLUG_LENGTH).regex(TOOL_SLUG_PATTERN).optional(),
+})
 export type ScanRequest = z.infer<typeof ScanRequest>
 
 /** Why a scan could not run, as the scanner tells it: an English line for the logs. */

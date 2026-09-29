@@ -88,6 +88,34 @@ describe('POST /api/scans', () => {
     expect(first).toEqual({ id: '1', event: { type: 'queued', ahead: 0 } })
   })
 
+  it("queues a tool page's scan with its tool, which the scan's summary names", async () => {
+    const { app, post, store, queue } = setup()
+    const response = await post({
+      url: 'https://example.com/',
+      turnstileToken: 'human',
+      tool: 'rtl-check',
+    })
+    expect(response.status).toBe(202)
+    const { id } = (await response.json()) as { id: string }
+    expect((await store.get(id))?.tool).toBe('rtl-check')
+    expect(await queue.take(AbortSignal.timeout(100))).toEqual({
+      id,
+      url: 'https://example.com/',
+      tool: 'rtl-check',
+    })
+    const summary = (await (await app.request(`/api/scans/${id}`)).json()) as { tool?: string }
+    expect(summary.tool).toBe('rtl-check')
+  })
+
+  it('refuses a tool there is none of, and one that is not a slug', async () => {
+    const { post, queue } = setup()
+    for (const tool of ['no-such-tool', 'RTL-Check', '../rtl-check', 'x'.repeat(65)]) {
+      const response = await post({ url: 'https://example.com/', turnstileToken: 'human', tool })
+      expect(await refusal(response), tool).toEqual({ status: 400, body: { error: 'bad-request' } })
+    }
+    expect(await queue.waiting()).toBe(0)
+  })
+
   it('reads only a small JSON body with the two fields the form sends', async () => {
     const { post } = setup()
     for (const response of [

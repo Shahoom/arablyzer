@@ -15,8 +15,14 @@ describe('MemoryScanStore', () => {
     expect(await store.start('a', NOW)).toBe(false)
     expect(await store.finish('a', report, NOW)).toBe(true)
     expect(await store.fail('a', NOW)).toBe(false)
-    expect(await store.get('a')).toMatchObject({ state: 'partial', report })
+    expect(await store.get('a')).toMatchObject({ state: 'partial', report, tool: null })
     expect(await store.start('unknown', NOW)).toBe(false)
+  })
+
+  it("keeps the tool a tool page's scan ran", async () => {
+    const store = new MemoryScanStore()
+    await store.create({ id: 't', url: 'https://example.com/', createdAt: NOW, tool: 'rtl-check' })
+    expect((await store.get('t'))?.tool).toBe('rtl-check')
   })
 
   it('fails the scans left running since before a time', async () => {

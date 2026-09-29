@@ -7,6 +7,8 @@ export const scans = pgTable(
   {
     id: text('id').primaryKey(),
     url: text('url').notNull(),
+    /** The tool the scan ran (M2.2); null for a whole scan. */
+    tool: text('tool'),
     state: text('state', {
       enum: ['queued', 'running', 'complete', 'partial', 'failed'],
     }).notNull(),

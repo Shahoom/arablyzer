@@ -9,6 +9,7 @@ import {
 } from '@arablyzer/api-contract'
 import type { EgressPolicy, Resolver } from '@arablyzer/egress'
 import type { ScanLimits } from '@arablyzer/plans'
+import { toolDefinition } from '@arablyzer/tools/registry'
 import { Hono, type Context } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
@@ -119,6 +120,9 @@ export function createApp(deps: ApiDeps): Hono {
       }
       const request = CreateScanRequest.safeParse(raw)
       if (!request.success) return refuse(c, 'bad-request')
+      // A tool page sends its tool; the site sends no other.
+      const tool = request.data.tool
+      if (tool !== undefined && toolDefinition(tool) === undefined) return refuse(c, 'bad-request')
 
       // What needs no network first; the checks that cost something come after Turnstile and
       // the visitor's own limit, so the API cannot be used to look up names or fill the queue.
@@ -151,10 +155,15 @@ export function createApp(deps: ApiDeps): Hono {
       // Stored and announced before it is queued, so the worker never starts a scan whose
       // record or first event is not there yet.
       const id = deps.newId()
-      await deps.store.create({ id, url: resolved.value, createdAt: at })
+      await deps.store.create({
+        id,
+        url: resolved.value,
+        createdAt: at,
+        ...(tool === undefined ? {} : { tool }),
+      })
       try {
         await deps.events.publish(id, { type: 'queued', ahead })
-        await deps.queue.add({ id, url: resolved.value })
+        await deps.queue.add({ id, url: resolved.value, ...(tool === undefined ? {} : { tool }) })
       } catch (error) {
         // Never queued, so never run: the scan fails at once, and says so to any page it has.
         await deps.store.fail(id, at).catch(() => false)
@@ -173,6 +182,7 @@ export function createApp(deps: ApiDeps): Hono {
       url: scan.url,
       state: scan.state,
       createdAt: scan.createdAt.toISOString(),
+      ...(scan.tool === null ? {} : { tool: scan.tool }),
     }
     return c.json(summary)
   })

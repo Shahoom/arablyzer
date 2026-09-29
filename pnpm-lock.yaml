@@ -71,6 +71,9 @@ importers:
       '@arablyzer/store':
         specifier: workspace:*
         version: link:../../packages/store
+      '@arablyzer/tools':
+        specifier: workspace:*
+        version: link:../../packages/tools
       '@hono/node-server':
         specifier: 2.1.1
         version: 2.1.1(hono@4.13.10)
@@ -123,9 +126,15 @@ importers:
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../../packages/report-schema
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
       '@arablyzer/scanner-client':
         specifier: workspace:*
         version: link:../../packages/scanner-client
+      '@arablyzer/tools':
+        specifier: workspace:*
+        version: link:../../packages/tools
       '@hono/node-server':
         specifier: 2.1.1
         version: 2.1.1(hono@4.13.10)

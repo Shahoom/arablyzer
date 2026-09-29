@@ -1,9 +1,9 @@
-import { defineTool } from '../../tool'
+import type { ToolDefinition } from '../../tool'
 
-export const tool = defineTool({
+export const definition: ToolDefinition = {
   slug: 'whatsapp-link-check',
   category: 'forms',
   rules: ['whatsapp-link-format'],
   related: ['rtl-check', 'ai-crawler-check'],
   updated: '2026-09-24',
-})
+}

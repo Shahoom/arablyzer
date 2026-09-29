@@ -43,7 +43,10 @@ export async function runScan(job: ScanJob, deps: WorkerDeps): Promise<void> {
   }
   let report: Report
   try {
-    report = await deps.scanner(job.url, publish)
+    report = await deps.scanner(
+      { url: job.url, ...(job.tool === undefined ? {} : { tool: job.tool }) },
+      publish,
+    )
   } catch (error) {
     log(`Scan ${job.id} could not run: ${message(error)}`)
     await published
