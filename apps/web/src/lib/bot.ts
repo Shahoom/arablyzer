@@ -10,6 +10,9 @@ export interface BotFacts {
   readonly pageRedirects: number
   readonly robotsRedirects: number
   readonly robotsKib: number
+  /** The sitemaps robots.txt names that a check fetches at most, and what it reads of each. */
+  readonly sitemaps: number
+  readonly sitemapMib: number
   /** At most, for one page load in a browser: requests, and mebibytes to and from the network. */
   readonly requestsPerLoad: number
   readonly mibPerLoad: number

@@ -12,6 +12,7 @@ import {
   type RenderedFacts,
   type RobotsFacts,
   type RobotsRule,
+  type SitemapFacts,
 } from '@arablyzer/collectors'
 import {
   checkUrl,
@@ -46,6 +47,7 @@ import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
   crawlerAccess,
+  isPublicUrl,
   matchRobots,
   renderMessage,
   RULES,
@@ -60,6 +62,7 @@ import { fetchCrux, type CruxOptions } from './crux'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
+import { fetchSitemaps } from './sitemap'
 
 export { ENGINE_VERSION, USER_AGENT }
 /** Keeps reports small; the rest of a rule's findings are counted in findingsOmitted. */
@@ -380,6 +383,20 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   // For the rules that read it, and in the report only then: a scan without them reports as it
   // did before robots.txt came first.
   const robots = rules.some((rule) => rule.needs.includes('robots')) ? robotsRead.facts : undefined
+  // The site's sitemaps, when a rule the scan runs reads them (M2.3c): those its robots.txt names,
+  // or /sitemap.xml, with the lockdown the page's chain ended with, and each site's opt-out. They
+  // are for search engines, which reach public sites alone: a local site is not asked for them.
+  const sitemapRead =
+    rules.some((rule) => rule.needs.includes('sitemap')) && isPublicUrl(response.url)
+      ? await fetchSitemaps(robotsRead.facts, new URL(response.url).origin, {
+          base: { ...base, policy: robotsPolicy },
+          privateAccess: fetched.privateAccess,
+          allowed: async (to, privateAccess, signal) =>
+            (await robotsFor(to, privateAccess ? policy : lockdown, signal)).rule === null,
+        })
+      : undefined
+  const sitemap =
+    sitemapRead !== undefined && 'facts' in sitemapRead ? sitemapRead.facts : undefined
   // Real-user data, when a rule the scan runs reads it: the page's URL goes to Google with the
   // key. A scan none of whose rules reads it (a tool's, M2.2) asks nothing and says nothing of it.
   const readsCrux = rules.some((rule) => rule.needs.includes('crux'))
@@ -439,6 +456,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(crux?.outcome === 'failed'
       ? [notice(crux.refused === true ? 'crux-refused' : 'crux-failed')]
       : []),
+    ...(sitemapRead !== undefined && 'failed' in sitemapRead ? [notice('sitemap-unchecked')] : []),
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
     ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
   ]
@@ -449,6 +467,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     rendered: rendering?.rendered,
     crux,
     redirects: target.http.redirects,
+    sitemap,
+    sitemapUnchecked: sitemapRead !== undefined && 'failed' in sitemapRead,
   })
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
@@ -643,6 +663,8 @@ export interface EvaluateOptions {
    * without them, rules that need them do not apply.
    */
   readonly redirects?: readonly Redirect[]
+  /** The site's sitemaps; without them, rules that need them do not apply. */
+  readonly sitemap?: SitemapFacts
 }
 
 export interface Evaluation {
@@ -670,6 +692,9 @@ interface Collected {
   readonly rendered?: readonly RenderedFacts[] | undefined
   readonly crux?: CruxFacts | undefined
   readonly redirects?: readonly Redirect[] | undefined
+  readonly sitemap?: SitemapFacts | undefined
+  /** The sitemaps were asked for and could not all be read: their rules could not check. */
+  readonly sitemapUnchecked?: boolean
 }
 
 function evaluateRules(rules: readonly Rule[], page: PageFacts, collected: Collected): Evaluation {
@@ -747,7 +772,8 @@ interface Outcome {
 
 function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
   const { robots, rendered, crux } = collected
-  const needsPage = rule.needs.some((need) => need !== 'robots')
+  // robots.txt and the sitemaps are the site's: their rules run whatever the page answered.
+  const needsPage = rule.needs.some((need) => need !== 'robots' && need !== 'sitemap')
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
   if (needsPage && !isSuccess(page.status)) return { status: 'not-applicable', findings: [] }
@@ -759,6 +785,15 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
   }
   if (rule.needs.includes('robots') && (robots === undefined || robots.outcome === 'failed')) {
     return { status: 'error', error: 'robots-unchecked', findings: [] }
+  }
+  if (rule.needs.includes('sitemap') && collected.sitemapUnchecked === true) {
+    return { status: 'error', error: 'sitemap-unchecked', findings: [] }
+  }
+  // Only for the rules that read them, like the redirects; not asked for, on a local site or
+  // without a scan, they leave the rules nothing to judge.
+  const sitemap = rule.needs.includes('sitemap') ? collected.sitemap : undefined
+  if (rule.needs.includes('sitemap') && sitemap === undefined) {
+    return { status: 'not-applicable', findings: [] }
   }
   // Without a key, or for a private page, CrUX was not asked: nothing to judge.
   if (rule.needs.includes('crux') && crux === undefined) {
@@ -788,6 +823,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
+    ...(sitemap === undefined ? {} : { sitemap }),
   }
   try {
     if (!rule.appliesTo(page, evidence)) return { status: 'not-applicable', findings: [] }

@@ -284,6 +284,18 @@ describe('serveSite: a site under several names', () => {
     root = await mkdtemp(path.join(tmpdir(), 'arablyzer-names-'))
     await writeFile(path.join(root, 'index.html'), '<p>page</p>')
     await writeFile(
+      path.join(root, 'robots.txt'),
+      [
+        'User-agent: *',
+        'Sitemap: http://shop.example/sitemap.xml',
+        'sitemap:http://www.shop.example/ar/sitemap.xml',
+        'Sitemap: http://other.example/sitemap.xml',
+        'Sitemap: http://shop.example:8080/pinned.xml',
+        'Sitemap: /sitemap.xml',
+        '',
+      ].join('\n'),
+    )
+    await writeFile(
       path.join(root, 'site.json'),
       JSON.stringify({ host: 'shop.example', aliases: ['www.shop.example'] }),
     )
@@ -347,6 +359,25 @@ describe('serveSite: a site under several names', () => {
     expect(header(await requestAs('shop.example', '/pinned'), 'location')).toEqual([
       'http://www.shop.example:8080/',
     ])
+  })
+
+  it('sends Sitemap lines of robots.txt that name its own URLs back to its own port', async () => {
+    const port = String(site.port)
+    const robots = await requestAs('shop.example', '/robots.txt')
+    expect(robots.body.toString('utf8').split('\n')).toEqual([
+      'User-agent: *',
+      `Sitemap: http://shop.example:${port}/sitemap.xml`,
+      `sitemap:http://www.shop.example:${port}/ar/sitemap.xml`,
+      // Another site's address, one with a port of its own, and a path stay as written.
+      'Sitemap: http://other.example/sitemap.xml',
+      'Sitemap: http://shop.example:8080/pinned.xml',
+      'Sitemap: /sitemap.xml',
+      '',
+    ])
+    // Read without HTTP, the file is as written: it has no port to give.
+    const config = await loadFixtureConfig(root)
+    const resolved = await resolveFixtureResponse(root, config, '/robots.txt')
+    expect(resolved.body.toString('utf8')).toContain('Sitemap: http://shop.example/sitemap.xml')
   })
 
   it('answers an alias with its own route, and the site’s files', async () => {

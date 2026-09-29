@@ -11,6 +11,7 @@ export { SCAN_BUDGET_MS } from './budgets'
 export { CRUX_ENDPOINT, fetchCrux, type CruxOptions } from './crux'
 export { notice, type NoticeCode } from './notices'
 export { type ProgressListener, type ScanProgress } from './progress'
+export { SITEMAP_LIMIT, SITEMAP_MAX_BYTES, SITEMAP_TIMEOUT_MS } from './sitemap'
 export {
   ENGINE_VERSION,
   evaluatePage,

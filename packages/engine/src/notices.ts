@@ -5,6 +5,7 @@ export type NoticeCode =
   | EgressErrorCode
   | 'robots-unchecked'
   | 'robots-truncated'
+  | 'sitemap-unchecked'
   | 'opted-out'
   | 'page-status'
   | 'not-html'
@@ -110,6 +111,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'robots-truncated': {
     ar: 'ملف robots.txt أكبر من 500 كيلوبايت، فقرأنا أول 500 كيلوبايت فقط كما يفعل Google.',
     en: 'robots.txt is larger than 500 KiB, so only the first 500 KiB were read, as Google does.',
+  },
+  'sitemap-unchecked': {
+    ar: 'تعذّرت قراءة خرائط الموقع كلها، فلم تُطبَّق القواعد التي تفحصها.',
+    en: 'The site’s sitemaps could not all be read, so the rules that check them did not run.',
   },
   // M2.4 plan §2: the site's own words, the rule and where it is, so its owner can find it.
   'opted-out': {

@@ -5,6 +5,8 @@ import {
   collectCrux,
   collectPage,
   collectRobots,
+  collectSitemap,
+  sitemapTargets,
   type CruxFacts,
   type A11yNodeFact,
   type A11yRuleFact,
@@ -16,6 +18,8 @@ import {
   type PageFacts,
   type RenderedFacts,
   type RobotsFacts,
+  type SitemapCheck,
+  type SitemapFacts,
 } from '@arablyzer/collectors'
 import {
   answerCrux,
@@ -26,6 +30,7 @@ import {
   resolveFixtureResponse,
 } from '@arablyzer/fixtures'
 import type { Redirect } from '@arablyzer/report-schema'
+import { isPublicUrl } from '../src/lib/hosts'
 import type { DetectorFinding, Evidence, Rule } from '../src/rule'
 
 /** Rule tests read fixtures without HTTP; the engine test serves the same sites for real. */
@@ -50,7 +55,9 @@ const MAX_REDIRECTS = 10
  * Evidence for fixtures/<name>/ exactly as the fixture server would answer / and /robots.txt:
  * under its site.json host and over HTTPS when it asks, with the certificate it would have. A
  * redirect is followed, as the engine follows it, to a path of the site or to one of its names,
- * and each one is in the evidence's `redirects`.
+ * and each one is in the evidence's `redirects`. On a public host, the sitemaps are those
+ * robots.txt names, or /sitemap.xml, as the engine fetches them: the fixture's own, which do not
+ * redirect.
  */
 export async function fixtureEvidence(ruleId: string, name: string): Promise<Evidence> {
   const root = `${fixturesDir(ruleId)}${name}`
@@ -79,6 +86,22 @@ export async function fixtureEvidence(ruleId: string, name: string): Promise<Evi
     page = await answer(next)
   }
   const robots = await answer(new URL('/robots.txt', url))
+  const robotsFacts = collectRobots({
+    url: new URL('/robots.txt', url).href,
+    response: { status: robots.status, body: robots.body, truncated: false },
+    errorCode: null,
+  })
+  const sitemap = await fixtureSitemaps(robotsFacts, url, async (at) => {
+    const own = at.protocol === scheme && at.port === ''
+    if (!own || (at.hostname !== new URL(url).hostname && !names.includes(at.hostname))) {
+      throw new Error(`${ruleId}/${name}: a sitemap is not on the fixture site: ${at.href}`)
+    }
+    const answered = await answer(at)
+    if (REDIRECT_STATUSES.has(answered.status)) {
+      throw new Error(`${ruleId}/${name}: fixtures' sitemaps do not redirect: ${at.href}`)
+    }
+    return answered
+  })
   const window =
     site.tls === undefined ? null : certificateWindow(site.tls.lifetimeDays, site.tls.daysLeft)
   return {
@@ -97,14 +120,32 @@ export async function fixtureEvidence(ruleId: string, name: string): Promise<Evi
               checkedAt: new Date().toISOString(),
             },
     }),
-    robots: collectRobots({
-      url: new URL('/robots.txt', url).href,
-      response: { status: robots.status, body: robots.body, truncated: false },
-      errorCode: null,
-    }),
+    robots: robotsFacts,
+    ...(sitemap === undefined ? {} : { sitemap }),
     // CrUX's answers as the engine asks for them: the URL, then the origin when it has none.
     ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, url) }),
   }
+}
+
+/**
+ * The sitemaps the engine would read for a fixture site: none for a local one, which it does not
+ * ask, or when robots.txt cannot be read.
+ */
+async function fixtureSitemaps(
+  robots: RobotsFacts,
+  pageUrl: string,
+  answer: (at: URL) => Promise<{ status: number; body: Buffer }>,
+): Promise<SitemapFacts | undefined> {
+  if (!isPublicUrl(pageUrl)) return undefined
+  if (robots.outcome !== 'fetched' && robots.outcome !== 'unavailable') return undefined
+  const named = robots.outcome === 'fetched' ? robots.robots.sitemaps : []
+  const { fetch, unchecked } = sitemapTargets(named, new URL(pageUrl).origin)
+  const checked: SitemapCheck[] = []
+  for (const target of fetch) {
+    const { status, body } = await answer(new URL(target.url))
+    checked.push(collectSitemap({ ...target, status, body, truncated: false }))
+  }
+  return { named, checked, unchecked }
 }
 
 /** What the engine would read from the CrUX stand-in for a fixture site's page. */

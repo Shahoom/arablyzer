@@ -1,0 +1,326 @@
+import { gzipSync } from 'node:zlib'
+import { collectPage, type SitemapFacts } from '@arablyzer/collectors'
+import { createPolicy, type Resolver } from '@arablyzer/egress'
+import { afterEach, describe, expect, it } from 'vitest'
+import { evaluatePage, scan, SITEMAP_LIMIT, SITEMAP_MAX_BYTES } from '../src/index'
+import { policyFor, resolverFor, schemaErrors, tempSite, testRule, type TempSite } from './helpers'
+
+let sites: TempSite[] = []
+
+afterEach(async () => {
+  await Promise.all(sites.map((site) => site.close()))
+  sites = []
+})
+
+async function site(...args: Parameters<typeof tempSite>): Promise<TempSite> {
+  const created = await tempSite(...args)
+  sites.push(created)
+  return created
+}
+
+const PAGE = '<!doctype html><html lang="ar" dir="rtl"><title>متجر</title><p>مرحبا</p></html>'
+const NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9'
+const URLSET = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="${NAMESPACE}"><url><loc>http://shop.example/</loc></url></urlset>\n`
+/** A public name the fixture server answers to, so robots.txt can name its own URLs. */
+const SHOP = JSON.stringify({ host: 'shop.example' })
+
+/** The sitemaps a rule sees, one finding each: what was fetched and what it held. */
+let seen: SitemapFacts | undefined
+const sitemapRule = testRule({
+  id: 'sitemap-rule',
+  needs: ['robots', 'sitemap'],
+  detect: ({ sitemap }) => {
+    seen = sitemap
+    return []
+  },
+})
+
+async function scanned(local: TempSite, options: Parameters<typeof scan>[1] = {}) {
+  seen = undefined
+  const report = await scan(local.url('/'), {
+    rules: [sitemapRule],
+    policy: policyFor(local),
+    resolver: resolverFor(local),
+    ...options,
+  })
+  expect(schemaErrors(report)).toBe('')
+  return report
+}
+
+describe('scan: sitemaps', () => {
+  it('reads the sitemaps robots.txt names, and /sitemap.xml only when it names none', async () => {
+    const named = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': 'User-agent: *\nAllow: /\n\nSitemap: http://shop.example/ar/sitemap.xml\n',
+      'ar/sitemap.xml': URLSET,
+    })
+    const report = await scanned(named)
+    expect(report.rules[0]?.status).toBe('pass')
+    expect(named.requests).toEqual(['GET /robots.txt', 'GET /', 'GET /ar/sitemap.xml'])
+    expect(seen).toEqual({
+      named: [{ value: `http://shop.example:${named.port}/ar/sitemap.xml`, line: 4 }],
+      checked: [
+        {
+          outcome: 'fetched',
+          url: `http://shop.example:${named.port}/ar/sitemap.xml`,
+          named: true,
+          status: 200,
+          content: { kind: 'sitemap', format: 'urlset', entries: 1 },
+          truncated: false,
+        },
+      ],
+      unchecked: 0,
+    })
+
+    const unnamed = await site({ 'site.json': SHOP, 'index.html': PAGE })
+    await scanned(unnamed)
+    expect(unnamed.requests).toEqual(['GET /robots.txt', 'GET /', 'GET /sitemap.xml'])
+    expect(seen?.checked).toEqual([
+      {
+        outcome: 'unavailable',
+        url: `http://shop.example:${unnamed.port}/sitemap.xml`,
+        named: false,
+        status: 404,
+      },
+    ])
+  })
+
+  it('asks for nothing when no rule reads the sitemaps, or of a local site', async () => {
+    const local = await site({ 'site.json': SHOP, 'index.html': PAGE })
+    await scan(local.url('/'), {
+      rules: [testRule({ id: 'robots-rule', needs: ['robots'], detect: () => [] })],
+      policy: policyFor(local),
+      resolver: resolverFor(local),
+    })
+    expect(local.requests).toEqual(['GET /robots.txt', 'GET /'])
+    // Search engines reach public sites alone: a local one has nothing for these rules to judge.
+    const development = await site({
+      'index.html': PAGE,
+      'robots.txt': 'Sitemap: https://example.com/sitemap.xml\n',
+    })
+    const report = await scanned(development)
+    expect(report.rules[0]?.status).toBe('not-applicable')
+    expect(report.scan.notices).toEqual([])
+    expect(development.requests).toEqual(['GET /robots.txt', 'GET /'])
+  })
+
+  it(`fetches the first ${String(SITEMAP_LIMIT)} named, counts the rest, and follows no index`, async () => {
+    const names = ['a', 'b', 'c', 'd', 'e']
+    const index = `<sitemapindex xmlns="${NAMESPACE}"><sitemap><loc>http://shop.example/child.xml</loc></sitemap></sitemapindex>`
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': names.map((name) => `Sitemap: http://shop.example/${name}.xml\n`).join(''),
+      ...Object.fromEntries(names.map((name) => [`${name}.xml`, index])),
+    })
+    await scanned(local)
+    expect(local.requests).toEqual([
+      'GET /robots.txt',
+      'GET /',
+      'GET /a.xml',
+      'GET /b.xml',
+      'GET /c.xml',
+    ])
+    expect(seen?.unchecked).toBe(2)
+    expect(seen?.checked.map((check) => check.outcome === 'fetched' && check.content)).toEqual(
+      Array(3).fill({ kind: 'sitemap', format: 'sitemapindex', entries: 1 }),
+    )
+  })
+
+  it('runs whatever the page answered: the sitemaps are the site’s', async () => {
+    const local = await site({ 'site.json': SHOP, 'sitemap.xml': URLSET }, { '/': { status: 404 } })
+    const report = await scanned(local)
+    expect(report.rules[0]?.status).toBe('pass')
+    expect(seen?.checked[0]).toMatchObject({ outcome: 'fetched', status: 200 })
+  })
+
+  it('decompresses a gzipped sitemap, and no further than it reads', async () => {
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt':
+        'Sitemap: http://shop.example/sitemap.xml.gz\nSitemap: http://shop.example/bomb.xml.gz\n',
+      'sitemap.xml.gz': gzipSync(URLSET),
+      // A few kilobytes that would decompress past the read limit.
+      'bomb.xml.gz': gzipSync(Buffer.alloc(SITEMAP_MAX_BYTES + 1024 * 1024, 0x20)),
+    })
+    const started = performance.now()
+    await scanned(local)
+    expect(performance.now() - started).toBeLessThan(10_000)
+    expect(seen?.checked).toMatchObject([
+      { content: { kind: 'sitemap', format: 'urlset', entries: 1 }, truncated: false },
+      { content: { kind: 'sitemap', format: 'text', entries: null }, truncated: true },
+    ])
+  })
+
+  it('reports a rule error, not a verdict, when robots.txt cannot be read', async () => {
+    const local = await site(
+      { 'site.json': SHOP, 'index.html': PAGE },
+      {
+        '/robots.txt': { status: 503 },
+      },
+    )
+    const report = await scanned(local)
+    expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['sitemap-unchecked'])
+    expect(local.requests).toEqual(['GET /robots.txt', 'GET /'])
+  })
+
+  it('reports a rule error, not a verdict, when a sitemap does not answer in time', async () => {
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': 'Sitemap: http://slow.example/sitemap.xml\n',
+    })
+    // The sitemap's site never answers, as DNS that never does: within the scan's own limit.
+    const resolver: Resolver = (hostname, signal) =>
+      hostname === 'slow.example'
+        ? new Promise<never>(() => undefined)
+        : resolverFor(local)(hostname, signal)
+    const report = await scanned(local, { resolver, timeoutMs: 300 })
+    expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
+    expect(seen).toBeUndefined()
+  })
+})
+
+// BUILD-PLAN §13 and M2.3 plan §4: the sitemaps are a new fetch path, vetted as robots.txt is.
+describe('scan: sitemaps, against SSRF', () => {
+  it.each([
+    ['names a metadata address', 'Sitemap: http://169.254.169.254/sitemap.xml\n', {}],
+    ['names a private address', 'Sitemap: http://10.0.0.7/sitemap.xml\n', {}],
+    ['names a local name', 'Sitemap: http://localhost/sitemap.xml\n', {}],
+    ['names another port', 'Sitemap: http://shop.example:6379/sitemap.xml\n', {}],
+    [
+      'names a sitemap that redirects to a metadata address',
+      'Sitemap: http://shop.example/sitemap.xml\n',
+      {
+        '/sitemap.xml': {
+          status: 302,
+          headers: { location: 'http://169.254.169.254/latest/meta-data/' },
+        },
+      },
+    ],
+  ])(
+    'reports an error, reaches nothing, and names no address when robots.txt %s',
+    async (_name, robots, config) => {
+      const local = await site(
+        { 'site.json': SHOP, 'index.html': PAGE, 'robots.txt': robots },
+        config,
+      )
+      const report = await scanned(local)
+      expect(report.scan.status).toBe('partial')
+      expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
+      expect(report.scan.notices.map((item) => item.code)).toEqual(['sitemap-unchecked'])
+      const text = JSON.stringify(report)
+      for (const address of ['169.254', '10.0.0.7', 'localhost', '6379']) {
+        expect(text).not.toContain(address)
+      }
+    },
+  )
+
+  it('keeps a redirect of /sitemap.xml within the policy', async () => {
+    const local = await site(
+      { 'site.json': SHOP, 'index.html': PAGE },
+      {
+        '/sitemap.xml': { status: 301, headers: { location: 'http://127.0.0.1:6379/' } },
+      },
+    )
+    const report = await scanned(local)
+    expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
+    expect(local.requests).toEqual(['GET /robots.txt', 'GET /', 'GET /sitemap.xml'])
+  })
+
+  // Security review 2026-09-24, as for robots.txt: under --allow-private, a chain that starts on a
+  // public address keeps the default rules for everything the scan fetches for the same site.
+  it('keeps the lockdown the page’s chain ended with', async () => {
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': 'Sitemap: http://shop.example/sitemap.xml\n',
+      'sitemap.xml': URLSET,
+    })
+    let lookups = 0
+    // The name stands in for a public site; by the time the sitemap is fetched, DNS points it at a
+    // loopback address that only --allow-private opens.
+    const resolver: Resolver = () => {
+      lookups++
+      return Promise.resolve([{ address: lookups <= 2 ? '127.0.0.1' : '127.0.0.2', family: 4 }])
+    }
+    const report = await scanned(local, {
+      policy: createPolicy({
+        allowPrivate: true,
+        allowTargets: [{ address: '127.0.0.1', port: local.port }],
+      }),
+      resolver,
+    })
+    expect(lookups).toBe(3)
+    expect(local.requests).toEqual(['GET /robots.txt', 'GET /'])
+    expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
+  })
+
+  it('reads the robots.txt of the site a sitemap is on first, and keeps its opt-out', async () => {
+    const other = await site({
+      'site.json': JSON.stringify({ host: 'sitemaps.example' }),
+      'robots.txt': 'User-agent: ArablyzerBot\nDisallow: /private/\n',
+      'shop.xml': URLSET,
+      'private/shop.xml': URLSET,
+    })
+    const shop = (robots: string) =>
+      site({ 'site.json': SHOP, 'index.html': PAGE, 'robots.txt': robots })
+    const both: Resolver = (hostname) =>
+      Promise.resolve(
+        ['shop.example', 'sitemaps.example'].includes(hostname)
+          ? [{ address: '127.0.0.1', family: 4 }]
+          : [],
+      )
+    const scanWith = async (local: TempSite) => {
+      seen = undefined
+      return scan(local.url('/'), {
+        rules: [sitemapRule],
+        policy: createPolicy({
+          allowTargets: [local, other].map((one) => ({ address: '127.0.0.1', port: one.port })),
+        }),
+        resolver: both,
+      })
+    }
+
+    const allowed = await shop(`Sitemap: ${other.url('/shop.xml')}\n`)
+    expect((await scanWith(allowed)).rules[0]?.status).toBe('pass')
+    expect(other.requests).toEqual(['GET /robots.txt', 'GET /shop.xml'])
+    expect(seen?.checked[0]).toMatchObject({ outcome: 'fetched', url: other.url('/shop.xml') })
+
+    const declined = await shop(`Sitemap: ${other.url('/private/shop.xml')}\n`)
+    const report = await scanWith(declined)
+    expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
+    // Each scan reads that site's robots.txt afresh, and the file it keeps the bot from never.
+    expect(other.requests.slice(2)).toEqual(['GET /robots.txt'])
+  })
+})
+
+describe('evaluatePage: sitemaps', () => {
+  const page = collectPage({
+    url: 'https://shop.example/',
+    status: 200,
+    headers: [['content-type', 'text/html; charset=utf-8']],
+    body: new TextEncoder().encode(PAGE),
+  })
+  const robots = {
+    outcome: 'fetched',
+    url: 'https://shop.example/robots.txt',
+    status: 200,
+    robots: { groups: [], sitemaps: [] },
+    truncated: false,
+  } as const
+
+  it('leaves a rule that reads the sitemaps nothing to judge without them', () => {
+    expect(evaluatePage(page, { rules: [sitemapRule], robots }).results[0]).toMatchObject({
+      status: 'not-applicable',
+    })
+    const sitemap: SitemapFacts = { named: [], checked: [], unchecked: 0 }
+    expect(evaluatePage(page, { rules: [sitemapRule], robots, sitemap }).results[0]).toMatchObject({
+      status: 'pass',
+    })
+    expect(seen).toBe(sitemap)
+  })
+})

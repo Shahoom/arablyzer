@@ -5,6 +5,8 @@ export interface BotNumbers {
   readonly pageRedirects: number
   readonly robotsRedirects: number
   readonly robotsKib: number
+  readonly sitemaps: number
+  readonly sitemapMib: number
   readonly requestsPerLoad: number
   readonly mibPerLoad: number
   readonly viewport: { readonly width: number; readonly height: number }
@@ -86,7 +88,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         title: 'متى يزور موقعك',
         items: [
           'حين يطلب أحد فحص صفحة من موقعك، في صفحة إحدى الأدوات أو في الفحص الكامل. لا يزور موقعك من تلقاء نفسه، ولا يتبع الروابط إلى صفحات أخرى.',
-          'يفحص الصفحة التي طُلبت وحدها: إن كانت تحوّل إلى صفحة أخرى تبعها، ولا يفتح غيرها.',
+          'يفحص الصفحة التي طُلبت وحدها: إن كانت تحوّل إلى صفحة أخرى تبعها، ولا يفتح صفحة غيرها.',
         ],
       },
       fetches: {
@@ -95,12 +97,15 @@ export const PAGES_UI: Copy<PagesStrings> = {
           pageRedirects,
           robotsRedirects,
           robotsKib,
+          sitemaps,
+          sitemapMib,
           requestsPerLoad,
           mibPerLoad,
           viewport,
         }) => [
           `ملف robots.txt أولاً، ليعرف هل تمنعه، ويتبع ${String(robotsRedirects)} تحويلات على الأكثر ويقرأ أول ${String(robotsKib)} كيلوبايت منه.`,
           `الصفحة نفسها، ويتبع ${String(pageRedirects)} تحويلات على الأكثر.`,
+          `حين يحتاج الفحص إلى خريطة الموقع: أول ${String(sitemaps)} خرائط يسمّيها robots.txt، أو \`/sitemap.xml\` إن لم يسمِّ شيئاً، ويقرأ أول ${String(sitemapMib)} ميغابايت من كل منها، ولا يفتح الخرائط التي يسردها فهرس خرائط الموقع.`,
           `حين يحتاج الفحص إلى عرض الصفحة: يفتحها في Chromium وFirefox وWebKit بنافذة جوال عرضها ${String(viewport.width)} وارتفاعها ${String(viewport.height)}، فيحمّل كل متصفح ما تحمّله الصفحة لزائرها من ملفات CSS وخطوط وصور وسكربتات، بـ ${String(requestsPerLoad)} طلب و${String(mibPerLoad)} ميغابايت على الأكثر في كل متصفح.`,
           'تمرّ كل طلباته عبر بروكسي خروج واحد يرفض العناوين الخاصة والمحلية.',
         ],
@@ -164,7 +169,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         title: 'When it visits your site',
         items: [
           'When someone asks to check a page of your site, on a tool’s page or with the full scan. It never visits on its own, and it does not follow links to other pages.',
-          'It checks the page asked for alone: if that page redirects, it follows, and opens nothing else.',
+          'It checks the page asked for alone: if that page redirects, it follows, and opens no other page.',
         ],
       },
       fetches: {
@@ -173,12 +178,15 @@ export const PAGES_UI: Copy<PagesStrings> = {
           pageRedirects,
           robotsRedirects,
           robotsKib,
+          sitemaps,
+          sitemapMib,
           requestsPerLoad,
           mibPerLoad,
           viewport,
         }) => [
           `robots.txt first, to know whether you block it, following at most ${String(robotsRedirects)} redirects and reading its first ${String(robotsKib)} KB.`,
           `The page itself, following at most ${String(pageRedirects)} redirects.`,
+          `When the check reads your sitemaps: the first ${String(sitemaps)} your robots.txt names, or \`/sitemap.xml\` when it names none, reading the first ${String(sitemapMib)} MB of each, and never the sitemaps a sitemap index lists.`,
           `When the check renders the page: it opens it in Chromium, Firefox and WebKit, in a phone window ${String(viewport.width)} wide and ${String(viewport.height)} high, and each browser loads what the page loads for a visitor (stylesheets, fonts, images, scripts), at most ${String(requestsPerLoad)} requests and ${String(mibPerLoad)} MB per browser.`,
           'Every request goes through one egress proxy that refuses private and local addresses.',
         ],

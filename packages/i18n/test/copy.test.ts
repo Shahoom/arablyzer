@@ -23,6 +23,8 @@ const SAMPLE = {
   pageRedirects: 10,
   robotsRedirects: 5,
   robotsKib: 500,
+  sitemaps: 3,
+  sitemapMib: 25,
   requestsPerLoad: 300,
   mibPerLoad: 25,
   viewport: { width: 390, height: 844 },

@@ -42,7 +42,7 @@ describe('parseRobotsTxt (RFC 9309)', () => {
       'Disallow: /orphan\nUser-agent: a\nSitemap: https://example.com/sitemap.xml\nUser-agent: b\nDisallow: /x\n',
     )
     expect(shape(robots)).toEqual([[['a', 'b'], ['disallow:/x']]])
-    expect(robots.sitemaps).toEqual(['https://example.com/sitemap.xml'])
+    expect(robots.sitemaps).toEqual([{ value: 'https://example.com/sitemap.xml', line: 3 }])
   })
 
   it('strips comments and whitespace; keys are case-insensitive', () => {

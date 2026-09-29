@@ -5,6 +5,7 @@ import type {
   PageFacts,
   RenderedFacts,
   RobotsFacts,
+  SitemapFacts,
   SourceLocation,
 } from '@arablyzer/collectors'
 import type { Category, JsonValue, Redirect, Severity } from '@arablyzer/report-schema'
@@ -19,10 +20,20 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * --render; M1.1). `files`, with `render`: the files the page loaded, read after the render
  * (stylesheets, fonts, text responses, image files); the rule sees only the engines that read
  * them. `crux`: real-user data from the Chrome UX Report, which needs an API key; without one the
- * rule does not apply (M1.3b).
+ * rule does not apply (M1.3b). `sitemap`: the site's sitemaps, those robots.txt names or
+ * /sitemap.xml (M2.3c); like robots.txt, they are the site's, read whatever the page answered.
  */
 export type CollectorId =
-  'http' | 'headers' | 'redirects' | 'html' | 'text' | 'robots' | 'render' | 'files' | 'crux'
+  | 'http'
+  | 'headers'
+  | 'redirects'
+  | 'html'
+  | 'text'
+  | 'robots'
+  | 'render'
+  | 'files'
+  | 'crux'
+  | 'sitemap'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -41,6 +52,11 @@ export interface Evidence {
   readonly rendered?: readonly RenderedFacts[]
   /** Present when the rule needs `crux` and CrUX answered; never `failed` (an error instead). */
   readonly crux?: CruxFacts
+  /**
+   * Present when the rule needs `sitemap` and each sitemap the scan asked for answered; when one
+   * could not be read, the engine reports an error instead.
+   */
+  readonly sitemap?: SitemapFacts
 }
 
 /** Detectors return data only; the wording comes from the copy files (docs/design/phase-0.md §1). */

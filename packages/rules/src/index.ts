@@ -135,6 +135,7 @@ export {
   type RuleExample,
 } from './example'
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
+export { isPublicUrl } from './lib/hosts'
 export {
   crawlerAccess,
   matchRobots,

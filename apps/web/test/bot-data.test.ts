@@ -1,5 +1,5 @@
 import { DEFAULT_MAX_REDIRECTS, DEFAULT_MAX_REQUESTS } from '@arablyzer/egress'
-import { USER_AGENT } from '@arablyzer/engine'
+import { SITEMAP_LIMIT, USER_AGENT } from '@arablyzer/engine'
 import { describe, expect, it } from 'vitest'
 import { botFacts } from '../scripts/bot-data'
 
@@ -13,5 +13,7 @@ describe('botFacts', () => {
     expect(facts.requestsPerLoad).toBe(DEFAULT_MAX_REQUESTS)
     expect(Number.isInteger(facts.robotsKib)).toBe(true)
     expect(Number.isInteger(facts.mibPerLoad)).toBe(true)
+    expect(facts.sitemaps).toBe(SITEMAP_LIMIT)
+    expect(Number.isInteger(facts.sitemapMib)).toBe(true)
   })
 })
