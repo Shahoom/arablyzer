@@ -12,6 +12,7 @@ import {
   problemsOf,
   START,
   stepsOf,
+  noProblemsNote,
   toolVerdict,
   type Progress,
 } from '../src/islands/report-model'
@@ -252,5 +253,20 @@ describe('problemCount', () => {
   it('counts a failed rule without findings once, and nothing for a review', () => {
     expect(problemCount(rtlCheck(['fail', 'pass']))).toBe(1)
     expect(problemCount(rtlCheck(['needs-review', 'pass']))).toBe(0)
+  })
+})
+
+describe('noProblemsNote', () => {
+  it('says the rules found nothing only when every rule finished', () => {
+    expect(noProblemsNote(rtlCheck(['pass', 'not-applicable']))).toBe('none')
+    expect(noProblemsNote(rtlCheck(['pass', 'needs-review']))).toBe('none')
+  })
+
+  it('says some rules did not finish, when some did', () => {
+    expect(noProblemsNote(rtlCheck(['pass', 'error'], { status: 'partial' }))).toBe('incomplete')
+  })
+
+  it('says nothing can be said when no rule finished', () => {
+    expect(noProblemsNote(rtlCheck(['error', 'error'], { status: 'failed' }))).toBe('unknown')
   })
 })

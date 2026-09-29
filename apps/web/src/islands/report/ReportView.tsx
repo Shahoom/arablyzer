@@ -7,7 +7,7 @@ import { Braces, Check, Copy, EyeOff, RotateCcw } from 'lucide-preact'
 import type { TargetedKeyboardEvent } from 'preact'
 import { useState } from 'preact/hooks'
 import { METHODOLOGY } from '../../lib/site'
-import { ENGINES, problemsOf, type RuleFindings } from '../report-model'
+import { ENGINES, noProblemsNote, problemsOf, type RuleFindings } from '../report-model'
 import { Bidi } from './Bidi'
 import { Evidence } from './Evidence'
 import { Notices } from './Notices'
@@ -522,9 +522,7 @@ function Results({
       >
         {tab === 'problems' &&
           (shown.length === 0 ? (
-            <p className="m-0 border border-pass bg-pass-soft px-5 py-4 text-pass">
-              {t.findings.none}
-            </p>
+            <NoProblems report={report} lang={lang} />
           ) : (
             shown.map((entry, index) => (
               <FindingCard
@@ -542,6 +540,20 @@ function Results({
         )}
       </div>
     </section>
+  )
+}
+
+/** No problem listed: a clean page only when every rule finished (noProblemsNote). */
+function NoProblems({ report, lang }: { report: Report; lang: Lang }) {
+  const t = REPORT[lang].findings
+  const note = noProblemsNote(report)
+  if (note === 'none') {
+    return <p className="m-0 border border-pass bg-pass-soft px-5 py-4 text-pass">{t.none}</p>
+  }
+  return (
+    <p className="m-0 border border-tick bg-white px-5 py-4 text-ink-2">
+      {note === 'incomplete' ? t.noneIncomplete : t.noneUnknown}
+    </p>
   )
 }
 

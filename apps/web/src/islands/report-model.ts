@@ -132,6 +132,18 @@ export function toolVerdict(report: Report): ToolVerdict {
 }
 
 /**
+ * What the report says when it lists no problem: that the rules found none, only when every rule
+ * finished; that the ones that finished found none, when some could not run; and that nothing can
+ * be said, when none finished. A rule that could not run found nothing, and cannot vouch for the
+ * page (M2.2a review).
+ */
+export function noProblemsNote(report: Report): 'none' | 'incomplete' | 'unknown' {
+  const errored = report.rules.filter((rule) => rule.status === 'error').length
+  if (errored === 0) return 'none'
+  return errored === report.rules.length ? 'unknown' : 'incomplete'
+}
+
+/**
  * The problems a tool's result counts: every finding of its failed rules, those the report left
  * out past its cap too; a failed rule without findings counts once.
  */

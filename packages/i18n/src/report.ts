@@ -91,6 +91,10 @@ export interface ReportStrings {
   readonly findings: {
     readonly title: string
     readonly none: string
+    /** Some rules could not run: those that did found nothing, which is not a clean page. */
+    readonly noneIncomplete: string
+    /** No rule could run: the report cannot say whether the page has problems. */
+    readonly noneUnknown: string
     readonly selector: string
     readonly seenIn: string
     readonly fix: string
@@ -242,6 +246,9 @@ export const REPORT: Copy<ReportStrings> = {
     findings: {
       title: 'المخالفات',
       none: 'لم تجد القواعد أي مشكلة.',
+      noneIncomplete:
+        'لم تجد القواعد التي اكتملت أي مشكلة، لكن بعضها لم يكتمل، فلا نقول إن الصفحة بلا مشاكل.',
+      noneUnknown: 'لم تكتمل أي قاعدة، فلا نعرف إن كانت في الصفحة مشاكل.',
       selector: 'المحدِّد',
       seenIn: 'ظهرت في',
       fix: 'كيف تُصلح',
@@ -389,6 +396,9 @@ export const REPORT: Copy<ReportStrings> = {
     findings: {
       title: 'Problems',
       none: 'The rules found no problems.',
+      noneIncomplete:
+        'The rules that finished found no problems, but some did not finish, so we do not say the page has none.',
+      noneUnknown: 'No rule finished, so we cannot say whether the page has problems.',
       selector: 'Selector',
       seenIn: 'Seen in',
       fix: 'How to fix',
