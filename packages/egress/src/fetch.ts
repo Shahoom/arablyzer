@@ -61,6 +61,17 @@ export interface SafeFetchOptions {
    * Names are tokens and cannot be the fetch's own (FIXED_HEADERS); values have no line breaks.
    */
   readonly headers?: Readonly<Record<string, string>>
+  /**
+   * Asked before each redirect is followed, with the URL it leads to (without credentials): false
+   * ends the fetch there, with no response and no error, that redirect last in `redirects`. The
+   * engine reads the next page's robots.txt here (M2.4 plan §2). It gets the fetch's own signal,
+   * so its work ends with the fetch's time, and whether private addresses are still open for the
+   * chain, so a fetch of its own can keep the same lockdown. One that throws fails the fetch.
+   */
+  readonly beforeRedirect?: (
+    to: string,
+    hop: { readonly signal: AbortSignal; readonly privateAccess: boolean },
+  ) => Promise<boolean>
 }
 
 /** A JSON body's largest size: a CrUX query is a few hundred bytes. */
@@ -119,6 +130,7 @@ export interface FetchResponse {
 export interface FetchResult {
   readonly requestedUrl: string
   readonly redirects: readonly FetchHop[]
+  /** Null, with no error either, when beforeRedirect declined the last redirect. */
   readonly response: FetchResponse | null
   readonly error: EgressError | null
   readonly startedAt: string
@@ -252,6 +264,16 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
           )
         }
         redirects.push({ url: url.href, status, location: redactUrl(next.href) })
+        const follow =
+          options.beforeRedirect === undefined ||
+          (await untilAborted(
+            options.beforeRedirect(redactUrl(next.href), {
+              signal,
+              privateAccess: hopPolicy.allowPrivate,
+            }),
+            signal,
+          ))
+        if (!follow) return finish(null, null)
         current = next.href
         continue
       }

@@ -315,3 +315,75 @@ describe('safeFetch: a JSON POST (the CrUX API, M1.3b)', () => {
     }
   })
 })
+
+// M2.4 plan §2: the engine reads the next page's robots.txt before a redirect takes it there.
+describe('safeFetch: beforeRedirect', () => {
+  /** /a → /b → /c, then the path it was asked for. */
+  const chain = (requests: string[] = []) =>
+    serve((req, res) => {
+      requests.push(req.url ?? '')
+      const next = { '/a': '/b', '/b': '/c' }[req.url ?? '']
+      if (next !== undefined) {
+        res.writeHead(req.url === '/a' ? 301 : 302, { location: next })
+        res.end()
+        return
+      }
+      res.end(req.url)
+    })
+
+  it('asks before each redirect, with where it leads and the chain’s private access', async () => {
+    const local = await chain()
+    const asked: [string, boolean][] = []
+    const ask = (policy: ReturnType<typeof onlyServer>) =>
+      safeFetch(`${local.origin}/a`, {
+        userAgent: UA,
+        policy,
+        beforeRedirect: (to, hop) => {
+          asked.push([to, hop.privateAccess])
+          return Promise.resolve(true)
+        },
+      })
+    const result = await ask(onlyServer(local.port))
+    expect(asked).toEqual([
+      [`${local.origin}/b`, false],
+      [`${local.origin}/c`, false],
+    ])
+    expect(text(result.response?.body)).toBe('/c')
+    // A chain that started on a private address under --allow-private keeps it open.
+    asked.length = 0
+    await ask(createPolicy({ allowPrivate: true }))
+    expect(asked.map(([, open]) => open)).toEqual([true, true])
+  })
+
+  it('ends the fetch at a redirect it declines, which is never followed', async () => {
+    const requests: string[] = []
+    const local = await chain(requests)
+    const result = await safeFetch(`${local.origin}/a`, {
+      userAgent: UA,
+      policy: onlyServer(local.port),
+      beforeRedirect: (to) => Promise.resolve(!to.endsWith('/c')),
+    })
+    expect(result).toMatchObject({ response: null, error: null })
+    expect(result.redirects).toEqual([
+      { url: `${local.origin}/a`, status: 301, location: `${local.origin}/b` },
+      { url: `${local.origin}/b`, status: 302, location: `${local.origin}/c` },
+    ])
+    expect(requests).toEqual(['/a', '/b'])
+  })
+
+  it('gives the hook the fetch’s own time, and ends when that runs out', async () => {
+    const local = await chain()
+    let given: AbortSignal | undefined
+    const result = await safeFetch(`${local.origin}/a`, {
+      userAgent: UA,
+      policy: onlyServer(local.port),
+      timeoutMs: 200,
+      beforeRedirect: (_to, hop) => {
+        given = hop.signal
+        return new Promise<boolean>(() => undefined)
+      },
+    })
+    expect(result.error?.code).toBe('timeout')
+    expect(given?.aborted).toBe(true)
+  })
+})
