@@ -14,6 +14,7 @@ import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
+import { rule as botChallenge } from './rules/bot-challenge/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
@@ -75,6 +76,7 @@ export const RULES: readonly Rule[] = [
   arLetterSpacing,
   arMojibake,
   arTatweel,
+  botChallenge,
   canonicalConflict,
   cspMissing,
   cwvClsPoor,

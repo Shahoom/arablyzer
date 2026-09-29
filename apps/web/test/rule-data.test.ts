@@ -76,6 +76,7 @@ describe('ruleReads', () => {
     // its connection; not the page rules that read a header beside the HTML.
     expect(reads('csp-missing')).toBe('http')
     expect(reads('redirect-chain')).toBe('http')
+    expect(reads('bot-challenge')).toBe('http')
     expect(reads('tls-expiring')).toBe('http')
     expect(reads('canonical-conflict')).toBe('html')
     expect(reads('mixed-content')).toBe('html')
