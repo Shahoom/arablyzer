@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   collectSitemap,
   readSitemap,
+  SITEMAP_MAX_ATTRIBUTES,
+  SITEMAP_MAX_DEPTH,
   SITEMAP_NAMESPACE,
   sitemapTargets,
   sitemapUrl,
@@ -171,6 +173,177 @@ describe('readSitemap', () => {
     const started = performance.now()
     expect(read(big)).toEqual({ kind: 'sitemap', format: 'urlset', entries: 50_000 })
     expect(performance.now() - started).toBeLessThan(1_000)
+  })
+})
+
+describe('readSitemap: namespaces, resolved without sax', () => {
+  const root = (inner: string, attributes = '') =>
+    `<urlset xmlns="${SITEMAP_NAMESPACE}"${attributes}>${inner}</urlset>`
+
+  it('counts an entry by the namespace it is in: its own declaration, then its ancestors’', () => {
+    // A url in another default namespace, or under a prefix bound elsewhere, is not the protocol's.
+    expect(read(root('<url xmlns="urn:other"><loc/></url><url><loc/></url>'))).toMatchObject({
+      entries: 1,
+    })
+    expect(
+      read(root('<x:url/><url/><y:url xmlns:y="urn:other"/>', ' xmlns:x="urn:other"')),
+    ).toMatchObject({ entries: 1 })
+    // The protocol's namespace under a prefix of its own, declared on the root or on the entry.
+    expect(
+      read(
+        root(
+          '<s:url/><t:url xmlns:t="' + SITEMAP_NAMESPACE + '"/>',
+          ` xmlns:s="${SITEMAP_NAMESPACE}"`,
+        ),
+      ),
+    ).toMatchObject({ entries: 2 })
+  })
+
+  it('finds a prefix that is not bound where it is used, as XML namespaces ask', () => {
+    for (const unbound of [
+      root('<url><loc>https://shop.example/</loc><image:image/></url>'),
+      root('<url xhtml:href="/ar/"/>'),
+      // Bound on a sibling, or on an element that has closed: not in scope.
+      root('<a xmlns:p="urn:p"/><p:b/>'),
+    ]) {
+      expect(read(unbound), unbound).toMatchObject({ kind: 'not-xml' })
+    }
+    for (const bound of [
+      root('<url><image:image/></url>', ' xmlns:image="urn:image"'),
+      root('<url xml:lang="ar"><xhtml:link xhtml:x="1" xmlns:xhtml="urn:xhtml"/></url>'),
+      root('<a xmlns:p="urn:p"><b><p:c p:d="1"/></b></a>'),
+    ]) {
+      expect(read(bound), bound).toMatchObject({ kind: 'sitemap', format: 'urlset' })
+    }
+  })
+})
+
+// M2.3c review: sax checks its buffers once per write and slows quadratically with the attributes
+// and namespaces of the elements it reads, so a small gzipped file held the scanner's event loop
+// for seconds to hours, or its memory for gigabytes, while the watchdog timers could not fire.
+describe('readSitemap: input built to be slow or large', () => {
+  const NS = SITEMAP_NAMESPACE
+  /** The most a scan reads of one file (BUILD-PLAN §11). */
+  const READ_LIMIT = 25 * 1024 * 1024
+  /** As large as the files the review built: a scan reads them whole, or cut at READ_LIMIT. */
+  const LARGE = 25_000_000
+  /** A generous bound: the reader takes well under a second on each, on a slow machine too. */
+  const QUICK_MS = 2_000
+
+  /** Reads text of this size, and says how long it took. */
+  function timed(text: string, truncated = false) {
+    const body = utf8(text)
+    const started = performance.now()
+    const content = readSitemap(body, truncated)
+    return { content, ms: performance.now() - started, bytes: body.length }
+  }
+
+  it('reads a root with 160,000 attributes without slowing down', () => {
+    const { content, ms } = timed(`<urlset xmlns="${NS}"` + ' a=""'.repeat(160_000) + '></urlset>')
+    expect(ms).toBeLessThan(QUICK_MS)
+    // The same attribute again is one attribute to sax: what is left lists nothing.
+    expect(content).toEqual({ kind: 'sitemap', format: 'urlset', entries: 0 })
+  })
+
+  it('reads a root with 5.2 million attributes, 25 MB of them', () => {
+    const { content, ms, bytes } = timed(
+      `<urlset xmlns="${NS}"` + ' a=""'.repeat(5_200_000) + '></urlset>',
+    )
+    expect(bytes).toBeGreaterThan(LARGE)
+    expect(ms).toBeLessThan(QUICK_MS)
+    expect(content).toEqual({ kind: 'sitemap', format: 'urlset', entries: 0 })
+  })
+
+  it('stops at an element with more than the attributes a sitemap needs', () => {
+    // The namespace declaration is one of the root's attributes.
+    const distinct = (count: number) =>
+      Array.from({ length: count }, (_, index) => ` a${String(index)}=""`).join('')
+    const most = timed(`<urlset xmlns="${NS}"${distinct(SITEMAP_MAX_ATTRIBUTES - 1)}/>`)
+    expect(most.content).toEqual({ kind: 'sitemap', format: 'urlset', entries: 0 })
+    const over = timed(`<urlset xmlns="${NS}"${distinct(SITEMAP_MAX_ATTRIBUTES)}/>`)
+    expect(over.content).toMatchObject({ kind: 'not-xml', line: 1 })
+    // Two million distinct ones held a gigabyte and a half before this stopped them.
+    const many = timed(`<urlset xmlns="${NS}"${distinct(2_300_000)}></urlset>`)
+    expect(many.content).toMatchObject({ kind: 'not-xml', line: 1 })
+    expect(many.ms).toBeLessThan(QUICK_MS)
+  })
+
+  it('stops at elements nested deeper than a sitemap goes, closed or not', () => {
+    const nested = (levels: number, closed: boolean) =>
+      `<urlset xmlns="${NS}">` +
+      '<a>'.repeat(levels - 1) +
+      (closed ? '</a>'.repeat(levels - 1) : '') +
+      (closed ? '</urlset>' : '')
+    expect(timed(nested(SITEMAP_MAX_DEPTH, true)).content).toEqual({
+      kind: 'sitemap',
+      format: 'urlset',
+      entries: 0,
+    })
+    for (const closed of [true, false]) {
+      const { content } = timed(nested(SITEMAP_MAX_DEPTH + 1, closed))
+      expect(content, String(closed)).toMatchObject({ kind: 'not-xml', line: 1 })
+    }
+  })
+
+  it('reads 40,000 elements that each declare a prefix without slowing down', () => {
+    const { content, ms } = timed(`<urlset xmlns="${NS}">` + '<a xmlns:p="x">'.repeat(40_000))
+    expect(ms).toBeLessThan(QUICK_MS)
+    expect(content).toMatchObject({ kind: 'not-xml', line: 1 })
+  })
+
+  it('reads 8.7 million nested elements, 25 MB of them', () => {
+    const { content, ms, bytes } = timed(`<urlset xmlns="${NS}">` + '<a>'.repeat(8_700_000))
+    expect(bytes).toBeGreaterThan(LARGE)
+    expect(ms).toBeLessThan(QUICK_MS)
+    expect(content).toMatchObject({ kind: 'not-xml' })
+  })
+
+  it('stops at a name, value or comment longer than sax reads, which it says is not XML', () => {
+    const value = timed(`<urlset xmlns="${NS}" a="` + 'x'.repeat(READ_LIMIT) + '"></urlset>')
+    expect(value.bytes).toBeGreaterThan(LARGE)
+    expect(value.ms).toBeLessThan(QUICK_MS)
+    expect(value.content).toMatchObject({ kind: 'not-xml' })
+    const comment = timed('<!--' + 'x'.repeat(1_000_000) + `--><urlset xmlns="${NS}"/>`)
+    expect(comment.ms).toBeLessThan(QUICK_MS)
+    expect(comment.content).toMatchObject({ kind: 'not-xml' })
+    // Text is not held whole: a long address, or a long run of text, is read as it comes.
+    const long = `<urlset xmlns="${NS}"><url><loc>https://shop.example/${'x'.repeat(1_000_000)}</loc></url></urlset>`
+    expect(timed(long).content).toEqual({ kind: 'sitemap', format: 'urlset', entries: 1 })
+  })
+
+  it('reads text of 25 MiB of blank lines after a first line that is no URL, at once', () => {
+    const { content, ms, bytes } = timed('h' + '\n'.repeat(READ_LIMIT))
+    expect(bytes).toBeGreaterThan(LARGE)
+    expect(ms).toBeLessThan(QUICK_MS)
+    expect(content).toEqual({ kind: 'text', line: 1 })
+  })
+
+  it('reads text whose only fault is on its last line, out of millions of lines', () => {
+    const urls = 'https://a.example/\r\n'.repeat(200_000)
+    const { content, ms } = timed(`${urls}\n\n\r\n${'\n'.repeat(3_000_000)}nope`)
+    expect(ms).toBeLessThan(QUICK_MS)
+    expect(content).toEqual({ kind: 'text', line: 200_000 + 3_000_000 + 4 })
+  })
+
+  it('is never thrown at by what sax does with an attribute named like an Object method', () => {
+    const at = (name: string) =>
+      `<urlset xmlns="${NS}" ${name}="x" b="y"><url><loc>https://shop.example/</loc></url></urlset>`
+    // sax keeps attributes on a plain object, and asks it hasOwnProperty for each attribute after.
+    expect(() => read(at('hasOwnProperty'))).not.toThrow()
+    expect(read(at('hasOwnProperty'))).toMatchObject({ kind: 'not-xml' })
+    for (const name of ['toString', '__proto__', 'constructor']) {
+      expect(read(at(name)), name).toEqual({ kind: 'sitemap', format: 'urlset', entries: 1 })
+    }
+  })
+
+  it('still reads a sitemap of 400,000 URLs', () => {
+    const entry = (index: number) =>
+      `<url><loc>https://shop.example/ar/products/${String(index)}?size=large&amp;x=1</loc><lastmod>2026-09-29</lastmod></url>\n`
+    let body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="${NS}">\n`
+    for (let index = 0; index < 400_000; index++) body += entry(index)
+    const { content, ms } = timed(`${body}</urlset>`)
+    expect(content).toEqual({ kind: 'sitemap', format: 'urlset', entries: 400_000 })
+    expect(ms).toBeLessThan(QUICK_MS)
   })
 })
 

@@ -1,4 +1,4 @@
-import sax, { type QualifiedTag } from 'sax'
+import sax, { type Tag } from 'sax'
 import type { RobotsSitemap } from './robots'
 
 /**
@@ -13,6 +13,19 @@ export const ATOM_NAMESPACE = 'http://www.w3.org/2005/Atom'
 /** The sitemaps robots.txt names that a scan fetches at most: the first ones it names. */
 export const SITEMAP_LIMIT = 3
 
+/**
+ * How deep a sitemap's elements nest before the reader stops. A sitemap's are five deep at most
+ * (Google's news extension: `urlset`, `url`, `news`, `publication`, `name`); XML parsers bound
+ * this too (libxml2 stops at 256).
+ */
+export const SITEMAP_MAX_DEPTH = 32
+
+/**
+ * How many attributes one element may have before the reader stops, namespace declarations
+ * included. A sitemap's root has a dozen at most.
+ */
+export const SITEMAP_MAX_ATTRIBUTES = 256
+
 /** The formats Google reads a sitemap in: the protocol's XML, an RSS 2.0 or Atom 1.0 feed, text. */
 export type SitemapFormat = 'urlset' | 'sitemapindex' | 'rss' | 'atom' | 'text'
 
@@ -26,7 +39,10 @@ export type SitemapContent =
   | { readonly kind: 'sitemap'; readonly format: SitemapFormat; readonly entries: number | null }
   /** An HTML page. */
   | { readonly kind: 'html' }
-  /** Not well-formed XML: where the first error is. */
+  /**
+   * XML a reader stops at: where the first error is, or where it went past a limit (nesting,
+   * attributes on one element, the length of one name or value).
+   */
   | { readonly kind: 'not-xml'; readonly line: number; readonly column: number }
   /** XML whose root element is no sitemap's or feed's: its name as written, and its namespace. */
   | { readonly kind: 'root'; readonly root: string; readonly namespace: string }
@@ -131,7 +147,9 @@ export function collectSitemap(input: SitemapInput): SitemapCheck {
  * Reads a sitemap's body as Google's formats ask: XML, whose root names the format, or text, one
  * full URL per line. UTF-8, as the protocol asks; a byte order mark and whitespace before the
  * start are allowed, as Search Console allows them. A body cut at the read limit is judged up
- * to the cut.
+ * to the cut. It runs on the scanner's event loop, on a file the site chose: what it reads stays
+ * in time and space linear in the body, whatever the body holds (M2.3c review), and it never
+ * throws.
  */
 export function readSitemap(body: Uint8Array, truncated: boolean): SitemapContent {
   // Streaming holds back a character the cut splits, rather than reading it as a broken one.
@@ -143,22 +161,51 @@ export function readSitemap(body: Uint8Array, truncated: boolean): SitemapConten
   return readXml(text, truncated)
 }
 
-/** A text sitemap: each line that is not blank is a full URL (sitemaps.org, "Text file"). */
+/**
+ * A text sitemap: each line that is not blank is a full URL (sitemaps.org, "Text file"). The lines
+ * are walked, not split: a body of millions of blank lines is not held as an array of them.
+ */
 function readText(text: string, truncated: boolean): SitemapContent {
-  const lines = text.split(/\r\n|\r|\n/)
-  // The line the cut ends in is not whole: it is not judged.
-  const whole = truncated ? lines.length - 1 : lines.length
   let entries = 0
-  for (let index = 0; index < whole; index++) {
-    const line = (lines[index] ?? '').replace(/^[\t ]+|[\t ]+$/g, '')
-    if (line === '') continue
-    if (sitemapUrl(line) === null) return { kind: 'text', line: index + 1 }
-    entries++
+  let number = 0
+  let start = 0
+  // The next line break of each kind, searched for when the last one is behind: a search that
+  // finds none would otherwise run to the end of the text for every line.
+  let cr = text.indexOf('\r')
+  let lf = text.indexOf('\n')
+  for (;;) {
+    number++
+    if (cr !== -1 && cr < start) cr = text.indexOf('\r', start)
+    if (lf !== -1 && lf < start) lf = text.indexOf('\n', start)
+    const last = cr === -1 && lf === -1
+    const end = last ? text.length : cr === -1 ? lf : lf === -1 ? cr : Math.min(cr, lf)
+    // The line the cut ends in is not whole: it is not judged.
+    if (!(last && truncated)) {
+      const line = trimmed(text, start, end)
+      if (line !== '') {
+        if (sitemapUrl(line) === null) return { kind: 'text', line: number }
+        entries++
+      }
+    }
+    if (last) break
+    // A carriage return and a line feed together are one break.
+    start = text.charCodeAt(end) === 13 && text.charCodeAt(end + 1) === 10 ? end + 2 : end + 1
   }
   return { kind: 'sitemap', format: 'text', entries: truncated && entries === 0 ? null : entries }
 }
 
-/** Thrown from sax's handlers to stop at the first problem. */
+/** The part of a line from `start` to `end` without the tabs and spaces at either end. */
+function trimmed(text: string, start: number, end: number): string {
+  let from = start
+  let to = end
+  while (from < to && isBlank(text.charCodeAt(from))) from++
+  while (to > from && isBlank(text.charCodeAt(to - 1))) to--
+  return from === to ? '' : text.slice(from, to)
+}
+
+const isBlank = (code: number): boolean => code === 0x20 || code === 0x09
+
+/** Thrown from sax's handlers to stop where reading ends: at an error of the XML, or a limit. */
 class Stop extends Error {
   readonly line: number
   readonly column: number
@@ -170,50 +217,97 @@ class Stop extends Error {
   }
 }
 
-/** sax's own limit on one attribute, comment or name (64 KiB): its error says nothing of XML. */
-const BUFFER_LIMIT = 'Max buffer length exceeded'
+/**
+ * How much text sax is given at a time. It checks the size of the names, values and comments it
+ * holds once per write, so a body written whole is checked once, at its end, after a value of
+ * gigabytes could have grown.
+ */
+const CHUNK_LENGTH = 64 * 1024
+
+/** The namespace of the `xml` prefix, which is bound without a declaration. */
+const XML_NAMESPACE = 'http://www.w3.org/XML/1998/namespace'
+
+/** The namespaces an element declares: prefix → namespace, with '' for the default one. */
+type Declarations = ReadonlyMap<string, string>
+
+/** The root element as the reader keeps it: its name as written, and what it resolves to. */
+interface Root {
+  readonly name: string
+  readonly local: string
+  readonly uri: string
+  /** The `version` attribute, which tells an RSS 2.0 feed. */
+  readonly version: string | undefined
+}
 
 /** What the XML reader has seen: set from sax's handlers. */
 interface XmlState {
-  root: QualifiedTag | null
-  depth: number
+  root: Root | null
   entries: number
-  /** sax stopped at its own limit, not at an error of the XML. */
-  limited: boolean
+  /** The attributes the element being read has so far. */
+  attributes: number
+  /** What each open element declares, outermost first: null for an element that declares none. */
+  readonly scopes: (Declarations | null)[]
 }
 
 /**
- * XML, with sax in strict mode: namespaces resolved, only XML's own entities, and one root
- * element. It stops at the first error.
+ * XML, with sax in strict mode: only XML's own entities, and one root element. It stops at the
+ * first error, and at a limit: elements nested deeper than SITEMAP_MAX_DEPTH, more than
+ * SITEMAP_MAX_ATTRIBUTES on one element, a name or value that sax will not hold. Namespaces are
+ * resolved here and not by sax (`xmlns` off), whose namespace mode slows quadratically with the
+ * attributes and the declarations it reads (measured: 160,000 attributes took 7 s, 40,000 nested
+ * declarations 26 s); with the limits, the work stays linear in the body.
  */
 function readXml(text: string, truncated: boolean): SitemapContent {
-  const parser = sax.parser(true, { xmlns: true, position: true, strictEntities: true })
-  const state: XmlState = { root: null, depth: 0, entries: 0, limited: false }
+  const parser = sax.parser(true, { xmlns: false, position: true, strictEntities: true })
+  const state: XmlState = { root: null, entries: 0, attributes: 0, scopes: [] }
+  const stop = () => new Stop(parser.line, parser.column)
+  parser.onopentagstart = () => {
+    state.attributes = 0
+  }
+  parser.onattribute = () => {
+    if (++state.attributes > SITEMAP_MAX_ATTRIBUTES) throw stop()
+  }
   parser.onopentag = (tag) => {
-    if (state.depth === 0 && state.root !== null) throw new Stop(parser.line, parser.column)
-    if (state.root === null) state.root = tag
-    else if (state.depth === 1 && isEntry(state.root, tag)) state.entries++
-    state.depth++
+    const { scopes, root } = state
+    const depth = scopes.length
+    // One root element, and nothing after it.
+    if (depth === 0 && root !== null) throw stop()
+    if (depth >= SITEMAP_MAX_DEPTH) throw stop()
+    scopes.push(declarations(tag))
+    const named = qualified(tag.name, scopes)
+    if (named === null || !attributesBound(tag, scopes)) throw stop()
+    if (root === null) {
+      state.root = { name: tag.name, ...named, version: tag.attributes.version }
+    } else if (depth === 1 && isEntry(root, named)) {
+      state.entries++
+    }
   }
   parser.onclosetag = () => {
-    state.depth--
+    state.scopes.pop()
   }
-  parser.onerror = (error) => {
-    if (error.message.startsWith(BUFFER_LIMIT)) state.limited = true
-    throw new Stop(parser.line, parser.column)
+  parser.onerror = () => {
+    throw stop()
   }
-  let stop: Stop | null = null
+  let stopped: Stop | null = null
   try {
-    parser.write(text)
+    for (let offset = 0; offset < text.length;) {
+      let end = Math.min(offset + CHUNK_LENGTH, text.length)
+      // Not between the two halves of a character outside the Basic Multilingual Plane.
+      const code = text.charCodeAt(end - 1)
+      if (end < text.length && code >= 0xd800 && code <= 0xdbff) end++
+      parser.write(text.slice(offset, end))
+      offset = end
+    }
     if (!truncated) parser.close()
   } catch (error) {
-    if (!(error instanceof Stop)) throw error
-    stop = error
+    // A Stop, or sax failing on input it was not made for (an attribute named like a method of
+    // Object, say): either way, this is not a file a search engine reads.
+    stopped = error instanceof Stop ? error : stop()
   }
-  const { root, entries, limited } = state
+  const { root, entries } = state
   if (root !== null && root.local.toLowerCase() === 'html') return { kind: 'html' }
-  if (stop !== null && !limited) {
-    return { kind: 'not-xml', line: stop.line + 1, column: stop.column + 1 }
+  if (stopped !== null) {
+    return { kind: 'not-xml', line: stopped.line + 1, column: stopped.column + 1 }
   }
   if (root === null) {
     // Nothing but a declaration, comments or instructions, or a body cut before its root.
@@ -222,13 +316,9 @@ function readXml(text: string, truncated: boolean): SitemapContent {
   const { local, uri } = root
   if (local === 'urlset' || local === 'sitemapindex') {
     if (uri !== SITEMAP_NAMESPACE) return { kind: 'namespace', root: local, namespace: uri }
-    return {
-      kind: 'sitemap',
-      format: local,
-      entries: (truncated || limited) && entries === 0 ? null : entries,
-    }
+    return { kind: 'sitemap', format: local, entries: truncated && entries === 0 ? null : entries }
   }
-  if (local === 'rss' && uri === '' && root.attributes.version?.value === '2.0') {
+  if (local === 'rss' && uri === '' && root.version === '2.0') {
     return { kind: 'sitemap', format: 'rss', entries: null }
   }
   if (local === 'feed' && uri === ATOM_NAMESPACE) {
@@ -237,11 +327,60 @@ function readXml(text: string, truncated: boolean): SitemapContent {
   return { kind: 'root', root: root.name, namespace: uri }
 }
 
+/** The namespaces a start tag declares: `xmlns` for the default one, `xmlns:prefix` for others. */
+function declarations(tag: Tag): Declarations | null {
+  let found: Map<string, string> | null = null
+  for (const name in tag.attributes) {
+    if (name !== 'xmlns' && !name.startsWith('xmlns:')) continue
+    found ??= new Map()
+    found.set(name.slice(6), tag.attributes[name] ?? '')
+  }
+  return found
+}
+
+/**
+ * The namespace a prefix is bound to where the element open last is: its own declarations count,
+ * then its ancestors', innermost first, at most SITEMAP_MAX_DEPTH of them. `xml` is bound
+ * without a declaration; undefined for a prefix that is not bound.
+ */
+function namespaceOf(prefix: string, scopes: readonly (Declarations | null)[]): string | undefined {
+  for (let level = scopes.length - 1; level >= 0; level--) {
+    const uri = scopes[level]?.get(prefix)
+    if (uri !== undefined) return uri
+  }
+  return prefix === 'xml' ? XML_NAMESPACE : undefined
+}
+
+/**
+ * An element's name split at its prefix, and the namespace it is in: none ('') without a prefix
+ * or a default one. Null for a prefix that is not bound (XML Namespaces, "Prefix Declared"), which
+ * sax's namespace mode reported as an error too.
+ */
+function qualified(
+  name: string,
+  scopes: readonly (Declarations | null)[],
+): { readonly local: string; readonly uri: string } | null {
+  const colon = name.indexOf(':')
+  if (colon <= 0) return { local: name, uri: namespaceOf('', scopes) ?? '' }
+  const uri = namespaceOf(name.slice(0, colon), scopes) ?? ''
+  return uri === '' ? null : { local: name.slice(colon + 1), uri }
+}
+
+/** Whether every prefix on the attributes of a start tag is bound; the declarations are not. */
+function attributesBound(tag: Tag, scopes: readonly (Declarations | null)[]): boolean {
+  for (const name in tag.attributes) {
+    const colon = name.indexOf(':')
+    if (colon <= 0 || name.startsWith('xmlns:')) continue
+    if ((namespaceOf(name.slice(0, colon), scopes) ?? '') === '') return false
+  }
+  return true
+}
+
 /** A `url` of a `urlset`, or a `sitemap` of a `sitemapindex`, in the protocol's namespace. */
-function isEntry(root: QualifiedTag, tag: QualifiedTag): boolean {
-  if (tag.uri !== SITEMAP_NAMESPACE || root.uri !== SITEMAP_NAMESPACE) return false
+function isEntry(root: Root, element: { readonly local: string; readonly uri: string }): boolean {
+  if (element.uri !== SITEMAP_NAMESPACE || root.uri !== SITEMAP_NAMESPACE) return false
   return (
-    (root.local === 'urlset' && tag.local === 'url') ||
-    (root.local === 'sitemapindex' && tag.local === 'sitemap')
+    (root.local === 'urlset' && element.local === 'url') ||
+    (root.local === 'sitemapindex' && element.local === 'sitemap')
   )
 }

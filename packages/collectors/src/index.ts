@@ -79,6 +79,8 @@ export {
   collectSitemap,
   readSitemap,
   SITEMAP_LIMIT,
+  SITEMAP_MAX_ATTRIBUTES,
+  SITEMAP_MAX_DEPTH,
   SITEMAP_NAMESPACE,
   sitemapTargets,
   sitemapUrl,
