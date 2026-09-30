@@ -12,6 +12,7 @@ import {
   type TxtResolver,
 } from '@arablyzer/egress'
 import { isLocalHost, type Rule } from '@arablyzer/rules'
+import { budget } from './timeout'
 
 /**
  * The TXT lookups of a scan get this long together, within the scan's own limit; the resolver
@@ -90,13 +91,15 @@ export async function lookupDns(
       asking.flatMap((rule) => (rule.txtName === undefined ? [] : [rule.txtName(domain)])),
     ),
   ]
-  const signal = AbortSignal.any([
-    AbortSignal.timeout(DNS_TIMEOUT_MS),
-    ...(context.signal === undefined ? [] : [context.signal]),
-  ])
-  const answers = await Promise.all(
-    names.map((name) => context.txt(name, signal).catch((): TxtAnswer => NO_ANSWER)),
-  )
+  const { signal, stop } = budget(DNS_TIMEOUT_MS, context.signal)
+  let answers: TxtAnswer[]
+  try {
+    answers = await Promise.all(
+      names.map((name) => context.txt(name, signal).catch((): TxtAnswer => NO_ANSWER)),
+    )
+  } finally {
+    stop()
+  }
   const lookups = names.map((name, index) => lookupOf(name, answers[index] ?? NO_ANSWER))
   return {
     facts: { domain, txt: lookups },

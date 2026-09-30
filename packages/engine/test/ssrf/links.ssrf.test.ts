@@ -1,8 +1,10 @@
-import type { Resolver } from '@arablyzer/egress'
+import { collectPage } from '@arablyzer/collectors'
+import { createPolicy, DEFAULT_POLICY, type Resolver } from '@arablyzer/egress'
 import { trap, type Trap } from '@arablyzer/fixtures'
 import { RULES, type Rule } from '@arablyzer/rules'
 import { afterEach, describe, expect, it } from 'vitest'
 import { scan } from '../../src/index'
+import { checkLinks } from '../../src/links'
 import { policyFor, resolverFor, tempSite, testRule, type TempSite } from '../helpers'
 
 // M2.3c: link-broken asks for the page's links, and so widens what a scan fetches (m2.3 plan §4).
@@ -163,5 +165,100 @@ describe('the links a scan asks for', () => {
     const methods = site.requests.slice(4).map((request) => request.split(' ')[0])
     expect(new Set(methods)).toEqual(new Set(['HEAD', 'GET']))
     expect(site.requests.slice(4).sort()).toEqual(['GET /ar/b/', 'HEAD /ar/a/', 'HEAD /ar/b/'])
+  })
+})
+
+// M2.3c review: the tests above run under a policy that opens one local port and nothing else, so
+// if the origin filter broke, egress would still refuse the links it let through, and they would
+// pass. Each layer is tested alone: the filter with egress wide open, and egress with a link the
+// filter lets through.
+describe('the origin filter and egress, each alone', () => {
+  it('keep every link off other origins with egress wide open, private ranges and all ports', async () => {
+    const service = await localService()
+    const at = (host: string) => `http://${host}:${String(service.port)}`
+    const site = await hostile({
+      'index.html': page(`
+        <a href="${at('127.0.0.1')}/admin">لوحة</a>
+        <a href="${at('localhost')}/admin">لوحة</a>
+        <a href="${at('[::1]')}/admin">لوحة</a>
+        <a href="//127.0.0.1:${String(service.port)}/relative">لوحة</a>
+        <a href="${at('shop.example')}/other-port">منفذ آخر</a>
+        <a href="http://169.254.169.254/latest/meta-data/">بيانات</a>
+        <a href="http://internal.test/">داخلي</a>
+        <a href="https://user:secret@shop.example/ar/">حساب</a>
+        <a href="/ar/ok/">صفحة</a>`),
+      'ar/ok/index.html': page('<p>نص</p>'),
+    })
+    // Every private range and every port is open: only the filter in siteLinks is left.
+    const open = createPolicy({ allowPrivate: true })
+    await scan(site.url('/'), {
+      rules: [linkRule()],
+      policy: open,
+      resolver: resolverFor(site),
+    })
+    expect(service.hits).toEqual([])
+    expect(site.requests).toEqual(['GET /robots.txt', 'GET /', 'HEAD /ar/ok/'])
+  })
+
+  it('refuses a link the filter lets through when the page’s own name is a local service', async () => {
+    const service = await localService()
+    // The page is at a name that resolves to the trap, on the trap's port: its links are its own
+    // origin, so the filter keeps them.
+    const url = `http://shop.example:${String(service.port)}/`
+    const linked = collectPage({
+      url,
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: new TextEncoder().encode(
+        page('<a href="/ar/a/">أ</a><a href="/ar/b/">ب</a><a href="/ar/c/">ج</a>'),
+      ),
+    })
+    const toTrap: Resolver = () => Promise.resolve([{ address: '127.0.0.1', family: 4 as const }])
+    const reasons = async (policy: typeof DEFAULT_POLICY) => {
+      const facts = await checkLinks(linked, {
+        base: { userAgent: 'ArablyzerBot/1.0', policy, resolver: toTrap },
+        optedOut: () => false,
+      })
+      expect(facts.total).toBe(3)
+      return facts.checks.map((check) => (check.outcome === 'answered' ? 'answered' : check.reason))
+    }
+    // The default policy: the port is not one a scan reaches.
+    expect(await reasons(DEFAULT_POLICY)).toEqual(Array(3).fill('port-not-allowed'))
+    // The port opened, the address not: loopback is refused all the same.
+    const portOpen = createPolicy({ allowedPorts: [80, 443, service.port] })
+    expect(await reasons(portOpen)).toEqual(Array(3).fill('blocked-address'))
+    expect(service.hits).toEqual([])
+  })
+
+  it('vets the GET again: a name that moves to a private address between HEAD and GET is refused', async () => {
+    // The route refuses HEAD, so the check goes on to a GET, which is a lookup of its own.
+    const site = await hostile(
+      { 'index.html': page('<a href="/ar/next/">التالي</a>') },
+      { '/ar/next/': { headStatus: 405 } },
+    )
+    const fixture = resolverFor(site)
+    let lookups = 0
+    const rebinding: Resolver = (hostname, signal) => {
+      lookups++
+      return lookups === 1
+        ? fixture(hostname, signal)
+        : Promise.resolve([{ address: '10.0.0.5', family: 4 as const }])
+    }
+    const linked = collectPage({
+      url: site.url('/'),
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: new TextEncoder().encode(page('<a href="/ar/next/">التالي</a>')),
+    })
+    const facts = await checkLinks(linked, {
+      base: { userAgent: 'ArablyzerBot/1.0', policy: policyFor(site), resolver: rebinding },
+      optedOut: () => false,
+    })
+    expect(facts.checks).toEqual([
+      { url: site.url('/ar/next/'), outcome: 'unanswered', reason: 'blocked-address' },
+    ])
+    expect(lookups).toBe(2)
+    // HEAD reached the site; the GET went nowhere.
+    expect(site.requests).toEqual(['HEAD /ar/next/'])
   })
 })

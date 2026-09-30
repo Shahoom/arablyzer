@@ -8,6 +8,7 @@ import {
   type PageFacts,
 } from '@arablyzer/collectors'
 import { safeFetch, type FetchResult, type SafeFetchOptions } from '@arablyzer/egress'
+import { budget } from './timeout'
 
 /** The page's links to its own site a scan asks for, at most: the first ones on the page. */
 export const MAX_LINKS = 50
@@ -50,54 +51,55 @@ export interface LinkContext {
  */
 export async function checkLinks(page: PageFacts, context: LinkContext): Promise<LinkFacts> {
   const { links, more } = siteLinks(page)
-  const signal = AbortSignal.any([
-    AbortSignal.timeout(LINKS_TIMEOUT_MS),
-    ...(context.base.signal === undefined ? [] : [context.base.signal]),
-  ])
-  const asked: string[] = []
-  let robots = 0
-  let slice = performance.now()
-  let examined = 0
-  for (const url of links) {
-    if (asked.length >= MAX_LINKS) break
-    if (performance.now() - slice > SLICE_MS) {
-      await new Promise<void>((resolve) => {
-        setImmediate(resolve)
-      })
-      slice = performance.now()
+  const { signal, stop } = budget(LINKS_TIMEOUT_MS, context.base.signal)
+  try {
+    const asked: string[] = []
+    let robots = 0
+    let slice = performance.now()
+    let examined = 0
+    for (const url of links) {
+      if (asked.length >= MAX_LINKS) break
+      if (performance.now() - slice > SLICE_MS) {
+        await new Promise<void>((resolve) => {
+          setImmediate(resolve)
+        })
+        slice = performance.now()
+      }
+      if (signal.aborted) break
+      examined++
+      if (context.optedOut(url)) robots++
+      else asked.push(url)
     }
-    if (signal.aborted) break
-    examined++
-    if (context.optedOut(url)) robots++
-    else asked.push(url)
-  }
-  // What was not examined is over the limit, robots.txt untested.
-  const limit = links.length - examined
-  const base: SafeFetchOptions = {
-    ...context.base,
-    signal,
-    timeoutMs: Math.min(context.base.timeoutMs ?? LINK_TIMEOUT_MS, LINK_TIMEOUT_MS),
-  }
-  const checks: LinkCheck[] = []
-  let next = 0
-  // The site asked for fewer requests (429): no other link is asked for after that one.
-  let limited = false
-  const work = async () => {
-    for (let index = next++; index < asked.length; index = next++) {
-      const url = asked[index] ?? ''
-      if (signal.aborted) {
-        checks[index] = { url, outcome: 'unanswered', reason: 'out-of-time' }
-      } else if (limited) {
-        checks[index] = { url, outcome: 'unanswered', reason: 'rate-limited' }
-      } else {
-        const { check, rateLimited } = await checkLink(url, base)
-        checks[index] = check
-        if (rateLimited) limited = true
+    // What was not examined is over the limit, robots.txt untested.
+    const limit = links.length - examined
+    const base: SafeFetchOptions = {
+      ...context.base,
+      signal,
+      timeoutMs: Math.min(context.base.timeoutMs ?? LINK_TIMEOUT_MS, LINK_TIMEOUT_MS),
+    }
+    const checks: LinkCheck[] = []
+    let next = 0
+    // The site asked for fewer requests (429): no other link is asked for after that one.
+    let limited = false
+    const work = async () => {
+      for (let index = next++; index < asked.length; index = next++) {
+        const url = asked[index] ?? ''
+        if (signal.aborted) {
+          checks[index] = { url, outcome: 'unanswered', reason: 'out-of-time' }
+        } else if (limited) {
+          checks[index] = { url, outcome: 'unanswered', reason: 'rate-limited' }
+        } else {
+          const { check, rateLimited } = await checkLink(url, base)
+          checks[index] = check
+          if (rateLimited) limited = true
+        }
       }
     }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, asked.length) }, work))
+    return { total: links.length, more, checks, skipped: { limit, robots } }
+  } finally {
+    stop()
   }
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, asked.length) }, work))
-  return { total: links.length, more, checks, skipped: { limit, robots } }
 }
 
 /**

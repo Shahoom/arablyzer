@@ -9,6 +9,8 @@ import { robotsMatcher, type Rule } from '@arablyzer/rules'
 import { afterEach, describe, expect, it } from 'vitest'
 import { checkLinks, CONCURRENCY, MAX_LINKS } from '../src/links'
 import { evaluatePage, scan } from '../src/index'
+import { serveSite } from '@arablyzer/fixtures'
+import { FIXTURE_CASES } from './fixture-cases'
 import { policyFor, schemaErrors, tempSite, testRule, type TempSite } from './helpers'
 
 // M2.3c: the page's links to its own site, each asked for once, HEAD then GET where HEAD answers
@@ -477,4 +479,52 @@ describe('scan: refusals are not broken links', () => {
     for (const status of REFUSAL_STATUSES)
       expect(report.scan.notices[0]?.message.ar).toContain(String(status))
   })
+})
+
+// M2.3c review: the rules' tests read link-broken's fixtures without HTTP (packages/rules,
+// test/helpers.ts), with the classification the engine uses. The engine checks the same fixtures
+// over HTTP here; the expected checks are those the rules' tests expect of the same fixtures.
+describe('checkLinks: the link-broken fixtures, over HTTP', () => {
+  const expected: Readonly<Record<string, readonly string[]>> = {
+    right: ['HEAD 200', 'HEAD 200', 'HEAD 301', 'GET 200'],
+    'right-refused': [
+      'HEAD 200',
+      'unanswered refused',
+      'unanswered refused',
+      'unanswered refused',
+      'GET 200',
+    ],
+  }
+
+  it.each(Object.entries(expected))(
+    '%s ends its checks as the rules’ tests expect',
+    async (name, checks) => {
+      const fixture = FIXTURE_CASES.find(
+        (each) => each.ruleId === 'link-broken' && each.fixture === name,
+      )
+      if (fixture === undefined) throw new Error(`no link-broken fixture ${name}`)
+      const served = await serveSite(fixture.dir)
+      try {
+        let seen: readonly LinkCheck[] = []
+        const capture = testRule({
+          id: 'capture',
+          needs: ['html', 'links'],
+          detect: ({ links }) => {
+            seen = links?.checks ?? []
+            return []
+          },
+        })
+        await scan(served.url('/'), { rules: [capture], policy: policyFor(served) })
+        expect(
+          seen.map((check) =>
+            check.outcome === 'answered'
+              ? `${check.method} ${String(check.status)}`
+              : `unanswered ${check.reason}`,
+          ),
+        ).toEqual(checks)
+      } finally {
+        await served.close()
+      }
+    },
+  )
 })
