@@ -44,6 +44,20 @@ describe('the tools as their pages have them', () => {
     expect(tag('payment-methods-detector')).toBe('html')
   })
 
+  // M2.3c review: a tool of information rules says what it found as notes, and "none found".
+  it('says which tools run information rules alone', () => {
+    const only = (slug: string) => data.tools.find((tool) => tool.slug === slug)?.reportsOnly
+    expect(only('payment-methods-detector')).toBe(true)
+    expect(only('logical-css-check')).toBe(true)
+    // Security headers judges, with one rule among its five that lists.
+    expect(only('security-headers')).toBe(false)
+    expect(only('rtl-check')).toBe(false)
+    expect(data.tools.filter((tool) => tool.reportsOnly).map((tool) => tool.slug)).toEqual([
+      'logical-css-check',
+      'payment-methods-detector',
+    ])
+  })
+
   it('names each tool in both languages, for the report page of its result', () => {
     const titles = toolTitles(data)
     expect(Object.keys(titles)).toEqual(TOOLS.map((tool) => tool.slug))

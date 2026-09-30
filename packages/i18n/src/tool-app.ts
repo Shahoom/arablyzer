@@ -19,7 +19,14 @@ export interface ToolAppStrings {
   readonly result: {
     readonly running: string
     readonly problems: (count: number) => string
+    /**
+     * What a tool found that only lists (an information rule), counted as notes: a note is not a
+     * problem, and is never deducted (M2.3c review).
+     */
+    readonly notes: (count: number) => string
     readonly passed: string
+    /** A tool of information rules alone, and nothing found: it does not "pass" what it never judged. */
+    readonly noneFound: string
     readonly notApplicable: string
     readonly review: string
     /** The scan did not finish (partial or failed), or a rule could not run. */
@@ -30,6 +37,11 @@ export interface ToolAppStrings {
     readonly status: Readonly<
       Record<'pass' | 'fail' | 'needs-review' | 'not-applicable' | 'error', string>
     >
+    /**
+     * The status of a rule that only lists what it finds, in that list: what it found, and that it
+     * found nothing (in a tool that judges too, an information rule that found nothing passes).
+     */
+    readonly information: Readonly<Record<'found' | 'none', string>>
     /** Before the ids of the rules the tool ran. */
     readonly rules: (count: number) => string
     readonly share: string
@@ -66,7 +78,15 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
           few: '{n} مشكلات تحتاج إصلاحاً',
           many: '{n} مشكلة تحتاج إصلاحاً',
         }),
+      notes: (count) =>
+        arabicCount(count, {
+          one: 'ملاحظة واحدة، وليست مشكلة',
+          two: 'ملاحظتان، وليستا مشكلتين',
+          few: '{n} ملاحظات، وليست مشكلات',
+          many: '{n} ملاحظة، وليست مشكلات',
+        }),
       passed: 'الصفحة تجتاز هذا الفحص',
+      noneFound: 'لم نجد شيئاً في الصفحة',
       notApplicable: 'لا ينطبق هذا الفحص على الصفحة',
       review: 'فيها ما يحتاج أن تراجعه بنفسك',
       incomplete: 'لم يكتمل الفحص',
@@ -78,6 +98,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         'not-applicable': 'لا تنطبق',
         error: 'تعذّر تشغيلها',
       },
+      information: { found: 'ملاحظة', none: 'لم تجد شيئاً' },
       rules: (count) =>
         arabicCount(count, {
           one: 'القاعدة:',
@@ -110,7 +131,10 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
     result: {
       running: 'Checking the page…',
       problems: (count) => (count === 1 ? '1 problem to fix' : `${String(count)} problems to fix`),
+      notes: (count) =>
+        count === 1 ? '1 note, not a problem' : `${String(count)} notes, not problems`,
       passed: 'The page passes this check',
+      noneFound: 'Nothing found on the page',
       notApplicable: 'This check does not apply to the page',
       review: 'Something here needs your own review',
       incomplete: 'The check did not finish',
@@ -122,6 +146,7 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         'not-applicable': 'Does not apply',
         error: 'Could not run',
       },
+      information: { found: 'Noted', none: 'None found' },
       rules: (count) => englishForm(count, 'Rule:', 'Rules:'),
       share: 'Link to this result',
       howToFix: 'How to fix',

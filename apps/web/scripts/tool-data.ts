@@ -1,5 +1,5 @@
 import type { ToolTag } from '@arablyzer/i18n'
-import { ruleById, SERVER_RESPONSE_RULES } from '@arablyzer/rules'
+import { reportsOnly, ruleById, SERVER_RESPONSE_RULES } from '@arablyzer/rules'
 import { renderInline, renderMarkdown } from '@arablyzer/seo/markdown'
 import { TOOL_CATEGORIES, TOOL_HEADINGS, TOOLS, type Tool, type ToolCopy } from '@arablyzer/tools'
 import { highlight } from '../src/lib/code'
@@ -75,6 +75,7 @@ export function toolsData(): ToolsData {
       related: [...tool.related],
       updated: tool.updated,
       renders: toolRenders(tool),
+      reportsOnly: reportsOnly(tool.rules),
       tag: toolTag(tool),
       copy: { ar: copyData(tool.copy.ar), en: copyData(tool.copy.en) },
     })),

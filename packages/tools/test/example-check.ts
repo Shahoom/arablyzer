@@ -9,7 +9,7 @@ import {
 } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
 import type { Redirect } from '@arablyzer/report-schema'
-import { RULES, ruleById } from '@arablyzer/rules'
+import { reportsOnly, RULES, ruleById } from '@arablyzer/rules'
 import {
   locationOf,
   parseDnsExample,
@@ -148,15 +148,6 @@ function fixtureTexts(ruleId: string, kind: 'wrong' | 'right'): string[] {
   return texts
 }
 
-/**
- * Whether every rule the tool runs is information (severity info): it lists what a page shows
- * and judges nothing. Its page's wrong example is then one it can name nothing on, and its right
- * example one it reports on (M2.3c's payment-methods-detector: logos without names, and with).
- */
-export function reportsOnly(tool: Tool): boolean {
-  return tool.rules.every((id) => ruleById(id)?.severity === 'info')
-}
-
 /** What is wrong with a tool's examples in one language: nothing, when the page tells the truth. */
 export function exampleProblems(tool: Tool, lang: Lang): string[] {
   const { wrong, right } = tool.copy[lang].example
@@ -178,7 +169,9 @@ export function exampleProblems(tool: Tool, lang: Lang): string[] {
     }
     return problems
   }
-  if (reportsOnly(tool)) {
+  // A tool of information rules alone: its wrong example is one it can name nothing on, and its
+  // right example one it reports on (payment-methods-detector: logos without names, and with).
+  if (reportsOnly(tool.rules)) {
     for (const result of evaluateExample(tool, wrong)) {
       if (result.status === 'fail' || result.status === 'error') {
         problems.push(`${result.id} is ${result.status} on the wrong example, which names nothing`)

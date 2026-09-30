@@ -42,6 +42,11 @@ export interface ToolData {
   readonly updated: string
   /** Whether the tool renders the page in browsers. */
   readonly renders: boolean
+  /**
+   * Whether every rule of the tool only lists what it finds (information): its result says what it
+   * found as notes, and "none found" for a page that shows none.
+   */
+  readonly reportsOnly: boolean
   readonly tag: ToolTag
   readonly copy: Readonly<Record<Lang, ToolCopyData>>
 }

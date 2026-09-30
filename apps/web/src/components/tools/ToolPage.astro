@@ -82,6 +82,7 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
           client:idle={{ timeout: 500 }}
           lang={lang}
           tool={slug}
+          reportsOnly={tool.reportsOnly}
           reads={
             tool.renders
               ? 'render'

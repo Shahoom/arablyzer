@@ -8,6 +8,7 @@ import { serveSite } from '@arablyzer/fixtures'
 import checkoutFormJson from '@arablyzer/fixtures/golden/reports/07-checkout-form.json'
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
 import { REPORT } from '@arablyzer/i18n/report'
+import { TOOL_APP } from '@arablyzer/i18n/tool-app'
 import { Report, type RuleStatus } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
 import { idFromPath } from '../src/islands/ReportApp'
@@ -21,7 +22,10 @@ import {
   START,
   stepsOf,
   noProblemsNote,
+  noteCount,
+  toolHeadline,
   toolVerdict,
+  worstProblem,
   type Progress,
 } from '../src/islands/report-model'
 
@@ -330,16 +334,16 @@ describe('toolVerdict', () => {
 })
 
 describe('problemCount', () => {
-  it('counts every finding of the failed rules, those the report left out too', () => {
-    // Golden report 04: three rules failed, with a finding each.
-    expect(problemCount(rtlLayout)).toBe(3)
+  it('counts every finding of the failed rules that judge, those the report left out too', () => {
+    // Golden report 04: three rules failed, with a finding each; one of them only lists.
+    expect(problemCount(rtlLayout)).toBe(2)
     const capped = {
       ...rtlLayout,
       rules: rtlLayout.rules.map((rule) =>
-        rule.id === 'rtl-physical-css' ? { ...rule, findingsOmitted: 17 } : rule,
+        rule.id === 'rtl-horizontal-overflow' ? { ...rule, findingsOmitted: 17 } : rule,
       ),
     }
-    expect(problemCount(capped)).toBe(20)
+    expect(problemCount(capped)).toBe(19)
   })
 
   it('counts a failed rule without findings once, and nothing for a review', () => {
@@ -360,5 +364,126 @@ describe('noProblemsNote', () => {
 
   it('says nothing can be said when no rule finished', () => {
     expect(noProblemsNote(rtlCheck(['error', 'error'], { status: 'failed' }))).toBe('unknown')
+  })
+})
+
+/**
+ * Golden report 04 with only these rules, each with this status and its findings: the report of a
+ * tool that runs them. Its rtl-physical-css is information (severity info), the others judge.
+ */
+function ruleset(
+  statuses: Readonly<Record<string, RuleStatus>>,
+  scan: Partial<Report['scan']> = {},
+) {
+  const rules = Object.entries(statuses).map(([id, status]) => {
+    const rule = rtlLayout.rules.find((candidate) => candidate.id === id)
+    if (rule === undefined) throw new Error(id)
+    return { ...rule, status, ...(status === 'error' ? { error: 'page-unavailable' } : {}) }
+  })
+  return {
+    ...rtlLayout,
+    scan: { ...rtlLayout.scan, ...scan },
+    rules,
+    findings: rtlLayout.findings.filter((finding) => statuses[finding.ruleId] === 'fail'),
+  }
+}
+
+// M2.3c review: a finding of an information rule made the rule fail, and the tool counted it as a
+// problem: payment-methods-detector said "3 problems to fix" for a store showing mada, Apple Pay
+// and Tabby, and "passes" for one showing none. Information is noted, never a problem.
+describe('information rules’ findings', () => {
+  const noted = ruleset({ 'rtl-html-dir': 'pass', 'rtl-physical-css': 'fail' })
+  const both = ruleset({ 'rtl-horizontal-overflow': 'fail', 'rtl-physical-css': 'fail' })
+
+  it('are notes, and not problems', () => {
+    expect(rtlLayout.rules.find((rule) => rule.id === 'rtl-physical-css')?.severity).toBe('info')
+    expect([problemCount(noted), noteCount(noted)]).toEqual([0, 1])
+    expect([problemCount(both), noteCount(both)]).toEqual([1, 1])
+    // Golden report 04: two rules that judge failed, and one that lists.
+    expect([problemCount(rtlLayout), noteCount(rtlLayout)]).toEqual([2, 1])
+  })
+
+  it('count those the report left out past its cap, as problems do', () => {
+    const capped = {
+      ...noted,
+      rules: noted.rules.map((rule) =>
+        rule.id === 'rtl-physical-css' ? { ...rule, findingsOmitted: 17 } : rule,
+      ),
+    }
+    expect([problemCount(capped), noteCount(capped)]).toEqual([0, 18])
+  })
+
+  it('give no worst severity, no more than a fix', () => {
+    expect(worstProblem(noted)).toBeUndefined()
+    expect(worstProblem(both)).toBe('serious')
+    expect(worstProblem(rtlLayout)).toBe('serious')
+  })
+
+  it('make a verdict of their own, after every problem, unfinished rule and review', () => {
+    expect(toolVerdict(noted)).toBe('noted')
+    expect(toolVerdict(both)).toBe('problems')
+    expect(toolVerdict(ruleset({ 'rtl-physical-css': 'fail', 'rtl-html-dir': 'error' }))).toBe(
+      'incomplete',
+    )
+    expect(
+      toolVerdict(ruleset({ 'rtl-physical-css': 'fail', 'rtl-html-dir': 'needs-review' })),
+    ).toBe('review')
+    expect(toolVerdict(ruleset({ 'rtl-physical-css': 'fail' }, { status: 'partial' }))).toBe(
+      'incomplete',
+    )
+  })
+
+  it('leave "none found" for a tool of information rules that found none, and "passes" for the rest', () => {
+    const none = ruleset({ 'rtl-physical-css': 'pass' })
+    expect(toolVerdict(none, true)).toBe('none-found')
+    expect(toolVerdict(none)).toBe('passed')
+    expect(toolVerdict(noted, true)).toBe('noted')
+    // A tool that judges, with a rule that lists among them, still says its page passes.
+    expect(toolVerdict(ruleset({ 'rtl-html-dir': 'pass', 'rtl-physical-css': 'pass' }))).toBe(
+      'passed',
+    )
+  })
+})
+
+describe('toolHeadline', () => {
+  const noted = ruleset({ 'rtl-html-dir': 'pass', 'rtl-physical-css': 'fail' })
+  const many = {
+    ...noted,
+    rules: noted.rules.map((rule) =>
+      rule.id === 'rtl-physical-css' ? { ...rule, findingsOmitted: 2 } : rule,
+    ),
+  }
+
+  it('counts problems that judge, in both languages', () => {
+    const both = ruleset({ 'rtl-horizontal-overflow': 'fail', 'rtl-physical-css': 'fail' })
+    expect(toolHeadline(both, TOOL_APP.en.result)).toBe('1 problem to fix')
+    expect(toolHeadline(rtlLayout, TOOL_APP.en.result)).toBe('2 problems to fix')
+    expect(toolHeadline(rtlLayout, TOOL_APP.ar.result)).toBe('مشكلتان تحتاجان إصلاحاً')
+  })
+
+  it('counts what an information rule found as notes, not problems', () => {
+    expect(toolHeadline(noted, TOOL_APP.en.result)).toBe('1 note, not a problem')
+    expect(toolHeadline(many, TOOL_APP.en.result)).toBe('3 notes, not problems')
+    expect(toolHeadline(noted, TOOL_APP.ar.result)).toBe('ملاحظة واحدة، وليست مشكلة')
+    expect(toolHeadline(many, TOOL_APP.ar.result)).toBe('3 ملاحظات، وليست مشكلات')
+    for (const lang of ['ar', 'en'] as const) {
+      expect(toolHeadline(many, TOOL_APP[lang].result)).not.toBe(TOOL_APP[lang].result.problems(3))
+    }
+  })
+
+  it('says nothing was found, not that the page passes, for a tool of information rules', () => {
+    const none = ruleset({ 'rtl-physical-css': 'pass' })
+    expect(toolHeadline(none, TOOL_APP.en.result, true)).toBe('Nothing found on the page')
+    expect(toolHeadline(none, TOOL_APP.ar.result, true)).toBe('لم نجد شيئاً في الصفحة')
+    expect(toolHeadline(none, TOOL_APP.en.result)).toBe('The page passes this check')
+  })
+
+  it('keeps the other verdicts’ words', () => {
+    const t = TOOL_APP.en.result
+    expect(toolHeadline(ruleset({ 'rtl-html-dir': 'error' }, { status: 'partial' }), t)).toBe(
+      t.incomplete,
+    )
+    expect(toolHeadline(ruleset({ 'rtl-html-dir': 'not-applicable' }), t)).toBe(t.notApplicable)
+    expect(toolHeadline(ruleset({ 'rtl-html-dir': 'needs-review' }), t)).toBe(t.review)
   })
 })

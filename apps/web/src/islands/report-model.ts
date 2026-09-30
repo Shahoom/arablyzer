@@ -1,5 +1,6 @@
 import type { EngineName, ScanEvent } from '@arablyzer/api-contract/codes'
 import type { EngineState, ReportStrings } from '@arablyzer/i18n/report'
+import type { ToolAppStrings } from '@arablyzer/i18n/tool-app'
 import type { Finding, Notice, Report, RuleResult, Severity } from '@arablyzer/report-schema'
 
 /** The engines a free scan renders in, in the order it renders them (M2.1 plan §4). */
@@ -131,23 +132,63 @@ export function outcomeOf(report: Report): Outcome {
 
 /** What a tool's result says first (M2.2). */
 export type ToolVerdict =
-  'blocked' | 'opted-out' | 'problems' | 'incomplete' | 'review' | 'passed' | 'not-applicable'
+  | 'blocked'
+  | 'opted-out'
+  | 'problems'
+  | 'incomplete'
+  | 'review'
+  | 'noted'
+  | 'passed'
+  | 'none-found'
+  | 'not-applicable'
+
+/**
+ * Whether a rule only lists what it finds (severity info): its findings are notes, never problems,
+ * and the score never deducts them (M2.3c review). A finding still makes such a rule `fail`, which
+ * is how the report gives it findings to list.
+ */
+export function isNote(rule: RuleResult): boolean {
+  return rule.severity === 'info'
+}
 
 /**
  * A tool's result in a word: the site refused the scan, or asked in its robots.txt not to be
- * checked; a rule failed, which is said even when
- * the scan did not finish; the scan did not finish (partial, failed, or a rule that could not
- * run), so the page cannot be said to pass; a rule needs a human's eye; every rule that applies
- * passed; or none applies.
+ * checked; a rule that judges failed, which is said even when the scan did not finish; the scan did
+ * not finish (partial, failed, or a rule that could not run), so the page cannot be said to pass;
+ * a rule needs a human's eye; a rule that only lists found something, so there are notes and no
+ * problem; every rule that applies passed, or, for a tool whose rules all only list
+ * (`reportsOnly`), found nothing; or none applies.
  */
-export function toolVerdict(report: Report): ToolVerdict {
+export function toolVerdict(report: Report, reportsOnly = false): ToolVerdict {
   const any = (status: RuleResult['status']) => report.rules.some((rule) => rule.status === status)
   const outcome = outcomeOf(report)
   if (outcome === 'blocked' || outcome === 'opted-out') return outcome
-  if (any('fail')) return 'problems'
+  const failed = report.rules.filter((rule) => rule.status === 'fail')
+  if (failed.some((rule) => !isNote(rule))) return 'problems'
   if (report.scan.status !== 'complete' || any('error')) return 'incomplete'
   if (any('needs-review')) return 'review'
-  return any('pass') ? 'passed' : 'not-applicable'
+  if (failed.length > 0) return 'noted'
+  if (!any('pass')) return 'not-applicable'
+  return reportsOnly ? 'none-found' : 'passed'
+}
+
+/** A tool's result in the page's words (toolVerdict). */
+export function toolHeadline(
+  report: Report,
+  t: ToolAppStrings['result'],
+  reportsOnly = false,
+): string {
+  return {
+    blocked: t.blocked,
+    'opted-out': t.optedOut,
+    problems: t.problems(problemCount(report)),
+    incomplete: t.incomplete,
+    review: t.review,
+    noted: t.notes(noteCount(report)),
+    passed: t.passed,
+    'none-found': t.noneFound,
+    'not-applicable': t.notApplicable,
+  }[toolVerdict(report, reportsOnly)]
 }
 
 /**
@@ -162,17 +203,28 @@ export function noProblemsNote(report: Report): 'none' | 'incomplete' | 'unknown
   return errored === report.rules.length ? 'unknown' : 'incomplete'
 }
 
+/** A failed rule's findings: those in the report, and those it left out past its cap; at least one. */
+function findingsOf(report: Report, rule: RuleResult): number {
+  const found = report.findings.filter((finding) => finding.ruleId === rule.id).length
+  return Math.max(found + (rule.findingsOmitted ?? 0), 1)
+}
+
 /**
- * The problems a tool's result counts: every finding of its failed rules, those the report left
- * out past its cap too; a failed rule without findings counts once.
+ * The problems a tool's result counts: every finding of its failed rules that judge, those the
+ * report left out past its cap too; a failed rule without findings counts once. What a rule that
+ * only lists found is a note (noteCount), never a problem.
  */
 export function problemCount(report: Report): number {
   return report.rules
-    .filter((rule) => rule.status === 'fail')
-    .reduce((sum, rule) => {
-      const found = report.findings.filter((finding) => finding.ruleId === rule.id).length
-      return sum + Math.max(found + (rule.findingsOmitted ?? 0), 1)
-    }, 0)
+    .filter((rule) => rule.status === 'fail' && !isNote(rule))
+    .reduce((sum, rule) => sum + findingsOf(report, rule), 0)
+}
+
+/** The notes a tool's result counts: what its rules that only list found, counted as problems are. */
+export function noteCount(report: Report): number {
+  return report.rules
+    .filter((rule) => rule.status === 'fail' && isNote(rule))
+    .reduce((sum, rule) => sum + findingsOf(report, rule), 0)
 }
 
 const SEVERITY_RANK: Readonly<Record<Severity, number>> = {
@@ -202,6 +254,12 @@ export function problemsOf(report: Report): RuleFindings[] {
       rule,
       findings: report.findings.filter((finding) => finding.ruleId === rule.id),
     }))
+}
+
+/** The severity of the worst problem that judges, if there is one; a note is not a problem. */
+export function worstProblem(report: Report): Severity | undefined {
+  return problemsOf(report).find((entry) => entry.rule.status === 'fail' && !isNote(entry.rule))
+    ?.rule.severity
 }
 
 /** A number from a finding's values, when it has that one. */

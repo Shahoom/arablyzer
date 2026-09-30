@@ -6,6 +6,7 @@ import { executablePathFor } from '@arablyzer/browser/engines'
 import { createPolicy } from '@arablyzer/egress'
 import { scan } from '@arablyzer/engine'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
+import { REPORT } from '@arablyzer/i18n/report'
 import { TOOL_APP } from '@arablyzer/i18n/tool-app'
 import type { Engine, Report } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
@@ -18,10 +19,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // one that fails a rule, one that passes both, one too complex to read in the time given (a
 // partial scan), and an address nothing answers (a failed scan, with its report). The browsers
 // open the site's own pages on loopback, and every request off the site is refused, so nothing
-// leaves the machine (eslint.config.js). `pnpm test:browser` builds the site first.
+// leaves the machine (eslint.config.js). `pnpm test:browser` builds the site first. The Gulf payment
+// methods detector's rule only lists what a page shows (information, M2.3c review): its result
+// counts notes, never problems.
 const DIST = fileURLToPath(new URL('../../dist/', import.meta.url))
 const TOOL = 'rtl-check'
 const RULES = ['rtl-html-dir', 'ar-html-lang']
+/** A tool of one information rule: it lists the payment methods a page shows, and judges nothing. */
+const LISTING_TOOL = 'payment-methods-detector'
+const LISTING_RULES = ['payment-methods']
 const ID = 'ToolToolToolToolTool_3'
 const ADDRESS = 'https://store.example/'
 
@@ -59,7 +65,10 @@ const TEXT = '<p>عطور عربية أصيلة، وتوصيل إلى كل مد�
 let pagesRoot = ''
 let pages: FixtureSite
 let site: FixtureSite
-const reports = {} as Record<'problems' | 'passed' | 'partial' | 'failed', Report>
+const reports = {} as Record<
+  'problems' | 'passed' | 'partial' | 'failed' | 'noted' | 'nothing',
+  Report
+>
 
 /** A port nothing listens on any more: a scan of it cannot fetch the page. */
 async function closedPort(): Promise<number> {
@@ -73,6 +82,13 @@ beforeAll(async () => {
   await writeFile(path.join(pagesRoot, 'wrong.html'), page('', TEXT))
   await writeFile(path.join(pagesRoot, 'right.html'), page(' dir="rtl"', TEXT))
   await writeFile(path.join(pagesRoot, 'heavy.html'), page(' dir="rtl"', TEXT.repeat(20_000)))
+  await writeFile(
+    path.join(pagesRoot, 'store.html'),
+    page(
+      ' dir="rtl"',
+      `${TEXT}<img src="/mada.svg" alt="مدى"><img src="/apple-pay.svg" alt="Apple Pay"><img src="/tabby.svg" alt="Tabby">`,
+    ),
+  )
   pages = await serveSite(pagesRoot)
   const policy = createPolicy({ allowTargets: [{ address: '127.0.0.1', port: pages.port }] })
   reports.problems = await scan(pages.url('/wrong.html'), { ruleIds: RULES, policy })
@@ -83,6 +99,9 @@ beforeAll(async () => {
     policy,
     parseTimeoutMs: 1,
   })
+  // The tool that lists: three methods shown, and none.
+  reports.noted = await scan(pages.url('/store.html'), { ruleIds: LISTING_RULES, policy })
+  reports.nothing = await scan(pages.url('/right.html'), { ruleIds: LISTING_RULES, policy })
   const port = await closedPort()
   reports.failed = await scan(`http://127.0.0.1:${port}/`, {
     ruleIds: RULES,
@@ -122,6 +141,10 @@ it('stands on real reports of the tool’s two rules', () => {
 interface Shown {
   /** What the page asked the API for. */
   readonly asked: unknown
+  /** The small labels in the header of each rule the result lists. */
+  readonly labels: readonly string[]
+  /** Whether the result links to the fixes. */
+  readonly fixLink: boolean
   readonly headline: string
   /** What a screen reader was told. */
   readonly said: string
@@ -137,7 +160,12 @@ interface Shown {
 async function check(
   browser: Browser,
   lang: Lang,
-  { state, report, stream = false }: { state: string; report: Report | null; stream?: boolean },
+  {
+    state,
+    report,
+    stream = false,
+    tool = TOOL,
+  }: { state: string; report: Report | null; stream?: boolean; tool?: string },
 ): Promise<Shown> {
   const context = await browser.newContext()
   // The site's pages alone; the API's answers are the test's (below), and anything else is
@@ -167,7 +195,7 @@ async function check(
     await route.fulfill(json({ id: ID }, 202))
   })
   await tab.route(`**/api/scans/${ID}`, async (route) => {
-    const summary = { id: ID, url: ADDRESS, createdAt: '2026-09-29T00:00:00.000Z', tool: TOOL }
+    const summary = { id: ID, url: ADDRESS, createdAt: '2026-09-29T00:00:00.000Z', tool }
     await route.fulfill(json({ ...summary, state: stream ? 'running' : state }))
   })
   await tab.route(`**/api/scans/${ID}/events`, async (route) => {
@@ -185,7 +213,7 @@ async function check(
   await tab.route(`**/api/reports/${ID}`, async (route) => {
     await route.fulfill(report === null ? json({ state: 'failed' }, 404) : json(report))
   })
-  await tab.goto(site.url(lang === 'ar' ? `/tools/${TOOL}` : `/en/tools/${TOOL}`))
+  await tab.goto(site.url(lang === 'ar' ? `/tools/${tool}` : `/en/tools/${tool}`))
   // The button is enabled once the island runs.
   await tab
     .locator('form button[type="submit"]:not([disabled])')
@@ -223,6 +251,10 @@ async function check(
     notices: [...document.querySelectorAll('[aria-labelledby="result-notices"] [role="note"]')].map(
       (note) => note.textContent,
     ),
+    labels: [...document.querySelectorAll('article > header > span')].map(
+      (label) => label.textContent,
+    ),
+    fixLink: document.querySelector('a[href="#fix"]') !== null,
   }))
   await context.close()
   return { asked, ...shown }
@@ -281,6 +313,36 @@ describe.each(ENGINES)('a tool page in %s', (engine) => {
     expect([shown.headline, shown.said]).toEqual([t.incomplete, t.incomplete])
     expect(shown.rules.map(([status]) => status)).toEqual([t.status.error, t.status.error])
     expect(shown.notices).toEqual(reports.failed.scan.notices.map((notice) => notice.message.en))
+  }, 60_000)
+
+  // M2.3c review: three payment methods shown read "3 problems to fix", and none shown "passes".
+  it('counts what a tool that only lists found as notes, with no problem to fix', async () => {
+    const t = TOOL_APP.en.result
+    const shown = await check(browser, 'en', {
+      state: 'complete',
+      report: reports.noted,
+      tool: LISTING_TOOL,
+    })
+    expect([shown.headline, shown.said]).toEqual([t.notes(3), t.notes(3)])
+    expect(shown.headline).toBe('3 notes, not problems')
+    // The one rule is noted, with no green check, and its findings are labelled as not deducted.
+    expect(shown.rules).toEqual([[t.information.found, false]])
+    expect(shown.labels).toEqual([REPORT.en.findings.notDeducted])
+    expect(shown.fixLink).toBe(false)
+  }, 60_000)
+
+  it('says nothing was found, and does not say the page passes, for a tool that only lists', async () => {
+    const t = TOOL_APP.ar.result
+    const shown = await check(browser, 'ar', {
+      state: 'complete',
+      report: reports.nothing,
+      tool: LISTING_TOOL,
+    })
+    expect([shown.headline, shown.said]).toEqual([t.noneFound, t.noneFound])
+    expect(shown.headline).not.toBe(t.passed)
+    expect(shown.rules).toEqual([[t.information.none, false]])
+    expect(shown.labels).toEqual([])
+    expect(shown.fixLink).toBe(false)
   }, 60_000)
 
   it('says a scan without a report could not finish', async () => {

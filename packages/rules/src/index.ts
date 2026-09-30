@@ -127,6 +127,16 @@ export function ruleById(id: string): Rule | undefined {
   return RULES.find((rule) => rule.id === id)
 }
 
+/**
+ * Whether every one of these rules is information (severity info): they list what a page shows
+ * and judge nothing. A tool of such rules reports what it finds, as notes and never as problems,
+ * and says "none found" where a tool that judges says the page passes (M2.3c review). A tool's
+ * example test and its page both ask, so the answer is one function.
+ */
+export function reportsOnly(ruleIds: readonly string[]): boolean {
+  return ruleIds.length > 0 && ruleIds.every((id) => ruleById(id)?.severity === 'info')
+}
+
 export {
   loadRuleCopy,
   parseRuleCopy,
