@@ -66,8 +66,19 @@ const AXE_CAP_MS = 10_000
 const PROBE_FONTS_CAP_MS = 2_000
 /** Reading the stylesheets and font files the page loaded, within the engine's budget. */
 const FILES_CAP_MS = 5_000
-/** Stylesheet and font responses kept for reading: as many as a page may make requests. */
+/** Responses of each kind kept for reading: as many as a page may make requests. */
 const MAX_FILE_RESPONSES = DEFAULT_MAX_REQUESTS
+/** The kinds of the page's responses that rules read: fonts, stylesheets, text and images. */
+const FILE_KINDS = new Set([
+  'font',
+  'stylesheet',
+  'image',
+  'document',
+  'script',
+  'xhr',
+  'fetch',
+  'eventsource',
+])
 /** Every Arabic letter, to ask which font draws them. */
 const ARABIC_SAMPLE = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي'
 
@@ -393,9 +404,18 @@ async function renderWith(
   const files: {
     stylesheets: Response[]
     fonts: Response[]
+    texts: Response[]
+    images: Response[]
     finished: Set<Request>
     responses: Map<string, number>
-  } = { stylesheets: [], fonts: [], finished: new Set(), responses: new Map() }
+  } = {
+    stylesheets: [],
+    fonts: [],
+    texts: [],
+    images: [],
+    finished: new Set(),
+    responses: new Map(),
+  }
   page.on('response', (response) => {
     const url = response.url()
     if (files.responses.has(url) || files.responses.size < MAX_FILE_RESPONSES) {
@@ -404,14 +424,22 @@ async function renderWith(
     const request = response.request()
     const kind = request.resourceType()
     if (kind === 'font') statuses.set(request, response.status())
-    if (kind !== 'font' && kind !== 'stylesheet') return
+    const list = FILE_KINDS.has(kind)
+      ? kind === 'font'
+        ? files.fonts
+        : kind === 'stylesheet'
+          ? files.stylesheets
+          : kind === 'image'
+            ? files.images
+            : files.texts
+      : undefined
+    if (list === undefined) return
     let main = false
     try {
       main = response.frame() === page.mainFrame()
     } catch {
       // A response without a frame is not the page's.
     }
-    const list = kind === 'font' ? files.fonts : files.stylesheets
     if (main && list.length < MAX_FILE_RESPONSES) list.push(response)
   })
   const done = () => {
@@ -419,8 +447,7 @@ async function renderWith(
     lastActivity = performance.now()
   }
   page.on('requestfinished', (request) => {
-    const kind = request.resourceType()
-    if (kind === 'font' || kind === 'stylesheet') files.finished.add(request)
+    if (FILE_KINDS.has(request.resourceType())) files.finished.add(request)
     done()
   })
   page.on('requestfailed', done)
@@ -477,6 +504,7 @@ async function renderWith(
     status: response?.status() ?? null,
     fontRequests: fontRequests.map((request) => fontRequestFact(request, statuses, refusals)),
     limited: proxy.stats().limited || budget.reached,
+    filesRead: read !== undefined,
     ...(usedFonts === undefined ? {} : { usedFonts }),
     a11y,
     ...(read ?? {}),

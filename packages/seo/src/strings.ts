@@ -28,6 +28,8 @@ export interface PageStrings {
     readonly ruleErrors: string
     readonly notices: string
     readonly line: string
+    /** As the CLI says it. */
+    readonly score: (value: number, partial: boolean, ran: number, total: number) => string
     readonly scan: Readonly<Record<ScanStatus, string>>
     readonly status: Readonly<Record<RuleStatus, string>>
     readonly severity: Readonly<Record<Severity, string>>
@@ -61,6 +63,8 @@ export const STRINGS: Readonly<Record<Lang, PageStrings>> = {
       title: 'تقرير Arablyzer',
       scannedPage: 'الصفحة المفحوصة:',
       summary: 'الملخص',
+      score: (value, partial, ran, total) =>
+        `الدرجة ${value} من 100${ran < total ? `، محسوبة على ${arabicRules(ran)} من ${total}` : ''}${partial ? ' (جزئية: تعذّر تشغيل بعض القواعد)' : ''}`,
       findings: 'المشكلات',
       noFindings: 'لم تجد القواعد أي مشكلة.',
       ruleErrors: 'قواعد تعذّر تشغيلها',
@@ -108,6 +112,8 @@ export const STRINGS: Readonly<Record<Lang, PageStrings>> = {
       title: 'Arablyzer report',
       scannedPage: 'Scanned page:',
       summary: 'Summary',
+      score: (value, partial, ran, total) =>
+        `Score ${value}/100${ran < total ? ` over ${ran} of ${total} rules` : ''}${partial ? ' (partial: some rules could not run)' : ''}`,
       findings: 'Problems',
       noFindings: 'The rules found no problems.',
       ruleErrors: 'Rules that could not run',
@@ -138,4 +144,20 @@ export function otherLang(lang: Lang): Lang {
 
 export function dirOf(lang: Lang): 'rtl' | 'ltr' {
   return lang === 'ar' ? 'rtl' : 'ltr'
+}
+
+const ARABIC_PLURAL = new Intl.PluralRules('ar')
+
+/** A count of rules in the form Arabic gives each number, after a preposition (1, 2, 3–10, 11–99…). */
+function arabicRules(total: number): string {
+  switch (ARABIC_PLURAL.select(total)) {
+    case 'one':
+      return 'قاعدة واحدة'
+    case 'two':
+      return 'قاعدتين'
+    case 'few':
+      return `${total} قواعد`
+    default:
+      return `${total} قاعدة`
+  }
 }

@@ -12,9 +12,11 @@ import { loadRuleCopy, type RuleCopy } from './copy'
 /**
  * What a rule needs collected. `http`: a 2xx page response (headers; HTML optional).
  * `html` and `text`: a 2xx HTML page. `robots`: robots.txt for the final URL. `render`: the page
- * rendered in a browser (only with --render; M1.1).
+ * rendered in a browser (only with --render; M1.1). `files`, with `render`: the files the page
+ * loaded, read after the render (stylesheets, fonts, text responses, image files); the rule sees
+ * only the engines that read them.
  */
-export type CollectorId = 'http' | 'html' | 'text' | 'robots' | 'render'
+export type CollectorId = 'http' | 'html' | 'text' | 'robots' | 'render' | 'files'
 
 export interface Evidence {
   readonly page: PageFacts

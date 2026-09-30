@@ -21,8 +21,12 @@ import { rule as formLabelMissing } from './rules/form-label-missing/rule'
 import { rule as formPhoneDirection } from './rules/form-phone-direction/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
+import { rule as hstsMissing } from './rules/hsts-missing/rule'
+import { rule as httpsMissing } from './rules/https-missing/rule'
+import { rule as imageFormatLegacy } from './rules/image-format-legacy/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
+import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as priceDecimals } from './rules/price-decimals/rule'
@@ -34,12 +38,14 @@ import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/r
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
+import { rule as textCompressionMissing } from './rules/text-compression-missing/rule'
 import { rule as titleMissing } from './rules/title-missing/rule'
+import { rule as tlsExpiring } from './rules/tls-expiring/rule'
 import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
-export const RULESET_VERSION = '0.3.0'
+export const RULESET_VERSION = '0.4.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
@@ -65,8 +71,12 @@ export const RULES: readonly Rule[] = [
   formPhoneDirection,
   h1Missing,
   hreflangInvalidCode,
+  hstsMissing,
+  httpsMissing,
+  imageFormatLegacy,
   jsonldSyntaxError,
   metaDescriptionMissing,
+  mixedContent,
   ogTagsMissing,
   pageNoindex,
   priceDecimals,
@@ -78,7 +88,9 @@ export const RULES: readonly Rule[] = [
   rtlHtmlDir,
   rtlMirroredIcons,
   rtlPhysicalCss,
+  textCompressionMissing,
   titleMissing,
+  tlsExpiring,
   viewportMissing,
   whatsappLinkFormat,
 ]

@@ -34,6 +34,7 @@ import {
   type RuleStatus,
   type Summary,
 } from '@arablyzer/report-schema'
+import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
   crawlerAccess,
@@ -186,6 +187,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       },
       page: parts.page,
       summary: summarize(parts.results),
+      score: scoreOf(parts.results, (options.rules ?? RULES).length),
       rules: parts.results,
       findings: parts.findings,
       facts: parts.facts,
@@ -213,6 +215,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
         status: response.status,
         headers: response.headers,
         body: response.body,
+        certificate:
+          response.certificate === null
+            ? null
+            : { ...response.certificate, checkedAt: fetched.startedAt },
       },
       { deadline: performance.now() + parseTimeoutMs },
     )
@@ -506,10 +512,13 @@ function evaluate(
       )
     : undefined
   if (seen?.length === 0) return { status: 'error', error: 'not-rendered', findings: [] }
+  // A rule that reads the page's files sees only the engines that read them.
+  const read = rule.needs.includes('files') ? seen?.filter((facts) => facts.filesRead) : seen
+  if (read?.length === 0) return { status: 'error', error: 'files-unread', findings: [] }
   const evidence: Evidence = {
     page,
     ...(robots === undefined ? {} : { robots }),
-    ...(seen === undefined ? {} : { rendered: seen }),
+    ...(read === undefined ? {} : { rendered: read }),
   }
   try {
     if (!rule.appliesTo(page, evidence)) return { status: 'not-applicable', findings: [] }

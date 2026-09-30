@@ -47,9 +47,12 @@ function facts(engine: RenderedFacts['engine']): RenderedFacts {
     bidi: [],
     fields: [],
     directionIcons: [],
+    compression: { checked: 0, uncompressed: [] },
+    images: [],
     a11y: null,
     truncated: false,
     limited: false,
+    filesRead: true,
   }
 }
 
@@ -104,6 +107,21 @@ describe('rules that need rendering', () => {
     const { results } = evaluatePage(ARABIC, { rules: [chromiumOnly], rendered: [facts('webkit')] })
     expect(results).toEqual([
       expect.objectContaining({ id: 'render-rule', status: 'error', error: 'not-rendered' }),
+    ])
+  })
+
+  it('that read the page files see only engines that read them, and are errors when none did (M1.3a review)', () => {
+    const filesRule = renderRule({ needs: ['render', 'files'] })
+    const unread = { ...facts('firefox'), filesRead: false }
+    const some = evaluatePage(ARABIC, { rules: [filesRule], rendered: [unread, facts('chromium')] })
+    expect(some.findings.map((finding) => finding.evidence.engines)).toEqual([['chromium']])
+    const none = evaluatePage(ARABIC, { rules: [filesRule], rendered: [unread] })
+    expect(none.results).toEqual([
+      expect.objectContaining({ id: 'render-rule', status: 'error', error: 'files-unread' }),
+    ])
+    // A rule that does not read them is not held back.
+    expect(evaluatePage(ARABIC, { rules: [renderRule()], rendered: [unread] }).results).toEqual([
+      expect.objectContaining({ id: 'render-rule', status: 'fail' }),
     ])
   })
 

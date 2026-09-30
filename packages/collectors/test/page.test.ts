@@ -235,3 +235,107 @@ describe('collectPage: visible text', () => {
     })
   })
 })
+
+describe('collectPage: loads over http: (mixed content)', () => {
+  it('lists each element that loads over http:, with how browsers treat it', () => {
+    const facts = page(`<!doctype html><html><head>
+<link rel="stylesheet" href="http://cdn.example.com/site.css">
+<link rel="icon" href="http://cdn.example.com/favicon.ico">
+<link rel="canonical" href="http://example.com/ar/perfume">
+<script src="http://cdn.example.com/app.js"></script>
+</head><body>
+<img src="/ok.png" srcset="//cdn.example.com/a.png 1x, http://cdn.example.com/b.png 2x">
+<iframe src="https://maps.example.com/embed"></iframe>
+<form action="http://example.com/subscribe"><input formaction="https://example.com/x"></form>
+<a href="http://example.com/old">not a load</a>
+<svg><image href="http://cdn.example.com/c.png"></image></svg>
+</body></html>`)
+    expect(
+      htmlOf(facts).insecureLoads.map(({ tag, attribute, url, kind }) => [
+        tag,
+        attribute,
+        url,
+        kind,
+      ]),
+    ).toEqual([
+      ['link', 'href', 'http://cdn.example.com/site.css', 'blockable'],
+      ['link', 'href', 'http://cdn.example.com/favicon.ico', 'blockable'],
+      ['script', 'src', 'http://cdn.example.com/app.js', 'blockable'],
+      ['img', 'srcset', 'http://cdn.example.com/b.png', 'blockable'],
+      ['form', 'action', 'http://example.com/subscribe', 'form'],
+    ])
+  })
+
+  it('blocks rather than upgrades an image set, a track, or an image on an IP address (M1.3a review)', () => {
+    const facts = page(`<!doctype html><html><body>
+<img src="http://cdn.example.com/a.png">
+<img src="http://cdn.example.com/b.png" srcset="http://cdn.example.com/b2.png 2x">
+<picture><source srcset="http://cdn.example.com/c.avif"><img src="http://cdn.example.com/c.png"></picture>
+<img src="http://192.0.2.10/d.png">
+<video src="http://cdn.example.com/v.mp4" poster="http://cdn.example.com/p.jpg">
+  <source src="http://cdn.example.com/v.webm"><track src="http://cdn.example.com/ar.vtt">
+</video>
+<input type="image" src="http://cdn.example.com/go.png" alt="ابحث">
+</body></html>`)
+    expect(
+      htmlOf(facts).insecureLoads.map(({ attribute, url, kind }) => [
+        attribute,
+        new globalThis.URL(url).pathname,
+        kind,
+      ]),
+    ).toEqual([
+      ['src', '/a.png', 'upgradable'],
+      ['src', '/b.png', 'blockable'],
+      ['srcset', '/b2.png', 'blockable'],
+      ['srcset', '/c.avif', 'blockable'],
+      ['src', '/c.png', 'blockable'],
+      ['src', '/d.png', 'blockable'],
+      ['src', '/v.mp4', 'upgradable'],
+      ['poster', '/p.jpg', 'upgradable'],
+      ['src', '/v.webm', 'upgradable'],
+      ['src', '/ar.vtt', 'blockable'],
+      ['src', '/go.png', 'upgradable'],
+    ])
+  })
+
+  it('counts formaction only on a submit button with a form, and scripts only when fetched', () => {
+    const facts = page(`<!doctype html><html><body>
+<form id="join" action="https://example.com/join">
+  <button formaction="http://example.com/a">اشترك</button>
+  <button type="button" formaction="http://example.com/b">لا</button>
+  <input type="text" formaction="http://example.com/c">
+</form>
+<button formaction="http://example.com/d">بلا نموذج</button>
+<button form="join" formaction="http://example.com/e">مسمّى</button>
+<button form="missing" formaction="http://example.com/f">اسم غائب</button>
+<script src="http://cdn.example.com/g.js"></script>
+<script type="module" src="http://cdn.example.com/h.js"></script>
+<script nomodule src="http://cdn.example.com/i.js"></script>
+<script type="text/template" src="http://cdn.example.com/j.html"></script>
+<script type="application/ld+json" src="http://cdn.example.com/k.json"></script>
+<script language="vbscript" src="http://cdn.example.com/l.vbs"></script>
+</body></html>`)
+    expect(
+      htmlOf(facts).insecureLoads.map((load) => new globalThis.URL(load.url).pathname),
+    ).toEqual(['/a', '/e', '/g.js', '/h.js'])
+  })
+
+  it('reads srcset as HTML does: commas inside a URL, and descriptors in parentheses', () => {
+    const facts = page(`<!doctype html><html><body>
+<img srcset="http://img.example.com/w_300,h_200/a.jpg 300w, http://img.example.com/b.jpg 2x,http://img.example.com/c.jpg,, http://img.example.com/d.jpg future(a, b) 3x">
+</body></html>`)
+    expect(htmlOf(facts).insecureLoads.map((load) => load.url)).toEqual([
+      'http://img.example.com/w_300,h_200/a.jpg',
+      'http://img.example.com/b.jpg',
+      'http://img.example.com/c.jpg',
+      'http://img.example.com/d.jpg',
+    ])
+  })
+
+  it('resolves against a <base> that points at http:', () => {
+    const facts = page('<base href="http://example.com/"><img src="logo.png">')
+    expect(htmlOf(facts).insecureLoads.map((load) => load.url)).toEqual([
+      'http://example.com/logo.png',
+    ])
+  })
+})

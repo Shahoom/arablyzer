@@ -1,5 +1,12 @@
 import { collectPage } from '@arablyzer/collectors'
-import { ENGINE_VERSION, evaluatePage, pageSummary, summarize, USER_AGENT } from '@arablyzer/engine'
+import {
+  ENGINE_VERSION,
+  evaluatePage,
+  pageSummary,
+  scoreOf,
+  summarize,
+  USER_AGENT,
+} from '@arablyzer/engine'
 import { KEBAB_ID, Report, SCHEMA_VERSION } from '@arablyzer/report-schema'
 import { RULES, RULESET_VERSION } from '@arablyzer/rules'
 import { TOOLS, type Tool } from '@arablyzer/tools'
@@ -128,6 +135,7 @@ export function sampleReport(tools: readonly Tool[] = TOOLS): Report {
     },
     page: pageSummary(page),
     summary: summarize(results),
+    score: scoreOf(results, RULES.length),
     rules: results,
     findings,
     facts: {},

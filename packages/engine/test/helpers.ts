@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { createPolicy, type EgressPolicy } from '@arablyzer/egress'
+import { createPolicy, type EgressPolicy, type Resolver } from '@arablyzer/egress'
 import { serveSite, type FixtureConfig, type FixtureSite } from '@arablyzer/fixtures'
 import schema from '@arablyzer/report-schema/report.schema.json' with { type: 'json' }
 import type { Report } from '@arablyzer/report-schema'
@@ -40,6 +40,15 @@ export async function tempSite(
 /** Opens exactly one local fixture server. */
 export function policyFor(site: FixtureSite): EgressPolicy {
   return createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] })
+}
+
+/**
+ * Resolves the site's own host name (its site.json .example name) to 127.0.0.1, and no other
+ * name at all: a scan of a fixture never asks real DNS.
+ */
+export function resolverFor(site: FixtureSite): Resolver {
+  return (hostname) =>
+    Promise.resolve(hostname === site.hostname ? [{ address: '127.0.0.1', family: 4 }] : [])
 }
 
 const ajv = new Ajv2020({ strict: true, allErrors: true })

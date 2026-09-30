@@ -1,9 +1,12 @@
-import { serveSite } from '@arablyzer/fixtures'
+import { serveSite, trustFixtureCa } from '@arablyzer/fixtures'
 import { RULES } from '@arablyzer/rules'
 import { describe, expect, it } from 'vitest'
 import { scan } from '../src/index'
 import { FIXTURE_CASES, RENDER_RULES } from './fixture-cases'
-import { policyFor, schemaErrors } from './helpers'
+import { policyFor, resolverFor, schemaErrors } from './helpers'
+
+// Fixture sites served over HTTPS carry certificates from the test authority.
+trustFixtureCa()
 
 // docs/design/phase-0.md §2: each wrong fixture fails its own rule alone; each right fixture
 // passes all rules, so it can serve as a clean example on the rule's page. Rules that need the
@@ -16,7 +19,10 @@ describe('rule fixtures over HTTP', () => {
   it.each(FIXTURE_CASES)('$ruleId/$fixture', async ({ ruleId, fixture, dir, alsoFails }) => {
     const site = await serveSite(dir)
     try {
-      const report = await scan(site.url('/'), { policy: policyFor(site) })
+      const report = await scan(site.url('/'), {
+        policy: policyFor(site),
+        resolver: resolverFor(site),
+      })
       expect(schemaErrors(report)).toBe('')
       expect(report.scan).toMatchObject({ status: 'complete' })
       const failed = report.rules.filter((rule) => rule.status === 'fail').map((rule) => rule.id)

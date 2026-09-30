@@ -47,8 +47,17 @@ export interface ExpectedPage {
   readonly knownPaths: ReadonlySet<string>
 }
 
-/** robots.txt rules are left out: a rendered page has none to read. */
-const PAGE_RULES = RULES.filter((rule) => !rule.needs.includes('robots'))
+/**
+ * Rules that judge the server's response rather than the page: its scheme, its certificate and
+ * its Strict-Transport-Security header, which the site's server sets, not the template. The
+ * audit reads the HTML alone; the deployment is checked with the live site (Phase 2).
+ */
+const SERVER_RULES = new Set(['https-missing', 'hsts-missing', 'tls-expiring'])
+
+/** robots.txt rules are left out too: a rendered page has none to read. */
+const PAGE_RULES = RULES.filter(
+  (rule) => !rule.needs.includes('robots') && !SERVER_RULES.has(rule.id),
+)
 
 /**
  * Findings our pages have until the site build, each named with why; any other finding of our

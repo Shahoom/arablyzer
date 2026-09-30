@@ -32,6 +32,20 @@ function arabicPage(body: string, head = ''): string {
 <body style="margin: 0; font-family: serif">${body}</body></html>`
 }
 
+/** The text in windows-1256, which Node cannot encode: each byte by what it decodes to. */
+function windows1256(text: string): Buffer {
+  const decoder = new TextDecoder('windows-1256')
+  const bytes = new Map<string, number>()
+  for (let byte = 0; byte < 256; byte++) bytes.set(decoder.decode(Uint8Array.of(byte)), byte)
+  return Buffer.from(
+    Array.from(text, (character) => {
+      const byte = bytes.get(character)
+      if (byte === undefined) throw new Error(`${character} is not in windows-1256`)
+      return byte
+    }),
+  )
+}
+
 async function rendered(
   engine: Engine,
   routes: Parameters<typeof pages>[0],
@@ -359,6 +373,111 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
     expect(served).toBe(2)
     expect(outcome?.facts?.stylesheets).toEqual({ read: 0, unread: 1, physical: [] })
+  })
+
+  it('gzips the text that came uncompressed, and gives each drawn image its type and size', async () => {
+    const script = `window.catalog = ${JSON.stringify(Array.from({ length: 300 }, (_, i) => ({ id: i, name: 'منتج عربي' })))}`
+    const png = readFileSync(
+      fileURLToPath(
+        new URL(
+          '../../../rules/src/rules/image-format-legacy/fixtures/wrong/images/sadu.png',
+          import.meta.url,
+        ),
+      ),
+    )
+    const page = await facts(engine, {
+      '/': arabicPage(
+        '<p>نص عربي</p><img id="sadu" src="/sadu.png" width="128" height="128" alt="نقش">',
+        '<script src="/app.js"></script><link rel="stylesheet" href="/site.css">',
+      ),
+      '/app.js': [200, { 'content-type': 'text/javascript' }, script],
+      '/site.css': [
+        200,
+        { 'content-type': 'text/css', 'content-encoding': 'gzip' },
+        gzipSync('p { color: #222 }'),
+      ],
+      '/sadu.png': [200, { 'content-type': 'image/png' }, png],
+    })
+    const uncompressed = page.compression.uncompressed.map((text) => [
+      new URL(text.url).pathname,
+      text.type,
+      text.size,
+    ])
+    expect(uncompressed).toEqual(
+      expect.arrayContaining([
+        ['/', 'document', expect.any(Number)],
+        ['/app.js', 'script', Buffer.byteLength(script)],
+      ]),
+    )
+    expect(page.compression.uncompressed.every((text) => text.gzipSize < text.size)).toBe(true)
+    // The document, the script and the stylesheet, which came gzipped.
+    expect(page.compression.checked).toBe(3)
+    expect(page.images).toEqual([
+      expect.objectContaining({
+        selector: '#sadu',
+        naturalWidth: 128,
+        naturalHeight: 128,
+        type: 'image/png',
+        size: png.length,
+      }),
+    ])
+  })
+
+  it('reads text in a legacy encoding as it was sent, or leaves it out when the engine re-encoded it', async () => {
+    const stylesheet = windows1256('.عنوان { margin-left: 4px }')
+    const script = windows1256(`window.title = "${'عنوان عربي '.repeat(200)}"`)
+    const page = await facts(engine, {
+      '/': arabicPage(
+        '<p class="عنوان">نص عربي</p>',
+        '<link rel="stylesheet" href="/site.css"><script src="/app.js"></script>',
+      ),
+      '/site.css': [200, { 'content-type': 'text/css; charset=windows-1256' }, stylesheet],
+      '/app.js': [200, { 'content-type': 'text/javascript; charset=windows-1256' }, script],
+    })
+    // Chromium hands both re-encoded as UTF-8, Firefox as sent (measured 2026-09-27): the
+    // stylesheet reads the same either way, and the script is gzipped only as it was sent.
+    expect(page.stylesheets.physical[0]?.examples[0]?.selector).toBe('.عنوان')
+    const sent = page.compression.uncompressed.filter((text) => text.url.endsWith('/app.js'))
+    expect(sent).toEqual(
+      engine === 'firefox'
+        ? [expect.objectContaining({ mimeType: 'text/javascript', size: script.length })]
+        : [],
+    )
+  })
+
+  it('gives an image chosen by srcset or <picture> the size of its file, not divided by its density', async () => {
+    const png = readFileSync(
+      fileURLToPath(
+        new URL(
+          '../../../rules/src/rules/image-format-legacy/fixtures/wrong/images/sadu.png',
+          import.meta.url,
+        ),
+      ),
+    )
+    const image = [200, { 'content-type': 'image/png' }, png] as const
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<img id="x2" srcset="/x2.png 2x" alt="نقش">
+         <img id="w" srcset="/w.png 1024w" sizes="100vw" alt="نقش">
+         <picture><source srcset="/pic.png 3x"><img id="pic" src="/fallback.png" alt="نقش"></picture>`,
+      ),
+      '/x2.png': image,
+      '/w.png': image,
+      '/pic.png': image,
+      '/fallback.png': image,
+    })
+    // The file is 128 × 128; the elements themselves say 64, 48 and 42. Each is given the file's
+    // size, or left out when the engine does not have the file at hand: Firefox, in the render
+    // (measured 2026-09-27). Never the element's own size, which would shrink the estimate.
+    const sizes = page.images.map((drawn) => [
+      drawn.selector,
+      drawn.naturalWidth,
+      drawn.naturalHeight,
+    ])
+    expect(sizes.every(([, width, height]) => width === 128 && height === 128)).toBe(true)
+    if (engine === 'chromium') {
+      expect(sizes.map(([selector]) => selector)).toEqual(['#x2', '#w', '#pic'])
+    }
   })
 
   it('finds direction icons drawn as for left-to-right text in right-to-left text', async () => {

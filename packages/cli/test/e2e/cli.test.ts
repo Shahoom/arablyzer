@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { serveSite, sitePath } from '@arablyzer/fixtures'
+import { fixtureCaFile, serveSite, sitePath, type FixtureSite } from '@arablyzer/fixtures'
 import schema from '@arablyzer/report-schema/report.schema.json' with { type: 'json' }
 import Ajv2020 from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
@@ -51,6 +51,19 @@ const dirs = (root: string) =>
         .map((entry) => `${root}${entry.name}`)
     : []
 
+/**
+ * The site's address on 127.0.0.1: the CLI resolves names with real DNS, which never answers a
+ * fixture's .example name, and a fixture's certificate covers 127.0.0.1 too.
+ */
+function addressUrl(site: FixtureSite): string {
+  const url = new URL(site.url('/'))
+  url.hostname = '127.0.0.1'
+  return url.href
+}
+
+/** Sites served over HTTPS carry certificates from the test authority, which the CLI must trust. */
+const TRUST = { NODE_EXTRA_CA_CERTS: fixtureCaFile() }
+
 /** Every fixture site: the shared ones and every rule's wrong and right sites. */
 const SITES = [
   ...dirs(SHARED_SITES),
@@ -63,11 +76,11 @@ describe('arablyzer (built bundle)', () => {
   })
 
   it.each(SITES.map((dir) => [dir.split('/').slice(-3).join('/'), dir]))(
-    'scans %s over HTTP with --json into a schema-valid report',
+    'scans %s with --json into a schema-valid report',
     async (_name, dir) => {
       const site = await serveSite(dir)
       try {
-        const result = await arablyzer([site.url('/'), '--json', '--allow-private'])
+        const result = await arablyzer([addressUrl(site), '--json', '--allow-private'], TRUST)
         expect(result.stderr).toBe('')
         const report: unknown = JSON.parse(result.stdout)
         expect(validate(report), ajv.errorsText(validate.errors)).toBe(true)

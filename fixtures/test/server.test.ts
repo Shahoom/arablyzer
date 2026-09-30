@@ -155,3 +155,58 @@ describe('serveSite', () => {
     }
   })
 })
+
+describe('serveSite: compressed paths', () => {
+  let root = ''
+  let site: FixtureSite
+
+  beforeAll(async () => {
+    root = await mkdtemp(path.join(tmpdir(), 'arablyzer-gzip-'))
+    await writeFile(path.join(root, 'index.html'), `<p>${'نص عربي '.repeat(200)}</p>`)
+    await writeFile(path.join(root, 'fixture.json'), JSON.stringify({ '/': { compress: 'gzip' } }))
+    site = await serveSite(root)
+  })
+
+  afterAll(async () => {
+    await site.close()
+    await rm(root, { recursive: true, force: true })
+  })
+
+  function get(acceptEncoding: string | null): Promise<RawResponse> {
+    return new Promise((resolve, reject) => {
+      const target = new URL(site.url('/'))
+      const req = http.request(
+        {
+          host: target.hostname,
+          port: target.port,
+          path: '/',
+          agent: false,
+          headers: acceptEncoding === null ? {} : { 'accept-encoding': acceptEncoding },
+        },
+        (res) => {
+          const chunks: Buffer[] = []
+          res.on('data', (chunk: Buffer) => chunks.push(chunk))
+          res.on('end', () => {
+            const headers: [string, string][] = []
+            for (let i = 0; i + 1 < res.rawHeaders.length; i += 2) {
+              headers.push([(res.rawHeaders[i] ?? '').toLowerCase(), res.rawHeaders[i + 1] ?? ''])
+            }
+            resolve({ status: res.statusCode ?? 0, headers, body: Buffer.concat(chunks) })
+          })
+        },
+      )
+      req.on('error', reject)
+      req.end()
+    })
+  }
+
+  it('sends gzip to a client that accepts it, and the file as it is otherwise', async () => {
+    const gzipped = await get('gzip, deflate, br')
+    expect(gzipped.headers).toContainEqual(['content-encoding', 'gzip'])
+    expect(gzipped.body[0]).toBe(0x1f)
+    const plain = await get(null)
+    expect(plain.headers.some(([name]) => name === 'content-encoding')).toBe(false)
+    expect(plain.body.toString('utf8')).toContain('نص عربي')
+    expect(gzipped.body.length).toBeLessThan(plain.body.length)
+  })
+})

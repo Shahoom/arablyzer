@@ -131,11 +131,16 @@ describe('collectPage: walking headings and labels', () => {
   // searched their subtrees again for each label, five times the parse; the walks now add little.
   it('stays close to the parse time on nested labels', () => {
     const body = '<label>نص<div>'.repeat(4_000)
-    let start = performance.now()
-    parse(body)
-    const parsing = performance.now() - start
-    start = performance.now()
-    page(body)
-    expect(performance.now() - start).toBeLessThan(parsing * 2 + 50)
+    // The fastest of three runs each, so a pause from the machine's other work does not count.
+    const fastest = (run: () => unknown) =>
+      Math.min(
+        ...[0, 1, 2].map(() => {
+          const start = performance.now()
+          run()
+          return performance.now() - start
+        }),
+      )
+    const parsing = fastest(() => parse(body))
+    expect(fastest(() => page(body))).toBeLessThan(parsing * 2 + 50)
   }, 30_000)
 })

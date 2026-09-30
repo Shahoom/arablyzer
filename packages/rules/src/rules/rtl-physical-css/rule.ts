@@ -23,7 +23,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'rtl',
   severity: 'info',
-  needs: ['render'],
+  needs: ['render', 'files'],
   messages: ['physical'],
   appliesTo: (_page, evidence) =>
     renderedFacts(evidence).some((facts) => facts.dir === 'rtl' && facts.stylesheets.read > 0),

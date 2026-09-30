@@ -69,6 +69,10 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`price-decimals`](packages/rules/src/rules/price-decimals/copy.en.md) | Prices in Omani rials and Kuwaiti or Bahraini dinars have three decimals |
 | [`form-arabic-name-rejected`](packages/rules/src/rules/form-arabic-name-rejected/copy.en.md) | Name fields' `pattern` accepts Arabic names |
 | [`form-arabic-digits-rejected`](packages/rules/src/rules/form-arabic-digits-rejected/copy.en.md) | Number fields' `pattern` accepts Arabic-Indic digits |
+| [`https-missing`](packages/rules/src/rules/https-missing/copy.en.md) | A public page is served over HTTPS |
+| [`hsts-missing`](packages/rules/src/rules/hsts-missing/copy.en.md) | An HTTPS page sends `Strict-Transport-Security` |
+| [`mixed-content`](packages/rules/src/rules/mixed-content/copy.en.md) | An HTTPS page loads nothing over `http:`, and its forms send nothing there |
+| [`tls-expiring`](packages/rules/src/rules/tls-expiring/copy.en.md) | The TLS certificate is not about to expire |
 
 These read the page as a browser rendered it, so they run with `--render`:
 
@@ -90,6 +94,12 @@ These read the page as a browser rendered it, so they run with `--render`:
 | [`a11y-valid-lang`](packages/rules/src/rules/a11y-valid-lang/copy.en.md) | `lang` attributes inside the page name a language (axe-core) |
 | [`form-label-missing`](packages/rules/src/rules/form-label-missing/copy.en.md) | Form fields have a label (axe-core) |
 | [`form-phone-direction`](packages/rules/src/rules/form-phone-direction/copy.en.md) | Phone fields show numbers left to right |
+| [`text-compression-missing`](packages/rules/src/rules/text-compression-missing/copy.en.md) | Text is sent compressed where gzip would save much |
+| [`image-format-legacy`](packages/rules/src/rules/image-format-legacy/copy.en.md) | Images are not in older formats much larger than AVIF |
+
+## The score / الدرجة
+
+Each scan scores the page from 0 to 100, overall and by category: `100 × (1 − failed weight ÷ applicable weight)`, with weights by severity (critical 10, serious 5, moderate 3, minor 1, information 0). [`docs/methodology.md`](docs/methodology.md) explains it in Arabic and English, with a worked example for each weight, and the limits of each source.
 
 ## Tools / الأدوات
 

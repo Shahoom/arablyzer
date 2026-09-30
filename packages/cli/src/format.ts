@@ -56,6 +56,10 @@ export function formatReport(report: Report, lang: Lang, color: boolean): string
     .filter(([, count]) => count > 0)
     .map(([status, count]) => `${count} ${t.status[status]}`)
   if (tally.length > 0) lines.push(tally.join(' · '))
+  if (report.score.overall !== null) {
+    const { overall, partial, rules } = report.score
+    lines.push(paint(SGR.bold, t.score(overall, partial, rules.ran, rules.total)))
+  }
 
   const byRule = new Map<string, Finding[]>()
   for (const finding of report.findings) {
