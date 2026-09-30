@@ -8,6 +8,7 @@ type Message = 'none' | 'html'
  * protocol's example puts one, answers with an error status or with an HTML page (a site that
  * answers every address with a page). Google says most sites benefit from a sitemap, and finds a
  * well-linked site's pages without one: a minor fault. What a sitemap holds is sitemap-invalid's.
+ * Where /sitemap.xml could not be asked for, the rule could not check.
  */
 export const rule = defineRule({
   id: 'sitemap-missing',
@@ -17,10 +18,16 @@ export const rule = defineRule({
   needs: ['robots', 'sitemap'],
   messages: ['none', 'html'],
   appliesTo: (page) => isPublicUrl(page.url),
+  // Naming none, the site has /sitemap.xml to be looked at; where that could not be, the rule can
+  // say neither that it is missing nor that it is there. A sitemap robots.txt names answers it.
+  couldNotCheck: ({ sitemap }) =>
+    sitemap?.checked.some((check) => !check.named && check.outcome === 'failed') === true
+      ? 'sitemap-unchecked'
+      : null,
   detect: ({ sitemap }): DetectorFinding<Message>[] => {
     // The engine looks at /sitemap.xml only when robots.txt names no sitemap as a full URL.
     const probe = sitemap?.checked.find((check) => !check.named)
-    if (probe === undefined) return []
+    if (probe === undefined || probe.outcome === 'failed') return []
     if (probe.outcome === 'unavailable') {
       return [{ message: 'none', url: probe.url, values: { url: probe.url, status: probe.status } }]
     }

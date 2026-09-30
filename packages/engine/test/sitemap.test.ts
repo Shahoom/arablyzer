@@ -29,6 +29,13 @@ let seen: SitemapFacts | undefined
 const sitemapRule = testRule({
   id: 'sitemap-rule',
   needs: ['robots', 'sitemap'],
+  // As a rule that needs each of them would: with none read, it has nothing to judge.
+  couldNotCheck: ({ sitemap }) =>
+    sitemap !== undefined &&
+    sitemap.checked.length > 0 &&
+    sitemap.checked.every((check) => check.outcome === 'failed')
+      ? 'sitemap-unchecked'
+      : null,
   detect: ({ sitemap }) => {
     seen = sitemap
     return []
@@ -233,6 +240,117 @@ describe('scan: sitemaps', () => {
     const report = await scanned(local, { resolver, timeoutMs: 300 })
     expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
     expect(seen).toBeUndefined()
+  })
+})
+
+// M2.3c review: one sitemap that could not be fetched threw away the verdicts on all the others,
+// and on the Sitemap lines that need no fetch. Each is an outcome of its own now, with its reason.
+describe('scan: sitemaps that could not all be read', () => {
+  const RULES_HERE = ['sitemap-invalid', 'sitemap-missing']
+  /** A name whose address is a private one, which the policy refuses without a request. */
+  const BLOCKED = 'http://blocked.example/s.xml'
+  const blocked =
+    (local: TempSite): Resolver =>
+    (hostname, signal) =>
+      hostname === 'blocked.example'
+        ? Promise.resolve([{ address: '10.0.0.7', family: 4 }])
+        : resolverFor(local)(hostname, signal)
+
+  async function realRules(local: TempSite) {
+    seen = undefined
+    const report = await scan(local.url('/'), {
+      ruleIds: RULES_HERE,
+      policy: policyFor(local),
+      resolver: blocked(local),
+    })
+    expect(schemaErrors(report)).toBe('')
+    return report
+  }
+  const statuses = (report: Awaited<ReturnType<typeof realRules>>) =>
+    report.rules.map((rule) => [rule.id, rule.status, rule.error])
+
+  it('judges the sitemaps it read, and says the one it could not read was not checked', async () => {
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': `Sitemap: ${BLOCKED}\nSitemap: http://shop.example/good.xml\nSitemap: http://shop.example/wrong.xml\n`,
+      'good.xml': URLSET,
+      'wrong.xml': '<urlset><url><loc>http://shop.example/</loc></url></urlset>',
+    })
+    const report = await realRules(local)
+    expect(statuses(report)).toEqual([
+      ['sitemap-invalid', 'fail', undefined],
+      ['sitemap-missing', 'pass', undefined],
+    ])
+    expect(report.findings.map((finding) => finding.message.en)).toEqual([
+      `The <urlset> element of http://shop.example:${local.port.toString()}/wrong.xml is not in the sitemaps protocol's namespace, http://www.sitemaps.org/schemas/sitemap/0.9.`,
+    ])
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['sitemap-unchecked'])
+    expect(local.requests).toEqual(['GET /robots.txt', 'GET /', 'GET /good.xml', 'GET /wrong.xml'])
+  })
+
+  it('reports an error only when none of the sitemaps could be read', async () => {
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': `Sitemap: ${BLOCKED}\nSitemap: http://blocked.example/t.xml\n`,
+    })
+    const report = await realRules(local)
+    // What robots.txt names answers sitemap-missing; sitemap-invalid has nothing it could judge.
+    expect(statuses(report)).toEqual([
+      ['sitemap-invalid', 'error', 'sitemap-unchecked'],
+      ['sitemap-missing', 'pass', undefined],
+    ])
+    expect(report.scan.status).toBe('partial')
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['sitemap-unchecked'])
+  })
+
+  it('still reports a Sitemap line that is not a URL, though the sitemap it names could not be read', async () => {
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': `Sitemap: ${BLOCKED}\nSitemap: /relative.xml\n`,
+    })
+    const report = await realRules(local)
+    expect(statuses(report)).toEqual([
+      ['sitemap-invalid', 'fail', undefined],
+      ['sitemap-missing', 'pass', undefined],
+    ])
+    expect(report.findings.map((finding) => [finding.ruleId, finding.evidence.location])).toEqual([
+      ['sitemap-invalid', { line: 2 }],
+    ])
+    expect(report.scan.notices.map((item) => item.code)).toEqual(['sitemap-unchecked'])
+  })
+
+  it('cannot say a site has no sitemap when /sitemap.xml could not be read', async () => {
+    const local = await site(
+      { 'site.json': SHOP, 'index.html': PAGE },
+      { '/sitemap.xml': { status: 503, body: 'busy' } },
+    )
+    const report = await realRules(local)
+    expect(statuses(report)).toEqual([
+      ['sitemap-invalid', 'not-applicable', undefined],
+      ['sitemap-missing', 'error', 'sitemap-unchecked'],
+    ])
+  })
+
+  it('reads a gzip sitemap that will not decompress as the site’s fault: a compression error', async () => {
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': 'Sitemap: http://shop.example/broken.xml.gz\n',
+      // The gzip signature, then bytes that are not a stream.
+      'broken.xml.gz': Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0xff, 0xfe, 0xfd, 0xfc, 0xfb, 0xfa]),
+    })
+    const report = await realRules(local)
+    expect(statuses(report)).toEqual([
+      ['sitemap-invalid', 'fail', undefined],
+      ['sitemap-missing', 'pass', undefined],
+    ])
+    expect(report.findings.map((finding) => finding.message.en)).toEqual([
+      `http://shop.example:${local.port.toString()}/broken.xml.gz is a gzip file that cannot be decompressed.`,
+    ])
+    expect(report.scan.notices).toEqual([])
   })
 })
 

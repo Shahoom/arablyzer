@@ -56,8 +56,9 @@ export interface Evidence {
   /** Present when the rule needs `crux` and CrUX answered; never `failed` (an error instead). */
   readonly crux?: CruxFacts
   /**
-   * Present when the rule needs `sitemap` and each sitemap the scan asked for answered; when one
-   * could not be read, the engine reports an error instead.
+   * Present when the rule needs `sitemap` and robots.txt could be read, so the scan knew which
+   * sitemaps to ask for. One it could not check is a `failed` check in it: a rule judges the rest,
+   * and says it could not check when the rest leaves it nothing (`couldNotCheck`).
    */
   readonly sitemap?: SitemapFacts
 }
@@ -110,6 +111,14 @@ export interface Rule<M extends string = string> {
    * reports and only counts the rest (M0.2 review: a hostile page cannot exhaust memory).
    */
   readonly detect: (evidence: Evidence) => Iterable<DetectorFinding<M>>
+  /**
+   * For a rule whose evidence can be there in part, such as the sitemaps, some of which the scan
+   * could not check: the id of the error the report gives the rule when what is there leaves it
+   * nothing to judge, and null when it can judge. Called after `appliesTo`, before `detect`; a rule
+   * without it never has this error (M2.3c review: one sitemap that could not be read took every
+   * verdict with it).
+   */
+  readonly couldNotCheck?: (evidence: Evidence) => string | null
   readonly copy: { readonly ar: RuleCopy; readonly en: RuleCopy }
 }
 

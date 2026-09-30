@@ -116,8 +116,8 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     en: 'robots.txt is larger than 500 KiB, so only the first 500 KiB were read, as Google does.',
   },
   'sitemap-unchecked': {
-    ar: 'تعذّرت قراءة خرائط الموقع كلها، فلم تُطبَّق القواعد التي تفحصها.',
-    en: 'The site’s sitemaps could not all be read, so the rules that check them did not run.',
+    ar: 'تعذّرت قراءة بعض خرائط الموقع، فحكمت القواعد التي تفحصها على ما قُرئ منها، ولم تُطبَّق إن لم تُقرأ أي خريطة.',
+    en: 'Some of the site’s sitemaps could not be read, so the rules that check them judged the ones that could be, and did not run when none could.',
   },
   // M2.4 plan §2: the site's own words, the rule and where it is, so its owner can find it.
   'opted-out': {

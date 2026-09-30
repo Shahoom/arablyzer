@@ -76,6 +76,7 @@ export interface TestRuleOptions {
   readonly severity?: Rule['severity']
   readonly manualCheck?: boolean
   readonly appliesTo?: (page: PageFacts, evidence?: Evidence) => boolean
+  readonly couldNotCheck?: (evidence: Evidence) => string | null
   readonly detect: (evidence: Evidence) => Iterable<DetectorFinding<'found'>>
 }
 
@@ -93,6 +94,7 @@ export function testRule(options: TestRuleOptions): Rule<'found'> {
     ...(options.renderEngines === undefined ? {} : { renderEngines: options.renderEngines }),
     ...(options.manualCheck === undefined ? {} : { manualCheck: options.manualCheck }),
     appliesTo: options.appliesTo ?? (() => true),
+    ...(options.couldNotCheck === undefined ? {} : { couldNotCheck: options.couldNotCheck }),
     detect: options.detect,
     copy: {
       ar: copy(`قاعدة ${id}`, { found: 'وجدنا {what}' }),

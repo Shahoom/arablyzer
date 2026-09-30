@@ -404,6 +404,44 @@ describe('sitemapTargets', () => {
   })
 })
 
+describe('collectSitemap: what could not be checked', () => {
+  const base = { url: 'https://shop.example/sitemap.xml', named: true, truncated: false }
+
+  it('keeps as failed a sitemap the site turns the scan away from, or cannot answer for', () => {
+    for (const status of [401, 403, 407, 429, 500, 502, 503]) {
+      expect(collectSitemap({ ...base, status, body: utf8('no') }), String(status)).toEqual({
+        outcome: 'failed',
+        url: base.url,
+        named: true,
+        code: 'refused',
+        status,
+      })
+    }
+  })
+
+  it('keeps as unavailable what the site says is not there, or cannot be had', () => {
+    for (const status of [400, 404, 410, 451]) {
+      expect(collectSitemap({ ...base, status, body: utf8('no') }), String(status)).toEqual({
+        outcome: 'unavailable',
+        url: base.url,
+        named: true,
+        status,
+      })
+    }
+  })
+
+  it('reads a gzip file that will not decompress as the site’s own fault', () => {
+    expect(collectSitemap({ ...base, status: 200, body: null })).toEqual({
+      outcome: 'fetched',
+      url: base.url,
+      named: true,
+      status: 200,
+      content: { kind: 'compression' },
+      truncated: false,
+    })
+  })
+})
+
 describe('collectSitemap', () => {
   it('reads a 2xx answer, and keeps any other status', () => {
     const base = { url: 'https://shop.example/sitemap.xml', named: true, truncated: false }

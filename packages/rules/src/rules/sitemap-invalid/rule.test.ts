@@ -15,7 +15,8 @@ const robots = {
   truncated: false,
 } as const
 
-const fetched = (content: SitemapContent, check: Partial<SitemapCheck> = {}): SitemapCheck => ({
+type Fetched = Extract<SitemapCheck, { outcome: 'fetched' }>
+const fetched = (content: SitemapContent, check: Partial<Fetched> = {}): SitemapCheck => ({
   outcome: 'fetched',
   url: SITEMAP,
   named: true,
@@ -147,6 +148,77 @@ describe('sitemap-invalid', () => {
       { kind: 'sitemap', format: 'urlset', entries: null },
     ] as const
     for (const content of sitemaps) expect(findings(named(fetched(content)))).toEqual([])
+  })
+
+  it('fires on a gzip sitemap that will not decompress: Search Console’s compression error', () => {
+    expect(findings(named(fetched({ kind: 'compression' })))).toEqual([
+      { message: 'compression', url: SITEMAP, values: { url: SITEMAP }, key: SITEMAP },
+    ])
+  })
+
+  // M2.3c review: one sitemap that could not be checked must not take the others' verdicts with it.
+  describe('when a sitemap could not be checked', () => {
+    const failed = (url = SITEMAP, named = true): SitemapCheck => ({
+      outcome: 'failed',
+      url,
+      named,
+      code: 'timeout',
+    })
+    const other = `${ORIGIN}/sitemap-ar.xml`
+    const couldNotCheck = (sitemap: SitemapFacts) => rule.couldNotCheck?.(evidence(sitemap)) ?? null
+
+    it('judges the sitemaps that were read, and says nothing of the one that was not', () => {
+      const sitemap = named(
+        failed(),
+        fetched({ kind: 'root', root: 'a', namespace: '' }, { url: other }),
+      )
+      expect(findings(sitemap).map((finding) => finding.message)).toEqual(['root'])
+      expect(couldNotCheck(sitemap)).toBeNull()
+      const fine = named(
+        failed(),
+        fetched({ kind: 'sitemap', format: 'urlset', entries: 2 }, { url: other }),
+      )
+      expect(findings(fine)).toEqual([])
+      expect(couldNotCheck(fine)).toBeNull()
+    })
+
+    it('could not check when none of the sitemaps robots.txt names could be read', () => {
+      const sitemap = named(failed(), failed(other))
+      expect(findings(sitemap)).toEqual([])
+      expect(couldNotCheck(sitemap)).toBe('sitemap-unchecked')
+    })
+
+    it('still judges a sitemap that answered an error status, which is a verdict', () => {
+      const sitemap = named(failed(), {
+        outcome: 'unavailable',
+        url: other,
+        named: true,
+        status: 404,
+      })
+      expect(findings(sitemap).map((finding) => finding.message)).toEqual(['unavailable'])
+      expect(couldNotCheck(sitemap)).toBeNull()
+    })
+
+    it('still reports a Sitemap line that is not a URL: it needs no fetch', () => {
+      const sitemap: SitemapFacts = {
+        named: [
+          { value: SITEMAP, line: 1 },
+          { value: '/relative.xml', line: 2 },
+        ],
+        checked: [failed()],
+        unchecked: 0,
+      }
+      expect(findings(sitemap).map((finding) => [finding.message, finding.location])).toEqual([
+        ['not-url', { line: 2 }],
+      ])
+      expect(couldNotCheck(sitemap)).toBeNull()
+    })
+
+    it('leaves /sitemap.xml unchecked to sitemap-missing, as it leaves it without a sitemap', () => {
+      const sitemap: SitemapFacts = { named: [], checked: [failed(SITEMAP, false)], unchecked: 0 }
+      expect(applies(rule, evidence(sitemap))).toBe(false)
+      expect(couldNotCheck(sitemap)).toBeNull()
+    })
   })
 
   it('applies to public sites with a sitemap to check', () => {

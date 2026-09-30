@@ -34,12 +34,17 @@ The <{root}> element of {url} is not in the sitemaps protocol's namespace, http:
 
 {url} lists no URL.
 
+### compression
+
+{url} is a gzip file that cannot be decompressed.
+
 ## Why it matters
 
 - Search engines read a sitemap to find a site's pages. When Google cannot fetch a sitemap or parse it, it tries again for a few days and then stops; when it can fetch one with errors, it queues for crawling only the URLs it could parse without errors.
 - A Sitemap line of robots.txt must give a full URL, including its protocol and host, as Google's robots.txt specification says: a path alone, such as `/sitemap.xml`, is not one.
 - Google reads sitemaps in the protocol's XML, as RSS 2.0 or Atom 1.0 feeds, and as text with one URL on each line. An XML sitemap's root element is `urlset`, and a sitemap index's `sitemapindex`, both in the namespace `http://www.sitemaps.org/schemas/sitemap/0.9`, written exactly: Search Console reports another as an incorrect namespace.
 - As in all XML, characters such as `&` in a URL must be escaped. Google says an unescaped character in a URL is often what stops it from parsing a sitemap.
+- A sitemap may be compressed with gzip, as a file such as `sitemap.xml.gz`, and must then decompress as a whole. Search Console reports one that does not as a compression error.
 
 ## How to fix
 
@@ -63,6 +68,7 @@ Sitemap: https://www.example.com/sitemap.xml
 
 - The other characters XML escapes are `'` as `&apos;`, `"` as `&quot;`, `>` as `&gt;` and `<` as `&lt;`.
 - A text sitemap has one full URL on each line, and nothing else.
+- Compress a sitemap as a whole, as `sitemap.xml.gz`, and serve that file as it is. If `gunzip sitemap.xml.gz` does not give the sitemap back on your own machine, it will not for a search engine: write it again.
 
 ## How we detect
 
@@ -71,8 +77,9 @@ Sitemap: https://www.example.com/sitemap.xml
 3. A sitemap robots.txt names fails when it answers with an error status, such as `404` or `410`, or an HTML page. When robots.txt names none, an error or an HTML page at `/sitemap.xml` means there is no sitemap there, which the rule `sitemap-missing` reports; a sitemap there is judged as the others are.
 4. XML must be well-formed, with XML's own entities alone and one root element, and its root must be `urlset` or `sitemapindex` in the protocol's namespace, or an RSS 2.0 or Atom 1.0 feed. A byte order mark and white space before the XML are allowed, as Search Console allows them. Anything that is not XML is read as a text sitemap: each line that is not blank must be a full URL.
 5. A `urlset`, a `sitemapindex` or a text sitemap that lists nothing fails too. A sitemap past `25 MB` is judged in its first `25 MB`; the protocol allows `50 MB`.
-6. We do not check the URLs a sitemap lists, nor its dates.
-7. When a sitemap cannot be read for a reason other than the site's answer, such as a failed connection, an address the scan does not reach, or a robots.txt that asks `ArablyzerBot` not to fetch it, the rule says it could not check, and does not fail. So it does when the site turns the scan away or cannot answer, with `401`, `403`, `407`, `429` or a server error (`5xx`), as RFC 9309 has a crawler treat a robots.txt that answers so: the site has not said the sitemap is missing.
+6. A sitemap whose file is gzipped, as its first bytes say whatever its name, is decompressed. A file that starts as gzip and will not decompress fails: it is Search Console's compression error.
+7. We do not check the URLs a sitemap lists, nor its dates.
+8. When a sitemap cannot be read for a reason other than the site's answer, such as a failed connection, an address the scan does not reach, or a robots.txt that asks `ArablyzerBot` not to fetch it, the rule says it could not check, and does not fail. So it does when the site turns the scan away or cannot answer, with `401`, `403`, `407`, `429` or a server error (`5xx`), as RFC 9309 has a crawler treat a robots.txt that answers so: the site has not said the sitemap is missing.
 
 ## References
 

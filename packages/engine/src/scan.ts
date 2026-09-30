@@ -404,6 +404,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : undefined
   const sitemap =
     sitemapRead !== undefined && 'facts' in sitemapRead ? sitemapRead.facts : undefined
+  // Some sitemap could not be checked, or robots.txt could not be read, so none is known.
+  const sitemapUnread =
+    sitemapRead !== undefined &&
+    (sitemap === undefined || sitemap.checked.some((check) => check.outcome === 'failed'))
   // Real-user data, when a rule the scan runs reads it: the page's URL goes to Google with the
   // key. A scan none of whose rules reads it (a tool's, M2.2) asks nothing and says nothing of it.
   const readsCrux = rules.some((rule) => rule.needs.includes('crux'))
@@ -467,7 +471,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(crux?.outcome === 'failed'
       ? [notice(crux.refused === true ? 'crux-refused' : 'crux-failed')]
       : []),
-    ...(sitemapRead !== undefined && 'failed' in sitemapRead ? [notice('sitemap-unchecked')] : []),
+    ...(sitemapUnread ? [notice('sitemap-unchecked')] : []),
     ...(labWanted !== undefined && labRequest === undefined ? [notice('lab-challenged')] : []),
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
     ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
@@ -480,7 +484,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     crux,
     redirects: target.http.redirects,
     sitemap,
-    sitemapUnchecked: sitemapRead !== undefined && 'failed' in sitemapRead,
+    sitemapUnknown: sitemapRead !== undefined && 'failed' in sitemapRead,
   })
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
@@ -727,8 +731,12 @@ interface Collected {
   readonly crux?: CruxFacts | undefined
   readonly redirects?: readonly Redirect[] | undefined
   readonly sitemap?: SitemapFacts | undefined
-  /** The sitemaps were asked for and could not all be read: their rules could not check. */
-  readonly sitemapUnchecked?: boolean
+  /**
+   * The sitemaps were asked for and robots.txt could not be read, so which they are is not known:
+   * the rules that read them could not check. A sitemap that could not be checked is one `failed`
+   * check in `sitemap` instead, for the rules to judge the rest.
+   */
+  readonly sitemapUnknown?: boolean
 }
 
 function evaluateRules(rules: readonly Rule[], page: PageFacts, collected: Collected): Evaluation {
@@ -828,7 +836,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   if (rule.needs.includes('robots') && (robots === undefined || robots.outcome === 'failed')) {
     return { status: 'error', error: 'robots-unchecked', findings: [] }
   }
-  if (rule.needs.includes('sitemap') && collected.sitemapUnchecked === true) {
+  if (rule.needs.includes('sitemap') && collected.sitemapUnknown === true) {
     return { status: 'error', error: 'sitemap-unchecked', findings: [] }
   }
   // Only for the rules that read them, like the redirects; not asked for, on a local site or
@@ -869,6 +877,10 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   }
   try {
     if (!rule.appliesTo(page, evidence)) return { status: 'not-applicable', findings: [] }
+    // Evidence there in part, such as the sitemaps some of which could not be read, may leave the
+    // rule nothing to judge; then it is an error, and not a pass.
+    const couldNotCheck = rule.couldNotCheck?.(evidence) ?? null
+    if (couldNotCheck !== null) return { status: 'error', error: couldNotCheck, findings: [] }
     const detected = rule.detect(evidence)
     const { kept, total } = firstByPosition(detected, MAX_FINDINGS_PER_RULE)
     const status = rule.manualCheck === true ? 'needs-review' : total > 0 ? 'fail' : 'pass'

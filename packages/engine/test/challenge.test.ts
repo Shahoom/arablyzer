@@ -180,6 +180,10 @@ describe('scan: a bot challenge in place of the page', () => {
     const sitemapRule = testRule({
       id: 'sitemap-rule',
       needs: ['robots', 'sitemap'],
+      couldNotCheck: ({ sitemap }) =>
+        sitemap?.checked.every((check) => check.outcome === 'failed') === true
+          ? 'sitemap-unchecked'
+          : null,
       detect: () => [],
     })
     const report = await scan(local.url('/'), {

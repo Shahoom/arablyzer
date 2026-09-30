@@ -74,6 +74,25 @@ describe('sitemap-missing', () => {
     }
   })
 
+  // M2.3c review: where the one place left to look could not be looked at, the site is not
+  // called sitemap-less, and not called fine either.
+  it('could not check when robots.txt names none and /sitemap.xml could not be read', () => {
+    const failed: SitemapCheck = { outcome: 'failed', url: SITEMAP, named: false, code: 'timeout' }
+    const unread: SitemapFacts = { named: [], checked: [failed], unchecked: 0 }
+    expect(detectAll(rule, evidence(unread))).toEqual([])
+    expect(rule.couldNotCheck?.(evidence(unread))).toBe('sitemap-unchecked')
+    // A sitemap robots.txt names answers the question, whether or not it could be read.
+    const named: SitemapFacts = {
+      named: [{ value: 'https://shop.example/s.xml', line: 1 }],
+      checked: [{ ...failed, url: 'https://shop.example/s.xml', named: true }],
+      unchecked: 0,
+    }
+    expect(rule.couldNotCheck?.(evidence(named))).toBeNull()
+    expect(
+      rule.couldNotCheck?.(evidence({ named: [], checked: [probe()], unchecked: 0 })),
+    ).toBeNull()
+  })
+
   it('applies to public sites alone, which search engines reach', () => {
     const local = htmlPage('<p>قهوة عربية</p>', { url: 'http://localhost:4321/' })
     expect(applies(rule, { page: local })).toBe(false)

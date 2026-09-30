@@ -77,6 +77,7 @@ export {
 export {
   ATOM_NAMESPACE,
   collectSitemap,
+  isSitemapRefusal,
   readSitemap,
   SITEMAP_LIMIT,
   SITEMAP_MAX_ATTRIBUTES,

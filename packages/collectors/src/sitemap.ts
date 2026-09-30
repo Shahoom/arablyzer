@@ -54,8 +54,16 @@ export type SitemapContent =
     }
   /** Not XML, and this line is not a full URL, as each line of a text sitemap must be. */
   | { readonly kind: 'text'; readonly line: number }
+  /**
+   * A gzip file (`sitemap.xml.gz`) that will not decompress: the site's own fault, which Search
+   * Console reports as a compression error.
+   */
+  | { readonly kind: 'compression' }
 
-/** A sitemap the scan fetched: the URL it asked for, and whether robots.txt names it. */
+/**
+ * A sitemap the scan asked for: the URL, whether robots.txt names it, and what came of it (M2.3c).
+ * Each is an outcome of its own, so one that could not be checked leaves the others' verdicts.
+ */
 export type SitemapCheck =
   /** It answered 2xx: what it holds, and whether only its first part was read. */
   | {
@@ -66,12 +74,25 @@ export type SitemapCheck =
       readonly content: SitemapContent
       readonly truncated: boolean
     }
-  /** It answered with another status, after any redirects. */
+  /** The site says it is not there, or cannot be had: an error status, after any redirects. */
   | {
       readonly outcome: 'unavailable'
       readonly url: string
       readonly named: boolean
       readonly status: number
+    }
+  /**
+   * Arablyzer could not check it, which says nothing of the sitemap. `code`: an @arablyzer/egress
+   * error code (no answer in time, an address the scan does not reach, ...), or `opted-out` (the
+   * robots.txt of the sitemap's site keeps the bot from it), `bot-challenge`, or `refused` (the
+   * site turns the scan away, or cannot answer: see isSitemapRefusal), with `status`.
+   */
+  | {
+      readonly outcome: 'failed'
+      readonly url: string
+      readonly named: boolean
+      readonly code: string
+      readonly status?: number
     }
 
 /**
@@ -81,7 +102,10 @@ export type SitemapCheck =
 export interface SitemapFacts {
   /** Every Sitemap line of robots.txt, in order, a full URL or not. */
   readonly named: readonly RobotsSitemap[]
-  /** What the scan fetched, in order: the first sitemaps named as full URLs, or /sitemap.xml. */
+  /**
+   * What the scan asked for, in order: the first sitemaps named as full URLs, or /sitemap.xml.
+   * Never empty, but for a robots.txt that could not be read, when the facts are not made.
+   */
   readonly checked: readonly SitemapCheck[]
   /** Sitemaps named as full URLs past the scan's limit, which it did not fetch. */
   readonly unchecked: number
@@ -91,10 +115,24 @@ export interface SitemapInput {
   readonly url: string
   readonly named: boolean
   readonly status: number
-  /** The body, decompressed when the file itself was gzipped. */
-  readonly body: Uint8Array
+  /**
+   * The body, decompressed when the file itself was gzipped; null for a gzip file that would not
+   * decompress.
+   */
+  readonly body: Uint8Array | null
   /** Only its first part was read. */
   readonly truncated: boolean
+}
+
+/**
+ * Whether a status is a site turning the scan away, or unable to answer, rather than saying the
+ * file is not there: 401, 403, 407 and 429, which the report page calls refusals (and a scan of
+ * a page they answer is shown as blocked), and a server error, which RFC 9309 §2.3.1.4 has a
+ * crawler treat as an unreachable robots.txt, not a missing one. A sitemap that answers so has not
+ * been checked; one that answers 404 or 410, or with an HTML page, has been.
+ */
+export function isSitemapRefusal(status: number): boolean {
+  return status === 401 || status === 403 || status === 407 || status === 429 || status >= 500
 }
 
 /**
@@ -132,7 +170,18 @@ export function sitemapTargets(
 
 export function collectSitemap(input: SitemapInput): SitemapCheck {
   const { url, named, status } = input
+  if (isSitemapRefusal(status)) return { outcome: 'failed', url, named, code: 'refused', status }
   if (status < 200 || status > 299) return { outcome: 'unavailable', url, named, status }
+  if (input.body === null) {
+    return {
+      outcome: 'fetched',
+      url,
+      named,
+      status,
+      content: { kind: 'compression' },
+      truncated: false,
+    }
+  }
   return {
     outcome: 'fetched',
     url,

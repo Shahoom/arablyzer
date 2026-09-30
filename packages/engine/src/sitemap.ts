@@ -27,18 +27,10 @@ export const SITEMAP_MAX_BYTES = DEFAULT_MAX_BYTES
 const SITEMAP_ACCEPT = 'application/xml,text/xml;q=0.9,*/*;q=0.8'
 
 /**
- * Whether a status is a site turning the scan away, or unable to answer, rather than saying the
- * file is not there: 401, 403, 407 and 429, which the report page calls refusals (and a scan of
- * a page they answer is shown as blocked), and a server error, which RFC 9309 §2.3.1.4 has a
- * crawler treat as an unreachable robots.txt, not a missing one. A sitemap that answers so has not
- * been checked; one that answers 404 or 410, or an HTML page, has been.
+ * The sitemaps as a scan read them; or that robots.txt could not be read, which leaves it unknown
+ * which sitemaps the site names, and the rules that read them nothing to judge.
  */
-export function isRefusal(status: number): boolean {
-  return status === 401 || status === 403 || status === 407 || status === 429 || status >= 500
-}
-
-/** The sitemaps as a scan read them, or why they could not all be read. */
-export type SitemapRead = { readonly facts: SitemapFacts } | { readonly failed: string }
+export type SitemapRead = { readonly facts: SitemapFacts } | { readonly failed: 'robots' }
 
 export interface SitemapContext {
   /** The page's fetch options, with the lockdown its chain ended with. */
@@ -56,9 +48,11 @@ export interface SitemapContext {
  * The site's sitemaps (M2.3c): the first SITEMAP_LIMIT that robots.txt names as full URLs, or
  * /sitemap.xml at the page's origin when it names none; nothing else, the sitemaps an index lists
  * included. Each goes through the egress package, within SITEMAP_TIMEOUT_MS for them all, and is
- * read up to SITEMAP_MAX_BYTES, decompressed when the file is gzipped. One that could not be
- * read, for a reason that is not the site's answer (a bot challenge, or a status by which it turns
- * the scan away: see isRefusal), leaves the rules nothing to judge.
+ * read up to SITEMAP_MAX_BYTES, decompressed when the file is gzipped. Each has an outcome of its
+ * own: one that could not be checked, for a reason that is not the site's answer (no answer in
+ * time, an address the policy refuses, a robots.txt that keeps the bot from it, a bot challenge,
+ * or a status by which the site turns the scan away), is a `failed` check with its reason, and the
+ * rules judge the others.
  */
 export async function fetchSitemaps(
   robots: RobotsFacts,
@@ -73,11 +67,7 @@ export async function fetchSitemaps(
   const signal =
     context.base.signal === undefined ? budget : AbortSignal.any([budget, context.base.signal])
   const checked: SitemapCheck[] = []
-  for (const target of fetch) {
-    const check = await fetchSitemap(target, signal, context)
-    if ('failed' in check) return check
-    checked.push(check)
-  }
+  for (const target of fetch) checked.push(await fetchSitemap(target, signal, context))
   return { facts: { named, checked, unchecked } }
 }
 
@@ -85,12 +75,12 @@ async function fetchSitemap(
   target: { readonly url: string; readonly named: boolean },
   signal: AbortSignal,
   context: SitemapContext,
-): Promise<SitemapCheck | { readonly failed: string }> {
+): Promise<SitemapCheck> {
+  const { url, named } = target
+  const failed = (code: string): SitemapCheck => ({ outcome: 'failed', url, named, code })
   // A site that keeps ArablyzerBot from its sitemap is not asked for it.
-  if (!(await context.allowed(target.url, context.privateAccess, signal))) {
-    return { failed: 'opted-out' }
-  }
-  const fetched = await safeFetch(target.url, {
+  if (!(await context.allowed(url, context.privateAccess, signal))) return failed('opted-out')
+  const fetched = await safeFetch(url, {
     ...context.base,
     signal,
     timeoutMs: Math.min(context.base.timeoutMs ?? SITEMAP_TIMEOUT_MS, SITEMAP_TIMEOUT_MS),
@@ -102,20 +92,23 @@ async function fetchSitemap(
   })
   const response = fetched.response
   // No answer, or a redirect the next site's robots.txt declined.
-  if (response === null) return { failed: fetched.error?.code ?? 'opted-out' }
+  if (response === null) return failed(fetched.error?.code ?? 'opted-out')
   // A bot challenge in place of the sitemap says nothing of it; the scan never gets past one.
-  if (challengeOf(response.headers) !== null) return { failed: 'bot-challenge' }
-  if (isRefusal(response.status)) return { failed: 'refused' }
-  const read = isGzip(response.body)
-    ? await gunzip(response.body, response.truncated)
-    : { body: response.body, truncated: response.truncated }
-  if (read === null) return { failed: 'decode-failed' }
+  if (challengeOf(response.headers) !== null) return failed('bot-challenge')
+  const { status } = response
+  // A file that answered with an error has no sitemap to decompress.
+  const succeeded = status >= 200 && status <= 299
+  const read =
+    succeeded && isGzip(response.body)
+      ? await gunzip(response.body, response.truncated)
+      : { body: response.body, truncated: response.truncated }
+  // A gzip file that will not decompress is the site's fault: Search Console's compression error.
   return collectSitemap({
-    url: target.url,
-    named: target.named,
-    status: response.status,
-    body: read.body,
-    truncated: read.truncated,
+    url,
+    named,
+    status,
+    body: read === null ? null : read.body,
+    truncated: read === null ? false : read.truncated,
   })
 }
 
