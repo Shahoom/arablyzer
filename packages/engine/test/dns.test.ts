@@ -160,6 +160,13 @@ describe('lookupDns', () => {
       },
       notice: 'dns-unchecked',
     })
+    // A resolver that throws before it returns a promise gets no answer either.
+    const throwing: TxtResolver = () => {
+      throw new Error('a resolver that throws at once')
+    }
+    expect((await lookupDns('https://shop.example/', [spfLike], context(throwing)))?.notice).toBe(
+      'dns-unchecked',
+    )
     // A resolver that answers only when its signal ends the lookup, as c-ares's does.
     const slow: TxtResolver = (_name, signal) =>
       new Promise<TxtAnswer>((resolve) => {

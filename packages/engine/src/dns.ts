@@ -94,8 +94,11 @@ export async function lookupDns(
   const { signal, stop } = budget(DNS_TIMEOUT_MS, context.signal)
   let answers: TxtAnswer[]
   try {
+    // A resolver never throws, but one that does gets no answer either: async catches the throw.
     answers = await Promise.all(
-      names.map((name) => context.txt(name, signal).catch((): TxtAnswer => NO_ANSWER)),
+      names.map((name) =>
+        (async () => context.txt(name, signal))().catch((): TxtAnswer => NO_ANSWER),
+      ),
     )
   } finally {
     stop()
