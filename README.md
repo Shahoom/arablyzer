@@ -50,7 +50,7 @@ Pages are built for `https://arablyzer.example` until the domain is chosen; `ARA
 
 ### The API and the worker / الخادم والعامل
 
-`apps/api` takes a scan (`POST /api/scans`), streams its steps (`GET /api/scans/:id/events`) and serves its report (`GET /api/reports/:id`, never indexed); `apps/worker` takes each queued scan and has `apps/scanner`, the engine and its browsers, run it. `packages/store` keeps scans in PostgreSQL and the queue, the events and the limits in Valkey, with in-memory versions for tests and development.
+`apps/api` takes a scan (`POST /api/scans`), streams its steps (`GET /api/scans/:id/events`) and serves its report (`GET /api/reports/:id`, never indexed); `apps/worker` takes each queued scan and has `apps/scanner`, the engine and its browsers, run it. `packages/store` keeps scans in PostgreSQL and the queue, the events and the limits in Valkey, with in-memory versions for tests and development. The scanner reads a page's HTML in a thread with a heap and a clock of its own, so a page too big for it is reported as too complex and never ends the scanner; and the worker waits for a scanner that is not there, so a scanner that is starting again fails no scan ([`docs/design/plans/m3.1-security.md`](docs/design/plans/m3.1-security.md)).
 
 ```bash
 pnpm --filter @arablyzer/api dev   # the API and a worker in one process, on http://127.0.0.1:8787

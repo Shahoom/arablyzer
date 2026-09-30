@@ -1,9 +1,16 @@
 import type { ScanEvent } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
-import type { Scanner } from '@arablyzer/scanner-client'
+import { ScannerUnavailable, type Scanner } from '@arablyzer/scanner-client'
 import { MemoryScanEvents, MemoryScanStore } from '@arablyzer/store'
 import { describe, expect, it } from 'vitest'
-import { failScan, runScan, scanJobOf } from '../src/run'
+import {
+  failScan,
+  RETRY_FIRST_MS,
+  RETRY_LONGEST_MS,
+  RETRY_TOTAL_MS,
+  runScan,
+  scanJobOf,
+} from '../src/run'
 
 const NOW = new Date('2026-09-28T12:00:00Z')
 const ID = 'AbCdEfGhIjKlMnOpQrSt_-'
@@ -186,6 +193,164 @@ describe('runScan', () => {
     await failScan(ID, { store, events })
     expect(await store.get(ID)).toMatchObject({ state: 'partial', report })
     expect(await events.since(ID, null)).toEqual([])
+  })
+})
+
+// H1 of the pre-launch review: a scanner that had died, which Compose starts again, was never asked
+// again: "not there" was final, each scan is tried once, and so every scan queued behind the one
+// that died failed within a moment.
+describe('runScan, while the scanner is not there', () => {
+  /** A clock that only the waits move, so a test of a minute takes no time. */
+  function clock() {
+    const waits: number[] = []
+    let now = 0
+    return {
+      waits,
+      now: () => now,
+      sleep: (ms: number) => {
+        waits.push(ms)
+        now += ms
+        return Promise.resolve()
+      },
+    }
+  }
+
+  const REPORT = { scan: { status: 'complete' } } as unknown as Report
+
+  it('waits for a scanner that is restarting, and runs the scan when it is back', async () => {
+    const { store, events } = await setup()
+    const time = clock()
+    const logged: string[] = []
+    let asked = 0
+    const scanner: Scanner = (_, onEvent) => {
+      if (++asked <= 3)
+        return Promise.reject(new ScannerUnavailable('The scanner is not there (ECONNREFUSED)'))
+      onEvent(STARTED)
+      return Promise.resolve(REPORT)
+    }
+    await runScan(
+      { id: ID, url: 'https://example.com/' },
+      { store, events, scanner, now: () => NOW, sleep: time.sleep, log: (m) => logged.push(m) },
+    )
+    expect(asked).toBe(4)
+    // Short waits, longer each time.
+    expect(time.waits).toEqual([RETRY_FIRST_MS, 2 * RETRY_FIRST_MS, 4 * RETRY_FIRST_MS])
+    expect(await store.get(ID)).toMatchObject({ state: 'complete', report: REPORT })
+    // No page was told of an error: it saw its scan start, and finish.
+    expect(await stored(events)).toEqual([STARTED, { type: 'done', state: 'complete' }])
+    // Said once, whatever the number of waits: the log is for what needs a person.
+    expect(logged).toEqual([
+      `Scan ${ID}: The scanner is not there (ECONNREFUSED); asking again, for up to 60 s`,
+    ])
+  })
+
+  it('does not fail the scans queued behind one that meets a scanner that has just died', async () => {
+    const { store, events } = await setup()
+    const ids = ['second-scan', 'third-scan']
+    for (const id of ids) await store.create({ id, url: 'https://example.com/', createdAt: NOW })
+    const time = clock()
+    // The scanner is back after eight seconds, as a container restarted by Compose is.
+    const BACK = 8_000
+    const scanner: Scanner = () =>
+      time.now() < BACK
+        ? Promise.reject(new ScannerUnavailable('The scanner answered 503'))
+        : Promise.resolve(REPORT)
+    // One job at a time, as the worker takes them.
+    for (const id of [ID, ...ids]) {
+      await runScan(
+        { id, url: 'https://example.com/' },
+        { store, events, scanner, now: () => NOW, sleep: time.sleep },
+      )
+    }
+    for (const id of [ID, ...ids])
+      expect(await store.get(id), id).toMatchObject({ state: 'complete' })
+  })
+
+  it('waits at most a minute in all, and then fails that scan alone, with the reason', async () => {
+    const { store, events } = await setup()
+    const time = clock()
+    const logged: string[] = []
+    let asked = 0
+    const dead: Scanner = () => {
+      asked++
+      return Promise.reject(new ScannerUnavailable('The scanner is not there (ENOTFOUND)'))
+    }
+    await runScan(
+      { id: ID, url: 'https://example.com/' },
+      {
+        store,
+        events,
+        scanner: dead,
+        now: () => NOW,
+        sleep: time.sleep,
+        log: (m) => logged.push(m),
+      },
+    )
+    expect(await store.get(ID)).toMatchObject({ state: 'failed', report: null })
+    expect(await stored(events)).toEqual([{ type: 'error' }])
+    expect(time.waits.reduce((all, wait) => all + wait, 0)).toBeLessThanOrEqual(RETRY_TOTAL_MS)
+    expect(time.waits.at(-1)).toBe(RETRY_LONGEST_MS)
+    expect(asked).toBe(time.waits.length + 1)
+    expect(logged.at(-1)).toBe(`Scan ${ID} could not run: The scanner is not there (ENOTFOUND)`)
+    // The next scan is not held back by it: the scanner is back, and it runs.
+    await store.create({ id: 'next-scan', url: 'https://example.com/', createdAt: NOW })
+    await runScan(
+      { id: 'next-scan', url: 'https://example.com/' },
+      { store, events, scanner: () => Promise.resolve(REPORT), now: () => NOW, sleep: time.sleep },
+    )
+    expect(await store.get('next-scan')).toMatchObject({ state: 'complete' })
+  })
+
+  it('keeps to the wait it is given', async () => {
+    const { store, events } = await setup()
+    const time = clock()
+    await runScan(
+      { id: ID, url: 'https://example.com/' },
+      {
+        store,
+        events,
+        scanner: () => Promise.reject(new ScannerUnavailable('The scanner answered 503')),
+        now: () => NOW,
+        sleep: time.sleep,
+        retryMs: 2_000,
+      },
+    )
+    expect(time.waits).toEqual([500, 1_000])
+    expect(await store.get(ID)).toMatchObject({ state: 'failed' })
+  })
+
+  it('asks again for nothing but a scanner that is not there', async () => {
+    for (const failure of [
+      new Error('The scanner answered 500'),
+      new Error('The scanner could not run the scan: Firefox did not start'),
+      new TypeError('fetch failed', { cause: new Error('read ECONNRESET') }),
+    ]) {
+      const { store, events } = await setup()
+      const time = clock()
+      let asked = 0
+      await runScan(
+        { id: ID, url: 'https://example.com/' },
+        {
+          store,
+          events,
+          scanner: () => {
+            asked++
+            return Promise.reject(failure)
+          },
+          now: () => NOW,
+          sleep: time.sleep,
+        },
+      )
+      expect(asked, failure.message).toBe(1)
+      expect(time.waits, failure.message).toEqual([])
+      expect(await store.get(ID), failure.message).toMatchObject({ state: 'failed' })
+    }
+  })
+
+  it('states the waits it keeps: short at first, never long, a minute in all', () => {
+    expect(RETRY_FIRST_MS).toBeLessThanOrEqual(1_000)
+    expect(RETRY_LONGEST_MS).toBeLessThanOrEqual(10_000)
+    expect(RETRY_TOTAL_MS).toBe(60_000)
   })
 })
 

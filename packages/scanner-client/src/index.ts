@@ -2,6 +2,7 @@ export {
   remoteScanner,
   SCAN_BUDGET_MS,
   SCANNER_TIMEOUT_MS,
+  ScannerUnavailable,
   type Fetcher,
   type Scanner,
 } from './client'

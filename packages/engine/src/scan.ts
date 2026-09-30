@@ -3,6 +3,7 @@ import type { RenderOutcome } from '@arablyzer/browser'
 import type { LabRun } from '@arablyzer/lab'
 import {
   collectPage,
+  collectPageIsolated,
   collectRobots,
   ENGINES,
   headerValues,
@@ -142,10 +143,20 @@ export interface ScanOptions {
   /** Per request (BUILD-PLAN §11: 30 s). */
   readonly timeoutMs?: number
   /**
-   * Budget for parsing the page's HTML, which blocks the process while it runs; timeoutMs by
-   * default. Past it, the rules that need the HTML report an error and the scan is partial.
+   * Budget for parsing the page's HTML, which blocks the process while it runs, unless
+   * `isolateParse`; timeoutMs by default. Past it, the rules that need the HTML report an error
+   * and the scan is partial.
    */
   readonly parseTimeoutMs?: number
+  /**
+   * Reads the page's HTML in a thread of its own, with a heap of its own (H1 of the pre-launch
+   * review): a page whose tree is too much for that heap, or that takes longer than
+   * parseTimeoutMs wherever the parse has got to, is too complex, where read in this process it
+   * could end it or hold its event loop until it was done. What is read is the same, as the
+   * code is. The hosted scanner does; the CLI reads in its own process. `maxHeapMb` is the
+   * thread's heap in MB (ISOLATED_HEAP_MB by default).
+   */
+  readonly isolateParse?: { readonly maxHeapMb?: number }
   /**
    * USER_AGENT by default. robots.txt names the bot by its part before the first "/", and a
    * group naming it can keep the scan from a page.
@@ -390,19 +401,26 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
 
   let page: PageFacts
   try {
-    page = collectPage(
-      {
-        url: response.url,
-        status: response.status,
-        headers: response.headers,
-        body: response.body,
-        certificate:
-          response.certificate === null
-            ? null
-            : { ...response.certificate, checkedAt: fetched.startedAt },
-      },
-      { deadline: performance.now() + parseTimeoutMs },
-    )
+    const input = {
+      url: response.url,
+      status: response.status,
+      headers: response.headers,
+      body: response.body,
+      certificate:
+        response.certificate === null
+          ? null
+          : { ...response.certificate, checkedAt: fetched.startedAt },
+    }
+    page =
+      options.isolateParse === undefined
+        ? collectPage(input, { deadline: performance.now() + parseTimeoutMs })
+        : await collectPageIsolated(input, {
+            timeoutMs: parseTimeoutMs,
+            ...(options.isolateParse.maxHeapMb === undefined
+              ? {}
+              : { maxHeapMb: options.isolateParse.maxHeapMb }),
+            ...(options.signal === undefined ? {} : { signal: options.signal }),
+          })
   } catch {
     // A collector bug, or an input it cannot handle: the report says so instead of the scan crashing.
     return failed(target, [notice('page-unreadable')], 'page-unreadable')
@@ -926,7 +944,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
   if (needsPage && !reached) return { status: 'not-applicable', findings: [] }
-  if (needsHtml && page.htmlTimedOut) {
+  if (needsHtml && page.htmlTooComplex) {
     return { status: 'error', error: 'page-too-complex', findings: [] }
   }
   if (needsHtml && (page.html === null || page.text === null)) {
@@ -1158,7 +1176,7 @@ function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[]
   } else if (!page.isHtml) {
     notices.push(notice('not-html'))
   } else {
-    if (page.htmlTimedOut) notices.push(notice('page-too-complex'))
+    if (page.htmlTooComplex) notices.push(notice('page-too-complex'))
     else if (page.text !== null && page.html !== null) {
       const loadsScripts = page.html.scripts.some(
         (script) => isJavaScript(script.type) && (script.src !== null || script.text.trim() !== ''),

@@ -43,6 +43,34 @@ describe('localScanner', () => {
     }
   })
 
+  it('gives the same report when the page is read in a thread of its own, as the scanner reads it', async () => {
+    const site = await serveSite(CLEAN_CONTACT)
+    try {
+      const options = {
+        policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      }
+      const run = (isolateParse?: object) =>
+        localScanner({ ...options, ...(isolateParse === undefined ? {} : { isolateParse }) })(
+          { url: site.url('/') },
+          () => undefined,
+        )
+      const here = await run()
+      const there = await run({})
+      expect(there.scan.status).toBe('complete')
+      expect({
+        ...there,
+        scan: { ...there.scan, durationMs: 0 },
+        target: { ...there.target, fetchedAt: '' },
+      }).toEqual({
+        ...here,
+        scan: { ...here.scan, durationMs: 0 },
+        target: { ...here.target, fetchedAt: '' },
+      })
+    } finally {
+      await site.close()
+    }
+  })
+
   it("runs a tool page's scan with the tool's rules alone", async () => {
     const site = await serveSite(CLEAN_CONTACT)
     try {
