@@ -73,10 +73,18 @@ async function scanEvents(id: string): Promise<{ type: string }[]> {
   return events
 }
 
-function postScan(url: string): Promise<Response> {
+/**
+ * A scan request, from the visitor `forwardedFor` names, if any: the site's server believes the
+ * address of its own peer, the host's proxy in front of it, so a test that only wants a refusal
+ * can be another visitor, and leave the one limit of the tests that scan (10 an hour) alone.
+ */
+function postScan(url: string, forwardedFor?: string): Promise<Response> {
   return fetch(`${SITE}/api/scans`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(forwardedFor === undefined ? {} : { 'x-forwarded-for': forwardedFor }),
+    },
     body: JSON.stringify({ url, turnstileToken: DUMMY_TOKEN }),
   })
 }
@@ -401,9 +409,13 @@ describe('the egress proxy', () => {
   })
 
   it("is not the only one to refuse them: the API refuses a scan of the server's own addresses", async () => {
+    let visitor = 0
     for (const cidr of (stack.env('api', 'ARABLYZER_DENY_CIDRS') ?? '').split(',')) {
       const address = cidr.trim().split('/')[0] ?? ''
-      const refused = await postScan(`http://${address.includes(':') ? `[${address}]` : address}/`)
+      const refused = await postScan(
+        `http://${address.includes(':') ? `[${address}]` : address}/`,
+        `198.51.100.${String(++visitor)}`,
+      )
       expect(refused.status, cidr).toBe(422)
       expect(await refused.json(), cidr).toEqual({ error: 'blocked-address' })
     }
