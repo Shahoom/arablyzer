@@ -142,6 +142,26 @@ describe('interface copy', () => {
     expect(HOME.en.figure.tally(0, 20)).toBe('No rule failed · 20 passed')
   })
 
+  // M5, issue #33: the address is stored as it is sent, with its query string, and its report opens
+  // by its link alone. The owner's numbers (how long it is kept) are not the copy's to state.
+  it('warns, in both languages, that the address is kept with its query string and shown in a report anyone with the link opens', () => {
+    const { ar, en } = SCAN_FORM
+    expect(en.queryNote).toMatch(/exactly as you send it/)
+    expect(en.queryNote).toMatch(/after a “\?”/)
+    expect(en.queryNote).toMatch(/anyone who has (the|its) (report’s )?link/i)
+    expect(en.queryNote).toMatch(/token|key|personal data/i)
+    expect(ar.queryNote).toMatch(/علامة الاستفهام/)
+    expect(ar.queryNote).toMatch(/كل من يملك رابطه/)
+    expect(ar.queryNote).toMatch(/مفاتيح|رموز|بيانات شخصية/)
+  })
+
+  it('states no number in that warning: how long a report is kept is the owner’s to say', () => {
+    for (const text of [SCAN_FORM.ar.queryNote, SCAN_FORM.en.queryNote]) {
+      expect(text).not.toMatch(/[0-9\u0660-\u0669]/)
+      expect(text).not.toMatch(/days|hours|weeks|months|years|أيام|ساعات|أسابيع|أشهر|سنة|سنوات/i)
+    }
+  })
+
   it('says when to scan again, in whole minutes rounded up', () => {
     expect(SCAN_FORM.ar.retryAfter(30)).toBe('جرّب بعد دقيقة.')
     expect(SCAN_FORM.ar.retryAfter(120)).toBe('جرّب بعد دقيقتين.')
