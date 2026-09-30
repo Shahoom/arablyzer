@@ -1,22 +1,21 @@
 {
-  "name": "@arablyzer/collectors",
+  "name": "@arablyzer/generators",
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./robots": "./src/robots.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
-    "css-tree": "^3.2.1",
-    "parse5": "^8.0.1"
+    "@arablyzer/collectors": "workspace:*",
+    "@arablyzer/rules": "workspace:*"
   },
   "devDependencies": {
-    "@types/css-tree": "^3.2.0"
+    "@arablyzer/engine": "workspace:*"
   }
 }

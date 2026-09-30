@@ -235,6 +235,12 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
+    // The generators and the paste tool driven in the browsers (M2.3b): the site's own pages on
+    // loopback, and every request off the site refused.
+    files: ['apps/web/test/browser/generators.browser.test.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
     // The egress package is the network boundary; the fixture server is local test infrastructure.
     files: ['packages/egress/**', 'fixtures/**'],
     rules: {
