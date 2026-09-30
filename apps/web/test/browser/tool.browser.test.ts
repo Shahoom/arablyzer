@@ -4,11 +4,12 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { executablePathFor } from '@arablyzer/browser/engines'
 import { createPolicy } from '@arablyzer/egress'
-import { scan } from '@arablyzer/engine'
+import { scan, summarize } from '@arablyzer/engine'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
 import { REPORT } from '@arablyzer/i18n/report'
 import { TOOL_APP } from '@arablyzer/i18n/tool-app'
-import type { Engine, Report } from '@arablyzer/report-schema'
+import { Report, type Engine, type RuleResult } from '@arablyzer/report-schema'
+import { ruleById } from '@arablyzer/rules'
 import type { Lang } from '@arablyzer/seo/site'
 import { chromium, firefox, webkit, type Browser } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -65,10 +66,55 @@ const TEXT = '<p>عطور عربية أصيلة، وتوصيل إلى كل مد�
 let pagesRoot = ''
 let pages: FixtureSite
 let site: FixtureSite
+/**
+ * The security headers tool judges four rules and lists one (referrer-policy-missing is
+ * information): a page that sets all but the referrer policy has a note and no problem.
+ */
+const MIXED_TOOL = 'security-headers'
+const MIXED_RULES = [
+  'hsts-missing',
+  'csp-missing',
+  'x-content-type-options-missing',
+  'frame-protection-missing',
+  'referrer-policy-missing',
+]
+
 const reports = {} as Record<
-  'problems' | 'passed' | 'partial' | 'failed' | 'noted' | 'nothing',
+  'problems' | 'passed' | 'partial' | 'failed' | 'noted' | 'nothing' | 'mixed',
   Report
 >
+
+/** The report of the security headers tool for a page that lacks only a referrer policy. */
+function mixedReport(base: Report): Report {
+  const rules = MIXED_RULES.map((id): RuleResult => {
+    const rule = ruleById(id)
+    if (rule === undefined) throw new Error(id)
+    return {
+      id,
+      version: rule.version,
+      category: rule.category,
+      severity: rule.severity,
+      status: id === 'referrer-policy-missing' ? 'fail' : 'pass',
+      title: { ar: rule.copy.ar.title, en: rule.copy.en.title },
+    }
+  })
+  const rule = ruleById('referrer-policy-missing')
+  if (rule === undefined) throw new Error('referrer-policy-missing')
+  return Report.parse({
+    ...base,
+    rules,
+    summary: summarize(rules),
+    findings: [
+      {
+        ruleId: 'referrer-policy-missing',
+        severity: 'info',
+        fingerprint: '0123456789abcdef',
+        message: { ar: rule.copy.ar.messages.missing, en: rule.copy.en.messages.missing },
+        evidence: { url: ADDRESS },
+      },
+    ],
+  })
+}
 
 /** A port nothing listens on any more: a scan of it cannot fetch the page. */
 async function closedPort(): Promise<number> {
@@ -102,6 +148,7 @@ beforeAll(async () => {
   // The tool that lists: three methods shown, and none.
   reports.noted = await scan(pages.url('/store.html'), { ruleIds: LISTING_RULES, policy })
   reports.nothing = await scan(pages.url('/right.html'), { ruleIds: LISTING_RULES, policy })
+  reports.mixed = mixedReport(reports.passed)
   const port = await closedPort()
   reports.failed = await scan(`http://127.0.0.1:${port}/`, {
     ruleIds: RULES,
@@ -342,6 +389,27 @@ describe.each(ENGINES)('a tool page in %s', (engine) => {
     expect(shown.headline).not.toBe(t.passed)
     expect(shown.rules).toEqual([[t.information.none, false]])
     expect(shown.labels).toEqual([])
+    expect(shown.fixLink).toBe(false)
+  }, 60_000)
+
+  it('counts a note beside rules that judge as a note, and marks the ones that passed', async () => {
+    const t = TOOL_APP.en.result
+    const shown = await check(browser, 'en', {
+      state: 'complete',
+      report: reports.mixed,
+      tool: MIXED_TOOL,
+    })
+    expect([shown.headline, shown.said]).toEqual([t.notes(1), t.notes(1)])
+    expect(shown.headline).toBe('1 note, not a problem')
+    // Four rules passed, each with a green check; the one that lists is noted, with none.
+    expect(shown.rules).toEqual([
+      [t.status.pass, true],
+      [t.status.pass, true],
+      [t.status.pass, true],
+      [t.status.pass, true],
+      [t.information.found, false],
+    ])
+    expect(shown.labels).toEqual([REPORT.en.findings.notDeducted])
     expect(shown.fixLink).toBe(false)
   }, 60_000)
 
