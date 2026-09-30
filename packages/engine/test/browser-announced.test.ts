@@ -24,7 +24,7 @@ vi.mock('@arablyzer/browser', async (importOriginal) => ({
         challenge: null,
         durationMs: 0,
         requests: { refused: 0 },
-        pageRequests: { made: 0, overLimit: 0 },
+        pageRequests: { made: 0, overLimit: 0, overHosts: 0, sending: 0 },
         facts: null,
         screenshot: null,
       },
