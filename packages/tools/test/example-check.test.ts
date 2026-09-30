@@ -1,6 +1,7 @@
+import { collectRobots, SITEMAP_LIMIT, type SitemapCheck } from '@arablyzer/collectors'
 import { describe, expect, it } from 'vitest'
 import type { CodeExample, Tool, ToolCopy } from '../src/index'
-import { evaluateExample, exampleProblems, speaksTo } from './example-check'
+import { evaluateExample, exampleProblems, exampleSitemaps, speaksTo } from './example-check'
 
 const http = (code: string): CodeExample => ({ lang: 'http', code })
 
@@ -205,6 +206,61 @@ describe('a robots.txt example', () => {
       ['sitemap-missing', 'fail'],
     ])
     expect(exampleProblems(tool, 'en')).toEqual([])
+  })
+})
+
+// M2.3c review: the harness handed the rules a state the engine never makes (nothing checked, one
+// sitemap unchecked), so the rule that judges a sitemap was never called on a right example, and
+// one that broke it would have passed. What it shows is what the engine would make of a site that
+// robots.txt describes: a check for each sitemap it would ask for.
+describe('the sitemaps a robots.txt example shows', () => {
+  const robotsOf = (code: string) =>
+    collectRobots({
+      url: 'https://example.com/robots.txt',
+      response: { status: 200, body: new TextEncoder().encode(code), truncated: false },
+      errorCode: null,
+    })
+  const paths = (checks: readonly SitemapCheck[] = []) =>
+    checks.map((check) => [new URL(check.url).pathname, check.named, check.outcome])
+
+  it('are /sitemap.xml, which the example shows nothing of, when robots.txt names none', () => {
+    for (const code of ['User-agent: *\nDisallow: /cart/', 'Sitemap: /sitemap.xml']) {
+      const facts = exampleSitemaps(robotsOf(code))
+      expect(paths(facts?.checked), code).toEqual([['/sitemap.xml', false, 'unavailable']])
+      expect(facts?.unchecked).toBe(0)
+    }
+  })
+
+  it('are a sitemap read and fine for each that robots.txt names, up to the scan’s limit', () => {
+    const names = Array.from({ length: SITEMAP_LIMIT + 2 }, (_, index) => index)
+    const facts = exampleSitemaps(
+      robotsOf(
+        names.map((index) => `Sitemap: https://example.com/s${String(index)}.xml`).join('\n'),
+      ),
+    )
+    // What the engine does: the first ones are asked for, the rest counted, and the site's own
+    // /sitemap.xml is not asked for when it names any.
+    expect(paths(facts?.checked)).toEqual(
+      names.slice(0, SITEMAP_LIMIT).map((index) => [`/s${String(index)}.xml`, true, 'fetched']),
+    )
+    expect(facts?.unchecked).toBe(2)
+    expect(facts?.checked[0]).toMatchObject({
+      status: 200,
+      content: { kind: 'sitemap', format: 'urlset' },
+      truncated: false,
+    })
+  })
+
+  it('are none for a robots.txt the example does not show', () => {
+    expect(
+      exampleSitemaps(
+        collectRobots({
+          url: 'https://example.com/robots.txt',
+          response: null,
+          errorCode: 'timeout',
+        }),
+      ),
+    ).toBeUndefined()
   })
 })
 

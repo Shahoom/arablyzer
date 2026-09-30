@@ -7,6 +7,7 @@ import {
   sitemapTargets,
   type CruxFacts,
   type RobotsFacts,
+  type SitemapCheck,
   type SitemapFacts,
 } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
@@ -47,20 +48,31 @@ function cruxAnswer(code: string): CruxFacts {
 }
 
 /**
- * The sitemaps as a robots.txt example shows them: the ones it names, which are not in it, so
- * none is fetched, and no /sitemap.xml when it names none.
+ * The sitemaps as a robots.txt example shows them, as the engine would make them of a site that
+ * robots.txt describes (fetchSitemaps): a check for each sitemap it would ask for, the first ones
+ * it names as full URLs or /sitemap.xml when it names none, and the rest counted. The example
+ * holds no sitemap, so what is asked for is what the example can say: a sitemap it names is one
+ * that was read and is fine, which the rule that judges sitemaps reads, and a right example that it
+ * failed would fail here; naming none, the site has no /sitemap.xml.
  */
-function exampleSitemaps(robots: RobotsFacts): SitemapFacts | undefined {
+export function exampleSitemaps(robots: RobotsFacts): SitemapFacts | undefined {
   if (robots.outcome !== 'fetched') return undefined
-  const { fetch } = sitemapTargets(robots.robots.sitemaps, PAGE_URL)
-  const probe = fetch.find((target) => !target.named)
+  const { fetch, unchecked } = sitemapTargets(robots.robots.sitemaps, PAGE_URL)
   return {
     named: robots.robots.sitemaps,
-    checked:
-      probe === undefined
-        ? []
-        : [{ outcome: 'unavailable', url: probe.url, named: false, status: 404 }],
-    unchecked: probe === undefined ? fetch.length : 0,
+    checked: fetch.map((target): SitemapCheck =>
+      target.named
+        ? {
+            outcome: 'fetched',
+            url: target.url,
+            named: true,
+            status: 200,
+            content: { kind: 'sitemap', format: 'urlset', entries: 1 },
+            truncated: false,
+          }
+        : { outcome: 'unavailable', url: target.url, named: false, status: 404 },
+    ),
+    unchecked,
   }
 }
 

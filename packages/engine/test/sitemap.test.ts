@@ -1,3 +1,4 @@
+import { monitorEventLoopDelay } from 'node:perf_hooks'
 import { gzipSync } from 'node:zlib'
 import { collectPage, type SitemapFacts } from '@arablyzer/collectors'
 import { createPolicy, type Resolver } from '@arablyzer/egress'
@@ -30,16 +31,18 @@ const sitemapRule = testRule({
   id: 'sitemap-rule',
   needs: ['robots', 'sitemap'],
   // As a rule that needs each of them would: with none read, it has nothing to judge.
+  // The facts it is given, whether it can judge them or not.
+  appliesTo: (_page, evidence) => {
+    seen = evidence?.sitemap
+    return true
+  },
   couldNotCheck: ({ sitemap }) =>
     sitemap !== undefined &&
     sitemap.checked.length > 0 &&
     sitemap.checked.every((check) => check.outcome === 'failed')
       ? 'sitemap-unchecked'
       : null,
-  detect: ({ sitemap }) => {
-    seen = sitemap
-    return []
-  },
+  detect: () => [],
 })
 
 async function scanned(local: TempSite, options: Parameters<typeof scan>[1] = {}) {
@@ -161,6 +164,42 @@ describe('scan: sitemaps', () => {
     ])
   })
 
+  // M2.3c review: the spaces above are past the parser at once, so they proved the limit on what
+  // is decompressed and nothing of the cost of reading it. What is small gzipped and costly to read
+  // is not blank: attributes without end, elements without end, a value without end. Each of these
+  // held the scanner's event loop for seconds to hours, or its memory for gigabytes.
+  it.each([
+    [
+      'attributes',
+      () =>
+        `<urlset xmlns="${NAMESPACE}"` +
+        Array.from({ length: 2_700_000 }, (_, index) => ` a${String(index)}=""`).join(''),
+    ],
+    ['nested elements', () => `<urlset xmlns="${NAMESPACE}">` + '<a>'.repeat(9_000_000)],
+    ['one value', () => `<urlset xmlns="${NAMESPACE}" a="` + 'x'.repeat(SITEMAP_MAX_BYTES + 1024)],
+  ])('reads a gzip bomb of %s in a moment, and never holds the event loop', async (_name, make) => {
+    const bomb = gzipSync(make())
+    const local = await site({
+      'site.json': SHOP,
+      'index.html': PAGE,
+      'robots.txt': 'Sitemap: http://shop.example/bomb.xml.gz\n',
+      'bomb.xml.gz': bomb,
+    })
+    const loop = monitorEventLoopDelay({ resolution: 10 })
+    loop.enable()
+    const started = performance.now()
+    await scanned(local)
+    const took = performance.now() - started
+    loop.disable()
+    // Read up to the scan's limit, and not as a sitemap: it is not XML that a search engine reads.
+    expect(seen?.checked).toMatchObject([
+      { outcome: 'fetched', content: { kind: 'not-xml' }, truncated: true },
+    ])
+    expect(took).toBeLessThan(10_000)
+    // The watchdog timers of a scan run on this loop: nothing may keep it from them for long.
+    expect(loop.max / 1e6).toBeLessThan(1_500)
+  })
+
   // M2.3c review: a site that turns the scan away (or cannot answer) has not said its sitemap is
   // missing or broken. The statuses are those the report page calls refusals, and RFC 9309's rule
   // for a robots.txt that answers 5xx: it could not be checked.
@@ -178,7 +217,7 @@ describe('scan: sitemaps', () => {
       const report = await scanned(named)
       expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
       expect(report.scan.notices.map((item) => item.code)).toEqual(['sitemap-unchecked'])
-      expect(seen).toBeUndefined()
+      expect(seen?.checked).toMatchObject([{ outcome: 'failed', code: 'refused', status }])
       // The same at /sitemap.xml, where robots.txt names none: the site is not called sitemap-less.
       const unnamed = await site(
         { 'site.json': SHOP, 'index.html': PAGE },
@@ -239,7 +278,7 @@ describe('scan: sitemaps', () => {
         : resolverFor(local)(hostname, signal)
     const report = await scanned(local, { resolver, timeoutMs: 300 })
     expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
-    expect(seen).toBeUndefined()
+    expect(seen?.checked).toMatchObject([{ outcome: 'failed', code: 'timeout' }])
   })
 })
 
@@ -356,11 +395,24 @@ describe('scan: sitemaps that could not all be read', () => {
 
 // BUILD-PLAN §13 and M2.3 plan §4: the sitemaps are a new fetch path, vetted as robots.txt is.
 describe('scan: sitemaps, against SSRF', () => {
+  // Nothing listens at these addresses, so a fetch that skipped egress would fail too, and the
+  // scan would look the same. The reason is what tells: the policy refused it, by the rule that
+  // applies (M2.3c review).
   it.each([
-    ['names a metadata address', 'Sitemap: http://169.254.169.254/sitemap.xml\n', {}],
-    ['names a private address', 'Sitemap: http://10.0.0.7/sitemap.xml\n', {}],
-    ['names a local name', 'Sitemap: http://localhost/sitemap.xml\n', {}],
-    ['names another port', 'Sitemap: http://shop.example:6379/sitemap.xml\n', {}],
+    [
+      'names a metadata address',
+      'Sitemap: http://169.254.169.254/sitemap.xml\n',
+      {},
+      'blocked-address',
+    ],
+    ['names a private address', 'Sitemap: http://10.0.0.7/sitemap.xml\n', {}, 'blocked-address'],
+    ['names a local name', 'Sitemap: http://localhost/sitemap.xml\n', {}, 'blocked-host'],
+    [
+      'names another port',
+      'Sitemap: http://shop.example:6379/sitemap.xml\n',
+      {},
+      'port-not-allowed',
+    ],
     [
       'names a sitemap that redirects to a metadata address',
       'Sitemap: http://shop.example/sitemap.xml\n',
@@ -370,15 +422,17 @@ describe('scan: sitemaps, against SSRF', () => {
           headers: { location: 'http://169.254.169.254/latest/meta-data/' },
         },
       },
+      'blocked-address',
     ],
   ])(
-    'reports an error, reaches nothing, and names no address when robots.txt %s',
-    async (_name, robots, config) => {
+    'refuses it, and names no address, when robots.txt %s',
+    async (_name, robots, config, code) => {
       const local = await site(
         { 'site.json': SHOP, 'index.html': PAGE, 'robots.txt': robots },
         config,
       )
       const report = await scanned(local)
+      expect(seen?.checked).toMatchObject([{ outcome: 'failed', code }])
       expect(report.scan.status).toBe('partial')
       expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
       expect(report.scan.notices.map((item) => item.code)).toEqual(['sitemap-unchecked'])
@@ -389,6 +443,67 @@ describe('scan: sitemaps, against SSRF', () => {
     },
   )
 
+  // A service that would answer, on a port the policy does not open: whatever reached it shows.
+  describe('with a service listening where the policy does not let the scan', () => {
+    const listener = () => site({ 'sitemap.xml': URLSET })
+    const open = (...ports: number[]) =>
+      createPolicy({ allowTargets: ports.map((port) => ({ address: '127.0.0.1', port })) })
+
+    it.each([
+      [
+        'names it',
+        (forbidden: TempSite) => ({ robots: `Sitemap: ${forbidden.url('/sitemap.xml')}\n` }),
+      ],
+      [
+        'names a name that resolves to it',
+        (forbidden: TempSite) => ({
+          robots: `Sitemap: http://shop.example:${String(forbidden.port)}/sitemap.xml\n`,
+        }),
+      ],
+      [
+        'names a sitemap that redirects to it',
+        (forbidden: TempSite) => ({
+          robots: 'Sitemap: http://shop.example/sitemap.xml\n',
+          config: {
+            '/sitemap.xml': {
+              status: 302,
+              headers: { location: forbidden.url('/sitemap.xml') },
+            },
+          },
+        }),
+      ],
+    ])('is not reached when robots.txt %s', async (_name, plan) => {
+      const forbidden = await listener()
+      const { robots, config } = plan(forbidden) as {
+        robots: string
+        config?: Parameters<typeof tempSite>[1]
+      }
+      const local = await site(
+        { 'site.json': SHOP, 'index.html': PAGE, 'robots.txt': robots },
+        config,
+      )
+      await scanned(local, { policy: open(local.port) })
+      expect(seen?.checked).toMatchObject([
+        { outcome: 'failed', code: expect.any(String) as string },
+      ])
+      expect(seen?.checked[0]).toMatchObject({ outcome: 'failed' })
+      // Not its robots.txt, nor the sitemap: nothing.
+      expect(forbidden.requests).toEqual([])
+    })
+
+    it('is reached when the policy lets the scan, so that nothing arriving above is the listener’s doing', async () => {
+      const forbidden = await listener()
+      const local = await site({
+        'site.json': SHOP,
+        'index.html': PAGE,
+        'robots.txt': `Sitemap: http://shop.example:${String(forbidden.port)}/sitemap.xml\n`,
+      })
+      await scanned(local, { policy: open(local.port, forbidden.port) })
+      expect(seen?.checked).toMatchObject([{ outcome: 'fetched', status: 200 }])
+      expect(forbidden.requests).toEqual(['GET /robots.txt', 'GET /sitemap.xml'])
+    })
+  })
+
   it('keeps a redirect of /sitemap.xml within the policy', async () => {
     const local = await site(
       { 'site.json': SHOP, 'index.html': PAGE },
@@ -397,6 +512,7 @@ describe('scan: sitemaps, against SSRF', () => {
       },
     )
     const report = await scanned(local)
+    expect(seen?.checked).toMatchObject([{ outcome: 'failed', code: 'port-not-allowed' }])
     expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
     expect(local.requests).toEqual(['GET /robots.txt', 'GET /', 'GET /sitemap.xml'])
   })
@@ -426,6 +542,7 @@ describe('scan: sitemaps, against SSRF', () => {
     })
     expect(lookups).toBe(3)
     expect(local.requests).toEqual(['GET /robots.txt', 'GET /'])
+    expect(seen?.checked).toMatchObject([{ outcome: 'failed', code: 'blocked-address' }])
     expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
   })
 
@@ -462,6 +579,7 @@ describe('scan: sitemaps, against SSRF', () => {
 
     const declined = await shop(`Sitemap: ${other.url('/private/shop.xml')}\n`)
     const report = await scanWith(declined)
+    expect(seen?.checked).toMatchObject([{ outcome: 'failed', code: 'opted-out' }])
     expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
     // Each scan reads that site's robots.txt afresh, and the file it keeps the bot from never.
     expect(other.requests.slice(2)).toEqual(['GET /robots.txt'])
