@@ -1,5 +1,5 @@
 import { networkIsolated } from '@arablyzer/browser/engines'
-import { serverPolicy } from '@arablyzer/egress'
+import { dohUrlFrom, serverPolicy } from '@arablyzer/egress'
 import type { ScanOptions } from '@arablyzer/engine'
 import type { Engine } from '@arablyzer/report-schema'
 
@@ -9,7 +9,9 @@ const ENGINES: readonly Engine[] = ['chromium', 'firefox', 'webkit']
  * The free scan's options, from the environment (M2.1 plan §4): the servers' address rules,
  * the three engines (ARABLYZER_ENGINES chooses fewer), WebKit only where the network is
  * isolated (ARABLYZER_NETWORK_ISOLATED), and the CrUX key when the owner gives one
- * (ARABLYZER_CRUX_KEY). Budgets are the plan's (§11), the engine's defaults.
+ * (ARABLYZER_CRUX_KEY). Budgets are the plan's (§11), the engine's defaults. Behind the egress
+ * proxy, which resolves every name, the TXT lookups of the DNS rules are DNS over HTTPS:
+ * ARABLYZER_DOH_URL names the resolver, Cloudflare's by default (M2.3c review).
  */
 export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>>): ScanOptions {
   const listed = (env.ARABLYZER_ENGINES ?? ENGINES.join(','))
@@ -24,8 +26,11 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
   }
   const engines = ENGINES.filter((engine) => listed.includes(engine))
   const cruxKey = env.ARABLYZER_CRUX_KEY?.trim()
+  const policy = serverPolicy(env)
+  const dohUrl = dohUrlFrom(env, policy)
   return {
-    policy: serverPolicy(env),
+    policy,
+    ...(dohUrl === undefined ? {} : { dohUrl }),
     render: { engines, networkIsolated: networkIsolated(env) },
     ...(cruxKey === undefined || cruxKey === '' ? {} : { crux: { apiKey: cruxKey } }),
   }

@@ -5,7 +5,9 @@ import https from 'node:https'
 import net from 'node:net'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { serveDoh } from '@arablyzer/fixtures'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { createDohTxtResolver } from '../../src/doh'
 import { safeFetch } from '../../src/fetch'
 import { createPolicy, type EgressPolicy } from '../../src/policy'
 import { startProxy, type EgressProxy } from '../../src/proxy'
@@ -274,6 +276,68 @@ describe('safeFetch through an egress proxy', () => {
     })
     expect(result.error).toBeNull()
     expect(received).toEqual(['POST application/json {"url":"https://example.com/"}'])
+  })
+})
+
+// M2.3c review: behind the proxy a scan resolves no name of its own, so its TXT lookups are DNS
+// over HTTPS, asked through the proxy like every other request.
+describe('TXT lookups over DoH through an egress proxy', () => {
+  const never = new AbortController().signal
+
+  it('go through the proxy with the resolver’s name unresolved here', async () => {
+    const doh = await serveDoh({ 'mail.example.test': { txt: ['v=spf1 -all'] } })
+    cleanup.push(() => doh.close())
+    const smokescreen = await fakeSmokescreen({ 'doh.example.test:80': doh.port })
+    const resolver = stubResolver({})
+    const resolve = createDohTxtResolver({
+      url: 'http://doh.example.test/dns-query',
+      userAgent: UA,
+      policy: through(smokescreen),
+      resolver,
+    })
+    expect(await resolve('mail.example.test', never)).toEqual({
+      outcome: 'found',
+      records: ['v=spf1 -all'],
+    })
+    expect(smokescreen.connects).toEqual(['doh.example.test:80'])
+    expect(resolver.calls).toEqual([])
+    expect(doh.questions).toEqual(['mail.example.test TXT'])
+  })
+
+  it('fail when the proxy refuses the resolver, and ask no other way', async () => {
+    const smokescreen = await fakeSmokescreen({
+      'doh.example.test:80': {
+        status: 407,
+        error: 'Request rejected by proxy: resolves to private address 10.0.0.5',
+      },
+    })
+    const resolver = stubResolver({})
+    const resolve = createDohTxtResolver({
+      url: 'http://doh.example.test/dns-query',
+      userAgent: UA,
+      policy: through(smokescreen),
+      resolver,
+    })
+    expect(await resolve('mail.example.test', never)).toEqual({ outcome: 'failed', records: [] })
+    expect(smokescreen.connects).toEqual(['doh.example.test:80'])
+    expect(resolver.calls).toEqual([])
+  })
+
+  it('still refuse here what needs no DNS: an address, a port, an internal name', async () => {
+    const smokescreen = await fakeSmokescreen({})
+    for (const url of [
+      'https://10.0.0.5/dns-query',
+      'https://169.254.169.254/dns-query',
+      'https://dns.example.test:22/dns-query',
+      'https://intranet/dns-query',
+    ]) {
+      const resolve = createDohTxtResolver({ url, userAgent: UA, policy: through(smokescreen) })
+      expect(await resolve('mail.example.test', never), url).toEqual({
+        outcome: 'failed',
+        records: [],
+      })
+    }
+    expect(smokescreen.connects).toEqual([])
   })
 })
 

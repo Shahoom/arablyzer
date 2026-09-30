@@ -1,6 +1,7 @@
 import { Resolver as AresResolver, lookup } from 'node:dns/promises'
 import { isIP, type LookupFunction } from 'node:net'
 import { vetEndpoint } from './classify'
+import { dnsName } from './dns-name'
 import { egressError, type EgressError } from './errors'
 import type { EgressPolicy } from './policy'
 
@@ -65,14 +66,16 @@ const FAILED: TxtAnswer = Object.freeze({ outcome: 'failed', records: Object.fre
  */
 export function createTxtResolver(options: DnsResolverOptions = {}): TxtResolver {
   return async (name, signal) => {
-    if (signal.aborted) return FAILED
+    // A name the resolver must not send is checked here, whoever asks (M2.3c review).
+    const asked = dnsName(name)
+    if (asked === null || signal.aborted) return FAILED
     const resolver = aresResolver(options)
     const cancel = () => {
       resolver.cancel()
     }
     signal.addEventListener('abort', cancel, { once: true })
     try {
-      const records = await resolver.resolveTxt(name)
+      const records = await resolver.resolveTxt(asked)
       if (records.length === 0) return NONE
       return { outcome: 'found', records: records.map((strings) => strings.join('')) }
     } catch (error) {

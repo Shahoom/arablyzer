@@ -136,6 +136,25 @@ describe('c-ares TXT lookups', () => {
     expect(await slow('mail.test', AbortSignal.abort())).toEqual({ outcome: 'failed', records: [] })
   })
 
+  it('sends no question for a name it must not send, whoever asks', async () => {
+    const before = dns.queries.length
+    const refused = [
+      '',
+      'exa mple.test',
+      'mail.test/x',
+      'mail..test',
+      `${'a'.repeat(64)}.test`,
+      `${'a.'.repeat(130)}test`,
+      'مثال.test',
+    ]
+    for (const name of refused) {
+      expect(await txt()(name, never), name).toEqual({ outcome: 'failed', records: [] })
+    }
+    expect(dns.queries.slice(before)).toEqual([])
+    // An underscore label is a name like another, as _dmarc needs.
+    expect(await txt()('_dmarc.mail.test', never)).toMatchObject({ outcome: 'found' })
+  })
+
   it('is the TXT lookup of the resolvers scans use, which asks no other type', async () => {
     const resolve = createDnsResolver({ servers: [dns.server], timeoutMs: 1000, tries: 1 })
     const before = dns.queries.length

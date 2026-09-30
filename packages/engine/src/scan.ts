@@ -60,7 +60,7 @@ import {
 import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
-import { lookupDns } from './dns'
+import { lookupDns, txtResolverFor } from './dns'
 import { checkLinks, MAX_LINKS } from './links'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
@@ -125,6 +125,15 @@ export interface ScanOptions {
   readonly rules?: readonly Rule[]
   readonly policy?: EgressPolicy
   readonly resolver?: Resolver
+  /**
+   * The DNS-over-HTTPS resolver (RFC 8484) that the TXT lookups of the DNS rules go to, as its
+   * URL: asked with safeFetch under the scan's policy, so vetted like every request and through
+   * its egress proxy, if it has one. Without it, the scan's own resolver asks (c-ares), where the
+   * process asks DNS itself; behind an egress proxy, which resolves every name, the scan has no
+   * way to ask, and its DNS rules are left out (a notice says so), as rules that need a browser
+   * are when the scan renders none.
+   */
+  readonly dohUrl?: string
   /** Per request (BUILD-PLAN §11: 30 s). */
   readonly timeoutMs?: number
   /**
@@ -185,23 +194,32 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   }
   const started = performance.now()
   const progress = progressEmitter(options.onProgress)
-  const { rules, renderSkipped, engineSkipped } = chooseRules(
-    options.rules ?? RULES,
-    options.ruleIds,
-    options.render?.engines,
-  )
-  progress({ step: 'start', engines: [...(options.render?.engines ?? [])] })
   const userAgent = options.userAgent ?? USER_AGENT
   // The name robots.txt gives the bot: ArablyzerBot, for USER_AGENT.
   const bot = productToken(userAgent)
   const policy = options.policy ?? DEFAULT_POLICY
+  // Chosen once, so robots.txt, the page and the DNS lookups resolve names the same way.
+  const resolver = options.resolver ?? defaultResolver(policy)
+  // How the DNS rules' TXT lookups are asked; without a way, the rules are left out of the scan.
+  const txt = txtResolverFor({
+    policy,
+    resolver,
+    userAgent,
+    ...(options.dohUrl === undefined ? {} : { dohUrl: options.dohUrl }),
+  })
+  const { rules, renderSkipped, engineSkipped, dnsSkipped } = chooseRules(
+    options.rules ?? RULES,
+    options.ruleIds,
+    options.render?.engines,
+    txt !== undefined,
+  )
+  progress({ step: 'start', engines: [...(options.render?.engines ?? [])] })
   // The default rules, for a site found on a public address under --allow-private.
   const lockdown: EgressPolicy = { ...policy, allowPrivate: false }
   const base: SafeFetchOptions = {
     userAgent,
     policy,
-    // Chosen once, so robots.txt and the page resolve names the same way.
-    resolver: options.resolver ?? defaultResolver(policy),
+    resolver,
     ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   }
@@ -413,16 +431,16 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
   else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
-  // The TXT records the rules that read DNS ask for (M2.3c), and those alone, from the resolver
-  // the page's name went to; none for a page on a local or private address.
-  const dns = isSuccess(page.status)
-    ? await lookupDns(response.url, rules, {
-        policy,
-        resolver: base.resolver ?? defaultResolver(policy),
-        privateAccess: fetched.privateAccess,
-        ...(options.signal === undefined ? {} : { signal: options.signal }),
-      })
-    : undefined
+  // The TXT records the rules that read DNS ask for (M2.3c), and those alone, asked as the scan
+  // is set to (txtResolverFor); none for a page on a local or private address.
+  const dns =
+    isSuccess(page.status) && txt !== undefined
+      ? await lookupDns(response.url, rules, {
+          txt,
+          privateAccess: fetched.privateAccess,
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
+        })
+      : undefined
   // The browser gets the same lockdown: a public page never opens private addresses to it.
   const rendering =
     options.render === undefined
@@ -472,7 +490,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(dns?.notice === 'dns-unchecked'
       ? [notice('dns-unchecked', { domain: dns.facts.domain })]
       : []),
-    ...(dns?.notice === 'dns-unavailable' ? [notice('dns-unavailable')] : []),
+    ...(dnsSkipped ? [notice('dns-unavailable')] : []),
     ...linkNotices(links, bot),
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
@@ -506,15 +524,27 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
 
 /**
  * Rules for a scan. Without rendering, those that need it are left out; with it, so are those
- * that read only engines the scan does not render in (Chromium alone reports used fonts).
- * Named by id, either kind is refused instead.
+ * that read only engines the scan does not render in (Chromium alone reports used fonts). Without
+ * a way to ask DNS (txtResolverFor), those that read DNS records are left out too. Named by id,
+ * any kind is refused instead.
  */
 function chooseRules(
   all: readonly Rule[],
   ids: readonly string[] | undefined,
   engines: readonly Engine[] | undefined,
-): { rules: Rule[]; renderSkipped: boolean; engineSkipped: Engine[] } {
-  const selected = selectRules(all, ids)
+  dnsAvailable = true,
+): { rules: Rule[]; renderSkipped: boolean; engineSkipped: Engine[]; dnsSkipped: boolean } {
+  const named = selectRules(all, ids)
+  const needDns = named.filter((rule) => rule.needs.includes('dns'))
+  if (!dnsAvailable && ids !== undefined && needDns.length > 0) {
+    throw new TypeError(
+      `These rules need DNS records, and this scan has no way to ask for them: ${needDns
+        .map((rule) => rule.id)
+        .join(', ')}`,
+    )
+  }
+  const dnsSkipped = !dnsAvailable && needDns.length > 0
+  const selected = dnsSkipped ? named.filter((rule) => !needDns.includes(rule)) : named
   const needRender = selected.filter((rule) => rule.needs.includes('render'))
   if (engines === undefined) {
     if (ids !== undefined && needRender.length > 0) {
@@ -526,6 +556,7 @@ function chooseRules(
       rules: selected.filter((rule) => !needRender.includes(rule)),
       renderSkipped: needRender.length > 0,
       engineSkipped: [],
+      dnsSkipped,
     }
   }
   const unread = needRender.filter(
@@ -545,6 +576,7 @@ function chooseRules(
     rules: selected.filter((rule) => !unread.includes(rule)),
     renderSkipped: false,
     engineSkipped,
+    dnsSkipped,
   }
 }
 

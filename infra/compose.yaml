@@ -138,6 +138,9 @@ services:
       ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
       ARABLYZER_ENGINES: ${ARABLYZER_ENGINES:-chromium,firefox,webkit}
       ARABLYZER_CRUX_KEY: ${ARABLYZER_CRUX_KEY:-}
+      # The scanner resolves no name itself, so the TXT lookups of its DNS rules (SPF, DMARC) are
+      # DNS over HTTPS, through the egress proxy like all its traffic; empty: Cloudflare's.
+      ARABLYZER_DOH_URL: ${ARABLYZER_DOH_URL:-}
       # The network sees the egress proxy alone, so WebKit may run (plan §13).
       ARABLYZER_NETWORK_ISOLATED: '1'
       # No shader cache kept from one scan to the next.

@@ -14,6 +14,8 @@ export interface BotFacts {
   readonly requestsPerLoad: number
   readonly mibPerLoad: number
   readonly viewport: { readonly width: number; readonly height: number }
+  /** The DNS-over-HTTPS resolver the hosted service asks unless it is configured with another. */
+  readonly dohUrl: string
 }
 
 export const BOT_FACTS = raw as BotFacts

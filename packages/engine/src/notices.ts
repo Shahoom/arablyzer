@@ -237,8 +237,8 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     en: '{count} of the page’s links to its own site could not be checked: no answer came in time, the connection failed, or the server asked for fewer requests (429), so they were not judged.',
   },
   'dns-unavailable': {
-    ar: 'لا يسأل هذا الخادم DNS عن السجلات بنفسه، فلم تعمل الفحوص التي تقرأ سجلات DNS للنطاق.',
-    en: 'This server does not look up DNS records itself, so the checks that read the domain’s DNS records did not run.',
+    ar: 'لا يملك هذا الفحص طريقة لسؤال DNS عن السجلات، فلم تعمل الفحوص التي تقرأ سجلات DNS للنطاق.',
+    en: 'This scan has no way to look up DNS records, so the checks that read the domain’s DNS records did not run.',
   },
 }
 

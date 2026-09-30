@@ -36,9 +36,9 @@ example.com.  TXT  "v=spf1 -all"
 ## How we detect
 
 1. We take the page's organizational domain from its name, as RFC 7489 (§3.2) defines it from the Public Suffix List: a page on `www.shop.example.com.sa` has the domain `example.com.sa`. SPF does not fall back to a parent domain, so a subdomain's own record, if it has one, is not read.
-2. We ask the DNS resolver the scanner uses for that domain's TXT records alone, and for no other type or name. A record split into several strings is read as one (RFC 7208, §3.3).
+2. We ask a DNS resolver for that domain's TXT records alone, and for no other type or name, as DNS over HTTPS (RFC 8484): Cloudflare's resolver, or the one the scanner is set to, through the same egress proxy as the rest of the scan's traffic. A scan that runs on a machine without an egress proxy asks that machine's DNS servers instead. A record split into several strings is read as one (RFC 7208, §3.3).
 3. The rule fails when no record starts with `v=spf1` followed by a space or the record's end, in any letter case (RFC 7208, §4.5), or when more than one does. A name that does not exist in DNS has no record.
-4. When no answer comes in time, the DNS server answers with an error, or the server that scans does not ask DNS itself, we do not judge: the report says the rule could not run.
+4. When no answer comes in time, or the DNS server answers with an error, we do not judge: the report says the rule could not run. A scan with no way to ask DNS leaves the rule out, and the report says so.
 5. We do not check what the record says after `v=spf1`, nor DKIM. Pages on an IP address, on a local name such as `localhost` or one that ends in `.test`, or on a private address are left out.
 
 ## References

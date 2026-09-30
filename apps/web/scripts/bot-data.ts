@@ -1,5 +1,10 @@
 import { BOT_TOKEN, VIEWPORT } from '@arablyzer/browser'
-import { DEFAULT_MAX_BYTES, DEFAULT_MAX_REDIRECTS, DEFAULT_MAX_REQUESTS } from '@arablyzer/egress'
+import {
+  DEFAULT_DOH_URL,
+  DEFAULT_MAX_BYTES,
+  DEFAULT_MAX_REDIRECTS,
+  DEFAULT_MAX_REQUESTS,
+} from '@arablyzer/egress'
 import { ROBOTS_MAX_BYTES, ROBOTS_MAX_REDIRECTS, USER_AGENT } from '@arablyzer/engine'
 import type { BotFacts } from '../src/lib/bot'
 
@@ -16,5 +21,6 @@ export function botFacts(): BotFacts {
     requestsPerLoad: DEFAULT_MAX_REQUESTS,
     mibPerLoad: DEFAULT_MAX_BYTES / (1024 * 1024),
     viewport: { width: VIEWPORT.width, height: VIEWPORT.height },
+    dohUrl: DEFAULT_DOH_URL,
   }
 }

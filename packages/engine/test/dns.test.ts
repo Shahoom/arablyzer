@@ -1,9 +1,16 @@
 import { collectPage } from '@arablyzer/collectors'
-import { createPolicy, DEFAULT_POLICY, type Resolver, type TxtAnswer } from '@arablyzer/egress'
+import {
+  createPolicy,
+  DEFAULT_POLICY,
+  type Resolver,
+  type TxtAnswer,
+  type TxtResolver,
+} from '@arablyzer/egress'
+import { serveDoh } from '@arablyzer/fixtures'
 import type { Rule } from '@arablyzer/rules'
 import { afterEach, describe, expect, it } from 'vitest'
-import { lookupDns } from '../src/dns'
-import { evaluatePage, scan } from '../src/index'
+import { lookupDns, txtResolverFor } from '../src/dns'
+import { evaluatePage, scan, USER_AGENT } from '../src/index'
 import { policyFor, resolverFor, schemaErrors, tempSite, testRule, type TempSite } from './helpers'
 
 // M2.3c: the rules that read DNS name the TXT records they read; the engine asks for those
@@ -27,42 +34,47 @@ function txtRule(id: string, txtName: (domain: string) => string): Rule<'found'>
 const spfLike = txtRule('apex-rule', (domain) => domain)
 const dmarcLike = txtRule('dmarc-rule', (domain) => `_dmarc.${domain}`)
 
-type LoggedResolver = Resolver & { readonly asked: string[] }
+interface LoggedTxt {
+  readonly asked: string[]
+  readonly txt: TxtResolver
+}
 
-/** A resolver that answers every TXT lookup with `answer`, and logs every name asked of it. */
-function loggedResolver(answer: (name: string) => Promise<TxtAnswer>): LoggedResolver {
+/** A TXT resolver that answers every lookup with `answer`, and logs every name asked of it. */
+function loggedTxt(answer: (name: string) => Promise<TxtAnswer>): LoggedTxt {
   const asked: string[] = []
-  return Object.assign(
-    (hostname: string) => {
-      asked.push(`${hostname} A/AAAA`)
-      return Promise.resolve([])
+  return {
+    asked,
+    txt: (name) => {
+      asked.push(`${name} TXT`)
+      return answer(name)
     },
-    {
-      asked,
-      txt: (name: string) => {
-        asked.push(`${name} TXT`)
-        return answer(name)
-      },
-    },
-  )
+  }
+}
+
+/** A resolver with TXT lookups that also logs the A and AAAA names it is asked. */
+function loggedResolver(answer: (name: string) => Promise<TxtAnswer>): Resolver & LoggedTxt {
+  const logged = loggedTxt(answer)
+  return Object.assign((hostname: string) => {
+    logged.asked.push(`${hostname} A/AAAA`)
+    return Promise.resolve([])
+  }, logged)
 }
 
 const found = (records: string[]) => () => Promise.resolve<TxtAnswer>({ outcome: 'found', records })
 
 describe('lookupDns', () => {
-  const context = (resolver: Resolver, overrides = {}) => ({
-    policy: DEFAULT_POLICY,
-    resolver,
+  const context = (txt: TxtResolver, overrides = {}) => ({
+    txt,
     privateAccess: false,
     ...overrides,
   })
 
   it("asks for each name the rules read, TXT alone, under the page's organizational domain", async () => {
-    const resolver = loggedResolver(found(['v=spf1 -all']))
+    const resolver = loggedTxt(found(['v=spf1 -all']))
     const lookup = await lookupDns(
       'https://www.shop.example.com.sa/ar/',
       [spfLike, dmarcLike, spfLike],
-      context(resolver),
+      context(resolver.txt),
     )
     expect(resolver.asked).toEqual(['example.com.sa TXT', '_dmarc.example.com.sa TXT'])
     expect(lookup).toEqual({
@@ -78,9 +90,9 @@ describe('lookupDns', () => {
   })
 
   it('asks nothing when no rule reads DNS, or the page has no public name', async () => {
-    const resolver = loggedResolver(found([]))
+    const resolver = loggedTxt(found([]))
     const html = testRule({ detect: () => [] })
-    expect(await lookupDns('https://shop.example/', [html], context(resolver))).toBeUndefined()
+    expect(await lookupDns('https://shop.example/', [html], context(resolver.txt))).toBeUndefined()
     for (const url of [
       'http://127.0.0.1:8080/',
       'http://[::1]/',
@@ -88,45 +100,27 @@ describe('lookupDns', () => {
       'http://shop.test/',
       'https://github.io/',
     ]) {
-      expect(await lookupDns(url, [spfLike], context(resolver)), url).toBeUndefined()
+      expect(await lookupDns(url, [spfLike], context(resolver.txt)), url).toBeUndefined()
     }
     // A public name on a private address, under --allow-private: a local build.
     expect(
       await lookupDns(
         'https://shop.example/',
         [spfLike],
-        context(resolver, { privateAccess: true }),
+        context(resolver.txt, { privateAccess: true }),
       ),
     ).toBeUndefined()
     expect(resolver.asked).toEqual([])
   })
 
-  it('asks nothing behind an egress proxy, which resolves every name, and says so', async () => {
-    const resolver = loggedResolver(found(['v=spf1 -all']))
-    const behind = context(resolver, { policy: createPolicy({ upstream: 'http://127.0.0.1:9' }) })
-    expect(await lookupDns('https://shop.example/', [spfLike], behind)).toEqual({
-      facts: {
-        domain: 'shop.example',
-        txt: [{ name: 'shop.example', outcome: 'failed', records: [] }],
-      },
-      notice: 'dns-unavailable',
-    })
-    expect(resolver.asked).toEqual([])
-    // A resolver without TXT lookups can check nothing either.
-    const plain: Resolver = () => Promise.resolve([])
-    expect(await lookupDns('https://shop.example/', [spfLike], context(plain))).toMatchObject({
-      notice: 'dns-unavailable',
-    })
-  })
-
   it('says a lookup got no answer, whether it failed, threw or ran out of time', async () => {
-    const failing = loggedResolver((name) =>
+    const failing = loggedTxt((name) =>
       name.startsWith('_dmarc.')
         ? Promise.reject(new Error('a resolver that throws'))
         : Promise.resolve({ outcome: 'failed', records: [] }),
     )
     expect(
-      await lookupDns('https://shop.example/', [spfLike, dmarcLike], context(failing)),
+      await lookupDns('https://shop.example/', [spfLike, dmarcLike], context(failing.txt)),
     ).toEqual({
       facts: {
         domain: 'shop.example',
@@ -138,18 +132,16 @@ describe('lookupDns', () => {
       notice: 'dns-unchecked',
     })
     // A resolver that answers only when its signal ends the lookup, as c-ares's does.
-    const slow: Resolver = Object.assign(() => Promise.resolve([]), {
-      txt: (_name: string, signal: AbortSignal) =>
-        new Promise<TxtAnswer>((resolve) => {
-          signal.addEventListener(
-            'abort',
-            () => {
-              resolve({ outcome: 'failed', records: [] })
-            },
-            { once: true },
-          )
-        }),
-    })
+    const slow: TxtResolver = (_name, signal) =>
+      new Promise<TxtAnswer>((resolve) => {
+        signal.addEventListener(
+          'abort',
+          () => {
+            resolve({ outcome: 'failed', records: [] })
+          },
+          { once: true },
+        )
+      })
     const started = Date.now()
     const cancelled = await lookupDns(
       'https://shop.example/',
@@ -158,6 +150,65 @@ describe('lookupDns', () => {
     )
     expect(cancelled?.notice).toBe('dns-unchecked')
     expect(Date.now() - started).toBeLessThan(2_000)
+  })
+})
+
+// M2.3c review: behind the egress proxy a scan resolves no name of its own, so its TXT lookups
+// went nowhere, every free audit was partial, and email-security could never answer. They are now
+// asked over HTTPS (RFC 8484), through the proxy like all scan traffic.
+describe('txtResolverFor', () => {
+  const plain: Resolver = () => Promise.resolve([])
+  const never = new AbortController().signal
+
+  it('asks over HTTPS when a DoH resolver is named, under the scan’s policy, TXT alone', async () => {
+    const doh = await serveDoh({ 'shop.example': { txt: ['v=spf1 -all'] } })
+    try {
+      const resolver = loggedResolver(found(['from the scan’s own resolver']))
+      const txt = txtResolverFor({
+        policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: doh.port }] }),
+        resolver,
+        userAgent: USER_AGENT,
+        dohUrl: doh.url,
+      })
+      expect(await txt?.('shop.example', never)).toEqual({
+        outcome: 'found',
+        records: ['v=spf1 -all'],
+      })
+      expect(doh.questions).toEqual(['shop.example TXT'])
+      expect(doh.requests.map((request) => request.userAgent)).toEqual([USER_AGENT])
+      expect(resolver.asked).toEqual([])
+    } finally {
+      await doh.close()
+    }
+  })
+
+  it('asks over HTTPS behind an egress proxy too, which is what it is for', () => {
+    const behind = createPolicy({ upstream: 'http://127.0.0.1:9' })
+    const resolver = loggedResolver(found([]))
+    const txt = txtResolverFor({
+      policy: behind,
+      resolver,
+      userAgent: USER_AGENT,
+      dohUrl: 'https://cloudflare-dns.com/dns-query',
+    })
+    expect(txt).toBeTypeOf('function')
+    expect(txt).not.toBe(resolver.txt)
+  })
+
+  it('asks the scan’s own resolver where the process asks DNS itself', () => {
+    const resolver = loggedResolver(found([]))
+    expect(txtResolverFor({ policy: DEFAULT_POLICY, resolver, userAgent: USER_AGENT })).toBe(
+      resolver.txt,
+    )
+  })
+
+  it('has no way behind an egress proxy without a DoH resolver, or with a resolver without TXT lookups', () => {
+    const behind = createPolicy({ upstream: 'http://127.0.0.1:9' })
+    const resolver = loggedResolver(found([]))
+    expect(txtResolverFor({ policy: behind, resolver, userAgent: USER_AGENT })).toBeUndefined()
+    expect(
+      txtResolverFor({ policy: DEFAULT_POLICY, resolver: plain, userAgent: USER_AGENT }),
+    ).toBeUndefined()
   })
 })
 
@@ -248,6 +299,132 @@ describe('scan: DNS records', () => {
     expect(report.scan.status).toBe('partial')
     expect(report.scan.notices.map((notice) => notice.code)).toEqual(['dns-unchecked'])
     expect(report.scan.notices[0]?.message.en).toContain('shop.example')
+  })
+
+  // The hosted scanner's case: a policy with an egress proxy, and a resolver of no use for TXT.
+  it('asks a DoH resolver, and the scan’s own none, when the scan is given one', async () => {
+    site = await tempSite({
+      'index.html': PAGE,
+      'site.json': JSON.stringify({
+        host: 'www.shop.example',
+        aliases: ['shop.example'],
+        txt: { 'shop.example': ['v=spf1 include:_spf.example.net ~all'] },
+      }),
+    })
+    const files = site
+    const doh = await serveDoh((name) => {
+      const answer = files.txt(name)
+      return { txt: answer.records }
+    })
+    try {
+      // No TXT lookup of its own: this resolver could not answer the rules at all.
+      const names: string[] = []
+      const fixture = resolverFor(site)
+      const resolver: Resolver = (hostname, signal) => {
+        names.push(hostname)
+        return fixture(hostname, signal)
+      }
+      const report = await scan(site.url('/'), {
+        rules: [spfLike, dmarcLike],
+        policy: createPolicy({
+          allowTargets: [
+            { address: '127.0.0.1', port: site.port },
+            { address: '127.0.0.1', port: doh.port },
+          ],
+        }),
+        resolver,
+        dohUrl: doh.url,
+      })
+      expect(schemaErrors(report)).toBe('')
+      expect(report.scan).toMatchObject({ status: 'complete', notices: [] })
+      expect(report.rules.map((rule) => [rule.id, rule.status])).toEqual([
+        ['apex-rule', 'fail'],
+        ['dmarc-rule', 'pass'],
+      ])
+      expect(report.findings.map((finding) => finding.evidence.values)).toEqual([
+        { what: 'v=spf1 include:_spf.example.net ~all' },
+      ])
+      expect([...doh.questions].sort()).toEqual(['_dmarc.shop.example TXT', 'shop.example TXT'])
+      for (const request of doh.requests) {
+        expect(request.method).toBe('GET')
+        expect(request.userAgent).toBe(USER_AGENT)
+      }
+      // The names the scan resolves itself are the page's alone, never the resolver's.
+      expect(new Set(names)).toEqual(new Set(['www.shop.example']))
+    } finally {
+      await doh.close()
+    }
+  })
+
+  it('reports an error, never a result, when the DoH resolver gives no answer', async () => {
+    site = await tempSite({
+      'index.html': PAGE,
+      'site.json': JSON.stringify({ host: 'shop.example' }),
+    })
+    const doh = await serveDoh({}, { status: 503 })
+    try {
+      const report = await scan(site.url('/'), {
+        rules: [spfLike, dmarcLike],
+        policy: createPolicy({
+          allowTargets: [
+            { address: '127.0.0.1', port: site.port },
+            { address: '127.0.0.1', port: doh.port },
+          ],
+        }),
+        resolver: resolverFor(site),
+        dohUrl: doh.url,
+      })
+      expect(report.rules.map((rule) => [rule.id, rule.status, rule.error])).toEqual([
+        ['apex-rule', 'error', 'dns-unchecked'],
+        ['dmarc-rule', 'error', 'dns-unchecked'],
+      ])
+      expect(report.scan.status).toBe('partial')
+      expect(report.scan.notices.map((notice) => notice.code)).toEqual(['dns-unchecked'])
+    } finally {
+      await doh.close()
+    }
+  })
+
+  // M2.3c review: a scan with no way to ask DNS answered every DNS rule with an error, so every
+  // free audit came out partial. It leaves the rules out instead, as it does rules that need a
+  // browser when it renders none.
+  it('leaves the DNS rules out, with a notice, when it has no way to ask DNS', async () => {
+    site = await tempSite({
+      'index.html': PAGE,
+      'site.json': JSON.stringify({ host: 'shop.example' }),
+    })
+    const fixture = resolverFor(site)
+    // A resolver of A and AAAA alone, and no DoH resolver.
+    const plain: Resolver = (hostname, signal) => fixture(hostname, signal)
+    const other = testRule({ id: 'other-rule', detect: () => [] })
+    const report = await scan(site.url('/'), {
+      rules: [spfLike, dmarcLike, other],
+      policy: policyFor(site),
+      resolver: plain,
+    })
+    expect(schemaErrors(report)).toBe('')
+    expect(report.rules.map((rule) => [rule.id, rule.status])).toEqual([['other-rule', 'pass']])
+    expect(report.scan.status).toBe('complete')
+    expect(report.scan.notices.map((notice) => notice.code)).toEqual(['dns-unavailable'])
+    expect(report.scan.notices[0]?.message.en).toBe(
+      'This scan has no way to look up DNS records, so the checks that read the domain’s DNS records did not run.',
+    )
+    // Asked for by name, such a rule is refused, as one that needs a browser is.
+    await expect(
+      scan(site.url('/'), {
+        rules: [spfLike, other],
+        ruleIds: ['apex-rule'],
+        policy: policyFor(site),
+        resolver: plain,
+      }),
+    ).rejects.toThrow(/need DNS records.*apex-rule/)
+    // A scan that needs none says nothing of it.
+    const quiet = await scan(site.url('/'), {
+      rules: [other],
+      policy: policyFor(site),
+      resolver: plain,
+    })
+    expect(quiet.scan.notices).toEqual([])
   })
 
   it('asks nothing for a page on an address, and its rules do not apply', async () => {
