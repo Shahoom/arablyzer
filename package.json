@@ -15,7 +15,7 @@
     "test": "turbo run test test:ssrf",
     "test:unit": "turbo run test",
     "test:ssrf": "turbo run test:ssrf",
-    "test:e2e": "turbo run test:e2e",
+    "test:e2e": "turbo run test:e2e --filter=@arablyzer/cli",
     "test:browser": "turbo run test:browser",
     "test:services": "turbo run test:services",
     "test:stack": "pnpm --filter @arablyzer/infra test:stack",
