@@ -1,6 +1,6 @@
 import type { Report } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
-import { MemoryScanEvents, MemoryScanStore } from '../src/index'
+import { MemoryInFlight, MemoryScanEvents, MemoryScanStore } from '../src/index'
 
 const NOW = new Date('2026-09-28T12:00:00.000Z')
 const minutes = (count: number) => new Date(NOW.getTime() + count * 60_000)
@@ -36,6 +36,144 @@ describe('MemoryScanStore', () => {
     expect((await store.get('old'))?.state).toBe('failed')
     expect((await store.get('recent'))?.state).toBe('running')
     expect((await store.get('queued'))?.state).toBe('queued')
+  })
+})
+
+describe('MemoryScanStore.delete', () => {
+  const report = { scan: { status: 'complete' } } as unknown as Report
+
+  it('deletes a scan and its report for the hash it was created with, and for no other', async () => {
+    const store = new MemoryScanStore()
+    await store.create({
+      id: 'a',
+      url: 'https://example.com/',
+      createdAt: NOW,
+      deleteTokenHash: 'hash-a',
+    })
+    await store.start('a', NOW)
+    await store.finish('a', report, NOW)
+    expect(await store.delete('a', 'hash-b')).toBe('forbidden')
+    expect(await store.delete('a', '')).toBe('forbidden')
+    expect(await store.get('a')).toMatchObject({ state: 'complete', report })
+    expect(await store.delete('a', 'hash-a')).toBe('deleted')
+    expect(await store.get('a')).toBeNull()
+    expect(await store.delete('a', 'hash-a')).toBe('missing')
+  })
+
+  it('deletes a scan in any state, and one with no hash never, by any', async () => {
+    const store = new MemoryScanStore()
+    await store.create({
+      id: 'queued',
+      url: 'https://example.com/',
+      createdAt: NOW,
+      deleteTokenHash: 'h',
+    })
+    await store.create({
+      id: 'running',
+      url: 'https://example.com/',
+      createdAt: NOW,
+      deleteTokenHash: 'h',
+    })
+    await store.start('running', NOW)
+    await store.create({ id: 'old', url: 'https://example.com/', createdAt: NOW })
+    expect(await store.delete('queued', 'h')).toBe('deleted')
+    expect(await store.delete('running', 'h')).toBe('deleted')
+    expect(await store.delete('old', 'h')).toBe('forbidden')
+    expect(await store.delete('old', '')).toBe('forbidden')
+    expect(await store.get('old')).not.toBeNull()
+    expect(await store.delete('nobody', 'h')).toBe('missing')
+  })
+
+  it('never gives the hash back with the scan', async () => {
+    const store = new MemoryScanStore()
+    await store.create({
+      id: 'a',
+      url: 'https://example.com/',
+      createdAt: NOW,
+      deleteTokenHash: 'hash-a',
+    })
+    expect(JSON.stringify(await store.get('a'))).not.toContain('hash-a')
+  })
+})
+
+describe('MemoryScanStore.deleteOlderThan', () => {
+  it('deletes the scans created before a time, whatever their state, and their reports', async () => {
+    const store = new MemoryScanStore()
+    const report = { scan: { status: 'complete' } } as unknown as Report
+    for (const [id, age] of [
+      ['ancient', 100],
+      ['old', 31],
+      ['edge', 30],
+      ['recent', 1],
+      ['new', 0],
+    ] as const) {
+      await store.create({ id, url: 'https://example.com/', createdAt: minutes(-age * 24 * 60) })
+    }
+    await store.start('ancient', NOW)
+    await store.finish('ancient', report, NOW)
+    await store.start('old', NOW)
+    expect(await store.deleteOlderThan(minutes(-30 * 24 * 60))).toBe(2)
+    expect(await store.get('ancient')).toBeNull()
+    expect(await store.get('old')).toBeNull()
+    // "Older than" is strictly older: a scan created at the cutoff is kept.
+    for (const id of ['edge', 'recent', 'new']) expect(await store.get(id), id).not.toBeNull()
+    expect(await store.deleteOlderThan(minutes(-30 * 24 * 60))).toBe(0)
+  })
+})
+
+describe('MemoryScanStore.states', () => {
+  it('says where each scan it has is, and knows none it has not', async () => {
+    const store = new MemoryScanStore()
+    for (const id of ['a', 'b', 'c']) {
+      await store.create({ id, url: 'https://example.com/', createdAt: NOW })
+    }
+    await store.start('b', NOW)
+    await store.fail('c', NOW)
+    expect(await store.states(['a', 'b', 'c', 'unknown'])).toEqual(
+      new Map([
+        ['a', 'queued'],
+        ['b', 'running'],
+        ['c', 'failed'],
+      ]),
+    )
+    expect(await store.states([])).toEqual(new Map())
+  })
+})
+
+describe('MemoryInFlight', () => {
+  const at = NOW.getTime()
+
+  it('holds a visitor to their cap, and gives places back', async () => {
+    const places = new MemoryInFlight()
+    expect(await places.hold('v', 'one', 2, at)).toBe(true)
+    expect(await places.hold('v', 'two', 2, at + 1)).toBe(true)
+    expect(await places.hold('v', 'three', 2, at + 2)).toBe(false)
+    expect(await places.held('v')).toEqual([
+      { scanId: 'one', at },
+      { scanId: 'two', at: at + 1 },
+    ])
+    await places.release('v', ['one', 'never-held'])
+    expect(await places.hold('v', 'three', 2, at + 3)).toBe(true)
+    expect((await places.held('v')).map((place) => place.scanId)).toEqual(['two', 'three'])
+  })
+
+  it('keeps visitors apart, and counts one scan once', async () => {
+    const places = new MemoryInFlight()
+    expect(await places.hold('a', 'one', 1, at)).toBe(true)
+    expect(await places.hold('a', 'one', 1, at)).toBe(true)
+    expect(await places.hold('a', 'two', 1, at)).toBe(false)
+    expect(await places.hold('b', 'two', 1, at)).toBe(true)
+    expect(await places.held('nobody')).toEqual([])
+  })
+
+  it('forgets a place held longer than a scan can take, and a visitor with none', async () => {
+    const places = new MemoryInFlight()
+    const day = 24 * 60 * 60 * 1000
+    expect(await places.hold('v', 'old', 1, at)).toBe(true)
+    expect(await places.hold('v', 'new', 1, at + 1000)).toBe(false)
+    expect(await places.hold('v', 'new', 1, at + day + 1)).toBe(true)
+    await places.release('v', ['new'])
+    expect(places.size).toBe(0)
   })
 })
 

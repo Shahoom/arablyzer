@@ -21,6 +21,13 @@ services:
     networks:
       testnet: {}
 
+  # Cloudflare's Turnstile test keys pass every token, so the API refuses them in production, and
+  # compose.yaml never passes the variable on: this run alone takes them, its site being a
+  # test's, and nothing that anyone reaches (apps/api config.ts).
+  api:
+    environment:
+      ARABLYZER_ALLOW_TURNSTILE_TEST_KEYS: '1'
+
 networks:
   testnet:
     internal: true

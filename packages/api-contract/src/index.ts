@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  DELETE_TOKEN_PATTERN,
   MAX_TOOL_SLUG_LENGTH,
   MAX_URL_LENGTH,
   SCAN_ERROR_CODES,
@@ -43,6 +44,7 @@ export const CreateScanRequest = z.strictObject({
 
 export const CreateScanResponse = z.strictObject({
   id: z.string().regex(SCAN_ID_PATTERN),
+  deleteToken: z.string().regex(DELETE_TOKEN_PATTERN),
 }) satisfies z.ZodType<CreateScanResponseShape>
 
 export const ScanErrorResponse = z.strictObject({
@@ -62,6 +64,8 @@ export const ScanEvent = z.discriminatedUnion('type', [
     status,
     contentType: z.string().max(256).nullable(),
     error: z.string().max(64).nullable(),
+    // A DNS name is at most 253 characters (RFC 1035).
+    host: z.string().min(1).max(253).optional(),
   }),
   z.strictObject({
     type: z.literal('robots'),

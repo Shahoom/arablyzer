@@ -5,6 +5,8 @@
  * token is empty, which the API accepts only where TURNSTILE_SECRET is unset.
  */
 
+import { TURNSTILE_ACTION } from '@arablyzer/api-contract/codes'
+
 const SCRIPT = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
 
 interface TurnstileApi {
@@ -72,6 +74,9 @@ export function challenge(
     if (element === null) throw new Error('No place for Turnstile')
     widget ??= api.render(element, {
       sitekey: siteKey,
+      // Cloudflare returns it with its answer, and the API refuses a token made for another
+      // widget of this site key (issue #30).
+      action: TURNSTILE_ACTION,
       language: lang,
       execution: 'execute',
       appearance: 'interaction-only',

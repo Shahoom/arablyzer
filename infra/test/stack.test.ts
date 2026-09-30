@@ -12,6 +12,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // for a moment, and starts it again.
 
 const SITE = process.env.ARABLYZER_STACK_URL ?? 'http://127.0.0.1:8080'
+/**
+ * The origin the API holds a scan request to: ARABLYZER_SITE of the stack's settings, which CI
+ * sets to the host Turnstile's test keys answer with (infra/.env.example). A browser sends it
+ * with every POST; this test says which the stack is built for.
+ */
+const ORIGIN = process.env.ARABLYZER_STACK_ORIGIN ?? 'https://example.com'
 /** Golden site 04, on the test network's public-looking subnet (compose.e2e.yaml). */
 const FIXTURE = 'http://93.184.215.50/'
 /** What Cloudflare's test site keys give, and its test secret accepts (infra/.env.example). */
@@ -181,7 +187,7 @@ async function scanEvents(id: string): Promise<{ type: string }[]> {
 function postScan(url: string): Promise<Response> {
   return fetch(`${SITE}/api/scans`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', origin: ORIGIN },
     body: JSON.stringify({ url, turnstileToken: DUMMY_TOKEN }),
   })
 }
@@ -421,7 +427,7 @@ describe('a scan through the whole stack', () => {
   it("runs a tool page's scan with the tool's rules alone, and no browser", async () => {
     const created = await fetch(`${SITE}/api/scans`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', origin: ORIGIN },
       body: JSON.stringify({ url: FIXTURE, turnstileToken: DUMMY_TOKEN, tool: 'rtl-check' }),
     })
     expect(created.status).toBe(202)

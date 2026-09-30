@@ -5,18 +5,35 @@
  */
 
 export interface Window {
-  /** Scans allowed in the window. */
+  /** Scans allowed in the window (for `attempts`, requests). */
   readonly scans: number
   readonly seconds: number
 }
 
 export interface ScanLimits {
-  /** One connection's scans: a token bucket that refills evenly over the window. */
+  /**
+   * One visitor's scans: a token bucket that refills evenly over the window. A visitor is an IPv4
+   * address, or an IPv6 address's /48 (apps/api client.ts).
+   */
   readonly perConnection: Window
+  /**
+   * The scans of one IPv6 network together, its /32, which holds 65,536 /48s: a provider's
+   * allocation cannot multiply a visitor's limit by spreading over them. A bucket like the
+   * visitor's, and larger.
+   */
+  readonly perNetwork: Window
+  /**
+   * The requests one visitor makes to start a scan, whatever comes of them, counted before
+   * Turnstile is asked: a request past it is refused without a call to Cloudflare. It has room
+   * for the requests that fail, so it is larger than `perConnection`.
+   */
+  readonly attempts: Window
   /** Scans of one host by everyone together, so no site is flooded through Arablyzer. */
   readonly perHost: Window
   /** Scans waiting in the queue; past it, new ones are refused as unavailable. */
   readonly queue: number
+  /** The scans one visitor has queued or running at once; past it, a new one is refused. */
+  readonly inFlight: number
 }
 
 /**
@@ -25,25 +42,36 @@ export interface ScanLimits {
  */
 export const DEVELOPMENT_LIMITS: ScanLimits = Object.freeze({
   perConnection: Object.freeze({ scans: 10, seconds: 3600 }),
+  perNetwork: Object.freeze({ scans: 100, seconds: 3600 }),
+  attempts: Object.freeze({ scans: 60, seconds: 3600 }),
   perHost: Object.freeze({ scans: 20, seconds: 3600 }),
   queue: 50,
+  inFlight: 2,
 })
 
 const VARIABLES = {
   connectionScans: 'ARABLYZER_LIMIT_CONNECTION_SCANS',
   connectionSeconds: 'ARABLYZER_LIMIT_CONNECTION_SECONDS',
+  networkScans: 'ARABLYZER_LIMIT_NETWORK_SCANS',
+  networkSeconds: 'ARABLYZER_LIMIT_NETWORK_SECONDS',
+  attemptRequests: 'ARABLYZER_LIMIT_ATTEMPT_REQUESTS',
+  attemptSeconds: 'ARABLYZER_LIMIT_ATTEMPT_SECONDS',
   hostScans: 'ARABLYZER_LIMIT_HOST_SCANS',
   hostSeconds: 'ARABLYZER_LIMIT_HOST_SECONDS',
   queue: 'ARABLYZER_LIMIT_QUEUE',
+  inFlight: 'ARABLYZER_LIMIT_INFLIGHT',
 } as const
 
+type Env = Readonly<Record<string, string | undefined>>
+
 /**
- * The limits from the environment. In production every variable must be set; elsewhere, those
- * not set keep their development values.
+ * A reader of the limits' numbers: a whole number of at least 1 from the variable, the
+ * development value where it is not set outside production, and a refusal to start where it is
+ * not set in production.
  */
-export function limitsFrom(env: Readonly<Record<string, string | undefined>>): ScanLimits {
+function reader(env: Env): (name: string, fallback: number) => number {
   const production = env.NODE_ENV === 'production'
-  const read = (name: string, fallback: number): number => {
+  return (name, fallback) => {
     const raw = env[name]?.trim()
     if (raw === undefined || raw === '') {
       if (production) throw new Error(`${name} must be set in production (Phase 2 design §7.2)`)
@@ -54,16 +82,61 @@ export function limitsFrom(env: Readonly<Record<string, string | undefined>>): S
     }
     return Number(raw)
   }
+}
+
+/**
+ * The per-host limit alone, for the worker, which counts the site a scan ends at and needs none of
+ * the others (apps/worker). The same numbers as `limitsFrom(env).perHost`.
+ */
+export function hostLimitFrom(env: Env): Window {
+  const read = reader(env)
+  const d = DEVELOPMENT_LIMITS
+  return Object.freeze({
+    scans: read(VARIABLES.hostScans, d.perHost.scans),
+    seconds: read(VARIABLES.hostSeconds, d.perHost.seconds),
+  })
+}
+
+/**
+ * The limits from the environment. In production every variable must be set; elsewhere, those
+ * not set keep their development values.
+ */
+export function limitsFrom(env: Env): ScanLimits {
+  const read = reader(env)
   const d = DEVELOPMENT_LIMITS
   return Object.freeze({
     perConnection: Object.freeze({
       scans: read(VARIABLES.connectionScans, d.perConnection.scans),
       seconds: read(VARIABLES.connectionSeconds, d.perConnection.seconds),
     }),
-    perHost: Object.freeze({
-      scans: read(VARIABLES.hostScans, d.perHost.scans),
-      seconds: read(VARIABLES.hostSeconds, d.perHost.seconds),
+    perNetwork: Object.freeze({
+      scans: read(VARIABLES.networkScans, d.perNetwork.scans),
+      seconds: read(VARIABLES.networkSeconds, d.perNetwork.seconds),
     }),
+    attempts: Object.freeze({
+      scans: read(VARIABLES.attemptRequests, d.attempts.scans),
+      seconds: read(VARIABLES.attemptSeconds, d.attempts.seconds),
+    }),
+    perHost: hostLimitFrom(env),
     queue: read(VARIABLES.queue, d.queue),
+    inFlight: read(VARIABLES.inFlight, d.inFlight),
   })
+}
+
+/** How long reports and the scans they belong to are kept, in days: the owner's number. */
+export const RETENTION_VARIABLE = 'ARABLYZER_REPORT_RETENTION_DAYS'
+
+/**
+ * The days a report is kept, or null where the variable is not set, which means it is kept
+ * whatever its age: there is no default number, not even in production, for the number is the
+ * owner's decision (issue #33, Phase 2 design §7.3). Set to anything but a whole number of days,
+ * it refuses to start, rather than keep or delete by a guess.
+ */
+export function retentionDaysFrom(env: Env): number | null {
+  const raw = env[RETENTION_VARIABLE]?.trim()
+  if (raw === undefined || raw === '') return null
+  if (!/^\d+$/.test(raw) || Number(raw) < 1 || !Number.isSafeInteger(Number(raw))) {
+    throw new Error(`${RETENTION_VARIABLE} must be a whole number of days, at least 1, not ${raw}`)
+  }
+  return Number(raw)
 }

@@ -12,6 +12,12 @@ export interface ScanFormStrings {
   readonly submitting: string
   /** Shown when the page runs without JavaScript: Turnstile needs it. */
   readonly noscript: string
+  /**
+   * Under the field (M5, issue #33): the address is kept as it is sent, with its query string,
+   * and its report opens by its link alone, so it should carry no secret. It states no number:
+   * how long a report is kept is the owner's decision, and the words must match the code.
+   */
+  readonly queryNote: string
   readonly errors: Readonly<Record<ScanErrorCode | FormProblem, string>>
   /** After rate-limited: when the visitor may scan again. */
   readonly retryAfter: (seconds: number) => string
@@ -27,6 +33,8 @@ export const SCAN_FORM: Copy<ScanFormStrings> = {
     submit: 'افحص الصفحة',
     submitting: 'نبدأ الفحص…',
     noscript: 'الفحص يحتاج JavaScript: فعّله في متصفحك ثم أعد المحاولة.',
+    queryNote:
+      'نحفظ العنوان كما ترسله، بما فيه ما بعد علامة الاستفهام، ويظهر في تقريره. يفتح التقرير كل من يملك رابطه، فلا تضع في العنوان مفاتيح أو رموز دخول أو بيانات شخصية.',
     errors: {
       empty: 'اكتب رابط الصفحة أولاً.',
       network: 'لم نصل إلى خدمة الفحص. تأكد من اتصالك وأعد المحاولة.',
@@ -51,6 +59,8 @@ export const SCAN_FORM: Copy<ScanFormStrings> = {
     submit: 'Check page',
     submitting: 'Starting the scan…',
     noscript: 'The scan needs JavaScript: turn it on in your browser and try again.',
+    queryNote:
+      'We keep the address exactly as you send it, including anything after a “?”, and its report shows it. Anyone who has the report’s link can open it, so leave out tokens, keys and personal data.',
     errors: {
       empty: 'Enter the page URL first.',
       network: 'We could not reach the scan service. Check your connection and try again.',

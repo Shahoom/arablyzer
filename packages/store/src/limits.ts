@@ -14,6 +14,8 @@ export interface RateLimiter {
 interface Bucket {
   tokens: number
   updated: number
+  /** The window the bucket was taken with: buckets of several windows share one limiter. */
+  window: Window
 }
 
 /** In memory, for tests and local development; one process only. */
@@ -22,10 +24,11 @@ export class MemoryRateLimiter implements RateLimiter {
 
   take(key: string, window: Window, now: number): Promise<Taken> {
     const rate = window.scans / (window.seconds * 1000)
-    const bucket = this.#buckets.get(key) ?? { tokens: window.scans, updated: now }
+    const bucket = this.#buckets.get(key) ?? { tokens: window.scans, updated: now, window }
     bucket.tokens = Math.min(window.scans, bucket.tokens + (now - bucket.updated) * rate)
     bucket.updated = now
-    this.#forgetFull(now, window)
+    bucket.window = window
+    this.#forgetFull(now)
     if (bucket.tokens >= 1) {
       bucket.tokens -= 1
       this.#buckets.set(key, bucket)
@@ -35,11 +38,12 @@ export class MemoryRateLimiter implements RateLimiter {
     return Promise.resolve({ ok: false, retryAfterSeconds: secondsUntilOne(bucket.tokens, window) })
   }
 
-  /** Buckets that have refilled hold nothing worth keeping. */
-  #forgetFull(now: number, window: Window): void {
-    const rate = window.scans / (window.seconds * 1000)
+  /** Buckets that have refilled hold nothing worth keeping: each is judged by its own window. */
+  #forgetFull(now: number): void {
     for (const [key, bucket] of this.#buckets) {
-      if (bucket.tokens + (now - bucket.updated) * rate >= window.scans) this.#buckets.delete(key)
+      const { scans, seconds } = bucket.window
+      const rate = scans / (seconds * 1000)
+      if (bucket.tokens + (now - bucket.updated) * rate >= scans) this.#buckets.delete(key)
     }
   }
 

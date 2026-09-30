@@ -1,6 +1,7 @@
 import { ScanEvent } from '@arablyzer/api-contract'
 import type { Window } from '@arablyzer/plans'
 import type { Redis } from 'ioredis'
+import { IN_FLIGHT_TTL_MS, type InFlight, type Place } from './in-flight'
 import { secondsUntilOne, type RateLimiter, type Taken } from './limits'
 import type { ScanEvents, StoredEvent } from './types'
 
@@ -161,3 +162,59 @@ export class ValkeyRateLimiter implements RateLimiter {
       : { ok: false, retryAfterSeconds: secondsUntilOne(Number(tokens), window) }
   }
 }
+
+/**
+ * A place in one step on the server, so two API processes cannot both take a visitor's last one.
+ * The places are a sorted set of scan IDs scored by when each was taken; those older than a place
+ * is kept are dropped first, and the set expires with the last of them. A scan that holds a place
+ * already holds it still. Returns 1 for a place held, 0 for a visitor at the cap.
+ */
+const HOLD = `
+local cap = tonumber(ARGV[1])
+local now = tonumber(ARGV[3])
+local ttl = tonumber(ARGV[4])
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', '(' .. string.format('%.0f', now - ttl))
+if redis.call('ZSCORE', KEYS[1], ARGV[2]) then return 1 end
+if redis.call('ZCARD', KEYS[1]) >= cap then return 0 end
+redis.call('ZADD', KEYS[1], ARGV[3], ARGV[2])
+redis.call('PEXPIRE', KEYS[1], ttl)
+return 1
+`
+
+/** The scans a visitor has queued or running, in Valkey (packages/store in-flight.ts). */
+export class ValkeyInFlight implements InFlight {
+  readonly #redis: Redis
+
+  constructor(redis: Redis) {
+    this.#redis = redis
+  }
+
+  async held(visitor: string): Promise<readonly Place[]> {
+    const reply = await this.#redis.zrange(inFlightKey(visitor), 0, -1, 'WITHSCORES')
+    const places: Place[] = []
+    for (let i = 0; i + 1 < reply.length; i += 2) {
+      places.push({ scanId: reply[i] ?? '', at: Number(reply[i + 1]) })
+    }
+    return places
+  }
+
+  async release(visitor: string, scanIds: readonly string[]): Promise<void> {
+    if (scanIds.length === 0) return
+    await this.#redis.zrem(inFlightKey(visitor), ...scanIds)
+  }
+
+  async hold(visitor: string, scanId: string, cap: number, at: number): Promise<boolean> {
+    const held = await this.#redis.eval(
+      HOLD,
+      1,
+      inFlightKey(visitor),
+      String(cap),
+      scanId,
+      String(at),
+      String(IN_FLIGHT_TTL_MS),
+    )
+    return held === 1
+  }
+}
+
+const inFlightKey = (visitor: string) => `${PREFIX}:inflight:${visitor}`

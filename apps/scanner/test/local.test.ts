@@ -39,6 +39,7 @@ describe('localScanner', () => {
         status: 200,
         contentType: 'text/html; charset=utf-8',
         error: null,
+        host: '127.0.0.1',
       })
       expect(seen.at(-1)?.type).toBe('rules')
       // A scan that asked for no browser sends no step that says one is starting.
@@ -116,6 +117,27 @@ describe('localScanner', () => {
       await site.close()
       await crux.close()
     }
+  })
+
+  it('tells the page the host it was reached at, where there is one', () => {
+    expect(
+      eventOf({
+        step: 'page',
+        status: 200,
+        contentType: 'text/html',
+        error: null,
+        host: 'www.shop.example',
+      }),
+    ).toEqual({
+      type: 'page',
+      status: 200,
+      contentType: 'text/html',
+      error: null,
+      host: 'www.shop.example',
+    })
+    expect(
+      eventOf({ step: 'page', status: null, contentType: null, error: 'connect-failed' }),
+    ).toEqual({ type: 'page', status: null, contentType: null, error: 'connect-failed' })
   })
 
   it('names the engines the scan will render in when it starts', () => {
