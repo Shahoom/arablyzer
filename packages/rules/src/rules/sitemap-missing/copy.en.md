@@ -45,10 +45,10 @@ Sitemap: https://www.example.com/sitemap.xml
 ## How we detect
 
 1. We read the site's robots.txt, as `ArablyzerBot`, and its `Sitemap:` lines. A line counts when it gives a full URL, with its protocol (`https://` or `http://`) and host, as Google asks.
-2. When robots.txt names none, we ask for `/sitemap.xml` at the root of the page's site, where the sitemaps protocol recommends placing a sitemap. The rule fails when that address answers with an error status, such as `404`, or with an HTML page rather than a sitemap.
+2. When robots.txt names none, we ask for `/sitemap.xml` at the root of the page's site, where the sitemaps protocol recommends placing a sitemap. The rule fails when that address answers with an error status, such as `404` or `410`, or with an HTML page rather than a sitemap.
 3. Whether a sitemap can be read, and is in a format search engines read, is checked by another rule, `sitemap-invalid`.
 4. The rule applies to public sites alone: search engines do not reach a local development address.
-5. When robots.txt or `/sitemap.xml` cannot be read for a reason other than the site's answer, such as a failed connection or an address the scan does not reach, the rule says it could not check, and does not fail.
+5. When robots.txt or `/sitemap.xml` cannot be read for a reason other than the site's answer, such as a failed connection or an address the scan does not reach, the rule says it could not check, and does not fail. So it does when the site turns the scan away or cannot answer, with `401`, `403`, `407`, `429` or a server error (`5xx`): it has not said there is no sitemap.
 
 ## References
 

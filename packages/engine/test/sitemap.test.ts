@@ -154,6 +154,58 @@ describe('scan: sitemaps', () => {
     ])
   })
 
+  // M2.3c review: a site that turns the scan away (or cannot answer) has not said its sitemap is
+  // missing or broken. The statuses are those the report page calls refusals, and RFC 9309's rule
+  // for a robots.txt that answers 5xx: it could not be checked.
+  it.each([401, 403, 407, 429, 500, 502, 503, 504])(
+    'reports a rule error, not a fault, when a sitemap answers HTTP %i',
+    async (status) => {
+      const named = await site(
+        {
+          'site.json': SHOP,
+          'index.html': PAGE,
+          'robots.txt': 'Sitemap: http://shop.example/s.xml\n',
+        },
+        { '/s.xml': { status, body: 'no' } },
+      )
+      const report = await scanned(named)
+      expect(report.rules[0]).toMatchObject({ status: 'error', error: 'sitemap-unchecked' })
+      expect(report.scan.notices.map((item) => item.code)).toEqual(['sitemap-unchecked'])
+      expect(seen).toBeUndefined()
+      // The same at /sitemap.xml, where robots.txt names none: the site is not called sitemap-less.
+      const unnamed = await site(
+        { 'site.json': SHOP, 'index.html': PAGE },
+        { '/sitemap.xml': { status, body: 'no' } },
+      )
+      expect((await scanned(unnamed)).rules[0]).toMatchObject({
+        status: 'error',
+        error: 'sitemap-unchecked',
+      })
+    },
+  )
+
+  it.each([404, 410])(
+    'still reports the fault when a sitemap answers HTTP %i, or an HTML page',
+    async (status) => {
+      const local = await site(
+        {
+          'site.json': SHOP,
+          'index.html': PAGE,
+          'robots.txt':
+            'Sitemap: http://shop.example/gone.xml\nSitemap: http://shop.example/page.xml\n',
+          'page.xml': PAGE,
+        },
+        { '/gone.xml': { status, body: 'gone' } },
+      )
+      const report = await scanned(local)
+      expect(report.rules[0]?.status).toBe('pass')
+      expect(seen?.checked).toMatchObject([
+        { outcome: 'unavailable', status },
+        { outcome: 'fetched', content: { kind: 'html' } },
+      ])
+    },
+  )
+
   it('reports a rule error, not a verdict, when robots.txt cannot be read', async () => {
     const local = await site(
       { 'site.json': SHOP, 'index.html': PAGE },
