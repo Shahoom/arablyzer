@@ -50,6 +50,11 @@
 		reverse_proxy api:8787 {
 			# One address, the visitor's, which the API counts its limits by (§14).
 			header_up X-Forwarded-For {client_ip}
+			# The API believes that address only of a request that carries this secret: the API's
+			# port is reachable by whatever else is on the edge network, and by the host itself,
+			# and any of them could write any address in the header. Set here, it replaces a
+			# header of the same name that a visitor sends.
+			header_up X-Arablyzer-Proxy-Secret {$ARABLYZER_PROXY_SECRET}
 			# A scan's events go to its page as they come.
 			flush_interval -1
 		}

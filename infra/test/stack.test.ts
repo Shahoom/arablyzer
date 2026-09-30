@@ -531,6 +531,32 @@ describe('the egress proxy', () => {
   })
 })
 
+describe('the API', () => {
+  /** A scan request to the API's own port, as anything on the edge network can send it. */
+  function askDirectly(withSecret: boolean): { status: number; body: unknown } {
+    return JSON.parse(
+      inside(
+        'api',
+        `const headers = { 'content-type': 'application/json', 'x-forwarded-for': '198.51.100.9' };
+         if (${String(withSecret)}) headers['x-arablyzer-proxy-secret'] = process.env.ARABLYZER_PROXY_SECRET;
+         fetch('http://127.0.0.1:8787/api/scans', {
+           method: 'POST',
+           headers,
+           body: JSON.stringify({ url: 'http://example.com/', turnstileToken: '' }),
+         }).then(async (r) => console.log(JSON.stringify({ status: r.status, body: await r.json() })));`,
+      ),
+    ) as { status: number; body: unknown }
+  }
+
+  it("believes the address in X-Forwarded-For only of a request with the site server's secret", () => {
+    // Without the secret, whoever reaches the API's port could be any visitor: none is believed,
+    // and no scan starts. With it, the address is taken, and the request goes on to Turnstile's
+    // check, which an empty token fails before any request is made: nothing is queued.
+    expect(askDirectly(false)).toEqual({ status: 503, body: { error: 'unavailable' } })
+    expect(askDirectly(true)).toEqual({ status: 403, body: { error: 'turnstile-failed' } })
+  })
+})
+
 describe('the containers', () => {
   it('run read-only, unprivileged, with caps on CPU, processes, memory and logs', () => {
     for (const service of SERVICES) {

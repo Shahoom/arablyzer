@@ -2,7 +2,13 @@ import { randomBytes } from 'node:crypto'
 import { defaultResolver, serverPolicy } from '@arablyzer/egress'
 import { USER_AGENT } from '@arablyzer/engine/identity'
 import { limitsFrom } from '@arablyzer/plans'
-import type { RateLimiter, ScanEvents, ScanQueue, ScanStore } from '@arablyzer/store'
+import {
+  requireSecret,
+  type RateLimiter,
+  type ScanEvents,
+  type ScanQueue,
+  type ScanStore,
+} from '@arablyzer/store'
 import type { ApiDeps } from './app'
 import { clientAddress, connectionKey, trustProxyFrom } from './client'
 import { newScanId } from './ids'
@@ -32,6 +38,12 @@ export function apiDeps(
   const policy = serverPolicy(env)
   const resolver = defaultResolver(policy)
   const trust = trustProxyFrom(env.ARABLYZER_TRUST_PROXY)
+  // X-Forwarded-For is believed only from the site's server, which proves it with this secret
+  // (infra/Caddyfile); without it, no visitor has an address, and no scan starts.
+  const proxySecret =
+    trust === 'proxy' && production
+      ? requireSecret('ARABLYZER_PROXY_SECRET', env.ARABLYZER_PROXY_SECRET)
+      : env.ARABLYZER_PROXY_SECRET?.trim()
 
   const secret = env.TURNSTILE_SECRET?.trim()
   if ((secret === undefined || secret === '') && production) {
@@ -61,6 +73,7 @@ export function apiDeps(
     if (production) throw new Error('ARABLYZER_LIMIT_SECRET must be set in production (§14)')
     key = randomBytes(32).toString('base64url')
   }
+  if (production) requireSecret('ARABLYZER_LIMIT_SECRET', key)
 
   return {
     limits: limitsFrom(env),
@@ -68,7 +81,7 @@ export function apiDeps(
     resolver,
     turnstile,
     ...stores,
-    address: (c) => clientAddress(c, trust),
+    address: (c) => clientAddress(c, trust, proxySecret),
     connectionKey: (address, now) => connectionKey(address, key, now),
     newId: newScanId,
   }

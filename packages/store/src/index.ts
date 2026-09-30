@@ -4,6 +4,7 @@ export { quietly } from './log'
 export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
 export { scans } from './postgres/schema'
 export { PostgresScanStore } from './postgres/store'
+export { MIN_SECRET_LENGTH, requireSecret } from './secrets'
 export type {
   NewScan,
   ScanEvents,

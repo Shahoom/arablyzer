@@ -52,6 +52,8 @@ services:
     environment:
       # Whose X-Forwarded-For the site's server believes: the host's proxy (infra/Caddyfile).
       ARABLYZER_TRUSTED_PROXIES: ${ARABLYZER_TRUSTED_PROXIES:-private_ranges}
+      # What it shows the API with every request, so that the API believes the address it forwards.
+      ARABLYZER_PROXY_SECRET: ${ARABLYZER_PROXY_SECRET:?}
     networks: [edge]
     depends_on:
       api: { condition: service_healthy }
@@ -80,8 +82,10 @@ services:
       ARABLYZER_LIMIT_HOST_SCANS: ${ARABLYZER_LIMIT_HOST_SCANS:?}
       ARABLYZER_LIMIT_HOST_SECONDS: ${ARABLYZER_LIMIT_HOST_SECONDS:?}
       ARABLYZER_LIMIT_QUEUE: ${ARABLYZER_LIMIT_QUEUE:?}
-      # The site's server puts the visitor's address last in X-Forwarded-For (infra/Caddyfile).
+      # The site's server puts the visitor's address last in X-Forwarded-For (infra/Caddyfile),
+      # and shows this secret with it: without the secret, the API believes no address.
       ARABLYZER_TRUST_PROXY: proxy
+      ARABLYZER_PROXY_SECRET: ${ARABLYZER_PROXY_SECRET:?}
       ARABLYZER_EGRESS_PROXY: http://egress:4750
       ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
     networks: [edge, data]

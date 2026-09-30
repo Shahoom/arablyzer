@@ -220,6 +220,7 @@ jobs:
             echo ARABLYZER_LIMIT_QUEUE=50
             echo "ARABLYZER_LIMIT_SECRET=$(secret)"
             echo "ARABLYZER_SCANNER_TOKEN=$(secret)"
+            echo "ARABLYZER_PROXY_SECRET=$(secret)"
             echo "VALKEY_PASSWORD=$(secret)"
             echo "POSTGRES_PASSWORD=$(secret)"
             # The server's own address stands in as an unused address of the test network.
