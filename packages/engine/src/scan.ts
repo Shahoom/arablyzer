@@ -742,23 +742,32 @@ async function renderAll(
     }
     if (outcome.status === 'refused') notices.push(notice('engine-refused', { engine: name }))
     if (outcome.requests.limited) notices.push(notice('request-limit', { engine: name }))
+    // Counted like the request limit: in the run's refusals, and told as a notice (M1 review).
+    if (outcome.pageRequests.sending > 0) {
+      notices.push(notice('request-refused', { engine: name }))
+    }
+    if (outcome.pageRequests.overHosts > 0) {
+      notices.push(notice('host-limit', { engine: name, hosts: String(browser.DEFAULT_MAX_HOSTS) }))
+    }
   }
   return { runs, rendered, notices, challenged }
 }
 
 /**
- * A render as the report shows it: the page's own requests, and those not let through. A render a
- * bot challenge ended is one that failed; the notice says why.
+ * A render as the report shows it: the page's own requests, and those not let through: refused by
+ * the egress proxy, past the request limit or the host limit, or for sending data (M1 review). A
+ * render a bot challenge ended is one that failed; the notice says why.
  */
 export function renderRun(outcome: RenderOutcome): RenderRun {
+  const { made, overLimit, overHosts, sending } = outcome.pageRequests
   return {
     engine: outcome.engine,
     version: outcome.version === null || outcome.version === '' ? null : outcome.version,
     status: outcome.status === 'challenged' ? 'failed' : outcome.status,
     durationMs: outcome.durationMs,
     requests: {
-      total: outcome.pageRequests.made,
-      refused: outcome.requests.refused + outcome.pageRequests.overLimit,
+      total: made,
+      refused: outcome.requests.refused + overLimit + overHosts + sending,
     },
   }
 }

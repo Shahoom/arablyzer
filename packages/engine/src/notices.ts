@@ -23,6 +23,8 @@ export type NoticeCode =
   | 'engine-refused'
   | 'render-truncated'
   | 'request-limit'
+  | 'request-refused'
+  | 'host-limit'
   | 'crux-no-key'
   | 'crux-private'
   | 'crux-not-found'
@@ -195,6 +197,16 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'request-limit': {
     ar: 'طلبت الصفحة في {engine} أكثر من الحد (300 طلب أو 25 ميغابايت)، فلم يُحمَّل الباقي، وقد يختلف عرضها عمّا يراه الزائر.',
     en: 'In {engine}, the page asked for more than the limit (300 requests or 25 MB), so the rest was not loaded, and it may look different from what visitors see.',
+  },
+  // M1 review (issue #29): the render's browsers refuse every request that sends data, and every
+  // WebSocket, whatever the page asks for and wherever to.
+  'request-refused': {
+    ar: 'طلبت الصفحة في {engine} إرسال بيانات (نموذج، أو طلب POST، أو beacon، أو WebSocket)، ولا ترسل متصفحات Arablyzer شيئاً تطلبه صفحة، فرُفضت هذه الطلبات، وقد يختلف عرضها عمّا يراه الزائر.',
+    en: 'In {engine}, the page asked to send data (a form, a POST request, a beacon or a WebSocket). Arablyzer’s browsers send nothing a page asks them to, so those requests were refused, and the page may look different from what visitors see.',
+  },
+  'host-limit': {
+    ar: 'تجاوز عدد المضيفين الذين اتصلت بهم الصفحة في {engine} الحد، وهو {hosts}، فرُفضت طلباتها إلى الباقي، وقد يختلف عرضها عمّا يراه الزائر.',
+    en: 'In {engine}, the page contacted more hosts than the limit of {hosts}, so its requests to the others were refused, and it may look different from what visitors see.',
   },
   'crux-no-key': {
     ar: 'فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.',

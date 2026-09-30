@@ -305,7 +305,8 @@ export const RenderRun = z
     durationMs: count(),
     /**
      * Requests the page made, as the browser counted them (inside HTTPS connections too), and
-     * those not let through: refused by the egress proxy, or past the page's request limit.
+     * those not let through: refused by the egress proxy, past the page's request limit or its
+     * host limit, or for sending data (every request but GET and HEAD, and every WebSocket).
      */
     requests: z.strictObject({ total: count(), refused: count() }),
   })
