@@ -4,6 +4,7 @@ import { DEVELOPMENT_LIMITS, type ScanLimits } from '@arablyzer/plans'
 import type { Report } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
 import { createApp, type ApiDeps } from '../src/app'
+import { clientAddress, connectionKey, networkKey } from '../src/client'
 import {
   MemoryRateLimiter,
   MemoryScanEvents,
@@ -52,10 +53,10 @@ function setup(overrides: Partial<ApiDeps> & { limits?: ScanLimits } = {}) {
     ...overrides,
   }
   const app = createApp(deps)
-  const post = (body: unknown, raw?: string) =>
+  const post = (body: unknown, raw?: string, headers: Record<string, string> = {}) =>
     app.request('/api/scans', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...headers },
       body: raw ?? JSON.stringify(body),
     })
   const scanOf = (url: string, token = 'human') => post({ url, turnstileToken: token })
@@ -231,6 +232,93 @@ describe('POST /api/scans', () => {
       status: 503,
       body: { error: 'unavailable' },
     })
+  })
+})
+
+describe('visitors on IPv6', () => {
+  const SECRET = 'a-secret-for-the-tests'
+  /** The real keys, from the address the site's server puts last in X-Forwarded-For. */
+  const keyed = {
+    address: (c: Parameters<ApiDeps['address']>[0]) => clientAddress(c, 'proxy'),
+    connectionKey: (address: string, now: Date) => connectionKey(address, SECRET, now),
+    networkKey: (address: string, now: Date) => networkKey(address, SECRET, now),
+  }
+  const scanFrom = (
+    post: ReturnType<typeof setup>['post'],
+    address: string,
+    url = 'https://example.com/',
+  ) => post({ url, turnstileToken: 'human' }, undefined, { 'x-forwarded-for': address })
+
+  // Issue #30: a routed /48 has 65,536 /64s, and each was a visitor with a limit of its own.
+  it('counts a visitor by their /48: the /64s of one /48 share a limit', async () => {
+    const { post } = setup({
+      ...keyed,
+      limits: {
+        ...DEVELOPMENT_LIMITS,
+        perConnection: { scans: 2, seconds: 3600 },
+        perHost: { scans: 1000, seconds: 3600 },
+      },
+    })
+    expect((await scanFrom(post, '2001:db8:1:1::1')).status).toBe(202)
+    expect((await scanFrom(post, '2001:db8:1:2::1')).status).toBe(202)
+    const third = await scanFrom(post, '2001:db8:1:3::1')
+    expect(third.status).toBe(429)
+    expect(third.headers.get('retry-after')).toBe('1800')
+    // Another /48, another visitor.
+    expect((await scanFrom(post, '2001:db8:2:1::1')).status).toBe(202)
+  })
+
+  it('counts the visitors of one /32 together, whichever of its /48s they are in', async () => {
+    const { post } = setup({
+      ...keyed,
+      limits: {
+        ...DEVELOPMENT_LIMITS,
+        perNetwork: { scans: 2, seconds: 3600 },
+        perHost: { scans: 1000, seconds: 3600 },
+      },
+    })
+    expect((await scanFrom(post, '2001:db8:1::1')).status).toBe(202)
+    expect((await scanFrom(post, '2001:db8:2::1')).status).toBe(202)
+    const third = await scanFrom(post, '2001:db8:3::1')
+    expect(await refusal(third)).toEqual({
+      status: 429,
+      body: { error: 'rate-limited', retryAfterSeconds: 1800 },
+    })
+    expect(third.headers.get('retry-after')).toBe('1800')
+    // Another /32 is another network.
+    expect((await scanFrom(post, '2001:db9::1')).status).toBe(202)
+  })
+
+  it('has no network for an IPv4 visitor, whose own address is counted', async () => {
+    const { post } = setup({
+      ...keyed,
+      limits: {
+        ...DEVELOPMENT_LIMITS,
+        perNetwork: { scans: 1, seconds: 3600 },
+        perHost: { scans: 1000, seconds: 3600 },
+      },
+    })
+    for (const address of ['203.0.113.1', '203.0.113.2', '203.0.113.3']) {
+      expect((await scanFrom(post, address)).status, address).toBe(202)
+    }
+  })
+
+  it('counts against the network only what the visitor’s own limit let through', async () => {
+    const { post } = setup({
+      ...keyed,
+      limits: {
+        ...DEVELOPMENT_LIMITS,
+        perConnection: { scans: 1, seconds: 3600 },
+        perNetwork: { scans: 2, seconds: 3600 },
+        perHost: { scans: 1000, seconds: 3600 },
+      },
+    })
+    expect((await scanFrom(post, '2001:db8:1::1')).status).toBe(202)
+    // Refused by the visitor's own limit, so it takes nothing of the network's.
+    expect((await scanFrom(post, '2001:db8:1::1')).status).toBe(429)
+    expect((await scanFrom(post, '2001:db8:2::1')).status).toBe(202)
+    // Two scans have been started in the network, and the network's second is spent.
+    expect((await scanFrom(post, '2001:db8:3::1')).status).toBe(429)
   })
 })
 

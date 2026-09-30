@@ -4,7 +4,7 @@ import { USER_AGENT } from '@arablyzer/engine/identity'
 import { limitsFrom } from '@arablyzer/plans'
 import type { RateLimiter, ScanEvents, ScanQueue, ScanStore } from '@arablyzer/store'
 import type { ApiDeps } from './app'
-import { clientAddress, connectionKey, trustProxyFrom } from './client'
+import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
 import { newScanId } from './ids'
 import { cloudflareTurnstile, noTurnstile } from './turnstile'
 
@@ -70,6 +70,7 @@ export function apiDeps(
     ...stores,
     address: (c) => clientAddress(c, trust),
     connectionKey: (address, now) => connectionKey(address, key, now),
+    networkKey: (address, now) => networkKey(address, key, now),
     newId: newScanId,
   }
 }

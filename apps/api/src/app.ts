@@ -40,6 +40,11 @@ export interface ApiDeps {
   readonly address: (c: Context) => string | null
   /** The limiter's key for an address, which is never the address itself (§14). */
   readonly connectionKey: (address: string, now: Date) => string
+  /**
+   * The key of the network the address is in, whose visitors are counted together (an IPv6 /32);
+   * null for an address in none. Without it there is no network limit, as in tests.
+   */
+  readonly networkKey?: (address: string, now: Date) => string | null
   readonly newId: () => string
   readonly now?: () => Date
   /** How long a scan's event stream stays open before the page reconnects. */
@@ -141,6 +146,17 @@ export function createApp(deps: ApiDeps): Hono {
         at.getTime(),
       )
       if (!own.ok) return refuse(c, 'rate-limited', own.retryAfterSeconds)
+      // The visitor's network is asked after the visitor, so a request their own limit refuses
+      // takes nothing of the network's.
+      const network = deps.networkKey?.(address, at) ?? null
+      if (network !== null) {
+        const shared = await deps.limiter.take(
+          `network:${network}`,
+          deps.limits.perNetwork,
+          at.getTime(),
+        )
+        if (!shared.ok) return refuse(c, 'rate-limited', shared.retryAfterSeconds)
+      }
       const resolved = await resolveTarget(parsed.value, deps.policy, deps.resolver)
       if (!resolved.ok) return refuse(c, resolved.code)
       const host = await deps.limiter.take(
