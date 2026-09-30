@@ -29,6 +29,7 @@ export {
   renderPage,
   type RenderOptions,
   type PageRequests,
+  type RenderChallenge,
   type RenderOutcome,
   type RenderStatus,
 } from './render'

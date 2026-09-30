@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   loadFixtureConfig,
   resolveFixtureResponse,
+  serveHandler,
   serveSite,
   sitePath,
   type FixtureSite,
@@ -406,5 +407,24 @@ describe('serveSite: a site under several names', () => {
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('serveHandler', () => {
+  it('answers as its handler says, by who asks, and lets go of its port when closed', async () => {
+    const handled = await serveHandler((req, res) => {
+      const browser = (req.headers['user-agent'] ?? '').includes('Mozilla')
+      res.writeHead(browser ? 403 : 200, { 'content-type': 'text/plain' })
+      res.end(browser ? 'challenge' : 'page')
+    })
+    try {
+      // The client of this file sends no user agent: the handler sees a caller that is no browser.
+      const plain = await request(handled.url('/'))
+      expect([plain.status, plain.body.toString('utf8')]).toEqual([200, 'page'])
+      expect(handled.url('/a?b=1')).toBe(`http://127.0.0.1:${handled.port}/a?b=1`)
+    } finally {
+      await handled.close()
+    }
+    await expect(request(`http://127.0.0.1:${handled.port}/`)).rejects.toThrow()
   })
 })

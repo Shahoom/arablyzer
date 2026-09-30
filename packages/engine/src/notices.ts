@@ -17,6 +17,7 @@ export type NoticeCode =
   | 'render-skipped'
   | 'render-engine-skipped'
   | 'render-failed'
+  | 'render-challenged'
   | 'render-timeout'
   | 'engine-unavailable'
   | 'engine-refused'
@@ -31,6 +32,7 @@ export type NoticeCode =
   | 'lab-timeout'
   | 'lab-unavailable'
   | 'lab-skipped'
+  | 'lab-challenged'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -163,6 +165,11 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     ar: 'تعذّر عرض الصفحة في {engine}، فلم تعمل فيه فحوص العرض.',
     en: 'The page could not be rendered in {engine}, so the rendering checks did not run in it.',
   },
+  // BUILD-PLAN §13: the browser is given the page only once its headers are checked (M2.3c).
+  'render-challenged': {
+    ar: 'ردّ الموقع في {engine} بتحدٍّ للبوتات من {service} (HTTP {status}) بدل الصفحة، فلم تُعرض الصفحة فيه: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'In {engine}, the site answered with a {service} bot challenge (HTTP {status}) instead of the page, so the page was not rendered there: Arablyzer never tries to get past a challenge.',
+  },
   'render-timeout': {
     ar: 'لم يكتمل عرض الصفحة في {engine} خلال الوقت المحدد، فلم تعمل فيه فحوص العرض.',
     en: 'Rendering the page in {engine} did not finish within the time limit, so the rendering checks did not run in it.',
@@ -206,6 +213,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'lab-unavailable': {
     ar: 'Lighthouse أو متصفح Chromium غير مثبّت على هذا الجهاز، فلم يعمل Lighthouse.',
     en: 'Lighthouse or Chromium is not installed on this machine, so Lighthouse did not run.',
+  },
+  'lab-challenged': {
+    ar: 'ردّ الموقع على متصفح بتحدٍّ للبوتات بدل الصفحة، فلم يفتحها Lighthouse: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'A browser was answered with a bot challenge instead of the page, so Lighthouse did not open it: Arablyzer never tries to get past a challenge.',
   },
   'lab-skipped': {
     ar: 'لم يبقَ من وقت الفحص ما يكفي Lighthouse، فلم يعمل.',

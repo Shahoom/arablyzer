@@ -432,11 +432,15 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
             progress,
             ...(options.signal === undefined ? {} : { signal: options.signal }),
           })
-        : { runs: [], rendered: [], notices: [] }
+        : { runs: [], rendered: [], notices: [], challenged: false }
 
   // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
-  // lockdown. Information only, so its failure leaves the scan complete, with a notice.
-  const labRequest = reached && page.isHtml ? options.lab : undefined
+  // lockdown. Information only, so its failure leaves the scan complete, with a notice. Not after
+  // a browser was answered with a bot challenge: Lighthouse's navigation is not one the scan can
+  // stop before the page's scripts run, and a challenge's could get past it (BUILD-PLAN §13). A
+  // scan that asks for Lighthouse without a render has no such warning to go by.
+  const labWanted = reached && page.isHtml ? options.lab : undefined
+  const labRequest = rendering?.challenged === true ? undefined : labWanted
   if (labRequest !== undefined) progress({ step: 'lab-start' })
   const lab =
     labRequest === undefined
@@ -464,6 +468,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ? [notice(crux.refused === true ? 'crux-refused' : 'crux-failed')]
       : []),
     ...(sitemapRead !== undefined && 'failed' in sitemapRead ? [notice('sitemap-unchecked')] : []),
+    ...(labWanted !== undefined && labRequest === undefined ? [notice('lab-challenged')] : []),
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
     ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
   ]
@@ -550,6 +555,8 @@ interface Rendering {
   readonly runs: RenderRun[]
   readonly rendered: RenderedFacts[]
   readonly notices: Notice[]
+  /** A browser was answered with a bot challenge in place of the page (M2.3c). */
+  readonly challenged: boolean
 }
 
 /**
@@ -571,6 +578,7 @@ async function renderAll(
   const runs: RenderRun[] = []
   const rendered: RenderedFacts[] = []
   const notices: Notice[] = []
+  let challenged = false
   let browser: typeof import('@arablyzer/browser')
   try {
     browser = await import('@arablyzer/browser')
@@ -588,7 +596,7 @@ async function renderAll(
       context.progress({ step: 'render', run })
       notices.push(notice('engine-unavailable', { engine: ENGINE_NAMES[engine] }))
     }
-    return { runs, rendered, notices }
+    return { runs, rendered, notices, challenged: false }
   }
   const { renderPage, RENDER_TIMEOUT_MS, EXTRA_ENGINE_TIMEOUT_MS } = browser
   for (const [index, engine] of request.engines.entries()) {
@@ -635,6 +643,16 @@ async function renderAll(
       if (outcome.facts.truncated) notices.push(notice('render-truncated', { engine: name }))
     }
     if (outcome.screenshot !== null) request.onScreenshot?.(engine, outcome.screenshot)
+    if (outcome.status === 'challenged') {
+      challenged = true
+      notices.push(
+        notice('render-challenged', {
+          engine: name,
+          service: outcome.challenge?.service ?? '',
+          status: String(outcome.challenge?.status ?? ''),
+        }),
+      )
+    }
     if (outcome.status === 'failed') notices.push(notice('render-failed', { engine: name }))
     if (outcome.status === 'timeout') notices.push(notice('render-timeout', { engine: name }))
     if (outcome.status === 'unavailable') {
@@ -643,15 +661,18 @@ async function renderAll(
     if (outcome.status === 'refused') notices.push(notice('engine-refused', { engine: name }))
     if (outcome.requests.limited) notices.push(notice('request-limit', { engine: name }))
   }
-  return { runs, rendered, notices }
+  return { runs, rendered, notices, challenged }
 }
 
-/** A render as the report shows it: the page's own requests, and those not let through. */
+/**
+ * A render as the report shows it: the page's own requests, and those not let through. A render a
+ * bot challenge ended is one that failed; the notice says why.
+ */
 export function renderRun(outcome: RenderOutcome): RenderRun {
   return {
     engine: outcome.engine,
     version: outcome.version === null || outcome.version === '' ? null : outcome.version,
-    status: outcome.status,
+    status: outcome.status === 'challenged' ? 'failed' : outcome.status,
     durationMs: outcome.durationMs,
     requests: {
       total: outcome.pageRequests.made,

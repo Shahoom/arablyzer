@@ -7,6 +7,7 @@ export {
   type CruxQuery,
   type CruxStandIn,
 } from './crux'
+export { serveHandler, type HandlerSite } from './handler'
 export {
   loadFixtureConfig,
   loadSiteConfig,
