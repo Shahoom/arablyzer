@@ -146,6 +146,43 @@ importers:
         specifier: workspace:*
         version: link:../../fixtures
 
+  packages/seo:
+    dependencies:
+      '@arablyzer/collectors':
+        specifier: workspace:*
+        version: link:../collectors
+      '@arablyzer/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../rules
+      '@arablyzer/tools':
+        specifier: workspace:*
+        version: link:../tools
+      parse5:
+        specifier: ^8.0.1
+        version: 8.0.1
+
+  packages/tools:
+    dependencies:
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+    devDependencies:
+      '@arablyzer/collectors':
+        specifier: workspace:*
+        version: link:../collectors
+      '@arablyzer/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../rules
+
 packages:
 
   '@cacheable/memory@2.2.0':

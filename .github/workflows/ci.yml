@@ -40,12 +40,14 @@ jobs:
         run: pnpm test:unit
       - name: E2E (built CLI over every fixture site)
         run: pnpm test:e2e
+      - name: SEO self-audit (every tool page and the report template)
+        run: pnpm seo:audit
       - name: Report schema drift
         run: pnpm schema:check
 
   arabic-copy:
-    # Design decision 7: a rule stays red until the owner has read its Arabic copy and set
-    # `reviewed: true` in packages/rules/src/rules/<id>/copy.ar.md.
+    # Design decision 7: a rule or tool stays red until the owner has read its Arabic copy and
+    # set `reviewed: true` in packages/{rules/src/rules/<id>,tools/src/tools/<slug>}/copy.ar.md.
     name: Arabic copy reviewed by the owner
     runs-on: ubuntu-latest
     timeout-minutes: 10

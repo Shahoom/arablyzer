@@ -14,6 +14,7 @@ Requires Node.js 22.12 or newer and pnpm 10.
 pnpm install
 pnpm lint && pnpm typecheck && pnpm test
 pnpm test:e2e      # builds the CLI and scans every fixture site
+pnpm seo:audit     # renders every tool page and the report template, and audits them
 ```
 
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
@@ -49,6 +50,18 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`page-noindex`](packages/rules/src/rules/page-noindex/copy.en.md) | No `noindex` in meta robots or `X-Robots-Tag` |
 | [`canonical-conflict`](packages/rules/src/rules/canonical-conflict/copy.en.md) | The page gives at most one canonical URL |
 | [`jsonld-syntax-error`](packages/rules/src/rules/jsonld-syntax-error/copy.en.md) | JSON-LD blocks are valid JSON |
+
+## Tools / الأدوات
+
+A tool is a set of rules plus its page (BUILD-PLAN §6.1). Each tool lives in `packages/tools/src/tools/<slug>/`, with its page copy in Arabic (`copy.ar.md`) and English (`copy.en.md`); a test runs the tool's rules on the wrong and right examples its page shows.
+
+| Tool | Rules |
+|---|---|
+| [`rtl-check`](packages/tools/src/tools/rtl-check/copy.en.md) | `rtl-html-dir`, `ar-html-lang` |
+| [`whatsapp-link-check`](packages/tools/src/tools/whatsapp-link-check/copy.en.md) | `whatsapp-link-format` |
+| [`ai-crawler-check`](packages/tools/src/tools/ai-crawler-check/copy.en.md) | `robots-blocks-ai-search` |
+
+`packages/seo` renders the tool pages (canonical, reciprocal hreflang, JSON-LD) and the report template, which is always `noindex`. `pnpm seo:audit` audits them in CI; `pnpm seo:audit --out <dir>` also writes the pages. Nothing is published: until the domain is chosen, pages are rendered for `https://arablyzer.example`.
 
 ## License
 
