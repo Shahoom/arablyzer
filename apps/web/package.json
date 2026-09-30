@@ -23,6 +23,7 @@
     "@arablyzer/engine": "workspace:*",
     "@arablyzer/fixtures": "workspace:*",
     "@arablyzer/generators": "workspace:*",
+    "@arablyzer/guides": "workspace:*",
     "@arablyzer/i18n": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/rules": "workspace:*",

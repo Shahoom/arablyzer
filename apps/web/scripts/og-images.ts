@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { executablePathFor } from '@arablyzer/browser/engines'
-import { REPORT, RULES_UI, SITE, TOOLS_UI } from '@arablyzer/i18n'
+import { GUIDES_UI, REPORT, RULES_UI, SITE, TOOLS_UI } from '@arablyzer/i18n'
 import { builtPages, isNoindexPage, type BuiltPage } from '@arablyzer/seo/audit'
 import { ogImagePath } from '@arablyzer/seo/sitemap'
 import { chromium } from 'playwright-core'
@@ -58,6 +58,8 @@ export function kickerOf(page: BuiltPage): Pick<Card, 'kicker' | 'kickerCode'> {
     if (data === undefined) throw new Error(`no tool ${tool}`)
     return { kicker: TOOLS_UI[lang].categories[data.category].name }
   }
+  if (/^\/fix\/[a-z0-9-]+$/.test(arabic)) return { kicker: 'Search Console', kickerCode: true }
+  if (/^\/glossary\/[a-z0-9-]+$/.test(arabic)) return { kicker: GUIDES_UI[lang].glossary.title }
   const rule = /^\/rules\/([a-z0-9-]+)$/.exec(arabic)?.[1]
   if (rule !== undefined) {
     if (!LIBRARY_DATA.rules.some((candidate) => candidate.id === rule))
@@ -69,6 +71,10 @@ export function kickerOf(page: BuiltPage): Pick<Card, 'kicker' | 'kickerCode'> {
       return { kicker: TOOLS_UI[lang].directory.title }
     case '/rules':
       return { kicker: RULES_UI[lang].library.title }
+    case '/fix':
+      return { kicker: 'Search Console', kickerCode: true }
+    case '/glossary':
+      return { kicker: SITE[lang].footer.glossary }
     case '/methodology':
       return { kicker: SITE[lang].footer.methodology }
     case '/bot':

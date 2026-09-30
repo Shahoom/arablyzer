@@ -1,5 +1,5 @@
 ---
-reviewed: true
+reviewed: false # step 2 of "كيف نكشف" and the references changed after the review (M2.4d)
 ---
 
 # robots.txt يمنع Googlebot من الصفحة
@@ -45,7 +45,7 @@ Disallow: /admin/
 ## كيف نكشف
 
 1. نجلب `/robots.txt` من أصل الرابط النهائي بعد التحويلات، ونتبع حتى 5 تحويلات، ونقرأ أول 500 كيلوبايت، كما يفعل Google.
-2. نحلله حسب RFC 9309، مع التسامح الذي يوثّقه Google، مثل الأخطاء الإملائية الشائعة في أسماء الحقول ونسيان النقطتين.
+2. نحلله حسب RFC 9309، ونتسامح كما يتسامح محلل Google المفتوح المصدر مع الأخطاء الإملائية الشائعة في أسماء الحقول ونسيان النقطتين.
 3. نختار مجموعة Googlebot، أو مجموعة `*` إن لم توجد مجموعة باسمه، وندمج المجموعات التي تحمل الاسم نفسه، ثم نطبق أطول قاعدة مطابقة؛ وعند التساوي تفوز `Allow`. ندعم `*` و`$`.
 4. الرد 5xx أو 429، أو تعذّر الاتصال، يعني منع الموقع كله. الرد 4xx، مثل 404، يعني لا قيود.
 
@@ -54,5 +54,6 @@ Disallow: /admin/
 ## المراجع
 
 - [RFC 9309: بروتوكول استبعاد الروبوتات](https://www.rfc-editor.org/rfc/rfc9309.html) (بالإنجليزية)
-- [Google: كيف يفسّر Google مواصفة robots.txt](https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec) (بالإنجليزية)
+- [Google: كيف يفسّر Google مواصفة robots.txt](https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec?hl=ar)
 - [Google: مقدمة إلى ملفات robots.txt](https://developers.google.com/search/docs/crawling-indexing/robots/intro?hl=ar)
+- [google/robotstxt: محلل robots.txt المفتوح المصدر من Google](https://github.com/google/robotstxt) (بالإنجليزية)

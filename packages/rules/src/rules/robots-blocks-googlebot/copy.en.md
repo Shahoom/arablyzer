@@ -41,7 +41,7 @@ Disallow: /admin/
 ## How we detect
 
 1. We fetch `/robots.txt` from the origin of the final URL after redirects, following up to 5 redirects and reading the first 500 KiB, as Google does.
-2. We parse it as RFC 9309 describes, with the tolerance Google documents, such as common misspellings of field names and a missing colon.
+2. We parse it as RFC 9309 describes, with the tolerance of Google's open-source parser for common misspellings of field names and a missing colon.
 3. We pick the Googlebot group, or the `*` group when there is none for Googlebot, merge groups with the same name, and apply the longest matching rule; on a tie, `Allow` wins. `*` and `$` are supported.
 4. A 5xx or 429 answer, or a failed connection, means the whole site is blocked. A 4xx answer, such as 404, means no restrictions.
 
@@ -52,3 +52,4 @@ We fetch robots.txt as ArablyzerBot, not as Googlebot; if your server or firewal
 - [RFC 9309: Robots Exclusion Protocol](https://www.rfc-editor.org/rfc/rfc9309.html)
 - [Google: How Google interprets the robots.txt specification](https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec)
 - [Google: Introduction to robots.txt](https://developers.google.com/search/docs/crawling-indexing/robots/intro)
+- [google/robotstxt: Google's open-source robots.txt parser](https://github.com/google/robotstxt)

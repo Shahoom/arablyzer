@@ -33,4 +33,4 @@ reviewed: false
 
 - [MDN: السياقات الآمنة](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts) (بالإنجليزية)
 - [Let's Encrypt: البدء](https://letsencrypt.org/getting-started/) (بالإنجليزية)
-- [Google: HTTPS إشارةً في ترتيب النتائج (2014)](https://developers.google.com/search/blog/2014/08/https-as-ranking-signal) (بالإنجليزية)
+- [Google: HTTPS إشارةً في ترتيب النتائج (2014)](https://developers.google.com/search/blog/2014/08/https-as-ranking-signal?hl=ar)
