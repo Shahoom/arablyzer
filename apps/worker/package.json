@@ -14,17 +14,14 @@
   },
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
-    "@arablyzer/browser": "workspace:*",
-    "@arablyzer/egress": "workspace:*",
-    "@arablyzer/engine": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/scanner-client": "workspace:*",
     "@arablyzer/store": "workspace:*",
     "bullmq": "6.3.9",
     "ioredis": "5.11.1",
     "pg": "8.23.0"
   },
   "devDependencies": {
-    "@arablyzer/fixtures": "workspace:*",
     "@types/pg": "8.23.1"
   }
 }

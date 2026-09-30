@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createPolicy } from '@arablyzer/egress'
-import { scan } from '@arablyzer/engine'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
 import { DEVELOPMENT_LIMITS } from '@arablyzer/plans'
 import type { Report } from '@arablyzer/report-schema'
@@ -13,6 +12,7 @@ import {
   ValkeyScanEvents,
   type ScanJob,
 } from '@arablyzer/store'
+import { localScanner } from '@arablyzer/scanner'
 import { runScan } from '@arablyzer/worker'
 import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
@@ -84,7 +84,7 @@ describe.skipIf(valkeyUrl === undefined || databaseUrl === undefined)('the scan 
     })
     worker = new Worker<ScanJob>(
       SCAN_QUEUE,
-      (job) => runScan(job.data, { store, events, scanner: scan, options: { policy } }),
+      (job) => runScan(job.data, { store, events, scanner: localScanner({ policy }) }),
       { connection: redis.duplicate(), concurrency: 1 },
     )
   })

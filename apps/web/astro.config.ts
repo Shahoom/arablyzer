@@ -8,8 +8,11 @@ import { fontsource } from './src/fonts'
 // reserved example domain, as the self-audit does. ARABLYZER_SITE sets the real one.
 const site = defineSite(process.env.ARABLYZER_SITE ?? PREVIEW_SITE.origin)
 
-// Where `astro dev` sends /api (M2.1b); the built site is served beside the API by Caddy (M2.1c).
+// Where `astro dev` sends /api (M2.1b); the built site is served beside the API by Caddy (M2.1d).
 const api = process.env.ARABLYZER_API_ORIGIN ?? 'http://127.0.0.1:8787'
+
+/** Cloudflare Turnstile's script and frame, on the scan form (M2.1b). */
+const TURNSTILE = 'https://challenges.cloudflare.com'
 
 export default defineConfig({
   site: site.origin,
@@ -24,7 +27,7 @@ export default defineConfig({
     preact(),
     {
       // One page serves every report: /r/{id} and /en/r/{id} are /r/ and /en/r/, as the site's
-      // server sends them in production (Caddy, M2.1c). This does the same for `astro dev`.
+      // server sends them in production (infra/Caddyfile). This does the same for `astro dev`.
       name: 'arablyzer:report-route',
       hooks: {
         'astro:server:setup': ({ server }) => {
@@ -42,6 +45,25 @@ export default defineConfig({
     server: { proxy: { '/api': api } },
   },
   devToolbar: { enabled: false },
+  // Each page carries its Content-Security-Policy, with the hash of every script and style it
+  // inlines (M2.1 plan §5b): scripts from the site and Turnstile alone, requests to the site
+  // alone. Framing is refused by the site's server (infra/Caddyfile), as a page's own policy
+  // cannot say it.
+  security: {
+    csp: {
+      directives: [
+        "default-src 'self'",
+        "connect-src 'self'",
+        "img-src 'self'",
+        `frame-src ${TURNSTILE}`,
+        "base-uri 'self'",
+        "form-action 'self'",
+        "object-src 'none'",
+      ],
+      scriptDirective: { resources: ["'self'", TURNSTILE] },
+      styleDirective: { resources: ["'self'"] },
+    },
+  },
   env: {
     schema: {
       // Turnstile's site key is public: it goes into the page. Unset, the form has no check,

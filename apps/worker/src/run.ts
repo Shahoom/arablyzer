@@ -1,16 +1,13 @@
 import type { ScanEvent } from '@arablyzer/api-contract'
-import type { ScanOptions, ScanProgress } from '@arablyzer/engine'
 import type { Report } from '@arablyzer/report-schema'
+import type { Scanner } from '@arablyzer/scanner-client'
 import type { ScanEvents, ScanJob, ScanStore } from '@arablyzer/store'
-
-export type Scanner = (url: string, options: ScanOptions) => Promise<Report>
 
 export interface WorkerDeps {
   readonly store: ScanStore
   readonly events: ScanEvents
+  /** The engine: the scanner container in Compose (M2.1 plan §5b), or in this process in dev. */
   readonly scanner: Scanner
-  /** The scan's options: its address rules, engines and keys (options.ts). */
-  readonly options: ScanOptions
   readonly now?: () => Date
   /** Where a scan that could not run is told; the report is never where it goes. */
   readonly log?: (message: string) => void
@@ -19,11 +16,11 @@ export interface WorkerDeps {
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
 /**
- * One scan, from the queue to its stored report (M2.1 plan §4): started, each step the engine
- * reports, then done with the report's state. A scan that throws is failed, with no report, and
- * its page is told. Events keep their order, each waiting for the one before it; one that cannot
- * be sent is logged and the scan goes on. A scan that is no longer queued (its job run again
- * after its worker died) is never run twice: it is failed instead.
+ * One scan, from the queue to its stored report (M2.1 plan §4): each step the scan reports, from
+ * `started`, then done with the report's state. A scan that throws is failed, with no report,
+ * and its page is told. Events keep their order, each waiting for the one before it; one that
+ * cannot be sent is logged and the scan goes on. A scan that is no longer queued (its job run
+ * again after its worker died) is never run twice: it is failed instead.
  */
 export async function runScan(job: ScanJob, deps: WorkerDeps): Promise<void> {
   const now = deps.now ?? (() => new Date())
@@ -44,15 +41,9 @@ export async function runScan(job: ScanJob, deps: WorkerDeps): Promise<void> {
         },
       )
   }
-  publish({ type: 'started', engines: deps.options.render?.engines ?? [] })
   let report: Report
   try {
-    report = await deps.scanner(job.url, {
-      ...deps.options,
-      onProgress: (progress) => {
-        publish(eventOf(progress))
-      },
-    })
+    report = await deps.scanner(job.url, publish)
   } catch (error) {
     log(`Scan ${job.id} could not run: ${message(error)}`)
     await published
@@ -81,38 +72,5 @@ export async function failScan(
     await deps.events.publish(id, { type: 'error' })
   } catch (error) {
     deps.log?.(`Scan ${id} lost its error event: ${message(error)}`)
-  }
-}
-
-/** The engine's step as the page reads it. */
-export function eventOf(progress: ScanProgress): ScanEvent {
-  switch (progress.step) {
-    case 'page':
-      return {
-        type: 'page',
-        status: progress.status,
-        contentType: progress.contentType,
-        error: progress.error,
-      }
-    case 'robots':
-      return { type: 'robots', outcome: progress.outcome, status: progress.status }
-    case 'crux':
-      return { type: 'crux', outcome: progress.outcome }
-    case 'render-start':
-      return { type: 'render-start', engine: progress.engine }
-    case 'render':
-      return {
-        type: 'render',
-        engine: progress.run.engine,
-        version: progress.run.version,
-        status: progress.run.status,
-        requests: progress.run.requests,
-      }
-    case 'lab-start':
-      return { type: 'lab-start' }
-    case 'lab':
-      return { type: 'lab', status: progress.status }
-    case 'rules':
-      return { type: 'rules', rules: progress.rules }
   }
 }

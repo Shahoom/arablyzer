@@ -13,16 +13,17 @@ import {
   type ResolvedAddress,
   type Resolver,
 } from './resolve'
+import { openTunnel, type Tunnel } from './upstream'
 import { checkUrl } from './url'
 
 /** BUILD-PLAN §11: at most 300 requests per page load. */
 export const DEFAULT_MAX_REQUESTS = 300
 /** Refusals kept in the log; the rest are counted only. */
 export const PROXY_LOG_LIMIT = 100
-/** DNS and the TCP connect for one request. */
-const CONNECT_TIMEOUT_MS = 10_000
-/** A connection without traffic for this long is closed. */
-const IDLE_TIMEOUT_MS = 30_000
+/** DNS and the TCP connect for one request; the egress proxy's too (smokescreen.ts). */
+export const PROXY_CONNECT_TIMEOUT_MS = 10_000
+/** A connection without traffic for this long is closed, here and in the egress proxy. */
+export const PROXY_IDLE_TIMEOUT_MS = 30_000
 const MAX_REQUESTS = 10_000
 const MAX_TARGET_LENGTH = 300
 const MAX_HEADER_SIZE = 16 * 1024
@@ -95,6 +96,8 @@ const AUTHORITY = /^(?:\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9._-]+):\d{1,5}$/
  * request and every CONNECT the way safeFetch vets a fetch: URL rules, every DNS answer, then a
  * connection to an address it vetted. It follows no redirects: the browser follows them, and
  * each hop comes back as a new request. It listens on 127.0.0.1 and wants its own credentials.
+ * With an egress proxy in the policy (`upstream`), each connection is a tunnel through it, and a
+ * name is the egress proxy's to resolve and vet (M2.1 plan §5b).
  *
  * Invalid options (e.g. a NaN limit) throw a TypeError.
  */
@@ -153,6 +156,17 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
     return given.length === expected.length && timingSafeEqual(given, expected)
   }
 
+  /** A tunnel through the egress proxy, or the refusal it gave, logged. */
+  const tunnel = async (target: string, host: string, port: number): Promise<Tunnel> => {
+    const upstream = policy.upstream ?? ''
+    const opened = await openTunnel(new URL(upstream), host, port, closing.signal).catch(
+      (): Tunnel => ({ ok: false, code: 'connect-failed', detail: 'The proxy is closing' }),
+    )
+    if (opened.ok) track(opened.socket)
+    else refuse(target, opened.code)
+    return opened
+  }
+
   /** The request limit, the byte budget, then DNS and every answer vetted. */
   const admit = async (
     target: string,
@@ -168,9 +182,17 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
       refuse(target, 'too-large')
       return { ok: false, code: 'too-large' }
     }
+    // Through an egress proxy, a name is the proxy's to resolve and vet.
+    if (policy.upstream !== undefined && net.isIP(host) === 0) {
+      requests += 1
+      return { ok: true, addresses: [] }
+    }
     pending += 1
     try {
-      const signal = AbortSignal.any([AbortSignal.timeout(CONNECT_TIMEOUT_MS), closing.signal])
+      const signal = AbortSignal.any([
+        AbortSignal.timeout(PROXY_CONNECT_TIMEOUT_MS),
+        closing.signal,
+      ])
       const endpoint = await untilAborted(
         resolveEndpoint(url, host, port, policy, resolver, signal),
         signal,
@@ -217,7 +239,16 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
       answer(res, admission.code)
       return
     }
-    forward(req, res, url, admission.addresses)
+    let through: net.Socket | undefined
+    if (policy.upstream !== undefined) {
+      const opened = await tunnel(url.href, host, port)
+      if (!opened.ok) {
+        answer(res, opened.code)
+        return
+      }
+      through = opened.socket
+    }
+    forward(req, res, url, admission.addresses, through)
   }
 
   const forward = (
@@ -225,6 +256,7 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
     res: ServerResponse,
     url: URL,
     addresses: readonly ResolvedAddress[],
+    through: net.Socket | undefined,
   ) => {
     let cut = false
     const upstream = http.request(
@@ -234,8 +266,10 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
         // RFC 9112 §3.2.2: the Host of an absolute-form request comes from its URL.
         headers: [...endToEnd(req.rawHeaders, 'host'), 'Host', url.host],
         setHost: false,
-        agent: false,
-        lookup: pinnedLookup(addresses),
+        // Direct, to an address vetted here; or over the egress proxy's tunnel, the request's own.
+        ...(through === undefined
+          ? { agent: false, lookup: pinnedLookup(addresses) }
+          : { createConnection: () => through }),
         signal: closing.signal,
         insecureHTTPParser: false,
         maxHeaderSize: MAX_HEADER_SIZE,
@@ -275,7 +309,7 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
     )
     upstream.on('socket', (socket) => {
       track(socket)
-      socket.setTimeout(IDLE_TIMEOUT_MS, () => socket.destroy())
+      socket.setTimeout(PROXY_IDLE_TIMEOUT_MS, () => socket.destroy())
     })
     // A request forwarded here never asks to upgrade (browsers tunnel WebSockets through CONNECT),
     // so a 101 is a server misbehaving; unanswered, it held the request until the idle timeout.
@@ -336,19 +370,9 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
       answerSocket(client, admission.code)
       return
     }
-    let open = false
-    const upstream = net.connect({
-      host: checked.host,
-      port: checked.port,
-      lookup: pinnedLookup(admission.addresses),
-    })
-    track(upstream)
-    upstream.setTimeout(CONNECT_TIMEOUT_MS)
-    upstream.once('connect', () => {
-      open = true
-      upstream.setTimeout(IDLE_TIMEOUT_MS)
+    /** The tunnel is up: the browser is told, then bytes flow, each counted before it passes. */
+    const established = (upstream: Duplex) => {
       client.write('HTTP/1.1 200 Connection Established\r\n\r\n')
-      // Both directions count against the byte budget, each chunk before it is passed on.
       const relay = (from: Duplex, to: Duplex) => {
         from.on('data', (chunk: Buffer) => {
           if (!counted(chunk.length, authority)) {
@@ -371,6 +395,34 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
       }
       relay(upstream, client)
       relay(client, upstream)
+    }
+    if (policy.upstream !== undefined) {
+      const opened = await tunnel(authority, checked.host, checked.port)
+      if (!opened.ok) {
+        answerSocket(client, opened.code)
+        return
+      }
+      const through = opened.socket
+      through.setTimeout(PROXY_IDLE_TIMEOUT_MS, () => through.destroy())
+      through.on('error', () => client.destroy())
+      through.on('close', () => client.destroy())
+      client.on('close', () => through.destroy())
+      established(through)
+      through.resume()
+      return
+    }
+    let open = false
+    const upstream = net.connect({
+      host: checked.host,
+      port: checked.port,
+      lookup: pinnedLookup(admission.addresses),
+    })
+    track(upstream)
+    upstream.setTimeout(PROXY_CONNECT_TIMEOUT_MS)
+    upstream.once('connect', () => {
+      open = true
+      upstream.setTimeout(PROXY_IDLE_TIMEOUT_MS)
+      established(upstream)
     })
     upstream.on('timeout', () => {
       if (!open) {
@@ -396,7 +448,7 @@ export async function startProxy(options: ProxyOptions = {}): Promise<EgressProx
   const server = http.createServer({ insecureHTTPParser: false, maxHeaderSize: MAX_HEADER_SIZE })
   server.on('connection', (socket: net.Socket) => {
     track(socket)
-    socket.setTimeout(IDLE_TIMEOUT_MS, () => socket.destroy())
+    socket.setTimeout(PROXY_IDLE_TIMEOUT_MS, () => socket.destroy())
   })
   server.on('request', (req: IncomingMessage, res: ServerResponse) => {
     onRequest(req, res).catch(() => {

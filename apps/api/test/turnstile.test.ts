@@ -1,4 +1,4 @@
-import type { FetchResult, SafeFetchOptions } from '@arablyzer/egress'
+import { createPolicy, type FetchResult, type SafeFetchOptions } from '@arablyzer/egress'
 import { describe, expect, it } from 'vitest'
 import { cloudflareTurnstile, SITEVERIFY_URL } from '../src/turnstile'
 
@@ -14,7 +14,8 @@ function answering(status: number, body: string) {
   return { fetcher, calls }
 }
 
-const base = { secret: 'the-secret', userAgent: 'ArablyzerBot/1.0' }
+const policy = createPolicy({ upstream: 'http://egress:4750' })
+const base = { secret: 'the-secret', userAgent: 'ArablyzerBot/1.0', policy }
 
 describe('cloudflareTurnstile', () => {
   it('asks Cloudflare through the egress package, with the token and never the address', async () => {
@@ -24,6 +25,8 @@ describe('cloudflareTurnstile', () => {
     expect(calls).toHaveLength(1)
     expect(calls[0]?.url).toBe(SITEVERIFY_URL)
     expect(calls[0]?.options.json).toEqual({ secret: 'the-secret', response: 'token' })
+    // The server's policy, whose egress proxy the request leaves through.
+    expect(calls[0]?.options.policy).toBe(policy)
   })
 
   it("refuses a token solved on another site than Arablyzer's", async () => {

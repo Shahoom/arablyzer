@@ -1,12 +1,12 @@
 import { serve } from '@hono/node-server'
-import { scan } from '@arablyzer/engine'
+import { localScanner, scanOptionsFrom } from '@arablyzer/scanner'
 import {
   MemoryRateLimiter,
   MemoryScanEvents,
   MemoryScanQueue,
   MemoryScanStore,
 } from '@arablyzer/store'
-import { runScan, scanOptionsFrom } from '@arablyzer/worker'
+import { runScan } from '@arablyzer/worker'
 import { createApp } from './app'
 import { apiDeps } from './config'
 
@@ -29,12 +29,12 @@ const server = serve({ fetch: app.fetch, port, hostname: '127.0.0.1' }, (info) =
 })
 
 const stop = new AbortController()
-const options = scanOptionsFrom(env)
+const scanner = localScanner(scanOptionsFrom(env))
 void (async () => {
   while (!stop.signal.aborted) {
     const job = await queue.take(stop.signal)
     if (job === null) break
-    await runScan(job, { store, events, scanner: scan, options, log: console.error })
+    await runScan(job, { store, events, scanner, log: console.error })
   }
 })()
 

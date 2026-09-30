@@ -1,4 +1,5 @@
 import { serverPolicy, type Resolver } from '@arablyzer/egress'
+import { trap } from '@arablyzer/fixtures'
 import { DEVELOPMENT_LIMITS } from '@arablyzer/plans'
 import {
   MemoryRateLimiter,
@@ -8,6 +9,7 @@ import {
 } from '@arablyzer/store'
 import { describe, expect, it } from 'vitest'
 import { createApp } from '../../src/app'
+import { apiDeps } from '../../src/config'
 
 // The API refuses every address the egress package refuses, before anything is stored or
 // queued (M2.1 plan §4, BUILD-PLAN §13). The worker's scan checks again at connect time.
@@ -141,5 +143,32 @@ describe('the API against SSRF', () => {
     const { scanOf, queue } = setup({ 'example.com': ['93.184.215.14'] })
     expect((await scanOf('https://example.com/')).status).toBe(202)
     expect(await queue.waiting()).toBe(1)
+  })
+})
+
+describe("the API's own requests", () => {
+  it('ask Turnstile through the egress proxy, never around it', async () => {
+    // A stand-in for the egress proxy, which records what reaches it.
+    const proxy = await trap()
+    try {
+      const deps = apiDeps(
+        {
+          TURNSTILE_SECRET: 'turnstile-secret',
+          ARABLYZER_EGRESS_PROXY: `http://127.0.0.1:${String(proxy.port)}`,
+        },
+        {
+          store: new MemoryScanStore(),
+          queue: new MemoryScanQueue(),
+          events: new MemoryScanEvents(),
+          limiter: new MemoryRateLimiter(),
+        },
+        () => undefined,
+      )
+      // It answers no CONNECT as Smokescreen does, so the check fails, closed.
+      expect(await deps.turnstile('token')).toBe(false)
+      expect(proxy.hits).toEqual(['tcp 127.0.0.1 "CONNECT challenges.cloudflare.com:443 HTTP/1.1"'])
+    } finally {
+      await proxy.close()
+    }
   })
 })

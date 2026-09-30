@@ -49,6 +49,7 @@ import {
   type Rule,
 } from '@arablyzer/rules'
 import { boundSelector, boundText, boundValues } from './bounds'
+import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
@@ -66,8 +67,6 @@ const PAGE_ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q
 const ROBOTS_ACCEPT = 'text/plain,*/*;q=0.8'
 /** Heuristic for the little-text notice: fewer visible letters than this, while scripts load. */
 const LITTLE_TEXT_LETTERS = 50
-/** BUILD-PLAN §11: a whole scan stays within 120 s; rendering gets what is left of it. */
-export const SCAN_BUDGET_MS = 120_000
 /** Below this, an engine is not started: it could not load a page in time. */
 const MIN_RENDER_MS = 2_000
 const ENGINE_NAMES: Readonly<Record<Engine, string>> = {
@@ -174,6 +173,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     options.ruleIds,
     options.render?.engines,
   )
+  progress({ step: 'start', engines: [...(options.render?.engines ?? [])] })
   const userAgent = options.userAgent ?? USER_AGENT
   const policy = options.policy ?? DEFAULT_POLICY
   const base: SafeFetchOptions = {

@@ -7,6 +7,7 @@ export {
   MAX_VALUE_ITEMS,
   MAX_VALUE_LENGTH,
 } from './bounds'
+export { SCAN_BUDGET_MS } from './budgets'
 export { CRUX_ENDPOINT, fetchCrux, type CruxOptions } from './crux'
 export { notice, type NoticeCode } from './notices'
 export { type ProgressListener, type ScanProgress } from './progress'
@@ -17,7 +18,6 @@ export {
   pageSummary,
   ROBOTS_MAX_BYTES,
   ROBOTS_MAX_REDIRECTS,
-  SCAN_BUDGET_MS,
   scan,
   selectRules,
   summarize,

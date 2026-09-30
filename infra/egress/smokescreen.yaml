@@ -1,0 +1,44 @@
+# Generated from packages/egress/src/{proxy,ranges}.ts by
+# `pnpm --filter @arablyzer/egress smokescreen-config`; the egress tests check it matches.
+# The limits of the browsers’ own proxy: a connect, a request’s headers, a quiet connection.
+connect_timeout: 10s
+read_header_timeout: 10s
+idle_timeout: 30s
+# Twice a page load’s requests (BUILD-PLAN §11): one scan at a time, and the API’s checks.
+max_concurrent_connect_tunnels: 600
+# Every range Arablyzer refuses, which Smokescreen refuses too. The server’s own public
+# address is added when the proxy starts, from ARABLYZER_DENY_CIDRS (infra/egress/main.go).
+deny_ranges:
+  - 0.0.0.0/8 # this-network
+  - 10.0.0.0/8 # private-10
+  - 100.64.0.0/10 # shared-cgnat
+  - 100.100.100.200/32 # metadata-alibaba
+  - 127.0.0.0/8 # loopback
+  - 168.63.129.16/32 # metadata-azure-wireserver
+  - 169.254.0.0/16 # link-local
+  - 172.16.0.0/12 # private-172
+  - 192.0.0.0/24 # ietf-protocol-assignments
+  - 192.0.2.0/24 # documentation
+  - 192.88.99.0/24 # deprecated-6to4-relay
+  - 192.168.0.0/16 # private-192
+  - 198.18.0.0/15 # benchmarking
+  - 198.51.100.0/24 # documentation
+  - 203.0.113.0/24 # documentation
+  - 224.0.0.0/4 # multicast
+  - 240.0.0.0/4 # reserved
+  - ::/128 # unspecified
+  - ::1/128 # loopback
+  - 64:ff9b:1::/48 # nat64-local-use
+  - 100::/64 # discard-only
+  - 2001::/23 # ietf-protocol-assignments
+  - 2001:db8::/32 # documentation
+  - 3fff::/20 # documentation
+  - fc00::/7 # unique-local
+  - fd00:ec2::254/128 # metadata-aws
+  - fd20:ce::254/128 # metadata-gcp
+  - fe80::/10 # link-local
+  - fec0::/10 # deprecated-site-local
+  - ff00::/8 # multicast
+  - ::/3 # below global unicast
+  - 4000::/2 # above global unicast
+  - 8000::/1 # above global unicast

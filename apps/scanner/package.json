@@ -1,0 +1,28 @@
+{
+  "name": "@arablyzer/scanner",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/browser": "workspace:*",
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/engine": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/scanner-client": "workspace:*",
+    "@hono/node-server": "2.1.1",
+    "hono": "4.13.10"
+  },
+  "devDependencies": {
+    "@arablyzer/fixtures": "workspace:*"
+  }
+}

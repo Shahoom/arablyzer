@@ -1,9 +1,10 @@
 import http, { type IncomingMessage } from 'node:http'
 import https from 'node:https'
+import { isIP } from 'node:net'
 import type { Readable } from 'node:stream'
-import { TLSSocket, type PeerCertificate } from 'node:tls'
+import tls, { TLSSocket, type PeerCertificate } from 'node:tls'
 import zlib from 'node:zlib'
-import { egressError, type EgressError } from './errors'
+import { egressError, type EgressError, type EgressErrorCode } from './errors'
 import { DEFAULT_POLICY, type EgressPolicy } from './policy'
 import { redactUrl } from './redact'
 import {
@@ -13,6 +14,7 @@ import {
   type ResolvedAddress,
   type Resolver,
 } from './resolve'
+import { openTunnel } from './upstream'
 import { checkUrl } from './url'
 
 /** BUILD-PLAN §11 page-load limits. */
@@ -108,6 +110,7 @@ export interface FetchResponse {
   readonly headers: readonly (readonly [string, string])[]
   readonly body: Uint8Array
   readonly truncated: boolean
+  /** The server's address; null through an egress proxy, which alone knows it. */
   readonly remoteAddress: string | null
   /** null over plain HTTP, or when the certificate's dates could not be read. */
   readonly certificate: CertificateValidity | null
@@ -130,11 +133,21 @@ export interface FetchResult {
 
 class TooLargeError extends Error {}
 class DecodeError extends Error {}
+/** The egress proxy refused the connection, or could not make it. */
+class UpstreamRefusal extends Error {
+  readonly refusal: EgressErrorCode
+
+  constructor(refusal: EgressErrorCode, message: string) {
+    super(message)
+    this.refusal = refusal
+  }
+}
 
 /**
  * The only way Arablyzer code reaches the network (docs/design/phase-0.md §1). Every hop is vetted:
  * URL rules, then every DNS answer, then a connection pinned to the vetted addresses so DNS cannot
- * change in between.
+ * change in between. With an egress proxy in the policy (`upstream`), a name goes to the proxy,
+ * which resolves it and vets its addresses; every other check still runs here.
  *
  * Network problems come back in `error`; invalid options (e.g. a NaN limit) throw a TypeError.
  */
@@ -170,24 +183,33 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
     if (!checked.ok) return finish(null, checked.error)
     const { url, host, port } = checked
     try {
-      const endpoint = await untilAborted(
-        resolveEndpoint(url, host, port, hopPolicy, resolver, signal),
-        signal,
-      )
-      if (!endpoint.ok) return finish(null, endpoint.error)
-      if (redirects.length === 0 && hopPolicy.allowPrivate && !endpoint.private) {
+      // Through an egress proxy, a name is the proxy's to resolve and vet; an address is vetted
+      // here all the same.
+      const upstream = hopPolicy.upstream
+      const endpoint =
+        upstream !== undefined && isIP(host) === 0
+          ? null
+          : await untilAborted(
+              resolveEndpoint(url, host, port, hopPolicy, resolver, signal),
+              signal,
+            )
+      if (endpoint !== null && !endpoint.ok) return finish(null, endpoint.error)
+      if (redirects.length === 0 && hopPolicy.allowPrivate && endpoint?.private !== true) {
         // --allow-private is for local builds: a chain that starts on a public address keeps
         // the default rules on every later hop, so it cannot redirect into local services.
         hopPolicy = { ...hopPolicy, allowPrivate: false }
       }
-      const res = await sendRequest(
-        url,
-        endpoint.addresses,
-        options,
-        signal,
-        postBody,
-        addedHeaders,
-      )
+      const res =
+        upstream === undefined
+          ? await sendRequest(
+              url,
+              endpoint?.addresses ?? [],
+              options,
+              signal,
+              postBody,
+              addedHeaders,
+            )
+          : await sendThrough(upstream, url, host, port, options, signal, postBody, addedHeaders)
       const status = res.statusCode ?? 0
       // HTTP status codes are 100-599 (RFC 9110 §15); Node's parser also lets 600-999 through,
       // and some sites use them to refuse bots.
@@ -233,7 +255,7 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
         current = next.href
         continue
       }
-      const remoteAddress = res.socket.remoteAddress ?? null
+      const remoteAddress = upstream === undefined ? (res.socket.remoteAddress ?? null) : null
       const certificate = res.socket instanceof TLSSocket ? validityOf(res.socket) : null
       const headers = headerPairs(res.rawHeaders)
       const { body, truncated } = await readBody(
@@ -294,6 +316,23 @@ function extraHeaders(given: Readonly<Record<string, string>> | undefined): Reco
   return headers
 }
 
+/** The request's headers: added ones first, so none can replace the fetch's own. */
+function requestHeaders(
+  options: SafeFetchOptions,
+  body: Buffer | undefined,
+  extra: Readonly<Record<string, string>>,
+): Record<string, string> {
+  return {
+    ...extra,
+    'user-agent': options.userAgent,
+    accept: options.accept ?? '*/*',
+    'accept-encoding': 'gzip, deflate, br',
+    ...(body === undefined
+      ? {}
+      : { 'content-type': 'application/json', 'content-length': String(body.length) }),
+  }
+}
+
 function sendRequest(
   url: URL,
   addresses: readonly ResolvedAddress[],
@@ -313,15 +352,7 @@ function sendRequest(
     rejectUnauthorized: true,
     insecureHTTPParser: false,
     maxHeaderSize: 16 * 1024,
-    headers: {
-      ...extra,
-      'user-agent': options.userAgent,
-      accept: options.accept ?? '*/*',
-      'accept-encoding': 'gzip, deflate, br',
-      ...(body === undefined
-        ? {}
-        : { 'content-type': 'application/json', 'content-length': String(body.length) }),
-    },
+    headers: requestHeaders(options, body, extra),
   }
   return new Promise((resolve, reject) => {
     const request =
@@ -329,6 +360,57 @@ function sendRequest(
         ? https.request(url, requestOptions, resolve)
         : http.request(url, requestOptions, resolve)
     request.on('error', reject)
+    request.end(body)
+  })
+}
+
+/**
+ * The request through the egress proxy: a tunnel to host:port, TLS over it for https (verified,
+ * with the name for SNI and the certificate's check), then HTTP/1.1 over that. The socket is the
+ * request's alone, so nothing is shared, and no agent can pick up a proxy from the environment.
+ */
+async function sendThrough(
+  upstream: string,
+  url: URL,
+  host: string,
+  port: number,
+  options: SafeFetchOptions,
+  signal: AbortSignal,
+  body: Buffer | undefined,
+  extra: Readonly<Record<string, string>>,
+): Promise<IncomingMessage> {
+  const tunnel = await openTunnel(new URL(upstream), host, port, signal)
+  if (!tunnel.ok) throw new UpstreamRefusal(tunnel.code, tunnel.detail)
+  const socket =
+    url.protocol === 'https:'
+      ? tls.connect({
+          socket: tunnel.socket,
+          host,
+          ...(isIP(host) === 0 ? { servername: host } : {}),
+          rejectUnauthorized: true,
+        })
+      : tunnel.socket
+  return new Promise((resolve, reject) => {
+    const request = http.request(
+      {
+        method: body === undefined ? 'GET' : 'POST',
+        host,
+        port,
+        path: `${url.pathname}${url.search}`,
+        // Written as the URL has it: the port only when it is not the scheme's own.
+        setHost: false,
+        headers: { host: url.host, ...requestHeaders(options, body, extra) },
+        createConnection: () => socket,
+        signal,
+        insecureHTTPParser: false,
+        maxHeaderSize: 16 * 1024,
+      },
+      resolve,
+    )
+    request.on('error', (error) => {
+      socket.destroy()
+      reject(error)
+    })
     request.end(body)
   })
 }
@@ -483,6 +565,7 @@ function toEgressError(
   // After an abort the socket may surface ECONNRESET rather than an AbortError; the abort is the cause.
   if (deadline.aborted) return egressError('timeout', url, 'Time limit reached')
   if (signal.aborted) return egressError('aborted', url, 'Request was cancelled')
+  if (error instanceof UpstreamRefusal) return egressError(error.refusal, url, error.message)
   if (error instanceof TooLargeError) return egressError('too-large', url, error.message)
   if (error instanceof DecodeError) return egressError('decode-failed', url, error.message)
   const code = errorCode(error)

@@ -158,6 +158,55 @@ jobs:
           # A re-run of the job replaces what the run before it kept.
           overwrite: true
 
+  stack:
+    # M2.1d: the stack as Compose runs it (M2.1 plan §5b), with a golden site served inside it,
+    # scanned from the API to its report; the networks each part reaches, and that the host has
+    # no address on the internal ones; the egress proxy's refusals; the containers' caps and logs.
+    # Cloudflare's test Turnstile keys, and secrets made for the run.
+    name: The stack, end to end
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: The stack's settings, for this run
+        run: |
+          secret() { openssl rand -hex 24; }
+          {
+            # The host Turnstile's test keys answer with.
+            echo ARABLYZER_SITE=https://example.com
+            echo ARABLYZER_PORT=8080
+            echo PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+            echo TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+            echo ARABLYZER_LIMIT_CONNECTION_SCANS=10
+            echo ARABLYZER_LIMIT_CONNECTION_SECONDS=3600
+            echo ARABLYZER_LIMIT_HOST_SCANS=20
+            echo ARABLYZER_LIMIT_HOST_SECONDS=3600
+            echo ARABLYZER_LIMIT_QUEUE=50
+            echo "ARABLYZER_LIMIT_SECRET=$(secret)"
+            echo "ARABLYZER_SCANNER_TOKEN=$(secret)"
+            echo "VALKEY_PASSWORD=$(secret)"
+            echo "POSTGRES_PASSWORD=$(secret)"
+            # The server's own address stands in as an unused address of the test network.
+            echo ARABLYZER_DENY_CIDRS=93.184.215.61/32
+          } > infra/.env
+      - name: Build and start the stack
+        run: docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml up --detach --build --wait --wait-timeout 900
+      - name: The stack, end to end
+        run: pnpm test:stack
+      - name: The stack's logs
+        if: failure()
+        run: docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml logs --no-color --tail 200
+      - name: Stop the stack
+        if: always()
+        run: docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml down --volumes
+
   arabic-copy:
     # Design decision 7: a rule or tool stays red until the owner has read its Arabic copy and
     # set `reviewed: true` in packages/{rules/src/rules/<id>,tools/src/tools/<slug>}/copy.ar.md.

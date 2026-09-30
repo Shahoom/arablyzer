@@ -1,4 +1,4 @@
-import { scan, SCAN_BUDGET_MS } from '@arablyzer/engine'
+import { remoteScanner, SCAN_BUDGET_MS } from '@arablyzer/scanner-client'
 import {
   PostgresScanStore,
   quietly,
@@ -10,13 +10,12 @@ import {
 import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
 import pg from 'pg'
-import { scanOptionsFrom } from './options'
 import { failScan, runScan } from './run'
 
-// The worker as Compose and staging run it (M2.1 plan §4): one scan at a time, one browser at
-// a time (BUILD-PLAN §11), on a network whose only way out is the egress proxy. Production's
-// checks hold whatever NODE_ENV says: ARABLYZER_ALLOW_PRIVATE is refused here.
-const env: Readonly<Record<string, string | undefined>> = { ...process.env, NODE_ENV: 'production' }
+// The worker as Compose and staging run it (M2.1 plan §5b): it takes one job at a time, has the
+// scanner container run it, and stores the report. It runs no browser: the scanner does, on a
+// network that sees the egress proxy alone, and never the stores.
+const env = process.env
 const required = (name: string): string => {
   const value = env[name]?.trim()
   if (value === undefined || value === '') throw new Error(`${name} must be set`)
@@ -44,8 +43,7 @@ pool.on('error', quietly('PostgreSQL', log))
 const deps = {
   store: new PostgresScanStore(pool),
   events: new ValkeyScanEvents(redis),
-  scanner: scan,
-  options: scanOptionsFrom(env),
+  scanner: remoteScanner(required('ARABLYZER_SCANNER_URL'), required('ARABLYZER_SCANNER_TOKEN')),
   log,
 }
 

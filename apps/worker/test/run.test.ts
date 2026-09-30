@@ -1,12 +1,9 @@
-import { fileURLToPath } from 'node:url'
 import type { ScanEvent } from '@arablyzer/api-contract'
-import { createPolicy } from '@arablyzer/egress'
-import { scan } from '@arablyzer/engine'
-import { serveSite } from '@arablyzer/fixtures'
 import type { Report } from '@arablyzer/report-schema'
+import type { Scanner } from '@arablyzer/scanner-client'
 import { MemoryScanEvents, MemoryScanStore } from '@arablyzer/store'
 import { describe, expect, it } from 'vitest'
-import { failScan, runScan, type Scanner } from '../src/run'
+import { failScan, runScan } from '../src/run'
 
 const NOW = new Date('2026-09-28T12:00:00Z')
 const ID = 'AbCdEfGhIjKlMnOpQrSt_-'
@@ -30,19 +27,22 @@ async function setup() {
   return { store, events }
 }
 
+const STARTED: ScanEvent = { type: 'started', engines: ['chromium', 'firefox'] }
+
 describe('runScan', () => {
   it('stores the report and tells the page every step, in order', async () => {
     const { store, events } = await setup()
     const report = { scan: { status: 'partial' } } as unknown as Report
-    const scanner: Scanner = (_, options) => {
-      options.onProgress?.({ step: 'page', status: 200, contentType: 'text/html', error: null })
-      options.onProgress?.({ step: 'render-start', engine: 'firefox' })
-      options.onProgress?.({ step: 'rules', rules: 47 })
+    const scanner: Scanner = (_, onEvent) => {
+      onEvent(STARTED)
+      onEvent({ type: 'page', status: 200, contentType: 'text/html', error: null })
+      onEvent({ type: 'render-start', engine: 'firefox' })
+      onEvent({ type: 'rules', rules: 47 })
       return Promise.resolve(report)
     }
     await runScan(
       { id: ID, url: 'https://example.com/' },
-      { store, events, scanner, options: {}, now: () => NOW },
+      { store, events, scanner, now: () => NOW },
     )
     expect(await store.get(ID)).toMatchObject({
       state: 'partial',
@@ -51,7 +51,7 @@ describe('runScan', () => {
       report,
     })
     expect(await stored(events)).toEqual([
-      { type: 'started', engines: [] },
+      STARTED,
       { type: 'page', status: 200, contentType: 'text/html', error: null },
       { type: 'render-start', engine: 'firefox' },
       { type: 'rules', rules: 47 },
@@ -67,15 +67,17 @@ describe('runScan', () => {
       {
         store,
         events,
-        scanner: () => Promise.reject(new Error('the browser crashed')),
-        options: {},
+        scanner: (_, onEvent) => {
+          onEvent(STARTED)
+          return Promise.reject(new Error('The scanner answered 503'))
+        },
         now: () => NOW,
         log: (message) => logged.push(message),
       },
     )
     expect(await store.get(ID)).toMatchObject({ state: 'failed', report: null })
-    expect(await stored(events)).toEqual([{ type: 'started', engines: [] }, { type: 'error' }])
-    expect(logged).toEqual([`Scan ${ID} could not run: the browser crashed`])
+    expect(await stored(events)).toEqual([STARTED, { type: 'error' }])
+    expect(logged).toEqual([`Scan ${ID} could not run: The scanner answered 503`])
   })
 
   it('goes on when an event cannot be sent, and says which', async () => {
@@ -90,15 +92,16 @@ describe('runScan', () => {
           ? Promise.reject(new Error('OOM command not allowed'))
           : events.publish(id, event),
     }
-    const scanner: Scanner = async (_, options) => {
+    const scanner: Scanner = async (_, onEvent) => {
+      onEvent(STARTED)
       // The scanner is quiet a while after the refusal, as a browser starting is.
       await new Promise((resolve) => setTimeout(resolve, 20))
-      options.onProgress?.({ step: 'rules', rules: 47 })
+      onEvent({ type: 'rules', rules: 47 })
       return { scan: { status: 'complete' } } as unknown as Report
     }
     await runScan(
       { id: ID, url: 'https://example.com/' },
-      { store, events: flaky, scanner, options: {}, now: () => NOW, log: (m) => logged.push(m) },
+      { store, events: flaky, scanner, now: () => NOW, log: (m) => logged.push(m) },
     )
     expect(await store.get(ID)).toMatchObject({ state: 'complete' })
     expect(await stored(events)).toEqual([
@@ -124,7 +127,6 @@ describe('runScan', () => {
         store,
         events: lossy,
         scanner: () => Promise.resolve(report),
-        options: {},
         now: () => NOW,
         log: (m) => logged.push(m),
       },
@@ -147,7 +149,6 @@ describe('runScan', () => {
           scanned = true
           return Promise.reject(new Error('not reached'))
         },
-        options: {},
         now: () => NOW,
       },
     )
@@ -164,40 +165,5 @@ describe('runScan', () => {
     await failScan(ID, { store, events })
     expect(await store.get(ID)).toMatchObject({ state: 'partial', report })
     expect(await events.since(ID, null)).toEqual([])
-  })
-
-  it('runs the engine on a golden page, from the job to the stored report', async () => {
-    const site = await serveSite(
-      fileURLToPath(new URL('../../../fixtures/golden/sites/20-clean-contact/', import.meta.url)),
-    )
-    try {
-      const { store, events } = await setup()
-      await runScan(
-        { id: ID, url: site.url('/') },
-        {
-          store,
-          events,
-          scanner: scan,
-          options: {
-            policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
-          },
-          now: () => NOW,
-        },
-      )
-      const record = await store.get(ID)
-      expect(record?.state).toBe('complete')
-      expect(record?.report?.target.url).toBe(site.url('/'))
-      const seen = await stored(events)
-      expect(seen[0]).toEqual({ type: 'started', engines: [] })
-      expect(seen[1]).toEqual({
-        type: 'page',
-        status: 200,
-        contentType: 'text/html; charset=utf-8',
-        error: null,
-      })
-      expect(seen.at(-1)).toEqual({ type: 'done', state: 'complete' })
-    } finally {
-      await site.close()
-    }
   })
 })

@@ -1,4 +1,4 @@
-import { DEFAULT_POLICY, safeFetch, type EgressPolicy, type Resolver } from '@arablyzer/egress'
+import { safeFetch, type EgressPolicy, type Resolver } from '@arablyzer/egress'
 
 type Fetcher = typeof safeFetch
 
@@ -16,7 +16,8 @@ export interface TurnstileOptions {
   readonly userAgent: string
   /** The site's host name: a token solved on any other site is refused. */
   readonly hostname?: string
-  readonly policy?: EgressPolicy
+  /** The server's own (config.ts), with its egress proxy: required, so no check leaves around it. */
+  readonly policy: EgressPolicy
   readonly resolver?: Resolver
   readonly timeoutMs?: number
   /** safeFetch; tests pass their own. */
@@ -35,7 +36,7 @@ export function cloudflareTurnstile(options: TurnstileOptions): TurnstileCheck {
     const fetched = await (options.fetcher ?? safeFetch)(SITEVERIFY_URL, {
       userAgent: options.userAgent,
       accept: 'application/json',
-      policy: options.policy ?? DEFAULT_POLICY,
+      policy: options.policy,
       ...(options.resolver === undefined ? {} : { resolver: options.resolver }),
       timeoutMs: options.timeoutMs ?? 5_000,
       maxBytes: 16 * 1024,

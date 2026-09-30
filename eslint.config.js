@@ -175,6 +175,35 @@ export default defineConfig(
     },
   },
   {
+    // The worker's one request, to the scanner, on the network the two share alone (M2.1 plan
+    // §5b): not scan traffic, which leaves the scanner through the egress proxy. fetch alone.
+    files: ['packages/scanner-client/src/client.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
+    // The stack's end-to-end test asks the stack itself, on the host's port, as a visitor does
+    // (M2.1 plan §5b), and runs commands in its containers.
+    files: ['infra/test/**'],
+    rules: {
+      ...networkRules({ allowProcesses: true }),
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
     // The site's Lighthouse run in CI, on its own pages on loopback (M2.1 plan §3).
     files: ['apps/web/scripts/lighthouse.ts'],
     rules: networkRules({ allowProcesses: true, allow: ['lighthouse', 'chrome-launcher'] }),
