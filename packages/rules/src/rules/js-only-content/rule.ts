@@ -10,10 +10,16 @@ import { defineRule, type DetectorFinding } from '../../rule'
 export const MIN_DRAWN_WORDS = 20
 
 /**
+ * The rule fails when more than this share of the words a browser drew are not in the HTML: more
+ * than half. The copy says so, and a test ties the two.
+ */
+export const SCRIPTED_SHARE = 0.5
+
+/**
  * The characters of a block's text the engines keep (the browser package's MEASURE_LIMITS
  * textLength): a block that long may end in half a word, which is left out.
  */
-const BLOCK_TEXT_LENGTH = 200
+export const BLOCK_TEXT_LENGTH = 200
 
 /** A run of Arabic-script letters. */
 const ARABIC_WORD = /(?:(?=\p{Script=Arabic})\p{L})+/gu
@@ -87,7 +93,7 @@ export const rule = defineRule({
       }
       if (total >= MIN_DRAWN_WORDS) measured.push([facts.engine, { missing, total, first }])
     }
-    const mostly = measured.filter(([, { missing, total }]) => missing * 2 > total)
+    const mostly = measured.filter(([, { missing, total }]) => missing > total * SCRIPTED_SHARE)
     const [shown] = mostly
     if (shown === undefined) return []
     const [, { missing, total, first }] = shown
