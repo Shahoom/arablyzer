@@ -1,5 +1,13 @@
 import { execFile } from 'node:child_process'
-import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -66,11 +74,23 @@ function addressUrl(site: FixtureSite): string {
 /** Sites served over HTTPS carry certificates from the test authority, which the CLI must trust. */
 const TRUST = { NODE_EXTRA_CA_CERTS: fixtureCaFile() }
 
-/** Every fixture site: the shared ones and every rule's wrong and right sites. */
+/**
+ * Whether a fixture site answers under several names (site.json `aliases`): it redirects to a
+ * name real DNS cannot answer, so the CLI cannot follow it. The engine's fixture suite scans
+ * those sites with the fixture server's own resolver.
+ */
+function servesSeveralNames(dir: string): boolean {
+  const file = `${dir}/site.json`
+  if (!existsSync(file)) return false
+  const site = JSON.parse(readFileSync(file, 'utf8')) as { aliases?: unknown }
+  return Array.isArray(site.aliases) && site.aliases.length > 0
+}
+
+/** Every fixture site: the shared ones and every rule's wrong and right sites, under one name. */
 const SITES = [
   ...dirs(SHARED_SITES),
   ...dirs(RULES_DIR).flatMap((rule) => dirs(`${rule}/fixtures/`)),
-]
+].filter((dir) => !servesSeveralNames(dir))
 
 describe('arablyzer (built bundle)', () => {
   it('is built', () => {

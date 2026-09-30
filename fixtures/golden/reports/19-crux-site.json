@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.4.0"
+    "rulesetVersion": "0.5.0"
   },
   "target": {
     "url": "http://127.0.0.1:30019/",
@@ -62,7 +62,7 @@
     "pass": 21,
     "fail": 1,
     "needsReview": 0,
-    "notApplicable": 25,
+    "notApplicable": 31,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -91,8 +91,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 47,
-      "total": 47
+      "ran": 53,
+      "total": 53
     }
   },
   "rules": [
@@ -295,6 +295,17 @@
       }
     },
     {
+      "id": "csp-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة بلا سياسة أمان المحتوى (CSP)",
+        "en": "No Content Security Policy"
+      }
+    },
+    {
       "id": "cwv-cls-poor",
       "version": "1.0.0",
       "category": "speed",
@@ -372,6 +383,17 @@
       "title": {
         "ar": "حقل هاتف يُعرض من اليمين إلى اليسار",
         "en": "Phone field shown right to left"
+      }
+    },
+    {
+      "id": "frame-protection-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "أي موقع يستطيع عرض الصفحة داخل إطار",
+        "en": "Any site may show the page in a frame"
       }
     },
     {
@@ -507,6 +529,39 @@
       }
     },
     {
+      "id": "redirect-chain",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "سلسلة تحويلات قبل الصفحة",
+        "en": "A chain of redirects before the page"
+      }
+    },
+    {
+      "id": "redirect-temporary",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "تحويل مؤقت لانتقال دائم",
+        "en": "A temporary redirect for a move made for good"
+      }
+    },
+    {
+      "id": "referrer-policy-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة بلا سياسة للمُحيل (Referrer-Policy)",
+        "en": "No referrer policy"
+      }
+    },
+    {
       "id": "robots-blocks-ai-search",
       "version": "1.0.0",
       "category": "ai",
@@ -639,6 +694,17 @@
       "title": {
         "ar": "رقم رابط واتساب ليس بالصيغة الدولية",
         "en": "WhatsApp link number not in international format"
+      }
+    },
+    {
+      "id": "x-content-type-options-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة بلا X-Content-Type-Options: nosniff",
+        "en": "No X-Content-Type-Options: nosniff"
       }
     }
   ],
