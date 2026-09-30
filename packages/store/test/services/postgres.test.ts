@@ -76,6 +76,23 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
     expect(rows[0]?.score).toBeNull()
   })
 
+  // M2.3c review: a scan of a page the site answered with a challenge, or refused, has no score
+  // (packages/scoring), and the listing's column keeps none, not a stale or zero one.
+  it('lists no score for a scan that never reached its page', async () => {
+    const id = 'AbCdEfGhIjKlMnOpQrSt_v'
+    await store.create({ id, url: 'https://example.com/', createdAt: NOW })
+    await store.start(id, NOW)
+    const report = { scan: { status: 'partial' }, score: { overall: null } } as unknown as Report
+    expect(await store.finish(id, report, NOW)).toBe(true)
+    expect(await store.get(id)).toMatchObject({ state: 'partial', tool: null, report })
+    const { rows } = await pool.query<{ score: number | null }>(
+      'SELECT score FROM scans WHERE id = $1',
+      [id],
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.score).toBeNull()
+  })
+
   it('fails a scan that could not run, and knows no scan it was not given', async () => {
     const id = 'AbCdEfGhIjKlMnOpQrSt_2'
     await store.create({ id, url: 'https://example.com/', createdAt: NOW })

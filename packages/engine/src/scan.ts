@@ -216,6 +216,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       findings: Finding[]
       facts: Facts
       render?: RenderRun[]
+      /** Whether the scan reached the page; not, it has no score. Reached unless said. */
+      reached?: boolean
     },
   ): Report =>
     Report.parse({
@@ -230,7 +232,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       },
       page: parts.page,
       summary: summarize(parts.results),
-      score: scoreOf(parts.results, (options.rules ?? RULES).length),
+      score: scoreOf(parts.results, (options.rules ?? RULES).length, parts.reached ?? true),
       rules: parts.results,
       findings: parts.findings,
       facts: parts.facts,
@@ -479,8 +481,13 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
 
   return finish(target, {
+    // A scan that did not reach the page is short, whatever the rules beside the page said: the
+    // CLI exits 2 for it (docs/design/phase-0.md §3), and it has no score (M2.3c review).
     status:
-      unrendered || results.some((result) => result.status === 'error') ? 'partial' : 'complete',
+      unrendered || !reached || results.some((result) => result.status === 'error')
+        ? 'partial'
+        : 'complete',
+    reached,
     notices,
     // A challenge's language and script are not the page's.
     page: challengeOf(page.headers) === null ? pageSummary(page) : null,

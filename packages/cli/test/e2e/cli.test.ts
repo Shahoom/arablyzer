@@ -92,6 +92,9 @@ const SITES = [
   ...dirs(RULES_DIR).flatMap((rule) => dirs(`${rule}/fixtures/`)),
 ].filter((dir) => !servesSeveralNames(dir))
 
+/** Sites whose home page is a bot challenge (403, 202), or is not there (404). */
+const ANSWER_NO_PAGE = ['/bot-challenge/fixtures/wrong', '/fixtures/sites/ssrf-redirects']
+
 describe('arablyzer (built bundle)', () => {
   it('is built', () => {
     expect(existsSync(CLI)).toBe(true)
@@ -106,7 +109,9 @@ describe('arablyzer (built bundle)', () => {
         expect(result.stderr).toBe('')
         const report: unknown = JSON.parse(result.stdout)
         expect(validate(report), ajv.errorsText(validate.errors)).toBe(true)
-        expect(result.code).toBe(0)
+        // A site that answers with a bot challenge, or an error, in place of the page was not
+        // scanned: the scan is partial, which exits 2 (M2.3c).
+        expect(result.code).toBe(ANSWER_NO_PAGE.some((name) => dir.includes(name)) ? 2 : 0)
       } finally {
         await site.close()
       }

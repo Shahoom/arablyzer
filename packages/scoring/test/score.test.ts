@@ -118,4 +118,26 @@ describe('scoreOf', () => {
       rules: { ran: 3, total: 47 },
     })
   })
+
+  // M2.3c review: a page answered with a bot challenge, or with an error, scored 100 on the rules
+  // beside the page (robots.txt, the sitemaps, the answer itself), which say nothing of it.
+  it('gives no score, overall or by category, when the scan did not reach the page', () => {
+    const results = [
+      result('moderate', 'pass', 'crawl'),
+      result('serious', 'pass', 'ai'),
+      result('minor', 'fail', 'crawl'),
+      result('critical', 'not-applicable', 'onpage'),
+      result('critical', 'error', 'speed'),
+    ]
+    expect(scoreOf(results, 60, false)).toEqual({
+      overall: null,
+      categories: { ai: null, crawl: null, onpage: null, speed: null },
+      // What could not run is still said, and so is how many rules the scan ran.
+      partial: true,
+      rules: { ran: 5, total: 60 },
+    })
+    // A page that was reached, the default, is scored on the same results.
+    expect(scoreOf(results, 60).overall).toBe(89)
+    expect(scoreOf(results, 60, true)).toEqual(scoreOf(results, 60))
+  })
 })

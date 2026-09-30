@@ -57,8 +57,8 @@ export function ReportView({
             >
               <strong className="text-moderate">{REPORT[lang].states.partial.title}</strong>
               <span className="text-[15px] leading-[1.7] text-ink-2">
-                {/* A tool's result has no score to speak of. */}
-                {tool === undefined
+                {/* A tool's result has no score to speak of, nor has a scan that missed the page. */}
+                {tool === undefined && report.score.overall !== null
                   ? REPORT[lang].states.partial.text
                   : REPORT[lang].states.partial.tool}
               </span>

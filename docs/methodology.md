@@ -38,6 +38,7 @@
 - **الدرجة العامة** بالصيغة نفسها على كل القواعد، و**درجة كل فئة** على قواعدها وحدها، فالفئة ذات القواعد الأثقل تؤثر في الدرجة العامة أكثر. لكل فئة شغّل الفحص قواعدها درجة، أو «بلا درجة» إن لم تنطبق منها قاعدة ذات وزن.
 - **الدرجة الجزئية**: إذا تعذّر تشغيل قاعدة، يقول التقرير إن الدرجة جزئية، لأنها تحسب ما اكتمل فقط.
 - **بلا درجة**: إذا لم تنطبق أي قاعدة ذات وزن، كفئة قواعدها كلها معلومات، فلا درجة لها.
+- **صفحة لم يصل إليها الفحص**: إذا ردّ الموقع بحالة خطأ، مثل 403 أو 404، أو بتحدٍّ للبوتات بدل الصفحة، فلم تُفحص الصفحة نفسها. والقواعد التي تعمل عندئذ تقرأ robots.txt وخرائط الموقع وردّ الخادم، ولا تقول شيئاً عن الصفحة، فلا درجة للفحص، لا عامة ولا لفئة، ويكون الفحص جزئياً.
 - **القواعد المحسوبة**: يذكر التقرير كم قاعدة شغّلها الفحص من قواعد المجموعة كلها (`score.rules`). الفحص دون عرض الصفحة في متصفح يترك القواعد التي تقرأ الصفحة المعروضة، والفحص الذي يسمّي قواعده يشغّلها وحدها، فتُحسب درجته على قواعد أقل.
 - **المقارنة**: الدرجات تُقارن داخل الإصدار الرئيسي نفسه لمجموعة القواعد فقط، ويذكره التقرير (`rulesetVersion`)، لأن إضافة قاعدة أو تغيير وزن يغيّر الدرجة؛ وبين فحوص شغّلت القواعد نفسها.
 
@@ -100,6 +101,7 @@ Score = 100 × (1 − total weight of failed rules ÷ total weight of applicable
 - **The overall score** uses the same formula over every rule, and **each category's score** over its own rules, so categories with heavier rules weigh more in the overall score. Every category the scan ran rules of has a score, or "no score" when none of its rules with weight applied.
 - **A partial score**: when a rule could not run, the report says the score is partial, since it counts only what finished.
 - **No score**: when no rule with weight applies, such as a category of information rules alone, there is no score.
+- **A page the scan did not reach**: when the site answers with an error status, such as 403 or 404, or with a bot challenge instead of the page, the page itself was not checked. The rules that run then read robots.txt, the sitemaps and the server’s answer, and say nothing of the page, so the scan has no score, overall or by category, and is partial.
 - **The rules counted**: the report gives how many of the rule set's rules the scan ran (`score.rules`). A scan that does not render the page in a browser leaves out the rules that read the rendered page, and a scan that names its rules runs those alone, so its score counts fewer rules.
 - **Comparing**: scores compare only within the same major version of the rule set, which the report gives (`rulesetVersion`), since adding a rule or changing a weight changes the score; and between scans that ran the same rules.
 

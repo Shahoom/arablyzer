@@ -37,7 +37,11 @@ describe('rule fixtures over HTTP', () => {
         ...(crux === undefined ? {} : { crux: { apiKey: 'fixture-key', endpoint: crux.endpoint } }),
       })
       expect(schemaErrors(report)).toBe('')
-      expect(report.scan).toMatchObject({ status: 'complete' })
+      // A challenge is not the page (M2.3c): none of the page was checked, so the scan is short
+      // and has no score, though the rules beside the page ran and passed.
+      const challenged = ruleId === 'bot-challenge' && fixture.startsWith('wrong')
+      expect(report.scan).toMatchObject({ status: challenged ? 'partial' : 'complete' })
+      if (challenged) expect(report.score.overall).toBeNull()
       const failed = report.rules.filter((rule) => rule.status === 'fail').map((rule) => rule.id)
       if (RENDER_RULES.has(ruleId)) {
         // Without a browser, a render rule's fixtures must pass every other rule.

@@ -16,8 +16,13 @@ export const SEVERITY_WEIGHTS: Readonly<Record<Severity, number>> = Object.freez
  * review, or could not run counts for nothing, and a rule that could not run makes the score
  * partial. Without any applicable weight, a score is null: information alone, or nothing that
  * applied. `total` is how many rules the rule set has, of which the scan ran `results.length`.
+ *
+ * `reached`: whether the scan reached the page, which is a 2xx answer that is not a bot challenge.
+ * When it did not, the rules that ran read what is beside the page (robots.txt, the sitemaps, the
+ * answer itself) and say nothing of it, so every score is null, though the rules that could not
+ * run and how many ran are still said (M2.3c review: a challenged page scored 100).
  */
-export function scoreOf(results: readonly RuleResult[], total: number): Score {
+export function scoreOf(results: readonly RuleResult[], total: number, reached = true): Score {
   const overall = { applicable: 0, failed: 0 }
   const byCategory = new Map<Category, { applicable: number; failed: number }>()
   let partial = false
@@ -35,10 +40,10 @@ export function scoreOf(results: readonly RuleResult[], total: number): Score {
   }
   const categories: Partial<Record<Category, number | null>> = {}
   for (const [category, tally] of [...byCategory].sort(([a], [b]) => a.localeCompare(b, 'en'))) {
-    categories[category] = scoreFrom(tally)
+    categories[category] = reached ? scoreFrom(tally) : null
   }
   return {
-    overall: scoreFrom(overall),
+    overall: reached ? scoreFrom(overall) : null,
     categories,
     partial,
     rules: { ran: results.length, total },

@@ -54,7 +54,9 @@ describe('scan: a bot challenge in place of the page', () => {
       policy: policyFor(local),
     })
     expect(schemaErrors(report)).toBe('')
-    expect(report.scan.status).toBe('complete')
+    // The scan did not reach the page: it is short, and has no score for what was not checked.
+    expect(report.scan.status).toBe('partial')
+    expect(report.score).toMatchObject({ overall: null, categories: { onpage: null } })
     expect(report.scan.notices.map((item) => [item.code, item.message.en])).toEqual([
       [
         'bot-challenge',
@@ -69,6 +71,45 @@ describe('scan: a bot challenge in place of the page', () => {
     expect(report.findings.map((finding) => finding.message.en)).toEqual(['Found 403'])
     expect(report.page).toBeNull()
   })
+
+  // M2.3c review: a Cloudflare challenge (403) and an AWS WAF one (202) reported `complete` and
+  // 100, because the rules beside the page (robots.txt, sitemaps, the answer) passed.
+  it.each([
+    ['Cloudflare', 403, { 'cf-mitigated': 'challenge' }],
+    ['AWS WAF', 202, { 'x-amzn-waf-action': 'challenge' }],
+  ])(
+    'gives a %s challenge no score, and does not call the scan complete',
+    async (_name, status, header) => {
+      const local = await site(
+        { 'robots.txt': 'User-agent: *\nAllow: /\n' },
+        {
+          '/': {
+            status,
+            headers: { 'content-type': 'text/html; charset=UTF-8', ...header },
+            body: CHALLENGE_PAGE,
+          },
+        },
+      )
+      // The rules that ran beside the page count for a score when they pass: a serious one does here.
+      const report = await scan(local.url('/'), {
+        rules: [flagRule(), testRule({ id: 'robots-rule', needs: ['robots'], detect: () => [] })],
+        policy: policyFor(local),
+      })
+      expect(schemaErrors(report)).toBe('')
+      expect(report.rules.map((rule) => [rule.id, rule.status])).toEqual([
+        ['robots-rule', 'pass'],
+        ['test-rule', 'not-applicable'],
+      ])
+      expect(report.score).toEqual({
+        overall: null,
+        categories: { onpage: null },
+        partial: false,
+        rules: { ran: 2, total: 2 },
+      })
+      expect(report.scan.status).toBe('partial')
+      expect(report.page).toBeNull()
+    },
+  )
 
   it('neither renders nor measures one that answers 2xx, where a browser would run its script', async () => {
     const local = await site(
