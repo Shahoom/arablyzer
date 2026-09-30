@@ -38,7 +38,8 @@ const t = HOME[lang].hero
     </h1>
     <p class="m-0 max-w-[580px] text-base leading-[1.8] text-ink-2 md:text-xl">{t.lead}</p>
     <div id="scan" class="max-w-[620px] scroll-mt-6">
-      <ScanForm client:idle lang={lang} inputId="home-url" tone="paper" />
+      {/* When the browser is idle, or after half a second at most, as the tool pages' form. */}
+      <ScanForm client:idle={{ timeout: 500 }} lang={lang} inputId="home-url" tone="paper" />
       <noscript>
         <p class="text-sm text-signal">{SCAN_FORM[lang].noscript}</p>
       </noscript>

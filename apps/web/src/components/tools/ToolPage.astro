@@ -80,21 +80,29 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
         <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
           {copy.description}
         </p>
-        {/* One island per tool that runs in the browser: Astro hydrates only islands it can name. */}
+        {/* One island per tool, started when the browser is idle or after half a second at most: a
+            busy page, such as CI's Chromium, may never be idle, and the tool waits for its island.
+            Astro hydrates only islands it can name. */}
         {tool.kind === 'scan' && (
           <ToolApp
-            client:idle
+            client:idle={{ timeout: 500 }}
             lang={lang}
             tool={slug}
             reads={tool.renders ? 'render' : tool.tag === 'robots' ? 'robots' : 'html'}
           />
         )}
         {slug === 'whatsapp-link-generator' && (
-          <WhatsAppGenerator client:idle lang={lang} tool={slug} />
+          <WhatsAppGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
         )}
-        {slug === 'hreflang-generator' && <HreflangGenerator client:idle lang={lang} tool={slug} />}
-        {slug === 'schema-generator' && <SchemaGenerator client:idle lang={lang} tool={slug} />}
-        {slug === 'robots-tester' && <RobotsTester client:idle lang={lang} tool={slug} />}
+        {slug === 'hreflang-generator' && (
+          <HreflangGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
+        )}
+        {slug === 'schema-generator' && (
+          <SchemaGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
+        )}
+        {slug === 'robots-tester' && (
+          <RobotsTester client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
+        )}
       </div>
 
       <section id="checks" aria-labelledby="checks-title" class="flex flex-col gap-4 md:gap-[18px]">
