@@ -364,6 +364,9 @@ importers:
       '@arablyzer/egress':
         specifier: workspace:*
         version: link:../egress
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
 
   packages/lab:
     dependencies:

@@ -243,8 +243,9 @@ export function createApp(deps: ApiDeps): Hono {
             if (await send(stored)) break
             continue
           }
-          // Nothing new: a comment keeps the connection, and asks if the scan ended unseen.
-          await stream.write(': keep-alive\n\n')
+          // Nothing new: a ping, which the page sees (a comment, it would not), keeps the
+          // connection and tells the page it is alive; and the scan is asked if it ended unseen.
+          await stream.writeSSE({ event: 'ping', data: '' })
           const current = await deps.store.get(scan.id)
           if (current === null || !isFinished(current.state)) continue
           // It ended: first the events still unread, its real end among them if it came late,

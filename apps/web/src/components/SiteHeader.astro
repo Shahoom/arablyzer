@@ -9,8 +9,10 @@ interface Props {
   lang: Lang
   /** The page's path, as PATHS gives it, for the link to the same page in the other language. */
   path: string
+  /** On a report page, the other language's link gets the report's ID (Page.astro). */
+  keepId?: boolean
 }
-const { lang, path } = Astro.props
+const { lang, path, keepId = false } = Astro.props
 const t = SITE[lang]
 const other = otherLang(lang)
 const o = SITE[lang].otherLang
@@ -44,6 +46,7 @@ const o = SITE[lang].otherLang
   <div class="flex items-center gap-3.5">
     <a
       href={localePath(other, path)}
+      data-keep-id={keepId ? '' : undefined}
       lang={other}
       hreflang={other}
       aria-label={o.label}

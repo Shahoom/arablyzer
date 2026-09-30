@@ -7,28 +7,38 @@ import type { FontProvider } from 'astro'
  * Astro's own `npm` provider sends the build to jsDelivr for the files, and its `local` provider
  * does not know each file's subset, which the preload links are chosen by. The faces are
  * Fontsource's, one per weight and subset, with its unicode ranges.
+ *
+ * `borrow` takes a subset from another family: IBM Plex Mono has no Arabic letters, so code that
+ * quotes Arabic is drawn in IBM Plex Sans Arabic within the same family, by unicode range, and
+ * never in whatever the system has (the report page, M2.1c review).
  */
-export function fontsource(): FontProvider {
+export function fontsource(
+  options: { readonly borrow?: Readonly<Record<string, string>> } = {},
+): FontProvider {
   let root = new URL('../', import.meta.url)
+  const borrowed = Object.entries(options.borrow ?? {})
   return {
-    name: 'fontsource-files',
+    name: `fontsource-files${borrowed.map(([subset, family]) => `+${subset}:${family}`).join('')}`,
     init(context) {
       root = context.root
     },
     resolveFont({ familyName, weights, styles, subsets }) {
-      const slug = familyName.toLowerCase().replaceAll(' ', '-')
-      const dir = new URL(`node_modules/@fontsource/${slug}/`, root)
-      const fonts = weights.flatMap((weight) =>
-        fontFaces(readFileSync(new URL(`${weight}.css`, dir), 'utf8'), slug)
-          .filter((face) => subsets.includes(face.subset) && styles.includes(face.style))
-          .map((face) => ({
-            src: [{ url: fileURLToPath(new URL(`files/${face.file}`, dir)), format: 'woff2' }],
-            weight: face.weight,
-            style: face.style,
-            unicodeRange: face.unicodeRange,
-            meta: { subset: face.subset },
-          })),
-      )
+      const fonts = subsets.flatMap((subset) => {
+        const from = options.borrow?.[subset] ?? familyName
+        const slug = from.toLowerCase().replaceAll(' ', '-')
+        const dir = new URL(`node_modules/@fontsource/${slug}/`, root)
+        return weights.flatMap((weight) =>
+          fontFaces(readFileSync(new URL(`${weight}.css`, dir), 'utf8'), slug)
+            .filter((face) => face.subset === subset && styles.includes(face.style))
+            .map((face) => ({
+              src: [{ url: fileURLToPath(new URL(`files/${face.file}`, dir)), format: 'woff2' }],
+              weight: face.weight,
+              style: face.style,
+              unicodeRange: face.unicodeRange,
+              meta: { subset: face.subset },
+            })),
+        )
+      })
       return { fonts }
     },
   }

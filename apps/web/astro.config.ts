@@ -20,7 +20,23 @@ export default defineConfig({
   trailingSlash: 'ignore',
   // Preact, not React: the same components, and a tenth of the script a page loads before its
   // largest paint on a phone (M2.1 plan §3, measured).
-  integrations: [preact()],
+  integrations: [
+    preact(),
+    {
+      // One page serves every report: /r/{id} and /en/r/{id} are /r/ and /en/r/, as the site's
+      // server sends them in production (Caddy, M2.1c). This does the same for `astro dev`.
+      name: 'arablyzer:report-route',
+      hooks: {
+        'astro:server:setup': ({ server }) => {
+          server.middlewares.use((req, _res, next) => {
+            const match = /^(\/en)?\/r\/[A-Za-z0-9_-]{22}\/?(?:\?.*)?$/.exec(req.url ?? '')
+            if (match !== null) req.url = `${match[1] ?? ''}/r/`
+            next()
+          })
+        },
+      },
+    },
+  ],
   vite: {
     plugins: [tailwindcss()],
     server: { proxy: { '/api': api } },
@@ -49,12 +65,13 @@ export default defineConfig({
       fallbacks: ['Segoe UI', 'Tahoma', 'sans-serif'],
     },
     {
-      provider: fontsource(),
+      // Its Arabic letters are IBM Plex Sans Arabic's, for code that quotes Arabic (fonts.ts).
+      provider: fontsource({ borrow: { arabic: 'IBM Plex Sans Arabic' } }),
       name: 'IBM Plex Mono',
       cssVariable: '--font-plex-mono',
       weights: [400, 600],
       styles: ['normal'],
-      subsets: ['latin'],
+      subsets: ['latin', 'arabic'],
       fallbacks: ['ui-monospace', 'monospace'],
     },
   ],

@@ -1,7 +1,16 @@
 import { SCAN_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { DEFAULT_POLICY } from '@arablyzer/egress'
 import { describe, expect, it } from 'vitest'
-import { ALL_COPY, codeParts, HOME, SCAN_FORM, SITE, TOPICS } from '../src/index'
+import {
+  ALL_COPY,
+  CATEGORIES,
+  codeParts,
+  HOME,
+  REPORT,
+  SCAN_FORM,
+  SITE,
+  TOPICS,
+} from '../src/index'
 
 /** Every leaf of an object, with its path; functions are called with sample numbers. */
 function leaves(value: unknown, path = ''): [string, string][] {
@@ -84,5 +93,40 @@ describe('interface copy', () => {
       { text: '.', code: false },
     ])
     expect(SITE.ar.tagline).toBe('محلّل المواقع العربية')
+  })
+})
+
+describe('report copy', () => {
+  it('names every category the report schema has', async () => {
+    const { Category } = await import('@arablyzer/report-schema')
+    expect([...CATEGORIES].sort()).toEqual([...Category.options].sort())
+  })
+
+  it('counts rules and the queue as each language counts', () => {
+    expect(REPORT.ar.progress.rules(47)).toBe('47 قاعدة')
+    expect(REPORT.ar.progress.rules(3)).toBe('3 قواعد')
+    expect(REPORT.ar.progress.queued(0)).toBe('في الطابور، وهو التالي')
+    expect(REPORT.ar.progress.queued(2)).toBe('في الطابور، وعدد الفحوص قبلنا: 2')
+    expect(REPORT.en.progress.queued(1)).toBe('Queued, with 1 scan ahead')
+    expect([1, 2, 3, 12, 100].map((n) => REPORT.ar.engines.requests(n))).toEqual([
+      'طلب واحد',
+      'طلبان',
+      '3 طلبات',
+      '12 طلباً',
+      '100 طلب',
+    ])
+  })
+
+  it('names as many browsers as the scan rendered in', () => {
+    expect([1, 2, 3].map((n) => REPORT.ar.engines.title(n))).toEqual([
+      'الصفحة في متصفح واحد',
+      'الصفحة في متصفحين',
+      'الصفحة في ثلاثة متصفحات',
+    ])
+    expect([1, 2, 3].map((n) => REPORT.en.engines.title(n))).toEqual([
+      'The page in one browser',
+      'The page in two browsers',
+      'The page in three browsers',
+    ])
   })
 })

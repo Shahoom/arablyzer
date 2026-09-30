@@ -161,6 +161,20 @@ export default defineConfig(
     },
   },
   {
+    // The report page follows its scan's events from Arablyzer's own API (M2.1 plan §5): the
+    // browser's EventSource, and nothing else.
+    files: ['apps/web/src/islands/events.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['fetch', 'XMLHttpRequest', 'WebSocket'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
     // The site's Lighthouse run in CI, on its own pages on loopback (M2.1 plan §3).
     files: ['apps/web/scripts/lighthouse.ts'],
     rules: networkRules({ allowProcesses: true, allow: ['lighthouse', 'chrome-launcher'] }),

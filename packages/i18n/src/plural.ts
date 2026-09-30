@@ -10,8 +10,10 @@ export interface ArabicForms {
   readonly two: string
   /** 3 to 10, and 103 to 110… */
   readonly few: string
-  /** 11 to 99, 0, 100… */
+  /** 11 to 99, and 0 and 100… unless `other` is given. */
   readonly many: string
+  /** 100, 101, 102…, where the noun is not in the accusative: «100 طلب». */
+  readonly other?: string
 }
 
 export function arabicCount(count: number, forms: ArabicForms): string {
@@ -23,7 +25,9 @@ export function arabicCount(count: number, forms: ArabicForms): string {
         ? forms.two
         : category === 'few'
           ? forms.few
-          : forms.many
+          : category === 'other' && forms.other !== undefined
+            ? forms.other
+            : forms.many
   return form.replaceAll('{n}', String(count))
 }
 
@@ -37,6 +41,15 @@ export const RULES_NOMINATIVE: ArabicForms = {
   two: 'قاعدتان',
   few: '{n} قواعد',
   many: '{n} قاعدة',
+}
+
+/** Requests, as a count on its own: «طلب واحد»، «3 طلبات»، «12 طلباً»، «100 طلب». */
+export const REQUESTS: ArabicForms = {
+  one: 'طلب واحد',
+  two: 'طلبان',
+  few: '{n} طلبات',
+  many: '{n} طلباً',
+  other: '{n} طلب',
 }
 
 /** Minutes after a preposition: «بعد دقيقتين»، «بعد 5 دقائق». */

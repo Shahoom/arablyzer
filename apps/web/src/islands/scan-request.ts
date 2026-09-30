@@ -15,6 +15,15 @@ export type Precheck =
   { readonly ok: true; readonly url: string } | { readonly ok: false; readonly error: FormError }
 
 /**
+ * The address a link asks the form to start with: `?url=`, from a report's "Scan again". Only
+ * shown in the field; the scan starts when the visitor sends the form, checked as any other.
+ */
+export function askedUrl(search: string): string | null {
+  const asked = new URLSearchParams(search).get('url')
+  return asked === null || asked.trim() === '' || asked.length > MAX_URL_LENGTH ? null : asked
+}
+
+/**
  * What the browser can check before sending: the egress package's first checks, without DNS.
  * A link pasted without its scheme gets https://, as a browser's address bar would. The API
  * checks everything again (M2.1 plan §2).

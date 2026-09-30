@@ -5,13 +5,14 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "tsx scripts/generate.ts && astro dev",
+    "build": "tsx scripts/generate.ts && astro build",
     "preview": "astro preview",
-    "typecheck": "astro check && tsc --noEmit",
+    "typecheck": "tsx scripts/generate.ts && astro check && tsc --noEmit",
     "test": "vitest run --exclude \"test/browser/**\"",
     "test:browser": "vitest run test/browser",
-    "lighthouse": "tsx scripts/lighthouse.ts"
+    "lighthouse": "tsx scripts/lighthouse.ts",
+    "generate": "tsx scripts/generate.ts"
   },
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
