@@ -29,6 +29,14 @@
         "ARABLYZER_WEBKIT_PATH",
         "PLAYWRIGHT_BROWSERS_PATH"
       ]
+    },
+    "test:services": {
+      "cache": false,
+      "passThroughEnv": [
+        "ARABLYZER_TEST_VALKEY_URL",
+        "ARABLYZER_TEST_DATABASE_URL",
+        "ARABLYZER_REQUIRE_SERVICES"
+      ]
     }
   }
 }

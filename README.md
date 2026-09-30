@@ -48,6 +48,19 @@ CHROME_PATH=/path/to/chromium pnpm --filter @arablyzer/web run lighthouse --runs
 
 Pages are built for `https://arablyzer.example` until the domain is chosen; `ARABLYZER_SITE` sets another origin.
 
+### The API and the worker / الخادم والعامل
+
+`apps/api` takes a scan (`POST /api/scans`), streams its steps (`GET /api/scans/:id/events`) and serves its report (`GET /api/reports/:id`, never indexed); `apps/worker` runs the engine on each queued scan. `packages/store` keeps scans in PostgreSQL and the queue, the events and the limits in Valkey, with in-memory versions for tests and development.
+
+```bash
+pnpm --filter @arablyzer/api dev   # the API and a worker in one process, on http://127.0.0.1:8787
+pnpm --filter @arablyzer/web dev   # the site, sending /api to it
+ARABLYZER_TEST_VALKEY_URL=redis://127.0.0.1:6379 \
+ARABLYZER_TEST_DATABASE_URL=postgres://user:pass@127.0.0.1:5432/db pnpm test:services
+```
+
+`ARABLYZER_ALLOW_PRIVATE=1` lets the development API scan local pages, such as the fixture sites; production refuses it. The limits' numbers are the owner's decision: `packages/plans` holds development values, and production will not start without its own (`ARABLYZER_LIMIT_*`), `TURNSTILE_SECRET`, `ARABLYZER_SITE` and `ARABLYZER_LIMIT_SECRET`. The API's and the worker's production entrypoints (`server.ts`, `main.ts`) apply those checks whatever `NODE_ENV` says; `dev.ts` is the development one.
+
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
 - Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md), [Phase 2](docs/design/phase-2.md)
 

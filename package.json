@@ -17,6 +17,7 @@
     "test:ssrf": "turbo run test:ssrf",
     "test:e2e": "turbo run test:e2e",
     "test:browser": "turbo run test:browser",
+    "test:services": "turbo run test:services",
     "test:golden": "pnpm --filter @arablyzer/engine run test:golden",
     "schema:gen": "pnpm --filter @arablyzer/report-schema run schema:gen",
     "schema:check": "pnpm run schema:gen && git diff --exit-code -- packages/report-schema/report.schema.json",

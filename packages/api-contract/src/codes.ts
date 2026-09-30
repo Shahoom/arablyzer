@@ -26,6 +26,8 @@ export const URL_ERROR_CODES = [
 
 /** Why the API did not start a scan. */
 export const SCAN_ERROR_CODES = [
+  /** Not a request the form sends: not JSON, too large, or other fields. */
+  'bad-request',
   ...URL_ERROR_CODES,
   /** Turnstile could not tell that a person sent the form. */
   'turnstile-failed',
@@ -60,3 +62,65 @@ export interface ScanErrorResponse {
   /** Only with rate-limited. */
   readonly retryAfterSeconds?: number
 }
+
+/** Where a scan's events stream from, and where its report is read. */
+export const scanEventsPath = (id: string): string => `/api/scans/${id}/events`
+export const scanPath = (id: string): string => `/api/scans/${id}`
+export const reportPath = (id: string): string => `/api/reports/${id}`
+
+export type EngineName = 'chromium' | 'firefox' | 'webkit'
+
+/** Where a scan is: waiting, running, or finished the way its report says. */
+export type ScanState = 'queued' | 'running' | 'complete' | 'partial' | 'failed'
+
+/** `GET /api/scans/:id`: the scan the page follows. */
+export interface ScanSummary {
+  readonly id: string
+  readonly url: string
+  readonly state: ScanState
+  /** ISO 8601. */
+  readonly createdAt: string
+}
+
+/**
+ * One step of a scan, streamed to its page (`GET /api/scans/:id/events`, SSE): the engine's
+ * progress (M2.1b), between queued and started, and done or error. A reconnecting page resumes
+ * after the last event it saw (`Last-Event-ID`).
+ */
+export type ScanEvent =
+  /** Scans ahead of this one in the queue. */
+  | { readonly type: 'queued'; readonly ahead: number }
+  /** The engines this scan renders in, in order: the page shows only those. */
+  | { readonly type: 'started'; readonly engines: readonly EngineName[] }
+  | {
+      readonly type: 'page'
+      readonly status: number | null
+      readonly contentType: string | null
+      readonly error: string | null
+    }
+  | {
+      readonly type: 'robots'
+      readonly outcome: 'fetched' | 'unavailable' | 'unreachable' | 'failed'
+      readonly status: number | null
+    }
+  | { readonly type: 'crux'; readonly outcome: 'found' | 'not-found' | 'failed' | 'skipped' }
+  | { readonly type: 'render-start'; readonly engine: EngineName }
+  | {
+      readonly type: 'render'
+      readonly engine: EngineName
+      readonly version: string | null
+      readonly status: 'rendered' | 'failed' | 'timeout' | 'unavailable' | 'refused'
+      readonly requests: { readonly total: number; readonly refused: number }
+    }
+  | { readonly type: 'lab-start' }
+  | {
+      readonly type: 'lab'
+      readonly status: 'measured' | 'failed' | 'timeout' | 'unavailable' | 'skipped'
+    }
+  | { readonly type: 'rules'; readonly rules: number }
+  /** The report is ready: `GET /api/reports/:id`. */
+  | { readonly type: 'done'; readonly state: 'complete' | 'partial' | 'failed' }
+  /** The scan could not run at all; no report. */
+  | { readonly type: 'error' }
+
+export const TERMINAL_EVENTS: readonly ScanEvent['type'][] = ['done', 'error']
