@@ -39,6 +39,8 @@ export interface ScanStore {
   fail(id: string, at: Date): Promise<boolean>
   /** Fails the scans still running that started before the time, and names them. */
   failStale(startedBefore: Date, at: Date): Promise<string[]>
+  /** Where each of these scans is, without their reports; one the store does not have is left out. */
+  states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>>
 }
 
 /** What the worker is given: the scan and its page, and nothing else. */

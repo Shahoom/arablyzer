@@ -16,6 +16,7 @@ import { HTTPException } from 'hono/http-exception'
 import { streamSSE } from 'hono/streaming'
 import {
   quietly,
+  type InFlight,
   type RateLimiter,
   type ScanEvents,
   type ScanQueue,
@@ -23,6 +24,7 @@ import {
   type ScanStore,
   type StoredEvent,
 } from '@arablyzer/store'
+import { holdPlace } from './places'
 import { hostKey, parseTarget, resolveTarget } from './target'
 import type { TurnstileCheck } from './turnstile'
 
@@ -36,6 +38,8 @@ export interface ApiDeps {
   readonly store: ScanStore
   readonly queue: ScanQueue
   readonly events: ScanEvents
+  /** The scans each visitor has queued or running, so no one visitor fills the queue. */
+  readonly inFlight: InFlight
   /** The visitor's address, where the deployment trusts it from; null when it has none. */
   readonly address: (c: Context) => string | null
   /** The limiter's key for an address, which is never the address itself (§14). */
@@ -167,36 +171,51 @@ export function createApp(deps: ApiDeps): Hono {
         )
         if (!shared.ok) return refuse(c, 'rate-limited', shared.retryAfterSeconds)
       }
-      const resolved = await resolveTarget(parsed.value, deps.policy, deps.resolver)
-      if (!resolved.ok) return refuse(c, resolved.code)
-      const host = await deps.limiter.take(
-        `host:${hostKey(parsed.value.host)}`,
-        deps.limits.perHost,
-        at.getTime(),
-      )
-      if (!host.ok) return refuse(c, 'rate-limited', host.retryAfterSeconds)
-      const ahead = await deps.queue.waiting()
-      if (ahead >= deps.limits.queue) return refuse(c, 'unavailable')
-
-      // Stored and announced before it is queued, so the worker never starts a scan whose
-      // record or first event is not there yet.
+      // The visitor's place comes before any name is looked up: at their cap, they cost the API
+      // nothing more. A place is given back unless the scan is queued.
       const id = deps.newId()
-      await deps.store.create({
-        id,
-        url: resolved.value,
-        createdAt: at,
-        ...(tool === undefined ? {} : { tool }),
-      })
-      try {
-        await deps.events.publish(id, { type: 'queued', ahead })
-        await deps.queue.add({ id, url: resolved.value, ...(tool === undefined ? {} : { tool }) })
-      } catch (error) {
-        // Never queued, so never run: the scan fails at once, and says so to any page it has.
-        await deps.store.fail(id, at).catch(() => false)
-        await deps.events.publish(id, { type: 'error' }).catch(() => '')
-        throw error
+      if (!(await holdPlace(deps, visitor, id, deps.limits.inFlight, at.getTime()))) {
+        return refuse(c, 'rate-limited')
       }
-      return c.json({ id }, 202)
+      let queued = false
+      try {
+        const resolved = await resolveTarget(parsed.value, deps.policy, deps.resolver)
+        if (!resolved.ok) return refuse(c, resolved.code)
+        const host = await deps.limiter.take(
+          `host:${hostKey(parsed.value.host)}`,
+          deps.limits.perHost,
+          at.getTime(),
+        )
+        if (!host.ok) return refuse(c, 'rate-limited', host.retryAfterSeconds)
+        const ahead = await deps.queue.waiting()
+        if (ahead >= deps.limits.queue) return refuse(c, 'unavailable')
+
+        // Stored and announced before it is queued, so the worker never starts a scan whose
+        // record or first event is not there yet.
+        await deps.store.create({
+          id,
+          url: resolved.value,
+          createdAt: at,
+          ...(tool === undefined ? {} : { tool }),
+        })
+        try {
+          await deps.events.publish(id, { type: 'queued', ahead })
+          await deps.queue.add({
+            id,
+            url: resolved.value,
+            ...(tool === undefined ? {} : { tool }),
+          })
+        } catch (error) {
+          // Never queued, so never run: the scan fails at once, and says so to any page it has.
+          await deps.store.fail(id, at).catch(() => false)
+          await deps.events.publish(id, { type: 'error' }).catch(() => '')
+          throw error
+        }
+        queued = true
+        return c.json({ id }, 202)
+      } finally {
+        if (!queued) await deps.inFlight.release(visitor, [id]).catch(() => undefined)
+      }
     },
   )
 

@@ -3,6 +3,7 @@ import {
   BullMQScanQueue,
   PostgresScanStore,
   quietly,
+  ValkeyInFlight,
   ValkeyRateLimiter,
   ValkeyScanEvents,
 } from '@arablyzer/store'
@@ -56,6 +57,7 @@ const app = createApp({
       queue,
       events: new ValkeyScanEvents(redis),
       limiter: new ValkeyRateLimiter(redis),
+      inFlight: new ValkeyInFlight(redis),
     },
     log,
   ),

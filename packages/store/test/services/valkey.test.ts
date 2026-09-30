@@ -1,7 +1,13 @@
 import type { ScanEvent } from '@arablyzer/api-contract'
 import type { Redis } from 'ioredis'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { ValkeyRateLimiter, ValkeyScanEvents, type StoredEvent } from '../../src/index'
+import {
+  IN_FLIGHT_TTL_MS,
+  ValkeyInFlight,
+  ValkeyRateLimiter,
+  ValkeyScanEvents,
+  type StoredEvent,
+} from '../../src/index'
 import { hasValkey, valkey, VALKEY_DB } from './services'
 
 const ID = 'AbCdEfGhIjKlMnOpQrSt_-'
@@ -122,5 +128,59 @@ describe.skipIf(!hasValkey)('Valkey', () => {
       taken.push(await limiter.take('connection:skew', window, i % 2 === 0 ? ahead : behind))
     }
     expect(taken.filter((result) => result.ok)).toHaveLength(5)
+  })
+
+  describe('the places a visitor holds', () => {
+    const at = Date.parse('2026-09-28T12:00:00Z')
+    const key = (visitor: string) => `arablyzer:inflight:${visitor}`
+
+    it('gives a visitor their cap and no more, however many ask at once', async () => {
+      const first = new ValkeyInFlight(redis)
+      const second = new ValkeyInFlight(redis)
+      const taken = await Promise.all(
+        Array.from({ length: 16 }, (_, i) =>
+          (i % 2 === 0 ? first : second).hold('burst', `scan-${i}`, 2, at + i),
+        ),
+      )
+      expect(taken.filter(Boolean)).toHaveLength(2)
+      expect(await redis.zcard(key('burst'))).toBe(2)
+    })
+
+    it('lists the places with when each was taken, and gives them back', async () => {
+      const places = new ValkeyInFlight(redis)
+      expect(await places.held('lists')).toEqual([])
+      expect(await places.hold('lists', 'a', 3, at)).toBe(true)
+      expect(await places.hold('lists', 'b', 3, at + 5)).toBe(true)
+      expect(await places.held('lists')).toEqual([
+        { scanId: 'a', at },
+        { scanId: 'b', at: at + 5 },
+      ])
+      await places.release('lists', ['a', 'not-held'])
+      expect(await places.held('lists')).toEqual([{ scanId: 'b', at: at + 5 }])
+      await places.release('lists', ['b'])
+      expect(await redis.exists(key('lists'))).toBe(0)
+      // Nothing to give back is not an error.
+      await places.release('lists', [])
+    })
+
+    it('keeps visitors apart, and takes a scan’s place once', async () => {
+      const places = new ValkeyInFlight(redis)
+      expect(await places.hold('one', 'x', 1, at)).toBe(true)
+      expect(await places.hold('one', 'x', 1, at + 9)).toBe(true)
+      expect((await places.held('one')).map((place) => place.at)).toEqual([at])
+      expect(await places.hold('one', 'y', 1, at)).toBe(false)
+      expect(await places.hold('two', 'y', 1, at)).toBe(true)
+    })
+
+    it('forgets a place older than a scan can be, and expires with the visitor’s last', async () => {
+      const places = new ValkeyInFlight(redis)
+      expect(await places.hold('ages', 'old', 1, at)).toBe(true)
+      expect(await places.hold('ages', 'new', 1, at + 1_000)).toBe(false)
+      expect(await places.hold('ages', 'new', 1, at + IN_FLIGHT_TTL_MS + 1)).toBe(true)
+      expect((await places.held('ages')).map((place) => place.scanId)).toEqual(['new'])
+      const pttl = await redis.pttl(key('ages'))
+      expect(pttl).toBeGreaterThan(0)
+      expect(pttl).toBeLessThanOrEqual(IN_FLIGHT_TTL_MS)
+    })
   })
 })

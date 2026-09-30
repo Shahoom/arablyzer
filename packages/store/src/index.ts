@@ -1,4 +1,5 @@
 export { BullMQScanQueue, SCAN_QUEUE, SCAN_WORKER } from './bullmq'
+export { IN_FLIGHT_TTL_MS, MemoryInFlight, type InFlight, type Place } from './in-flight'
 export { MemoryRateLimiter, secondsUntilOne, type RateLimiter, type Taken } from './limits'
 export { quietly } from './log'
 export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
@@ -13,4 +14,4 @@ export type {
   ScanStore,
   StoredEvent,
 } from './types'
-export { ValkeyRateLimiter, ValkeyScanEvents } from './valkey'
+export { ValkeyInFlight, ValkeyRateLimiter, ValkeyScanEvents } from './valkey'

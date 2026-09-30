@@ -1,4 +1,5 @@
 import {
+  MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
   MemoryScanQueue,
@@ -12,6 +13,7 @@ const stores = () => ({
   queue: new MemoryScanQueue(),
   events: new MemoryScanEvents(),
   limiter: new MemoryRateLimiter(),
+  inFlight: new MemoryInFlight(),
 })
 
 /** Everything production needs; each test takes one away. */

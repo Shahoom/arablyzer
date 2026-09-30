@@ -1,6 +1,6 @@
 import type { Report } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
-import { MemoryScanEvents, MemoryScanStore } from '../src/index'
+import { MemoryInFlight, MemoryScanEvents, MemoryScanStore } from '../src/index'
 
 const NOW = new Date('2026-09-28T12:00:00.000Z')
 const minutes = (count: number) => new Date(NOW.getTime() + count * 60_000)
@@ -36,6 +36,62 @@ describe('MemoryScanStore', () => {
     expect((await store.get('old'))?.state).toBe('failed')
     expect((await store.get('recent'))?.state).toBe('running')
     expect((await store.get('queued'))?.state).toBe('queued')
+  })
+})
+
+describe('MemoryScanStore.states', () => {
+  it('says where each scan it has is, and knows none it has not', async () => {
+    const store = new MemoryScanStore()
+    for (const id of ['a', 'b', 'c']) {
+      await store.create({ id, url: 'https://example.com/', createdAt: NOW })
+    }
+    await store.start('b', NOW)
+    await store.fail('c', NOW)
+    expect(await store.states(['a', 'b', 'c', 'unknown'])).toEqual(
+      new Map([
+        ['a', 'queued'],
+        ['b', 'running'],
+        ['c', 'failed'],
+      ]),
+    )
+    expect(await store.states([])).toEqual(new Map())
+  })
+})
+
+describe('MemoryInFlight', () => {
+  const at = NOW.getTime()
+
+  it('holds a visitor to their cap, and gives places back', async () => {
+    const places = new MemoryInFlight()
+    expect(await places.hold('v', 'one', 2, at)).toBe(true)
+    expect(await places.hold('v', 'two', 2, at + 1)).toBe(true)
+    expect(await places.hold('v', 'three', 2, at + 2)).toBe(false)
+    expect(await places.held('v')).toEqual([
+      { scanId: 'one', at },
+      { scanId: 'two', at: at + 1 },
+    ])
+    await places.release('v', ['one', 'never-held'])
+    expect(await places.hold('v', 'three', 2, at + 3)).toBe(true)
+    expect((await places.held('v')).map((place) => place.scanId)).toEqual(['two', 'three'])
+  })
+
+  it('keeps visitors apart, and counts one scan once', async () => {
+    const places = new MemoryInFlight()
+    expect(await places.hold('a', 'one', 1, at)).toBe(true)
+    expect(await places.hold('a', 'one', 1, at)).toBe(true)
+    expect(await places.hold('a', 'two', 1, at)).toBe(false)
+    expect(await places.hold('b', 'two', 1, at)).toBe(true)
+    expect(await places.held('nobody')).toEqual([])
+  })
+
+  it('forgets a place held longer than a scan can take, and a visitor with none', async () => {
+    const places = new MemoryInFlight()
+    const day = 24 * 60 * 60 * 1000
+    expect(await places.hold('v', 'old', 1, at)).toBe(true)
+    expect(await places.hold('v', 'new', 1, at + 1000)).toBe(false)
+    expect(await places.hold('v', 'new', 1, at + day + 1)).toBe(true)
+    await places.release('v', ['new'])
+    expect(places.size).toBe(0)
   })
 })
 

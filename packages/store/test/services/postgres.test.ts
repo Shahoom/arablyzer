@@ -129,6 +129,32 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
     expect(await store.get(recent)).toMatchObject({ state: 'running' })
   })
 
+  it('says where each scan is without reading their reports, and leaves out those it has not', async () => {
+    const [queued, running, done] = [
+      'AbCdEfGhIjKlMnOpQrSt_6',
+      'AbCdEfGhIjKlMnOpQrSt_7',
+      'AbCdEfGhIjKlMnOpQrSt_8',
+    ]
+    for (const id of [queued, running, done]) {
+      await store.create({ id, url: 'https://example.com/', createdAt: NOW })
+    }
+    await store.start(running, NOW)
+    await store.start(done, NOW)
+    await store.finish(
+      done,
+      { scan: { status: 'complete' }, score: { overall: 90 } } as unknown as Report,
+      NOW,
+    )
+    expect(await store.states([queued, running, done, 'AbCdEfGhIjKlMnOpQrSt_9'])).toEqual(
+      new Map([
+        [queued, 'queued'],
+        [running, 'running'],
+        [done, 'complete'],
+      ]),
+    )
+    expect(await store.states([])).toEqual(new Map())
+  })
+
   it('migrates once when processes start together', async () => {
     await Promise.all([store.migrate(), new PostgresScanStore(pool).migrate()])
   })

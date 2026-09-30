@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { defaultResolver, serverPolicy } from '@arablyzer/egress'
 import { USER_AGENT } from '@arablyzer/engine/identity'
 import { limitsFrom } from '@arablyzer/plans'
-import type { RateLimiter, ScanEvents, ScanQueue, ScanStore } from '@arablyzer/store'
+import type { InFlight, RateLimiter, ScanEvents, ScanQueue, ScanStore } from '@arablyzer/store'
 import type { ApiDeps } from './app'
 import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
 import { newScanId } from './ids'
@@ -15,6 +15,7 @@ export interface Stores {
   readonly queue: ScanQueue
   readonly events: ScanEvents
   readonly limiter: RateLimiter
+  readonly inFlight: InFlight
 }
 
 /**

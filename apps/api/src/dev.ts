@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server'
 import { localScanner, scanOptionsFrom } from '@arablyzer/scanner'
 import {
+  MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
   MemoryScanQueue,
@@ -22,7 +23,15 @@ if (env.NODE_ENV === 'production') throw new Error('dev.ts runs in development o
 const store = new MemoryScanStore()
 const queue = new MemoryScanQueue()
 const events = new MemoryScanEvents()
-const app = createApp(apiDeps(env, { store, queue, events, limiter: new MemoryRateLimiter() }))
+const app = createApp(
+  apiDeps(env, {
+    store,
+    queue,
+    events,
+    limiter: new MemoryRateLimiter(),
+    inFlight: new MemoryInFlight(),
+  }),
+)
 const port = Number(env.PORT ?? 8787)
 const server = serve({ fetch: app.fetch, port, hostname: '127.0.0.1' }, (info) => {
   console.log(`API on http://127.0.0.1:${info.port}, with a worker in this process`)

@@ -89,6 +89,15 @@ export class PostgresScanStore implements ScanStore {
     return rows.map((row) => row.id)
   }
 
+  async states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>> {
+    if (ids.length === 0) return new Map()
+    const rows = await this.#db
+      .select({ id: scans.id, state: scans.state })
+      .from(scans)
+      .where(inArray(scans.id, [...ids]))
+    return new Map(rows.map((row) => [row.id, row.state]))
+  }
+
   /** The change, made only when the scan is in one of the states it moves from. */
   async #move(
     id: string,

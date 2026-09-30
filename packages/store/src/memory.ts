@@ -55,6 +55,15 @@ export class MemoryScanStore implements ScanStore {
     return stale.map((scan) => scan.id)
   }
 
+  states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>> {
+    const states = new Map<string, ScanState>()
+    for (const id of ids) {
+      const scan = this.#scans.get(id)
+      if (scan !== undefined) states.set(id, scan.state)
+    }
+    return Promise.resolve(states)
+  }
+
   /** The change, when the scan is in one of the states it moves from. */
   #move(id: string, from: readonly ScanState[], change: Partial<ScanRecord>): Promise<boolean> {
     const scan = this.#scans.get(id)

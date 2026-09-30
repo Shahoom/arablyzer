@@ -5,7 +5,9 @@ import type { Report } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
 import { createApp, type ApiDeps } from '../src/app'
 import { clientAddress, connectionKey, networkKey } from '../src/client'
+import { RECORD_GRACE_MS } from '../src/places'
 import {
+  MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
   MemoryScanQueue,
@@ -32,6 +34,7 @@ function setup(overrides: Partial<ApiDeps> & { limits?: ScanLimits } = {}) {
   const store = new MemoryScanStore()
   const queue = new MemoryScanQueue()
   const events = new MemoryScanEvents(20)
+  const inFlight = new MemoryInFlight()
   let count = 0
   const turnstileCalls: string[] = []
   const deps: ApiDeps = {
@@ -46,6 +49,7 @@ function setup(overrides: Partial<ApiDeps> & { limits?: ScanLimits } = {}) {
     store,
     queue,
     events,
+    inFlight,
     address: () => '203.0.113.9',
     connectionKey: (address) => `key-of-${address}`,
     newId: () => `scan${String(++count).padStart(18, '0')}`,
@@ -60,7 +64,7 @@ function setup(overrides: Partial<ApiDeps> & { limits?: ScanLimits } = {}) {
       body: raw ?? JSON.stringify(body),
     })
   const scanOf = (url: string, token = 'human') => post({ url, turnstileToken: token })
-  return { app, deps, store, queue, events, post, scanOf, turnstileCalls }
+  return { app, deps, store, queue, events, inFlight, post, scanOf, turnstileCalls }
 }
 
 async function refusal(response: Response) {
@@ -374,6 +378,133 @@ describe('visitors on IPv6', () => {
     expect((await scanFrom(post, '2001:db8:2::1')).status).toBe(202)
     // Two scans have been started in the network, and the network's second is spent.
     expect((await scanFrom(post, '2001:db8:3::1')).status).toBe(429)
+  })
+})
+
+describe('the scans a visitor has in flight', () => {
+  const capped = (inFlight: number) => ({ limits: { ...DEVELOPMENT_LIMITS, inFlight } })
+  /** The key `setup` gives the visitor at 203.0.113.9. */
+  const VISITOR = 'key-of-203.0.113.9'
+
+  // Issue #30: one visitor could fill the queue, which holds fifty scans and runs one at a time.
+  it('refuses a scan past the visitor’s cap, while their others are queued or running', async () => {
+    const { scanOf, queue } = setup(capped(2))
+    expect((await scanOf('https://example.com/1')).status).toBe(202)
+    expect((await scanOf('https://example.com/2')).status).toBe(202)
+    const third = await scanOf('https://example.org/3')
+    expect(await refusal(third)).toEqual({ status: 429, body: { error: 'rate-limited' } })
+    // No time to try again is told: no one knows when a scan ends.
+    expect(third.headers.get('retry-after')).toBeNull()
+    expect(await queue.waiting()).toBe(2)
+  })
+
+  it('counts a running scan as well as a queued one, and gives the place back when it ends', async () => {
+    const { scanOf, store } = setup(capped(1))
+    const { id } = (await (await scanOf('https://example.com/1')).json()) as { id: string }
+    await store.start(id, NOW)
+    expect((await scanOf('https://example.org/2')).status).toBe(429)
+    await store.finish(id, { scan: { status: 'complete' } } as unknown as Report, NOW)
+    expect((await scanOf('https://example.org/2')).status).toBe(202)
+  })
+
+  it('gives the place back of a scan that failed, or ended without a report', async () => {
+    const { scanOf, store } = setup(capped(1))
+    const first = (await (await scanOf('https://example.com/1')).json()) as { id: string }
+    await store.fail(first.id, NOW)
+    const second = await scanOf('https://example.org/2')
+    expect(second.status).toBe(202)
+    const { id } = (await second.json()) as { id: string }
+    await store.start(id, NOW)
+    await store.finish(id, { scan: { status: 'partial' } } as unknown as Report, NOW)
+    expect((await scanOf('https://example.com/3')).status).toBe(202)
+  })
+
+  it('counts each visitor by themselves', async () => {
+    let visitor = 0
+    const { scanOf } = setup({ ...capped(1), address: () => `203.0.113.${++visitor}` })
+    for (let i = 0; i < 4; i++) {
+      expect((await scanOf(`https://example.com/${i}`)).status, String(i)).toBe(202)
+    }
+  })
+
+  it('gives the place back of a request refused for its name', async () => {
+    const { scanOf, inFlight } = setup(capped(1))
+    expect((await scanOf('https://nowhere.example.com/')).status).toBe(422)
+    expect((await scanOf('https://rebind.example.com/')).status).toBe(422)
+    expect(await inFlight.held(VISITOR)).toEqual([])
+    expect((await scanOf('https://example.com/')).status).toBe(202)
+  })
+
+  it('gives the place back of a request refused for its site’s limit', async () => {
+    const { scanOf, inFlight } = setup({
+      limits: { ...DEVELOPMENT_LIMITS, inFlight: 2, perHost: { scans: 1, seconds: 3600 } },
+    })
+    const first = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    expect((await scanOf('https://example.com/other')).status).toBe(429)
+    expect((await inFlight.held(VISITOR)).map((place) => place.scanId)).toEqual([first.id])
+  })
+
+  it('gives the place back of a request refused because the queue is full', async () => {
+    const { scanOf, inFlight } = setup({
+      limits: { ...DEVELOPMENT_LIMITS, inFlight: 2, queue: 1 },
+    })
+    const first = (await (await scanOf('https://example.com/')).json()) as { id: string }
+    expect((await scanOf('https://example.org/')).status).toBe(503)
+    expect((await inFlight.held(VISITOR)).map((place) => place.scanId)).toEqual([first.id])
+  })
+
+  it('gives the place back when the scan cannot be stored or queued', async () => {
+    const { scanOf, store, queue, inFlight } = setup({ ...capped(1), log: () => undefined })
+    store.create = () => Promise.reject(new Error('Connection terminated'))
+    expect((await scanOf('https://example.com/')).status).toBe(503)
+    expect(await inFlight.held(VISITOR)).toEqual([])
+    store.create = MemoryScanStore.prototype.create.bind(store)
+    queue.add = () => Promise.reject(new Error('Connection is closed.'))
+    expect((await scanOf('https://example.com/')).status).toBe(503)
+    expect(await inFlight.held(VISITOR)).toEqual([])
+  })
+
+  it('looks up no name for a visitor at their cap', async () => {
+    const asked: string[] = []
+    const { scanOf } = setup({
+      ...capped(1),
+      resolver: (host, ...rest) => {
+        asked.push(host)
+        return resolver(host, ...rest)
+      },
+    })
+    expect((await scanOf('https://example.com/')).status).toBe(202)
+    asked.length = 0
+    expect((await scanOf('https://example.org/')).status).toBe(429)
+    expect(asked).toEqual([])
+  })
+
+  it('holds a burst of requests at once to the cap', async () => {
+    const { scanOf, queue } = setup({
+      ...capped(2),
+      limits: { ...DEVELOPMENT_LIMITS, inFlight: 2, attempts: { scans: 100, seconds: 3600 } },
+    })
+    const statuses = await Promise.all(
+      Array.from({ length: 12 }, async (_, i) => (await scanOf(`https://example.com/${i}`)).status),
+    )
+    expect(statuses.filter((status) => status === 202)).toHaveLength(2)
+    expect(statuses.filter((status) => status === 429)).toHaveLength(10)
+    expect(await queue.waiting()).toBe(2)
+  })
+
+  // A place is taken before the scan's record is made: a place with no record is a scan that is
+  // about to have one, until the API's own timeouts say it is not coming (a scan deleted since).
+  it('keeps a place whose scan has no record yet, and drops it once it should have one', async () => {
+    const { scanOf, inFlight } = setup(capped(1))
+    const at = NOW.getTime()
+    await inFlight.hold(VISITOR, 'being-made', 1, at - 1000)
+    expect((await scanOf('https://example.com/')).status).toBe(429)
+    await inFlight.release(VISITOR, ['being-made'])
+    await inFlight.hold(VISITOR, 'deleted-since', 1, at - RECORD_GRACE_MS - 1)
+    expect((await scanOf('https://example.com/')).status).toBe(202)
+    expect((await inFlight.held(VISITOR)).map((place) => place.scanId)).not.toContain(
+      'deleted-since',
+    )
   })
 })
 
