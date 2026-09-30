@@ -223,8 +223,10 @@ jobs:
             echo "ARABLYZER_PROXY_SECRET=$(secret)"
             echo "VALKEY_PASSWORD=$(secret)"
             echo "POSTGRES_PASSWORD=$(secret)"
-            # The server's own address stands in as an unused address of the test network.
-            echo ARABLYZER_DENY_CIDRS=93.184.215.61/32
+            # The server's own addresses stand in: an unused address of the test network, and an
+            # IPv6 address that nothing holds, which the API, the scanner and the egress proxy all
+            # read, and the proxy refuses (the stack's test).
+            echo ARABLYZER_DENY_CIDRS=93.184.215.61/32,2a01:4f8:c17:1234::1/128
           } > infra/.env
       - name: Build and start the stack
         run: docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml up --detach --build --wait --wait-timeout 900

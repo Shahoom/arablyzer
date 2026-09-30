@@ -547,7 +547,7 @@ describe('the egress proxy', () => {
     }
   })
 
-  it("refuses the server's own address, which the API, the scanner and it are all given", async () => {
+  it("refuses the server's own addresses, IPv4 and IPv6, which the API, the scanner and it are all given", async () => {
     const given = (['egress', 'api', 'scanner'] as const).map(
       (service) =>
         inspect(service)
@@ -555,14 +555,19 @@ describe('the egress proxy', () => {
           ?.slice('ARABLYZER_DENY_CIDRS='.length) ?? '',
     )
     expect(new Set(given).size).toBe(1)
-    const cidr = given[0]?.split(',')[0]?.trim() ?? ''
-    expect(cidr).toMatch(/^\d+\.\d+\.\d+\.\d+\/\d+$/)
-    const address = cidr.split('/')[0] ?? ''
-    // Refused for the rule, not unreachable: 407 is the refusal's own answer.
-    expect(tunnel(`${address}:80`)).toMatch(/^HTTP\/1\.1 407/)
-    const refused = await postScan(`http://${address}/`)
-    expect(refused.status).toBe(422)
-    expect(await refused.json()).toEqual({ error: 'blocked-address' })
+    const cidrs = (given[0] ?? '').split(',').map((cidr) => cidr.trim())
+    // CI's list has both: the address of the test network, and an IPv6 one.
+    expect(cidrs.some((cidr) => /^\d+\.\d+\.\d+\.\d+\/\d+$/.test(cidr))).toBe(true)
+    expect(cidrs.some((cidr) => /^[0-9a-f:]+\/\d+$/i.test(cidr))).toBe(true)
+    for (const cidr of cidrs) {
+      const address = cidr.split('/')[0] ?? ''
+      const authority = address.includes(':') ? `[${address}]` : address
+      // Refused for the rule, not unreachable: 407 is the refusal's own answer.
+      expect(tunnel(`${authority}:80`), cidr).toMatch(/^HTTP\/1\.1 407/)
+      const refused = await postScan(`http://${authority}/`)
+      expect(refused.status, cidr).toBe(422)
+      expect(await refused.json(), cidr).toEqual({ error: 'blocked-address' })
+    }
   })
 
   it("carries the API's Turnstile check, like every request the stack makes", () => {

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { defaultResolver, serverPolicy } from '@arablyzer/egress'
+import { checkDenyCidrs, defaultResolver, serverPolicy } from '@arablyzer/egress'
 import { USER_AGENT } from '@arablyzer/engine/identity'
 import { limitsFrom } from '@arablyzer/plans'
 import {
@@ -36,6 +36,11 @@ export function apiDeps(
 ): ApiDeps {
   const production = env.NODE_ENV === 'production'
   const policy = serverPolicy(env)
+  // The server's own public address, IPv4 and IPv6, which nothing the stack runs can see behind
+  // NAT: production starts only with it named, and says what the list leaves open.
+  if (production) {
+    for (const warning of checkDenyCidrs(env.ARABLYZER_DENY_CIDRS).warnings) log(warning)
+  }
   const resolver = defaultResolver(policy)
   const trust = trustProxyFrom(env.ARABLYZER_TRUST_PROXY)
   // X-Forwarded-For is believed only from the site's server, which proves it with this secret

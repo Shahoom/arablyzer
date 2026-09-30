@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server'
+import { checkDenyCidrs } from '@arablyzer/egress'
 import { createScannerApp } from './app'
 import { assertIsolated } from './isolation'
 import { localScanner } from './local'
@@ -15,6 +16,9 @@ const token = env.ARABLYZER_SCANNER_TOKEN?.trim() ?? ''
 if (token.length < MIN_TOKEN_LENGTH) {
   throw new Error(`ARABLYZER_SCANNER_TOKEN must be set, ${MIN_TOKEN_LENGTH} characters or more`)
 }
+// The server's own public address, IPv4 and IPv6, which the scanner cannot see itself (BUILD-PLAN
+// §18.3.1): it starts only with it named, and says what the list leaves open.
+for (const warning of checkDenyCidrs(env.ARABLYZER_DENY_CIDRS).warnings) console.error(warning)
 // WebKit runs only where the network reaches the egress proxy alone, which Compose says
 // (ARABLYZER_NETWORK_ISOLATED); the container is asked, and refuses to start if it is not so.
 await assertIsolated(env)

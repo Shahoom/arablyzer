@@ -27,6 +27,7 @@ const PRODUCTION = {
   ARABLYZER_LIMIT_HOST_SCANS: '20',
   ARABLYZER_LIMIT_HOST_SECONDS: '3600',
   ARABLYZER_LIMIT_QUEUE: '50',
+  ARABLYZER_DENY_CIDRS: '93.184.215.7/32, 2a01:4f8:c17:1234::1/128',
 } as const
 
 const without = (name: keyof typeof PRODUCTION) =>
@@ -66,6 +67,34 @@ describe('apiDeps', () => {
     const message = failure(() => apiDeps(short, stores()))
     expect(message).toMatch(/ARABLYZER_LIMIT_SECRET must be 32 characters or more/)
     expect(message).not.toContain('too-short-secret')
+  })
+
+  it("refuses to start in production without the server's own address, or with one it cannot read", () => {
+    expect(() => apiDeps(without('ARABLYZER_DENY_CIDRS'), stores())).toThrow(
+      /ARABLYZER_DENY_CIDRS must name the server's own/,
+    )
+    expect(() =>
+      apiDeps({ ...PRODUCTION, ARABLYZER_DENY_CIDRS: '93.184.215.7' }, stores()),
+    ).toThrow(/Invalid deny CIDR: 93\.184\.215\.7 /)
+    expect(() => apiDeps({ ...PRODUCTION, ARABLYZER_DENY_CIDRS: '0.0.0.0/0' }, stores())).toThrow(
+      /refuses every address/,
+    )
+  })
+
+  it("says what the server's addresses leave open: no IPv6 range, or no public one", () => {
+    const logged: string[] = []
+    const log = (message: string) => logged.push(message)
+    apiDeps({ ...PRODUCTION, ARABLYZER_DENY_CIDRS: '93.184.215.7/32' }, stores(), log)
+    expect(logged).toHaveLength(1)
+    expect(logged[0]).toMatch(/names no IPv6 range/)
+    logged.length = 0
+    apiDeps({ ...PRODUCTION, ARABLYZER_DENY_CIDRS: '192.168.1.10/32' }, stores(), log)
+    expect(logged).toHaveLength(2)
+    expect(logged[0]).toMatch(/names no public address/)
+    expect(logged[1]).toMatch(/names no IPv6 range/)
+    logged.length = 0
+    apiDeps(PRODUCTION, stores(), log)
+    expect(logged).toEqual([])
   })
 
   it('never opens private addresses in production', () => {
