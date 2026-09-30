@@ -882,15 +882,37 @@ describe('deleting a report', () => {
       expect(logged).toEqual(['API: Connection terminated'])
     })
 
-    it('frees the visitor’s place for a scan that was deleted, once the API can tell it is gone', async () => {
+    // Found by running the API: a report deleted right after its scan ended, and a new scan asked
+    // for at once, met the deleted scan's place, which looked like a scan about to have a record.
+    it('frees the place of the scan it deletes at once, when the visitor who made it deletes it', async () => {
       const { app, scanOf, inFlight } = setup({ limits: { ...DEVELOPMENT_LIMITS, inFlight: 1 } })
       const first = await start(scanOf)
       expect((await scanOf('https://example.org/')).status).toBe(429)
       expect((await del(app, first.id, bearer(first.deleteToken))).status).toBe(204)
-      // Still within the API's own timeouts, the place is a scan about to have its record; later, not.
+      expect(await inFlight.held('key-of-203.0.113.9')).toEqual([])
+      expect((await scanOf('https://example.org/')).status).toBe(202)
+    })
+
+    it('leaves the place of a scan it does not delete, and one another visitor holds until it is stale', async () => {
+      let visitor = 1
+      const { app, scanOf, inFlight } = setup({
+        limits: { ...DEVELOPMENT_LIMITS, inFlight: 1 },
+        address: () => `203.0.113.${visitor}`,
+      })
+      const first = await start(scanOf)
+      // A refused deletion frees nothing.
+      expect((await del(app, first.id, bearer('B'.repeat(43)))).status).toBe(403)
+      expect((await inFlight.held('key-of-203.0.113.1')).map((place) => place.scanId)).toEqual([
+        first.id,
+      ])
+      // Deleted from another address, the maker's place is not the deleter's to give back: it
+      // stays until the scan is found to have no record, once the API's own timeouts have passed.
+      visitor = 2
+      expect((await del(app, first.id, bearer(first.deleteToken))).status).toBe(204)
+      visitor = 1
       expect((await scanOf('https://example.org/')).status).toBe(429)
-      await inFlight.release('key-of-203.0.113.9', [first.id])
-      await inFlight.hold('key-of-203.0.113.9', first.id, 1, NOW.getTime() - RECORD_GRACE_MS - 1)
+      await inFlight.release('key-of-203.0.113.1', [first.id])
+      await inFlight.hold('key-of-203.0.113.1', first.id, 1, NOW.getTime() - RECORD_GRACE_MS - 1)
       expect((await scanOf('https://example.org/')).status).toBe(202)
     })
   })

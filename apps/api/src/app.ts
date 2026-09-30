@@ -422,6 +422,13 @@ export function createApp(deps: ApiDeps): Hono {
     const deleted = await deps.store.delete(id, hashDeleteToken(token))
     if (deleted === 'missing') return c.notFound()
     if (deleted === 'forbidden') return c.json({ error: 'forbidden' }, 403)
+    // The visitor who made the scan asks for its deletion, as a rule: its place is theirs to give
+    // back now, not a scan about to have a record until the API's own timeouts say it is not.
+    // Another visitor's place is left to that, and to the scan store, which knows it is gone.
+    const address = deps.address(c)
+    if (address !== null) {
+      await deps.inFlight.release(deps.connectionKey(address, now()), [id]).catch(() => undefined)
+    }
     return c.body(null, 204)
   })
 
