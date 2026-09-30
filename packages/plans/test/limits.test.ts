@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEVELOPMENT_LIMITS, limitsFrom } from '../src/index'
+import { DEVELOPMENT_LIMITS, hostLimitFrom, limitsFrom } from '../src/index'
 
 const ALL = {
   ARABLYZER_LIMIT_CONNECTION_SCANS: '5',
@@ -61,5 +61,24 @@ describe('limitsFrom', () => {
     expect(Object.isFrozen(limits)).toBe(true)
     expect(Object.isFrozen(limits.perNetwork)).toBe(true)
     expect(Object.isFrozen(limits.attempts)).toBe(true)
+  })
+})
+
+describe('hostLimitFrom', () => {
+  it('is the limits’ own per-host window, and needs nothing of the others', () => {
+    expect(hostLimitFrom({})).toEqual(DEVELOPMENT_LIMITS.perHost)
+    const env = { ARABLYZER_LIMIT_HOST_SCANS: '12', ARABLYZER_LIMIT_HOST_SECONDS: '900' }
+    expect(hostLimitFrom({ NODE_ENV: 'production', ...env })).toEqual({ scans: 12, seconds: 900 })
+    expect(hostLimitFrom(env)).toEqual(limitsFrom(env).perHost)
+  })
+
+  it('refuses to start in production without either number, and takes whole numbers only', () => {
+    expect(() => hostLimitFrom({ NODE_ENV: 'production' })).toThrow(
+      /ARABLYZER_LIMIT_HOST_SCANS must be set in production/,
+    )
+    expect(() =>
+      hostLimitFrom({ NODE_ENV: 'production', ARABLYZER_LIMIT_HOST_SCANS: '5' }),
+    ).toThrow(/ARABLYZER_LIMIT_HOST_SECONDS must be set in production/)
+    expect(() => hostLimitFrom({ ARABLYZER_LIMIT_HOST_SECONDS: '0' })).toThrow(/whole number/)
   })
 })

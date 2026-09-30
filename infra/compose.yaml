@@ -117,6 +117,10 @@ services:
       DATABASE_URL: postgres://arablyzer:${POSTGRES_PASSWORD:?}@postgres:5432/arablyzer
       ARABLYZER_SCANNER_URL: http://scanner:8788
       ARABLYZER_SCANNER_TOKEN: ${ARABLYZER_SCANNER_TOKEN:?}
+      # The site a scan ends at, after its redirects, counts against the per-host limit: the API's
+      # own numbers.
+      ARABLYZER_LIMIT_HOST_SCANS: ${ARABLYZER_LIMIT_HOST_SCANS:?}
+      ARABLYZER_LIMIT_HOST_SECONDS: ${ARABLYZER_LIMIT_HOST_SECONDS:?}
     networks: [data, scan]
     depends_on:
       api: { condition: service_healthy }

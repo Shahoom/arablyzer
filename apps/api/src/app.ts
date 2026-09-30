@@ -15,6 +15,7 @@ import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
 import { streamSSE, type SSEStreamingApi } from 'hono/streaming'
 import {
+  hostLimitKey,
   quietly,
   type InFlight,
   type RateLimiter,
@@ -25,7 +26,7 @@ import {
   type StoredEvent,
 } from '@arablyzer/store'
 import { holdPlace } from './places'
-import { hostKey, parseTarget, resolveTarget } from './target'
+import { parseTarget, resolveTarget } from './target'
 import type { TurnstileCheck } from './turnstile'
 
 export interface ApiDeps {
@@ -244,7 +245,7 @@ export function createApp(deps: ApiDeps): Hono {
         const resolved = await resolveTarget(parsed.value, deps.policy, deps.resolver)
         if (!resolved.ok) return refuse(c, resolved.code)
         const host = await deps.limiter.take(
-          `host:${hostKey(parsed.value.host)}`,
+          hostLimitKey(parsed.value.host),
           deps.limits.perHost,
           at.getTime(),
         )

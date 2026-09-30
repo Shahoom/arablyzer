@@ -103,6 +103,16 @@ describe('scan events', () => {
     ]
     for (const step of steps) expect(ScanEvent.parse(step)).toEqual(step)
     expect(ScanEvent.safeParse({ type: 'done', state: 'complete', extra: 1 }).success).toBe(false)
+    // The page's host, after its redirects, is a name and nothing else: what the worker counts.
+    const reached = { type: 'page', status: 200, contentType: 'text/html', error: null }
+    expect(ScanEvent.parse({ ...reached, host: 'www.shop.example' })).toEqual({
+      ...reached,
+      host: 'www.shop.example',
+    })
+    expect(ScanEvent.safeParse({ ...reached, host: 'a'.repeat(254) }).success).toBe(false)
+    expect(ScanEvent.safeParse({ ...reached, host: '' }).success).toBe(false)
+    expect(ScanEvent.safeParse({ ...reached, host: 3 }).success).toBe(false)
+    expect(ScanEvent.safeParse({ ...reached, host: null }).success).toBe(false)
     expect(ScanEvent.safeParse({ type: 'render-start', engine: 'netscape' }).success).toBe(false)
     expect(
       ScanEvent.safeParse({ type: 'page', status: 42, contentType: null, error: null }).success,

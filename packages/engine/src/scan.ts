@@ -373,6 +373,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     status: target.http.status,
     contentType: target.http.contentType,
     error: fetched.error?.code ?? null,
+    ...(response === null ? {} : { host: hostOf(response.url) }),
   })
   if (fetched.error !== null || response === null) {
     return failed(
@@ -1317,4 +1318,10 @@ function lastHeader(headers: readonly (readonly [string, string])[], name: strin
 
 function hash(input: string): string {
   return createHash('sha256').update(input).digest('hex').slice(0, 16)
+}
+
+/** A URL's host as the egress package writes it: lowercase, an IPv6 address without its brackets. */
+function hostOf(url: string): string {
+  const { hostname } = new URL(url)
+  return hostname.startsWith('[') ? hostname.slice(1, -1) : hostname
 }

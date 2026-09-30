@@ -7,7 +7,7 @@ import {
   MemoryScanQueue,
   MemoryScanStore,
 } from '@arablyzer/store'
-import { runScan } from '@arablyzer/worker'
+import { hostLimited, runScan } from '@arablyzer/worker'
 import { createApp } from './app'
 import { apiDeps } from './config'
 
@@ -23,22 +23,20 @@ if (env.NODE_ENV === 'production') throw new Error('dev.ts runs in development o
 const store = new MemoryScanStore()
 const queue = new MemoryScanQueue()
 const events = new MemoryScanEvents()
-const app = createApp(
-  apiDeps(env, {
-    store,
-    queue,
-    events,
-    limiter: new MemoryRateLimiter(),
-    inFlight: new MemoryInFlight(),
-  }),
-)
+const limiter = new MemoryRateLimiter()
+const deps = apiDeps(env, { store, queue, events, limiter, inFlight: new MemoryInFlight() })
+const app = createApp(deps)
 const port = Number(env.PORT ?? 8787)
 const server = serve({ fetch: app.fetch, port, hostname: '127.0.0.1' }, (info) => {
   console.log(`API on http://127.0.0.1:${info.port}, with a worker in this process`)
 })
 
 const stop = new AbortController()
-const scanner = localScanner(scanOptionsFrom(env))
+// The site a scan ends at, after its redirects, counts against the per-host limit, as in Compose.
+const scanner = hostLimited(localScanner(scanOptionsFrom(env)), {
+  limiter,
+  window: deps.limits.perHost,
+})
 void (async () => {
   while (!stop.signal.aborted) {
     const job = await queue.take(stop.signal)

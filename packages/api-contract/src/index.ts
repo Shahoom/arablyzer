@@ -62,6 +62,8 @@ export const ScanEvent = z.discriminatedUnion('type', [
     status,
     contentType: z.string().max(256).nullable(),
     error: z.string().max(64).nullable(),
+    // A DNS name is at most 253 characters (RFC 1035).
+    host: z.string().min(1).max(253).optional(),
   }),
   z.strictObject({
     type: z.literal('robots'),

@@ -89,9 +89,6 @@ importers:
       pg:
         specifier: 8.23.0
         version: 8.23.0
-      tldts:
-        specifier: 7.4.16
-        version: 7.4.16
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -239,6 +236,9 @@ importers:
       '@arablyzer/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@arablyzer/plans':
+        specifier: workspace:*
+        version: link:../../packages/plans
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../../packages/report-schema
@@ -427,6 +427,7 @@ importers:
       '@arablyzer/engine':
         specifier: workspace:*
         version: link:../engine
+
   packages/guides:
     dependencies:
       '@arablyzer/report-schema':
@@ -568,9 +569,15 @@ importers:
       ioredis:
         specifier: 5.11.1
         version: 5.11.1
+      ipaddr.js:
+        specifier: ^2.5.0
+        version: 2.5.0
       pg:
         specifier: 8.23.0
         version: 8.23.0
+      tldts:
+        specifier: 7.4.16
+        version: 7.4.16
     devDependencies:
       '@types/pg':
         specifier: 8.23.1

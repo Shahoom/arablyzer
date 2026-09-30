@@ -1,15 +1,18 @@
+import { hostLimitFrom } from '@arablyzer/plans'
 import { remoteScanner, SCAN_BUDGET_MS } from '@arablyzer/scanner-client'
 import {
   PostgresScanStore,
   quietly,
   SCAN_QUEUE,
   SCAN_WORKER,
+  ValkeyRateLimiter,
   ValkeyScanEvents,
   type ScanJob,
 } from '@arablyzer/store'
 import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
 import pg from 'pg'
+import { hostLimited } from './hosts'
 import { failScan, runScan, scanJobOf } from './run'
 
 // The worker as Compose and staging run it (M2.1 plan §5b): it takes one job at a time, has the
@@ -43,7 +46,16 @@ pool.on('error', quietly('PostgreSQL', log))
 const deps = {
   store: new PostgresScanStore(pool),
   events: new ValkeyScanEvents(redis),
-  scanner: remoteScanner(required('ARABLYZER_SCANNER_URL'), required('ARABLYZER_SCANNER_TOKEN')),
+  // The site a scan ends at, after its redirects, counts against the per-host limit as the site
+  // it was asked for did in the API (security review, issue #30). Production's checks hold
+  // whatever NODE_ENV says, as the API's do: the limit's numbers must be set.
+  scanner: hostLimited(
+    remoteScanner(required('ARABLYZER_SCANNER_URL'), required('ARABLYZER_SCANNER_TOKEN')),
+    {
+      limiter: new ValkeyRateLimiter(redis),
+      window: hostLimitFrom({ ...env, NODE_ENV: 'production' }),
+    },
+  ),
   log,
 }
 

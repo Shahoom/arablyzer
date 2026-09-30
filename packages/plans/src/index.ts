@@ -62,13 +62,16 @@ const VARIABLES = {
   inFlight: 'ARABLYZER_LIMIT_INFLIGHT',
 } as const
 
+type Env = Readonly<Record<string, string | undefined>>
+
 /**
- * The limits from the environment. In production every variable must be set; elsewhere, those
- * not set keep their development values.
+ * A reader of the limits' numbers: a whole number of at least 1 from the variable, the
+ * development value where it is not set outside production, and a refusal to start where it is
+ * not set in production.
  */
-export function limitsFrom(env: Readonly<Record<string, string | undefined>>): ScanLimits {
+function reader(env: Env): (name: string, fallback: number) => number {
   const production = env.NODE_ENV === 'production'
-  const read = (name: string, fallback: number): number => {
+  return (name, fallback) => {
     const raw = env[name]?.trim()
     if (raw === undefined || raw === '') {
       if (production) throw new Error(`${name} must be set in production (Phase 2 design §7.2)`)
@@ -79,6 +82,27 @@ export function limitsFrom(env: Readonly<Record<string, string | undefined>>): S
     }
     return Number(raw)
   }
+}
+
+/**
+ * The per-host limit alone, for the worker, which counts the site a scan ends at and needs none of
+ * the others (apps/worker). The same numbers as `limitsFrom(env).perHost`.
+ */
+export function hostLimitFrom(env: Env): Window {
+  const read = reader(env)
+  const d = DEVELOPMENT_LIMITS
+  return Object.freeze({
+    scans: read(VARIABLES.hostScans, d.perHost.scans),
+    seconds: read(VARIABLES.hostSeconds, d.perHost.seconds),
+  })
+}
+
+/**
+ * The limits from the environment. In production every variable must be set; elsewhere, those
+ * not set keep their development values.
+ */
+export function limitsFrom(env: Env): ScanLimits {
+  const read = reader(env)
   const d = DEVELOPMENT_LIMITS
   return Object.freeze({
     perConnection: Object.freeze({
@@ -93,10 +117,7 @@ export function limitsFrom(env: Readonly<Record<string, string | undefined>>): S
       scans: read(VARIABLES.attemptRequests, d.attempts.scans),
       seconds: read(VARIABLES.attemptSeconds, d.attempts.seconds),
     }),
-    perHost: Object.freeze({
-      scans: read(VARIABLES.hostScans, d.perHost.scans),
-      seconds: read(VARIABLES.hostSeconds, d.perHost.seconds),
-    }),
+    perHost: hostLimitFrom(env),
     queue: read(VARIABLES.queue, d.queue),
     inFlight: read(VARIABLES.inFlight, d.inFlight),
   })

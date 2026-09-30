@@ -113,6 +113,11 @@ export type ScanEvent =
       readonly status: number | null
       readonly contentType: string | null
       readonly error: string | null
+      /**
+       * The host the page was reached at, after its redirects: what the worker counts against
+       * the site's limit of scans. Absent where no page was reached.
+       */
+      readonly host?: string
     }
   | {
       /**
