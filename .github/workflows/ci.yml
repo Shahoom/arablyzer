@@ -45,6 +45,19 @@ jobs:
       - name: Report schema drift
         run: pnpm schema:check
 
+  audit:
+    # The lockfile against the registry's advisories: a high or critical one in anything the
+    # workspace installs, its build tools included, fails the run. Nothing is installed: pnpm reads
+    # the lockfile. A moderate one in a build tool stays a note (Dependabot opens the pull request).
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Audit the lockfile
+        run: pnpm audit --audit-level high
+
   browsers:
     # M1.1: the browser SSRF suite and the rendered-facts tests, in every engine (Phase 1 design
     # §6). A missing engine fails the run instead of being skipped.
