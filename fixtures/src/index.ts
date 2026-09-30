@@ -7,6 +7,16 @@ export {
   type CruxQuery,
   type CruxStandIn,
 } from './crux'
+export { fixtureTxt, NO_MAIL_DMARC, NO_MAIL_SPF, type FixtureTxtAnswer } from './dns'
+export {
+  serveDoh,
+  type DohEntry,
+  type DohFailure,
+  type DohRequest,
+  type DohStandIn,
+  type DohZone,
+} from './doh'
+export { serveHandler, type HandlerSite } from './handler'
 export {
   loadFixtureConfig,
   loadSiteConfig,

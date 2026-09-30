@@ -6,6 +6,7 @@ import { gzipSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { FixtureConfig, routeKey, SiteConfig, type RouteOverride } from './config'
+import { fixtureTxt, type FixtureTxtAnswer } from './dns'
 import { certificateWindow, serverCertificate } from './tls'
 
 export interface FixtureSite {
@@ -20,6 +21,8 @@ export interface FixtureSite {
    * and what it never did.
    */
   readonly requests: readonly string[]
+  /** What DNS answers for a name's TXT records, from site.json (fixtureTxt). */
+  txt(name: string): FixtureTxtAnswer
   url(pathname?: string): string
   close(): Promise<void>
 }
@@ -153,6 +156,7 @@ export async function serveSite(
     hostname,
     hostnames: names.length === 0 ? [hostname] : names,
     requests,
+    txt: (name) => fixtureTxt(site, name),
     url: (pathname = '/') => new URL(pathname, origin).href,
     close: () =>
       new Promise((resolve, reject) => {
@@ -191,10 +195,18 @@ async function respond(
   const host = requestHost(req)
   const resolved = await resolveFixtureResponse(root, config, pathname, {
     cleanUrls,
+    method: req.method,
     ...(host === null || !own.names.includes(host) ? {} : { host }),
   })
-  const { status, body } = resolved
+  // A server that drops HEAD: the connection closes, or nothing is ever said.
+  if (resolved.drop === 'reset') {
+    req.socket.destroy()
+    return
+  }
+  if (resolved.drop === 'silence') return
+  const { status } = resolved
   const headers = withOwnPort(resolved.headers, own)
+  const body = pathname === '/robots.txt' ? withOwnSitemaps(resolved.body, own) : resolved.body
   const contentType = headers['content-type']
   const text = typeof contentType === 'string' && TEXT_TYPE.test(contentType)
   const gzip =
@@ -231,23 +243,40 @@ function withOwnPort(
 ): Record<string, string | string[]> {
   const location = headers.location
   if (location === undefined) return headers
-  const rewrite = (value: string): string => {
-    let url: URL
-    try {
-      url = new URL(value)
-    } catch {
-      return value
-    }
-    if (url.protocol !== own.scheme || url.port !== '' || !own.names.includes(url.hostname)) {
-      return value
-    }
-    url.port = String(own.port)
-    return url.href
-  }
+  const rewrite = (value: string) => ownUrl(value, own)
   return {
     ...headers,
     location: Array.isArray(location) ? location.map(rewrite) : rewrite(location),
   }
+}
+
+/**
+ * robots.txt's Sitemap lines that name one of the site's own URLs without a port get the port
+ * the server listens on, as a Location does (M2.3c): the file cannot know it either.
+ */
+function withOwnSitemaps(body: Buffer, own: OwnSite): Buffer {
+  if (own.names.length === 0) return body
+  const text = body.toString('utf8')
+  const rewritten = text.replace(
+    /^([\t ]*sitemap[\t ]*:[\t ]*)(\S+)/gim,
+    (_line, key: string, value: string) => `${key}${ownUrl(value, own)}`,
+  )
+  return rewritten === text ? body : Buffer.from(rewritten, 'utf8')
+}
+
+/** A URL of one of the site's names, on its scheme and without a port, with the server's port. */
+function ownUrl(value: string, own: OwnSite): string {
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    return value
+  }
+  if (url.protocol !== own.scheme || url.port !== '' || !own.names.includes(url.hostname)) {
+    return value
+  }
+  url.port = String(own.port)
+  return url.href
 }
 
 export interface FixtureResponse {
@@ -255,17 +284,23 @@ export interface FixtureResponse {
   /** Lowercased names; a list for repeated headers. */
   readonly headers: Record<string, string | string[]>
   readonly body: Buffer
+  /** For a HEAD request the route drops (headDrop): there is no answer, and this is how. */
+  readonly drop?: 'reset' | 'silence'
 }
 
 /**
- * What the server answers for a path, on one of the site's aliases when `host` names it; rule
- * tests use it to read fixtures without HTTP.
+ * What the server answers for a path, on one of the site's aliases when `host` names it, and to
+ * a HEAD request when `method` says so; rule tests use it to read fixtures without HTTP.
  */
 export async function resolveFixtureResponse(
   root: string,
   config: FixtureConfig,
   pathname: string,
-  { cleanUrls = false, host }: { cleanUrls?: boolean; host?: string } = {},
+  {
+    cleanUrls = false,
+    host,
+    method = 'GET',
+  }: { cleanUrls?: boolean; host?: string; method?: string } = {},
 ): Promise<FixtureResponse> {
   const siteRoot = path.resolve(root)
   const override: RouteOverride | undefined =
@@ -276,7 +311,10 @@ export async function resolveFixtureResponse(
       ? await readSiteFile(siteRoot, `${pathname}.html`)
       : null)
   // An inline body stands in for the file, so it is a 200 unless the override says otherwise.
-  const status = override?.status ?? (file === null && override?.body === undefined ? 404 : 200)
+  const status =
+    (method === 'HEAD' ? override?.headStatus : undefined) ??
+    override?.status ??
+    (file === null && override?.body === undefined ? 404 : 200)
   const body =
     override?.body !== undefined
       ? Buffer.from(override.body, 'utf8')
@@ -287,7 +325,8 @@ export async function resolveFixtureResponse(
   for (const [name, value] of Object.entries(override?.headers ?? {})) {
     headers[name.toLowerCase()] = value
   }
-  return { status, headers, body }
+  const drop = method === 'HEAD' ? override?.headDrop : undefined
+  return { status, headers, body, ...(drop === undefined ? {} : { drop }) }
 }
 
 /** Node only writes latin1 header text; send UTF-8 values (Arabic paths) as raw bytes, like real servers. */

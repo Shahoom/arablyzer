@@ -5,8 +5,10 @@ export type NoticeCode =
   | EgressErrorCode
   | 'robots-unchecked'
   | 'robots-truncated'
+  | 'sitemap-unchecked'
   | 'opted-out'
   | 'page-status'
+  | 'bot-challenge'
   | 'not-html'
   | 'little-text'
   | 'page-too-complex'
@@ -15,6 +17,7 @@ export type NoticeCode =
   | 'render-skipped'
   | 'render-engine-skipped'
   | 'render-failed'
+  | 'render-challenged'
   | 'render-timeout'
   | 'engine-unavailable'
   | 'engine-refused'
@@ -29,6 +32,13 @@ export type NoticeCode =
   | 'lab-timeout'
   | 'lab-unavailable'
   | 'lab-skipped'
+  | 'dns-unchecked'
+  | 'dns-unavailable'
+  | 'links-limit'
+  | 'links-limit-more'
+  | 'links-robots'
+  | 'links-unanswered'
+  | 'lab-challenged'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -111,6 +121,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     ar: 'ملف robots.txt أكبر من 500 كيلوبايت، فقرأنا أول 500 كيلوبايت فقط كما يفعل Google.',
     en: 'robots.txt is larger than 500 KiB, so only the first 500 KiB were read, as Google does.',
   },
+  'sitemap-unchecked': {
+    ar: 'تعذّرت قراءة بعض خرائط الموقع، فحكمت القواعد التي تفحصها على ما قُرئ منها، ولم تُطبَّق إن لم تُقرأ أي خريطة.',
+    en: 'Some of the site’s sitemaps could not be read, so the rules that check them judged the ones that could be, and did not run when none could.',
+  },
   // M2.4 plan §2: the site's own words, the rule and where it is, so its owner can find it.
   'opted-out': {
     ar: 'يطلب ملف robots.txt في الموقع ألّا يفحص {bot} هذه الصفحة، فلم نفحصها. القاعدة «{rule}» في السطر {line} من {robots}.',
@@ -119,6 +133,11 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'page-status': {
     ar: 'الصفحة ردّت بالحالة HTTP {status}، فلم نفحص محتواها.',
     en: 'The page answered HTTP {status}, so its content was not checked.',
+  },
+  // BUILD-PLAN §13: a site that blocks the bot says so, honestly; the scan never gets past it.
+  'bot-challenge': {
+    ar: 'ردّ الموقع بتحدٍّ للبوتات من {service} (HTTP {status}) بدل الصفحة، فلم نفحص محتواها: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'The site answered with a {service} bot challenge (HTTP {status}) instead of the page, so its content was not checked: Arablyzer never tries to get past a challenge.',
   },
   'not-html': {
     ar: 'الاستجابة ليست صفحة HTML، ففحصنا ترويساتها فقط.',
@@ -151,6 +170,11 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'render-failed': {
     ar: 'تعذّر عرض الصفحة في {engine}، فلم تعمل فيه فحوص العرض.',
     en: 'The page could not be rendered in {engine}, so the rendering checks did not run in it.',
+  },
+  // BUILD-PLAN §13: the browser is given the page only once its headers are checked (M2.3c).
+  'render-challenged': {
+    ar: 'ردّ الموقع في {engine} بتحدٍّ للبوتات من {service} (HTTP {status}) بدل الصفحة، فلم تُعرض الصفحة فيه: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'In {engine}, the site answered with a {service} bot challenge (HTTP {status}) instead of the page, so the page was not rendered there: Arablyzer never tries to get past a challenge.',
   },
   'render-timeout': {
     ar: 'لم يكتمل عرض الصفحة في {engine} خلال الوقت المحدد، فلم تعمل فيه فحوص العرض.',
@@ -196,6 +220,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     ar: 'Lighthouse أو متصفح Chromium غير مثبّت على هذا الجهاز، فلم يعمل Lighthouse.',
     en: 'Lighthouse or Chromium is not installed on this machine, so Lighthouse did not run.',
   },
+  'lab-challenged': {
+    ar: 'ردّ الموقع على متصفح بتحدٍّ للبوتات بدل الصفحة، فلم يفتحها Lighthouse: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'A browser was answered with a bot challenge instead of the page, so Lighthouse did not open it: Arablyzer never tries to get past a challenge.',
+  },
   'lab-skipped': {
     ar: 'لم يبقَ من وقت الفحص ما يكفي Lighthouse، فلم يعمل.',
     en: 'The scan had no time left for Lighthouse, so it did not run.',
@@ -207,6 +235,32 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'crux-failed': {
     ar: 'تعذّر جلب بيانات الزوار الحقيقيين من Google (CrUX)، فلم تعمل فحوصها.',
     en: "Real visitors' data could not be fetched from Google (CrUX), so its checks could not run.",
+  },
+  // M2.3c: a lookup that got no answer says nothing of the records, so its rules do not judge.
+  'dns-unchecked': {
+    ar: 'تعذّرت قراءة سجلات DNS للنطاق {domain}: لم يصل جواب في الوقت المحدد، أو ردّ خادم DNS بخطأ، فلم تعمل الفحوص التي تقرؤها.',
+    en: 'The DNS records of {domain} could not be read: no answer came in time, or the DNS server answered with an error, so the checks that read them did not run.',
+  },
+  // M2.3c: the page's links to its own site that were not checked, none of them counted broken.
+  'links-limit': {
+    ar: 'في الصفحة روابط إلى موقعها عددها {total}، ففحصنا أول {limit} منها، ولم نفحص الباقي وعدده {count}.',
+    en: 'The page links to {total} addresses on its own site: the scan checked the first {limit}, and not the other {count}.',
+  },
+  'links-limit-more': {
+    ar: 'في الصفحة روابط إلى موقعها عددها {total} على الأقل، ففحصنا أول {limit} منها، ولم نفحص الباقي وعدده {count} على الأقل.',
+    en: 'The page links to at least {total} addresses on its own site: the scan checked the first {limit}, and not the other {count} or more.',
+  },
+  'links-robots': {
+    ar: 'روابط في الصفحة عددها {count} تقود إلى مسارات يطلب ملف robots.txt في الموقع ألّا يجلبها {bot} أو الزواحف عامةً (User-agent: *)، فلم نفحصها. فالصفحة نفسها زيارة طلبها شخص، أما روابطها فنطلبها كما يطلبها زاحف، فتسري عليها مجموعة * أيضاً، إلا أن تسمّي المجموعة {bot} فتحلّ محلها.',
+    en: '{count} of the page’s links lead to paths the site’s robots.txt asks {bot}, or crawlers in general (User-agent: *), not to fetch, so they were not checked. The page itself is a visit someone asked for, but its links are requested as a crawler would, so the * group applies to them too, unless a group names {bot}, which replaces it.',
+  },
+  'links-unanswered': {
+    ar: 'روابط في الصفحة إلى موقعها عددها {count} لم نستطع الحكم عليها: لم يصل جوابها في الوقت المحدد، أو تعذّر الاتصال، أو رفض الموقع الطلب بإحدى الحالات 401 و403 و407 و429 و503 التي يردّ بها الموقع على زائر يظنه بوتاً أو يطلب تسجيل الدخول أو يعجز عن الخدمة، وبعد أول 429 لا نطلب رابطاً آخر.',
+    en: '{count} of the page’s links to its own site could not be judged: no answer came in time, the connection failed, or the site refused the request with a 401, 403, 407, 429 or 503, as a site answers a visitor it takes for a bot, that must sign in, or that it cannot serve just now. After the first 429 the scan asks for no more links.',
+  },
+  'dns-unavailable': {
+    ar: 'لا يملك هذا الفحص طريقة لسؤال DNS عن السجلات، فلم تعمل الفحوص التي تقرأ سجلات DNS للنطاق.',
+    en: 'This scan has no way to look up DNS records, so the checks that read the domain’s DNS records did not run.',
   },
 }
 

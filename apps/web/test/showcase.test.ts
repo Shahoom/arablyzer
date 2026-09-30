@@ -8,7 +8,7 @@ describe('the showcase', () => {
   it('reads the instrument panel from golden report 04', () => {
     expect(SHOWCASE.page).toBe('04-rtl-layout')
     expect(SHOWCASE.heading).toEqual({ text: 'متجر العطور', selector: 'html > body > main > h1' })
-    expect([SHOWCASE.score, SHOWCASE.failed, SHOWCASE.passed]).toEqual([90, 3, 18])
+    expect([SHOWCASE.score, SHOWCASE.failed, SHOWCASE.passed]).toEqual([91, 3, 21])
     expect(SHOWCASE.engines).toEqual([
       { engine: 'chromium', name: 'Chromium', version: '153', joined: true },
       { engine: 'firefox', name: 'Firefox', version: '155', joined: true },
@@ -46,12 +46,12 @@ describe('the showcase', () => {
       expect(lines.at(-1)).not.toBe('')
     }
     expect(terminalLines('ar').slice(1, 3)).toEqual([
-      '3 فشلت · 18 نجحت · 32 لا تنطبق',
-      'الدرجة 90 من 100',
+      '3 فشلت · 21 نجحت · 37 لا تنطبق',
+      'الدرجة 91 من 100',
     ])
     expect(terminalLines('en').slice(1, 3)).toEqual([
-      '3 failed · 18 passed · 32 not applicable',
-      'Score 90/100',
+      '3 failed · 21 passed · 37 not applicable',
+      'Score 91/100',
     ])
   })
 })

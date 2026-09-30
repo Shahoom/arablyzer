@@ -1,0 +1,9 @@
+{
+  "/": {
+    "status": 202,
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "x-amzn-waf-action": "challenge"
+    }
+  }
+}

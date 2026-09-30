@@ -1,5 +1,5 @@
 import type { ToolTag } from '@arablyzer/i18n'
-import { ruleById, SERVER_RESPONSE_RULES } from '@arablyzer/rules'
+import { reportsOnly, ruleById, SERVER_RESPONSE_RULES, type Rule } from '@arablyzer/rules'
 import { renderInline, renderMarkdown } from '@arablyzer/seo/markdown'
 import { TOOL_CATEGORIES, TOOL_HEADINGS, TOOLS, type Tool, type ToolCopy } from '@arablyzer/tools'
 import { highlight } from '../src/lib/code'
@@ -21,16 +21,28 @@ export function toolRenders(tool: Tool): boolean {
 }
 
 /**
- * What the tool reads, for its card: browsers, Chrome's data, robots.txt, or the page's HTML; a
- * generator reads nothing, and says what it is.
+ * What the tool reads, for its card: browsers, Chrome's data, DNS records, the page's links,
+ * the sitemaps, robots.txt, the server's response, or the page's HTML; a generator reads
+ * nothing, and says what it is.
  */
 export function toolTag(tool: Tool): ToolTag {
   if (tool.kind === 'generator') return 'generator'
-  const needs = rulesOf(tool).flatMap((rule) => rule.needs)
+  const rules = rulesOf(tool)
+  const needs = rules.flatMap((rule) => rule.needs)
   if (needs.includes('render')) return 'render'
   if (needs.includes('crux')) return 'crux'
-  if (needs.length > 0 && needs.every((need) => need === 'robots')) return 'robots'
-  if (rulesOf(tool).every((rule) => SERVER_RESPONSE_RULES.has(rule.id))) return 'http'
+  if (needs.includes('dns')) return 'dns'
+  if (needs.includes('links')) return 'links'
+  if (needs.includes('sitemap')) return 'sitemap'
+  const readsRobots = (rule: Rule) => rule.needs.every((need) => need === 'robots')
+  // robots.txt, beside what the server answers the bot (ai-access): the card names robots.txt.
+  if (
+    rules.some(readsRobots) &&
+    rules.every((rule) => readsRobots(rule) || SERVER_RESPONSE_RULES.has(rule.id))
+  ) {
+    return 'robots'
+  }
+  if (rules.every((rule) => SERVER_RESPONSE_RULES.has(rule.id))) return 'http'
   return 'html'
 }
 
@@ -75,6 +87,7 @@ export function toolsData(): ToolsData {
       updated: tool.updated,
       kind: tool.kind ?? 'scan',
       renders: toolRenders(tool),
+      reportsOnly: reportsOnly(tool.rules),
       tag: toolTag(tool),
       copy: { ar: copyData(tool.copy.ar), en: copyData(tool.copy.en) },
     })),

@@ -1,6 +1,12 @@
 import { parseRobotsTxt } from '@arablyzer/collectors'
 import { describe, expect, it } from 'vitest'
-import { crawlerAccess, matchRobots, patternMatches, robotsPath } from '../src/lib/robots'
+import {
+  crawlerAccess,
+  matchRobots,
+  patternMatches,
+  robotsMatcher,
+  robotsPath,
+} from '../src/lib/robots'
 
 const allowed = (robotsTxt: string, agent: string, url: string) =>
   matchRobots(parseRobotsTxt(new TextEncoder().encode(robotsTxt)), agent, url).allowed
@@ -97,6 +103,55 @@ describe('matchRobots', () => {
       group: 'global',
       rule: { text: 'Disallow: /private', line: 2 },
     })
+  })
+})
+
+// M2.3c review: a scan tests many links against one robots.txt, so it picks the crawler's groups
+// once and asks of each address alone.
+describe('robotsMatcher', () => {
+  const texts = [
+    'User-agent: *\nDisallow: /\n\nUser-agent: FooBot\nAllow: /\n',
+    'User-agent: FooBot\nDisallow: /a\nUser-agent: Other\nDisallow: /\nUser-agent: FooBot\nDisallow: /b\n',
+    'User-agent: *\nDisallow: /private\nAllow: /private/open\n',
+    '# nothing here\n',
+  ]
+  const urls = [
+    'http://foo.bar/',
+    'http://foo.bar/a',
+    'http://foo.bar/b',
+    'http://foo.bar/private/x',
+    'http://foo.bar/private/open/x',
+    'http://foo.bar/robots.txt',
+  ]
+
+  it('answers as matchRobots does, for every crawler and address', () => {
+    for (const text of texts) {
+      const robots = parseRobotsTxt(new TextEncoder().encode(text))
+      for (const product of ['FooBot', 'BarBot', 'ArablyzerBot']) {
+        const match = robotsMatcher(robots, product)
+        for (const url of urls)
+          expect(match(url), `${product} ${url}`).toEqual(matchRobots(robots, product, url))
+      }
+    }
+  })
+
+  it('picks the crawler’s groups once, not for every address', () => {
+    const lines = ['User-agent: *']
+    for (let i = 0; i < 2_000; i++) lines.push(`Disallow: /x${String(i)}*y*z`)
+    for (let i = 0; i < 2_000; i++) lines.push(`User-agent: bot${String(i)}\nDisallow: /`)
+    const robots = parseRobotsTxt(new TextEncoder().encode(lines.join('\n')))
+    const match = robotsMatcher(robots, 'ArablyzerBot')
+    // The groups are filtered when the matcher is made: no group of the file is read again.
+    const groups = robots.groups
+    const spy = { filtered: 0 }
+    Object.defineProperty(robots, 'groups', {
+      get() {
+        spy.filtered++
+        return groups
+      },
+    })
+    for (let i = 0; i < 50; i++) match(`https://shop.example/p/${String(i)}`)
+    expect(spy.filtered).toBe(0)
   })
 })
 

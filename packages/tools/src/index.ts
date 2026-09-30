@@ -17,6 +17,7 @@ export {
   type Lang,
   type ToolCopy,
 } from './copy'
+export { parseDnsExample, txtOf, type TxtRecord } from './dns'
 export { locationOf, parseHttpExample, REDIRECT_STATUSES, type HttpResponse } from './http'
 export { TOOL_DEFINITIONS, toolDefinition } from './registry'
 export {

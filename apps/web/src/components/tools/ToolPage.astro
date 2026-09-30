@@ -88,7 +88,18 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
             client:idle={{ timeout: 500 }}
             lang={lang}
             tool={slug}
-            reads={tool.renders ? 'render' : tool.tag === 'robots' ? 'robots' : 'html'}
+            reportsOnly={tool.reportsOnly}
+            reads={
+              tool.renders
+                ? 'render'
+                : tool.tag === 'robots' ||
+                    tool.tag === 'dns' ||
+                    tool.tag === 'links' ||
+                    tool.tag === 'sitemap' ||
+                    tool.tag === 'crux'
+                  ? tool.tag
+                  : 'html'
+            }
           />
         )}
         {slug === 'whatsapp-link-generator' && (

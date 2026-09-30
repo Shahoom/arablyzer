@@ -8,6 +8,7 @@ export {
   type CodePointRange,
 } from './code-points'
 export { collectCrux, type CruxAnswer, type CruxFacts, type CruxInput } from './crux'
+export { organizationalDomain, txtLookup, type DnsFacts, type TxtLookup } from './dns'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {
   decodeHtml,
@@ -26,9 +27,23 @@ export {
   type MetaElement,
   type RootElement,
   type ScriptElement,
+  type TextAlternative,
 } from './html'
 export { fontCoverage, MAX_FONT_DATA } from './font-coverage'
+export { MAX_TEXT_ALTERNATIVES } from './html'
 export { parseLinkHeader, type LinkHeaderEntry } from './link-header'
+export {
+  linkCheck,
+  linkUrl,
+  MAX_SITE_LINKS,
+  REFUSAL_STATUSES,
+  retriesWithGet,
+  siteLinks,
+  type LinkAnswer,
+  type LinkCheck,
+  type LinkFacts,
+  type SiteLinks,
+} from './links'
 export {
   collectPage,
   HTML_PARSE_LIMIT,
@@ -71,8 +86,26 @@ export {
   type RobotsGroup,
   type RobotsInput,
   type RobotsRule,
+  type RobotsSitemap,
   type RobotsTxt,
 } from './robots'
+export {
+  ATOM_NAMESPACE,
+  collectSitemap,
+  isSitemapRefusal,
+  readSitemap,
+  SITEMAP_LIMIT,
+  SITEMAP_MAX_ATTRIBUTES,
+  SITEMAP_MAX_DEPTH,
+  SITEMAP_NAMESPACE,
+  sitemapTargets,
+  sitemapUrl,
+  type SitemapCheck,
+  type SitemapContent,
+  type SitemapFacts,
+  type SitemapFormat,
+  type SitemapInput,
+} from './sitemap'
 export {
   decodeStylesheet,
   readStylesheet,

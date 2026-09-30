@@ -23,10 +23,12 @@ export type ToolCategoryName =
   | 'general'
 
 /**
- * What a tool reads, shown on its card: the page as sent, robots.txt, browsers, Chrome's data, or
- * the server's response; or what it is, a generator.
+ * What a tool reads, shown on its card: the page as sent, robots.txt, browsers, Chrome's data,
+ * the server's response, the domain's DNS records, the page's links or the sitemaps; or what it
+ * is, a generator.
  */
-export type ToolTag = 'html' | 'robots' | 'render' | 'crux' | 'http' | 'generator'
+export type ToolTag =
+  'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links' | 'sitemap' | 'generator'
 
 /** The tools' directory and the tool pages (M2.2), around each tool's own copy. */
 export interface ToolsStrings {
@@ -176,7 +178,10 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       render: '3 متصفحات',
       crux: 'بيانات Chrome',
       http: 'رد الخادم',
+      dns: 'DNS',
+      links: 'الروابط',
       generator: 'مولّد',
+      sitemap: 'خريطة الموقع',
     },
     home: {
       kicker: 'الأدوات',
@@ -189,7 +194,10 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         render: 'في 3 متصفحات',
         crux: 'من بيانات Chrome',
         http: 'يقرأ رد الخادم',
+        dns: 'يقرأ سجلات DNS',
+        links: 'يطلب روابط الصفحة',
         generator: 'مولّد',
+        sitemap: 'يقرأ خرائط الموقع',
       },
     },
     page: {
@@ -297,7 +305,10 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       render: '3 browsers',
       crux: 'Chrome data',
       http: 'Server response',
+      dns: 'DNS',
+      links: 'Links',
       generator: 'Generator',
+      sitemap: 'Sitemap',
     },
     home: {
       kicker: 'Tools',
@@ -310,7 +321,10 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         render: 'In 3 browsers',
         crux: 'From Chrome data',
         http: 'Reads the server’s response',
+        dns: 'Reads DNS records',
+        links: 'Asks for the page’s links',
         generator: 'Generator',
+        sitemap: 'Reads the sitemaps',
       },
     },
     page: {

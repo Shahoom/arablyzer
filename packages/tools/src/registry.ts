@@ -1,24 +1,30 @@
 import type { ToolDefinition } from './tool'
 import { definition as accessibilityCheck } from './tools/accessibility-check/tool'
+import { definition as aiAccess } from './tools/ai-access/tool'
 import { definition as aiCrawlerCheck } from './tools/ai-crawler-check/tool'
 import { definition as arabicFontCheck } from './tools/arabic-font-check/tool'
 import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
 import { definition as arabicPunctuationCheck } from './tools/arabic-punctuation-check/tool'
 import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
+import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
+import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
+import { definition as emailSecurity } from './tools/email-security/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
 import { definition as headingStructure } from './tools/heading-structure/tool'
 import { definition as hreflangCheck } from './tools/hreflang-check/tool'
 import { definition as hreflangGenerator } from './tools/hreflang-generator/tool'
 import { definition as imageWeight } from './tools/image-weight/tool'
 import { definition as indexabilityCheck } from './tools/indexability-check/tool'
+import { definition as jsRenderingCheck } from './tools/js-rendering-check/tool'
 import { definition as languageCheck } from './tools/language-check/tool'
 import { definition as letterSpacingCheck } from './tools/letter-spacing-check/tool'
 import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
 import { definition as mirroredIconsCheck } from './tools/mirrored-icons-check/tool'
 import { definition as mixedContent } from './tools/mixed-content/tool'
+import { definition as paymentMethodsDetector } from './tools/payment-methods-detector/tool'
 import { definition as phoneFormatCheck } from './tools/phone-format-check/tool'
 import { definition as priceFormatCheck } from './tools/price-format-check/tool'
 import { definition as productPageCheck } from './tools/product-page-check/tool'
@@ -29,6 +35,7 @@ import { definition as rtlCheck } from './tools/rtl-check/tool'
 import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
 import { definition as schemaGenerator } from './tools/schema-generator/tool'
 import { definition as securityHeaders } from './tools/security-headers/tool'
+import { definition as sitemapCheck } from './tools/sitemap-check/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
 import { definition as structuredDataCheck } from './tools/structured-data-check/tool'
 import { definition as tatweelCheck } from './tools/tatweel-check/tool'
@@ -43,25 +50,31 @@ import { definition as whatsappLinkGenerator } from './tools/whatsapp-link-gener
  */
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   accessibilityCheck,
+  aiAccess,
   aiCrawlerCheck,
   arabicFontCheck,
   arabicFormTest,
   arabicPunctuationCheck,
   arabicShapingCheck,
   bidiIsolationCheck,
+  brokenLinks,
   canonicalCheck,
+  coreWebVitals,
   digitsConsistency,
+  emailSecurity,
   fontFallbackCheck,
   headingStructure,
   hreflangCheck,
   hreflangGenerator,
   imageWeight,
   indexabilityCheck,
+  jsRenderingCheck,
   languageCheck,
   letterSpacingCheck,
   logicalCssCheck,
   mirroredIconsCheck,
   mixedContent,
+  paymentMethodsDetector,
   phoneFormatCheck,
   priceFormatCheck,
   productPageCheck,
@@ -72,6 +85,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   rtlOverflowCheck,
   schemaGenerator,
   securityHeaders,
+  sitemapCheck,
   socialPreview,
   structuredDataCheck,
   tatweelCheck,

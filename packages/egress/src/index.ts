@@ -1,4 +1,17 @@
 export { classifyAddress, vetEndpoint, type AddressVerdict, type EndpointVerdict } from './classify'
+export { dnsName, MAX_DNS_LABEL_LENGTH, MAX_DNS_NAME_LENGTH } from './dns-name'
+export {
+  createDohTxtResolver,
+  decodeTxtAnswer,
+  DEFAULT_DOH_URL,
+  DOH_TIMEOUT_MS,
+  DOH_URL_VARIABLE,
+  dohQueryUrl,
+  dohUrlFrom,
+  encodeTxtQuery,
+  MAX_DNS_MESSAGE_BYTES,
+  type DohOptions,
+} from './doh'
 export { egressError, type EgressError, type EgressErrorCode } from './errors'
 export {
   DEFAULT_MAX_BYTES,
@@ -38,6 +51,7 @@ export {
 } from './upstream'
 export {
   createDnsResolver,
+  createTxtResolver,
   defaultResolver,
   dnsResolver,
   resolveEndpoint,
@@ -46,6 +60,8 @@ export {
   type EndpointCheck,
   type ResolvedAddress,
   type Resolver,
+  type TxtAnswer,
+  type TxtResolver,
 } from './resolve'
 export { redactUrl } from './redact'
 export { smokescreenConfig } from './smokescreen'

@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./challenges": "./src/lib/challenges.ts",
     "./version": "./src/version.ts",
     "./hreflang": "./src/lib/hreflang.ts",
     "./iso-codes": "./src/lib/iso-codes.ts",

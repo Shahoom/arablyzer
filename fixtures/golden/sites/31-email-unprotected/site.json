@@ -1,0 +1,10 @@
+{
+  "host": "souq.example",
+  "tls": {
+    "lifetimeDays": 90,
+    "daysLeft": 60
+  },
+  "txt": {
+    "souq.example": ["google-site-verification=wA4bXl2mQv9s3TKpZ7uYcN1eRdHf0gJhK8oLiPqS6xE"]
+  }
+}

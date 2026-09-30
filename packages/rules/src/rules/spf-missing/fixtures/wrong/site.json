@@ -1,0 +1,11 @@
+{
+  "host": "shop.example",
+  "tls": {
+    "lifetimeDays": 90,
+    "daysLeft": 60
+  },
+  "txt": {
+    "shop.example": ["google-site-verification=wA4bXl2mQv9s3TKpZ7uYcN1eRdHf0gJhK8oLiPqS6xE"],
+    "_dmarc.shop.example": ["v=DMARC1; p=quarantine; rua=mailto:dmarc@shop.example"]
+  }
+}

@@ -2,6 +2,7 @@ import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { renderPage } from '@arablyzer/browser'
 import { bypassesProxyForLoopback } from '@arablyzer/browser/engines'
 import { createPolicy } from '@arablyzer/egress'
 import { scan } from '@arablyzer/engine'
@@ -27,13 +28,17 @@ const RUNNING = 'RunningRunningRunnin_1'
 const TOOL = 'ToolToolToolToolTool_2'
 /** A page its site asks ArablyzerBot not to check (M2.4 plan §2): the state that says so. */
 const OPTED_OUT = 'OptedOutOptedOutOpte_3'
+/** A page its site answered with a bot challenge (M2.3c): the state that names the service. */
+const BLOCKED = 'BlockedBlockedBlocke_4'
 
 /**
  * Rules a report page fails on purpose: it is never indexed (BUILD-PLAN §6.5), and the page its
- * server sends is a shell whose heading the island draws, so a rule that reads the HTML as sent
- * finds none. Search engines never read it; a visitor, and a screen reader, get the heading.
+ * server sends is a shell whose heading and report the island draws, so a rule that reads the
+ * HTML as sent finds no heading (h1-missing), and most of the words a browser draws are written
+ * by scripts (js-only-content, M2.3c). Search engines never read it; a visitor, and a screen
+ * reader, get the heading and the report.
  */
-const BY_DESIGN = new Set(['page-noindex', 'h1-missing'])
+const BY_DESIGN = new Set(['page-noindex', 'h1-missing', 'js-only-content'])
 
 let root = ''
 let site: FixtureSite
@@ -65,6 +70,24 @@ beforeAll(async () => {
   })
   await optOut.close()
   await rm(optOutRoot, { recursive: true, force: true })
+  // The report the engine gives for a page a site answers with a Cloudflare challenge.
+  const challengeRoot = await mkdtemp(path.join(tmpdir(), 'arablyzer-challenged-'))
+  await writeFile(
+    path.join(challengeRoot, 'fixture.json'),
+    JSON.stringify({
+      '/': {
+        status: 403,
+        headers: { 'content-type': 'text/html; charset=UTF-8', 'cf-mitigated': 'challenge' },
+        body: '<!doctype html><title>Just a moment...</title>',
+      },
+    }),
+  )
+  const challenge = await serveSite(challengeRoot)
+  const challenged = await scan(challenge.url('/'), {
+    policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: challenge.port }] }),
+  })
+  await challenge.close()
+  await rm(challengeRoot, { recursive: true, force: true })
   const events = [
     { type: 'queued', ahead: 0 },
     { type: 'started', engines: ['chromium', 'firefox'] },
@@ -87,6 +110,9 @@ beforeAll(async () => {
       [`/r/${OPTED_OUT}`]: html,
       [`/api/scans/${OPTED_OUT}`]: json(summary(OPTED_OUT, 'failed')),
       [`/api/reports/${OPTED_OUT}`]: json(optedOut),
+      [`/r/${BLOCKED}`]: html,
+      [`/api/scans/${BLOCKED}`]: json(summary(BLOCKED, 'partial')),
+      [`/api/reports/${BLOCKED}`]: json(challenged),
       [`/api/scans/${RUNNING}/events`]: {
         headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-store' },
         body: events
@@ -157,5 +183,22 @@ describe('the report page, rendered', () => {
   it(`shows a site's opt-out and passes every rule in ${ENGINES.join(', ')}`, async () => {
     const report = await scanned(OPTED_OUT)
     expect(problems(report)).toEqual([])
+  }, 180_000)
+
+  // M2.3c review: the copy of the challenge rule says the report shows the challenge, and this
+  // card dropped every notice of a blocked scan.
+  it(`names the service that blocked a scan, and passes every rule in ${ENGINES.join(', ')}`, async () => {
+    const report = await scanned(BLOCKED)
+    expect(problems(report)).toEqual([])
+    const [page] = await renderPage(site.url(`/r/${BLOCKED}`), {
+      engines: [ENGINES[0] ?? 'chromium'],
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      networkIsolated: true,
+    })
+    const text = page?.facts?.arabicText.map((block) => block.text).join('\n') ?? ''
+    // The card, and under its words the challenge's notice; the Latin words in it are set apart
+    // from the Arabic text, which is all this reads.
+    expect(text).toContain('الموقع حجب الفحص')
+    expect(text).toContain('ردّ الموقع بتحدٍّ للبوتات من')
   }, 180_000)
 })

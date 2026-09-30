@@ -1,0 +1,622 @@
+{
+  "schemaVersion": "0.2.0",
+  "generator": {
+    "name": "arablyzer",
+    "version": "0.1.0",
+    "rulesetVersion": "0.6.0"
+  },
+  "target": {
+    "url": "https://dates.example:30023/",
+    "finalUrl": "https://dates.example:30023/",
+    "fetchedAt": "1970-01-01T00:00:00.000Z",
+    "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
+    "http": {
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "redirects": []
+    }
+  },
+  "scan": {
+    "status": "complete",
+    "durationMs": 0,
+    "notices": [
+      {
+        "code": "render-skipped",
+        "message": {
+          "ar": "بعض الفحوص تحتاج عرض الصفحة في متصفح، ولم يُطلب العرض في هذا الفحص، فلم تعمل.",
+          "en": "Some checks need the page rendered in a browser; this scan did not render it, so they did not run."
+        }
+      },
+      {
+        "code": "crux-no-key",
+        "message": {
+          "ar": "فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.",
+          "en": "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run."
+        }
+      }
+    ]
+  },
+  "page": {
+    "lang": "ar",
+    "dir": "rtl",
+    "dominantScript": "arabic"
+  },
+  "summary": {
+    "pass": 26,
+    "fail": 1,
+    "needsReview": 0,
+    "notApplicable": 15,
+    "error": 0,
+    "bySeverity": {
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 1,
+      "info": 0
+    }
+  },
+  "score": {
+    "overall": 99,
+    "categories": {
+      "ai": 100,
+      "ar-content": 100,
+      "commerce": null,
+      "crawl": 91,
+      "forms": null,
+      "index": 100,
+      "intl": 100,
+      "links": null,
+      "onpage": 100,
+      "rtl": 100,
+      "schema": null,
+      "speed": null,
+      "trust": 100
+    },
+    "partial": false,
+    "rules": {
+      "ran": 42,
+      "total": 61
+    }
+  },
+  "rules": [
+    {
+      "id": "ar-digits-mixed",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "أنظمة أرقام مختلطة في نص عربي",
+        "en": "Mixed digit systems in Arabic text"
+      }
+    },
+    {
+      "id": "ar-html-lang",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "serious",
+      "wcag": [
+        "3.1.1"
+      ],
+      "status": "pass",
+      "title": {
+        "ar": "سمة lang مفقودة أو خاطئة في صفحة عربية",
+        "en": "Missing or wrong lang attribute on an Arabic page"
+      }
+    },
+    {
+      "id": "ar-latin-punctuation",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "علامات ترقيم لاتينية في نص عربي",
+        "en": "Latin punctuation in Arabic text"
+      }
+    },
+    {
+      "id": "ar-mojibake",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "نص عربي مشوّه الترميز",
+        "en": "Garbled Arabic text (mojibake)"
+      }
+    },
+    {
+      "id": "ar-tatweel",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "كلمات ممدودة بالتطويل (ـ)",
+        "en": "Words stretched with tatweel (ـ)"
+      }
+    },
+    {
+      "id": "bot-challenge",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "الموقع يرد على البوتات بتحدٍّ",
+        "en": "The site answers bots with a challenge"
+      }
+    },
+    {
+      "id": "canonical-conflict",
+      "version": "1.0.0",
+      "category": "index",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "روابط canonical متعارضة في الصفحة",
+        "en": "Conflicting canonical URLs on the page"
+      }
+    },
+    {
+      "id": "csp-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة بلا سياسة أمان المحتوى (CSP)",
+        "en": "No Content Security Policy"
+      }
+    },
+    {
+      "id": "cwv-cls-poor",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "محتوى يتحرك أثناء التحميل على الجوال",
+        "en": "Content that moves while loading on phones"
+      }
+    },
+    {
+      "id": "cwv-inp-poor",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "بطء الاستجابة للّمس على الجوال",
+        "en": "Slow to answer taps on phones"
+      }
+    },
+    {
+      "id": "cwv-lcp-poor",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
+        "en": "Slow to show its main content on phones"
+      }
+    },
+    {
+      "id": "dmarc-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "لا سجل DMARC صالح للنطاق",
+        "en": "No valid DMARC record for the domain"
+      }
+    },
+    {
+      "id": "form-arabic-digits-rejected",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل الأرقام يرفض الأرقام العربية المشرقية",
+        "en": "Number field rejects Arabic-Indic digits"
+      }
+    },
+    {
+      "id": "form-arabic-name-rejected",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل الاسم يرفض الأسماء العربية",
+        "en": "Name field rejects Arabic names"
+      }
+    },
+    {
+      "id": "frame-protection-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "أي موقع يستطيع عرض الصفحة داخل إطار",
+        "en": "Any site may show the page in a frame"
+      }
+    },
+    {
+      "id": "h1-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "لا عنوان رئيسياً (h1) في الصفحة",
+        "en": "The page has no main heading (h1)"
+      }
+    },
+    {
+      "id": "hreflang-invalid-code",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "رمز hreflang غير صالح",
+        "en": "Invalid hreflang code"
+      }
+    },
+    {
+      "id": "hsts-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "HTTPS بلا HSTS",
+        "en": "HTTPS without HSTS"
+      }
+    },
+    {
+      "id": "https-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة بلا HTTPS",
+        "en": "Page without HTTPS"
+      }
+    },
+    {
+      "id": "jsonld-syntax-error",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خطأ في صيغة JSON داخل البيانات المنظّمة (JSON-LD)",
+        "en": "JSON syntax error in structured data (JSON-LD)"
+      }
+    },
+    {
+      "id": "link-broken",
+      "version": "1.0.0",
+      "category": "links",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "روابط معطّلة إلى صفحات الموقع نفسه",
+        "en": "Broken links to the site's own pages"
+      }
+    },
+    {
+      "id": "meta-description-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "وصف الصفحة مفقود",
+        "en": "The page has no description"
+      }
+    },
+    {
+      "id": "mixed-content",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "محتوى مختلط: صفحة HTTPS تحمّل عبر HTTP",
+        "en": "Mixed content: an HTTPS page that loads over HTTP"
+      }
+    },
+    {
+      "id": "og-tags-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "وسوم المشاركة (Open Graph) ناقصة",
+        "en": "Open Graph sharing tags are missing"
+      }
+    },
+    {
+      "id": "page-noindex",
+      "version": "1.0.0",
+      "category": "index",
+      "severity": "critical",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة تمنع أرشفتها في محركات البحث (noindex)",
+        "en": "The page blocks search indexing (noindex)"
+      }
+    },
+    {
+      "id": "payment-methods",
+      "version": "1.0.0",
+      "category": "commerce",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "طرق الدفع الخليجية في الصفحة",
+        "en": "Gulf payment methods on the page"
+      }
+    },
+    {
+      "id": "price-decimals",
+      "version": "1.0.0",
+      "category": "commerce",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "أسعار بالريال العماني أو الدينار الكويتي أو البحريني بلا ثلاث منازل عشرية",
+        "en": "Prices in Omani rials or Kuwaiti or Bahraini dinars without three decimals"
+      }
+    },
+    {
+      "id": "product-offer-invalid",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "عرض منتج بلا سعر أو عملة صالحَين (JSON-LD)",
+        "en": "Product offer without a valid price or currency (JSON-LD)"
+      }
+    },
+    {
+      "id": "redirect-chain",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "سلسلة تحويلات قبل الصفحة",
+        "en": "A chain of redirects before the page"
+      }
+    },
+    {
+      "id": "redirect-temporary",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "تحويل مؤقت لانتقال دائم",
+        "en": "A temporary redirect for a move made for good"
+      }
+    },
+    {
+      "id": "referrer-policy-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة بلا سياسة للمُحيل (Referrer-Policy)",
+        "en": "No referrer policy"
+      }
+    },
+    {
+      "id": "robots-blocks-ai-search",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "robots.txt يمنع زواحف البحث بالذكاء الاصطناعي",
+        "en": "robots.txt blocks AI search crawlers"
+      }
+    },
+    {
+      "id": "robots-blocks-googlebot",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "critical",
+      "status": "pass",
+      "title": {
+        "ar": "robots.txt يمنع Googlebot من الصفحة",
+        "en": "robots.txt blocks Googlebot from the page"
+      }
+    },
+    {
+      "id": "rtl-html-dir",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة عربية بلا dir=\"rtl\" في وسم html",
+        "en": "Arabic page without dir=\"rtl\" on the html element"
+      }
+    },
+    {
+      "id": "sitemap-invalid",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خريطة موقع لا تستطيع محركات البحث قراءتها",
+        "en": "A sitemap search engines cannot read"
+      }
+    },
+    {
+      "id": "sitemap-missing",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "fail",
+      "title": {
+        "ar": "لا خريطة للموقع تجدها محركات البحث",
+        "en": "No sitemap for search engines to find"
+      }
+    },
+    {
+      "id": "spf-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "لا سجل SPF للنطاق",
+        "en": "No SPF record for the domain"
+      }
+    },
+    {
+      "id": "title-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "serious",
+      "wcag": [
+        "2.4.2"
+      ],
+      "status": "pass",
+      "title": {
+        "ar": "عنوان الصفحة مفقود",
+        "en": "The page has no title"
+      }
+    },
+    {
+      "id": "tls-expiring",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "شهادة TLS توشك أن تنتهي",
+        "en": "TLS certificate about to expire"
+      }
+    },
+    {
+      "id": "viewport-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة غير مهيأة لشاشة الجوال (viewport)",
+        "en": "The page is not set up for phone screens (viewport)"
+      }
+    },
+    {
+      "id": "whatsapp-link-format",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "رقم رابط واتساب ليس بالصيغة الدولية",
+        "en": "WhatsApp link number not in international format"
+      }
+    },
+    {
+      "id": "x-content-type-options-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة بلا X-Content-Type-Options: nosniff",
+        "en": "No X-Content-Type-Options: nosniff"
+      }
+    }
+  ],
+  "findings": [
+    {
+      "ruleId": "sitemap-missing",
+      "severity": "minor",
+      "fingerprint": "6367af49b24a593b",
+      "message": {
+        "ar": "لا يسمّي robots.txt أي خريطة للموقع بعنوان كامل، والعنوان https://dates.example:30023/sitemap.xml ردّ بالحالة HTTP 404.",
+        "en": "robots.txt names no sitemap as a full URL, and https://dates.example:30023/sitemap.xml answered HTTP 404."
+      },
+      "evidence": {
+        "url": "https://dates.example:30023/sitemap.xml",
+        "values": {
+          "url": "https://dates.example:30023/sitemap.xml",
+          "status": 404
+        }
+      }
+    }
+  ],
+  "facts": {
+    "robots": {
+      "url": "https://dates.example:30023/robots.txt",
+      "status": 200,
+      "aiCrawlers": [
+        {
+          "token": "OAI-SearchBot",
+          "purpose": "search",
+          "allowed": true
+        },
+        {
+          "token": "GPTBot",
+          "purpose": "training",
+          "allowed": true
+        },
+        {
+          "token": "ChatGPT-User",
+          "purpose": "user-fetch",
+          "allowed": true
+        },
+        {
+          "token": "Claude-SearchBot",
+          "purpose": "search",
+          "allowed": true
+        },
+        {
+          "token": "ClaudeBot",
+          "purpose": "training",
+          "allowed": true
+        },
+        {
+          "token": "Claude-User",
+          "purpose": "user-fetch",
+          "allowed": true
+        },
+        {
+          "token": "PerplexityBot",
+          "purpose": "search",
+          "allowed": true
+        },
+        {
+          "token": "Perplexity-User",
+          "purpose": "user-fetch",
+          "allowed": true
+        },
+        {
+          "token": "Google-Extended",
+          "purpose": "training",
+          "allowed": true
+        }
+      ]
+    }
+  }
+}

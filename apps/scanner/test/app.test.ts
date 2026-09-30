@@ -200,8 +200,9 @@ describe('the scanner and its client', () => {
         given = signal
         return new Promise<Report>(() => undefined)
       },
-      hardLimitMs: 50,
-      stopGraceMs: 50,
+      // Wide enough apart that a machine busy with other suites keeps their order.
+      hardLimitMs: 500,
+      stopGraceMs: 1_000,
       onStuck: () => stuck.push('stuck'),
     })
     const response = await app.request('/scan', {
@@ -211,11 +212,11 @@ describe('the scanner and its client', () => {
     })
     expect(response.status).toBe(200)
     expect((await app.request('/health')).status).toBe(200)
-    await new Promise((resolve) => setTimeout(resolve, 75))
+    await new Promise((resolve) => setTimeout(resolve, 750))
     expect(given?.aborted).toBe(true)
     expect((await app.request('/health')).status).toBe(503)
     expect(stuck).toEqual([])
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    await new Promise((resolve) => setTimeout(resolve, 1_000))
     expect(stuck).toEqual(['stuck'])
   })
 

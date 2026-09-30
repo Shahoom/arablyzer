@@ -387,3 +387,70 @@ describe('safeFetch: beforeRedirect', () => {
     expect(given?.aborted).toBe(true)
   })
 })
+
+// M2.3c: link-broken asks for each of a page's links with HEAD, then GET where HEAD answers an
+// error, and needs the status alone.
+describe('safeFetch: HEAD, and a response whose body is left unread', () => {
+  it('sends HEAD when asked, redirects included, and reads nothing after the headers', async () => {
+    const methods: string[] = []
+    const local = await serve((req, res) => {
+      methods.push(`${req.method ?? ''} ${req.url ?? ''}`)
+      if (req.url === '/old') {
+        res.writeHead(301, { location: '/gone' })
+        res.end()
+        return
+      }
+      res.writeHead(404, { 'content-type': 'text/html' })
+      res.end(req.method === 'HEAD' ? undefined : 'not found')
+    })
+    const result = await safeFetch(`${local.origin}/old`, {
+      userAgent: UA,
+      policy: onlyServer(local.port),
+      method: 'HEAD',
+    })
+    expect(result.error).toBeNull()
+    expect(result.response).toMatchObject({ status: 404, truncated: false })
+    expect(result.response?.body).toHaveLength(0)
+    expect(methods).toEqual(['HEAD /old', 'HEAD /gone'])
+  })
+
+  it('leaves a body it is told not to read unread, and undecoded', async () => {
+    let sent = 0
+    const local = await serve((_req, res) => {
+      // Past every limit were it read, and not the gzip it says it is.
+      res.writeHead(200, { 'content-type': 'text/html', 'content-encoding': 'gzip' })
+      const chunk = Buffer.alloc(64 * 1024, 0x61)
+      const write = () => {
+        while (sent < 64 * 1024 * 1024) {
+          sent += chunk.length
+          if (!res.write(chunk)) {
+            res.once('drain', write)
+            return
+          }
+        }
+        res.end()
+      }
+      write()
+    })
+    const result = await safeFetch(`${local.origin}/`, {
+      userAgent: UA,
+      policy: onlyServer(local.port),
+      discardBody: true,
+    })
+    expect(result.error).toBeNull()
+    expect(result.response).toMatchObject({ status: 200, truncated: false })
+    expect(result.response?.body).toHaveLength(0)
+    expect(sent).toBeLessThan(64 * 1024 * 1024)
+  })
+
+  it('refuses HEAD with a JSON body, which only POST sends', async () => {
+    await expect(
+      safeFetch('http://127.0.0.1:9/', {
+        userAgent: UA,
+        policy: onlyServer(9),
+        method: 'HEAD',
+        json: {},
+      }),
+    ).rejects.toThrow(TypeError)
+  })
+})

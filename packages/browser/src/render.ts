@@ -3,6 +3,7 @@ import type {
   A11yFacts,
   Engine,
   FontRequestFact,
+  Header,
   RenderedFacts,
   UsedFontsFact,
 } from '@arablyzer/collectors'
@@ -16,6 +17,7 @@ import {
   type ProxyStats,
   type Resolver,
 } from '@arablyzer/egress'
+import { challengeOf } from '@arablyzer/rules/challenges'
 import {
   chromium,
   firefox,
@@ -122,7 +124,20 @@ export interface PageRequests {
   readonly overLimit: number
 }
 
-export type RenderStatus = 'rendered' | 'failed' | 'timeout' | 'unavailable' | 'refused'
+/**
+ * challenged: the site answered the browser's request for the page with a bot challenge, and the
+ * render stopped there without measuring it (see watchDocuments).
+ */
+export type RenderStatus =
+  'rendered' | 'failed' | 'timeout' | 'unavailable' | 'refused' | 'challenged'
+
+/** The bot challenge a site answered with in place of the page (M2.3c). */
+export interface RenderChallenge {
+  /** The service, as its documentation names it. */
+  readonly service: string
+  /** The HTTP status of the answer: Cloudflare's is a 403, AWS WAF's a 202. */
+  readonly status: number
+}
 
 export interface RenderOutcome {
   readonly engine: Engine
@@ -130,6 +145,8 @@ export interface RenderOutcome {
   readonly version: string | null
   /** English detail for logs; the report maps the status to its own words. */
   readonly error: string | null
+  /** What the site answered instead of the page, for `challenged`; null otherwise. */
+  readonly challenge: RenderChallenge | null
   readonly durationMs: number
   /** What the egress proxy saw: an HTTPS connection is one tunnel, however many requests it carries. */
   readonly requests: ProxyStats
@@ -149,6 +166,30 @@ interface RequestBudget {
 
 class RenderTimeout extends Error {}
 class RenderAborted extends Error {}
+
+/** What the watch over the page's documents learned, for the render to say when it ends. */
+class DocumentsMet {
+  /** A bot challenge came in place of a document of the page (see watchDocuments). */
+  challenge: RenderChallenge | null = null
+  /** Rejects once a challenge is met, so the render stops there and not when the page settles. */
+  readonly stopped: Promise<never>
+  readonly #stop: (error: Error) => void = () => undefined
+
+  constructor() {
+    let stop: (error: Error) => void = () => undefined
+    this.stopped = new Promise<never>((_resolve, reject) => {
+      stop = reject
+    })
+    // Whoever races it hears of a challenge; if no one does, it is not an unhandled rejection.
+    this.stopped.catch(() => undefined)
+    this.#stop = stop
+  }
+
+  meet(challenge: RenderChallenge): void {
+    this.challenge ??= challenge
+    this.#stop(new Error(challengeMessage(challenge)))
+  }
+}
 
 const NO_PAGE_REQUESTS: PageRequests = Object.freeze({ made: 0, overLimit: 0 })
 
@@ -190,6 +231,7 @@ async function renderIn(
       status: 'refused',
       version: null,
       error: `${engine} sends traffic around the egress proxy, so it renders only where the network is isolated (${NETWORK_ISOLATED_VARIABLE}=1)`,
+      challenge: null,
       durationMs: 0,
       requests: NO_REQUESTS,
       pageRequests: NO_PAGE_REQUESTS,
@@ -203,6 +245,7 @@ async function renderIn(
       status: 'refused',
       version: null,
       error: `${engine} on macOS reaches loopback addresses around the egress proxy, which an isolated network cannot stop, so it never renders there`,
+      challenge: null,
       durationMs: 0,
       requests: NO_REQUESTS,
       pageRequests: NO_PAGE_REQUESTS,
@@ -217,6 +260,7 @@ async function renderIn(
       status: 'failed',
       version: null,
       error: 'Aborted',
+      challenge: null,
       durationMs: 0,
       requests: NO_REQUESTS,
       pageRequests: NO_PAGE_REQUESTS,
@@ -239,6 +283,8 @@ async function renderIn(
     overLimit: 0,
     reached: false,
   }
+  // What the watch over the page's documents saw: a bot challenge, told when the render ends.
+  const met = new DocumentsMet()
   const finish = (
     status: RenderStatus,
     error: string | null,
@@ -249,6 +295,7 @@ async function renderIn(
     status,
     version,
     error,
+    challenge: status === 'challenged' ? met.challenge : null,
     durationMs: Math.round(performance.now() - started),
     requests: { ...proxy.stats(), limited: proxy.stats().limited || budget.reached },
     pageRequests: { made: budget.made, overLimit: budget.overLimit },
@@ -299,6 +346,7 @@ async function renderIn(
       return await renderWith(browser, engine, url, proxy, deadline, {
         screenshots: options.screenshots === true,
         budget,
+        met,
       })
     })()
     work.catch(() => undefined)
@@ -307,6 +355,9 @@ async function renderIn(
     return finish('rendered', null, facts, screenshot)
   } catch (error) {
     if (error instanceof RenderTimeout || error instanceof RenderAborted) stuck = true
+    // A challenge ended the render, by whatever error the ending gave: a page closed under it.
+    if (met.challenge !== null && !stuck)
+      return finish('challenged', challengeMessage(met.challenge))
     if (error instanceof RenderTimeout) return finish('timeout', error.message)
     // Playwright's own timeouts are set from the same budget, so they can fire first.
     if (error instanceof Error && error.name === 'TimeoutError') {
@@ -366,7 +417,7 @@ async function renderWith(
   url: string,
   proxy: EgressProxy,
   deadline: number,
-  { screenshots, budget }: { screenshots: boolean; budget: RequestBudget },
+  { screenshots, budget, met }: { screenshots: boolean; budget: RequestBudget; met: DocumentsMet },
 ): Promise<{ facts: RenderedFacts; screenshot: Uint8Array | null }> {
   const remaining = () => Math.max(1, Math.round(deadline - performance.now()))
   const agent = await defaultUserAgent(browser)
@@ -375,6 +426,11 @@ async function renderWith(
   // before it is noticed; past it, new requests are refused (BUILD-PLAN §11, M1.1 review).
   await context.route('**/*', async (route) => {
     budget.made++
+    // After a bot challenge, nothing the page asks for goes out: its scripts get no further.
+    if (met.challenge !== null) {
+      await route.abort('blockedbyclient')
+      return
+    }
     if (budget.made <= budget.max) {
       await route.fallback()
       return
@@ -388,6 +444,7 @@ async function renderWith(
   await context.addInitScript(RESULT_GUARD)
   await context.addInitScript(DECODED_SIZES)
   const page = await context.newPage()
+  watchDocuments(page, met)
   // No pop-ups, no dialogs waiting for a click: nothing on the page is ever acted on (§13).
   context.on('page', (opened) => {
     if (opened !== page) void opened.close().catch(() => undefined)
@@ -459,7 +516,11 @@ async function renderWith(
   })
   page.on('requestfailed', done)
 
-  const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: remaining() })
+  // A challenge ends the render at once, not when the page settles (see watchDocuments).
+  const response = await Promise.race([
+    page.goto(url, { waitUntil: 'domcontentloaded', timeout: remaining() }),
+    met.stopped,
+  ])
   await page
     .waitForLoadState('load', { timeout: Math.min(remaining(), 10_000) })
     .catch(() => undefined)
@@ -473,6 +534,8 @@ async function renderWith(
     if (inflight === 0 && performance.now() - lastActivity >= QUIET_MS) break
     await delay(100)
   }
+  // A challenge a script navigated to ended the page under the render: nothing measured is the page's.
+  if (met.challenge !== null) throw new Error(challengeMessage(met.challenge))
   // Finished animations end in their final state; endless ones stop (as Playwright's screenshots do).
   await page.evaluate(FINISH_ANIMATIONS).catch(() => undefined)
 
@@ -517,6 +580,42 @@ async function renderWith(
     ...(read ?? {}),
   })
   return { facts, screenshot }
+}
+
+/**
+ * Stops the render at a bot challenge in place of the page (BUILD-PLAN §13, M2.3c review: the
+ * plain fetch passed a page whose browser was answered a challenge, and its script ran). A
+ * challenge is told by the headers of the answer to a request for the page itself, the first or a
+ * redirect's next or where a script navigates, with the same challengeOf the engine uses on the
+ * plain fetch. The moment the engine reports them, the route lets nothing more out (see the
+ * route in renderWith) and the render ends as `challenged`, without measuring the page.
+ *
+ * The answer is not held back from the page first, which no engine lets a render do without
+ * changing what it measures. Measured with Playwright 1.63: `route.fetch` hands the browser
+ * Node's answer for its own (Firefox then met the proxy's 407 for every file, and the document's
+ * compression and encoding facts were lost); a Chromium session pausing responses (the Fetch
+ * domain) sees the proxy's 407 of a plain HTTP request as the document's answer and never lets
+ * the credentials through. So a challenge's inline scripts may run for a moment, and its script
+ * file may be asked for as the engine reports the answer; the challenge needs that script to run,
+ * and a round trip, to be passed, and nothing that script asks for goes out.
+ */
+function watchDocuments(page: Page, met: DocumentsMet): void {
+  page.on('response', (response) => {
+    if (met.challenge !== null) return
+    try {
+      if (!response.request().isNavigationRequest() || response.frame() !== page.mainFrame()) return
+    } catch {
+      // A response without a frame is not the page's.
+      return
+    }
+    const headers = Object.entries(response.headers()).map(([name, value]): Header => [name, value])
+    const challenge = challengeOf(headers)
+    if (challenge !== null) met.meet({ service: challenge.service, status: response.status() })
+  })
+}
+
+function challengeMessage(challenge: RenderChallenge): string {
+  return `A ${challenge.service} bot challenge (HTTP ${String(challenge.status)}) came in place of the page`
 }
 
 /**

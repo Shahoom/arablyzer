@@ -44,11 +44,17 @@ export function policyFor(site: FixtureSite): EgressPolicy {
 
 /**
  * Resolves the site's own host names (its site.json .example name and aliases) to 127.0.0.1, and
- * no other name at all: a scan of a fixture never asks real DNS.
+ * no other name at all, and answers TXT lookups from its site.json (fixtureTxt): a scan of a
+ * fixture never asks real DNS.
  */
 export function resolverFor(site: FixtureSite): Resolver {
-  return (hostname) =>
-    Promise.resolve(site.hostnames.includes(hostname) ? [{ address: '127.0.0.1', family: 4 }] : [])
+  return Object.assign(
+    (hostname: string) =>
+      Promise.resolve(
+        site.hostnames.includes(hostname) ? [{ address: '127.0.0.1', family: 4 as const }] : [],
+      ),
+    { txt: (name: string) => Promise.resolve(site.txt(name)) },
+  )
 }
 
 const ajv = new Ajv2020({ strict: true, allErrors: true })
@@ -76,6 +82,7 @@ export interface TestRuleOptions {
   readonly severity?: Rule['severity']
   readonly manualCheck?: boolean
   readonly appliesTo?: (page: PageFacts, evidence?: Evidence) => boolean
+  readonly couldNotCheck?: (evidence: Evidence) => string | null
   readonly detect: (evidence: Evidence) => Iterable<DetectorFinding<'found'>>
 }
 
@@ -93,6 +100,7 @@ export function testRule(options: TestRuleOptions): Rule<'found'> {
     ...(options.renderEngines === undefined ? {} : { renderEngines: options.renderEngines }),
     ...(options.manualCheck === undefined ? {} : { manualCheck: options.manualCheck }),
     appliesTo: options.appliesTo ?? (() => true),
+    ...(options.couldNotCheck === undefined ? {} : { couldNotCheck: options.couldNotCheck }),
     detect: options.detect,
     copy: {
       ar: copy(`قاعدة ${id}`, { found: 'وجدنا {what}' }),

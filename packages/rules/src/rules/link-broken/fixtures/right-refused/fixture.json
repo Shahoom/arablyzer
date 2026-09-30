@@ -1,0 +1,6 @@
+{
+  "/ar/members/": { "status": 401, "headers": { "WWW-Authenticate": "Basic realm=\"members\"" } },
+  "/ar/account/": { "status": 403 },
+  "/ar/checkout/": { "status": 503, "headers": { "Retry-After": "120" } },
+  "/ar/legacy/": { "headDrop": "reset" }
+}

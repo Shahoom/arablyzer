@@ -11,7 +11,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --exclude \"test/browser/**\" --exclude \"test/golden/**\"",
+    "test": "vitest run --exclude \"test/browser/**\" --exclude \"test/golden/**\" --exclude \"test/ssrf/**\"",
+    "test:ssrf": "vitest run test/ssrf",
     "test:browser": "vitest run test/browser",
     "test:golden": "vitest run test/golden/"
   },

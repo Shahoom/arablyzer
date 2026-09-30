@@ -1,0 +1,4 @@
+{
+  "/ar/sale/": { "status": 301, "headers": { "Location": "/ar/offers/" } },
+  "/ar/catalog/": { "headStatus": 405 }
+}

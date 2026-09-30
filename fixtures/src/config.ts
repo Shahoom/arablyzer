@@ -11,11 +11,20 @@ export const RouteOverride = z.strictObject({
   body: z.string().optional(),
   /** Sent gzipped, with Content-Encoding, to a client that accepts gzip. */
   compress: z.literal('gzip').optional(),
+  /** The status a HEAD request gets instead, as a server that does not take HEAD answers (405). */
+  headStatus: z.number().int().min(100).max(999).optional(),
+  /**
+   * What a HEAD request gets instead of any answer: `reset`, the connection closed at once, as a
+   * server or firewall that drops HEAD does; or `silence`, no answer ever, as one that holds it.
+   */
+  headDrop: z.enum(['reset', 'silence']).optional(),
 })
 export type RouteOverride = z.infer<typeof RouteOverride>
 
 /** A reserved .example name (RFC 2606), which real DNS never answers. */
 const EXAMPLE_NAME = /^(?:[a-z0-9-]+\.)+example$/
+/** A DNS name under .example, which may have labels such as `_dmarc`. */
+const EXAMPLE_DNS_NAME = /^(?:[a-z0-9_-]+\.)+example$/
 
 /**
  * site.json: how a site is served. `host` is the name it is scanned under, which tests map to
@@ -23,7 +32,7 @@ const EXAMPLE_NAME = /^(?:[a-z0-9-]+\.)+example$/
  * machine. `aliases` are other names the same server answers to, in its certificate too, so a
  * page can redirect from one name to another, as example.com does to www.example.com (M2.3a).
  * `tls` serves it over HTTPS with a certificate from the test authority, this many days long
- * with this many left.
+ * with this many left. `txt` is what DNS answers for its names' TXT records (fixtureTxt).
  */
 export const SiteConfig = z
   .strictObject({
@@ -37,6 +46,8 @@ export const SiteConfig = z
         daysLeft: z.number().min(-3650).max(3650),
       })
       .optional(),
+    /** TXT records by name, each record one string (M2.3c's DNS rules); a name left out has none. */
+    txt: z.record(z.string().regex(EXAMPLE_DNS_NAME), z.array(z.string())).optional(),
   })
   .refine(
     (site) =>

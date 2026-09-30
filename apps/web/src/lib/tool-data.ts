@@ -16,7 +16,7 @@ export interface ToolRuleData {
 
 /** An example's code, highlighted and escaped (src/lib/code.ts). */
 export interface ExampleData {
-  readonly lang: 'html' | 'robots.txt' | 'http'
+  readonly lang: 'html' | 'robots.txt' | 'http' | 'dns' | 'json'
   readonly html: string
 }
 
@@ -45,6 +45,11 @@ export interface ToolData {
   readonly kind: ToolKind
   /** Whether the tool renders the page in browsers. */
   readonly renders: boolean
+  /**
+   * Whether every rule of the tool only lists what it finds (information): its result says what it
+   * found as notes, and "none found" for a page that shows none.
+   */
+  readonly reportsOnly: boolean
   readonly tag: ToolTag
   readonly copy: Readonly<Record<Lang, ToolCopyData>>
 }

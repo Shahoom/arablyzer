@@ -7,11 +7,14 @@ import {
   ENGINES,
   headerValues,
   type CruxFacts,
+  type DnsFacts,
   type Engine,
+  type LinkFacts,
   type PageFacts,
   type RenderedFacts,
   type RobotsFacts,
   type RobotsRule,
+  type SitemapFacts,
 } from '@arablyzer/collectors'
 import {
   checkUrl,
@@ -45,11 +48,15 @@ import {
 import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
+  challengeOf,
   crawlerAccess,
+  isPublicUrl,
   matchRobots,
   renderMessage,
+  robotsMatcher,
   RULES,
   RULESET_VERSION,
+  type CollectorId,
   type DetectorFinding,
   type Evidence,
   type Rule,
@@ -57,9 +64,12 @@ import {
 import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
+import { lookupDns, txtResolverFor } from './dns'
+import { checkLinks, MAX_LINKS } from './links'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
+import { fetchSitemaps, SITEMAP_TIMEOUT_MS } from './sitemap'
 
 export { ENGINE_VERSION, USER_AGENT }
 /** Keeps reports small; the rest of a rule's findings are counted in findingsOmitted. */
@@ -120,6 +130,15 @@ export interface ScanOptions {
   readonly rules?: readonly Rule[]
   readonly policy?: EgressPolicy
   readonly resolver?: Resolver
+  /**
+   * The DNS-over-HTTPS resolver (RFC 8484) that the TXT lookups of the DNS rules go to, as its
+   * URL: asked with safeFetch under the scan's policy, so vetted like every request and through
+   * its egress proxy, if it has one. Without it, the scan's own resolver asks (c-ares), where the
+   * process asks DNS itself; behind an egress proxy, which resolves every name, the scan has no
+   * way to ask, and its DNS rules are left out (a notice says so), as rules that need a browser
+   * are when the scan renders none.
+   */
+  readonly dohUrl?: string
   /** Per request (BUILD-PLAN §11: 30 s). */
   readonly timeoutMs?: number
   /**
@@ -180,23 +199,32 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   }
   const started = performance.now()
   const progress = progressEmitter(options.onProgress)
-  const { rules, renderSkipped, engineSkipped } = chooseRules(
-    options.rules ?? RULES,
-    options.ruleIds,
-    options.render?.engines,
-  )
-  progress({ step: 'start', engines: [...(options.render?.engines ?? [])] })
   const userAgent = options.userAgent ?? USER_AGENT
   // The name robots.txt gives the bot: ArablyzerBot, for USER_AGENT.
   const bot = productToken(userAgent)
   const policy = options.policy ?? DEFAULT_POLICY
+  // Chosen once, so robots.txt, the page and the DNS lookups resolve names the same way.
+  const resolver = options.resolver ?? defaultResolver(policy)
+  // How the DNS rules' TXT lookups are asked; without a way, the rules are left out of the scan.
+  const txt = txtResolverFor({
+    policy,
+    resolver,
+    userAgent,
+    ...(options.dohUrl === undefined ? {} : { dohUrl: options.dohUrl }),
+  })
+  const { rules, renderSkipped, engineSkipped, dnsSkipped } = chooseRules(
+    options.rules ?? RULES,
+    options.ruleIds,
+    options.render?.engines,
+    txt !== undefined,
+  )
+  progress({ step: 'start', engines: [...(options.render?.engines ?? [])] })
   // The default rules, for a site found on a public address under --allow-private.
   const lockdown: EgressPolicy = { ...policy, allowPrivate: false }
   const base: SafeFetchOptions = {
     userAgent,
     policy,
-    // Chosen once, so robots.txt and the page resolve names the same way.
-    resolver: options.resolver ?? defaultResolver(policy),
+    resolver,
     ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   }
@@ -211,6 +239,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       findings: Finding[]
       facts: Facts
       render?: RenderRun[]
+      /** Whether the scan reached the page; not, it has no score. Reached unless said. */
+      reached?: boolean
     },
   ): Report =>
     Report.parse({
@@ -225,7 +255,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       },
       page: parts.page,
       summary: summarize(parts.results),
-      score: scoreOf(parts.results, (options.rules ?? RULES).length),
+      score: scoreOf(parts.results, (options.rules ?? RULES).length, parts.reached ?? true),
       rules: parts.results,
       findings: parts.findings,
       facts: parts.facts,
@@ -377,9 +407,24 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     // A collector bug, or an input it cannot handle: the report says so instead of the scan crashing.
     return failed(target, [notice('page-unreadable')], 'page-unreadable')
   }
+  // A bot challenge in place of the page (M2.3c) is not the page: nothing judges it as one, and
+  // no browser and no Lighthouse opens it, where its script could get past it (BUILD-PLAN §13).
+  const reached = pageReached(page)
   // For the rules that read it, and in the report only then: a scan without them reports as it
   // did before robots.txt came first.
   const robots = rules.some((rule) => rule.needs.includes('robots')) ? robotsRead.facts : undefined
+  // The page's links to its own site, for the rules that read them (M2.3c): asked for while the
+  // rest of the scan goes on, under the page's own lockdown, and never in a path robots.txt keeps
+  // the bot from, as it would keep it from the page.
+  const linking =
+    rules.some((rule) => rule.needs.includes('links')) &&
+    isSuccess(page.status) &&
+    page.html !== null
+      ? checkLinks(page, {
+          base: { ...base, policy: robotsPolicy },
+          optedOut: linkOptOut(robotsRead.facts, bot),
+        }).catch((): LinkFacts => UNCHECKED_LINKS)
+      : undefined
   // Real-user data, when a rule the scan runs reads it: the page's URL goes to Google with the
   // key. A scan none of whose rules reads it (a tool's, M2.2) asks nothing and says nothing of it.
   const readsCrux = rules.some((rule) => rule.needs.includes('crux'))
@@ -390,17 +435,31 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : fetched.privateAccess
         ? 'crux-private'
         : null
+  // Real visitors' data is asked of Google, which never touches the site: a page the site
+  // answered with a bot challenge has some to be asked for as much as one it sent, and a page it
+  // refused any other way has none worth the question (M2.3c).
+  const cruxAsked = isSuccess(page.status) || challengeOf(page.headers) !== null
   const crux =
-    readsCrux && cruxSkipped === null && options.crux !== undefined && isSuccess(page.status)
+    readsCrux && cruxSkipped === null && options.crux !== undefined && cruxAsked
       ? await fetchCrux(response.url, options.crux, { ...base, policy })
       : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
   else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
+  // The TXT records the rules that read DNS ask for (M2.3c), and those alone, asked as the scan
+  // is set to (txtResolverFor); none for a page on a local or private address.
+  const dns =
+    isSuccess(page.status) && txt !== undefined
+      ? await lookupDns(response.url, rules, {
+          txt,
+          privateAccess: fetched.privateAccess,
+          ...(options.signal === undefined ? {} : { signal: options.signal }),
+        })
+      : undefined
   // The browser gets the same lockdown: a public page never opens private addresses to it.
   const rendering =
     options.render === undefined
       ? undefined
-      : isSuccess(page.status) && page.isHtml
+      : reached && page.isHtml
         ? await renderAll(response.url, options.render, {
             policy: robotsPolicy,
             resolver: base.resolver ?? defaultResolver(robotsPolicy),
@@ -408,11 +467,16 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
             progress,
             ...(options.signal === undefined ? {} : { signal: options.signal }),
           })
-        : { runs: [], rendered: [], notices: [] }
+        : { runs: [], rendered: [], notices: [], challenged: false }
 
+  const links = await linking
   // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
-  // lockdown. Information only, so its failure leaves the scan complete, with a notice.
-  const labRequest = isSuccess(page.status) && page.isHtml ? options.lab : undefined
+  // lockdown. Information only, so its failure leaves the scan complete, with a notice. Not after
+  // a browser was answered with a bot challenge: Lighthouse's navigation is not one the scan can
+  // stop before the page's scripts run, and a challenge's could get past it (BUILD-PLAN §13). A
+  // scan that asks for Lighthouse without a render has no such warning to go by.
+  const labWanted = reached && page.isHtml ? options.lab : undefined
+  const labRequest = rendering?.challenged === true ? undefined : labWanted
   if (labRequest !== undefined) progress({ step: 'lab-start' })
   const lab =
     labRequest === undefined
@@ -423,6 +487,31 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
           started,
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         })
+  // The site's sitemaps, when a rule the scan runs reads them (M2.3c): those its robots.txt names,
+  // or /sitemap.xml, with the lockdown the page's chain ended with, and each site's opt-out. They
+  // are for search engines, which reach public sites alone: a local site is not asked for them.
+  // After the render and Lighthouse, so that waiting for a sitemap cannot shorten either; they wait
+  // for what the scan has left, SITEMAP_TIMEOUT_MS at most, and only the network's time counts.
+  const sitemapRead =
+    rules.some((rule) => rule.needs.includes('sitemap')) && isPublicUrl(response.url)
+      ? await fetchSitemaps(robotsRead.facts, new URL(response.url).origin, {
+          base: { ...base, policy: robotsPolicy },
+          privateAccess: fetched.privateAccess,
+          budgetMs: Math.min(SITEMAP_TIMEOUT_MS, SCAN_BUDGET_MS - (performance.now() - started)),
+          // A sitemap is a request of the scan's own, made as a crawler would, like a link: a
+          // group naming the bot counts, and `User-agent: *` where none names it.
+          allowed: async (to, privateAccess, signal) => {
+            const { read } = await robotsFor(to, privateAccess ? policy : lockdown, signal)
+            return !linkOptOut(read.facts, bot)(to)
+          },
+        })
+      : undefined
+  const sitemap =
+    sitemapRead !== undefined && 'facts' in sitemapRead ? sitemapRead.facts : undefined
+  // Some sitemap could not be checked, or robots.txt could not be read, so none is known.
+  const sitemapUnread =
+    sitemapRead !== undefined &&
+    (sitemap === undefined || sitemap.checked.some((check) => check.outcome === 'failed'))
   const notices = [
     ...pageNotices(page, robots),
     ...(renderSkipped ? [notice('render-skipped')] : []),
@@ -439,8 +528,15 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(crux?.outcome === 'failed'
       ? [notice(crux.refused === true ? 'crux-refused' : 'crux-failed')]
       : []),
+    ...(sitemapUnread ? [notice('sitemap-unchecked')] : []),
+    ...(labWanted !== undefined && labRequest === undefined ? [notice('lab-challenged')] : []),
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
     ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
+    ...(dns?.notice === 'dns-unchecked'
+      ? [notice('dns-unchecked', { domain: dns.facts.domain })]
+      : []),
+    ...(dnsSkipped ? [notice('dns-unavailable')] : []),
+    ...linkNotices(links, bot),
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
   progress({ step: 'rules', rules: rules.length })
@@ -449,15 +545,25 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     rendered: rendering?.rendered,
     crux,
     redirects: target.http.redirects,
+    dns: dns?.facts,
+    links,
+    sitemap,
+    sitemapUnknown: sitemapRead !== undefined && 'failed' in sitemapRead,
   })
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
 
   return finish(target, {
+    // A scan that did not reach the page is short, whatever the rules beside the page said: the
+    // CLI exits 2 for it (docs/design/phase-0.md §3), and it has no score (M2.3c review).
     status:
-      unrendered || results.some((result) => result.status === 'error') ? 'partial' : 'complete',
+      unrendered || !reached || results.some((result) => result.status === 'error')
+        ? 'partial'
+        : 'complete',
+    reached,
     notices,
-    page: pageSummary(page),
+    // A challenge's language and script are not the page's.
+    page: challengeOf(page.headers) === null ? pageSummary(page) : null,
     results,
     findings,
     facts: {
@@ -471,15 +577,27 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
 
 /**
  * Rules for a scan. Without rendering, those that need it are left out; with it, so are those
- * that read only engines the scan does not render in (Chromium alone reports used fonts).
- * Named by id, either kind is refused instead.
+ * that read only engines the scan does not render in (Chromium alone reports used fonts). Without
+ * a way to ask DNS (txtResolverFor), those that read DNS records are left out too. Named by id,
+ * any kind is refused instead.
  */
 function chooseRules(
   all: readonly Rule[],
   ids: readonly string[] | undefined,
   engines: readonly Engine[] | undefined,
-): { rules: Rule[]; renderSkipped: boolean; engineSkipped: Engine[] } {
-  const selected = selectRules(all, ids)
+  dnsAvailable = true,
+): { rules: Rule[]; renderSkipped: boolean; engineSkipped: Engine[]; dnsSkipped: boolean } {
+  const named = selectRules(all, ids)
+  const needDns = named.filter((rule) => rule.needs.includes('dns'))
+  if (!dnsAvailable && ids !== undefined && needDns.length > 0) {
+    throw new TypeError(
+      `These rules need DNS records, and this scan has no way to ask for them: ${needDns
+        .map((rule) => rule.id)
+        .join(', ')}`,
+    )
+  }
+  const dnsSkipped = !dnsAvailable && needDns.length > 0
+  const selected = dnsSkipped ? named.filter((rule) => !needDns.includes(rule)) : named
   const needRender = selected.filter((rule) => rule.needs.includes('render'))
   if (engines === undefined) {
     if (ids !== undefined && needRender.length > 0) {
@@ -491,6 +609,7 @@ function chooseRules(
       rules: selected.filter((rule) => !needRender.includes(rule)),
       renderSkipped: needRender.length > 0,
       engineSkipped: [],
+      dnsSkipped,
     }
   }
   const unread = needRender.filter(
@@ -510,6 +629,7 @@ function chooseRules(
     rules: selected.filter((rule) => !unread.includes(rule)),
     renderSkipped: false,
     engineSkipped,
+    dnsSkipped,
   }
 }
 
@@ -517,6 +637,8 @@ interface Rendering {
   readonly runs: RenderRun[]
   readonly rendered: RenderedFacts[]
   readonly notices: Notice[]
+  /** A browser was answered with a bot challenge in place of the page (M2.3c). */
+  readonly challenged: boolean
 }
 
 /**
@@ -538,6 +660,7 @@ async function renderAll(
   const runs: RenderRun[] = []
   const rendered: RenderedFacts[] = []
   const notices: Notice[] = []
+  let challenged = false
   let browser: typeof import('@arablyzer/browser')
   try {
     browser = await import('@arablyzer/browser')
@@ -555,7 +678,7 @@ async function renderAll(
       context.progress({ step: 'render', run })
       notices.push(notice('engine-unavailable', { engine: ENGINE_NAMES[engine] }))
     }
-    return { runs, rendered, notices }
+    return { runs, rendered, notices, challenged: false }
   }
   const { renderPage, RENDER_TIMEOUT_MS, EXTRA_ENGINE_TIMEOUT_MS } = browser
   for (const [index, engine] of request.engines.entries()) {
@@ -602,6 +725,16 @@ async function renderAll(
       if (outcome.facts.truncated) notices.push(notice('render-truncated', { engine: name }))
     }
     if (outcome.screenshot !== null) request.onScreenshot?.(engine, outcome.screenshot)
+    if (outcome.status === 'challenged') {
+      challenged = true
+      notices.push(
+        notice('render-challenged', {
+          engine: name,
+          service: outcome.challenge?.service ?? '',
+          status: String(outcome.challenge?.status ?? ''),
+        }),
+      )
+    }
     if (outcome.status === 'failed') notices.push(notice('render-failed', { engine: name }))
     if (outcome.status === 'timeout') notices.push(notice('render-timeout', { engine: name }))
     if (outcome.status === 'unavailable') {
@@ -610,15 +743,18 @@ async function renderAll(
     if (outcome.status === 'refused') notices.push(notice('engine-refused', { engine: name }))
     if (outcome.requests.limited) notices.push(notice('request-limit', { engine: name }))
   }
-  return { runs, rendered, notices }
+  return { runs, rendered, notices, challenged }
 }
 
-/** A render as the report shows it: the page's own requests, and those not let through. */
+/**
+ * A render as the report shows it: the page's own requests, and those not let through. A render a
+ * bot challenge ended is one that failed; the notice says why.
+ */
 export function renderRun(outcome: RenderOutcome): RenderRun {
   return {
     engine: outcome.engine,
     version: outcome.version === null || outcome.version === '' ? null : outcome.version,
-    status: outcome.status,
+    status: outcome.status === 'challenged' ? 'failed' : outcome.status,
     durationMs: outcome.durationMs,
     requests: {
       total: outcome.pageRequests.made,
@@ -643,6 +779,12 @@ export interface EvaluateOptions {
    * without them, rules that need them do not apply.
    */
   readonly redirects?: readonly Redirect[]
+  /** The page's DNS records (M2.3c); without them, rules that need `dns` do not apply. */
+  readonly dns?: DnsFacts
+  /** How the checks of the page's links ended (M2.3c); without them, rules that need `links` do not apply. */
+  readonly links?: LinkFacts
+  /** The site's sitemaps; without them, rules that need them do not apply. */
+  readonly sitemap?: SitemapFacts
 }
 
 export interface Evaluation {
@@ -670,13 +812,23 @@ interface Collected {
   readonly rendered?: readonly RenderedFacts[] | undefined
   readonly crux?: CruxFacts | undefined
   readonly redirects?: readonly Redirect[] | undefined
+  readonly dns?: DnsFacts | undefined
+  readonly links?: LinkFacts | undefined
+  readonly sitemap?: SitemapFacts | undefined
+  /**
+   * The sitemaps were asked for and robots.txt could not be read, so which they are is not known:
+   * the rules that read them could not check. A sitemap that could not be checked is one `failed`
+   * check in `sitemap` instead, for the rules to judge the rest.
+   */
+  readonly sitemapUnknown?: boolean
 }
 
 function evaluateRules(rules: readonly Rule[], page: PageFacts, collected: Collected): Evaluation {
   const results: RuleResult[] = []
   const findings: Finding[] = []
+  const reached = pageReached(page)
   for (const rule of rules) {
-    const outcome = evaluate(rule, page, collected)
+    const outcome = evaluate(rule, page, collected, reached)
     results.push(
       ruleResult(rule, outcome.status, {
         ...(outcome.error === undefined ? {} : { error: outcome.error }),
@@ -708,14 +860,16 @@ async function fetchRobots(pageUrl: string, base: SafeFetchOptions): Promise<Rob
     maxRedirects: ROBOTS_MAX_REDIRECTS,
   })
   const response = fetched.response
+  // A bot challenge in place of robots.txt is not the site's robots.txt: it tells nothing.
+  const challenged = response !== null && challengeOf(response.headers) !== null
   return {
     facts: collectRobots({
       url,
       response:
-        response === null
+        response === null || challenged
           ? null
           : { status: response.status, body: response.body, truncated: response.truncated },
-      errorCode: fetched.error?.code ?? null,
+      errorCode: challenged ? 'bot-challenge' : (fetched.error?.code ?? null),
     }),
     startedAt: fetched.startedAt,
     privateAccess: fetched.privateAccess,
@@ -738,6 +892,19 @@ function optOutRule(robots: RobotsFacts, bot: string, url: string): RobotsRule |
   return match.group === 'specific' && !match.allowed ? match.rule : null
 }
 
+/**
+ * Whether robots.txt keeps the bot from a link's address, for many addresses (M2.3c): the
+ * crawler's groups are chosen once, and asked of the links to be checked alone. Unlike the page
+ * (optOutRule), which someone asked for, a link is a request of the scan's own, made as a crawler
+ * would: a group naming the bot counts, and the `User-agent: *` group too where none names it
+ * (RFC 9309 §2.2.1). A robots.txt that could not be read asks nothing.
+ */
+function linkOptOut(robots: RobotsFacts, bot: string): (url: string) => boolean {
+  if (robots.outcome !== 'fetched') return () => false
+  const match = robotsMatcher(robots.robots, bot)
+  return (url) => !match(url).allowed
+}
+
 interface Outcome {
   readonly status: RuleStatus
   readonly error?: string
@@ -745,12 +912,20 @@ interface Outcome {
   readonly omitted?: number
 }
 
-function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
+/**
+ * What a rule reads beside the page itself: robots.txt and the sitemaps are the site's, `response`
+ * is the page's answer, whatever it was, and `crux` is what Google holds of the URL's visitors,
+ * which was asked for when the page answered a bot challenge too. Their rules run whatever the
+ * page answered.
+ */
+const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set(['robots', 'sitemap', 'response', 'crux'])
+
+function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: boolean): Outcome {
   const { robots, rendered, crux } = collected
-  const needsPage = rule.needs.some((need) => need !== 'robots')
+  const needsPage = rule.needs.some((need) => !BESIDE_THE_PAGE.has(need))
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
-  if (needsPage && !isSuccess(page.status)) return { status: 'not-applicable', findings: [] }
+  if (needsPage && !reached) return { status: 'not-applicable', findings: [] }
   if (needsHtml && page.htmlTimedOut) {
     return { status: 'error', error: 'page-too-complex', findings: [] }
   }
@@ -759,6 +934,15 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
   }
   if (rule.needs.includes('robots') && (robots === undefined || robots.outcome === 'failed')) {
     return { status: 'error', error: 'robots-unchecked', findings: [] }
+  }
+  if (rule.needs.includes('sitemap') && collected.sitemapUnknown === true) {
+    return { status: 'error', error: 'sitemap-unchecked', findings: [] }
+  }
+  // Only for the rules that read them, like the redirects; not asked for, on a local site or
+  // without a scan, they leave the rules nothing to judge.
+  const sitemap = rule.needs.includes('sitemap') ? collected.sitemap : undefined
+  if (rule.needs.includes('sitemap') && sitemap === undefined) {
+    return { status: 'not-applicable', findings: [] }
   }
   // Without a key, or for a private page, CrUX was not asked: nothing to judge.
   if (rule.needs.includes('crux') && crux === undefined) {
@@ -771,6 +955,25 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
   const redirects = rule.needs.includes('redirects') ? collected.redirects : undefined
   if (rule.needs.includes('redirects') && redirects === undefined) {
     return { status: 'not-applicable', findings: [] }
+  }
+  // DNS records (M2.3c): none for a page on a local or private address, nothing to judge; the
+  // rule's own lookup without an answer, it could not check.
+  const dns = rule.needs.includes('dns') ? collected.dns : undefined
+  if (rule.needs.includes('dns')) {
+    if (dns === undefined) return { status: 'not-applicable', findings: [] }
+    const own = ownLookup(rule, dns)
+    if (own === undefined || own.outcome === 'failed') {
+      return { status: 'error', error: 'dns-unchecked', findings: [] }
+    }
+  }
+  // The page's links to its own site (M2.3c): none asked for, nothing to judge; links, but none
+  // answered, the rule could not check.
+  const links = rule.needs.includes('links') ? collected.links : undefined
+  if (rule.needs.includes('links')) {
+    if (links === undefined) return { status: 'not-applicable', findings: [] }
+    if (links.total > 0 && !links.checks.some((check) => check.outcome === 'answered')) {
+      return { status: 'error', error: 'links-unchecked', findings: [] }
+    }
   }
   // Only the engines the rule can read; none of them rendered means it could not check.
   const seen = needsRender
@@ -785,12 +988,19 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
   const evidence: Evidence = {
     page,
     ...(redirects === undefined ? {} : { redirects }),
+    ...(dns === undefined ? {} : { dns }),
+    ...(links === undefined ? {} : { links }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
+    ...(sitemap === undefined ? {} : { sitemap }),
   }
   try {
     if (!rule.appliesTo(page, evidence)) return { status: 'not-applicable', findings: [] }
+    // Evidence there in part, such as the sitemaps some of which could not be read, may leave the
+    // rule nothing to judge; then it is an error, and not a pass.
+    const couldNotCheck = rule.couldNotCheck?.(evidence) ?? null
+    if (couldNotCheck !== null) return { status: 'error', error: couldNotCheck, findings: [] }
     const detected = rule.detect(evidence)
     const { kept, total } = firstByPosition(detected, MAX_FINDINGS_PER_RULE)
     const status = rule.manualCheck === true ? 'needs-review' : total > 0 ? 'fail' : 'pass'
@@ -799,6 +1009,16 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
     // A bug in a rule (a throw, a missing message, output the schema rejects) must not take the
     // whole scan down; the report says which rule failed.
     return { status: 'error', error: 'rule-failed', findings: [] }
+  }
+}
+
+/** The TXT lookup of the name the rule reads (txtName); undefined when there is none. */
+function ownLookup(rule: Rule, dns: DnsFacts): DnsFacts['txt'][number] | undefined {
+  try {
+    const name = rule.txtName?.(dns.domain)
+    return dns.txt.find((lookup) => lookup.name === name)
+  } catch {
+    return undefined
   }
 }
 
@@ -928,9 +1148,16 @@ export function summarize(results: readonly RuleResult[]): Summary {
 
 function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[] {
   const notices: Notice[] = []
-  if (!isSuccess(page.status)) notices.push(notice('page-status', { status: String(page.status) }))
-  else if (!page.isHtml) notices.push(notice('not-html'))
-  else {
+  const challenge = challengeOf(page.headers)
+  if (challenge !== null) {
+    notices.push(
+      notice('bot-challenge', { service: challenge.service, status: String(page.status) }),
+    )
+  } else if (!isSuccess(page.status)) {
+    notices.push(notice('page-status', { status: String(page.status) }))
+  } else if (!page.isHtml) {
+    notices.push(notice('not-html'))
+  } else {
     if (page.htmlTimedOut) notices.push(notice('page-too-complex'))
     else if (page.text !== null && page.html !== null) {
       const loadsScripts = page.html.scripts.some(
@@ -945,6 +1172,43 @@ function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[]
   if (robots?.outcome === 'failed') notices.push(notice('robots-unchecked'))
   if (robots?.outcome === 'fetched' && robots.truncated) notices.push(notice('robots-truncated'))
   return notices
+}
+
+/**
+ * The page's links when their checks failed as a whole, which they are awaited too late to throw:
+ * links none of which answered, so the rules that read them report that they could not run,
+ * rather than pass a page without links.
+ */
+const UNCHECKED_LINKS: LinkFacts = {
+  total: 1,
+  more: false,
+  checks: [],
+  skipped: { limit: 0, robots: 0 },
+}
+
+/**
+ * What the report says of the page's links it did not check (M2.3c): past the limit, kept from
+ * the bot by robots.txt, or without an answer. None of them counts as broken.
+ */
+function linkNotices(links: LinkFacts | undefined, bot: string): Notice[] {
+  if (links === undefined) return []
+  const unanswered = links.checks.filter((check) => check.outcome === 'unanswered').length
+  return [
+    ...(links.skipped.limit > 0
+      ? [
+          // Counting stops at MAX_SITE_LINKS: past it the totals are "at least".
+          notice(links.more ? 'links-limit-more' : 'links-limit', {
+            total: String(links.total),
+            limit: String(MAX_LINKS),
+            count: String(links.skipped.limit),
+          }),
+        ]
+      : []),
+    ...(links.skipped.robots > 0
+      ? [notice('links-robots', { count: String(links.skipped.robots), bot })]
+      : []),
+    ...(unanswered > 0 ? [notice('links-unanswered', { count: String(unanswered) })] : []),
+  ]
 }
 
 /** The report's `page`: the declared language and direction, and the text's dominant script. */
@@ -1037,6 +1301,14 @@ function isJavaScript(type: string | null): boolean {
 
 function isSuccess(status: number): boolean {
   return status >= 200 && status < 300
+}
+
+/**
+ * Whether the scan reached the page: a 2xx answer that is not a bot challenge, which some services
+ * send as 2xx (AWS WAF's answers 202).
+ */
+function pageReached(page: PageFacts): boolean {
+  return isSuccess(page.status) && challengeOf(page.headers) === null
 }
 
 function lastHeader(headers: readonly (readonly [string, string])[], name: string): string | null {

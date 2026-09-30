@@ -5,7 +5,7 @@ import { TOOL_APP } from '@arablyzer/i18n/tool-app'
 import type { Report, RuleResult } from '@arablyzer/report-schema'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
-import { ArrowLeft, ArrowRight, Check, Minus, X } from 'lucide-preact'
+import { ArrowLeft, ArrowRight, Check, Info, Minus, X } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { fetchReport, startScan } from './api'
@@ -16,11 +16,13 @@ import { Notices } from './report/Notices'
 import { SeverityPill } from './report/ui'
 import {
   advance,
-  problemCount,
+  isNote,
   problemsOf,
   START,
   stepsOf,
+  toolHeadline,
   toolVerdict,
+  worstProblem,
   type Progress as ProgressState,
 } from './report-model'
 import { askedUrl, precheck, type FormError } from './scan-request'
@@ -30,8 +32,16 @@ interface Props {
   lang: Lang
   /** The tool's slug: its scan runs its rules alone (M2.2). */
   tool: string
-  /** What the tool reads, which the note under the form says: the page, robots.txt, or browsers. */
-  reads: 'html' | 'robots' | 'render'
+  /**
+   * Whether every rule of the tool only lists what it finds (information): its result counts
+   * notes, never problems, and says "nothing found" where a tool that judges says the page passes.
+   */
+  reportsOnly: boolean
+  /**
+   * What the tool reads, which the note under the form says: the page, robots.txt, browsers, DNS
+   * records, the page and its links, robots.txt and the sitemaps, or Chrome's data on real visitors.
+   */
+  reads: 'html' | 'robots' | 'render' | 'dns' | 'links' | 'sitemap' | 'crux'
 }
 
 type Run =
@@ -53,7 +63,7 @@ const wait = (ms: number) =>
  * alone, and its result under the form as the scan runs: each problem with its evidence, or the
  * page passing. The result has its own link, the scan's report page.
  */
-export default function ToolApp({ lang, tool, reads }: Props) {
+export default function ToolApp({ lang, tool, reads, reportsOnly }: Props) {
   const t = TOOL_APP[lang].form
   const f = SCAN_FORM[lang]
   const [ready, setReady] = useState(false)
@@ -184,7 +194,7 @@ export default function ToolApp({ lang, tool, reads }: Props) {
       : run.phase === 'running'
         ? r.running
         : run.phase === 'done'
-          ? headlineOf(run.report, lang)
+          ? toolHeadline(run.report, r, reportsOnly)
           : run.phase === 'offline'
             ? r.offline
             : r.failed
@@ -232,7 +242,7 @@ export default function ToolApp({ lang, tool, reads }: Props) {
           {message}
         </p>
       </form>
-      {run !== null && <Result run={run} lang={lang} />}
+      {run !== null && <Result run={run} lang={lang} reportsOnly={reportsOnly} />}
       <p role="status" className="sr-only">
         {said}
       </p>
@@ -240,21 +250,7 @@ export default function ToolApp({ lang, tool, reads }: Props) {
   )
 }
 
-/** What a tool's result says first, in the page's words (toolVerdict). */
-function headlineOf(report: Report, lang: Lang): string {
-  const t = TOOL_APP[lang].result
-  return {
-    blocked: t.blocked,
-    'opted-out': t.optedOut,
-    problems: t.problems(problemCount(report)),
-    incomplete: t.incomplete,
-    review: t.review,
-    passed: t.passed,
-    'not-applicable': t.notApplicable,
-  }[toolVerdict(report)]
-}
-
-function Result({ run, lang }: { run: Run; lang: Lang }) {
+function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly: boolean }) {
   const t = TOOL_APP[lang].result
   const r = REPORT[lang]
   const frame = 'flex flex-col border border-ink bg-white'
@@ -308,10 +304,12 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
   }
 
   const { report, id } = run
-  const verdict = toolVerdict(report)
-  const problems = problemsOf(report)
-  const failed = problems.filter((entry) => entry.rule.status === 'fail')
-  const worst = failed[0]?.rule.severity
+  const verdict = toolVerdict(report, reportsOnly)
+  // What is listed: the failed rules and those that need a review. A rule that only lists what it
+  // finds is listed too, with a label that says it is a note; it is no problem, so it is neither
+  // the worst severity nor a reason to point to the fixes.
+  const listed = problemsOf(report)
+  const worst = worstProblem(report)
   const shareHref = localePath(lang, `/r/${id}`)
 
   return (
@@ -320,7 +318,7 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
         <div className="flex flex-wrap items-center gap-3">
           {worst !== undefined && <SeverityPill severity={worst} lang={lang} />}
           <h2 id="result-title" className="m-0 text-xl font-semibold">
-            {headlineOf(report, lang)}
+            {toolHeadline(report, t, reportsOnly)}
           </h2>
         </div>
         <span dir="ltr" className="font-mono text-[13px] break-all text-ink-3">
@@ -332,7 +330,7 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           <Notices notices={report.scan.notices} lang={lang} id="result-notices" level={3} />
         </div>
       )}
-      {problems.map((entry) => (
+      {listed.map((entry) => (
         <article
           key={entry.rule.id}
           aria-labelledby={`result-${entry.rule.id}`}
@@ -342,6 +340,9 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
             <h3 id={`result-${entry.rule.id}`} className="m-0 text-lg leading-snug font-semibold">
               <Bidi text={entry.rule.title[lang]} lang={lang} />
             </h3>
+            {isNote(entry.rule) && (
+              <span className="text-xs text-ink-3">{r.findings.notDeducted}</span>
+            )}
             {entry.rule.status === 'needs-review' && (
               <span className="bg-measure-soft px-2 py-px text-xs text-measure">
                 {r.findings.review}
@@ -370,7 +371,7 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
       ))}
       {/* Nothing was checked on a page the site refused to send, or asked us not to check. */}
       {verdict !== 'blocked' && verdict !== 'opted-out' && (
-        <Checked rules={report.rules} lang={lang} />
+        <Checked rules={report.rules} lang={lang} reportsOnly={reportsOnly} />
       )}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-ink-3 md:px-6">
         <span className="flex flex-wrap gap-x-2">
@@ -387,7 +388,7 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           ))}
         </span>
         <span className="flex flex-wrap gap-x-5 gap-y-1">
-          {failed.length > 0 && (
+          {worst !== undefined && (
             <a href="#fix" className="underline underline-offset-4">
               {t.howToFix}
             </a>
@@ -409,8 +410,20 @@ const STATUS_STYLE: Readonly<Record<RuleResult['status'], string>> = {
   'not-applicable': 'bg-paper text-ink-3',
 }
 
-/** Each rule the tool ran, with what became of it: a green check for a rule that passed alone. */
-function Checked({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang }) {
+/**
+ * Each rule the tool ran, with what became of it: a green check for a rule that passed alone. A
+ * rule that only lists what it finds is not passed or failed: it noted something, or, in a tool
+ * whose rules all only list, found nothing (M2.3c review).
+ */
+function Checked({
+  rules,
+  lang,
+  reportsOnly,
+}: {
+  rules: readonly RuleResult[]
+  lang: Lang
+  reportsOnly: boolean
+}) {
   const t = TOOL_APP[lang].result
   return (
     <section aria-labelledby="result-checked" className="flex flex-col border-b border-rule-soft">
@@ -421,41 +434,56 @@ function Checked({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang }) 
         {t.checked}
       </h3>
       <ul className="m-0 flex list-none flex-col p-0">
-        {rules.map((rule) => (
-          <li
-            key={rule.id}
-            className="flex items-start gap-3 border-t border-rule-soft px-5 py-3 md:px-6"
-          >
-            {rule.status === 'pass' ? (
-              <Check
-                size={16}
-                strokeWidth={2.4}
-                aria-hidden="true"
-                className="mt-1 shrink-0 text-pass"
-              />
-            ) : rule.status === 'fail' ? (
-              <X
-                size={16}
-                strokeWidth={2.4}
-                aria-hidden="true"
-                className="mt-1 shrink-0 text-signal"
-              />
-            ) : (
-              <Minus
-                size={16}
-                strokeWidth={2.4}
-                aria-hidden="true"
-                className="mt-1 shrink-0 text-ink-3"
-              />
-            )}
-            <span className="grow leading-[1.6]">
-              <Bidi text={rule.title[lang]} lang={lang} />
-            </span>
-            <span className={`shrink-0 px-2 py-px text-xs ${STATUS_STYLE[rule.status]}`}>
-              {t.status[rule.status]}
-            </span>
-          </li>
-        ))}
+        {rules.map((rule) => {
+          const noted = isNote(rule) && rule.status === 'fail'
+          const none = isNote(rule) && rule.status === 'pass' && reportsOnly
+          return (
+            <li
+              key={rule.id}
+              className="flex items-start gap-3 border-t border-rule-soft px-5 py-3 md:px-6"
+            >
+              {noted ? (
+                <Info
+                  size={16}
+                  strokeWidth={2.4}
+                  aria-hidden="true"
+                  className="mt-1 shrink-0 text-ink-3"
+                />
+              ) : rule.status === 'pass' && !none ? (
+                <Check
+                  size={16}
+                  strokeWidth={2.4}
+                  aria-hidden="true"
+                  className="mt-1 shrink-0 text-pass"
+                />
+              ) : rule.status === 'fail' ? (
+                <X
+                  size={16}
+                  strokeWidth={2.4}
+                  aria-hidden="true"
+                  className="mt-1 shrink-0 text-signal"
+                />
+              ) : (
+                <Minus
+                  size={16}
+                  strokeWidth={2.4}
+                  aria-hidden="true"
+                  className="mt-1 shrink-0 text-ink-3"
+                />
+              )}
+              <span className="grow leading-[1.6]">
+                <Bidi text={rule.title[lang]} lang={lang} />
+              </span>
+              <span
+                className={`shrink-0 px-2 py-px text-xs ${
+                  noted || none ? 'bg-paper text-ink-2' : STATUS_STYLE[rule.status]
+                }`}
+              >
+                {noted ? t.information.found : none ? t.information.none : t.status[rule.status]}
+              </span>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )

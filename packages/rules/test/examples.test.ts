@@ -9,14 +9,19 @@ import { fixtureNames, fixturesDir } from './helpers'
  * files. Their pages go without the example; the fix section shows the code to write.
  */
 const NO_EXAMPLE: Readonly<Record<string, string>> = {
+  'bot-challenge': 'the headers of a challenge in place of the page, which no excerpt shows',
   'cwv-cls-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-inp-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-lcp-poor': "real visitors' data from the Chrome UX Report, not the page",
+  'dmarc-missing': 'DNS records, which no excerpt of the page shows',
   'frame-protection-missing': 'response headers, whose absence no excerpt shows',
   'hsts-missing': 'a response header, whose absence no excerpt shows',
   'https-missing': 'the address the page answers at',
+  'payment-methods': 'nothing: it lists the payment methods the page shows, as information',
   'redirect-chain': 'the redirects before the page, which no excerpt shows',
   'redirect-temporary': 'the redirects before the page, which no excerpt shows',
+  'sitemap-missing': 'the absence of a sitemap, which no excerpt shows',
+  'spf-missing': 'DNS records, which no excerpt of the page shows',
   'text-compression-missing': 'how the server sends the page’s files',
   'tls-expiring': 'the server’s certificate',
   'x-content-type-options-missing': 'a response header, whose absence no excerpt shows',

@@ -20,6 +20,7 @@
   },
   "files": [
     "./packages/collectors/src/vendor/css-tree.d.ts",
+    "./packages/collectors/src/vendor/sax.d.ts",
     "./packages/lab/src/vendor/playwright-core-bundle.d.ts"
   ]
 }

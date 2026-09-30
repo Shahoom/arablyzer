@@ -14,6 +14,15 @@ export interface RobotsMatch {
  * tie; `*` matches any run of characters and a final `$` anchors the end.
  */
 export function matchRobots(robots: RobotsTxt, product: string, url: string): RobotsMatch {
+  return robotsMatcher(robots, product)(url)
+}
+
+/**
+ * matchRobots for one crawler, for many addresses: the crawler's groups are chosen once, so
+ * asking of an address costs its rules and nothing of the file's other groups (M2.3c review: a
+ * scan tests a page's links against the same robots.txt one after another).
+ */
+export function robotsMatcher(robots: RobotsTxt, product: string): (url: string) => RobotsMatch {
   const token = product.toLowerCase()
   const specific = robots.groups.filter((group) =>
     group.agents.some((agent) => !agent.global && agent.product !== '' && agent.product === token),
@@ -25,14 +34,15 @@ export function matchRobots(robots: RobotsTxt, product: string, url: string): Ro
       : global.length > 0
         ? ([global, 'global'] as const)
         : ([[], 'none'] as const)
-  const path = robotsPath(url)
-  // RFC 9309 §2.2.2: /robots.txt itself is always allowed.
-  if (path === '/robots.txt') return { allowed: true, rule: null, group: kind }
+  const rules = groups.flatMap((group) => group.rules)
+  return (url) => {
+    const path = robotsPath(url)
+    // RFC 9309 §2.2.2: /robots.txt itself is always allowed.
+    if (path === '/robots.txt') return { allowed: true, rule: null, group: kind }
 
-  let allow: RobotsRule | null = null
-  let disallow: RobotsRule | null = null
-  for (const group of groups) {
-    for (const rule of group.rules) {
+    let allow: RobotsRule | null = null
+    let disallow: RobotsRule | null = null
+    for (const rule of rules) {
       if (!patternMatches(path, rule.pattern)) continue
       if (rule.type === 'allow') {
         if (allow === null || rule.pattern.length > allow.pattern.length) allow = rule
@@ -40,11 +50,11 @@ export function matchRobots(robots: RobotsTxt, product: string, url: string): Ro
         disallow = rule
       }
     }
+    if (disallow !== null && (allow === null || disallow.pattern.length > allow.pattern.length)) {
+      return { allowed: false, rule: disallow, group: kind }
+    }
+    return { allowed: true, rule: allow, group: kind }
   }
-  if (disallow !== null && (allow === null || disallow.pattern.length > allow.pattern.length)) {
-    return { allowed: false, rule: disallow, group: kind }
-  }
-  return { allowed: true, rule: allow, group: kind }
 }
 
 /** Path and query as crawlers match them, with percent-escapes upper-cased like the patterns. */

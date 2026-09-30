@@ -172,6 +172,8 @@
 /* Code inside a tool page's text: its checks, its fix and its answers. */
 @layer components {
   .prose-tool code {
+    /* A namespace or a URL in a check is longer than a phone's line: it breaks, and the page does not scroll. */
+    overflow-wrap: anywhere;
     font-family: var(--font-mono);
     font-size: 0.88em;
   }

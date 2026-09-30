@@ -22,9 +22,15 @@ export interface RobotsGroup {
   readonly rules: readonly RobotsRule[]
 }
 
+/** A Sitemap line, which belongs to no group: its value as written (UTF-8), and its line. */
+export interface RobotsSitemap {
+  readonly value: string
+  readonly line: number
+}
+
 export interface RobotsTxt {
   readonly groups: readonly RobotsGroup[]
-  readonly sitemaps: readonly string[]
+  readonly sitemaps: readonly RobotsSitemap[]
 }
 
 /** How the robots.txt fetch ended, in RFC 9309 terms. */
@@ -109,7 +115,7 @@ export function parseRobotsTxt(body: Uint8Array): RobotsTxt {
   const start = body[0] === 0xef && body[1] === 0xbb && body[2] === 0xbf ? 3 : 0
   const bytes = body.subarray(start)
   const groups: { agents: RobotsAgent[]; rules: RobotsRule[] }[] = []
-  const sitemaps: string[] = []
+  const sitemaps: RobotsSitemap[] = []
   let current: { agents: RobotsAgent[]; rules: RobotsRule[] } | null = null
   let sawRule = false
 
@@ -133,7 +139,7 @@ export function parseRobotsTxt(body: Uint8Array): RobotsTxt {
         line: lineNumber,
       })
     } else if (key === 'sitemap') {
-      if (value !== '') sitemaps.push(utf8(value))
+      if (value !== '') sitemaps.push({ value: utf8(value), line: lineNumber })
     } else if (current !== null) {
       sawRule = true
       if (value === '') continue

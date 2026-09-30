@@ -49,6 +49,13 @@ export const RuleStatus = z
   .meta({ id: 'RuleStatus' })
 export type RuleStatus = z.infer<typeof RuleStatus>
 
+/**
+ * complete: the scan reached the page and every rule it ran finished. partial: it fell short, and
+ * its report says where: a rule could not run, an engine asked for did not render, or the site
+ * answered with an error status or a bot challenge instead of the page (M2.3c), when the score is
+ * null too; the CLI exits 2. failed: the page could not be fetched or read at all, or the site
+ * asks not to be checked (M2.4): every rule is an error, and there is nothing to judge.
+ */
 export const ScanStatus = z.enum(['complete', 'partial', 'failed'])
 export type ScanStatus = z.infer<typeof ScanStatus>
 
@@ -173,14 +180,15 @@ export const Summary = z.strictObject({
 })
 export type Summary = z.infer<typeof Summary>
 
-/** 0 to 100, whole; null when no rule with weight applied. */
+/** 0 to 100, whole; null when no rule with weight applied, or the scan did not reach the page. */
 const ScoreValue = z.number().int().min(0).max(100).nullable()
 
 /**
  * The score (docs/methodology.md): 100 × (1 − failed weight ÷ applicable weight), overall and for
- * each category the scan ran rules of (null when none of them had weight and applied). Weights by
- * severity: critical 10, serious 5, moderate 3, minor 1, info 0. Comparable only within a major
- * version of the rule set (generator.rulesetVersion), between scans that ran the same rules.
+ * each category the scan ran rules of (null when none of them had weight and applied, and for
+ * all of them when the scan did not reach the page). Weights by severity: critical 10, serious 5,
+ * moderate 3, minor 1, info 0. Comparable only within a major version of the rule set
+ * (generator.rulesetVersion), between scans that ran the same rules.
  */
 export const Score = z
   .strictObject({

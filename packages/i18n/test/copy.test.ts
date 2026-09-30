@@ -6,6 +6,7 @@ import {
   CATEGORIES,
   codeParts,
   HOME,
+  PAGES_UI,
   REPORT,
   SCAN_FORM,
   SITE,
@@ -23,9 +24,15 @@ const SAMPLE = {
   pageRedirects: 10,
   robotsRedirects: 5,
   robotsKib: 500,
+  sitemaps: 3,
+  sitemapMib: 25,
+  sitemapRedirects: 10,
+  sitemapSeconds: 10,
   requestsPerLoad: 300,
   mibPerLoad: 25,
   viewport: { width: 390, height: 844 },
+  dohUrl: 'https://cloudflare-dns.com/dns-query',
+  links: 50,
 }
 
 /** A function of the copy with sample numbers, or with SAMPLE when it takes an object of them. */
@@ -51,6 +58,44 @@ function leaves(value: unknown, path = ''): [string, string][] {
   }
   return []
 }
+
+describe('the bot’s page', () => {
+  // Numbers no other line of the page has, so a line is found by its own.
+  const numbers = {
+    pageRedirects: 10,
+    robotsRedirects: 5,
+    robotsKib: 500,
+    sitemaps: 3,
+    sitemapMib: 26,
+    sitemapRedirects: 7,
+    sitemapSeconds: 12,
+    requestsPerLoad: 300,
+    mibPerLoad: 25,
+    viewport: { width: 390, height: 844 },
+    dohUrl: 'https://cloudflare-dns.com/dns-query',
+    links: 50,
+  }
+  const items = (lang: 'ar' | 'en') => PAGES_UI[lang].bot.fetches.items(numbers).join('\n')
+
+  // M2.3c review: the page said the bot reads sitemaps, and not that it may go to another host for
+  // one, that it follows redirects for them, or when it stops.
+  it.each([
+    ['en', ['7 redirects', '12 seconds', 'another host', 'first 3', '26 MB']],
+    ['ar', ['7 تحويلات', '12 ثانية', 'موقع آخر', 'أول 3 خرائط', '26 ميغابايت']],
+  ] as const)('says what it does for the sitemaps, in %s', (lang, phrases) => {
+    for (const phrase of phrases) expect(items(lang), phrase).toContain(phrase)
+  })
+
+  it('says a sitemap on another host is fetched only where that host’s robots.txt allows it', () => {
+    expect(items('en')).toMatch(/another host[^\n]*robots\.txt[^\n]*ArablyzerBot/)
+    expect(items('ar')).toMatch(/موقع آخر[^\n]*robots\.txt[^\n]*ArablyzerBot/)
+  })
+
+  it('says a browser answered with a challenge stops there', () => {
+    expect(PAGES_UI.en.bot.never.items.join('\n')).toContain('that browser')
+    expect(PAGES_UI.ar.bot.never.items.join('\n')).toContain('ذلك المتصفح')
+  })
+})
 
 describe('interface copy', () => {
   it('has the same keys in both languages, none empty', () => {

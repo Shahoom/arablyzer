@@ -14,11 +14,13 @@ import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
+import { rule as botChallenge } from './rules/bot-challenge/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
 import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
 import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
+import { rule as dmarcMissing } from './rules/dmarc-missing/rule'
 import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
 import { rule as formLabelMissing } from './rules/form-label-missing/rule'
@@ -29,11 +31,14 @@ import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
 import { rule as httpsMissing } from './rules/https-missing/rule'
 import { rule as imageFormatLegacy } from './rules/image-format-legacy/rule'
+import { rule as jsOnlyContent } from './rules/js-only-content/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
+import { rule as linkBroken } from './rules/link-broken/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
+import { rule as paymentMethods } from './rules/payment-methods/rule'
 import { rule as priceDecimals } from './rules/price-decimals/rule'
 import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
 import { rule as redirectChain } from './rules/redirect-chain/rule'
@@ -46,6 +51,9 @@ import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/r
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
+import { rule as sitemapInvalid } from './rules/sitemap-invalid/rule'
+import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
+import { rule as spfMissing } from './rules/spf-missing/rule'
 import { rule as textCompressionMissing } from './rules/text-compression-missing/rule'
 import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as tlsExpiring } from './rules/tls-expiring/rule'
@@ -54,6 +62,11 @@ import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 import { rule as xContentTypeOptionsMissing } from './rules/x-content-type-options-missing/rule'
 
 export { RULESET_VERSION } from './version'
+export {
+  BLOCK_TEXT_LENGTH as RENDERED_TEXT_LENGTH,
+  MIN_DRAWN_WORDS,
+  SCRIPTED_SHARE,
+} from './rules/js-only-content/rule'
 export { SERVER_RESPONSE_RULES } from './server-rules'
 
 /** Every rule, sorted by id. */
@@ -73,11 +86,13 @@ export const RULES: readonly Rule[] = [
   arLetterSpacing,
   arMojibake,
   arTatweel,
+  botChallenge,
   canonicalConflict,
   cspMissing,
   cwvClsPoor,
   cwvInpPoor,
   cwvLcpPoor,
+  dmarcMissing,
   formArabicDigitsRejected,
   formArabicNameRejected,
   formLabelMissing,
@@ -88,11 +103,14 @@ export const RULES: readonly Rule[] = [
   hstsMissing,
   httpsMissing,
   imageFormatLegacy,
+  jsOnlyContent,
   jsonldSyntaxError,
+  linkBroken,
   metaDescriptionMissing,
   mixedContent,
   ogTagsMissing,
   pageNoindex,
+  paymentMethods,
   priceDecimals,
   productOfferInvalid,
   redirectChain,
@@ -105,6 +123,9 @@ export const RULES: readonly Rule[] = [
   rtlHtmlDir,
   rtlMirroredIcons,
   rtlPhysicalCss,
+  sitemapInvalid,
+  sitemapMissing,
+  spfMissing,
   textCompressionMissing,
   titleMissing,
   tlsExpiring,
@@ -115,6 +136,16 @@ export const RULES: readonly Rule[] = [
 
 export function ruleById(id: string): Rule | undefined {
   return RULES.find((rule) => rule.id === id)
+}
+
+/**
+ * Whether every one of these rules is information (severity info): they list what a page shows
+ * and judge nothing. A tool of such rules reports what it finds, as notes and never as problems,
+ * and says "none found" where a tool that judges says the page passes (M2.3c review). A tool's
+ * example test and its page both ask, so the answer is one function.
+ */
+export function reportsOnly(ruleIds: readonly string[]): boolean {
+  return ruleIds.length > 0 && ruleIds.every((id) => ruleById(id)?.severity === 'info')
 }
 
 export {
@@ -135,10 +166,19 @@ export {
   type RuleExample,
 } from './example'
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
+export { isLocalHost } from './lib/hosts'
+export {
+  CHALLENGE_SIGNALS,
+  challengeOf,
+  type Challenge,
+  type ChallengeSignal,
+} from './lib/challenges'
+export { isPublicUrl } from './lib/hosts'
 export {
   crawlerAccess,
   matchRobots,
   patternMatches,
+  robotsMatcher,
   robotsPath,
   type CrawlerAccess,
   type RobotsMatch,

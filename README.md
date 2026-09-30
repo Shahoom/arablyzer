@@ -127,6 +127,7 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`ar-tatweel`](packages/rules/src/rules/ar-tatweel/copy.en.md) | No words stretched with tatweel (ـ) |
 | [`product-offer-invalid`](packages/rules/src/rules/product-offer-invalid/copy.en.md) | JSON-LD product offers have a price and an ISO 4217 currency, written as Schema.org asks |
 | [`price-decimals`](packages/rules/src/rules/price-decimals/copy.en.md) | Prices in Omani rials and Kuwaiti or Bahraini dinars have three decimals |
+| [`payment-methods`](packages/rules/src/rules/payment-methods/copy.en.md) | Which of mada, Apple Pay, STC Pay, Tabby and Tamara the page shows, by its logos' names and the providers' scripts (information) |
 | [`form-arabic-name-rejected`](packages/rules/src/rules/form-arabic-name-rejected/copy.en.md) | Name fields' `pattern` accepts Arabic names |
 | [`form-arabic-digits-rejected`](packages/rules/src/rules/form-arabic-digits-rejected/copy.en.md) | Number fields' `pattern` accepts Arabic-Indic digits |
 | [`https-missing`](packages/rules/src/rules/https-missing/copy.en.md) | A public page is served over HTTPS |
@@ -139,6 +140,22 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`tls-expiring`](packages/rules/src/rules/tls-expiring/copy.en.md) | The TLS certificate is not about to expire |
 | [`redirect-chain`](packages/rules/src/rules/redirect-chain/copy.en.md) | The page is reached through one redirect at most |
 | [`redirect-temporary`](packages/rules/src/rules/redirect-temporary/copy.en.md) | A move to HTTPS, or between a name and its `www.`, is a permanent redirect (301 or 308) |
+| [`bot-challenge`](packages/rules/src/rules/bot-challenge/copy.en.md) | The site answers the check with the page, not a Cloudflare or AWS WAF bot challenge (information) |
+| [`sitemap-missing`](packages/rules/src/rules/sitemap-missing/copy.en.md) | A public site names a sitemap in robots.txt, or has one at `/sitemap.xml` |
+| [`sitemap-invalid`](packages/rules/src/rules/sitemap-invalid/copy.en.md) | The site's sitemaps can be fetched and read: well-formed XML in the protocol's namespace, a feed, or a list of full URLs |
+
+These read TXT records of the page's domain (its organizational domain, by the Public Suffix List). The hosted service asks for them as DNS over HTTPS (RFC 8484) from Cloudflare's resolver, or from the one `ARABLYZER_DOH_URL` names, through the egress proxy; a scan on a machine without a proxy asks that machine's DNS servers. A site a platform gives its customers (`user.github.io`, `shop.myshopify.com`) has no domain of its own to read: they do not apply to it. A scan with no way to ask DNS leaves them out and says so:
+
+| Rule | Checks |
+|---|---|
+| [`spf-missing`](packages/rules/src/rules/spf-missing/copy.en.md) | The page's domain has one SPF record (`v=spf1`) |
+| [`dmarc-missing`](packages/rules/src/rules/dmarc-missing/copy.en.md) | The page's domain has one DMARC record (`v=DMARC1` at `_dmarc`) with a `p` tag (`none`, `quarantine` or `reject`) |
+
+This one asks for the page's links to its own origin, the first 50 that robots.txt does not keep from ArablyzerBot or from every crawler (`User-agent: *`), each with one `HEAD` (and a `GET` where `HEAD` answers an error or the connection fails), through the egress proxy, following no redirect:
+
+| Rule | Checks |
+|---|---|
+| [`link-broken`](packages/rules/src/rules/link-broken/copy.en.md) | No link to the site's own pages answers a `4xx` or `5xx` error (a `401`, `403`, `407`, `429` or `503`, by which a site refuses a bot, is not one) |
 
 These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
 
@@ -170,6 +187,7 @@ These read the page as a browser rendered it, so they run with `--render`:
 | [`form-phone-direction`](packages/rules/src/rules/form-phone-direction/copy.en.md) | Phone fields show numbers left to right |
 | [`text-compression-missing`](packages/rules/src/rules/text-compression-missing/copy.en.md) | Text is sent compressed where gzip would save much |
 | [`image-format-legacy`](packages/rules/src/rules/image-format-legacy/copy.en.md) | Images are not in older formats much larger than AVIF |
+| [`js-only-content`](packages/rules/src/rules/js-only-content/copy.en.md) | More than half of the Arabic words a browser draws are in the HTML the scan received, hidden text and `<noscript>` included (a browser that draws fewer than 20 is not judged) |
 
 ## The score / الدرجة
 

@@ -70,15 +70,23 @@ describe('ruleReads', () => {
     expect(reads('rtl-horizontal-overflow')).toBe('render')
     expect(reads('cwv-lcp-poor')).toBe('crux')
     expect(reads('robots-blocks-googlebot')).toBe('robots')
+    expect(reads('sitemap-missing')).toBe('sitemap')
     expect(reads('title-missing')).toBe('html')
     // The server's response: its headers, even with a <meta> that counts too, its redirects and
     // its connection; not the page rules that read a header beside the HTML.
     expect(reads('csp-missing')).toBe('http')
     expect(reads('redirect-chain')).toBe('http')
+    expect(reads('bot-challenge')).toBe('http')
     expect(reads('tls-expiring')).toBe('http')
     expect(reads('canonical-conflict')).toBe('html')
     expect(reads('mixed-content')).toBe('html')
     expect(reads('page-noindex')).toBe('html')
+    // The domain's DNS records, and the answers of the page's links, are neither (M2.3c).
+    expect(reads('spf-missing')).toBe('dns')
+    expect(reads('dmarc-missing')).toBe('dns')
+    expect(reads('link-broken')).toBe('links')
+    expect(reads('js-only-content')).toBe('render')
+    expect(reads('payment-methods')).toBe('html')
   })
 })
 

@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   loadFixtureConfig,
   resolveFixtureResponse,
+  serveHandler,
   serveSite,
   sitePath,
   type FixtureSite,
@@ -106,6 +107,66 @@ describe('serveSite', () => {
     const head = await request(site.url('/'), 'HEAD')
     expect(head.status).toBe(200)
     expect(head.body.length).toBe(0)
+  })
+
+  it('answers HEAD with a status of its own where a route says so, as a server that refuses it', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-fixture-'))
+    await writeFile(path.join(dir, 'index.html'), '<p>نص</p>')
+    await writeFile(path.join(dir, 'fixture.json'), JSON.stringify({ '/': { headStatus: 405 } }))
+    const refusing = await serveSite(dir)
+    try {
+      expect((await request(refusing.url('/'), 'HEAD')).status).toBe(405)
+      expect((await request(refusing.url('/'))).status).toBe(200)
+      const config = await loadFixtureConfig(dir)
+      expect((await resolveFixtureResponse(dir, config, '/', { method: 'HEAD' })).status).toBe(405)
+      expect((await resolveFixtureResponse(dir, config, '/')).status).toBe(200)
+    } finally {
+      await refusing.close()
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('drops HEAD where a route says so: the connection closed, or nothing ever said', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-fixture-'))
+    await writeFile(path.join(dir, 'index.html'), '<p>نص</p>')
+    await writeFile(
+      path.join(dir, 'fixture.json'),
+      JSON.stringify({ '/': { headDrop: 'reset' }, '/quiet': { headDrop: 'silence' } }),
+    )
+    const dropping = await serveSite(dir)
+    try {
+      await expect(request(dropping.url('/'), 'HEAD')).rejects.toThrow(/socket hang up|ECONNRESET/)
+      // A GET is answered as ever, and a route with nothing to say keeps the connection open.
+      expect((await request(dropping.url('/'))).status).toBe(200)
+      const silent = await new Promise<string>((resolve) => {
+        const req = http.request(
+          { host: '127.0.0.1', port: dropping.port, path: '/quiet', method: 'HEAD', agent: false },
+          () => {
+            resolve('answered')
+          },
+        )
+        req.on('error', () => {
+          resolve('error')
+        })
+        setTimeout(() => {
+          resolve('silent')
+          req.destroy()
+        }, 300)
+        req.end()
+      })
+      expect(silent).toBe('silent')
+      const config = await loadFixtureConfig(dir)
+      expect(await resolveFixtureResponse(dir, config, '/', { method: 'HEAD' })).toMatchObject({
+        drop: 'reset',
+      })
+      expect(await resolveFixtureResponse(dir, config, '/quiet', { method: 'HEAD' })).toMatchObject(
+        { drop: 'silence' },
+      )
+      expect((await resolveFixtureResponse(dir, config, '/')).drop).toBeUndefined()
+    } finally {
+      await dropping.close()
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 
   it('gives every site its own origin', async () => {
@@ -284,6 +345,18 @@ describe('serveSite: a site under several names', () => {
     root = await mkdtemp(path.join(tmpdir(), 'arablyzer-names-'))
     await writeFile(path.join(root, 'index.html'), '<p>page</p>')
     await writeFile(
+      path.join(root, 'robots.txt'),
+      [
+        'User-agent: *',
+        'Sitemap: http://shop.example/sitemap.xml',
+        'sitemap:http://www.shop.example/ar/sitemap.xml',
+        'Sitemap: http://other.example/sitemap.xml',
+        'Sitemap: http://shop.example:8080/pinned.xml',
+        'Sitemap: /sitemap.xml',
+        '',
+      ].join('\n'),
+    )
+    await writeFile(
       path.join(root, 'site.json'),
       JSON.stringify({ host: 'shop.example', aliases: ['www.shop.example'] }),
     )
@@ -349,6 +422,25 @@ describe('serveSite: a site under several names', () => {
     ])
   })
 
+  it('sends Sitemap lines of robots.txt that name its own URLs back to its own port', async () => {
+    const port = String(site.port)
+    const robots = await requestAs('shop.example', '/robots.txt')
+    expect(robots.body.toString('utf8').split('\n')).toEqual([
+      'User-agent: *',
+      `Sitemap: http://shop.example:${port}/sitemap.xml`,
+      `sitemap:http://www.shop.example:${port}/ar/sitemap.xml`,
+      // Another site's address, one with a port of its own, and a path stay as written.
+      'Sitemap: http://other.example/sitemap.xml',
+      'Sitemap: http://shop.example:8080/pinned.xml',
+      'Sitemap: /sitemap.xml',
+      '',
+    ])
+    // Read without HTTP, the file is as written: it has no port to give.
+    const config = await loadFixtureConfig(root)
+    const resolved = await resolveFixtureResponse(root, config, '/robots.txt')
+    expect(resolved.body.toString('utf8')).toContain('Sitemap: http://shop.example/sitemap.xml')
+  })
+
   it('answers an alias with its own route, and the site’s files', async () => {
     const page = await requestAs('www.shop.example', '/')
     expect(page.status).toBe(200)
@@ -375,5 +467,24 @@ describe('serveSite: a site under several names', () => {
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('serveHandler', () => {
+  it('answers as its handler says, by who asks, and lets go of its port when closed', async () => {
+    const handled = await serveHandler((req, res) => {
+      const browser = (req.headers['user-agent'] ?? '').includes('Mozilla')
+      res.writeHead(browser ? 403 : 200, { 'content-type': 'text/plain' })
+      res.end(browser ? 'challenge' : 'page')
+    })
+    try {
+      // The client of this file sends no user agent: the handler sees a caller that is no browser.
+      const plain = await request(handled.url('/'))
+      expect([plain.status, plain.body.toString('utf8')]).toEqual([200, 'page'])
+      expect(handled.url('/a?b=1')).toBe(`http://127.0.0.1:${handled.port}/a?b=1`)
+    } finally {
+      await handled.close()
+    }
+    await expect(request(`http://127.0.0.1:${handled.port}/`)).rejects.toThrow()
   })
 })

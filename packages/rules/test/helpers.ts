@@ -5,7 +5,18 @@ import {
   collectCrux,
   collectPage,
   collectRobots,
+  collectSitemap,
+  linkCheck,
+  organizationalDomain,
+  retriesWithGet,
+  siteLinks,
+  sitemapTargets,
+  txtLookup,
   type CruxFacts,
+  type DnsFacts,
+  type LinkAnswer,
+  type LinkCheck,
+  type LinkFacts,
   type A11yNodeFact,
   type A11yRuleFact,
   type A11yRuleId,
@@ -16,16 +27,22 @@ import {
   type PageFacts,
   type RenderedFacts,
   type RobotsFacts,
+  type SitemapCheck,
+  type SitemapFacts,
 } from '@arablyzer/collectors'
 import {
   answerCrux,
   certificateWindow,
+  fixtureTxt,
   loadFixtureConfig,
   type CruxData,
   loadSiteConfig,
   resolveFixtureResponse,
+  type FixtureConfig,
+  type SiteConfig,
 } from '@arablyzer/fixtures'
 import type { Redirect } from '@arablyzer/report-schema'
+import { isLocalHost, isPublicUrl } from '../src/lib/hosts'
 import type { DetectorFinding, Evidence, Rule } from '../src/rule'
 
 /** Rule tests read fixtures without HTTP; the engine test serves the same sites for real. */
@@ -50,9 +67,17 @@ const MAX_REDIRECTS = 10
  * Evidence for fixtures/<name>/ exactly as the fixture server would answer / and /robots.txt:
  * under its site.json host and over HTTPS when it asks, with the certificate it would have. A
  * redirect is followed, as the engine follows it, to a path of the site or to one of its names,
- * and each one is in the evidence's `redirects`.
+ * and each one is in the evidence's `redirects`. On a public host, the sitemaps are those
+ * robots.txt names, or /sitemap.xml, as the engine fetches them: the fixture's own, which do not
+ * redirect. On a public name, the TXT records of the page's organizational domain are those
+ * site.json gives (fixtureTxt), for the names `txtNames` lists: those the rule reads. The page's
+ * links to its own site are checked as the engine checks them, against the fixture's own answers.
  */
-export async function fixtureEvidence(ruleId: string, name: string): Promise<Evidence> {
+export async function fixtureEvidence(
+  ruleId: string,
+  name: string,
+  txtNames: (domain: string) => readonly string[] = () => [],
+): Promise<Evidence> {
   const root = `${fixturesDir(ruleId)}${name}`
   const config = await loadFixtureConfig(root)
   const site = await loadSiteConfig(root)
@@ -79,32 +104,128 @@ export async function fixtureEvidence(ruleId: string, name: string): Promise<Evi
     page = await answer(next)
   }
   const robots = await answer(new URL('/robots.txt', url))
+  const robotsFacts = collectRobots({
+    url: new URL('/robots.txt', url).href,
+    response: { status: robots.status, body: robots.body, truncated: false },
+    errorCode: null,
+  })
+  const sitemap = await fixtureSitemaps(robotsFacts, url, async (at) => {
+    const own = at.protocol === scheme && at.port === ''
+    if (!own || (at.hostname !== new URL(url).hostname && !names.includes(at.hostname))) {
+      throw new Error(`${ruleId}/${name}: a sitemap is not on the fixture site: ${at.href}`)
+    }
+    const answered = await answer(at)
+    if (REDIRECT_STATUSES.has(answered.status)) {
+      throw new Error(`${ruleId}/${name}: fixtures' sitemaps do not redirect: ${at.href}`)
+    }
+    return answered
+  })
   const window =
     site.tls === undefined ? null : certificateWindow(site.tls.lifetimeDays, site.tls.daysLeft)
+  const facts = collectPage({
+    url,
+    status: page.status,
+    headers: headerList(page.headers),
+    body: page.body,
+    certificate:
+      window === null
+        ? null
+        : {
+            validFrom: window[0].toISOString(),
+            validTo: window[1].toISOString(),
+            checkedAt: new Date().toISOString(),
+          },
+  })
   return {
     redirects,
-    page: collectPage({
-      url,
-      status: page.status,
-      headers: headerList(page.headers),
-      body: page.body,
-      certificate:
-        window === null
-          ? null
-          : {
-              validFrom: window[0].toISOString(),
-              validTo: window[1].toISOString(),
-              checkedAt: new Date().toISOString(),
-            },
-    }),
-    robots: collectRobots({
-      url: new URL('/robots.txt', url).href,
-      response: { status: robots.status, body: robots.body, truncated: false },
-      errorCode: null,
-    }),
+    page: facts,
+    robots: robotsFacts,
+    ...(sitemap === undefined ? {} : { sitemap }),
     // CrUX's answers as the engine asks for them: the URL, then the origin when it has none.
     ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, url) }),
+    ...dnsOf(site, url, txtNames),
+    links: await linksOf(root, config, names, facts),
   }
+}
+
+/**
+ * How the engine's checks of the page's links to its own site end on the fixture server (M2.3c):
+ * by the classification the engine itself uses (collectors' linkCheck and retriesWithGet), HEAD's
+ * status, or GET's where HEAD answers an error or fails to connect, a redirect's being its own, and
+ * a refusal (401, 403, 407, 429, 503) no answer. A route that drops HEAD is a connection that
+ * failed (`reset`) or a timeout (`silence`). Fixtures are small, so every link is checked; the
+ * engine's own suites scan the same fixtures over HTTP.
+ */
+async function linksOf(
+  root: string,
+  config: FixtureConfig,
+  names: readonly string[],
+  page: PageFacts,
+): Promise<LinkFacts> {
+  const { links, more } = siteLinks(page)
+  const check = async (url: string): Promise<LinkCheck> => {
+    const at = new URL(url)
+    const ask = async (method: 'HEAD' | 'GET'): Promise<LinkAnswer> => {
+      const response = await resolveFixtureResponse(root, config, at.pathname, {
+        method,
+        ...(names.includes(at.hostname) ? { host: at.hostname } : {}),
+      })
+      if (response.drop === 'reset') return { failure: 'connect-failed' }
+      if (response.drop === 'silence') return { failure: 'timeout' }
+      return response.status
+    }
+    const head = await ask('HEAD')
+    return retriesWithGet(head)
+      ? linkCheck(url, 'GET', await ask('GET'))
+      : linkCheck(url, 'HEAD', head)
+  }
+  return {
+    total: links.length,
+    more,
+    checks: await Promise.all(links.map(check)),
+    skipped: { limit: 0, robots: 0 },
+  }
+}
+
+/** The TXT records the engine would look up for the page's domain, as the site answers them. */
+function dnsOf(
+  site: SiteConfig,
+  pageUrl: string,
+  txtNames: (domain: string) => readonly string[],
+): { dns?: DnsFacts } {
+  const host = new URL(pageUrl).hostname
+  const domain = isLocalHost(host) ? null : organizationalDomain(host)
+  if (domain === null) return {}
+  return {
+    dns: {
+      domain,
+      txt: txtNames(domain).map((txtName) => {
+        const { outcome, records } = fixtureTxt(site, txtName)
+        return txtLookup(txtName, outcome, records)
+      }),
+    },
+  }
+}
+
+/**
+ * The sitemaps the engine would read for a fixture site: none for a local one, which it does not
+ * ask, or when robots.txt cannot be read.
+ */
+async function fixtureSitemaps(
+  robots: RobotsFacts,
+  pageUrl: string,
+  answer: (at: URL) => Promise<{ status: number; body: Buffer }>,
+): Promise<SitemapFacts | undefined> {
+  if (!isPublicUrl(pageUrl)) return undefined
+  if (robots.outcome !== 'fetched' && robots.outcome !== 'unavailable') return undefined
+  const named = robots.outcome === 'fetched' ? robots.robots.sitemaps : []
+  const { fetch, unchecked } = sitemapTargets(named, new URL(pageUrl).origin)
+  const checked: SitemapCheck[] = []
+  for (const target of fetch) {
+    const { status, body } = await answer(new URL(target.url))
+    checked.push(collectSitemap({ ...target, status, body, truncated: false }))
+  }
+  return { named, checked, unchecked }
 }
 
 /** What the engine would read from the CrUX stand-in for a fixture site's page. */

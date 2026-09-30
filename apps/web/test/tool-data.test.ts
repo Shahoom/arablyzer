@@ -30,6 +30,11 @@ describe('the tools as their pages have them', () => {
       return toolTag(tool)
     }
     expect(tag('ai-crawler-check')).toBe('robots')
+    expect(tag('sitemap-check')).toBe('sitemap')
+    expect(tag('ai-access')).toBe('robots')
+    expect(tag('core-web-vitals')).toBe('crux')
+    expect(tag('robots-check')).toBe('robots')
+    expect(tag('indexability-check')).toBe('html')
     expect(tag('rtl-check')).toBe('html')
     expect(tag('whatsapp-link-check')).toBe('html')
     expect(tag('security-headers')).toBe('http')
@@ -38,8 +43,26 @@ describe('the tools as their pages have them', () => {
     expect(tag('canonical-check')).toBe('html')
     expect(tag('mixed-content')).toBe('html')
     expect(tag('hreflang-check')).toBe('html')
+    expect(tag('email-security')).toBe('dns')
+    expect(tag('broken-links')).toBe('links')
+    expect(tag('js-rendering-check')).toBe('render')
+    expect(tag('payment-methods-detector')).toBe('html')
     expect(tag('robots-tester')).toBe('robots')
     expect(tag('whatsapp-link-generator')).toBe('generator')
+  })
+
+  // M2.3c review: a tool of information rules says what it found as notes, and "none found".
+  it('says which tools run information rules alone', () => {
+    const only = (slug: string) => data.tools.find((tool) => tool.slug === slug)?.reportsOnly
+    expect(only('payment-methods-detector')).toBe(true)
+    expect(only('logical-css-check')).toBe(true)
+    // Security headers judges, with one rule among its five that lists.
+    expect(only('security-headers')).toBe(false)
+    expect(only('rtl-check')).toBe(false)
+    expect(data.tools.filter((tool) => tool.reportsOnly).map((tool) => tool.slug)).toEqual([
+      'logical-css-check',
+      'payment-methods-detector',
+    ])
   })
 
   it('says where each tool runs: the scanner, or the visitor’s browser', () => {
