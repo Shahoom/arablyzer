@@ -636,11 +636,16 @@ describe.each(engines)('rendered facts: %s', (engine) => {
   })
 
   it('dismisses dialogs and closes pop-ups instead of waiting on them', async () => {
+    // window.open gives the page nothing (see SEND_GUARD); a link with a target opens a pop-up all
+    // the same, and the render closes it.
     const outcome = await rendered(engine, {
-      '/': arabicPage('<p>نص</p><script>alert("x"); confirm("y"); window.open("/other")</script>'),
+      '/': arabicPage(
+        '<p>نص</p><a id="l" href="/other" target="_blank">رابط</a><script>alert("x"); confirm("y"); window.open("/other"); document.getElementById("l").click()</script>',
+      ),
       '/other': arabicPage('<p>نافذة</p>'),
     })
     expect(outcome.status, outcome.error ?? '').toBe('rendered')
+    expect(outcome.facts?.url.endsWith('/')).toBe(true)
   })
 
   it('refuses requests past the limit, counted by the browser, which sees into tunnels (M1.1 review)', async () => {
@@ -720,21 +725,24 @@ for (const [where, realm] of [['page', window], ['frame', frame.contentWindow], 
     })
     expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
     // The guard ran first in the page and, in every engine, in the first document of a new frame
-    // and of a pop-up, which the page reaches at once (CI run 36282666726).
+    // and of a pop-up, which the page reached at once (CI run 36282666726). It cannot now: window.open
+    // gives back null (see SEND_GUARD), and that realm's attempts throw where they start.
     expect(reached).toEqual([])
   })
 
   it('lets nothing out past the limit while the browser closes (M1.1 CI)', async () => {
     // A request still waiting for the route when the page closes is let go by the browser, and
     // a beacon outlives its page: in Chromium's headless shell, 1 or 2 went out past the limit
-    // in each of 3 runs, after the proxy's count was taken.
+    // in each of 3 runs, after the proxy's count was taken. A beacon is a POST, which the render
+    // now refuses whatever the limit (see the sending suite); a keepalive request outlives its
+    // page in the same way, and a GET is one the render lets out.
     let beacons = 0
     const site = await serve((req, res) => {
       if (req.url === '/') {
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
         res.end(
           arabicPage(
-            '<p>نص</p><script>let i = 0; setInterval(() => navigator.sendBeacon("/b?" + i++, "x"), 5)</script>',
+            '<p>نص</p><script>let i = 0; setInterval(() => fetch("/b?" + i++, { keepalive: true }).catch(() => {}), 5)</script>',
           ),
         )
         return
@@ -756,30 +764,36 @@ for (const [where, realm] of [['page', window], ['frame', frame.contentWindow], 
     expect(beacons).toBeLessThanOrEqual(9)
   })
 
-  it('records whether a dedicated worker can start a service worker (M1.1 CI)', async () => {
-    // Init scripts do not run in workers, so the page's own guard cannot reach one. Chromium
-    // gives workers no navigator.serviceWorker. Firefox and WebKit let them register, and the
-    // service worker's 30 requests all went out with a limit of 10 (CI run 36282666726).
-    let registered = false
-    let fetched = 0
+  it('starts no dedicated worker, which could start a service worker whose requests no route sees (M1.1 CI, M1 review)', async () => {
+    // Init scripts do not run in workers, so the page's own guard cannot reach one. Chromium gives
+    // workers no navigator.serviceWorker. Firefox and WebKit let them register, and the service
+    // worker's 30 requests all went out with a limit of 10 (CI run 36282666726), any method and to
+    // any host, since no route sees them. So there is no dedicated worker (see SEND_GUARD).
+    const asked: string[] = []
     const site = await serve((req, res) => {
       const path = new URL(req.url ?? '/', 'http://x').pathname
       if (path === '/') {
         res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-        res.end(arabicPage(`<p>نص</p><script>new Worker('/worker.js')</script>`))
+        res.end(
+          arabicPage(
+            `<p>نص</p><script>
+              // The page says what it found, by a GET to its own site.
+              let found = typeof Worker;
+              try { new Worker('/worker.js') } catch (error) { found += ' ' + error.name }
+              fetch('/found?' + encodeURIComponent(found));
+            </script>`,
+          ),
+        )
         return
       }
+      if (path !== '/favicon.ico') asked.push(decodeURIComponent(req.url ?? ''))
       res.writeHead(200, { 'content-type': 'text/javascript' })
       if (path === '/worker.js') {
         res.end(`try { navigator.serviceWorker.register('/sw.js').catch(() => {}) } catch {}`)
       } else if (path === '/sw.js') {
-        registered = true
         res.end(`self.addEventListener('install', (e) => e.waitUntil(Promise.all(
   Array.from({ length: 30 }, (_, i) => fetch('/from-sw?' + i).catch(() => {})))))`)
-      } else {
-        if (path === '/from-sw') fetched++
-        res.end('')
-      }
+      } else res.end('')
     })
     cleanup.push(() => site.close())
     const [outcome] = await renderPage(site.url('/'), {
@@ -789,11 +803,8 @@ for (const [where, realm] of [['page', window], ['frame', frame.contentWindow], 
       maxRequests: 10,
     })
     expect(outcome?.status, outcome?.error ?? '').toBe('rendered')
-    console.info(
-      `${engine}: a dedicated worker registered a service worker = ${String(registered)}, ` +
-        `which sent ${String(fetched)} of 30 requests with a limit of 10`,
-    )
-    if (engine === 'chromium') expect(registered).toBe(false)
+    // The page found no Worker, and its worker's script was never asked for, nor the service worker's.
+    expect(asked).toEqual(['/found?undefined ReferenceError'])
   })
 
   it('stops at its time budget when the page blocks its own main thread', async () => {

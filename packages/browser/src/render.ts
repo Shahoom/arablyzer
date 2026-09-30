@@ -39,6 +39,7 @@ import {
   NEEDS_ISOLATION,
   NETWORK_ISOLATED_VARIABLE,
   networkIsolated,
+  SEND_GUARD,
   userAgentFor,
   WORKER_GUARD,
 } from './engines'
@@ -46,6 +47,15 @@ import { axeRunnerSource, axeSource, toA11yFacts } from './a11y'
 import { readPageFiles } from './files'
 import { DECODED_SIZES, fromPage, inPage, RESULT_GUARD, throughGuard } from './guard'
 import { measureSource } from './measure'
+import {
+  admit,
+  DEFAULT_MAX_HOSTS,
+  newBudget,
+  pageRequests,
+  refuseSocket,
+  type PageRequests,
+  type RequestBudget,
+} from './requests'
 import { measuredFontFaces, toFacts } from './validate'
 
 /** BUILD-PLAN §11: 30 s for the page load, 20 s for each further engine. */
@@ -82,6 +92,11 @@ const FILE_KINDS = new Set([
   'fetch',
   'eventsource',
 ])
+/**
+ * How a WebSocket the page opens is closed: with 1008, a policy violation, as a server that
+ * refuses a connection may answer; the page's own `close` event says so, and it goes on.
+ */
+const WEBSOCKET_CLOSE = { code: 1008, reason: 'Arablyzer browsers open no WebSockets' }
 /** Every Arabic letter, to ask which font draws them. */
 const ARABIC_SAMPLE = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي'
 
@@ -111,17 +126,12 @@ export interface RenderOptions {
    * the proxy sees only the tunnel of an HTTPS connection, not the requests inside it.
    */
   readonly maxRequests?: number
-}
-
-/**
- * The page's requests as the browser's route counted them: every one, including those inside
- * HTTPS connections, which the proxy sees only as tunnels (the owner's sites, 2026-09-27: dozens
- * of files over two connections), and those refused past maxRequests, which never reach it.
- */
-export interface PageRequests {
-  readonly made: number
-  /** Refused past maxRequests. */
-  readonly overLimit: number
+  /**
+   * Distinct hosts a page may contact per engine (DEFAULT_MAX_HOSTS). Requests to a host past the
+   * limit are refused, so that a page cannot make a scan reach as many sites as it names (M1
+   * review). A host is counted once, by its name, however many requests go to it.
+   */
+  readonly maxHosts?: number
 }
 
 /**
@@ -156,14 +166,6 @@ export interface RenderOutcome {
   readonly screenshot: Uint8Array | null
 }
 
-/** The page's request count against maxRequests, kept by the browser's route. */
-interface RequestBudget {
-  readonly max: number
-  made: number
-  overLimit: number
-  reached: boolean
-}
-
 class RenderTimeout extends Error {}
 class RenderAborted extends Error {}
 
@@ -191,7 +193,12 @@ class DocumentsMet {
   }
 }
 
-const NO_PAGE_REQUESTS: PageRequests = Object.freeze({ made: 0, overLimit: 0 })
+const NO_PAGE_REQUESTS: PageRequests = Object.freeze({
+  made: 0,
+  overLimit: 0,
+  overHosts: 0,
+  sending: 0,
+})
 
 const NO_REQUESTS: ProxyStats = Object.freeze({
   requests: 0,
@@ -208,6 +215,14 @@ const NO_REQUESTS: ProxyStats = Object.freeze({
  * does; the outcome says what happened.
  */
 export async function renderPage(url: string, options: RenderOptions): Promise<RenderOutcome[]> {
+  // A limit of no hosts would refuse the page itself: a mistake of the caller's, said before any
+  // proxy or browser starts (as startProxy does of its limits).
+  if (
+    options.maxHosts !== undefined &&
+    (!Number.isInteger(options.maxHosts) || options.maxHosts < 1)
+  ) {
+    throw new TypeError('maxHosts must be a whole number, at least 1')
+  }
   const outcomes: RenderOutcome[] = []
   for (const [index, engine] of options.engines.entries()) {
     const budget =
@@ -277,12 +292,10 @@ async function renderIn(
   const executablePath = options.executablePaths?.[engine] ?? executablePathFor(engine)
   let version: string | null = null
   // The page's own request count, kept by the browser (see RenderOptions.maxRequests).
-  const budget: RequestBudget = {
-    max: options.maxRequests ?? DEFAULT_MAX_REQUESTS,
-    made: 0,
-    overLimit: 0,
-    reached: false,
-  }
+  const budget = newBudget(
+    options.maxRequests ?? DEFAULT_MAX_REQUESTS,
+    options.maxHosts ?? DEFAULT_MAX_HOSTS,
+  )
   // What the watch over the page's documents saw: a bot challenge, told when the render ends.
   const met = new DocumentsMet()
   const finish = (
@@ -298,7 +311,7 @@ async function renderIn(
     challenge: status === 'challenged' ? met.challenge : null,
     durationMs: Math.round(performance.now() - started),
     requests: { ...proxy.stats(), limited: proxy.stats().limited || budget.reached },
-    pageRequests: { made: budget.made, overLimit: budget.overLimit },
+    pageRequests: pageRequests(budget),
     facts,
     screenshot,
   })
@@ -422,25 +435,46 @@ async function renderWith(
   const remaining = () => Math.max(1, Math.round(deadline - performance.now()))
   const agent = await defaultUserAgent(browser)
   const context = await browser.newContext(contextOptions(userAgentFor(agent, BOT_TOKEN)))
-  // Every request waits here for its turn to be counted, so a burst cannot get past the limit
-  // before it is noticed; past it, new requests are refused (BUILD-PLAN §11, M1.1 review).
+  // Every request waits here for its turn to be counted, so a burst cannot get past a limit before
+  // it is noticed (BUILD-PLAN §11, M1.1 review). It goes out only if it asks and sends nothing
+  // (GET or HEAD, whatever its destination), is within the request limit, and goes to a host
+  // within the host limit: see admit, and M1 review (issue #29) for why each is refused.
   await context.route('**/*', async (route) => {
-    budget.made++
     // After a bot challenge, nothing the page asks for goes out: its scripts get no further.
     if (met.challenge !== null) {
+      budget.made++
       await route.abort('blockedbyclient')
       return
     }
-    if (budget.made <= budget.max) {
+    const request = route.request()
+    const verdict = admit(budget, request.method(), request.url())
+    if (verdict === 'allow') {
       await route.fallback()
       return
     }
-    budget.reached = true
-    budget.overLimit++
-    await route.abort('blockedbyclient')
+    if (verdict === 'limit') {
+      await route.abort('blockedbyclient')
+      return
+    }
+    // Only 'aborted' leaves a page in place when it is a navigation that is refused, as a form's
+    // submission would be (none is, see SEND_GUARD): any other error made Chromium show its own
+    // error page, and the render measured that in the site's place.
+    await route.abort('aborted')
   })
-  // No workers whose requests no route sees (see WORKER_GUARD).
+  // No WebSockets: they are closed before they open. No route sees a WebSocket's handshake, and a
+  // WebSocket is a way to send whatever the page likes to any host it likes. Playwright replaces
+  // WebSocket in the page and its frames, not in workers (see SEND_GUARD).
+  await context.routeWebSocket(
+    () => true,
+    async (socket) => {
+      refuseSocket(budget)
+      await socket.close(WEBSOCKET_CLOSE)
+    },
+  )
+  // No workers whose requests no route sees, and no socket that routing does not close (see
+  // WORKER_GUARD and SEND_GUARD).
   await context.addInitScript(WORKER_GUARD)
+  await context.addInitScript(SEND_GUARD)
   await context.addInitScript(RESULT_GUARD)
   await context.addInitScript(DECODED_SIZES)
   const page = await context.newPage()
@@ -573,7 +607,9 @@ async function renderWith(
     url: page.url(),
     status: response?.status() ?? null,
     fontRequests: fontRequests.map((request) => fontRequestFact(request, statuses, refusals)),
-    limited: proxy.stats().limited || budget.reached,
+    // What the limits on requests and on hosts cut is not the site's doing. What was refused for
+    // sending data cut no file, so it does not count.
+    limited: proxy.stats().limited || budget.reached || budget.overHosts > 0,
     filesRead: read !== undefined,
     ...(usedFonts === undefined ? {} : { usedFonts }),
     a11y,

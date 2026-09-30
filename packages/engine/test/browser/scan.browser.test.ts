@@ -160,3 +160,50 @@ describe(`scan: a browser answered with a bot challenge (${engine})`, () => {
     }
   })
 })
+
+// M1 review (issue #29): a page's scripts run in the render's browsers, which send nothing the page
+// asks them to send. What the browser refused is counted in the report's run, and told in a notice
+// (the browser package's suite proves what is refused, in every engine, to a second server).
+describe(`scan: a page that asks its browser to send data (${engine})`, () => {
+  it('sends none of it to the site, and the report says what was refused', async () => {
+    const sent: string[] = []
+    const answering = await serveHandler((req, res) => {
+      if (req.url === '/') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        res.end(`<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><p id="a">مرحبا بكم</p>
+<script>
+fetch('/log', { method: 'POST', body: 'x' }).catch(() => {});
+navigator.sendBeacon('/beacon', 'x');
+try { new WebSocket('ws://' + location.host + '/socket') } catch (error) {}
+</script></html>`)
+        return
+      }
+      if (req.url !== '/favicon.ico' && req.url !== '/robots.txt') {
+        sent.push(`${req.method ?? ''} ${req.url ?? ''}`)
+      }
+      res.writeHead(404, { 'content-type': 'text/plain' })
+      res.end('Not Found')
+    })
+    try {
+      const report = await scan(answering.url('/'), {
+        rules: [renderRule()],
+        policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: answering.port }] }),
+        render: { engines: [engine] },
+      })
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      expect(schemaErrors(report)).toBe('')
+      expect(sent).toEqual([])
+      const [run] = report.scan.render ?? []
+      expect(run).toMatchObject({ engine, status: 'rendered' })
+      // The page, the favicon perhaps, and three that were refused: the run counts them all.
+      expect(run?.requests.refused).toBeGreaterThanOrEqual(3)
+      const notice = report.scan.notices.find((item) => item.code === 'request-refused')
+      expect(notice?.message.en).toMatch(
+        /^In (Chromium|Firefox|WebKit), the page asked to send data/,
+      )
+      expect(report.scan.notices.map((item) => item.code)).not.toContain('request-limit')
+    } finally {
+      await answering.close()
+    }
+  })
+})

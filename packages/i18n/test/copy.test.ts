@@ -30,6 +30,7 @@ const SAMPLE = {
   sitemapSeconds: 10,
   requestsPerLoad: 300,
   mibPerLoad: 25,
+  hostsPerLoad: 50,
   viewport: { width: 390, height: 844 },
   dohUrl: 'https://cloudflare-dns.com/dns-query',
   links: 50,
@@ -71,6 +72,7 @@ describe('the bot’s page', () => {
     sitemapSeconds: 12,
     requestsPerLoad: 300,
     mibPerLoad: 25,
+    hostsPerLoad: 41,
     viewport: { width: 390, height: 844 },
     dohUrl: 'https://cloudflare-dns.com/dns-query',
     links: 50,
@@ -94,6 +96,42 @@ describe('the bot’s page', () => {
   it('says a browser answered with a challenge stops there', () => {
     expect(PAGES_UI.en.bot.never.items.join('\n')).toContain('that browser')
     expect(PAGES_UI.ar.bot.never.items.join('\n')).toContain('ذلك المتصفح')
+  })
+
+  // M1 review (issue #29): a page's scripts run in the bot's browsers, and they refuse whatever
+  // sends data; the page says so, and how many hosts a browser may reach, from the code's number.
+  it.each([
+    [
+      'en',
+      [
+        'sends nothing your page asks it to send',
+        '`GET` or `HEAD`',
+        'WebSocket',
+        'sendBeacon',
+        'POST',
+      ],
+    ],
+    ['ar', ['لا يرسل ما تطلب صفحتك', '`GET` و`HEAD`', 'WebSocket', 'sendBeacon', 'POST']],
+  ] as const)('says its browsers send no data a page asks them to, in %s', (lang, phrases) => {
+    const never = PAGES_UI[lang].bot.never.items.join('\n')
+    for (const phrase of phrases) expect(never, phrase).toContain(phrase)
+  })
+
+  it.each([
+    ['en', '41 different hosts'],
+    ['ar', '41 مضيفاً مختلفاً'],
+  ] as const)('says how many hosts a browser may reach, in %s', (lang, phrase) => {
+    expect(items(lang)).toContain(phrase)
+  })
+
+  it('counts the hosts as Arabic counts them', () => {
+    const at = (hostsPerLoad: number) =>
+      PAGES_UI.ar.bot.fetches.items({ ...numbers, hostsPerLoad }).join('\n')
+    expect(at(1)).toContain('من مضيف واحد على الأكثر')
+    expect(at(2)).toContain('من مضيفين مختلفين على الأكثر')
+    expect(at(5)).toContain('من 5 مضيفين مختلفين على الأكثر')
+    expect(at(50)).toContain('من 50 مضيفاً مختلفاً على الأكثر')
+    expect(at(100)).toContain('من 100 مضيف مختلف على الأكثر')
   })
 })
 

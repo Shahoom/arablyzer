@@ -31,7 +31,7 @@ function outcome(
     challenge,
     durationMs: 40,
     requests: { ...NO_REQUESTS, refusals: [] },
-    pageRequests: { made: 1, overLimit: 0 },
+    pageRequests: { made: 1, overLimit: 0, overHosts: 0, sending: 0 },
     facts: null,
     screenshot: null,
   }

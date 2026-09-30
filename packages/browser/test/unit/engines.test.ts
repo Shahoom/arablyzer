@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BOT_TOKEN,
   NEEDS_ISOLATION,
+  SEND_GUARD,
   WORKER_GUARD,
   browserEnvironment,
   bypassesProxyForLoopback,
@@ -35,8 +36,12 @@ describe('launch settings', () => {
     )
   })
 
-  it('takes SharedWorker out of Chromium, since no route sees its requests (M1.1 CI)', () => {
-    expect(launchOptions('chromium', proxy).args).toContain('--disable-blink-features=SharedWorker')
+  it('takes SharedWorker and fetchLater out of Chromium, since no route sees their requests (M1.1 CI, M1 review)', () => {
+    // One flag lists both: Chromium counts only the last --disable-blink-features.
+    const flags = (launchOptions('chromium', proxy).args ?? []).filter((arg) =>
+      arg.startsWith('--disable-blink-features='),
+    )
+    expect(flags).toEqual(['--disable-blink-features=SharedWorker,FetchLaterAPI'])
   })
 
   it('turns WebRTC off in Firefox and sends localhost to the proxy', () => {
@@ -44,6 +49,14 @@ describe('launch settings', () => {
       'network.proxy.allow_hijacking_localhost': true,
       'media.peerconnection.enabled': false,
       'network.webtransport.enabled': false,
+    })
+  })
+
+  it('turns CSP reporting off in Firefox, whose reports go around the browser’s route (M1 review)', () => {
+    // A page's report-uri names an address, and Firefox POSTed to it from every scan, with no
+    // route in the way (the browser suite's sending tests show it, per engine).
+    expect(launchOptions('firefox', proxy).firefoxUserPrefs).toMatchObject({
+      'security.csp.reporting.enabled': false,
     })
   })
 
@@ -139,6 +152,22 @@ describe('an aborted render', () => {
   })
 })
 
+describe('the limit of hosts', () => {
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'refuses %s, before any browser or proxy starts (M1 review)',
+    async (maxHosts) => {
+      await expect(
+        renderPage('http://127.0.0.1:9/', {
+          engines: ['chromium'],
+          maxHosts,
+          // Never launched: the limit is checked first.
+          executablePaths: { chromium: '/nonexistent/chromium' },
+        }),
+      ).rejects.toThrow(TypeError)
+    },
+  )
+})
+
 describe('context settings', () => {
   it('refuses downloads, and fixes screen, language and clock', () => {
     expect(contextOptions('agent')).toMatchObject({
@@ -179,9 +208,109 @@ describe('the worker guard', () => {
     })
   })
 
+  it('leaves dedicated workers to the render, which turns them off with the send guard', () => {
+    // Lighthouse runs this guard too, and its browser is not held to the send guard yet.
+    const realm = vm.createContext({ Worker: 'here', WebSocketStream: 'here' })
+    vm.runInContext(WORKER_GUARD, realm)
+    expect(vm.runInContext('typeof Worker', realm)).toBe('string')
+    expect(vm.runInContext('typeof WebSocketStream', realm)).toBe('string')
+  })
+
   it('runs where neither exists', () => {
     expect(() => {
       vm.runInContext(WORKER_GUARD, vm.createContext({}))
+    }).not.toThrow()
+  })
+})
+
+describe('the send guard', () => {
+  /** A page's world: the guard is run in it, and the listeners it adds to the window are kept. */
+  function world(extra: Record<string, unknown> = {}) {
+    const listeners: { type: string; listener: (event: unknown) => void; capture: unknown }[] = []
+    const realm = vm.createContext({
+      Worker: 'here',
+      WebSocketStream: 'here',
+      SharedWorker: 'here',
+      WebSocket: 'here',
+      fetchLater: 'here',
+      open: () => 'a window',
+      document: { visibilityState: 'visible' },
+      addEventListener: (type: string, listener: (event: unknown) => void, capture: unknown) =>
+        listeners.push({ type, listener, capture }),
+      ...extra,
+    })
+    vm.runInContext('globalThis.globalThis = globalThis', realm)
+    vm.runInContext(SEND_GUARD, realm)
+    return { realm, listeners }
+  }
+
+  it('takes dedicated workers, WebSocketStream and fetchLater away, whose requests no route holds (M1 review)', () => {
+    const { realm } = world()
+    for (const name of ['Worker', 'WebSocketStream', 'fetchLater']) {
+      expect(vm.runInContext(`typeof ${name}`, realm), name).toBe('undefined')
+    }
+    // WebSocket itself is Playwright's to replace, so that a page's socket closes and says so.
+    expect(vm.runInContext('typeof WebSocket', realm)).toBe('string')
+    expect(vm.runInContext('typeof SharedWorker', realm)).toBe('string')
+  })
+
+  it('gives a page nothing to script when it opens a pop-up', () => {
+    const { realm } = world()
+    expect(vm.runInContext("open('about:blank')", realm)).toBeNull()
+    expect(vm.runInContext("globalThis.open('/x', '_blank', 'popup')", realm)).toBeNull()
+  })
+
+  it('stops the events of a page’s dismissal before any handler of the page sees them', () => {
+    const { listeners } = world()
+    const stopped: string[] = []
+    const event = (type: string) => ({
+      type,
+      stopImmediatePropagation: () => stopped.push(type),
+    })
+    // Capturing, and the first on the window, so that it runs before the page's own listeners.
+    expect(listeners.map(({ type, capture }) => [type, capture])).toEqual([
+      ['pagehide', true],
+      ['unload', true],
+      ['pageswap', true],
+      ['visibilitychange', true],
+    ])
+    for (const { type, listener } of listeners) listener(event(type))
+    // A page that is only visible again is left alone: visibilitychange stops only when hidden.
+    expect(stopped).toEqual(['pagehide', 'unload', 'pageswap'])
+  })
+
+  it('stops visibilitychange once the page is hidden', () => {
+    const document = { visibilityState: 'hidden' }
+    const { listeners } = world({ document })
+    const stopped: string[] = []
+    const change = listeners.find(({ type }) => type === 'visibilitychange')
+    change?.listener({ stopImmediatePropagation: () => stopped.push('visibilitychange') })
+    expect(stopped).toEqual(['visibilitychange'])
+  })
+
+  it('submits no form: submit() does nothing, and the default of a submit event is prevented', () => {
+    class HTMLFormElement {
+      submit(): string {
+        return 'submitted'
+      }
+    }
+    const { realm, listeners } = world({ HTMLFormElement })
+    expect(vm.runInContext('new HTMLFormElement().submit()', realm)).toBeUndefined()
+    expect(vm.runInContext('HTMLFormElement.prototype.submit.call({})', realm)).toBeUndefined()
+    const prevented: string[] = []
+    const submit = listeners.find(({ type }) => type === 'submit')
+    expect(submit?.capture).toBe(true)
+    submit?.listener({ preventDefault: () => prevented.push('submit') })
+    expect(prevented).toEqual(['submit'])
+  })
+
+  it('runs where none of them exists', () => {
+    expect(() => {
+      vm.runInContext('globalThis.globalThis = globalThis', vm.createContext({}))
+      vm.runInContext(
+        SEND_GUARD,
+        vm.createContext({ addEventListener: () => undefined, document: {} }),
+      )
     }).not.toThrow()
   })
 })

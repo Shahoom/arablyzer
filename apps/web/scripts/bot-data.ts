@@ -1,4 +1,4 @@
-import { BOT_TOKEN, VIEWPORT } from '@arablyzer/browser'
+import { BOT_TOKEN, DEFAULT_MAX_HOSTS, VIEWPORT } from '@arablyzer/browser'
 import {
   DEFAULT_DOH_URL,
   DEFAULT_MAX_BYTES,
@@ -33,6 +33,7 @@ export function botFacts(): BotFacts {
     sitemapSeconds: SITEMAP_TIMEOUT_MS / 1000,
     requestsPerLoad: DEFAULT_MAX_REQUESTS,
     mibPerLoad: DEFAULT_MAX_BYTES / (1024 * 1024),
+    hostsPerLoad: DEFAULT_MAX_HOSTS,
     viewport: { width: VIEWPORT.width, height: VIEWPORT.height },
     dohUrl: DEFAULT_DOH_URL,
     links: MAX_LINKS,

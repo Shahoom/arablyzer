@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { MEASURE_LIMITS } from '@arablyzer/browser'
+import { DEFAULT_MAX_HOSTS, MEASURE_LIMITS } from '@arablyzer/browser'
 import { MAX_SITE_LINKS, MAX_TEXT_ALTERNATIVES } from '@arablyzer/collectors'
 import { MIN_DRAWN_WORDS, RENDERED_TEXT_LENGTH, SCRIPTED_SHARE } from '@arablyzer/rules'
 import { describe, expect, it } from 'vitest'
@@ -10,9 +10,9 @@ import { REFUSAL_STATUSES } from '../src/index'
 
 // M2.3c review: the copy states figures of the checks' method (50 links, four at a time, twenty
 // seconds in all, ten for each request, ten for DNS, the first 200 elements and 200 characters, the
-// least words, "more than half"), and they had drifted from the code once. One test reads the
-// rules' and the tools' copy in both languages, and docs/methodology.md, and takes each figure they
-// state from the constant that does it.
+// least words, "more than half", and, from the M1 review, the hosts a browser may contact), and they
+// had drifted from the code once. One test reads the rules' and the tools' copy in both languages,
+// and docs/methodology.md, and takes each figure they state from the constant that does it.
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 type Lang = 'en' | 'ar'
@@ -154,6 +154,12 @@ const STATEMENTS: readonly Statement[] = [
     ],
   },
   {
+    what: 'the hosts a browser may contact',
+    en: `at most ${String(DEFAULT_MAX_HOSTS)} different hosts`,
+    ar: `بأكثر من ${String(DEFAULT_MAX_HOSTS)} مضيفاً مختلفاً`,
+    where: [['methodology', '']],
+  },
+  {
     what: 'the share of missing words that fails a page',
     en: share('en'),
     ar: share('ar'),
@@ -219,6 +225,11 @@ describe('the figures the copy states', () => {
         )
         allowed([MIN_DRAWN_WORDS], figures(source, /\b(\d+) (?:Arabic words|كلمة عربية)/g), 'words')
         allowed([MAX_TEXT_ALTERNATIVES], figures(source, /\b(\d[\d,]*) (?:names|اسم)/g), 'names')
+        allowed(
+          [DEFAULT_MAX_HOSTS],
+          figures(source, /\b(\d+) (?:different hosts|مضيفاً مختلفاً)/g),
+          'hosts',
+        )
       }
     },
   )

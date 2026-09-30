@@ -18,6 +18,15 @@ const SECONDS: ArabicForms = {
   many: '{n} ثانية',
 }
 
+/** Hosts after a preposition: «إلى مضيف واحد»، «مضيفين مختلفين»، «3 مضيفين مختلفين»، «50 مضيفاً مختلفاً». */
+const HOSTS: ArabicForms = {
+  one: 'مضيف واحد',
+  two: 'مضيفين مختلفين',
+  few: '{n} مضيفين مختلفين',
+  many: '{n} مضيفاً مختلفاً',
+  other: '{n} مضيف مختلف',
+}
+
 /** What the bot's page needs to say of it, each number from the code (apps/web, bot.json). */
 export interface BotNumbers {
   readonly pageRedirects: number
@@ -29,6 +38,8 @@ export interface BotNumbers {
   readonly sitemapSeconds: number
   readonly requestsPerLoad: number
   readonly mibPerLoad: number
+  /** The distinct hosts a browser may contact in one page load, at most. */
+  readonly hostsPerLoad: number
   readonly viewport: { readonly width: number; readonly height: number }
   /** The DNS-over-HTTPS resolver the hosted service asks unless it is configured with another. */
   readonly dohUrl: string
@@ -127,6 +138,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
           sitemapSeconds,
           requestsPerLoad,
           mibPerLoad,
+          hostsPerLoad,
           viewport,
           dohUrl,
           links,
@@ -137,7 +149,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
           `حين يحتاج الفحص إلى روابط الصفحة، وهذا في فحص الروابط المعطّلة: طلب \`HEAD\` لكل رابط من أول ${String(links)} رابطاً في الصفحة إلى موقعك نفسه، وطلب \`GET\` إن ردّ بخطأ أو تعذّر الاتصال، دون أن يتبع تحويلاً أو يقرأ محتوى، ودون المسارات التي يمنعها ملف robots.txt عن ArablyzerBot أو عن كل زاحف بالمجموعة \`User-agent: *\`. وبعد أول رد بالحالة \`429\` لا يطلب رابطاً آخر.`,
           `حين يحتاج الفحص إلى خرائط الموقع: أول ${String(sitemaps)} خرائط يسمّيها robots.txt، أو \`/sitemap.xml\` إن لم يسمِّ شيئاً، ويقرأ أول ${String(sitemapMib)} ميغابايت من كل منها ويتبع ${arabicCount(sitemapRedirects, REDIRECTS)} على الأكثر، ولا يفتح الخرائط التي يسردها فهرس خرائط الموقع. ولا ينتظر الشبكة أكثر من ${arabicCount(sitemapSeconds, SECONDS)} للخرائط كلها.`,
           'قد يكون في robots.txt عنوان خريطة على موقع آخر: يقرأ ArablyzerBot ملف robots.txt لذلك الموقع أولاً، ولا يجلب منه ما يطلب ألّا يجلبه ArablyzerBot أو كل الزواحف بمجموعة `User-agent: *`، ولا يتبع تحويلاً إلى موقع آخر إلا حيث يسمح robots.txt فيه.',
-          `حين يحتاج الفحص إلى عرض الصفحة: يفتحها في Chromium وFirefox وWebKit بنافذة جوال عرضها ${String(viewport.width)} وارتفاعها ${String(viewport.height)}، فيحمّل كل متصفح ما تحمّله الصفحة لزائرها من ملفات CSS وخطوط وصور وسكربتات، بـ ${String(requestsPerLoad)} طلب و${String(mibPerLoad)} ميغابايت على الأكثر في كل متصفح.`,
+          `حين يحتاج الفحص إلى عرض الصفحة: يفتحها في Chromium وFirefox وWebKit بنافذة جوال عرضها ${String(viewport.width)} وارتفاعها ${String(viewport.height)}، فيحمّل كل متصفح ما تحمّله الصفحة لزائرها من ملفات CSS وخطوط وصور وسكربتات، بـ ${String(requestsPerLoad)} طلب و${String(mibPerLoad)} ميغابايت على الأكثر في كل متصفح، ومن ${arabicCount(hostsPerLoad, HOSTS)} على الأكثر.`,
           'تمرّ كل طلباته عبر بروكسي خروج واحد يرفض العناوين الخاصة والمحلية.',
         ],
       },
@@ -145,6 +157,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         title: 'ما لا يفعله أبداً',
         items: [
           'لا يرسل أي نموذج، ولا يكتب في الحقول، ولا يضغط الأزرار.',
+          'لا يرسل ما تطلب صفحتك أن يرسله: يرفض متصفحه كل طلب غير `GET` و`HEAD`، وكل WebSocket، أياً كانت وجهته، فلا يخرج من الفحص نموذج ولا `sendBeacon` ولا طلب `POST` تصدره صفحتك، حتى إلى موقعك نفسه. وأداة الإحصاء التي تُبلغ عن الزيارة بـ `POST` أو بـ `sendBeacon` لا تُبلغ عن هذه الزيارة.',
           'لا يسجّل الدخول إلى أي حساب.',
           'لا يتجاوز CAPTCHA ولا أي حماية من البوتات: إن ردّ موقعك بتحدٍّ، يقول التقرير إن الموقع منع الفحص، وإن ردّ به على متصفح وحده، يتوقف عرض ذلك المتصفح عندئذ.',
         ],
@@ -215,6 +228,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
           sitemapSeconds,
           requestsPerLoad,
           mibPerLoad,
+          hostsPerLoad,
           viewport,
           dohUrl,
           links,
@@ -225,7 +239,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
           `When the check needs the page’s links, as the broken-link check does: a \`HEAD\` request to each of the first ${String(links)} links on the page to your own site, and a \`GET\` where it answers an error or the connection fails, following no redirect and reading no content, and skipping the paths robots.txt disallows for ArablyzerBot or for every crawler with \`User-agent: *\`. After the first \`429\` it asks for no more links.`,
           `When the check reads your sitemaps: the first ${String(sitemaps)} your robots.txt names, or \`/sitemap.xml\` when it names none, reading the first ${String(sitemapMib)} MB of each and following at most ${String(sitemapRedirects)} redirects, and never the sitemaps a sitemap index lists. It waits no more than ${String(sitemapSeconds)} seconds on the network for all of them.`,
           'A sitemap your robots.txt names may be on another host: the bot reads that host’s robots.txt first, does not fetch what it asks ArablyzerBot, or every crawler with `User-agent: *`, to leave alone, and follows a redirect to another host only where that host’s robots.txt allows it.',
-          `When the check renders the page: it opens it in Chromium, Firefox and WebKit, in a phone window ${String(viewport.width)} wide and ${String(viewport.height)} high, and each browser loads what the page loads for a visitor (stylesheets, fonts, images, scripts), at most ${String(requestsPerLoad)} requests and ${String(mibPerLoad)} MB per browser.`,
+          `When the check renders the page: it opens it in Chromium, Firefox and WebKit, in a phone window ${String(viewport.width)} wide and ${String(viewport.height)} high, and each browser loads what the page loads for a visitor (stylesheets, fonts, images, scripts), at most ${String(requestsPerLoad)} requests and ${String(mibPerLoad)} MB per browser, to at most ${String(hostsPerLoad)} different hosts.`,
           'Every request goes through one egress proxy that refuses private and local addresses.',
         ],
       },
@@ -233,6 +247,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         title: 'What it never does',
         items: [
           'It never submits a form, types into a field, or presses a button.',
+          'It sends nothing your page asks it to send: its browsers refuse every request that is not `GET` or `HEAD`, and every WebSocket, wherever it goes, so no form, `sendBeacon` or `POST` request your page makes leaves a check, even to your own site. An analytics tag that reports a visit by `POST` or by `sendBeacon` does not report this one.',
           'It never logs into an account.',
           'It never gets past a CAPTCHA or any bot protection: if your site answers with a challenge, the report says the site blocked the check, and if only a browser is answered with one, that browser’s render stops there.',
         ],
