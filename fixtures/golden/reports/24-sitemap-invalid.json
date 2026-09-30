@@ -6,8 +6,8 @@
     "rulesetVersion": "0.6.0"
   },
   "target": {
-    "url": "https://store.example:30001/",
-    "finalUrl": "https://store.example:30001/",
+    "url": "https://spices.example:30024/",
+    "finalUrl": "https://spices.example:30024/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -26,6 +26,13 @@
           "ar": "بعض الفحوص تحتاج عرض الصفحة في متصفح، ولم يُطلب العرض في هذا الفحص، فلم تعمل.",
           "en": "Some checks need the page rendered in a browser; this scan did not render it, so they did not run."
         }
+      },
+      {
+        "code": "crux-no-key",
+        "message": {
+          "ar": "فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.",
+          "en": "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run."
+        }
       }
     ]
   },
@@ -35,34 +42,34 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 36,
-    "fail": 0,
+    "pass": 27,
+    "fail": 1,
     "needsReview": 0,
-    "notApplicable": 6,
+    "notApplicable": 14,
     "error": 0,
     "bySeverity": {
       "critical": 0,
       "serious": 0,
-      "moderate": 0,
+      "moderate": 1,
       "minor": 0,
       "info": 0
     }
   },
   "score": {
-    "overall": 100,
+    "overall": 97,
     "categories": {
       "ai": 100,
       "ar-content": 100,
-      "commerce": 100,
-      "crawl": 100,
-      "forms": 100,
+      "commerce": null,
+      "crawl": 79,
+      "forms": null,
       "index": 100,
       "intl": 100,
       "links": null,
       "onpage": 100,
       "rtl": 100,
-      "schema": 100,
-      "speed": 100,
+      "schema": null,
+      "speed": null,
       "trust": 100
     },
     "partial": false,
@@ -146,7 +153,7 @@
       "version": "1.0.0",
       "category": "index",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
@@ -168,7 +175,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "محتوى يتحرك أثناء التحميل على الجوال",
         "en": "Content that moves while loading on phones"
@@ -179,7 +186,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "بطء الاستجابة للّمس على الجوال",
         "en": "Slow to answer taps on phones"
@@ -190,7 +197,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
         "en": "Slow to show its main content on phones"
@@ -289,7 +296,7 @@
       "version": "1.0.0",
       "category": "schema",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "خطأ في صيغة JSON داخل البيانات المنظّمة (JSON-LD)",
         "en": "JSON syntax error in structured data (JSON-LD)"
@@ -366,7 +373,7 @@
       "version": "1.0.0",
       "category": "commerce",
       "severity": "minor",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "أسعار بالريال العماني أو الدينار الكويتي أو البحريني بلا ثلاث منازل عشرية",
         "en": "Prices in Omani rials or Kuwaiti or Bahraini dinars without three decimals"
@@ -377,7 +384,7 @@
       "version": "1.0.0",
       "category": "schema",
       "severity": "moderate",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "عرض منتج بلا سعر أو عملة صالحَين (JSON-LD)",
         "en": "Product offer without a valid price or currency (JSON-LD)"
@@ -454,7 +461,7 @@
       "version": "1.0.0",
       "category": "crawl",
       "severity": "moderate",
-      "status": "pass",
+      "status": "fail",
       "title": {
         "ar": "خريطة موقع لا تستطيع محركات البحث قراءتها",
         "en": "A sitemap search engines cannot read"
@@ -523,7 +530,7 @@
       "version": "1.0.0",
       "category": "forms",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "رقم رابط واتساب ليس بالصيغة الدولية",
         "en": "WhatsApp link number not in international format"
@@ -541,11 +548,29 @@
       }
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "ruleId": "sitemap-invalid",
+      "severity": "moderate",
+      "fingerprint": "ae3dfa4fb8306f71",
+      "message": {
+        "ar": "العنصر <urlset> في https://spices.example:30024/sitemap.xml ليس في مساحة اسم بروتوكول خرائط الموقع http://www.sitemaps.org/schemas/sitemap/0.9.",
+        "en": "The <urlset> element of https://spices.example:30024/sitemap.xml is not in the sitemaps protocol's namespace, http://www.sitemaps.org/schemas/sitemap/0.9."
+      },
+      "evidence": {
+        "url": "https://spices.example:30024/sitemap.xml",
+        "values": {
+          "url": "https://spices.example:30024/sitemap.xml",
+          "root": "urlset",
+          "namespace": "https://www.sitemaps.org/schemas/sitemap/0.9"
+        }
+      }
+    }
+  ],
   "facts": {
     "robots": {
-      "url": "https://store.example:30001/robots.txt",
-      "status": 404,
+      "url": "https://spices.example:30024/robots.txt",
+      "status": 200,
       "aiCrawlers": [
         {
           "token": "OAI-SearchBot",
@@ -593,18 +618,6 @@
           "allowed": true
         }
       ]
-    },
-    "crux": {
-      "outcome": "found",
-      "scope": "url",
-      "key": "https://store.example:30001/",
-      "period": {
-        "first": "2026-08-30",
-        "last": "2026-09-26"
-      },
-      "lcp": 2100,
-      "inp": 180,
-      "cls": 0.05
     }
   }
 }

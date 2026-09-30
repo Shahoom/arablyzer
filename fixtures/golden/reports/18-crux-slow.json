@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.5.0"
+    "rulesetVersion": "0.6.0"
   },
   "target": {
     "url": "http://127.0.0.1:30018/",
@@ -59,10 +59,10 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 20,
+    "pass": 22,
     "fail": 2,
     "needsReview": 0,
-    "notApplicable": 31,
+    "notApplicable": 37,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -83,6 +83,7 @@
       "forms": null,
       "index": 100,
       "intl": 100,
+      "links": null,
       "onpage": 100,
       "rtl": 100,
       "schema": null,
@@ -91,8 +92,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 53,
-      "total": 53
+      "ran": 61,
+      "total": 61
     }
   },
   "rules": [
@@ -284,6 +285,17 @@
       }
     },
     {
+      "id": "bot-challenge",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "الموقع يرد على البوتات بتحدٍّ",
+        "en": "The site answers bots with a challenge"
+      }
+    },
+    {
       "id": "canonical-conflict",
       "version": "1.0.0",
       "category": "index",
@@ -336,6 +348,17 @@
       "title": {
         "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
         "en": "Slow to show its main content on phones"
+      }
+    },
+    {
+      "id": "dmarc-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لا سجل DMARC صالح للنطاق",
+        "en": "No valid DMARC record for the domain"
       }
     },
     {
@@ -452,6 +475,17 @@
       }
     },
     {
+      "id": "js-only-content",
+      "version": "1.0.0",
+      "category": "index",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "محتوى الصفحة تكتبه السكربتات",
+        "en": "The page's content is written by scripts"
+      }
+    },
+    {
       "id": "jsonld-syntax-error",
       "version": "1.0.0",
       "category": "schema",
@@ -460,6 +494,17 @@
       "title": {
         "ar": "خطأ في صيغة JSON داخل البيانات المنظّمة (JSON-LD)",
         "en": "JSON syntax error in structured data (JSON-LD)"
+      }
+    },
+    {
+      "id": "link-broken",
+      "version": "1.0.0",
+      "category": "links",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "روابط معطّلة إلى صفحات الموقع نفسه",
+        "en": "Broken links to the site's own pages"
       }
     },
     {
@@ -504,6 +549,17 @@
       "title": {
         "ar": "الصفحة تمنع أرشفتها في محركات البحث (noindex)",
         "en": "The page blocks search indexing (noindex)"
+      }
+    },
+    {
+      "id": "payment-methods",
+      "version": "1.0.0",
+      "category": "commerce",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "طرق الدفع الخليجية في الصفحة",
+        "en": "Gulf payment methods on the page"
       }
     },
     {
@@ -636,6 +692,39 @@
       "title": {
         "ar": "CSS يحدد الجهات باليمين واليسار",
         "en": "CSS that sets sides by left and right"
+      }
+    },
+    {
+      "id": "sitemap-invalid",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خريطة موقع لا تستطيع محركات البحث قراءتها",
+        "en": "A sitemap search engines cannot read"
+      }
+    },
+    {
+      "id": "sitemap-missing",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لا خريطة للموقع تجدها محركات البحث",
+        "en": "No sitemap for search engines to find"
+      }
+    },
+    {
+      "id": "spf-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لا سجل SPF للنطاق",
+        "en": "No SPF record for the domain"
       }
     },
     {

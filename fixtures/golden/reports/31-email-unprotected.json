@@ -6,8 +6,8 @@
     "rulesetVersion": "0.6.0"
   },
   "target": {
-    "url": "https://store.example:30001/",
-    "finalUrl": "https://store.example:30001/",
+    "url": "https://souq.example:30031/",
+    "finalUrl": "https://souq.example:30031/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -26,6 +26,13 @@
           "ar": "بعض الفحوص تحتاج عرض الصفحة في متصفح، ولم يُطلب العرض في هذا الفحص، فلم تعمل.",
           "en": "Some checks need the page rendered in a browser; this scan did not render it, so they did not run."
         }
+      },
+      {
+        "code": "crux-no-key",
+        "message": {
+          "ar": "فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.",
+          "en": "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run."
+        }
       }
     ]
   },
@@ -35,35 +42,35 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 36,
-    "fail": 0,
+    "pass": 25,
+    "fail": 3,
     "needsReview": 0,
-    "notApplicable": 6,
+    "notApplicable": 14,
     "error": 0,
     "bySeverity": {
       "critical": 0,
       "serious": 0,
-      "moderate": 0,
-      "minor": 0,
+      "moderate": 2,
+      "minor": 1,
       "info": 0
     }
   },
   "score": {
-    "overall": 100,
+    "overall": 93,
     "categories": {
       "ai": 100,
       "ar-content": 100,
-      "commerce": 100,
-      "crawl": 100,
-      "forms": 100,
+      "commerce": null,
+      "crawl": 91,
+      "forms": null,
       "index": 100,
       "intl": 100,
-      "links": null,
+      "links": 100,
       "onpage": 100,
       "rtl": 100,
-      "schema": 100,
-      "speed": 100,
-      "trust": 100
+      "schema": null,
+      "speed": null,
+      "trust": 81
     },
     "partial": false,
     "rules": {
@@ -146,7 +153,7 @@
       "version": "1.0.0",
       "category": "index",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
@@ -168,7 +175,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "محتوى يتحرك أثناء التحميل على الجوال",
         "en": "Content that moves while loading on phones"
@@ -179,7 +186,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "بطء الاستجابة للّمس على الجوال",
         "en": "Slow to answer taps on phones"
@@ -190,7 +197,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
         "en": "Slow to show its main content on phones"
@@ -201,7 +208,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "moderate",
-      "status": "pass",
+      "status": "fail",
       "title": {
         "ar": "لا سجل DMARC صالح للنطاق",
         "en": "No valid DMARC record for the domain"
@@ -289,7 +296,7 @@
       "version": "1.0.0",
       "category": "schema",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "خطأ في صيغة JSON داخل البيانات المنظّمة (JSON-LD)",
         "en": "JSON syntax error in structured data (JSON-LD)"
@@ -300,7 +307,7 @@
       "version": "1.0.0",
       "category": "links",
       "severity": "moderate",
-      "status": "not-applicable",
+      "status": "pass",
       "title": {
         "ar": "روابط معطّلة إلى صفحات الموقع نفسه",
         "en": "Broken links to the site's own pages"
@@ -366,7 +373,7 @@
       "version": "1.0.0",
       "category": "commerce",
       "severity": "minor",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "أسعار بالريال العماني أو الدينار الكويتي أو البحريني بلا ثلاث منازل عشرية",
         "en": "Prices in Omani rials or Kuwaiti or Bahraini dinars without three decimals"
@@ -377,7 +384,7 @@
       "version": "1.0.0",
       "category": "schema",
       "severity": "moderate",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "عرض منتج بلا سعر أو عملة صالحَين (JSON-LD)",
         "en": "Product offer without a valid price or currency (JSON-LD)"
@@ -454,7 +461,7 @@
       "version": "1.0.0",
       "category": "crawl",
       "severity": "moderate",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "خريطة موقع لا تستطيع محركات البحث قراءتها",
         "en": "A sitemap search engines cannot read"
@@ -465,7 +472,7 @@
       "version": "1.0.0",
       "category": "crawl",
       "severity": "minor",
-      "status": "pass",
+      "status": "fail",
       "title": {
         "ar": "لا خريطة للموقع تجدها محركات البحث",
         "en": "No sitemap for search engines to find"
@@ -476,7 +483,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "moderate",
-      "status": "pass",
+      "status": "fail",
       "title": {
         "ar": "لا سجل SPF للنطاق",
         "en": "No SPF record for the domain"
@@ -523,7 +530,7 @@
       "version": "1.0.0",
       "category": "forms",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "رقم رابط واتساب ليس بالصيغة الدولية",
         "en": "WhatsApp link number not in international format"
@@ -541,10 +548,57 @@
       }
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "ruleId": "dmarc-missing",
+      "severity": "moderate",
+      "fingerprint": "e7f9f15b44febbfb",
+      "message": {
+        "ar": "ليس للنطاق souq.example سجل DMARC في _dmarc.souq.example: لا يبدأ أي سجل TXT هناك بالوسم v=DMARC1، فلا تجد خوادم البريد سياسة منك للرسائل التي تحمل اسمه ولا تجتاز فحص SPF ولا DKIM.",
+        "en": "souq.example has no DMARC record at _dmarc.souq.example: no TXT record there starts with the tag v=DMARC1, so mail servers find no policy of yours for messages that carry its name and pass neither SPF nor DKIM."
+      },
+      "evidence": {
+        "url": "https://souq.example:30031/",
+        "values": {
+          "domain": "souq.example"
+        }
+      }
+    },
+    {
+      "ruleId": "spf-missing",
+      "severity": "moderate",
+      "fingerprint": "95f652f96a52fc68",
+      "message": {
+        "ar": "ليس للنطاق souq.example سجل SPF: لا يبدأ أي سجل TXT فيه بـ v=spf1، فلا تستطيع خوادم البريد التي تستقبل رسالة باسمه أن تعرف هل أرسلها خادم مسموح له.",
+        "en": "souq.example has no SPF record: none of its TXT records starts with v=spf1, so a mail server that receives a message in its name cannot tell whether an allowed server sent it."
+      },
+      "evidence": {
+        "url": "https://souq.example:30031/",
+        "values": {
+          "domain": "souq.example"
+        }
+      }
+    },
+    {
+      "ruleId": "sitemap-missing",
+      "severity": "minor",
+      "fingerprint": "d85bceb2240f5e5e",
+      "message": {
+        "ar": "لا يسمّي robots.txt أي خريطة للموقع بعنوان كامل، والعنوان https://souq.example:30031/sitemap.xml ردّ بالحالة HTTP 404.",
+        "en": "robots.txt names no sitemap as a full URL, and https://souq.example:30031/sitemap.xml answered HTTP 404."
+      },
+      "evidence": {
+        "url": "https://souq.example:30031/sitemap.xml",
+        "values": {
+          "url": "https://souq.example:30031/sitemap.xml",
+          "status": 404
+        }
+      }
+    }
+  ],
   "facts": {
     "robots": {
-      "url": "https://store.example:30001/robots.txt",
+      "url": "https://souq.example:30031/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {
@@ -593,18 +647,6 @@
           "allowed": true
         }
       ]
-    },
-    "crux": {
-      "outcome": "found",
-      "scope": "url",
-      "key": "https://store.example:30001/",
-      "period": {
-        "first": "2026-08-30",
-        "last": "2026-09-26"
-      },
-      "lcp": 2100,
-      "inp": 180,
-      "cls": 0.05
     }
   }
 }

@@ -6,8 +6,8 @@
     "rulesetVersion": "0.6.0"
   },
   "target": {
-    "url": "https://store.example:30001/",
-    "finalUrl": "https://store.example:30001/",
+    "url": "http://127.0.0.1:30033/",
+    "finalUrl": "http://127.0.0.1:30033/",
     "fetchedAt": "1970-01-01T00:00:00.000Z",
     "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
     "http": {
@@ -21,10 +21,49 @@
     "durationMs": 0,
     "notices": [
       {
-        "code": "render-skipped",
+        "code": "little-text",
         "message": {
-          "ar": "بعض الفحوص تحتاج عرض الصفحة في متصفح، ولم يُطلب العرض في هذا الفحص، فلم تعمل.",
-          "en": "Some checks need the page rendered in a browser; this scan did not render it, so they did not run."
+          "ar": "في HTML الصفحة نص قليل جداً مع سكربتات، فالأرجح أن JavaScript يبني محتواها. فحوص النص تقرأ HTML الخام، فقد تظهر «غير منطبقة»؛ أما فحوص العرض فترى الصفحة بعد تشغيل JavaScript.",
+          "en": "The page’s HTML has almost no text but loads scripts, so JavaScript probably builds its content. Text checks read the raw HTML, so they may show as not applicable; rendering checks see the page after JavaScript runs."
+        }
+      },
+      {
+        "code": "crux-no-key",
+        "message": {
+          "ar": "فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.",
+          "en": "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run."
+        }
+      }
+    ],
+    "render": [
+      {
+        "engine": "chromium",
+        "version": "153.0.8010.12",
+        "status": "rendered",
+        "durationMs": 0,
+        "requests": {
+          "total": 2,
+          "refused": 0
+        }
+      },
+      {
+        "engine": "firefox",
+        "version": "155.0",
+        "status": "rendered",
+        "durationMs": 0,
+        "requests": {
+          "total": 2,
+          "refused": 0
+        }
+      },
+      {
+        "engine": "webkit",
+        "version": "26.6",
+        "status": "rendered",
+        "durationMs": 0,
+        "requests": {
+          "total": 2,
+          "refused": 0
         }
       }
     ]
@@ -35,43 +74,129 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 36,
-    "fail": 0,
+    "pass": 21,
+    "fail": 1,
     "needsReview": 0,
-    "notApplicable": 6,
+    "notApplicable": 39,
     "error": 0,
     "bySeverity": {
       "critical": 0,
       "serious": 0,
-      "moderate": 0,
+      "moderate": 1,
       "minor": 0,
       "info": 0
     }
   },
   "score": {
-    "overall": 100,
+    "overall": 96,
     "categories": {
       "ai": 100,
       "ar-content": 100,
-      "commerce": 100,
+      "ar-render": 100,
+      "commerce": null,
       "crawl": 100,
-      "forms": 100,
-      "index": 100,
+      "forms": null,
+      "index": 77,
       "intl": 100,
       "links": null,
       "onpage": 100,
       "rtl": 100,
-      "schema": 100,
+      "schema": null,
       "speed": 100,
       "trust": 100
     },
     "partial": false,
     "rules": {
-      "ran": 42,
+      "ran": 61,
       "total": 61
     }
   },
   "rules": [
+    {
+      "id": "a11y-button-name",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "wcag": [
+        "4.1.2"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "زر بلا اسم يقرؤه قارئ الشاشة",
+        "en": "Button without an accessible name"
+      }
+    },
+    {
+      "id": "a11y-color-contrast",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "wcag": [
+        "1.4.3"
+      ],
+      "status": "pass",
+      "title": {
+        "ar": "نص بتباين ضعيف",
+        "en": "Text with too little contrast"
+      }
+    },
+    {
+      "id": "a11y-color-contrast-review",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "wcag": [
+        "1.4.3"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص يحتاج تباينه فحصاً بالعين",
+        "en": "Text whose contrast needs checking by eye"
+      }
+    },
+    {
+      "id": "a11y-image-alt",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "wcag": [
+        "1.1.1"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "صورة بلا نص بديل",
+        "en": "Image without a text alternative"
+      }
+    },
+    {
+      "id": "a11y-link-name",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "wcag": [
+        "2.4.4",
+        "4.1.2"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "رابط بلا اسم يقرؤه قارئ الشاشة",
+        "en": "Link without an accessible name"
+      }
+    },
+    {
+      "id": "a11y-valid-lang",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "wcag": [
+        "3.1.2"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "خاصية lang لا تسمّي لغة",
+        "en": "lang attribute that names no language"
+      }
+    },
     {
       "id": "ar-digits-mixed",
       "version": "1.0.0",
@@ -81,6 +206,39 @@
       "title": {
         "ar": "أنظمة أرقام مختلطة في نص عربي",
         "en": "Mixed digit systems in Arabic text"
+      }
+    },
+    {
+      "id": "ar-font-fallback",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خط ويب عربي لم يُحمَّل",
+        "en": "Arabic web font that did not load"
+      }
+    },
+    {
+      "id": "ar-font-missing-letters",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خط عربي تنقصه حروف يستخدمها النص",
+        "en": "Arabic font missing letters its text uses"
+      }
+    },
+    {
+      "id": "ar-font-no-arabic",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خط ويب بلا حروف عربية",
+        "en": "Web font without Arabic letters"
       }
     },
     {
@@ -106,6 +264,17 @@
       "title": {
         "ar": "علامات ترقيم لاتينية في نص عربي",
         "en": "Latin punctuation in Arabic text"
+      }
+    },
+    {
+      "id": "ar-letter-spacing",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "تباعد الحروف في النص العربي",
+        "en": "Letter-spacing on Arabic text"
       }
     },
     {
@@ -146,7 +315,7 @@
       "version": "1.0.0",
       "category": "index",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
@@ -157,7 +326,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "minor",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "صفحة بلا سياسة أمان المحتوى (CSP)",
         "en": "No Content Security Policy"
@@ -168,7 +337,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "محتوى يتحرك أثناء التحميل على الجوال",
         "en": "Content that moves while loading on phones"
@@ -179,7 +348,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "بطء الاستجابة للّمس على الجوال",
         "en": "Slow to answer taps on phones"
@@ -190,7 +359,7 @@
       "version": "1.0.0",
       "category": "speed",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
         "en": "Slow to show its main content on phones"
@@ -201,7 +370,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "moderate",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "لا سجل DMARC صالح للنطاق",
         "en": "No valid DMARC record for the domain"
@@ -230,11 +399,36 @@
       }
     },
     {
+      "id": "form-label-missing",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "critical",
+      "wcag": [
+        "4.1.2"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل نموذج بلا عنوان",
+        "en": "Form field without a label"
+      }
+    },
+    {
+      "id": "form-phone-direction",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل هاتف يُعرض من اليمين إلى اليسار",
+        "en": "Phone field shown right to left"
+      }
+    },
+    {
       "id": "frame-protection-missing",
       "version": "1.0.0",
       "category": "trust",
       "severity": "minor",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "أي موقع يستطيع عرض الصفحة داخل إطار",
         "en": "Any site may show the page in a frame"
@@ -267,7 +461,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "moderate",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "HTTPS بلا HSTS",
         "en": "HTTPS without HSTS"
@@ -278,10 +472,32 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "critical",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "صفحة بلا HTTPS",
         "en": "Page without HTTPS"
+      }
+    },
+    {
+      "id": "image-format-legacy",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صور بصيغ قديمة",
+        "en": "Images in older formats"
+      }
+    },
+    {
+      "id": "js-only-content",
+      "version": "1.0.0",
+      "category": "index",
+      "severity": "moderate",
+      "status": "fail",
+      "title": {
+        "ar": "محتوى الصفحة تكتبه السكربتات",
+        "en": "The page's content is written by scripts"
       }
     },
     {
@@ -289,7 +505,7 @@
       "version": "1.0.0",
       "category": "schema",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "خطأ في صيغة JSON داخل البيانات المنظّمة (JSON-LD)",
         "en": "JSON syntax error in structured data (JSON-LD)"
@@ -322,7 +538,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "محتوى مختلط: صفحة HTTPS تحمّل عبر HTTP",
         "en": "Mixed content: an HTTPS page that loads over HTTP"
@@ -366,7 +582,7 @@
       "version": "1.0.0",
       "category": "commerce",
       "severity": "minor",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "أسعار بالريال العماني أو الدينار الكويتي أو البحريني بلا ثلاث منازل عشرية",
         "en": "Prices in Omani rials or Kuwaiti or Bahraini dinars without three decimals"
@@ -377,7 +593,7 @@
       "version": "1.0.0",
       "category": "schema",
       "severity": "moderate",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "عرض منتج بلا سعر أو عملة صالحَين (JSON-LD)",
         "en": "Product offer without a valid price or currency (JSON-LD)"
@@ -410,7 +626,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "info",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "صفحة بلا سياسة للمُحيل (Referrer-Policy)",
         "en": "No referrer policy"
@@ -439,6 +655,28 @@
       }
     },
     {
+      "id": "rtl-bidi-isolation",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "أرقام وكلمات لاتينية بترتيب خطأ في نص من اليمين إلى اليسار",
+        "en": "Numbers and Latin words out of order in right-to-left text"
+      }
+    },
+    {
+      "id": "rtl-horizontal-overflow",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة من اليمين إلى اليسار أعرض من شاشة الهاتف",
+        "en": "Right-to-left page wider than a phone screen"
+      }
+    },
+    {
       "id": "rtl-html-dir",
       "version": "1.0.0",
       "category": "rtl",
@@ -450,11 +688,33 @@
       }
     },
     {
+      "id": "rtl-mirrored-icons",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "أيقونات اتجاه لا تنعكس في النص العربي",
+        "en": "Direction icons not mirrored in Arabic text"
+      }
+    },
+    {
+      "id": "rtl-physical-css",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "info",
+      "status": "not-applicable",
+      "title": {
+        "ar": "CSS يحدد الجهات باليمين واليسار",
+        "en": "CSS that sets sides by left and right"
+      }
+    },
+    {
       "id": "sitemap-invalid",
       "version": "1.0.0",
       "category": "crawl",
       "severity": "moderate",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "خريطة موقع لا تستطيع محركات البحث قراءتها",
         "en": "A sitemap search engines cannot read"
@@ -465,7 +725,7 @@
       "version": "1.0.0",
       "category": "crawl",
       "severity": "minor",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "لا خريطة للموقع تجدها محركات البحث",
         "en": "No sitemap for search engines to find"
@@ -476,10 +736,21 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "moderate",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "لا سجل SPF للنطاق",
         "en": "No SPF record for the domain"
+      }
+    },
+    {
+      "id": "text-compression-missing",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "نصوص تُرسَل دون ضغط",
+        "en": "Text sent without compression"
       }
     },
     {
@@ -501,7 +772,7 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "شهادة TLS توشك أن تنتهي",
         "en": "TLS certificate about to expire"
@@ -523,7 +794,7 @@
       "version": "1.0.0",
       "category": "forms",
       "severity": "serious",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "رقم رابط واتساب ليس بالصيغة الدولية",
         "en": "WhatsApp link number not in international format"
@@ -534,17 +805,48 @@
       "version": "1.0.0",
       "category": "trust",
       "severity": "minor",
-      "status": "pass",
+      "status": "not-applicable",
       "title": {
         "ar": "صفحة بلا X-Content-Type-Options: nosniff",
         "en": "No X-Content-Type-Options: nosniff"
       }
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "ruleId": "js-only-content",
+      "severity": "moderate",
+      "fingerprint": "3b889e97ad105f63",
+      "message": {
+        "ar": "من الكلمات العربية التي رسمها المتصفح في الأجزاء التي قاسها من الصفحة، وعددها 39، هناك 34 (87%) ليست في نص HTML الذي تلقّاه الفحص قبل تشغيل السكربتات. وقد تكتبها السكربتات بعد التحميل، ومن لا يشغّل JavaScript لا يراها.",
+        "en": "34 of the 39 Arabic words the browser drew in the parts of the page it measured (87%) are not in the text of the HTML the scan received, before scripts ran. Scripts may write them after loading, and whoever does not run JavaScript would not see them."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30033/",
+        "selector": "#app > p:nth-of-type(1)",
+        "snippet": "قهوة عربية محمّصة تحميصاً خفيفاً ومطحونة مع الهيل، في علب تُشحن خلال يومين.",
+        "engines": [
+          "chromium",
+          "firefox",
+          "webkit"
+        ],
+        "box": {
+          "x": 8,
+          "y": 81,
+          "width": 374,
+          "height": 40
+        },
+        "values": {
+          "missing": 34,
+          "total": 39,
+          "share": 87
+        }
+      }
+    }
+  ],
   "facts": {
     "robots": {
-      "url": "https://store.example:30001/robots.txt",
+      "url": "http://127.0.0.1:30033/robots.txt",
       "status": 404,
       "aiCrawlers": [
         {
@@ -593,18 +895,6 @@
           "allowed": true
         }
       ]
-    },
-    "crux": {
-      "outcome": "found",
-      "scope": "url",
-      "key": "https://store.example:30001/",
-      "period": {
-        "first": "2026-08-30",
-        "last": "2026-09-26"
-      },
-      "lcp": 2100,
-      "inp": 180,
-      "cls": 0.05
     }
   }
 }
