@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>عروض الأسبوع</title>
+    <meta name="description" content="عروض الأسبوع" />
+    <meta property="og:title" content="عروض الأسبوع" />
+    <meta property="og:description" content="عروض الأسبوع" />
+    <meta property="og:image" content="https://www.example.com/og.png" />
+    <style>
+      body {
+        margin: 16px;
+        font-family: sans-serif;
+      }
+      .icon-arrow-right {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        background: currentColor;
+      }
+      /* Mirrored on right-to-left pages, so "next" points left. */
+      [dir='rtl'] .icon-arrow-right {
+        transform: scaleX(-1);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>عروض الأسبوع</h1>
+      <p>خصومات على العطور والهدايا حتى نهاية الأسبوع.</p>
+      <p><a href="/offers">كل العروض <span aria-hidden="true">←</span></a></p>
+      <p>
+        <a href="/offers?page=2">الصفحة التالية <i class="icon-arrow-right" aria-hidden="true"></i></a>
+      </p>
+    </main>
+  </body>
+</html>

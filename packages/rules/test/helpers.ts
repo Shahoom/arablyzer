@@ -1,6 +1,7 @@
 import { readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
+  ARABIC_BLOCKS,
   collectPage,
   collectRobots,
   type A11yNodeFact,
@@ -93,16 +94,30 @@ export const ARABIC_PAGE = htmlPage(
   '<html lang="ar" dir="rtl"><body><p id="a">نشحن الطلبات خلال يومي عمل.</p></body></html>',
 )
 
+/** A text's distinct Arabic-script characters in code point order, as the page script gives them. */
+export function arabicCharactersOf(text: string): string {
+  const found = new Set<number>()
+  for (const char of text) {
+    const codePoint = char.codePointAt(0) ?? 0
+    if (ARABIC_BLOCKS.some(([first, last]) => codePoint >= first && codePoint <= last)) {
+      found.add(codePoint)
+    }
+  }
+  return String.fromCodePoint(...[...found].sort((a, b) => a - b))
+}
+
 /** A block of Arabic text as an engine measured it: plain text, no spacing, a system font. */
 export function arabicBlock(overrides: Partial<ArabicTextBlock> = {}): ArabicTextBlock {
+  const text = overrides.text ?? 'نشحن الطلبات خلال يومي عمل.'
   return {
     selector: '#a',
     box: { x: 20, y: 40, width: 350, height: 24 },
-    text: 'نشحن الطلبات خلال يومي عمل.',
+    text,
     letterSpacing: 0,
     letterSpacingApplied: null,
     fontFamily: 'serif',
     primaryFamily: 'serif',
+    arabicCharacters: arabicCharactersOf(text),
     ...overrides,
   }
 }
@@ -126,10 +141,14 @@ export function renderedFacts(
     arabicText: [arabicBlock()],
     arabicTextOmitted: 0,
     fontFaces: [],
+    fontFacesOmitted: 0,
     fontRequests: [],
+    arabicFontCoverage: [],
+    stylesheets: { read: 0, unread: 0, physical: [] },
     ...(engine === 'chromium' ? { usedFonts: [] } : {}),
     bidi: [],
     fields: [],
+    directionIcons: [],
     a11y: null,
     truncated: false,
     limited: false,

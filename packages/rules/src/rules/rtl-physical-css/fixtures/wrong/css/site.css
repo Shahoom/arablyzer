@@ -1,0 +1,20 @@
+/* A theme written for left-to-right pages: it sets sides by left and right. */
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+ul.menu {
+  padding-left: 0;
+  list-style: none;
+}
+.menu li {
+  float: left;
+  margin-right: 16px;
+}
+main {
+  clear: both;
+  padding: 16px;
+}
+.price {
+  text-align: left;
+}

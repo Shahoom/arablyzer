@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { toA11yFacts } from '../../src/a11y'
 import { toFacts } from '../../src/index'
+import { measuredFontFaces } from '../../src/validate'
 
 const box = { x: 0, y: 0, width: 10, height: 10 }
 
@@ -20,12 +21,15 @@ const measured = {
       letterSpacingApplied: null,
       fontFamily: 'serif',
       primaryFamily: 'serif',
+      arabicCharacters: 'نص',
     },
   ],
   arabicTextOmitted: 0,
   fontFaces: [],
+  fontFacesOmitted: 0,
   bidi: [],
   fields: [],
+  directionIcons: [],
   truncated: false,
 }
 
@@ -51,6 +55,31 @@ describe('toFacts: the page script’s result, checked before any rule reads it'
     expect('usedFonts' in toFacts(measured, context)).toBe(false)
   })
 
+  it('adds what was read from the page’s files, and nothing when they were not read', () => {
+    const coverage = [{ family: 'Brand', covered: [[0x621, 0x64a]] as const, unknown: [] }]
+    const stylesheets = { read: 2, unread: 1, physical: [] }
+    expect(
+      toFacts(measured, { ...context, arabicFontCoverage: coverage, stylesheets }),
+    ).toMatchObject({ arabicFontCoverage: coverage, stylesheets })
+    expect(toFacts(measured, context)).toMatchObject({
+      arabicFontCoverage: [],
+      stylesheets: { read: 0, unread: 0, physical: [] },
+    })
+  })
+
+  it('reads the measured faces alone, for the files step, and none from a result it refuses', () => {
+    const face = {
+      family: 'Brand',
+      status: 'loaded',
+      weight: '400',
+      style: 'normal',
+      unicodeRange: 'U+600-6FF',
+    }
+    expect(measuredFontFaces({ ...measured, fontFaces: [face] })).toEqual([face])
+    expect(measuredFontFaces({ fontFaces: [{ ...face, status: 'gone' }] })).toEqual([])
+    expect(measuredFontFaces('rendered')).toEqual([])
+  })
+
   it.each([
     ['an unknown direction', { ...measured, dir: 'sideways' }],
     [
@@ -60,6 +89,20 @@ describe('toFacts: the page script’s result, checked before any rule reads it'
     [
       'text past its bound',
       { ...measured, arabicText: [{ ...measured.arabicText[0], text: 'ن'.repeat(201) }] },
+    ],
+    [
+      'more characters than the script keeps',
+      {
+        ...measured,
+        arabicText: [{ ...measured.arabicText[0], arabicCharacters: 'ن'.repeat(201) }],
+      },
+    ],
+    [
+      'more direction icons than the script keeps',
+      {
+        ...measured,
+        directionIcons: Array.from({ length: 21 }, () => ({ selector: 'i', box, name: '→' })),
+      },
     ],
     ['a fractional pixel', { ...measured, overflow: [{ selector: 'a', box: { ...box, x: 0.5 } }] }],
     [

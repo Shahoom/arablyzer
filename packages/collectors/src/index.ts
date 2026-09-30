@@ -1,3 +1,12 @@
+export {
+  ALL_CODE_POINTS,
+  inRanges,
+  intersectRanges,
+  MAX_CODE_POINT,
+  mergeRanges,
+  parseUnicodeRange,
+  type CodePointRange,
+} from './code-points'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {
   decodeHtml,
@@ -16,6 +25,7 @@ export {
   type RootElement,
   type ScriptElement,
 } from './html'
+export { fontCoverage, MAX_FONT_DATA } from './font-coverage'
 export { parseLinkHeader, type LinkHeaderEntry } from './link-header'
 export {
   collectPage,
@@ -35,12 +45,15 @@ export {
   type ArabicTextBlock,
   type BidiTokenFact,
   type Box,
+  type DirectionIconFact,
   type Engine,
   type FontFaceFact,
   type FontRequestFact,
+  type PhysicalCssFact,
   type RenderedElement,
   type RenderedFacts,
   type RenderedFieldFact,
+  type StylesheetsFact,
   type UsedFont,
   type UsedFontsFact,
 } from './rendered'
@@ -54,4 +67,20 @@ export {
   type RobotsRule,
   type RobotsTxt,
 } from './robots'
+export {
+  decodeStylesheet,
+  readStylesheet,
+  STYLESHEET_LIMITS,
+  type FontFaceRule,
+  type FontSource,
+  type PhysicalDeclaration,
+  type StylesheetFacts,
+  type StylesheetLimits,
+} from './stylesheet'
 export { type DominantScript, type LetterCounts, type TextFacts, type TextSegment } from './text'
+export {
+  ARABIC_BLOCKS,
+  webFontCoverage,
+  type FontFiles,
+  type WebFontCoverageFact,
+} from './web-font-coverage'

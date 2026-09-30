@@ -4,6 +4,16 @@ blocks, the second to Basic Latin only), hinting removed, and renamed "Arablyzer
 "Arablyzer Test Latin" as the license below requires of modified fonts. They exist only so
 browser tests can load a web font with Arabic letters and one without.
 
+arablyzer-test-arabic.woff and arablyzer-test-arabic.woff2 are the same font as
+arablyzer-test-arabic.ttf, stored as WOFF and WOFF2 with fontTools. arablyzer-test-arabic-partial.woff2
+is that font subset further with fontTools, without U+0660-0669, U+067E and U+06A4, and renamed
+"Arablyzer Test Arabic Partial": a web font that lacks letters a text uses.
+
+arablyzer-test-range-offset.ttf is not made from DejaVu: Arablyzer made it with fontTools'
+FontBuilder, with empty glyphs, mapping 73 characters to glyphs in shuffled order so that its
+cmap format 4 subtable looks glyphs up through idRangeOffset. It is part of this project, under
+its license; the license below covers the fonts made from DejaVu.
+
 Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved. Bitstream Vera is a trademark of
 Bitstream, Inc. DejaVu changes are in public domain.
 
