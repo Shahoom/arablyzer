@@ -1,6 +1,5 @@
 import { TURNSTILE_ACTION } from '@arablyzer/api-contract/codes'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { challenge } from '../src/islands/turnstile'
 
 // The widget the site renders, as Cloudflare's script would: it records what it was rendered
 // with, and answers a challenge at once.
@@ -21,6 +20,12 @@ function widget() {
   return rendered
 }
 
+/** The module afresh, which keeps the script it loaded once: each test loads its own. */
+async function challengeFrom() {
+  vi.resetModules()
+  return (await import('../src/islands/turnstile')).challenge
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
@@ -30,6 +35,7 @@ describe('the Turnstile widget', () => {
   // widget of the same site key is refused: the widget must set the action the API asks for.
   it('is rendered for the scan action, which the API binds', async () => {
     const rendered = widget()
+    const challenge = await challengeFrom()
     const container = {} as HTMLElement
     const check = challenge('a-site-key', () => container, 'ar')
     expect(await check.token()).toBe('the-token')
@@ -44,6 +50,7 @@ describe('the Turnstile widget', () => {
 
   it('gives an empty token where the site has no key, which the API takes only in development', async () => {
     const rendered = widget()
+    const challenge = await challengeFrom()
     expect(await challenge(undefined, () => null, 'en').token()).toBe('')
     expect(await challenge('', () => null, 'en').token()).toBe('')
     expect(rendered).toEqual([])
