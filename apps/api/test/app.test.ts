@@ -208,6 +208,61 @@ describe('POST /api/scans', () => {
     expect((await scanOf('https://example.org/')).status).toBe(202)
   })
 
+  // Issue #30: Turnstile was asked before any throttle, so every request, whatever its token,
+  // cost a call to Cloudflare, and a visitor could make as many as they liked.
+  describe('the throttle before Turnstile', () => {
+    const throttled = (attempts: number) => ({
+      limits: { ...DEVELOPMENT_LIMITS, attempts: { scans: attempts, seconds: 3600 } },
+    })
+
+    it('stops a visitor’s requests before they reach Cloudflare, whatever their tokens', async () => {
+      const { scanOf, turnstileCalls } = setup(throttled(3))
+      for (let i = 0; i < 3; i++) {
+        expect((await scanOf('https://example.com/', `bot-${i}`)).status).toBe(403)
+      }
+      const fourth = await scanOf('https://example.com/', 'bot-3')
+      expect(fourth.status).toBe(429)
+      expect(fourth.headers.get('retry-after')).toBe('1200')
+      expect(await fourth.json()).toEqual({ error: 'rate-limited', retryAfterSeconds: 1200 })
+      expect(turnstileCalls).toEqual(['bot-0', 'bot-1', 'bot-2'])
+    })
+
+    it('counts the requests that fail and those that scan alike', async () => {
+      const { scanOf, turnstileCalls } = setup(throttled(2))
+      expect((await scanOf('https://example.com/', 'bot')).status).toBe(403)
+      expect((await scanOf('https://example.com/', 'human')).status).toBe(202)
+      expect((await scanOf('https://example.com/', 'human')).status).toBe(429)
+      expect(turnstileCalls).toEqual(['bot', 'human'])
+    })
+
+    it('counts each visitor by themselves', async () => {
+      let visitor = 0
+      const { scanOf, turnstileCalls } = setup({
+        ...throttled(1),
+        address: () => `203.0.113.${++visitor}`,
+      })
+      for (let i = 0; i < 6; i++) expect((await scanOf('https://example.com/')).status).toBe(202)
+      expect(turnstileCalls).toHaveLength(6)
+    })
+
+    it('leaves alone the requests refused before any network, which cost nothing to answer', async () => {
+      const { scanOf, turnstileCalls } = setup(throttled(1))
+      for (let i = 0; i < 5; i++) {
+        expect((await scanOf('not a url')).status).toBe(400)
+        expect((await scanOf('http://localhost/')).status).toBe(422)
+      }
+      expect(turnstileCalls).toEqual([])
+      // The visitor still has the request the throttle allows.
+      expect((await scanOf('https://example.com/')).status).toBe(202)
+    })
+
+    it('asks nobody about the visitor when it cannot tell who they are', async () => {
+      const { scanOf, turnstileCalls } = setup({ ...throttled(1), address: () => null })
+      expect((await scanOf('https://example.com/')).status).toBe(503)
+      expect(turnstileCalls).toEqual([])
+    })
+  })
+
   it('answers 503 when a store fails, and fails a scan it could not queue', async () => {
     const logged: string[] = []
     const { scanOf, store, events, queue } = setup({ log: (message) => logged.push(message) })

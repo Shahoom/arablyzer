@@ -1,6 +1,6 @@
 import { createPolicy, type FetchResult, type SafeFetchOptions } from '@arablyzer/egress'
 import { describe, expect, it } from 'vitest'
-import { cloudflareTurnstile, SITEVERIFY_URL } from '../src/turnstile'
+import { cloudflareTurnstile, isTurnstileToken, SITEVERIFY_URL } from '../src/turnstile'
 
 function answering(status: number, body: string) {
   const calls: { url: string; options: SafeFetchOptions }[] = []
@@ -67,5 +67,45 @@ describe('cloudflareTurnstile', () => {
     expect(await check('')).toBe(false)
     expect(await check('x'.repeat(2049))).toBe(false)
     expect(calls).toHaveLength(0)
+  })
+})
+
+describe('isTurnstileToken', () => {
+  it('takes what Turnstile issues: visible ASCII, from one character to 2,048', () => {
+    expect(isTurnstileToken('XXXX.DUMMY.TOKEN.XXXX')).toBe(true)
+    expect(isTurnstileToken(`0.${'aB3-_'.repeat(300)}`)).toBe(true)
+    expect(isTurnstileToken('x'.repeat(2048))).toBe(true)
+  })
+
+  // The security review (issue #30): every shape Turnstile cannot issue cost a call to Cloudflare.
+  it('refuses what it cannot issue: nothing, too long, spaces, control characters, other scripts', () => {
+    for (const token of [
+      '',
+      'x'.repeat(2049),
+      ' ',
+      'two words',
+      ' padded',
+      'trailing ',
+      'line\nbreak',
+      'tab\there',
+      'nul\u0000byte',
+      'delete\u007f',
+      'tökén',
+      'رمز',
+      '\u200bzero-width',
+    ]) {
+      expect(isTurnstileToken(token), JSON.stringify(token)).toBe(false)
+    }
+  })
+
+  it('is the check cloudflareTurnstile makes before it calls Cloudflare', async () => {
+    const { fetcher, calls } = answering(200, '{"success":true}')
+    const check = cloudflareTurnstile({ ...base, fetcher })
+    for (const token of ['', 'two words', 'line\nbreak', 'tökén', 'x'.repeat(2049)]) {
+      expect(await check(token), JSON.stringify(token)).toBe(false)
+    }
+    expect(calls).toHaveLength(0)
+    expect(await check('XXXX.DUMMY.TOKEN.XXXX')).toBe(true)
+    expect(calls).toHaveLength(1)
   })
 })

@@ -129,19 +129,29 @@ export function createApp(deps: ApiDeps): Hono {
       const tool = request.data.tool
       if (tool !== undefined && toolDefinition(tool) === undefined) return refuse(c, 'bad-request')
 
-      // What needs no network first; the checks that cost something come after Turnstile and
-      // the visitor's own limit, so the API cannot be used to look up names or fill the queue.
+      // What needs no network first; the checks that cost something come after the visitor's
+      // throttle, Turnstile and the visitor's own limit, so the API cannot be used to look up
+      // names, to call Cloudflare without end, or to fill the queue.
       const parsed = parseTarget(request.data.url, deps.policy)
       if (!parsed.ok) return refuse(c, parsed.code)
       // Without the visitor's address there is no limit to keep, so there is no scan.
       const address = deps.address(c)
       if (address === null) return refuse(c, 'unavailable')
+      const at = now()
+      const visitor = deps.connectionKey(address, at)
+      // Cloudflare is asked for every request that gets this far, so a visitor's requests are
+      // counted first, whatever comes of them: past their throttle, it is not asked at all.
+      const attempt = await deps.limiter.take(
+        `attempt:${visitor}`,
+        deps.limits.attempts,
+        at.getTime(),
+      )
+      if (!attempt.ok) return refuse(c, 'rate-limited', attempt.retryAfterSeconds)
       if (!(await deps.turnstile(request.data.turnstileToken))) {
         return refuse(c, 'turnstile-failed')
       }
-      const at = now()
       const own = await deps.limiter.take(
-        `connection:${deps.connectionKey(address, at)}`,
+        `connection:${visitor}`,
         deps.limits.perConnection,
         at.getTime(),
       )
