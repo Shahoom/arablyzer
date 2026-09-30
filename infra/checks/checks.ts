@@ -323,6 +323,8 @@ export function apiBelievesTheProxyAlone(stack: Stack): string[] {
       stack.inside(
         'api',
         `const headers = { 'content-type': 'application/json', 'x-forwarded-for': '198.51.100.9' };
+         // From the site's own origin, as a browser on the site sends every scan request.
+         if (process.env.ARABLYZER_SITE) headers.origin = new URL(process.env.ARABLYZER_SITE).origin;
          if (${String(withSecret)}) headers['x-arablyzer-proxy-secret'] = process.env.ARABLYZER_PROXY_SECRET;
          fetch('http://127.0.0.1:8787/api/scans', {
            method: 'POST',
@@ -351,8 +353,8 @@ function environment(stack: Stack, service: string): string[] {
 }
 
 /**
- * The API and the worker connect to PostgreSQL as a role that is no superuser and changes
- * nothing, and never hold the bootstrap user's password. What the role must refuse is tried in
+ * The API and the worker connect to PostgreSQL as a role that is no superuser and changes no
+ * schema (it reads, writes and deletes scans), and never hold the bootstrap user's password. What the role must refuse is tried in
  * a transaction that is rolled back.
  */
 export function databaseRoles(stack: Stack): string[] {
@@ -392,7 +394,6 @@ export function databaseRoles(stack: Stack): string[] {
          for (const sql of [
            'CREATE TABLE verify_deploy_probe (a integer)',
            'ALTER TABLE scans ADD COLUMN verify_deploy_probe integer',
-           'DELETE FROM scans WHERE false',
            'TRUNCATE scans',
            'SELECT * FROM drizzle.__drizzle_migrations LIMIT 0',
            "COPY (SELECT 1) TO PROGRAM 'true'",

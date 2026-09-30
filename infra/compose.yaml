@@ -73,7 +73,7 @@ services:
     tmpfs: [/tmp]
     environment:
       VALKEY_URL: redis://arablyzer:${VALKEY_PASSWORD:?}@valkey:6379
-      # The role that reads and writes the scans and changes nothing (packages/store): never the
+      # The role that reads, writes and deletes scans and changes nothing else (packages/store): never the
       # bootstrap user's, whose password only `migrate` holds.
       DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
       ARABLYZER_SITE: ${ARABLYZER_SITE:?}
@@ -111,7 +111,7 @@ services:
   # The database's own step, once, before the API and the worker (packages/store/src/migrate.ts):
   # it makes the two roles and the tables, and sets the application role's password. It alone
   # holds the bootstrap user's password (a superuser's), and it is gone when it is done: the API
-  # and the worker connect as `arablyzer_app`, which can read and write the scans and nothing else.
+  # and the worker connect as `arablyzer_app`, which can read, write and delete the scans and nothing else.
   migrate:
     <<: *hardened
     restart: 'no'

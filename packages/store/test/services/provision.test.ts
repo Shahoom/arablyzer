@@ -55,7 +55,7 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
       pools.push(app)
     })
 
-    it('leave the application to read and write scans', async () => {
+    it('leave the application to read and write scans, and to delete them', async () => {
       const id = 'AbCdEfGhIjKlMnOpQrSt_r'
       const store = new PostgresScanStore(app)
       await store.create({ id, url: 'https://example.com/', createdAt: NOW })
@@ -63,6 +63,14 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
       expect(await store.fail(id, NOW)).toBe(true)
       expect(await store.get(id)).toMatchObject({ id, state: 'failed', finishedAt: NOW })
       expect(await store.failStale(new Date(NOW.getTime() + 1), NOW)).toEqual([])
+    })
+
+    it('leave the application to delete a scan, which retention and a visitor’s own deletion do', async () => {
+      const id = 'AbCdEfGhIjKlMnOpQrSt_d'
+      const store = new PostgresScanStore(app)
+      await store.create({ id, url: 'https://example.com/', createdAt: NOW })
+      await app.query('DELETE FROM scans WHERE id = $1', [id])
+      expect(await store.get(id)).toBeNull()
     })
 
     it('are not a superuser, and can make nothing', async () => {
@@ -75,7 +83,6 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
 
     it('keep the application from changing the schema, the data it has, or the server', async () => {
       for (const statement of [
-        'DELETE FROM scans',
         'TRUNCATE scans',
         'DROP TABLE scans',
         'ALTER TABLE scans ADD COLUMN extra integer',
@@ -124,7 +131,8 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
       await app.query("INSERT INTO later (id) VALUES ('a')")
       expect((await app.query('SELECT id, n FROM later')).rows).toEqual([{ id: 'a', n: 1 }])
       await app.query("UPDATE later SET id = 'b'")
-      await expect(app.query('DELETE FROM later')).rejects.toThrow(DENIED)
+      await app.query('DELETE FROM later')
+      await expect(app.query('TRUNCATE later')).rejects.toThrow(DENIED)
     })
   })
 
@@ -169,12 +177,15 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
     await expect(app.query('DROP TABLE scans')).rejects.toThrow(DENIED)
   })
 
-  it('put a role back that drifted: a superuser, a right too many', async () => {
+  it('put a role back that drifted: a superuser, a member of the owner, rights too many', async () => {
     const secret = password()
     const { pool, url } = await provisioned(secret)
     await pool.query(`ALTER ROLE ${ROLES.appRole} SUPERUSER CREATEDB`)
-    await pool.query(`GRANT DELETE, TRUNCATE ON scans TO ${ROLES.appRole}`)
+    await pool.query(`GRANT TRUNCATE, REFERENCES, TRIGGER ON scans TO ${ROLES.appRole}`)
     await pool.query(`GRANT CREATE ON SCHEMA public TO ${ROLES.appRole}`)
+    await pool.query(`GRANT ${ROLES.migrateRole} TO ${ROLES.appRole}`)
+    await pool.query(`GRANT USAGE ON SCHEMA drizzle TO ${ROLES.appRole}`)
+    await pool.query(`GRANT SELECT ON drizzle.__drizzle_migrations TO ${ROLES.appRole}`)
     await migrateDatabase(pool, { appPassword: secret, ...ROLES })
     const app = as(ROLES.appRole, secret, url)
     pools.push(app)
@@ -182,7 +193,11 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
       'SELECT rolsuper, rolcreatedb FROM pg_roles WHERE rolname = current_user',
     )
     expect(rows[0]).toEqual({ rolsuper: false, rolcreatedb: false })
-    await expect(app.query('DELETE FROM scans')).rejects.toThrow(DENIED)
+    await expect(app.query('TRUNCATE scans')).rejects.toThrow(DENIED)
+    await expect(app.query('CREATE TABLE crept (a integer)')).rejects.toThrow(DENIED)
+    await expect(app.query(`SET ROLE ${ROLES.migrateRole}`)).rejects.toThrow(DENIED)
+    await expect(app.query('SELECT * FROM drizzle.__drizzle_migrations')).rejects.toThrow(DENIED)
+    await app.query('DELETE FROM scans')
   })
 
   it('refuses names it would have to quote, and one role for both jobs', async () => {

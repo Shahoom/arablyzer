@@ -16,7 +16,7 @@ import { apiDeps } from './config'
 
 // The API as Compose and staging run it (M2.1 plan §4): PostgreSQL for scans and reports,
 // Valkey for the queue, the events and the limits. It connects to PostgreSQL as a role that can
-// read and write the scans and change nothing, so it does not bring the tables up to date: the
+// read, write and delete the scans and change nothing else, so it does not bring the tables up to date: the
 // database's own step does, before it starts (packages/store/src/migrate.ts, infra/compose.yaml).
 // Production's checks hold whatever NODE_ENV says; dev.ts is the one for development.
 const env: Readonly<Record<string, string | undefined>> = { ...process.env, NODE_ENV: 'production' }

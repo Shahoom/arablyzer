@@ -25,7 +25,7 @@ pool.on('error', (error) => {
 })
 try {
   await migrateDatabase(pool, { appPassword })
-  console.log(`The database is up to date, and ${APP_ROLE} may read and write its scans`)
+  console.log(`The database is up to date, and ${APP_ROLE} may read, write and delete its scans`)
 } finally {
   await pool.end()
 }

@@ -425,7 +425,7 @@ describe('the API', () => {
 })
 
 describe('the stores', () => {
-  it('give the API and the worker a role that reads and writes the scans and changes nothing', () => {
+  it('give the API and the worker a role that reads, writes and deletes scans and changes nothing else', () => {
     expect(databaseRoles(stack)).toEqual([])
   })
 

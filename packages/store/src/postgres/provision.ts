@@ -5,8 +5,8 @@ import { MIGRATION_LOCK, MIGRATIONS } from './store'
 
 /**
  * The roles the database has (M6 of the pre-launch security review). The API and the worker
- * connect as `arablyzer_app`, which can read and write the scans and nothing else: no DDL, no
- * other schema, no extension, and it is no superuser, which a database's bootstrap user
+ * connect as `arablyzer_app`, which can read, write and delete the scans and nothing else: no
+ * DDL, no other schema, no extension, and it is no superuser, which a database's bootstrap user
  * (POSTGRES_USER) is, and which reaches the container's shell through COPY ... PROGRAM. The
  * tables belong to `arablyzer_migrate`, which cannot log in: the one process that changes the
  * schema, `migrate.ts`, connects as the bootstrap user, becomes it for the migrations, and is
@@ -16,10 +16,12 @@ export const APP_ROLE = 'arablyzer_app'
 export const MIGRATE_ROLE = 'arablyzer_migrate'
 
 /**
- * What the application may do to the tables. Retention (Phase 2 design §7.3) will need `DELETE`,
- * and asks for it here, where the review sees it.
+ * What the application may do to the tables. `DELETE` is for what the scans' owners are owed:
+ * retention deletes by age (Phase 2 design §7.3), and a visitor deletes their own report (issue
+ * #30, M5). `TRUNCATE`, which would empty the table in one statement, and everything that changes
+ * the schema, are never given.
  */
-const APP_PRIVILEGES = 'SELECT, INSERT, UPDATE'
+const APP_PRIVILEGES = 'SELECT, INSERT, UPDATE, DELETE'
 
 /** Role names are written into SQL: lower case, digits and underscores, so they need no quoting. */
 const NAME = /^[a-z_][a-z0-9_]{0,62}$/
@@ -80,15 +82,17 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${app}') THEN
     CREATE ROLE ${app} LOGIN;
   END IF;
-  EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC', current_database());
+  EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC, ${app}', current_database());
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO ${app}', current_database());
   EXECUTE format('GRANT CONNECT, CREATE ON DATABASE %I TO ${owner}', current_database());
 END
 $$;
 ALTER ROLE ${owner} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS INHERIT;
 ALTER ROLE ${app} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS INHERIT;
+-- The application is nobody's member: it could become the role that owns the tables.
+REVOKE ${owner} FROM ${app};
 GRANT ${owner} TO CURRENT_USER;
-REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM PUBLIC, ${app};
 GRANT USAGE ON SCHEMA public TO ${app};
 GRANT USAGE, CREATE ON SCHEMA public TO ${owner};
 `
@@ -127,7 +131,11 @@ $$;
  */
 function grantsSql(app: string, owner: string): string {
   return `
+REVOKE ALL ON ALL TABLES IN SCHEMA drizzle FROM ${app};
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA drizzle FROM ${app};
+REVOKE ALL ON SCHEMA drizzle FROM PUBLIC, ${app};
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${app};
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${app};
 GRANT ${APP_PRIVILEGES} ON ALL TABLES IN SCHEMA public TO ${app};
 ALTER DEFAULT PRIVILEGES FOR ROLE ${owner} IN SCHEMA public
   GRANT ${APP_PRIVILEGES} ON TABLES TO ${app};
