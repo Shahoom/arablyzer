@@ -89,6 +89,30 @@ describe('lookupDns', () => {
     })
   })
 
+  // M2.3c review: a resolver gives a name's records in an order of its own, and a finding that
+  // lists them must read the same on every scan.
+  it('gives the records of a lookup in code unit order, whatever order they came in', async () => {
+    const records = ['v=spf1 include:b.example -all', 'v=spf1 -all', 'a=b']
+    const lookup = await lookupDns(
+      'https://shop.example/',
+      [spfLike],
+      context(loggedTxt(found(records)).txt),
+    )
+    expect(lookup?.facts.txt[0]?.records).toEqual([
+      'a=b',
+      'v=spf1 -all',
+      'v=spf1 include:b.example -all',
+    ])
+    const reversed = await lookupDns(
+      'https://shop.example/',
+      [spfLike],
+      context(loggedTxt(found([...records].reverse())).txt),
+    )
+    expect(reversed).toEqual(lookup)
+    // The list the resolver gave is not changed.
+    expect(records[0]).toBe('v=spf1 include:b.example -all')
+  })
+
   it('asks nothing when no rule reads DNS, or the page has no public name', async () => {
     const resolver = loggedTxt(found([]))
     const html = testRule({ detect: () => [] })
@@ -99,6 +123,11 @@ describe('lookupDns', () => {
       'http://localhost:4321/',
       'http://shop.test/',
       'https://github.io/',
+      // A site a platform gives (the list's private section) has no zone of its owner's to read.
+      'https://user.github.io/',
+      'https://x.vercel.app/ar/',
+      'https://shop.myshopify.com/',
+      'https://www.foo.netlify.app/',
     ]) {
       expect(await lookupDns(url, [spfLike], context(resolver.txt)), url).toBeUndefined()
     }

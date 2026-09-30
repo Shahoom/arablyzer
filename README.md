@@ -141,14 +141,14 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`redirect-chain`](packages/rules/src/rules/redirect-chain/copy.en.md) | The page is reached through one redirect at most |
 | [`redirect-temporary`](packages/rules/src/rules/redirect-temporary/copy.en.md) | A move to HTTPS, or between a name and its `www.`, is a permanent redirect (301 or 308) |
 
-These read TXT records of the page's domain (its organizational domain, by the Public Suffix List). The hosted service asks for them as DNS over HTTPS (RFC 8484) from Cloudflare's resolver, or from the one `ARABLYZER_DOH_URL` names, through the egress proxy; a scan on a machine without a proxy asks that machine's DNS servers. A scan with no way to ask DNS leaves them out and says so:
+These read TXT records of the page's domain (its organizational domain, by the Public Suffix List). The hosted service asks for them as DNS over HTTPS (RFC 8484) from Cloudflare's resolver, or from the one `ARABLYZER_DOH_URL` names, through the egress proxy; a scan on a machine without a proxy asks that machine's DNS servers. A site a platform gives its customers (`user.github.io`, `shop.myshopify.com`) has no domain of its own to read: they do not apply to it. A scan with no way to ask DNS leaves them out and says so:
 
 | Rule | Checks |
 |---|---|
 | [`spf-missing`](packages/rules/src/rules/spf-missing/copy.en.md) | The page's domain has one SPF record (`v=spf1`) |
-| [`dmarc-missing`](packages/rules/src/rules/dmarc-missing/copy.en.md) | The page's domain has one DMARC record (`v=DMARC1` at `_dmarc`) |
+| [`dmarc-missing`](packages/rules/src/rules/dmarc-missing/copy.en.md) | The page's domain has one DMARC record (`v=DMARC1` at `_dmarc`) with a `p` tag (`none`, `quarantine` or `reject`) |
 
-This one asks for the page's links to its own origin, the first 50, each with one `HEAD` (and a `GET` where `HEAD` answers an error or the connection fails), through the egress proxy, following no redirect:
+This one asks for the page's links to its own origin, the first 50 that robots.txt does not keep from ArablyzerBot or from every crawler (`User-agent: *`), each with one `HEAD` (and a `GET` where `HEAD` answers an error or the connection fails), through the egress proxy, following no redirect:
 
 | Rule | Checks |
 |---|---|

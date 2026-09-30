@@ -9,6 +9,7 @@ import {
   organizationalDomain,
   retriesWithGet,
   siteLinks,
+  txtLookup,
   type CruxFacts,
   type DnsFacts,
   type LinkAnswer,
@@ -180,7 +181,10 @@ function dnsOf(
   return {
     dns: {
       domain,
-      txt: txtNames(domain).map((txtName) => ({ name: txtName, ...fixtureTxt(site, txtName) })),
+      txt: txtNames(domain).map((txtName) => {
+        const { outcome, records } = fixtureTxt(site, txtName)
+        return txtLookup(txtName, outcome, records)
+      }),
     },
   }
 }

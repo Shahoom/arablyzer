@@ -1,4 +1,9 @@
-import { organizationalDomain, type DnsFacts, type TxtLookup } from '@arablyzer/collectors'
+import {
+  organizationalDomain,
+  txtLookup,
+  type DnsFacts,
+  type TxtLookup,
+} from '@arablyzer/collectors'
 import {
   createDohTxtResolver,
   type EgressPolicy,
@@ -99,6 +104,7 @@ export async function lookupDns(
   }
 }
 
+/** The lookup as the rules see it: its records in an order of their own (txtLookup). */
 function lookupOf(name: string, answer: TxtAnswer): TxtLookup {
-  return { name, outcome: answer.outcome, records: [...answer.records] }
+  return txtLookup(name, answer.outcome, answer.records)
 }

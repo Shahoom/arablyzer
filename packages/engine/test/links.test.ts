@@ -120,6 +120,35 @@ describe('scan: the page’s links to its own site', () => {
     expect(report.scan.notices[0]?.message.en).toContain('ArablyzerBot')
   })
 
+  // M2.3c review: the page is the visit someone asked for, so a `*` group alone does not stop it;
+  // its links are not, so they follow the `*` group as a crawler's requests do.
+  it('never asks for a link in a path robots.txt keeps every crawler from, but still scans the page', async () => {
+    site = await tempSite({
+      'index.html': page('<a href="/ar/private/x">خاص</a><a href="/ar/open/">عام</a>'),
+      'robots.txt': 'User-agent: *\nDisallow: /ar/private/\n',
+    })
+    const report = await run(site)
+    expect(site.requests).toContain('GET /')
+    expect(site.requests).not.toContain('HEAD /ar/private/x')
+    expect(site.requests).not.toContain('GET /ar/private/x')
+    expect(site.requests).toContain('HEAD /ar/open/')
+    expect(report.scan.notices.map((notice) => notice.code)).toEqual(['links-robots'])
+    const message = report.scan.notices[0]?.message.en ?? ''
+    expect(message).toContain('User-agent: *')
+    expect(report.scan.notices[0]?.message.ar).toContain('User-agent: *')
+  })
+
+  it('asks for every link when the * group is all robots.txt has, and the page is not kept from the bot', async () => {
+    site = await tempSite({
+      'index.html': page('<a href="/ar/a/">أ</a><a href="/ar/b/">ب</a>'),
+      'robots.txt': 'User-agent: *\nAllow: /\n',
+    })
+    const report = await run(site)
+    expect(site.requests).toContain('HEAD /ar/a/')
+    expect(site.requests).toContain('HEAD /ar/b/')
+    expect(report.scan.notices.map((notice) => notice.code)).toEqual([])
+  })
+
   it('does not judge a link that asks for fewer requests, and errs when none answered', async () => {
     site = await tempSite(
       { 'index.html': page('<a href="/ar/busy/">مشغولة</a>') },

@@ -4,6 +4,7 @@ import {
   collectPage,
   collectRobots,
   organizationalDomain,
+  txtLookup,
   type DnsFacts,
   type RobotsFacts,
 } from '@arablyzer/collectors'
@@ -57,11 +58,12 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
     const domain = organizationalDomain(new URL(PAGE_URL).hostname) ?? ''
     const dns: DnsFacts = {
       domain,
-      txt: RULES.flatMap((rule) =>
-        rule.txtName === undefined
-          ? []
-          : [{ name: rule.txtName(domain), ...txtOf(records, rule.txtName(domain)) }],
-      ),
+      txt: RULES.flatMap((rule) => {
+        if (rule.txtName === undefined) return []
+        const name = rule.txtName(domain)
+        const answer = txtOf(records, name)
+        return [txtLookup(name, answer.outcome, answer.records)]
+      }),
     }
     const page = collectPage({
       url: PAGE_URL,

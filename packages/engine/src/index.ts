@@ -9,7 +9,9 @@ export {
 } from './bounds'
 export { SCAN_BUDGET_MS } from './budgets'
 export { CRUX_ENDPOINT, fetchCrux, type CruxOptions } from './crux'
-export { REFUSAL_STATUSES } from '@arablyzer/collectors'
+export { MAX_SITE_LINKS, REFUSAL_STATUSES } from '@arablyzer/collectors'
+export { DNS_TIMEOUT_MS } from './dns'
+export { CONCURRENCY, LINK_TIMEOUT_MS, LINKS_TIMEOUT_MS, MAX_LINKS } from './links'
 export { notice, type NoticeCode } from './notices'
 export { type ProgressListener, type ScanProgress } from './progress'
 export {

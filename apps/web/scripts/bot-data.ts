@@ -5,7 +5,7 @@ import {
   DEFAULT_MAX_REDIRECTS,
   DEFAULT_MAX_REQUESTS,
 } from '@arablyzer/egress'
-import { ROBOTS_MAX_BYTES, ROBOTS_MAX_REDIRECTS, USER_AGENT } from '@arablyzer/engine'
+import { MAX_LINKS, ROBOTS_MAX_BYTES, ROBOTS_MAX_REDIRECTS, USER_AGENT } from '@arablyzer/engine'
 import type { BotFacts } from '../src/lib/bot'
 
 // What the bot's page says of it, from the code that does it (M2.4b), for src/generated/bot.json:
@@ -22,5 +22,6 @@ export function botFacts(): BotFacts {
     mibPerLoad: DEFAULT_MAX_BYTES / (1024 * 1024),
     viewport: { width: VIEWPORT.width, height: VIEWPORT.height },
     dohUrl: DEFAULT_DOH_URL,
+    links: MAX_LINKS,
   }
 }

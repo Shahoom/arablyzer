@@ -16,6 +16,8 @@ export interface BotFacts {
   readonly viewport: { readonly width: number; readonly height: number }
   /** The DNS-over-HTTPS resolver the hosted service asks unless it is configured with another. */
   readonly dohUrl: string
+  /** The page's links to its own site that a check asks for, at most. */
+  readonly links: number
 }
 
 export const BOT_FACTS = raw as BotFacts

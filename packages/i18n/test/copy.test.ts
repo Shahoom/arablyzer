@@ -27,6 +27,7 @@ const SAMPLE = {
   mibPerLoad: 25,
   viewport: { width: 390, height: 844 },
   dohUrl: 'https://cloudflare-dns.com/dns-query',
+  links: 50,
 }
 
 /** A function of the copy with sample numbers, or with SAMPLE when it takes an object of them. */

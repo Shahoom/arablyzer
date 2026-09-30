@@ -10,6 +10,8 @@ export interface BotNumbers {
   readonly viewport: { readonly width: number; readonly height: number }
   /** The DNS-over-HTTPS resolver the hosted service asks unless it is configured with another. */
   readonly dohUrl: string
+  /** The page's links to its own site that a check asks for, at most. */
+  readonly links: number
 }
 
 /**
@@ -101,10 +103,12 @@ export const PAGES_UI: Copy<PagesStrings> = {
           mibPerLoad,
           viewport,
           dohUrl,
+          links,
         }) => [
           `ملف robots.txt أولاً، ليعرف هل تمنعه، ويتبع ${String(robotsRedirects)} تحويلات على الأكثر ويقرأ أول ${String(robotsKib)} كيلوبايت منه.`,
           `الصفحة نفسها، ويتبع ${String(pageRedirects)} تحويلات على الأكثر.`,
           `حين يحتاج الفحص إلى سجلات البريد: سؤالان عن سجلات TXT، أحدهما لنطاق الصفحة والآخر للاسم \`_dmarc\` عليه، بأسلوب DNS عبر HTTPS إلى محلِّل Cloudflare (\`${dohUrl}\`) أو إلى المحلِّل الذي ضُبطت عليه الخدمة، عبر بروكسي الخروج نفسه. فيصل اسم النطاق إلى ذلك المحلِّل، ولا شيء آخر من الصفحة.`,
+          `حين يحتاج الفحص إلى روابط الصفحة، وهذا في فحص الروابط المعطّلة: طلب \`HEAD\` لكل رابط من أول ${String(links)} رابطاً في الصفحة إلى موقعك نفسه، وطلب \`GET\` إن ردّ بخطأ أو تعذّر الاتصال، دون أن يتبع تحويلاً أو يقرأ محتوى، ودون المسارات التي يمنعها ملف robots.txt عن ArablyzerBot أو عن كل زاحف بالمجموعة \`User-agent: *\`. وبعد أول رد بالحالة \`429\` لا يطلب رابطاً آخر.`,
           `حين يحتاج الفحص إلى عرض الصفحة: يفتحها في Chromium وFirefox وWebKit بنافذة جوال عرضها ${String(viewport.width)} وارتفاعها ${String(viewport.height)}، فيحمّل كل متصفح ما تحمّله الصفحة لزائرها من ملفات CSS وخطوط وصور وسكربتات، بـ ${String(requestsPerLoad)} طلب و${String(mibPerLoad)} ميغابايت على الأكثر في كل متصفح.`,
           'تمرّ كل طلباته عبر بروكسي خروج واحد يرفض العناوين الخاصة والمحلية.',
         ],
@@ -125,7 +129,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
           'يقرأ ArablyzerBot ملف robots.txt في بداية كل فحص، فيسري المنع من الفحص التالي.',
           'إن منعت الصفحة، يتوقف الفحص قبل أن يجلبها، ويقول التقرير إن الموقع طلب ألا يُفحص.',
           'إن حوّلت الصفحة إلى موقع آخر، يقرأ robots.txt ذلك الموقع أيضاً قبل أن يكمل.',
-          'مجموعة `User-agent: *` وحدها لا تمنع الفحص الذي يطلبه شخص: هو زيارة صفحة واحدة، لا زحف على موقعك.',
+          'مجموعة `User-agent: *` وحدها لا تمنع الفحص الذي يطلبه شخص: هو زيارة صفحة واحدة، لا زحف على موقعك. أما الطلبات إلى روابط الصفحة، وهي ليست تلك الزيارة، فتسري عليها هذه المجموعة أيضاً: لا يطلب الفحص مساراً تمنعه.',
           'إن تعذّرت قراءة robots.txt، كأن يرد بخطأ من الخادم، يكمل الفحص.',
         ],
       },
@@ -181,10 +185,12 @@ export const PAGES_UI: Copy<PagesStrings> = {
           mibPerLoad,
           viewport,
           dohUrl,
+          links,
         }) => [
           `robots.txt first, to know whether you block it, following at most ${String(robotsRedirects)} redirects and reading its first ${String(robotsKib)} KB.`,
           `The page itself, following at most ${String(pageRedirects)} redirects.`,
           `When the check needs the domain’s mail records: two TXT lookups, one for the page’s domain and one for its \`_dmarc\` name, as DNS over HTTPS to Cloudflare’s resolver (\`${dohUrl}\`) or to the resolver the service is configured with, through the same egress proxy. The domain’s name goes to that resolver, and nothing else of the page.`,
+          `When the check needs the page’s links, as the broken-link check does: a \`HEAD\` request to each of the first ${String(links)} links on the page to your own site, and a \`GET\` where it answers an error or the connection fails, following no redirect and reading no content, and skipping the paths robots.txt disallows for ArablyzerBot or for every crawler with \`User-agent: *\`. After the first \`429\` it asks for no more links.`,
           `When the check renders the page: it opens it in Chromium, Firefox and WebKit, in a phone window ${String(viewport.width)} wide and ${String(viewport.height)} high, and each browser loads what the page loads for a visitor (stylesheets, fonts, images, scripts), at most ${String(requestsPerLoad)} requests and ${String(mibPerLoad)} MB per browser.`,
           'Every request goes through one egress proxy that refuses private and local addresses.',
         ],
@@ -205,7 +211,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
           'ArablyzerBot reads robots.txt at the start of every check, so a block holds from the next check.',
           'When a page is blocked, the check stops before fetching it, and the report says the site asked not to be checked.',
           'When a page redirects to another site, it reads that site’s robots.txt too before going on.',
-          'A `User-agent: *` group alone does not block a check someone asks for: that is a visit to one page, not a crawl of your site.',
+          'A `User-agent: *` group alone does not block a check someone asks for: that is a visit to one page, not a crawl of your site. The requests for the page’s links are not that visit, and the `*` group applies to them: the check asks for no path it disallows.',
           'When robots.txt cannot be read, as when it answers with a server error, the check goes on.',
         ],
       },

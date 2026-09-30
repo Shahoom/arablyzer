@@ -1,5 +1,5 @@
 import { DEFAULT_DOH_URL, DEFAULT_MAX_REDIRECTS, DEFAULT_MAX_REQUESTS } from '@arablyzer/egress'
-import { USER_AGENT } from '@arablyzer/engine'
+import { MAX_LINKS, USER_AGENT } from '@arablyzer/engine'
 import { PAGES_UI } from '@arablyzer/i18n'
 import { describe, expect, it } from 'vitest'
 import { botFacts } from '../scripts/bot-data'
@@ -27,6 +27,20 @@ describe('botFacts', () => {
       expect(fetched, lang).toContain(facts.dohUrl)
       expect(fetched, lang).toContain('Cloudflare')
       expect(fetched, lang).toContain('_dmarc')
+    }
+  })
+
+  // M2.3c review: the requests for a page's links are not the visit someone asked for, so the `*`
+  // group of robots.txt applies to them; the bot's page says so, with the number of links.
+  it('says how many links a check asks for, and that the * group applies to them', () => {
+    const facts = botFacts()
+    expect(facts.links).toBe(MAX_LINKS)
+    for (const lang of ['ar', 'en'] as const) {
+      const bot = PAGES_UI[lang].bot
+      const fetched = bot.fetches.items(facts).join('\n')
+      expect(fetched, lang).toContain(String(facts.links))
+      expect(fetched, lang).toContain('User-agent: *')
+      expect(bot.optOut.notes.join('\n'), lang).toContain('*')
     }
   })
 })

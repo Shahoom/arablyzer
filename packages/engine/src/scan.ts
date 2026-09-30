@@ -813,16 +813,15 @@ function optOutRule(robots: RobotsFacts, bot: string, url: string): RobotsRule |
 
 /**
  * Whether robots.txt keeps the bot from a link's address, for many addresses (M2.3c): the
- * crawler's groups are chosen once. The same reading as optOutRule's, and asked of the links to be
- * checked alone.
+ * crawler's groups are chosen once, and asked of the links to be checked alone. Unlike the page
+ * (optOutRule), which someone asked for, a link is a request of the scan's own, made as a crawler
+ * would: a group naming the bot counts, and the `User-agent: *` group too where none names it
+ * (RFC 9309 §2.2.1). A robots.txt that could not be read asks nothing.
  */
 function linkOptOut(robots: RobotsFacts, bot: string): (url: string) => boolean {
   if (robots.outcome !== 'fetched') return () => false
   const match = robotsMatcher(robots.robots, bot)
-  return (url) => {
-    const found = match(url)
-    return found.group === 'specific' && !found.allowed
-  }
+  return (url) => !match(url).allowed
 }
 
 interface Outcome {

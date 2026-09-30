@@ -229,8 +229,8 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     en: 'The page links to at least {total} addresses on its own site: the scan checked the first {limit}, and not the other {count} or more.',
   },
   'links-robots': {
-    ar: 'روابط في الصفحة عددها {count} تقود إلى مسارات يطلب ملف robots.txt في الموقع ألّا يفحصها {bot}، فلم نفحصها.',
-    en: '{count} of the page’s links lead to paths the site’s robots.txt asks {bot} not to check, so they were not checked.',
+    ar: 'روابط في الصفحة عددها {count} تقود إلى مسارات يطلب ملف robots.txt في الموقع ألّا يجلبها {bot} أو الزواحف عامةً (User-agent: *)، فلم نفحصها. فالصفحة نفسها زيارة طلبها شخص، أما روابطها فنطلبها كما يطلبها زاحف، فتسري عليها مجموعة * أيضاً، إلا أن تسمّي المجموعة {bot} فتحلّ محلها.',
+    en: '{count} of the page’s links lead to paths the site’s robots.txt asks {bot}, or crawlers in general (User-agent: *), not to fetch, so they were not checked. The page itself is a visit someone asked for, but its links are requested as a crawler would, so the * group applies to them too, unless a group names {bot}, which replaces it.',
   },
   'links-unanswered': {
     ar: 'روابط في الصفحة إلى موقعها عددها {count} لم نستطع الحكم عليها: لم يصل جوابها في الوقت المحدد، أو تعذّر الاتصال، أو رفض الموقع الطلب بإحدى الحالات 401 و403 و407 و429 و503 التي يردّ بها الموقع على زائر يظنه بوتاً أو يطلب تسجيل الدخول أو يعجز عن الخدمة، وبعد أول 429 لا نطلب رابطاً آخر.',

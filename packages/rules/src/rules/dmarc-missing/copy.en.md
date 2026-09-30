@@ -1,4 +1,4 @@
-# No DMARC record for the domain
+# No valid DMARC record for the domain
 
 ## Messages
 
@@ -9,6 +9,18 @@
 ### several
 
 `_dmarc.{domain}` has {count} DMARC records, where one is allowed: with more than one, mail servers apply no DMARC policy to the domain's mail.
+
+### malformed
+
+`_dmarc.{domain}` has a record that starts with `v=DMARC1` but is not written as RFC 7489 (§6.4) asks: a `;` must follow the version tag, so mail servers may not read it as a DMARC record.
+
+### no-policy
+
+`_dmarc.{domain}` has a DMARC record without a `p` tag: RFC 7489 (§6.3) requires it, with the value `none`, `quarantine` or `reject`, so the record does not say what to do with messages that fail the checks.
+
+### bad-policy
+
+The `p` tag of the DMARC record at `_dmarc.{domain}` is “{value}”, and RFC 7489 (§6.3) allows `none`, `quarantine` or `reject` alone, so the record does not say what to do with messages that fail the checks.
 
 ## Why it matters
 
@@ -34,14 +46,15 @@ _dmarc.example.com.  TXT  "v=DMARC1; p=reject"
 ```
 
 - One record only at `_dmarc`: two records that each start with `v=DMARC1` void DMARC altogether.
+- The `p` tag is required, and its value is `none`, `quarantine` or `reject`. Write a `;` after `v=DMARC1` and between the tags.
 
 ## How we detect
 
 1. We take the page's organizational domain from its name, as RFC 7489 (§3.2) defines it from the Public Suffix List: a page on `www.shop.example.com.sa` has the domain `example.com.sa`.
 2. We ask a DNS resolver for the TXT records of that domain's `_dmarc` name alone (§6.1), and for no other type or name, as DNS over HTTPS (RFC 8484): Cloudflare's resolver, or the one the scanner is set to, through the same egress proxy as the rest of the scan's traffic. A scan that runs on a machine without an egress proxy asks that machine's DNS servers instead. A mail server asks for the record of the domain in the sender's address, then for its organizational domain's when it finds none (§6.6.3), so the record we read is the one every subdomain without its own falls back to.
-3. The rule fails when no record starts with the tag `v` whose value is `DMARC1`, in capitals and exactly, with spaces allowed around the `=` (§6.3 and §6.4), or when more than one does.
+3. The rule fails when no record starts with the tag `v` whose value is `DMARC1`, in capitals and exactly, with spaces allowed around the `=` (§6.3 and §6.4), or when more than one does. It fails, with a message of its own, when the one record has no `p` tag, or a `p` whose value is not `none`, `quarantine` or `reject` (§6.3; in any letter case, and wherever among the tags it stands), and when a record starts with `v=DMARC1` but no `;` follows it, which the grammar of §6.4 requires. RFC 7489 (§6.6.3) lets a receiver read a record with a valid `rua` and no valid `p` as `p=none`; we still fail it, since the record does not set the policy the RFC requires.
 4. When no answer comes in time, or the DNS server answers with an error, we do not judge: the report says the rule could not run. A scan with no way to ask DNS leaves the rule out, and the report says so.
-5. We do not check the policy (`p`) or the report addresses, nor records of subdomains' own. Pages on an IP address, on a local name such as `localhost` or one that ends in `.test`, or on a private address are left out.
+5. We do not check the other tags (`sp`, `rua`, `pct`), nor records of subdomains' own. Pages on an IP address, on a local name such as `localhost` or one that ends in `.test`, on a private address, or on a site a platform gives its customers, such as `user.github.io`, `shop.myshopify.com` or `site.vercel.app`, are left out: the DNS of that zone is the platform's, and its customers cannot change it. The rule does not apply to them.
 
 ## References
 

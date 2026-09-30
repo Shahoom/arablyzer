@@ -29,7 +29,10 @@ const PAGE_ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q
 export interface LinkContext {
   /** The page's own fetch options: its user agent, its lockdown policy and its resolver. */
   readonly base: SafeFetchOptions
-  /** Whether robots.txt keeps the scan's bot from an address, as optOutRule reads it. */
+  /**
+   * Whether robots.txt keeps the scan's bot from an address. The links follow the `*` group too,
+   * which the page does not; the caller decides, and asks of the links to be checked alone.
+   */
   readonly optedOut: (url: string) => boolean
 }
 
