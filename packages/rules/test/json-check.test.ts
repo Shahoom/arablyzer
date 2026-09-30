@@ -31,7 +31,7 @@ describe('checkJson (RFC 8259)', () => {
     ["{'a': 1}", 'unexpected-character', 1],
     ['{"a": 01}', 'unexpected-character', 7],
     ['{"a": tru}', 'unexpected-character', 6],
-    ['﻿{}', 'unexpected-character', 0],
+    ['\ufeff{}', 'unexpected-character', 0],
     ['{"a": "line\nbreak"}', 'control-character', 11],
     ['{"a": "\\x41"}', 'invalid-escape', 7],
     ['{"a": "\\u12G4"}', 'invalid-escape', 7],
@@ -46,7 +46,7 @@ describe('checkJson (RFC 8259)', () => {
 
   it('names the unexpected character, or its code point when invisible', () => {
     expect(checkJson('{"a": 1} x')?.character).toBe('x')
-    expect(checkJson('﻿{}')?.character).toBe('U+FEFF')
+    expect(checkJson('\ufeff{}')?.character).toBe('U+FEFF')
   })
 
   it('handles deep nesting without recursion', () => {

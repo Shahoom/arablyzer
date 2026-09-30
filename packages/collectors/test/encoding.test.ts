@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { decodeHtml, sniffEncoding } from '../src/encoding'
+import { decodeHtml, decodeWindows1252, sniffEncoding } from '../src/encoding'
 import { concat, encodeSingleByte, utf8 } from './helpers'
 
 const ARABIC = 'مرحبا بكم في موقعنا العربي'
@@ -87,6 +87,18 @@ describe('sniffEncoding (WHATWG HTML §13.2.3)', () => {
 })
 
 describe('decodeHtml', () => {
+  // Node's TextDecoder takes windows-1252 as ISO-8859-1 for 0x80–0x9F (checked on Node 22.22);
+  // browsers follow the WHATWG index: 0x80 is €, 0x85 …, 0x93 and 0x94 curly quotes.
+  it('decodes windows-1252 as browsers do, including 0x80–0x9F', () => {
+    const bytes = new Uint8Array([0x93, 0x41, 0x94, 0x20, 0x80, 0x35, 0x85, 0x20, 0xe9, 0x81])
+    for (const charset of ['windows-1252', 'iso-8859-1', 'us-ascii']) {
+      expect(decodeHtml(bytes, `text/html; charset=${charset}`).text).toBe('“A” €5… é\u0081')
+    }
+    expect(decodeWindows1252(new Uint8Array([0x8d, 0x8f, 0x90, 0x9d, 0x9f]))).toBe(
+      '\u008d\u008f\u0090\u009d\u0178',
+    )
+  })
+
   it('decodes a windows-1256 page declared in the Content-Type header', () => {
     const page = concat(ascii('<p>'), cp1256(ARABIC), ascii('</p>'))
     const decoded = decodeHtml(page, 'text/html; charset=windows-1256')

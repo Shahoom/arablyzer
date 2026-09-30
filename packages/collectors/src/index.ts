@@ -1,7 +1,15 @@
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
-export { decodeHtml, sniffEncoding, type EncodingInfo, type EncodingSource } from './encoding'
+export {
+  decodeHtml,
+  decodeWindows1252,
+  sniffEncoding,
+  type EncodingInfo,
+  type EncodingSource,
+} from './encoding'
 export {
   type AnchorElement,
+  type FieldElement,
+  type HeadingElement,
   type HtmlFacts,
   type LinkElement,
   type MetaElement,

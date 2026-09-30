@@ -1,5 +1,6 @@
 import { collectPage } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
+import type { Finding } from '@arablyzer/report-schema'
 import { RULES } from '@arablyzer/rules'
 import type { DefaultTreeAdapterMap } from 'parse5'
 import type { Lang } from '../site'
@@ -48,6 +49,19 @@ export interface ExpectedPage {
 
 /** robots.txt rules are left out: a rendered page has none to read. */
 const PAGE_RULES = RULES.filter((rule) => !rule.needs.includes('robots'))
+
+/**
+ * Findings our pages have until the site build, each named with why; any other finding of our
+ * own rules fails the audit.
+ */
+const NOT_YET: readonly { readonly ruleId: string; readonly tag: string; readonly why: string }[] =
+  [
+    {
+      ruleId: 'og-tags-missing',
+      tag: 'og:image',
+      why: 'the site build makes an Open Graph image for every page (BUILD-PLAN §6.5)',
+    },
+  ]
 
 /** The §6.1 sections, in the order the template puts them. */
 const SECTIONS = ['checks', 'example', 'fix', 'faq', 'links', 'about'] as const
@@ -427,13 +441,17 @@ function ownRuleFailures(html: string, url: string): string[] {
     body: new TextEncoder().encode(html),
   })
   const { results, findings } = evaluatePage(page, { rules: PAGE_RULES })
+  const notYet = (finding: Finding) =>
+    NOT_YET.some((gap) => gap.ruleId === finding.ruleId && finding.evidence.values?.tag === gap.tag)
   return results
     .filter((result) => result.status === 'fail' || result.status === 'error')
-    .map((result) => {
-      const details = findings
-        .filter((finding) => finding.ruleId === result.id)
-        .map((finding) => finding.message.en)
-      return `${result.id} ${result.status}${details.length === 0 ? '' : `: ${details.join(' / ')}`}`
+    .flatMap((result) => {
+      const own = findings.filter((finding) => finding.ruleId === result.id)
+      const details = own.filter((finding) => !notYet(finding)).map((finding) => finding.message.en)
+      if (result.status === 'fail' && own.length > 0 && details.length === 0) return []
+      return [
+        `${result.id} ${result.status}${details.length === 0 ? '' : `: ${details.join(' / ')}`}`,
+      ]
     })
 }
 

@@ -7,13 +7,9 @@
  * Rare codes are accepted rather than flagged: a wrong verdict on a real Arabic-script language
  * would be worse than missing an unusual mistake.
  */
-const ARABIC_SCRIPT_LANGUAGES = new Set([
-  // Suppress-Script: Arab
+/** Arabic and the varieties of its macrolanguage (IANA registry): `afb` is Gulf Arabic. */
+const ARABIC_LANGUAGES = new Set([
   'ar',
-  'fa',
-  'ps',
-  'ur',
-  // Macrolanguage ar
   'aao',
   'abh',
   'abv',
@@ -44,6 +40,13 @@ const ARABIC_SCRIPT_LANGUAGES = new Set([
   'pga',
   'shu',
   'ssh',
+])
+const ARABIC_SCRIPT_LANGUAGES = new Set([
+  ...ARABIC_LANGUAGES,
+  // Suppress-Script: Arab
+  'fa',
+  'ps',
+  'ur',
   // Macrolanguages fa and ps
   'pes',
   'prs',
@@ -87,4 +90,9 @@ export function isArabicScriptLanguage(tag: string): boolean {
   const region = rest.find((subtag) => /^[a-z]{2}$/.test(subtag))
   if (region !== undefined && ARABIC_SCRIPT_REGIONS.has(`${language}-${region}`)) return true
   return ARABIC_SCRIPT_LANGUAGES.has(language)
+}
+
+/** Whether a language tag names Arabic: `ar`, or one of its varieties such as `afb` (Gulf Arabic). */
+export function isArabicLanguage(tag: string): boolean {
+  return ARABIC_LANGUAGES.has(tag.trim().toLowerCase().split(/[-_]/)[0] ?? '')
 }

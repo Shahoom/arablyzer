@@ -1,39 +1,63 @@
 import type { Rule } from './rule'
+import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
 import { rule as arFontNoArabic } from './rules/ar-font-no-arabic/rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
+import { rule as arMojibake } from './rules/ar-mojibake/rule'
+import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
+import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
+import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
+import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
+import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
+import { rule as priceDecimals } from './rules/price-decimals/rule'
+import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
 import { rule as robotsBlocksAiSearch } from './rules/robots-blocks-ai-search/rule'
 import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/rule'
 import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
 import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
+import { rule as titleMissing } from './rules/title-missing/rule'
+import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
-export const RULESET_VERSION = '0.2.0'
+export const RULESET_VERSION = '0.3.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
+  arDigitsMixed,
   arFontFallback,
   arFontNoArabic,
   arHtmlLang,
   arLatinPunctuation,
   arLetterSpacing,
+  arMojibake,
+  arTatweel,
   canonicalConflict,
+  formArabicDigitsRejected,
+  formArabicNameRejected,
+  h1Missing,
   hreflangInvalidCode,
   jsonldSyntaxError,
+  metaDescriptionMissing,
+  ogTagsMissing,
   pageNoindex,
+  priceDecimals,
+  productOfferInvalid,
   robotsBlocksAiSearch,
   robotsBlocksGooglebot,
   rtlBidiIsolation,
   rtlHorizontalOverflow,
   rtlHtmlDir,
+  titleMissing,
+  viewportMissing,
   whatsappLinkFormat,
 ]
 

@@ -5,8 +5,8 @@ import { defineRule, type DetectorFinding } from '../../rule'
 /** Latin mark → its Arabic form (U+060C, U+061B, U+061F). */
 const ARABIC_FORM: Readonly<Record<string, string>> = { ',': '،', ';': '؛', '?': '؟' }
 /** An Arabic-script letter, then any harakat or tatweel, then a Latin comma, semicolon or question mark. */
-const LATIN_MARK = /(?=\p{L})\p{Script=Arabic}[ً-ٰٟـ]*[,;?]/gu
-const ARABIC_LETTER_OR_MARK = /^(?:(?=\p{L})\p{Script=Arabic}|[ً-ٰٟـ])$/u
+const LATIN_MARK = /(?=\p{L})\p{Script=Arabic}[\u064b-\u065f\u0670\u0640]*[,;?]/gu
+const ARABIC_LETTER_OR_MARK = /^(?:(?=\p{L})\p{Script=Arabic}|[\u064b-\u065f\u0670\u0640])$/u
 /** Characters of context on each side of the mark in the snippet. */
 const CONTEXT = 60
 

@@ -5,7 +5,7 @@ Checks that the WhatsApp links on your page use the format WhatsApp documents: t
 ## What it checks
 
 - Links to `wa.me`, `api.whatsapp.com/send`, `web.whatsapp.com/send` and `whatsapp://send` on the page, in `<a>` and `<area>` elements.
-- The number is digits 0 to 9 only: no `+`, spaces, dashes or brackets, and no Eastern Arabic digits such as ٩٦٨.
+- The number is digits 0 to 9 only: no `+`, spaces, dashes or brackets, and no Eastern Arabic digits such as `٩٦٨`.
 - The number does not start with a zero, and is a full international number: a known country code and a length that fits that country's numbers.
 - The local 0 after the country code, as in `9660501234567`, with the right form `966501234567`.
 

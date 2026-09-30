@@ -29,10 +29,12 @@ export function renderToolPage(tool: Tool, lang: Lang, site: Site): string {
   ]
   const other = otherLang(lang)
 
+  const title = `${copy.title} — Arablyzer`
   const head = renderHead({
-    title: `${copy.title} — Arablyzer`,
+    title,
     description: copy.description,
     canonical: url,
+    openGraph: { title, description: copy.description, url },
     alternates: alternates(site, path),
     jsonLd: [
       webApplication({ name: copy.title, description: copy.description, url, lang }),
