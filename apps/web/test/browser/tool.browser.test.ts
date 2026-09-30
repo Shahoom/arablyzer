@@ -147,6 +147,15 @@ async function check(
     else await route.abort('blockedbyclient')
   })
   const tab = await context.newPage()
+  // What went wrong in the page, for a failure to say (CI saw the island never start in Chromium).
+  const troubles: string[] = []
+  tab.on('pageerror', (error) => troubles.push(`page error: ${error.message}`))
+  tab.on('console', (message) => {
+    if (message.type() === 'error') troubles.push(`console: ${message.text()}`)
+  })
+  tab.on('requestfailed', (request) => {
+    troubles.push(`request failed: ${request.url()} (${request.failure()?.errorText ?? ''})`)
+  })
   let asked: unknown = null
   const json = (value: unknown, status = 200) => ({
     status,
@@ -178,7 +187,22 @@ async function check(
   })
   await tab.goto(site.url(lang === 'ar' ? `/tools/${TOOL}` : `/en/tools/${TOOL}`))
   // The button is enabled once the island runs.
-  await tab.locator('form button[type="submit"]:not([disabled])').waitFor()
+  await tab
+    .locator('form button[type="submit"]:not([disabled])')
+    .waitFor()
+    .catch(async (error: unknown) => {
+      const island = await tab.evaluate(() => ({
+        islands: [...document.querySelectorAll('astro-island')].map((node) =>
+          node.hasAttribute('ssr') ? 'waiting' : 'started',
+        ),
+        idle: 'requestIdleCallback' in window,
+        state: document.readyState,
+      }))
+      throw new Error(
+        `The tool's island did not start: ${JSON.stringify(island)}; ${troubles.join(' | ') || 'no error in the page'}`,
+        { cause: error },
+      )
+    })
   await tab.fill('#tool-url', ADDRESS)
   await tab.click('form button[type="submit"]')
   const running = TOOL_APP[lang].result.running
