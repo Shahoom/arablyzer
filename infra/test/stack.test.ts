@@ -329,16 +329,18 @@ describe('the site server', () => {
   })
 
   it('serves robots.txt, the sitemaps and the pages’ images, for search engines and previews', async () => {
+    // XML goes as either of its media types (RFC 7303): Caddy gives text/xml.
+    const XML = /^(?:application|text)\/xml\b/
     for (const [path, type] of [
-      ['/robots.txt', 'text/plain'],
-      ['/sitemap.xml', 'application/xml'],
-      ['/sitemaps/tools.xml', 'application/xml'],
-      ['/og/tools/rtl-check.png', 'image/png'],
-      ['/og/en/index.png', 'image/png'],
+      ['/robots.txt', /^text\/plain\b/],
+      ['/sitemap.xml', XML],
+      ['/sitemaps/tools.xml', XML],
+      ['/og/tools/rtl-check.png', /^image\/png$/],
+      ['/og/en/index.png', /^image\/png$/],
     ] as const) {
       const response = await fetch(`${SITE}${path}`)
       expect(response.status, path).toBe(200)
-      expect(response.headers.get('content-type'), path).toContain(type)
+      expect(response.headers.get('content-type'), path).toMatch(type)
     }
     expect(await (await fetch(`${SITE}/robots.txt`)).text()).toContain('Sitemap: ')
   })
