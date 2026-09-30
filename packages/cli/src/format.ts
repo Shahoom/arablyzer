@@ -1,4 +1,4 @@
-import type { Finding, Report, RuleStatus, Severity } from '@arablyzer/report-schema'
+import type { Engine, Finding, Report, RuleStatus, Severity } from '@arablyzer/report-schema'
 import { STRINGS, type Lang } from './i18n'
 
 const SGR = { bold: 1, dim: 2, red: 31, green: 32, yellow: 33, cyan: 36 } as const
@@ -31,6 +31,19 @@ export function formatReport(report: Report, lang: Lang, color: boolean): string
   lines.push(
     `${http}${t.scan[report.scan.status]} · ${(report.scan.durationMs / 1000).toFixed(1)} s`,
   )
+  for (const run of report.scan.render ?? []) {
+    const parts = [
+      clean(`${ENGINE_LABEL[run.engine]}${run.version === null ? '' : ` ${run.version}`}`),
+      t.render[run.status],
+    ]
+    if (run.status === 'rendered') {
+      parts.push(
+        `${(run.durationMs / 1000).toFixed(1)} s`,
+        t.requests(run.requests.total, run.requests.refused),
+      )
+    }
+    lines.push(paint(SGR.dim, parts.join(' · ')))
+  }
 
   const counts: [RuleStatus, number][] = [
     ['fail', summary.fail],
@@ -79,13 +92,20 @@ export function formatReport(report: Report, lang: Lang, color: boolean): string
 }
 
 function evidenceLine(finding: Finding, pageUrl: string | null, lineLabel: string): string {
-  const { url, selector, location, snippet } = finding.evidence
+  const { url, selector, location, snippet, engines } = finding.evidence
   const parts: string[] = []
   if (url !== undefined && url !== pageUrl) parts.push(url)
   if (selector !== undefined) parts.push(selector)
   if (location !== undefined) parts.push(`${lineLabel} ${location.line}`)
+  if (engines !== undefined) parts.push(engines.map((engine) => ENGINE_LABEL[engine]).join(', '))
   if (snippet !== undefined) parts.push(snippet)
   return parts.join(' · ')
+}
+
+const ENGINE_LABEL: Readonly<Record<Engine, string>> = {
+  chromium: 'Chromium',
+  firefox: 'Firefox',
+  webkit: 'WebKit',
 }
 
 /** The report as JSON, with the same characters escaped; `\uXXXX` leaves the data unchanged. */

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { parseCliArgs, UsageError } from '../../src/args'
 import { cliPolicy, exitCode, run } from '../../src/cli'
 import { clean, formatJson, formatReport } from '../../src/format'
-import { langFromEnv } from '../../src/i18n'
+import { langFromEnv, STRINGS } from '../../src/i18n'
 
 describe('parseCliArgs', () => {
   it('has the documented defaults', () => {
@@ -15,9 +15,56 @@ describe('parseCliArgs', () => {
       failOn: undefined,
       timeoutMs: 30_000,
       allowPrivate: false,
+      render: null,
       help: false,
       version: false,
     })
+  })
+
+  it('renders in Chromium with --render, in the engines asked for, and --screenshots implies it', () => {
+    const render = (...flags: string[]) => parseCliArgs(['x.test', ...flags], {}).render
+    expect(render('--render')).toEqual({
+      engines: ['chromium'],
+      screenshotsDir: null,
+      networkIsolated: false,
+    })
+    expect(render('--engines', 'firefox, chromium,firefox')).toMatchObject({
+      engines: ['firefox', 'chromium'],
+    })
+    expect(render('--screenshots', 'shots')).toMatchObject({
+      engines: ['chromium'],
+      screenshotsDir: 'shots',
+    })
+  })
+
+  it('runs WebKit only where the network is isolated: by name it is refused, and all leaves it out', () => {
+    const render = (env: Record<string, string>, ...flags: string[]) =>
+      parseCliArgs(['x.test', ...flags], env, 'linux').render
+    expect(render({}, '--engines', 'all')).toEqual({
+      engines: ['chromium', 'firefox'],
+      screenshotsDir: null,
+      networkIsolated: false,
+    })
+    expect(() => render({}, '--engines', 'chromium,webkit')).toThrow(
+      /webkit sends WebRTC around the egress proxy.*ARABLYZER_NETWORK_ISOLATED=1/,
+    )
+    const isolated = { ARABLYZER_NETWORK_ISOLATED: '1' }
+    expect(render(isolated, '--engines', 'all')).toEqual({
+      engines: ['chromium', 'firefox', 'webkit'],
+      screenshotsDir: null,
+      networkIsolated: true,
+    })
+    expect(render(isolated, '--engines', 'webkit')).toMatchObject({ engines: ['webkit'] })
+  })
+
+  it('never runs WebKit on macOS, where it reaches loopback around the proxy', () => {
+    const isolated = { ARABLYZER_NETWORK_ISOLATED: '1' }
+    const render = (...flags: string[]) =>
+      parseCliArgs(['x.test', ...flags], isolated, 'darwin').render
+    expect(render('--engines', 'all')).toMatchObject({ engines: ['chromium', 'firefox'] })
+    expect(() => render('--engines', 'webkit')).toThrow(
+      /webkit reaches loopback addresses around the egress proxy on macOS/,
+    )
   })
 
   it('adds https:// to a bare host and leaves other schemes for egress to refuse', () => {
@@ -60,9 +107,39 @@ describe('parseCliArgs', () => {
     [['x.test', '--rules', 'nope'], /unknown rule id: nope/],
     [['x.test', '--rules', ' , '], /at least one rule id/],
     [['x.test', '--bogus'], /Unknown option '--bogus'/],
+    [['x.test', '--rules', 'ar-letter-spacing'], /ar-letter-spacing need the page rendered/],
+    [
+      ['x.test', '--rules', 'ar-font-no-arabic', '--engines', 'firefox'],
+      /ar-font-no-arabic reads what only chromium reports: add it to --engines/,
+    ],
+    [['x.test', '--engines', 'edge'], /unknown engine: edge/],
+    [['x.test', '--engines', ' , '], /at least one engine/],
+    [['x.test', '--screenshots', ''], /--screenshots needs a directory/],
   ])('rejects %j', (argv, error) => {
     expect(() => parseCliArgs(argv, {})).toThrow(UsageError)
     expect(() => parseCliArgs(argv, {})).toThrow(error)
+  })
+})
+
+describe('request counts in the text report', () => {
+  it('agree with their number in English and in Arabic', () => {
+    expect([1, 2, 31].map((total) => STRINGS.en.requests(total, 0))).toEqual([
+      '1 request',
+      '2 requests',
+      '31 requests',
+    ])
+    expect(STRINGS.en.requests(31, 2)).toBe('31 requests, 2 refused')
+    expect([1, 2, 3, 10, 11, 99, 100, 103].map((total) => STRINGS.ar.requests(total, 0))).toEqual([
+      'طلب واحد',
+      'طلبان',
+      '3 طلبات',
+      '10 طلبات',
+      '11 طلباً',
+      '99 طلباً',
+      '100 طلب',
+      '103 طلبات',
+    ])
+    expect(STRINGS.ar.requests(31, 2)).toBe('31 طلباً، رُفض منها 2')
   })
 })
 

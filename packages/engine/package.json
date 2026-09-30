@@ -9,9 +9,11 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --exclude \"test/browser/**\"",
+    "test:browser": "vitest run test/browser"
   },
   "dependencies": {
+    "@arablyzer/browser": "workspace:*",
     "@arablyzer/collectors": "workspace:*",
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",

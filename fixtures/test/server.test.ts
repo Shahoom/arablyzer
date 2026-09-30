@@ -144,4 +144,14 @@ describe('serveSite', () => {
     await expect(serveSite(dir)).rejects.toThrow(/fixture\.json/)
     await rm(dir, { recursive: true, force: true })
   })
+
+  it('serves fixtures/shared/ under /_shared/ on every site, and nothing beside it', async () => {
+    const font = await request(site.url('/_shared/fonts/arablyzer-test-arabic.ttf'))
+    expect(font.status).toBe(200)
+    expect(header(font, 'content-type')).toEqual(['font/ttf'])
+    expect(font.body.subarray(0, 4)).toEqual(Buffer.from([0, 1, 0, 0]))
+    for (const escape of ['/_shared/../src/server.ts', '/_shared/%2e%2e/package.json']) {
+      expect((await request(site.url('/'), 'GET', escape)).status, escape).toBe(404)
+    }
+  })
 })

@@ -1,12 +1,17 @@
 import http, { type IncomingMessage } from 'node:http'
 import https from 'node:https'
-import type { LookupFunction } from 'node:net'
 import type { Readable } from 'node:stream'
 import zlib from 'node:zlib'
 import { egressError, type EgressError } from './errors'
 import { DEFAULT_POLICY, type EgressPolicy } from './policy'
 import { redactUrl } from './redact'
-import { defaultResolver, resolveEndpoint, type ResolvedAddress, type Resolver } from './resolve'
+import {
+  defaultResolver,
+  pinnedLookup,
+  resolveEndpoint,
+  type ResolvedAddress,
+  type Resolver,
+} from './resolve'
 import { checkUrl } from './url'
 
 /** BUILD-PLAN §11 page-load limits. */
@@ -181,22 +186,7 @@ function sendRequest(
   options: SafeFetchOptions,
   signal: AbortSignal,
 ): Promise<IncomingMessage> {
-  // Hand Node only the vetted answers, so the connection cannot be re-resolved elsewhere.
-  const lookup: LookupFunction = (_hostname, lookupOptions, callback) => {
-    if (lookupOptions.all === true) {
-      callback(
-        null,
-        addresses.map(({ address, family }) => ({ address, family })),
-      )
-      return
-    }
-    const [first] = addresses
-    if (first === undefined) {
-      callback(new Error('No vetted address'), '', 0)
-      return
-    }
-    callback(null, first.address, first.family)
-  }
+  const lookup = pinnedLookup(addresses)
   const requestOptions: https.RequestOptions = {
     method: 'GET',
     // A fresh agent: no shared sockets and no proxy settings picked up from the environment.

@@ -1,17 +1,30 @@
-import type { PageFacts, RobotsFacts, SourceLocation } from '@arablyzer/collectors'
+import type {
+  Box,
+  Engine,
+  PageFacts,
+  RenderedFacts,
+  RobotsFacts,
+  SourceLocation,
+} from '@arablyzer/collectors'
 import type { Category, JsonValue, Severity } from '@arablyzer/report-schema'
 import { loadRuleCopy, type RuleCopy } from './copy'
 
 /**
  * What a rule needs collected. `http`: a 2xx page response (headers; HTML optional).
- * `html` and `text`: a 2xx HTML page. `robots`: robots.txt for the final URL.
+ * `html` and `text`: a 2xx HTML page. `robots`: robots.txt for the final URL. `render`: the page
+ * rendered in a browser (only with --render; M1.1).
  */
-export type CollectorId = 'http' | 'html' | 'text' | 'robots'
+export type CollectorId = 'http' | 'html' | 'text' | 'robots' | 'render'
 
 export interface Evidence {
   readonly page: PageFacts
   /** Present when the rule needs `robots`; never `failed` (the engine reports an error instead). */
   readonly robots?: RobotsFacts
+  /**
+   * Present when the rule needs `render`: one entry per engine that rendered the page, never
+   * empty (the engine reports an error when none did).
+   */
+  readonly rendered?: readonly RenderedFacts[]
 }
 
 /** Detectors return data only; the wording comes from the copy files (docs/design/phase-0.md §1). */
@@ -26,6 +39,9 @@ export interface DetectorFinding<M extends string = string> {
   readonly snippet?: string
   /** Leave out the column when it cannot be exact (e.g. inside text with entities). */
   readonly location?: SourceLocation | { readonly line: number }
+  /** For findings on the rendered page: the engines it was seen in, and where in the first. */
+  readonly engines?: readonly Engine[]
+  readonly box?: Box
   /** What tells this finding apart from others of the rule on the page; part of the fingerprint. */
   readonly key?: string
 }
@@ -41,9 +57,18 @@ export interface Rule<M extends string = string> {
   /** "Needs human review": reported, never deducted. */
   readonly manualCheck?: boolean
   readonly needs: readonly CollectorId[]
+  /**
+   * With `render`: the engines whose facts the rule can read (Chromium alone reports the fonts
+   * that drew a text); all engines by default. The rule sees only those engines' facts.
+   */
+  readonly renderEngines?: readonly Engine[]
   readonly messages: readonly M[]
-  /** False → not-applicable: the page has nothing this rule checks. */
-  readonly appliesTo: (page: PageFacts) => boolean
+  /**
+   * False → not-applicable: the page has nothing this rule checks. Rules that need `render`
+   * decide from the rendered page, whose text may come from scripts the HTML does not show; the
+   * engine always passes the evidence, and tests of rules that read only the page may leave it out.
+   */
+  readonly appliesTo: (page: PageFacts, evidence?: Evidence) => boolean
   /**
    * A pure function: tested without a browser or network. A rule whose findings grow with the
    * page (one per punctuation mark, say) yields them lazily, so the engine keeps the ones it

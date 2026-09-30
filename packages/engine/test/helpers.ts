@@ -63,9 +63,10 @@ function copy(title: string, messages: Record<string, string>): RuleCopy {
 export interface TestRuleOptions {
   readonly id?: string
   readonly needs?: Rule['needs']
+  readonly renderEngines?: Rule['renderEngines']
   readonly severity?: Rule['severity']
   readonly manualCheck?: boolean
-  readonly appliesTo?: (page: PageFacts) => boolean
+  readonly appliesTo?: (page: PageFacts, evidence?: Evidence) => boolean
   readonly detect: (evidence: Evidence) => Iterable<DetectorFinding<'found'>>
 }
 
@@ -80,6 +81,7 @@ export function testRule(options: TestRuleOptions): Rule<'found'> {
     wcag: ['3.1.1'],
     needs: options.needs ?? ['html'],
     messages: ['found'],
+    ...(options.renderEngines === undefined ? {} : { renderEngines: options.renderEngines }),
     ...(options.manualCheck === undefined ? {} : { manualCheck: options.manualCheck }),
     appliesTo: options.appliesTo ?? (() => true),
     detect: options.detect,
@@ -89,6 +91,25 @@ export function testRule(options: TestRuleOptions): Rule<'found'> {
     },
   }
 }
+
+/** A rule that needs rendering: one finding per Arabic text block, with its engine and box. */
+export const renderRule = (options: Partial<TestRuleOptions> = {}): Rule<'found'> =>
+  testRule({
+    id: 'render-rule',
+    needs: ['render'],
+    detect: ({ rendered }) =>
+      (rendered ?? []).flatMap((facts) =>
+        facts.arabicText.map((block) => ({
+          message: 'found' as const,
+          values: { what: block.text },
+          selector: block.selector,
+          engines: [facts.engine],
+          box: block.box,
+          key: facts.engine,
+        })),
+      ),
+    ...options,
+  })
 
 /** Findings for every <meta name="flag">: an easy way to make a test rule fail on purpose. */
 export const flagRule = (options: Partial<TestRuleOptions> = {}): Rule<'found'> =>

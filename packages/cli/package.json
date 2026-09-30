@@ -11,9 +11,11 @@
     "typecheck": "tsc --noEmit",
     "build": "tsx scripts/build.ts",
     "test": "vitest run test/unit",
-    "test:e2e": "tsx scripts/build.ts && vitest run test/e2e"
+    "test:e2e": "vitest run test/e2e",
+    "test:browser": "vitest run test/browser"
   },
   "dependencies": {
+    "@arablyzer/browser": "workspace:*",
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/engine": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
@@ -24,5 +26,8 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "esbuild": "^0.28.2"
+  },
+  "optionalDependencies": {
+    "playwright-core": "1.63.0"
   }
 }

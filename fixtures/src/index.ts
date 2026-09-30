@@ -3,6 +3,7 @@ export {
   loadFixtureConfig,
   resolveFixtureResponse,
   serveSite,
+  SHARED_PREFIX,
   type FixtureResponse,
   type FixtureSite,
 } from './server'

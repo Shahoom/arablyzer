@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>متجر العطور</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: sans-serif;
+      }
+      main {
+        padding: 16px;
+      }
+      /*
+       * The same menu, hidden past the start edge: the right edge in right-to-left pages and
+       * the left edge in left-to-right ones. A page never scrolls past its start edge.
+       */
+      .drawer {
+        position: absolute;
+        top: 0;
+        inset-inline-start: -280px;
+        width: 260px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="drawer" aria-label="القائمة">
+      <a href="/">الرئيسية</a>
+      <a href="/offers">العروض</a>
+    </nav>
+    <main>
+      <h1>متجر العطور</h1>
+      <p>عطور شرقية ودهن عود أصلي، مع توصيل داخل المدينة.</p>
+    </main>
+  </body>
+</html>

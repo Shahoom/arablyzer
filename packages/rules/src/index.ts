@@ -1,28 +1,38 @@
 import type { Rule } from './rule'
+import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
+import { rule as arFontNoArabic } from './rules/ar-font-no-arabic/rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
+import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as robotsBlocksAiSearch } from './rules/robots-blocks-ai-search/rule'
 import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/rule'
+import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
+import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 
 /** Bumped whenever a rule is added, removed or changes version. */
-export const RULESET_VERSION = '0.1.0'
+export const RULESET_VERSION = '0.2.0'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
+  arFontFallback,
+  arFontNoArabic,
   arHtmlLang,
   arLatinPunctuation,
+  arLetterSpacing,
   canonicalConflict,
   hreflangInvalidCode,
   jsonldSyntaxError,
   pageNoindex,
   robotsBlocksAiSearch,
   robotsBlocksGooglebot,
+  rtlBidiIsolation,
+  rtlHorizontalOverflow,
   rtlHtmlDir,
   whatsappLinkFormat,
 ]

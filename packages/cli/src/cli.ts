@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import {
   createPolicy,
   localInterfaceCidrs,
@@ -6,7 +8,7 @@ import {
   type InterfaceMap,
 } from '@arablyzer/egress'
 import { ENGINE_VERSION, scan } from '@arablyzer/engine'
-import { SEVERITY_ORDER, type Report, type Severity } from '@arablyzer/report-schema'
+import { SEVERITY_ORDER, type Engine, type Report, type Severity } from '@arablyzer/report-schema'
 import { parseCliArgs, UsageError } from './args'
 import { formatJson, formatReport } from './format'
 import { langFromEnv, STRINGS } from './i18n'
@@ -39,13 +41,41 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     return 0
   }
 
+  const { render } = options
+  const screenshots: [Engine, Uint8Array][] = []
+  if (render?.screenshotsDir != null) await mkdir(render.screenshotsDir, { recursive: true })
   const report = await scan(options.url, {
     policy: cliPolicy(options.allowPrivate),
     timeoutMs: options.timeoutMs,
     ...(options.ruleIds === undefined ? {} : { ruleIds: options.ruleIds }),
     ...(io.signal === undefined ? {} : { signal: io.signal }),
+    ...(render === null
+      ? {}
+      : {
+          render: {
+            engines: render.engines,
+            screenshots: render.screenshotsDir !== null,
+            onScreenshot: (engine: Engine, png: Uint8Array) => screenshots.push([engine, png]),
+            networkIsolated: render.networkIsolated,
+          },
+        }),
   })
+  if (render?.screenshotsDir != null) {
+    for (const [engine, png] of screenshots) {
+      await writeFile(path.join(render.screenshotsDir, `${engine}.png`), png)
+    }
+  }
   io.stdout(options.json ? formatJson(report) : formatReport(report, options.lang, io.color))
+  const missing = (report.scan.render ?? []).filter((run) => run.status === 'unavailable')
+  if (missing.length > 0) {
+    // Loaded with the browser code, which rendering already loaded.
+    const { PLAYWRIGHT_VERSION } = await import('@arablyzer/browser')
+    const hint = STRINGS[options.lang].installBrowsers(
+      missing.map((run) => run.engine),
+      PLAYWRIGHT_VERSION,
+    )
+    io.stderr(`arablyzer: ${hint}\n`)
+  }
   return exitCode(report, options.failOn)
 }
 

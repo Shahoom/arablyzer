@@ -12,6 +12,16 @@ export {
 } from './fetch'
 export { localInterfaceCidrs, publicInterfaceCidrs, type InterfaceMap } from './interfaces'
 export { DEFAULT_POLICY, createPolicy, type EgressPolicy, type EgressTarget } from './policy'
+export {
+  DEFAULT_MAX_REQUESTS,
+  PROXY_LOG_LIMIT,
+  startProxy,
+  type EgressProxy,
+  type ProxyOptions,
+  type ProxyRefusal,
+  type ProxyRefusalCode,
+  type ProxyStats,
+} from './proxy'
 export { IPV4_RANGES, IPV6_RANGES, type SpecialRange } from './ranges'
 export {
   createDnsResolver,
