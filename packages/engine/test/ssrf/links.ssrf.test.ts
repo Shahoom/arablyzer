@@ -148,8 +148,12 @@ describe('the links a scan asks for', () => {
       },
       { '/ar/b/': { status: 404 } },
     )
+    // Every other rule that makes no request of its own: the sitemap rules ask for the sitemaps.
     const others = RULES.filter(
-      (rule) => !rule.needs.includes('links') && !rule.needs.includes('render'),
+      (rule) =>
+        !rule.needs.includes('links') &&
+        !rule.needs.includes('render') &&
+        !rule.needs.includes('sitemap'),
     )
     await scan(site.url('/'), {
       rules: others,
