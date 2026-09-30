@@ -8,6 +8,13 @@ export const MAX_URL_LENGTH = 2048
 export const SCANS_PATH = '/api/scans'
 
 /**
+ * The `action` the site's Turnstile widget sets, and the API asks Cloudflare's answer to name: a
+ * token made for another widget of the same site key is not a scan's. Cloudflare takes up to 32
+ * letters, digits, underscores and hyphens.
+ */
+export const TURNSTILE_ACTION = 'scan'
+
+/**
  * A scan's ID: 16 random bytes in base64url, so it cannot be guessed (Phase 2 design §3).
  */
 export const SCAN_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/

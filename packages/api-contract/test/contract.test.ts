@@ -12,6 +12,7 @@ import {
   reportPath,
   SCAN_ID_PATTERN,
   ScanErrorResponse,
+  TURNSTILE_ACTION,
   ScanEvent,
   scanEventsPath,
   URL_ERROR_CODES,
@@ -72,6 +73,12 @@ describe('the scan contract', () => {
     expect(isScanErrorCode('blocked-address')).toBe(true)
     expect(isScanErrorCode('teapot')).toBe(false)
     expect(isScanErrorCode(1)).toBe(false)
+  })
+})
+
+describe('the Turnstile action', () => {
+  it('is one Cloudflare takes: up to 32 letters, digits, underscores and hyphens', () => {
+    expect(TURNSTILE_ACTION).toMatch(/^[A-Za-z0-9_-]{1,32}$/)
   })
 })
 
