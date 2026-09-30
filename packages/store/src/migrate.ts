@@ -9,7 +9,7 @@ import { requireSecret } from './secrets'
 //   node --import tsx packages/store/src/migrate.ts
 //
 // DATABASE_URL is the bootstrap user's (a superuser, or a role that can create roles): the only
-// process that holds it, and it is gone when this ends. ARABLYZER_APP_DATABASE_PASSWORD is the
+// process that holds it, and it stops when this ends. ARABLYZER_APP_DATABASE_PASSWORD is the
 // password the API and the worker connect with, as `arablyzer_app`; it is set on every run.
 const env = process.env
 const url = productionUrl('DATABASE_URL', env.DATABASE_URL, POSTGRES_PROTOCOLS)

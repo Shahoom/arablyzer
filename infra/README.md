@@ -59,7 +59,7 @@ write and delete the scans (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) and nothing 
 `arablyzer_migrate` owns the tables and cannot log in. `arablyzer` is the bootstrap superuser.
 Only the one-shot `migrate` service (`packages/store/src/migrate.ts`) connects as it: it makes the
 roles, becomes `arablyzer_migrate` for the migrations, sets the application role's password, and
-is gone. Every step can be run again, so a deploy rotates the password, adopts a database that an
+stops. Every step can be run again, so a deploy rotates the password, adopts a database that an
 older version made under the bootstrap user, and puts back a role that drifted (a superuser, a
 member of the owner role, a right to a schema or a table that it was not given). `DELETE` is for
 retention and a visitor's deletion of their own report; `TRUNCATE`, and every change to the schema, are

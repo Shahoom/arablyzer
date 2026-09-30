@@ -110,7 +110,7 @@ services:
 
   # The database's own step, once, before the API and the worker (packages/store/src/migrate.ts):
   # it makes the two roles and the tables, and sets the application role's password. It alone
-  # holds the bootstrap user's password (a superuser's), and it is gone when it is done: the API
+  # holds the bootstrap user's password (a superuser's), and it stops when it is done: the API
   # and the worker connect as `arablyzer_app`, which can read, write and delete the scans and nothing else.
   migrate:
     <<: *hardened

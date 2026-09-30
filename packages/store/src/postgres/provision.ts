@@ -10,7 +10,7 @@ import { MIGRATION_LOCK, MIGRATIONS } from './store'
  * (POSTGRES_USER) is, and which reaches the container's shell through COPY ... PROGRAM. The
  * tables belong to `arablyzer_migrate`, which cannot log in: the one process that changes the
  * schema, `migrate.ts`, connects as the bootstrap user, becomes it for the migrations, and is
- * gone when they are done; neither the API nor the worker ever holds its password.
+ * finished when they are; neither the API nor the worker ever holds its password.
  */
 export const APP_ROLE = 'arablyzer_app'
 export const MIGRATE_ROLE = 'arablyzer_migrate'
