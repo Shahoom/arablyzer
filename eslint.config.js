@@ -1,6 +1,7 @@
 // @ts-check
 import js from '@eslint/js'
 import prettier from 'eslint-config-prettier/flat'
+import astro from 'eslint-plugin-astro'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
@@ -27,6 +28,9 @@ const NETWORK_MODULES = [
   'playwright-core',
   'puppeteer',
   'puppeteer-core',
+  // Lighthouse and its launcher open a browser and its debugging connection.
+  'lighthouse',
+  'chrome-launcher',
 ]
 const NETWORK_SUBPATHS = NETWORK_MODULES.filter((name) => !name.includes('/')).map(
   (name) => `${name}/*`,
@@ -85,10 +89,20 @@ function networkRules({ allowProcesses, allow = [] }) {
 
 export default defineConfig(
   // The golden pages are fixtures the scanner reads, not code of Arablyzer's.
-  globalIgnores(['**/node_modules/', '**/dist/', '**/coverage/', '**/.turbo/', 'fixtures/golden/']),
+  globalIgnores([
+    '**/node_modules/',
+    '**/dist/',
+    '**/coverage/',
+    '**/.turbo/',
+    '**/.astro/',
+    'fixtures/golden/',
+  ]),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
+  // .astro files: their front matter runs in Node at build time, their scripts in the browser.
+  // The network ban below covers them; typed rules need a program they are not part of.
+  astro.configs.recommended,
   {
     languageOptions: {
       globals: globals.node,
@@ -99,6 +113,7 @@ export default defineConfig(
     },
   },
   { files: ['**/*.{js,mjs,cjs}'], extends: [tseslint.configs.disableTypeChecked] },
+  { files: ['**/*.astro', '**/*.astro/*.ts'], extends: [tseslint.configs.disableTypeChecked] },
   { rules: networkRules({ allowProcesses: false }) },
   { files: ['**/test/**', '**/scripts/**'], rules: networkRules({ allowProcesses: true }) },
   {
@@ -116,12 +131,39 @@ export default defineConfig(
     // M1.3b: Lighthouse's Chromium is launched here, by puppeteer-core, behind the egress proxy
     // with the render's flags; Playwright only says where its Chromium is.
     files: ['packages/lab/src/**'],
-    rules: networkRules({ allowProcesses: false, allow: ['playwright-core', 'puppeteer-core'] }),
+    rules: networkRules({
+      allowProcesses: false,
+      allow: ['playwright-core', 'puppeteer-core', 'lighthouse'],
+    }),
   },
   {
     // Its tests serve pages and a service the policy refuses, so they open sockets.
     files: ['packages/lab/test/**'],
     rules: { 'no-restricted-imports': 'off' },
+  },
+  {
+    // The site's pages run in the visitor's browser (M2.1).
+    files: ['apps/web/src/islands/**'],
+    languageOptions: { globals: globals.browser },
+  },
+  {
+    // The scan form's one request, to Arablyzer's own API on the same origin: not scan traffic,
+    // which leaves the server through the egress proxy alone (M2.1 plan §2). fetch alone.
+    files: ['apps/web/src/islands/api.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
+    // The site's Lighthouse run in CI, on its own pages on loopback (M2.1 plan §3).
+    files: ['apps/web/scripts/lighthouse.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['lighthouse', 'chrome-launcher'] }),
   },
   {
     // The egress package is the network boundary; the fixture server is local test infrastructure.

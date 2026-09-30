@@ -1,0 +1,42 @@
+---
+import type { Finding } from '@arablyzer/report-schema'
+import type { Lang } from '@arablyzer/seo/site'
+import Bidi from '../Bidi.astro'
+import SeverityPill from '../SeverityPill.astro'
+
+/**
+ * One finding from a test page: a heading, the evidence drawn in the slot, and Arablyzer's own
+ * message, quoted as the program's output (<samp>), so our own rules read it as a sample and
+ * not as the page's prose. The link to the tool comes with the tool pages (M2.2).
+ */
+interface Props {
+  lang: Lang
+  code: string
+  title: string
+  finding: Finding
+}
+const { lang, code, title, finding } = Astro.props
+const [open, close] = lang === 'ar' ? ['«', '»'] : ['“', '”']
+---
+
+<article class="relative flex flex-col gap-3 border border-rule-strong bg-sheet p-[18px] md:gap-[18px] md:p-[30px]">
+  <div class="flex items-center justify-between gap-3">
+    <div class="flex items-baseline gap-3">
+      <span dir="ltr" class="hidden font-mono text-[13px] text-ink-3 md:inline">
+        {code}
+      </span>
+      <h3 class="m-0 text-lg font-semibold md:text-[21px]">{title}</h3>
+    </div>
+    <SeverityPill severity={finding.severity} lang={lang} />
+  </div>
+  <slot />
+  <blockquote class="m-0 text-[15px] leading-[1.8] text-ink-2">
+    <p class="m-0">
+      {open}
+      <samp class="font-sans">
+        <Bidi text={finding.message[lang]} lang={lang} />
+      </samp>
+      {close}
+    </p>
+  </blockquote>
+</article>

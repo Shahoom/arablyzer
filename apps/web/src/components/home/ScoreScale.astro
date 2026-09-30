@@ -1,0 +1,45 @@
+---
+/**
+ * A 0 to 100 scale with a mark at the score, drawn the way the page reads: 0 at the start. The
+ * track fills from 0 to the mark. The drawing's own direction stays left to right, so its labels'
+ * anchors mean what they say on an Arabic page too.
+ */
+interface Props {
+  score: number
+  label: string
+  rtl: boolean
+}
+const { score, label, rtl } = Astro.props
+const at = (value: number) => (rtl ? 295 - value * 2.9 : 5 + value * 2.9)
+const ticks = Array.from({ length: 11 }, (_, index) => index * 10)
+---
+
+<svg
+  width="100%"
+  height="30"
+  viewBox="0 0 300 30"
+  fill="none"
+  role="img"
+  aria-label={label}
+  direction="ltr"
+>
+  <path d={`M${at(0)} 11H${at(100)}`} class="stroke-panel-line" stroke-width="4"></path>
+  <path d={`M${at(0)} 11H${at(score)}`} class="stroke-panel-text" stroke-width="4"></path>
+  <path
+    d={ticks.map((tick) => `M${at(tick)} ${tick % 50 === 0 ? '5v12' : '8v6'}`).join('')}
+    class="stroke-panel-tick"
+    stroke-width="1"
+  ></path>
+  <path d={`M${at(score)} 1v20`} class="stroke-panel-signal" stroke-width="2"></path>
+  {[0, 50, 100].map((value) => (
+    <text
+      x={at(value)}
+      y="29"
+      text-anchor={value === 50 ? 'middle' : (value === 0) === rtl ? 'end' : 'start'}
+      font-size="9"
+      class="fill-panel-dim font-mono"
+    >
+      {value}
+    </text>
+  ))}
+</svg>

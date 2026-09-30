@@ -1,0 +1,45 @@
+---
+import { HOME } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+import Minus from '@lucide/astro/icons/minus'
+import Plus from '@lucide/astro/icons/plus'
+import SectionHead from '../SectionHead.astro'
+
+interface Props {
+  lang: Lang
+  number: number
+}
+const { lang, number } = Astro.props
+const t = HOME[lang].faq
+---
+
+<section
+  aria-labelledby="faq-title"
+  class="below-fold grid gap-8 px-5 py-10 md:px-16 md:py-[88px] lg:grid-cols-12 lg:gap-x-12"
+>
+  <div class="lg:col-span-4">
+    <SectionHead number={number} label={t.kicker} id="faq-title" title={t.title} size="md" />
+  </div>
+  <div class="flex flex-col border border-ink bg-white lg:col-span-8">
+    {t.items.map((item, index) => (
+      <details
+        open={index === 0}
+        class="group border-b border-rule px-5 py-5 last:border-b-0 md:px-7 md:py-6"
+      >
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold md:text-xl">
+          {item.question}
+          <Plus size={20} stroke-width={2} aria-hidden="true" class="shrink-0 group-open:hidden" />
+          <Minus
+            size={20}
+            stroke-width={2}
+            aria-hidden="true"
+            class="hidden shrink-0 group-open:block"
+          />
+        </summary>
+        <p class="m-0 mt-3.5 max-w-[700px] text-base leading-[1.8] text-ink-2 md:text-[17px]">
+          {item.answer}
+        </p>
+      </details>
+    ))}
+  </div>
+</section>

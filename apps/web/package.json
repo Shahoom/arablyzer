@@ -1,0 +1,43 @@
+{
+  "name": "@arablyzer/web",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "typecheck": "astro check && tsc --noEmit",
+    "test": "vitest run --exclude \"test/browser/**\"",
+    "test:browser": "vitest run test/browser",
+    "lighthouse": "tsx scripts/lighthouse.ts"
+  },
+  "dependencies": {
+    "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/browser": "workspace:*",
+    "@arablyzer/cli": "workspace:*",
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/engine": "workspace:*",
+    "@arablyzer/fixtures": "workspace:*",
+    "@arablyzer/i18n": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/rules": "workspace:*",
+    "@arablyzer/seo": "workspace:*",
+    "@astrojs/preact": "6.0.5",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "5.3.0",
+    "@lucide/astro": "1.48.0",
+    "@tailwindcss/vite": "4.3.3",
+    "astro": "7.3.5",
+    "lucide-preact": "1.48.0",
+    "preact": "10.29.8",
+    "tailwindcss": "4.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "chrome-launcher": "1.2.1",
+    "lighthouse": "13.5.0",
+    "typescript": "~6.0.3"
+  }
+}

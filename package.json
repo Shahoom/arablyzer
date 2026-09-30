@@ -8,7 +8,7 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings=0",
+    "lint": "pnpm --silent --filter @arablyzer/web exec astro sync && eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "turbo run typecheck",
@@ -22,15 +22,19 @@
     "schema:check": "pnpm run schema:gen && git diff --exit-code -- packages/report-schema/report.schema.json",
     "arablyzer": "tsx packages/cli/src/main.ts",
     "copy:review": "pnpm --recursive --no-bail run copy:review",
-    "seo:audit": "pnpm --filter @arablyzer/seo run seo:audit"
+    "seo:audit": "pnpm --filter @arablyzer/seo run seo:audit",
+    "site:build": "pnpm --filter @arablyzer/web run build",
+    "site:audit": "pnpm --filter @arablyzer/seo run site:audit"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.4",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-astro": "3.2.1",
     "globals": "^17.12.0",
     "prettier": "^3.9.9",
+    "prettier-plugin-astro": "1.1.0",
     "tsx": "^4.23.15",
     "turbo": "^2.11.3",
     "typescript": "~6.0.3",

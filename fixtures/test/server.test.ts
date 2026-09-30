@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import http from 'node:http'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -199,6 +199,61 @@ describe('serveSite: compressed paths', () => {
       req.end()
     })
   }
+
+  it('gzips every text response when asked to, as a production server does', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-gzip-all-'))
+    await writeFile(path.join(dir, 'index.html'), `<p>${'نص عربي '.repeat(200)}</p>`)
+    await writeFile(path.join(dir, 'style.css'), `p { color: red; }\n`.repeat(50))
+    await writeFile(path.join(dir, 'font.woff2'), Buffer.alloc(2048, 7))
+    const all = await serveSite(dir, { compressText: true })
+    const encoding = (pathname: string) =>
+      new Promise<string | undefined>((resolve, reject) => {
+        const target = new URL(all.url(pathname))
+        http
+          .get(
+            {
+              host: target.hostname,
+              port: target.port,
+              path: pathname,
+              agent: false,
+              headers: { 'accept-encoding': 'gzip' },
+            },
+            (res) => {
+              res.resume()
+              res.on('end', () => {
+                resolve(res.headers['content-encoding'])
+              })
+            },
+          )
+          .on('error', reject)
+      })
+    try {
+      expect(await encoding('/')).toBe('gzip')
+      expect(await encoding('/style.css')).toBe('gzip')
+      expect(await encoding('/font.woff2')).toBeUndefined()
+      expect(await encoding('/missing.html')).toBeUndefined()
+    } finally {
+      await all.close()
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('serves a page without its .html when asked to, as the site does', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-clean-'))
+    await mkdir(path.join(dir, 'tools'), { recursive: true })
+    await writeFile(path.join(dir, 'tools', 'rtl-check.html'), '<p>rtl</p>')
+    const clean = await resolveFixtureResponse(dir, {}, '/tools/rtl-check', { cleanUrls: true })
+    const strict = await resolveFixtureResponse(dir, {}, '/tools/rtl-check')
+    const escape = await resolveFixtureResponse(dir, {}, '/../server', { cleanUrls: true })
+    try {
+      expect([clean.status, clean.body.toString()]).toEqual([200, '<p>rtl</p>'])
+      expect(clean.headers['content-type']).toBe('text/html; charset=utf-8')
+      expect(strict.status).toBe(404)
+      expect(escape.status).toBe(404)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
 
   it('sends gzip to a client that accepts it, and the file as it is otherwise', async () => {
     const gzipped = await get('gzip, deflate, br')

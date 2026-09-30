@@ -1,0 +1,58 @@
+---
+import { HOME, SCAN_FORM } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+import Check from '@lucide/astro/icons/check'
+import ScanForm from '../../islands/ScanForm'
+import HeroFigure from './HeroFigure.astro'
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = HOME[lang].hero
+---
+
+<section
+  aria-labelledby="home-title"
+  class="grid items-center gap-y-12 px-5 pt-7 pb-10 md:px-16 md:pt-[88px] md:pb-24 lg:grid-cols-12 lg:gap-x-12"
+>
+  <div class="flex flex-col gap-5 md:gap-[30px] lg:col-span-6">
+    <div class="flex items-center gap-3 text-xs text-ink-3 md:text-[13px]">
+      <span dir="ltr" class="font-mono text-xs tracking-[0.06em] text-signal">
+        § 01
+      </span>
+      <span aria-hidden="true" class="h-px w-7 bg-ink-4"></span>
+      <span>{t.kicker}</span>
+    </div>
+    <h1
+      id="home-title"
+      class:list={[
+        'm-0 leading-[1.25] font-semibold text-balance md:leading-[1.2] xl:leading-[1.16]',
+        // The English heading is longer, so it is set smaller to keep to three or four lines.
+        lang === 'ar'
+          ? 'text-[34px] md:text-[52px] xl:text-[66px]'
+          : 'text-[32px] md:text-[44px] xl:text-[54px]',
+      ]}
+    >
+      {t.title} <span class="mark-signal">{t.titleMark}</span>
+    </h1>
+    <p class="m-0 max-w-[580px] text-base leading-[1.8] text-ink-2 md:text-xl">{t.lead}</p>
+    <div id="scan" class="max-w-[620px] scroll-mt-6">
+      <ScanForm client:idle lang={lang} inputId="home-url" tone="paper" />
+      <noscript>
+        <p class="text-sm text-signal">{SCAN_FORM[lang].noscript}</p>
+      </noscript>
+    </div>
+    <ul class="m-0 flex list-none flex-wrap gap-x-[26px] gap-y-2 p-0 text-sm text-ink-2 md:text-[15px]">
+      {t.promises.map((promise) => (
+        <li class="flex items-center gap-2">
+          <Check size={18} stroke-width={2.2} aria-hidden="true" class="shrink-0 text-pass" />
+          {promise}
+        </li>
+      ))}
+    </ul>
+  </div>
+  <div class="lg:col-span-6">
+    <HeroFigure lang={lang} />
+  </div>
+</section>

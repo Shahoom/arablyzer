@@ -15,6 +15,7 @@ export {
   SHARED_PREFIX,
   type FixtureResponse,
   type FixtureSite,
+  type ServeOptions,
 } from './server'
 export { sitePath } from './sites'
 export {

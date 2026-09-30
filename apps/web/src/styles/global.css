@@ -1,0 +1,168 @@
+@import 'tailwindcss';
+
+/*
+ * The Lab design system the owner approved (Phase 2 design, 2026-09-28): an engineering sheet of
+ * paper with a grid, ink, one signal colour, and dark instrument panels. Only these tokens exist,
+ * so a colour outside the system cannot creep in.
+ */
+@theme {
+  --color-*: initial;
+  --shadow-*: initial;
+  --radius-*: initial;
+  --font-*: initial;
+
+  --font-sans: var(--font-plex-arabic), 'Segoe UI', Tahoma, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --color-white: #ffffff;
+  --color-paper: #f3f5f7;
+  --color-sheet: #f8f9fb;
+  --color-ink: #14171c;
+  --color-ink-2: #3f4751;
+  --color-ink-3: #56606c;
+  --color-ink-4: #8a94a0;
+  --color-rule: #d3dae2;
+  --color-rule-strong: #c9d1da;
+  --color-rule-soft: #e1e6ec;
+  --color-tick: #9aa4af;
+
+  /* A shade darker than the design's #b53a17, which fell to 4.43:1 where two grid lines cross. */
+  --color-signal: #b03815;
+  --color-signal-soft: #fbede8;
+  --color-critical: #8e1b0e;
+  --color-moderate: #8a5300;
+  --color-moderate-soft: #fff4de;
+  --color-moderate-line: #e8c27a;
+  --color-pass: #0f6b52;
+  --color-pass-soft: #e6f4ef;
+  --color-measure: #255fc7;
+  --color-measure-soft: #eaf1fc;
+
+  /* The instrument panel: dark, with its own lighter signal, pass and measure colours. */
+  --color-panel: #111418;
+  --color-panel-line: #2a3038;
+  --color-panel-text: #e8ecf1;
+  --color-panel-soft: #c5cdd6;
+  --color-panel-dim: #9aa6b2;
+  --color-panel-tick: #5b6672;
+  --color-panel-signal: #ff7a4d;
+  --color-panel-pass: #4fd39f;
+  --color-panel-measure: #7aa7ff;
+  --color-panel-moderate: #f2b544;
+
+  /* The categories: a colour and its tint each. Arabic rendering's violet is a shade darker than
+     the design's #6d4aff, whose 4.48:1 on its tint our own contrast rule failed. */
+  --color-cat-render: #6844f5;
+  --color-cat-render-soft: #f0edff;
+  --color-cat-rtl: #255fc7;
+  --color-cat-rtl-soft: #eaf1fc;
+  --color-cat-fonts: #4338ca;
+  --color-cat-fonts-soft: #eef0fc;
+  --color-cat-forms: #0f7a56;
+  --color-cat-forms-soft: #e6f4ef;
+  --color-cat-whatsapp: #127a45;
+  --color-cat-whatsapp-soft: #e4f5ea;
+  --color-cat-prices: #8a5a00;
+  --color-cat-prices-soft: #fff4de;
+  --color-cat-index: #00707a;
+  --color-cat-index-soft: #e3f2f3;
+  --color-cat-speed: #b4410f;
+  --color-cat-speed-soft: #fff0e6;
+  --color-cat-schema: #b0175a;
+  --color-cat-schema-soft: #fdeaf2;
+  --color-cat-ai: #475569;
+  --color-cat-ai-soft: #eef2f6;
+}
+
+@layer base {
+  html {
+    /* The key element's offset shadow falls toward the end of the line, whichever way it runs. */
+    --reading: 1;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  html[dir='ltr'] {
+    --reading: -1;
+  }
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-paper);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-signal);
+    color: var(--color-white);
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* The paper: a 120 px grid over a 24 px one. */
+@utility bg-lab-grid {
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(to right, rgb(20 23 28 / 0.065) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(20 23 28 / 0.065) 1px, transparent 1px),
+    linear-gradient(to right, rgb(20 23 28 / 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(20 23 28 / 0.03) 1px, transparent 1px);
+  background-size:
+    120px 120px,
+    120px 120px,
+    24px 24px,
+    24px 24px;
+}
+
+/* The instrument panel: dark, with a 16 px grid. */
+@utility bg-panel-grid {
+  background-color: var(--color-panel);
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* The one offset shadow, on the key element only. */
+@utility shadow-key {
+  box-shadow: calc(var(--reading) * -6px) 6px 0 var(--color-ink);
+}
+
+/* A ruler under a section number: a line with a tick every 12 px. */
+@utility bg-ruler {
+  background-image:
+    linear-gradient(var(--color-tick), var(--color-tick)),
+    repeating-linear-gradient(to right, var(--color-tick) 0 1px, transparent 1px 12px);
+  background-size:
+    100% 1px,
+    100% 6px;
+  background-position: bottom, bottom;
+  background-repeat: no-repeat;
+}
+
+/* The marked end of the main heading. */
+@utility mark-signal {
+  box-shadow: inset 0 -0.2em 0 rgb(181 58 23 / 0.14);
+}
+
+/*
+ * A section below the first screen: the browser lays it out when it comes near, which halved the
+ * style and layout work before a phone's first paint (M2.1 plan §3, measured). The size is a
+ * placeholder until then, remembered once the section has been laid out.
+ */
+@utility below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}

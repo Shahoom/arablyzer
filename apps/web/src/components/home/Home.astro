@@ -1,0 +1,50 @@
+---
+import { HOME } from '@arablyzer/i18n'
+import { webApplication } from '@arablyzer/seo/json-ld'
+import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import Page from '../../layouts/Page.astro'
+import { CLOUDTOPIA, siteOf } from '../../lib/site'
+import ArabicLayer from './ArabicLayer.astro'
+import Faq from './Faq.astro'
+import FinalCta from './FinalCta.astro'
+import Hero from './Hero.astro'
+import Honest from './Honest.astro'
+import HowItWorks from './HowItWorks.astro'
+import TopicStrip from './TopicStrip.astro'
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = HOME[lang]
+const url = pageUrl(siteOf(Astro.site), lang, PATHS.home)
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Arablyzer',
+    url,
+    inLanguage: lang,
+    description: t.meta.description,
+    publisher: { '@type': 'Organization', name: 'CloudTopia', url: CLOUDTOPIA },
+  },
+  webApplication({ name: 'Arablyzer', description: t.meta.description, url, lang }),
+]
+// The tools section (§ 04 in the design) comes with the tool pages, in M2.2.
+---
+
+<Page
+  lang={lang}
+  path={PATHS.home}
+  title={t.meta.title}
+  description={t.meta.description}
+  jsonLd={jsonLd}
+>
+  <Hero lang={lang} />
+  <TopicStrip lang={lang} />
+  <HowItWorks lang={lang} number={2} />
+  <ArabicLayer lang={lang} number={3} />
+  <Honest lang={lang} number={4} />
+  <Faq lang={lang} number={5} />
+  <FinalCta lang={lang} />
+</Page>

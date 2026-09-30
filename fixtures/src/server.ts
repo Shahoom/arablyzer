@@ -69,21 +69,36 @@ export async function loadSiteConfig(root: string): Promise<SiteConfig> {
   return parsed.data
 }
 
+export interface ServeOptions {
+  /** A free port by default; the golden reports name their pages by a fixed one. */
+  readonly port?: number
+  /**
+   * Gzip every text response to a client that accepts it, as a production server does: the
+   * site's own build is measured this way (M2.1 plan §3). Fixture sites name their paths in
+   * fixture.json instead.
+   */
+  readonly compressText?: boolean
+  /**
+   * Serve /tools/x from tools/x.html when there is no tools/x, as the site's server does for
+   * the pages Astro builds (M2.1).
+   */
+  readonly cleanUrls?: boolean
+}
+
 /**
  * Serve one fixture site directory on its own 127.0.0.1 origin, so /robots.txt sits at the root;
- * over HTTPS, and under a host name of its own, when its site.json asks. `port` is a free one by
- * default; the golden reports name their pages by a fixed one.
+ * over HTTPS, and under a host name of its own, when its site.json asks.
  */
 export async function serveSite(
   root: string,
-  { port = 0 }: { port?: number } = {},
+  { port = 0, compressText = false, cleanUrls = false }: ServeOptions = {},
 ): Promise<FixtureSite> {
   const siteRoot = path.resolve(root)
   const config = await loadFixtureConfig(siteRoot)
   const site = await loadSiteConfig(siteRoot)
   const hostname = site.host ?? '127.0.0.1'
   const handler: http.RequestListener = (req, res) => {
-    respond(siteRoot, config, req, res).catch((error: unknown) => {
+    respond(siteRoot, config, { compressText, cleanUrls }, req, res).catch((error: unknown) => {
       res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
       res.end(String(error))
     })
@@ -123,9 +138,12 @@ export async function serveSite(
   }
 }
 
+const TEXT_TYPE = /^(?:text\/|application\/(?:javascript|json|xml)|image\/svg\+xml)/
+
 async function respond(
   root: string,
   config: FixtureConfig,
+  { compressText, cleanUrls }: { compressText: boolean; cleanUrls: boolean },
   req: http.IncomingMessage,
   res: http.ServerResponse,
 ): Promise<void> {
@@ -135,9 +153,14 @@ async function respond(
     return
   }
   const pathname = new URL(req.url ?? '/', 'http://fixture.invalid').pathname
-  const { status, headers, body } = await resolveFixtureResponse(root, config, pathname)
+  const { status, headers, body } = await resolveFixtureResponse(root, config, pathname, {
+    cleanUrls,
+  })
+  const contentType = headers['content-type']
+  const text = typeof contentType === 'string' && TEXT_TYPE.test(contentType)
   const gzip =
-    config[pathname]?.compress === 'gzip' && /\bgzip\b/i.test(req.headers['accept-encoding'] ?? '')
+    (config[pathname]?.compress === 'gzip' || (compressText && text && status === 200)) &&
+    /\bgzip\b/i.test(req.headers['accept-encoding'] ?? '')
   const sent = gzip ? gzipSync(body) : body
   res.writeHead(
     status,
@@ -160,10 +183,15 @@ export async function resolveFixtureResponse(
   root: string,
   config: FixtureConfig,
   pathname: string,
+  { cleanUrls = false }: { cleanUrls?: boolean } = {},
 ): Promise<FixtureResponse> {
   const siteRoot = path.resolve(root)
   const override: RouteOverride | undefined = config[pathname]
-  const file = await readSiteFile(siteRoot, pathname)
+  const file =
+    (await readSiteFile(siteRoot, pathname)) ??
+    (cleanUrls && !pathname.endsWith('/') && path.extname(pathname) === ''
+      ? await readSiteFile(siteRoot, `${pathname}.html`)
+      : null)
   // An inline body stands in for the file, so it is a 200 unless the override says otherwise.
   const status = override?.status ?? (file === null && override?.body === undefined ? 404 : 200)
   const body =

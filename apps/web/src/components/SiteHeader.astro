@@ -1,0 +1,66 @@
+---
+import { SITE } from '@arablyzer/i18n'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import { NAV, otherLang, scanFormHref } from '../lib/site'
+import Forward from './Forward.astro'
+import Logo from './Logo.astro'
+
+interface Props {
+  lang: Lang
+  /** The page's path, as PATHS gives it, for the link to the same page in the other language. */
+  path: string
+}
+const { lang, path } = Astro.props
+const t = SITE[lang]
+const other = otherLang(lang)
+const o = SITE[lang].otherLang
+---
+
+<header class="flex h-[60px] items-center justify-between gap-4 border-b border-ink bg-paper px-5 md:h-[76px] md:px-16">
+  <div class="flex items-center gap-12">
+    <a
+      href={localePath(lang, PATHS.home)}
+      aria-label={t.homeLink}
+      class="flex items-center gap-3 text-ink hover:text-ink"
+    >
+      <Logo size={28} />
+      <span class="flex flex-col gap-px">
+        <span dir="ltr" class="font-mono text-[17px] leading-[1.15] font-semibold md:text-xl">
+          Arablyzer
+        </span>
+        <span class="hidden text-xs leading-[1.3] text-ink-3 md:block">{t.tagline}</span>
+      </span>
+    </a>
+    {NAV.length > 0 && (
+      <nav aria-label={t.navLabel} class="hidden items-center gap-8 text-[15px] lg:flex">
+        {NAV.map((item) => (
+          <a href={localePath(lang, item.path)} class="hover:text-signal">
+            {item.key}
+          </a>
+        ))}
+      </nav>
+    )}
+  </div>
+  <div class="flex items-center gap-3.5">
+    <a
+      href={localePath(other, path)}
+      lang={other}
+      hreflang={other}
+      aria-label={o.label}
+      class:list={[
+        'border border-rule-strong px-2.5 py-1.5 text-[13px] hover:border-ink hover:text-signal',
+        // IBM Plex Mono has no Arabic letters: the Arabic label is set in the Arabic face.
+        other === 'en' ? 'font-mono' : 'font-sans',
+      ]}
+    >
+      {o.short}
+    </a>
+    <a
+      href={scanFormHref(lang)}
+      class="hidden h-11 items-center gap-2 bg-ink px-5 text-[15px] font-semibold text-white hover:bg-signal sm:flex"
+    >
+      {t.scanCta}
+      <Forward lang={lang} size={16} />
+    </a>
+  </div>
+</header>

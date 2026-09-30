@@ -3,7 +3,8 @@
   "tasks": {
     "build": {
       "cache": false,
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "passThroughEnv": ["ARABLYZER_SITE", "ARABLYZER_API_ORIGIN", "PUBLIC_TURNSTILE_SITE_KEY"]
     },
     "typecheck": {
       "cache": false

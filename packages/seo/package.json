@@ -6,12 +6,17 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./site": "./src/site.ts",
+    "./head": "./src/head.ts",
+    "./json-ld": "./src/json-ld.ts",
+    "./strings": "./src/strings.ts",
     "./audit": "./src/audit/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seo:audit": "tsx scripts/self-audit.ts"
+    "seo:audit": "tsx scripts/self-audit.ts",
+    "site:audit": "tsx scripts/site-audit.ts"
   },
   "dependencies": {
     "@arablyzer/collectors": "workspace:*",

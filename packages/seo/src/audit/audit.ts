@@ -61,16 +61,26 @@ const PAGE_RULES = RULES.filter(
 
 /**
  * Findings our pages have until the site build, each named with why; any other finding of our
- * own rules fails the audit.
+ * own rules fails the audit, and the site's self-scan too.
  */
-const NOT_YET: readonly { readonly ruleId: string; readonly tag: string; readonly why: string }[] =
-  [
-    {
-      ruleId: 'og-tags-missing',
-      tag: 'og:image',
-      why: 'the site build makes an Open Graph image for every page (BUILD-PLAN §6.5)',
-    },
-  ]
+export const KNOWN_GAPS: readonly {
+  readonly ruleId: string
+  readonly tag: string
+  readonly why: string
+}[] = [
+  {
+    ruleId: 'og-tags-missing',
+    tag: 'og:image',
+    why: 'the site build makes an Open Graph image for every page (BUILD-PLAN §6.5, M2.4)',
+  },
+]
+
+/** A finding of a gap the site knows it has, and closes in a later milestone. */
+export function isKnownGap(finding: Finding): boolean {
+  return KNOWN_GAPS.some(
+    (gap) => gap.ruleId === finding.ruleId && finding.evidence.values?.tag === gap.tag,
+  )
+}
 
 /** The §6.1 sections, in the order the template puts them. */
 const SECTIONS = ['checks', 'example', 'fix', 'faq', 'links', 'about'] as const
@@ -143,6 +153,87 @@ export function auditToolPage(html: string, expected: ExpectedPage): AuditProble
   return problems
 }
 
+/**
+ * Any other page of the site the search engines should index, such as the home page: the parts
+ * of the tool template every page has (lang and dir, title, description, one heading,
+ * canonical, hreflang, JSON-LD that parses, indexable, links to pages that exist) and our own
+ * rules.
+ */
+export function auditPage(html: string, expected: ExpectedPage): AuditProblem[] {
+  const tags = tagsOf(html)
+  const problems: AuditProblem[] = []
+  const problem = (check: AuditCheck, message: string) => {
+    problems.push({ check, message })
+  }
+  const all = (name: string) => tags.filter((tag) => tag.name === name)
+
+  checkLangDir(tags, expected.lang, problem)
+  const titles = all('title').filter((tag) => tag.inHead)
+  if (titles.length !== 1 || titles.some((tag) => textOf(tag.node) === '')) {
+    problem('title', `needs one <title> in <head> with text, found ${titles.length}`)
+  }
+  const descriptions = metas(tags, 'description')
+  if (
+    descriptions.length !== 1 ||
+    descriptions.some((tag) => !tag.inHead || (tag.attr('content') ?? '').trim() === '')
+  ) {
+    problem('description', 'needs one meta description in <head>, with content')
+  }
+  const h1s = all('h1')
+  if (h1s.length !== 1 || h1s.some((tag) => textOf(tag.node) === '')) {
+    problem('h1', `needs exactly one <h1> with text, found ${h1s.length}`)
+  }
+  checkCanonical(tags, expected.url, problem)
+  for (const message of hreflangProblems(tags, expected.alternates)) problem('hreflang', message)
+  for (const script of all('script')) {
+    if ((script.attr('type') ?? '').trim().toLowerCase() !== 'application/ld+json') continue
+    try {
+      JSON.parse(textOf(script.node))
+    } catch {
+      problem('json-ld', 'a JSON-LD block is not valid JSON')
+    }
+  }
+  for (const meta of [...metas(tags, 'robots'), ...metas(tags, 'googlebot')]) {
+    if (isNoindex(meta)) {
+      problem(
+        'indexable',
+        `the page must be indexable: <meta content="${meta.attr('content') ?? ''}">`,
+      )
+    }
+  }
+  checkLinks(tags, expected, problem)
+  for (const failure of ownRuleFailures(html, expected.url)) problem('own-rules', failure)
+  return problems
+}
+
+/** Both languages of a page the site builds: each audited, and each naming the other the same way. */
+export function auditBuiltPair(
+  ar: { readonly html: string; readonly expected: ExpectedPage },
+  en: { readonly html: string; readonly expected: ExpectedPage },
+): PageProblem[] {
+  const problems: PageProblem[] = []
+  for (const { html, expected } of [ar, en]) {
+    for (const found of auditPage(html, expected)) problems.push({ page: expected.url, ...found })
+  }
+  if (!sameAlternates(ar.html, en.html)) {
+    problems.push({
+      page: `${ar.expected.url} ↔ ${en.expected.url}`,
+      check: 'reciprocal',
+      message: 'the two pages do not declare the same hreflang alternates',
+    })
+  }
+  return problems
+}
+
+function sameAlternates(a: string, b: string): boolean {
+  const declared = (html: string) =>
+    alternateLinks(tagsOf(html))
+      .map(({ hreflang, href }) => `${hreflang} ${href}`)
+      .sort()
+      .join('\n')
+  return declared(a) === declared(b)
+}
+
 /** Both languages of one page: each audited, and each naming the other the same way. */
 export function auditPair(
   ar: { readonly html: string; readonly expected: ExpectedPage },
@@ -153,12 +244,7 @@ export function auditPair(
     for (const found of auditToolPage(html, expected))
       problems.push({ page: expected.url, ...found })
   }
-  const declared = (html: string) =>
-    alternateLinks(tagsOf(html))
-      .map(({ hreflang, href }) => `${hreflang} ${href}`)
-      .sort()
-      .join('\n')
-  if (declared(ar.html) !== declared(en.html)) {
+  if (!sameAlternates(ar.html, en.html)) {
     problems.push({
       page: `${ar.expected.url} ↔ ${en.expected.url}`,
       check: 'reciprocal',
@@ -450,13 +536,13 @@ function ownRuleFailures(html: string, url: string): string[] {
     body: new TextEncoder().encode(html),
   })
   const { results, findings } = evaluatePage(page, { rules: PAGE_RULES })
-  const notYet = (finding: Finding) =>
-    NOT_YET.some((gap) => gap.ruleId === finding.ruleId && finding.evidence.values?.tag === gap.tag)
   return results
     .filter((result) => result.status === 'fail' || result.status === 'error')
     .flatMap((result) => {
       const own = findings.filter((finding) => finding.ruleId === result.id)
-      const details = own.filter((finding) => !notYet(finding)).map((finding) => finding.message.en)
+      const details = own
+        .filter((finding) => !isKnownGap(finding))
+        .map((finding) => finding.message.en)
       if (result.status === 'fail' && own.length > 0 && details.length === 0) return []
       return [
         `${result.id} ${result.status}${details.length === 0 ? '' : `: ${details.join(' / ')}`}`,

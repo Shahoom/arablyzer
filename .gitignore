@@ -9,3 +9,5 @@ coverage/
 !.env.example
 # What the golden run keeps when a report differs (README).
 golden-actual/
+# Astro writes its generated types here (apps/web).
+.astro/
