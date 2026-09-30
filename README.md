@@ -184,7 +184,7 @@ These read the page as a browser rendered it, so they run with `--render`:
 | [`form-phone-direction`](packages/rules/src/rules/form-phone-direction/copy.en.md) | Phone fields show numbers left to right |
 | [`text-compression-missing`](packages/rules/src/rules/text-compression-missing/copy.en.md) | Text is sent compressed where gzip would save much |
 | [`image-format-legacy`](packages/rules/src/rules/image-format-legacy/copy.en.md) | Images are not in older formats much larger than AVIF |
-| [`js-only-content`](packages/rules/src/rules/js-only-content/copy.en.md) | Most of the Arabic words the browser draws are in the HTML the server sends, not written by scripts alone |
+| [`js-only-content`](packages/rules/src/rules/js-only-content/copy.en.md) | More than half of the Arabic words a browser draws are in the HTML the scan received, hidden text and `<noscript>` included (a browser that draws fewer than 20 is not judged) |
 
 ## The score / الدرجة
 
