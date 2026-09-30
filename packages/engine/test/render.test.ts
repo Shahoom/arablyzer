@@ -232,7 +232,7 @@ describe('a render run in the report', () => {
           bytes: 10,
           refusals: [],
         },
-        pageRequests: { made: 61, overLimit: 51 },
+        pageRequests: { made: 61, overLimit: 51, overHosts: 0, sending: 0 },
         facts: null,
         screenshot: null,
       }),

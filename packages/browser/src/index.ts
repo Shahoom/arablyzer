@@ -4,6 +4,7 @@ export {
   LOOPBACK_BYPASS,
   NEEDS_ISOLATION,
   NETWORK_ISOLATED_VARIABLE,
+  SEND_GUARD,
   VIEWPORT,
   WORKER_GUARD,
   browserEnvironment,
@@ -28,10 +29,10 @@ export {
   engineAvailable,
   renderPage,
   type RenderOptions,
-  type PageRequests,
   type RenderChallenge,
   type RenderOutcome,
   type RenderStatus,
 } from './render'
+export { DEFAULT_MAX_HOSTS, type PageRequests } from './requests'
 export { toFacts, type FactsContext } from './validate'
 export { PLAYWRIGHT_VERSION } from './version'

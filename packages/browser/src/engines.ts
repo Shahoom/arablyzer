@@ -77,10 +77,15 @@ export interface ProxySettings {
  * --webrtc-ip-handling-policy and the headless shell only --force-webrtc-ip-handling-policy, so
  * both are set; with neither, STUN reached a local UDP port. WebTransport sent QUIC to a local
  * UDP port despite --disable-quic when no proxy applied, and nothing once the proxy did.
- * Chromium has no SharedWorker in any realm (see WORKER_GUARD). Firefox keeps
- * dom.serviceWorkers.enabled: turned off, it also turns off the request routing that counts the
- * page's requests (CI run 36279700918: with a limit of 10, 61 requests reached the server
- * instead of 9).
+ * Chromium has no SharedWorker in any realm (see WORKER_GUARD), and no fetchLater, which sends a
+ * POST by a loader that no route holds (see SEND_GUARD); one flag lists both, since only the last
+ * --disable-blink-features counts. Firefox keeps dom.serviceWorkers.enabled: turned off, it also
+ * turns off the request routing that counts the page's requests (CI run 36279700918: with a limit
+ * of 10, 61 requests reached the server instead of 9). Firefox turns CSP reporting off: a page's
+ * Content-Security-Policy names an address for `report-uri`, and Firefox POSTed a report to it
+ * around the browser's route, from every scan (measured on 2026-09-30, Firefox 155: two reports of
+ * 362 and 406 bytes to a second server); Chromium and WebKit send such a report as a request the
+ * route refuses.
  */
 export function launchOptions(
   engine: Engine,
@@ -103,7 +108,7 @@ export function launchOptions(
           '--dns-prefetch-disable',
           '--disable-background-networking',
           '--no-pings',
-          '--disable-blink-features=SharedWorker',
+          '--disable-blink-features=SharedWorker,FetchLaterAPI',
         ],
       }
     case 'firefox':
@@ -120,6 +125,7 @@ export function launchOptions(
           'network.prefetch-next': false,
           'network.predictor.enabled': false,
           'browser.send_pings': false,
+          'security.csp.reporting.enabled': false,
         },
       }
     case 'webkit':
@@ -136,8 +142,8 @@ export function launchOptions(
  * review). In Chromium, SharedWorker is off in every realm (see launchOptions), and this script
  * ran in a new frame or pop-up before the page could reach it (measured); so it did in Firefox and
  * WebKit (CI run 36282666726). Init scripts never run in workers, and Firefox and WebKit let a
- * dedicated worker register a service worker, whose requests went out uncounted in that run; the
- * browser suite records it.
+ * dedicated worker register a service worker, whose requests went out uncounted in that run:
+ * see SEND_GUARD, which the render adds, for what it does about that.
  */
 export const WORKER_GUARD = `(() => {
   delete globalThis.SharedWorker;
@@ -151,6 +157,75 @@ export const WORKER_GUARD = `(() => {
     enumerable: true,
     configurable: true,
   });
+})();`
+
+/**
+ * Runs in every document the render loads, after WORKER_GUARD, and closes what the render's route
+ * and its WebSocket routing cannot reach (M1 review, issue #29; every measurement is of 2026-09-30,
+ * in Chromium 153, Firefox 155 and WebKit 26.6, with the route refusing every request that is not
+ * GET or HEAD).
+ *
+ * No dedicated worker, and no WebSocketStream. An init script never runs in a worker, and the
+ * routing that closes the page's WebSockets replaces WebSocket in the page and its frames alone, so
+ * a WebSocket a worker opened connected in every engine. Firefox and WebKit also let a dedicated
+ * worker register a service worker, whose requests, a POST among them, went out with no route to
+ * refuse them (the browser suite recorded that in CI run 36282666726, and it sends data). So a
+ * dedicated worker is off, as a shared one is: a page that feature-detects Worker goes without it,
+ * and one that does not fails as it does for any script it needs, and is measured as it stands.
+ * WebSocketStream, which only Chromium has, is a WebSocket that the routing does not replace.
+ * WebTransport stays: QUIC is off (see launchOptions), and no engine reached a server with it.
+ *
+ * No pop-up a page can script: window.open gives back null, as a browser that blocks a pop-up
+ * does. Playwright sets a new page up after it exists, so a request made in it at that moment, from
+ * the opener's script, was not held for the route: a beacon written into a pop-up reached a second
+ * server in Firefox and in WebKit, and in Firefox a beacon and a keepalive POST from a pop-up that
+ * was then closed. (A pop-up the page cannot script, as a link's target=_blank opens, runs only
+ * what it loads, and it is closed at once.)
+ *
+ * No handler runs as a page is dismissed. Chromium does not put a request made in a pagehide or
+ * unload handler to the route at all, once the page navigates or reloads: every one of a beacon, a
+ * keepalive POST and a plain POST or XHR reached a second server that way, some of the plain ones
+ * (the route saw none). A listener the guard adds first, on window and capturing, stops the event
+ * from reaching the page's own: pagehide, unload and pageswap, and visibilitychange once the page
+ * is hidden. Nothing of a dismissed page is measured, so nothing is lost. (beforeunload runs before
+ * the navigation starts, with the page still held: the route saw every request made in it.)
+ *
+ * No form is submitted, whatever starts it (the bot never submits a form: BUILD-PLAN §13). The
+ * route refuses a form's POST, but Chromium and WebKit stop parsing a page when its script starts a
+ * navigation, and once that is refused they never say the page has loaded: with the review's own
+ * page, which submits a form as it loads, the render waited out its whole budget and ended in a
+ * timeout with no facts. So submit() does nothing, and the default of every submit event is
+ * prevented, and the page loads and is measured as it stands, in every engine.
+ *
+ * No fetchLater, which Chromium sends when the page asks, by a loader that no route holds: a POST
+ * with `activateAfter: 0` reached a second server with the page staying where it was. The launch
+ * flag turns it off too (see launchOptions), so that a realm this script has not reached has none.
+ */
+export const SEND_GUARD = `(() => {
+  delete globalThis.Worker;
+  delete globalThis.WebSocketStream;
+  delete globalThis.fetchLater;
+  Object.defineProperty(globalThis, 'open', {
+    value: function open() { return null; },
+    writable: true,
+    enumerable: true,
+    configurable: true,
+  });
+  const forms = globalThis.HTMLFormElement && globalThis.HTMLFormElement.prototype;
+  if (forms) {
+    Object.defineProperty(forms, 'submit', {
+      value: function submit() {},
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+    globalThis.addEventListener('submit', (event) => { event.preventDefault(); }, true);
+  }
+  const swallow = (event) => { event.stopImmediatePropagation(); };
+  for (const type of ['pagehide', 'unload', 'pageswap']) globalThis.addEventListener(type, swallow, true);
+  globalThis.addEventListener('visibilitychange', (event) => {
+    if (globalThis.document.visibilityState === 'hidden') event.stopImmediatePropagation();
+  }, true);
 })();`
 
 /**
