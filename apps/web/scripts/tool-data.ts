@@ -20,8 +20,12 @@ export function toolRenders(tool: Tool): boolean {
   return rulesOf(tool).some((rule) => rule.needs.includes('render'))
 }
 
-/** What the tool reads, for its card: browsers, Chrome's data, robots.txt, or the page's HTML. */
+/**
+ * What the tool reads, for its card: browsers, Chrome's data, robots.txt, or the page's HTML; a
+ * generator reads nothing, and says what it is.
+ */
 export function toolTag(tool: Tool): ToolTag {
+  if (tool.kind === 'generator') return 'generator'
   const needs = rulesOf(tool).flatMap((rule) => rule.needs)
   if (needs.includes('render')) return 'render'
   if (needs.includes('crux')) return 'crux'
@@ -69,6 +73,7 @@ export function toolsData(): ToolsData {
       })),
       related: [...tool.related],
       updated: tool.updated,
+      kind: tool.kind ?? 'scan',
       renders: toolRenders(tool),
       tag: toolTag(tool),
       copy: { ar: copyData(tool.copy.ar), en: copyData(tool.copy.en) },

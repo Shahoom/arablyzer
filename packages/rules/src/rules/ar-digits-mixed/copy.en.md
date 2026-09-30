@@ -31,5 +31,5 @@ The page has Persian digits such as «{persian}» in Arabic text, and their 4, 5
 
 ## References
 
-- [W3C: Arabic and Persian Layout Requirements, digits](https://www.w3.org/TR/alreq/#h_digits)
+- [W3C: Arabic and Persian Layout Requirements, digits](https://www.w3.org/TR/alreq/#h_families_of_numerals)
 - [Unicode: the Arabic code chart, digits at U+0660 and U+06F0](https://www.unicode.org/charts/PDF/U0600.pdf)

@@ -84,6 +84,18 @@ const SECTIONS = ['checks', 'example', 'fix', 'faq', 'links', 'about'] as const
 /** Every rule's id: a tool page lists the rules it runs by them. */
 const RULE_IDS: ReadonlySet<string> = new Set(RULES.map((rule) => rule.id))
 
+/** The kinds of tool whose form takes text or a generator's fields rather than an address. */
+const FIELD_KINDS: ReadonlySet<string> = new Set(['paste', 'generator'])
+
+/** Inputs that are not a field the visitor fills. */
+const NOT_FIELDS: ReadonlySet<string> = new Set(['hidden', 'submit', 'button', 'reset', 'image'])
+
+/** A field the visitor fills: a text area, a list, or an input other than a button. */
+function isField(tag: Tag): boolean {
+  if (tag.name === 'textarea' || tag.name === 'select') return true
+  return tag.name === 'input' && !NOT_FIELDS.has(tag.attr('type')?.toLowerCase() ?? 'text')
+}
+
 /** A tool's page, in either language, and its slug. */
 const TOOL_PATH = /^(?:\/en)?\/tools\/([a-z0-9]+(?:-[a-z0-9]+)*)$/
 
@@ -121,14 +133,19 @@ export function auditToolPage(html: string, expected: ExpectedPage): AuditProble
       problem('h1', 'the <h1> needs its one-line description, a <p>, right after it')
     }
   }
+  // §6.1 item 2, «حقل رابط (أو لصق كود/ملف)»: a scan tool's form takes a page's address; a paste
+  // tool's or a generator's, which says its kind, takes any field (M2.3 plan §1).
   const form = all('form').find((tag) =>
-    all('input').some(
-      (input) => input.attr('type')?.toLowerCase() === 'url' && isWithin(input.node, tag.node),
-    ),
+    FIELD_KINDS.has(tag.attr('data-tool-kind') ?? '')
+      ? tags.some((field) => isField(field) && isWithin(field.node, tag.node))
+      : all('input').some(
+          (input) => input.attr('type')?.toLowerCase() === 'url' && isWithin(input.node, tag.node),
+        ),
   )
   const firstSection = tags.find((tag) => tag.name === 'h2' || tag.name === 'section')
-  if (form === undefined) problem('tool-first', 'no form with a URL field')
-  else if (isHidden(form)) problem('tool-first', 'the tool form is hidden')
+  if (form === undefined) {
+    problem('tool-first', 'no form with a URL field, nor a paste or generator form with a field')
+  } else if (isHidden(form)) problem('tool-first', 'the tool form is hidden')
   else if (h1 !== undefined && form.order < h1.order) {
     problem('tool-first', 'the tool form comes before the <h1>; it belongs under it')
   } else if (firstSection !== undefined && firstSection.order < form.order) {

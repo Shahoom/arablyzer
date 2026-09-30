@@ -1,5 +1,6 @@
 import { PATHS } from '@arablyzer/seo/site'
 import type { SitemapPage, SitemapSection } from '@arablyzer/seo/sitemap'
+import { GUIDES_DATA } from './guide-data'
 import { LIBRARY_DATA } from './rule-data'
 import { TOOLS_DATA } from './tool-data'
 
@@ -11,6 +12,8 @@ const PAGES: readonly string[] = [
   PATHS.home,
   PATHS.tools,
   PATHS.rules,
+  PATHS.fix,
+  PATHS.glossary,
   PATHS.methodology,
   PATHS.bot,
 ]
@@ -26,5 +29,15 @@ export function sitemapPages(section: SitemapSection): SitemapPage[] {
       }))
     case 'rules':
       return LIBRARY_DATA.rules.map((rule) => ({ path: PATHS.rule(rule.id) }))
+    case 'fix':
+      return GUIDES_DATA.fix.map((guide) => ({
+        path: PATHS.fixGuide(guide.slug),
+        lastmod: guide.updated,
+      }))
+    case 'glossary':
+      return GUIDES_DATA.glossary.map((term) => ({
+        path: PATHS.term(term.slug),
+        lastmod: term.updated,
+      }))
   }
 }

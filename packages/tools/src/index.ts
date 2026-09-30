@@ -22,6 +22,8 @@ export { TOOL_DEFINITIONS, toolDefinition } from './registry'
 export {
   defineTool,
   TOOL_CATEGORIES,
+  TOOL_KINDS,
+  type ToolKind,
   type Tool,
   type ToolCategory,
   type ToolDefinition,

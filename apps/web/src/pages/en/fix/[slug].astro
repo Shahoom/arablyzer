@@ -1,0 +1,12 @@
+---
+import FixPage from '../../../components/guides/FixPage.astro'
+import { GUIDES_DATA } from '../../../lib/guide-data'
+
+export function getStaticPaths() {
+  return GUIDES_DATA.fix.map((guide) => ({ params: { slug: guide.slug } }))
+}
+
+const { slug } = Astro.params
+---
+
+<FixPage lang="en" slug={slug} />
