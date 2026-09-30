@@ -42,6 +42,12 @@ const stack = new Stack({
 })
 
 console.log(`Checking the stack ${project}`)
+if (stack.services().length === 0) {
+  console.error(
+    `No container carries the label of a Compose project named ${project}: \`docker compose ls\` lists the projects that are running, and --project names one.`,
+  )
+  process.exit(1)
+}
 let host: HostProbe
 try {
   host = await stack.startHostProbe()
