@@ -223,6 +223,7 @@ jobs:
             echo "ARABLYZER_PROXY_SECRET=$(secret)"
             echo "VALKEY_PASSWORD=$(secret)"
             echo "POSTGRES_PASSWORD=$(secret)"
+            echo "POSTGRES_APP_PASSWORD=$(secret)"
             # The server's own addresses stand in: an unused address of the test network, and an
             # IPv6 address that nothing holds, which the API, the scanner and the egress proxy all
             # read, and the proxy refuses (the stack's test).

@@ -15,7 +15,9 @@ import { createApp } from './app'
 import { apiDeps } from './config'
 
 // The API as Compose and staging run it (M2.1 plan §4): PostgreSQL for scans and reports,
-// Valkey for the queue, the events and the limits. It brings the tables up to date first.
+// Valkey for the queue, the events and the limits. It connects to PostgreSQL as a role that can
+// read and write the scans and change nothing, so it does not bring the tables up to date: the
+// database's own step does, before it starts (packages/store/src/migrate.ts, infra/compose.yaml).
 // Production's checks hold whatever NODE_ENV says; dev.ts is the one for development.
 const env: Readonly<Record<string, string | undefined>> = { ...process.env, NODE_ENV: 'production' }
 const log = (text: string) => {
@@ -49,7 +51,6 @@ const pool = new pg.Pool({
 // without a listener, it would end the process.
 pool.on('error', quietly('PostgreSQL', log))
 const store = new PostgresScanStore(pool)
-await store.migrate()
 const queue = new BullMQScanQueue(redis)
 const stopping = new AbortController()
 const app = createApp({

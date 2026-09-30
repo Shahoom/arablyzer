@@ -10,6 +10,12 @@ export { MemoryRateLimiter, secondsUntilOne, type RateLimiter, type Taken } from
 export { quietly } from './log'
 export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
 export { scans } from './postgres/schema'
+export {
+  APP_ROLE,
+  MIGRATE_ROLE,
+  migrateDatabase,
+  type ProvisionOptions,
+} from './postgres/provision'
 export { PostgresScanStore } from './postgres/store'
 export { MIN_SECRET_LENGTH, requireSecret } from './secrets'
 export type {

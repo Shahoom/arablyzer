@@ -29,8 +29,15 @@ export async function valkey(db: number): Promise<Redis> {
   return redis
 }
 
-/** A database of its own for one test file, dropped afterwards. */
-export async function database(): Promise<{ pool: pg.Pool; drop: () => Promise<void> }> {
+/**
+ * A database of its own for one test file, dropped afterwards. `url` is its address, as the
+ * services' own user reaches it, for a test that connects as another role.
+ */
+export async function database(): Promise<{
+  pool: pg.Pool
+  url: URL
+  drop: () => Promise<void>
+}> {
   if (databaseUrl === undefined) throw new Error('No ARABLYZER_TEST_DATABASE_URL')
   const name = `arablyzer_test_${randomBytes(6).toString('hex')}`
   const admin = new pg.Client({ connectionString: databaseUrl })
@@ -42,6 +49,7 @@ export async function database(): Promise<{ pool: pg.Pool; drop: () => Promise<v
   const pool = new pg.Pool({ connectionString: url.href, max: 4 })
   return {
     pool,
+    url,
     drop: async () => {
       await pool.end()
       const cleanup = new pg.Client({ connectionString: databaseUrl })
