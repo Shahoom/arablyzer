@@ -5,8 +5,10 @@ export type NoticeCode =
   | EgressErrorCode
   | 'robots-unchecked'
   | 'robots-truncated'
+  | 'sitemap-unchecked'
   | 'opted-out'
   | 'page-status'
+  | 'bot-challenge'
   | 'not-html'
   | 'little-text'
   | 'page-too-complex'
@@ -15,6 +17,7 @@ export type NoticeCode =
   | 'render-skipped'
   | 'render-engine-skipped'
   | 'render-failed'
+  | 'render-challenged'
   | 'render-timeout'
   | 'engine-unavailable'
   | 'engine-refused'
@@ -35,6 +38,7 @@ export type NoticeCode =
   | 'links-limit-more'
   | 'links-robots'
   | 'links-unanswered'
+  | 'lab-challenged'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -117,6 +121,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     ar: 'ملف robots.txt أكبر من 500 كيلوبايت، فقرأنا أول 500 كيلوبايت فقط كما يفعل Google.',
     en: 'robots.txt is larger than 500 KiB, so only the first 500 KiB were read, as Google does.',
   },
+  'sitemap-unchecked': {
+    ar: 'تعذّرت قراءة بعض خرائط الموقع، فحكمت القواعد التي تفحصها على ما قُرئ منها، ولم تُطبَّق إن لم تُقرأ أي خريطة.',
+    en: 'Some of the site’s sitemaps could not be read, so the rules that check them judged the ones that could be, and did not run when none could.',
+  },
   // M2.4 plan §2: the site's own words, the rule and where it is, so its owner can find it.
   'opted-out': {
     ar: 'يطلب ملف robots.txt في الموقع ألّا يفحص {bot} هذه الصفحة، فلم نفحصها. القاعدة «{rule}» في السطر {line} من {robots}.',
@@ -125,6 +133,11 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'page-status': {
     ar: 'الصفحة ردّت بالحالة HTTP {status}، فلم نفحص محتواها.',
     en: 'The page answered HTTP {status}, so its content was not checked.',
+  },
+  // BUILD-PLAN §13: a site that blocks the bot says so, honestly; the scan never gets past it.
+  'bot-challenge': {
+    ar: 'ردّ الموقع بتحدٍّ للبوتات من {service} (HTTP {status}) بدل الصفحة، فلم نفحص محتواها: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'The site answered with a {service} bot challenge (HTTP {status}) instead of the page, so its content was not checked: Arablyzer never tries to get past a challenge.',
   },
   'not-html': {
     ar: 'الاستجابة ليست صفحة HTML، ففحصنا ترويساتها فقط.',
@@ -157,6 +170,11 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'render-failed': {
     ar: 'تعذّر عرض الصفحة في {engine}، فلم تعمل فيه فحوص العرض.',
     en: 'The page could not be rendered in {engine}, so the rendering checks did not run in it.',
+  },
+  // BUILD-PLAN §13: the browser is given the page only once its headers are checked (M2.3c).
+  'render-challenged': {
+    ar: 'ردّ الموقع في {engine} بتحدٍّ للبوتات من {service} (HTTP {status}) بدل الصفحة، فلم تُعرض الصفحة فيه: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'In {engine}, the site answered with a {service} bot challenge (HTTP {status}) instead of the page, so the page was not rendered there: Arablyzer never tries to get past a challenge.',
   },
   'render-timeout': {
     ar: 'لم يكتمل عرض الصفحة في {engine} خلال الوقت المحدد، فلم تعمل فيه فحوص العرض.',
@@ -201,6 +219,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'lab-unavailable': {
     ar: 'Lighthouse أو متصفح Chromium غير مثبّت على هذا الجهاز، فلم يعمل Lighthouse.',
     en: 'Lighthouse or Chromium is not installed on this machine, so Lighthouse did not run.',
+  },
+  'lab-challenged': {
+    ar: 'ردّ الموقع على متصفح بتحدٍّ للبوتات بدل الصفحة، فلم يفتحها Lighthouse: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
+    en: 'A browser was answered with a bot challenge instead of the page, so Lighthouse did not open it: Arablyzer never tries to get past a challenge.',
   },
   'lab-skipped': {
     ar: 'لم يبقَ من وقت الفحص ما يكفي Lighthouse، فلم يعمل.',

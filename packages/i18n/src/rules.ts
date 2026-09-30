@@ -4,9 +4,9 @@ import { arabicCount, englishCount } from './plural'
 /**
  * What a rule reads, on its page: the rendered page, robots.txt, Chrome's data, the domain's DNS
  * records, the answers of the page's links, the server's response (its headers, redirects or
- * connection), or the page.
+ * connection), or the page; or robots.txt and the sitemaps.
  */
-export type RuleReads = 'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links'
+export type RuleReads = 'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links' | 'sitemap'
 
 /** The rule library (BUILD-PLAN §6.2, M2.4): its index and each rule's page, around the copy. */
 export interface RulesStrings {
@@ -85,6 +85,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         http: 'تقرأ رد الخادم',
         dns: 'تقرأ سجلات DNS للنطاق',
         links: 'تطلب روابط الصفحة إلى موقعها',
+        sitemap: 'تقرأ robots.txt وخرائط الموقع',
       },
       manual: 'تحتاج مراجعة بشرية',
       example: 'مثال',
@@ -129,6 +130,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         http: 'Reads the server’s response',
         dns: 'Reads the domain’s DNS records',
         links: 'Asks for the page’s links to its site',
+        sitemap: 'Reads robots.txt and the sitemaps',
       },
       manual: 'Needs a person’s review',
       example: 'Example',

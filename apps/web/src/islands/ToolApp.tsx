@@ -39,9 +39,9 @@ interface Props {
   reportsOnly: boolean
   /**
    * What the tool reads, which the note under the form says: the page, robots.txt, browsers, DNS
-   * records, or the page and its links.
+   * records, the page and its links, robots.txt and the sitemaps, or Chrome's data on real visitors.
    */
-  reads: 'html' | 'robots' | 'render' | 'dns' | 'links'
+  reads: 'html' | 'robots' | 'render' | 'dns' | 'links' | 'sitemap' | 'crux'
 }
 
 type Run =

@@ -96,6 +96,12 @@ class LabTimeout extends Error {}
  * answers the proxy's credentials, its requests are counted and stopped at the render's limit, and
  * pop-ups are blocked. Lab metrics vary from run to run, so they are reported, never judged (M1.3
  * plan §1). Never throws for what the page does.
+ *
+ * Lighthouse drives its own navigation over the DevTools protocol, and puppeteer intercepts
+ * requests, not responses, so a bot challenge cannot be stopped before its scripts run here, as the
+ * render stops it (M2.3c review). The engine runs Lighthouse only for a page whose plain fetch was
+ * not a challenge and where no browser of the render was answered one; a scan that asks for it
+ * without a render has no such warning to go by.
  */
 export async function runLab(url: string, options: LabOptions = {}): Promise<LabRun> {
   const started = performance.now()

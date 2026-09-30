@@ -140,6 +140,9 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`tls-expiring`](packages/rules/src/rules/tls-expiring/copy.en.md) | The TLS certificate is not about to expire |
 | [`redirect-chain`](packages/rules/src/rules/redirect-chain/copy.en.md) | The page is reached through one redirect at most |
 | [`redirect-temporary`](packages/rules/src/rules/redirect-temporary/copy.en.md) | A move to HTTPS, or between a name and its `www.`, is a permanent redirect (301 or 308) |
+| [`bot-challenge`](packages/rules/src/rules/bot-challenge/copy.en.md) | The site answers the check with the page, not a Cloudflare or AWS WAF bot challenge (information) |
+| [`sitemap-missing`](packages/rules/src/rules/sitemap-missing/copy.en.md) | A public site names a sitemap in robots.txt, or has one at `/sitemap.xml` |
+| [`sitemap-invalid`](packages/rules/src/rules/sitemap-invalid/copy.en.md) | The site's sitemaps can be fetched and read: well-formed XML in the protocol's namespace, a feed, or a list of full URLs |
 
 These read TXT records of the page's domain (its organizational domain, by the Public Suffix List). The hosted service asks for them as DNS over HTTPS (RFC 8484) from Cloudflare's resolver, or from the one `ARABLYZER_DOH_URL` names, through the egress proxy; a scan on a machine without a proxy asks that machine's DNS servers. A site a platform gives its customers (`user.github.io`, `shop.myshopify.com`) has no domain of its own to read: they do not apply to it. A scan with no way to ask DNS leaves them out and says so:
 

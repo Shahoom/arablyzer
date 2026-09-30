@@ -816,3 +816,111 @@ for (const [where, realm] of [['page', window], ['frame', frame.contentWindow], 
     expect(outcome).toMatchObject({ status: 'unavailable', facts: null })
   })
 })
+
+// M2.3c review: the plain fetch can pass a page whose browser is answered a challenge, and a
+// challenge's script, once run, may get past it (BUILD-PLAN §13). The render stops at the answer's
+// headers, checked with the same challengeOf the engine uses, and lets nothing the page asks for
+// go out after it (see watchDocuments).
+describe.each(engines)('a bot challenge in place of the page: %s', (engine) => {
+  const HEADERS = { 'content-type': 'text/html; charset=UTF-8' }
+  /** A challenge page as a service sends one: an inline script and a script file, both beacons. */
+  const CHALLENGE =
+    '<!doctype html><html><head><title>Just a moment...</title></head><body><p>Checking</p><script>fetch("/ran-inline")</script><script src="/challenge.js"></script></body></html>'
+  const SCRIPT = [200, { 'content-type': 'text/javascript' }, 'fetch("/ran-file")'] as const
+
+  /** Renders `/` of a site with these routes; what the site was asked for, less the favicon. */
+  async function visited(
+    routes: Parameters<typeof pages>[0],
+    options: Partial<RenderOptions> = {},
+  ) {
+    const asked: string[] = []
+    const answer = pages(routes)
+    const site = await serve((req, res) => {
+      if (req.url !== '/favicon.ico') asked.push(req.url ?? '')
+      answer(req, res)
+    })
+    cleanup.push(() => site.close())
+    const [outcome] = await renderPage(site.url('/'), {
+      engines: [engine],
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+      networkIsolated: true,
+      ...options,
+    })
+    if (outcome === undefined) throw new Error('No outcome')
+    // Anything a script had started would have reached the site by now.
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    return { outcome, asked }
+  }
+
+  it.each([
+    ['Cloudflare', 403, { 'cf-mitigated': 'challenge' }],
+    ['AWS WAF', 202, { 'x-amzn-waf-action': 'challenge' }],
+  ])('measures no %s challenge as the page', async (service, status, header) => {
+    const { outcome, asked } = await visited({
+      '/': [status, { ...HEADERS, ...header }, CHALLENGE],
+      '/challenge.js': SCRIPT,
+    })
+    expect(outcome.status, outcome.error ?? '').toBe('challenged')
+    expect(outcome.challenge).toEqual({ service, status })
+    expect(outcome.error).toContain(service)
+    expect(outcome.facts).toBeNull()
+    expect(outcome.screenshot).toBeNull()
+    // The script file may be asked for as the engine reports the answer, but what it asks for
+    // once it runs goes nowhere: a challenge is passed by that (see watchDocuments).
+    expect(asked[0]).toBe('/')
+    expect(asked).not.toContain('/ran-file')
+  })
+
+  it('runs the same page, and its scripts, when the site sends it as the page', async () => {
+    const { outcome, asked } = await visited({
+      '/': [200, HEADERS, CHALLENGE],
+      '/challenge.js': SCRIPT,
+    })
+    expect(outcome.status, outcome.error ?? '').toBe('rendered')
+    expect(outcome.challenge).toBeNull()
+    expect(asked).toEqual(
+      expect.arrayContaining(['/', '/ran-inline', '/challenge.js', '/ran-file']),
+    )
+  })
+
+  it('meets a challenge at the end of a redirect, and one a page navigates to', async () => {
+    const challenge = [403, { ...HEADERS, 'cf-mitigated': 'challenge' }, CHALLENGE] as const
+    const redirect = await visited({
+      '/': [302, { location: '/c' }, ''],
+      '/c': challenge,
+    })
+    expect(redirect.outcome.status, redirect.outcome.error ?? '').toBe('challenged')
+    expect(redirect.asked.slice(0, 2)).toEqual(['/', '/c'])
+    expect(redirect.asked).not.toContain('/ran-file')
+
+    const navigated = await visited({
+      '/': arabicPage('<p>نص</p><script>setTimeout(() => location.assign("/c"), 50)</script>'),
+      '/c': challenge,
+    })
+    expect(navigated.outcome.status, navigated.outcome.error ?? '').toBe('challenged')
+    expect(navigated.outcome.challenge).toEqual({ service: 'Cloudflare', status: 403 })
+    expect(navigated.asked.slice(0, 2)).toEqual(['/', '/c'])
+    expect(navigated.asked).not.toContain('/ran-file')
+  })
+
+  it('follows redirects to the page as before, and measures where they end', async () => {
+    const page = arabicPage('<p id="a">مرحبا بكم</p>')
+    const started = await visited({
+      '/': [301, { location: '/one' }, ''],
+      '/one': [302, { location: '/two' }, ''],
+      '/two': page,
+    })
+    expect(started.outcome.status, started.outcome.error ?? '').toBe('rendered')
+    expect(started.outcome.facts?.url.endsWith('/two')).toBe(true)
+    expect(started.outcome.facts?.status).toBe(200)
+    expect(started.asked).toEqual(['/', '/one', '/two'])
+  })
+
+  it('leaves a document the site refuses without a challenge to the browser, as it was', async () => {
+    const { outcome } = await visited({
+      '/': [403, HEADERS, arabicPage('<p>ممنوع</p>')],
+    })
+    expect(outcome.status, outcome.error ?? '').toBe('rendered')
+    expect(outcome.facts).toMatchObject({ status: 403 })
+  })
+})

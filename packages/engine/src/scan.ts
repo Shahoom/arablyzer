@@ -14,6 +14,7 @@ import {
   type RenderedFacts,
   type RobotsFacts,
   type RobotsRule,
+  type SitemapFacts,
 } from '@arablyzer/collectors'
 import {
   checkUrl,
@@ -47,12 +48,15 @@ import {
 import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
+  challengeOf,
   crawlerAccess,
+  isPublicUrl,
   matchRobots,
   renderMessage,
   robotsMatcher,
   RULES,
   RULESET_VERSION,
+  type CollectorId,
   type DetectorFinding,
   type Evidence,
   type Rule,
@@ -65,6 +69,7 @@ import { checkLinks, MAX_LINKS } from './links'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
+import { fetchSitemaps, SITEMAP_TIMEOUT_MS } from './sitemap'
 
 export { ENGINE_VERSION, USER_AGENT }
 /** Keeps reports small; the rest of a rule's findings are counted in findingsOmitted. */
@@ -234,6 +239,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       findings: Finding[]
       facts: Facts
       render?: RenderRun[]
+      /** Whether the scan reached the page; not, it has no score. Reached unless said. */
+      reached?: boolean
     },
   ): Report =>
     Report.parse({
@@ -248,7 +255,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       },
       page: parts.page,
       summary: summarize(parts.results),
-      score: scoreOf(parts.results, (options.rules ?? RULES).length),
+      score: scoreOf(parts.results, (options.rules ?? RULES).length, parts.reached ?? true),
       rules: parts.results,
       findings: parts.findings,
       facts: parts.facts,
@@ -400,6 +407,9 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     // A collector bug, or an input it cannot handle: the report says so instead of the scan crashing.
     return failed(target, [notice('page-unreadable')], 'page-unreadable')
   }
+  // A bot challenge in place of the page (M2.3c) is not the page: nothing judges it as one, and
+  // no browser and no Lighthouse opens it, where its script could get past it (BUILD-PLAN §13).
+  const reached = pageReached(page)
   // For the rules that read it, and in the report only then: a scan without them reports as it
   // did before robots.txt came first.
   const robots = rules.some((rule) => rule.needs.includes('robots')) ? robotsRead.facts : undefined
@@ -425,8 +435,12 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : fetched.privateAccess
         ? 'crux-private'
         : null
+  // Real visitors' data is asked of Google, which never touches the site: a page the site
+  // answered with a bot challenge has some to be asked for as much as one it sent, and a page it
+  // refused any other way has none worth the question (M2.3c).
+  const cruxAsked = isSuccess(page.status) || challengeOf(page.headers) !== null
   const crux =
-    readsCrux && cruxSkipped === null && options.crux !== undefined && isSuccess(page.status)
+    readsCrux && cruxSkipped === null && options.crux !== undefined && cruxAsked
       ? await fetchCrux(response.url, options.crux, { ...base, policy })
       : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
@@ -445,7 +459,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   const rendering =
     options.render === undefined
       ? undefined
-      : isSuccess(page.status) && page.isHtml
+      : reached && page.isHtml
         ? await renderAll(response.url, options.render, {
             policy: robotsPolicy,
             resolver: base.resolver ?? defaultResolver(robotsPolicy),
@@ -453,12 +467,16 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
             progress,
             ...(options.signal === undefined ? {} : { signal: options.signal }),
           })
-        : { runs: [], rendered: [], notices: [] }
+        : { runs: [], rendered: [], notices: [], challenged: false }
 
   const links = await linking
   // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
-  // lockdown. Information only, so its failure leaves the scan complete, with a notice.
-  const labRequest = isSuccess(page.status) && page.isHtml ? options.lab : undefined
+  // lockdown. Information only, so its failure leaves the scan complete, with a notice. Not after
+  // a browser was answered with a bot challenge: Lighthouse's navigation is not one the scan can
+  // stop before the page's scripts run, and a challenge's could get past it (BUILD-PLAN §13). A
+  // scan that asks for Lighthouse without a render has no such warning to go by.
+  const labWanted = reached && page.isHtml ? options.lab : undefined
+  const labRequest = rendering?.challenged === true ? undefined : labWanted
   if (labRequest !== undefined) progress({ step: 'lab-start' })
   const lab =
     labRequest === undefined
@@ -469,6 +487,31 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
           started,
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         })
+  // The site's sitemaps, when a rule the scan runs reads them (M2.3c): those its robots.txt names,
+  // or /sitemap.xml, with the lockdown the page's chain ended with, and each site's opt-out. They
+  // are for search engines, which reach public sites alone: a local site is not asked for them.
+  // After the render and Lighthouse, so that waiting for a sitemap cannot shorten either; they wait
+  // for what the scan has left, SITEMAP_TIMEOUT_MS at most, and only the network's time counts.
+  const sitemapRead =
+    rules.some((rule) => rule.needs.includes('sitemap')) && isPublicUrl(response.url)
+      ? await fetchSitemaps(robotsRead.facts, new URL(response.url).origin, {
+          base: { ...base, policy: robotsPolicy },
+          privateAccess: fetched.privateAccess,
+          budgetMs: Math.min(SITEMAP_TIMEOUT_MS, SCAN_BUDGET_MS - (performance.now() - started)),
+          // A sitemap is a request of the scan's own, made as a crawler would, like a link: a
+          // group naming the bot counts, and `User-agent: *` where none names it.
+          allowed: async (to, privateAccess, signal) => {
+            const { read } = await robotsFor(to, privateAccess ? policy : lockdown, signal)
+            return !linkOptOut(read.facts, bot)(to)
+          },
+        })
+      : undefined
+  const sitemap =
+    sitemapRead !== undefined && 'facts' in sitemapRead ? sitemapRead.facts : undefined
+  // Some sitemap could not be checked, or robots.txt could not be read, so none is known.
+  const sitemapUnread =
+    sitemapRead !== undefined &&
+    (sitemap === undefined || sitemap.checked.some((check) => check.outcome === 'failed'))
   const notices = [
     ...pageNotices(page, robots),
     ...(renderSkipped ? [notice('render-skipped')] : []),
@@ -485,6 +528,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(crux?.outcome === 'failed'
       ? [notice(crux.refused === true ? 'crux-refused' : 'crux-failed')]
       : []),
+    ...(sitemapUnread ? [notice('sitemap-unchecked')] : []),
+    ...(labWanted !== undefined && labRequest === undefined ? [notice('lab-challenged')] : []),
     ...(lab === undefined || lab.status === 'measured' ? [] : [notice(`lab-${lab.status}`)]),
     ...(lab?.limited === true ? [notice('request-limit', { engine: 'Lighthouse' })] : []),
     ...(dns?.notice === 'dns-unchecked'
@@ -502,15 +547,23 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     redirects: target.http.redirects,
     dns: dns?.facts,
     links,
+    sitemap,
+    sitemapUnknown: sitemapRead !== undefined && 'failed' in sitemapRead,
   })
   // An engine that was asked for and did not render leaves the scan short, whatever the rules.
   const unrendered = rendering?.runs.some((run) => run.status !== 'rendered') ?? false
 
   return finish(target, {
+    // A scan that did not reach the page is short, whatever the rules beside the page said: the
+    // CLI exits 2 for it (docs/design/phase-0.md §3), and it has no score (M2.3c review).
     status:
-      unrendered || results.some((result) => result.status === 'error') ? 'partial' : 'complete',
+      unrendered || !reached || results.some((result) => result.status === 'error')
+        ? 'partial'
+        : 'complete',
+    reached,
     notices,
-    page: pageSummary(page),
+    // A challenge's language and script are not the page's.
+    page: challengeOf(page.headers) === null ? pageSummary(page) : null,
     results,
     findings,
     facts: {
@@ -584,6 +637,8 @@ interface Rendering {
   readonly runs: RenderRun[]
   readonly rendered: RenderedFacts[]
   readonly notices: Notice[]
+  /** A browser was answered with a bot challenge in place of the page (M2.3c). */
+  readonly challenged: boolean
 }
 
 /**
@@ -605,6 +660,7 @@ async function renderAll(
   const runs: RenderRun[] = []
   const rendered: RenderedFacts[] = []
   const notices: Notice[] = []
+  let challenged = false
   let browser: typeof import('@arablyzer/browser')
   try {
     browser = await import('@arablyzer/browser')
@@ -622,7 +678,7 @@ async function renderAll(
       context.progress({ step: 'render', run })
       notices.push(notice('engine-unavailable', { engine: ENGINE_NAMES[engine] }))
     }
-    return { runs, rendered, notices }
+    return { runs, rendered, notices, challenged: false }
   }
   const { renderPage, RENDER_TIMEOUT_MS, EXTRA_ENGINE_TIMEOUT_MS } = browser
   for (const [index, engine] of request.engines.entries()) {
@@ -669,6 +725,16 @@ async function renderAll(
       if (outcome.facts.truncated) notices.push(notice('render-truncated', { engine: name }))
     }
     if (outcome.screenshot !== null) request.onScreenshot?.(engine, outcome.screenshot)
+    if (outcome.status === 'challenged') {
+      challenged = true
+      notices.push(
+        notice('render-challenged', {
+          engine: name,
+          service: outcome.challenge?.service ?? '',
+          status: String(outcome.challenge?.status ?? ''),
+        }),
+      )
+    }
     if (outcome.status === 'failed') notices.push(notice('render-failed', { engine: name }))
     if (outcome.status === 'timeout') notices.push(notice('render-timeout', { engine: name }))
     if (outcome.status === 'unavailable') {
@@ -677,15 +743,18 @@ async function renderAll(
     if (outcome.status === 'refused') notices.push(notice('engine-refused', { engine: name }))
     if (outcome.requests.limited) notices.push(notice('request-limit', { engine: name }))
   }
-  return { runs, rendered, notices }
+  return { runs, rendered, notices, challenged }
 }
 
-/** A render as the report shows it: the page's own requests, and those not let through. */
+/**
+ * A render as the report shows it: the page's own requests, and those not let through. A render a
+ * bot challenge ended is one that failed; the notice says why.
+ */
 export function renderRun(outcome: RenderOutcome): RenderRun {
   return {
     engine: outcome.engine,
     version: outcome.version === null || outcome.version === '' ? null : outcome.version,
-    status: outcome.status,
+    status: outcome.status === 'challenged' ? 'failed' : outcome.status,
     durationMs: outcome.durationMs,
     requests: {
       total: outcome.pageRequests.made,
@@ -714,6 +783,8 @@ export interface EvaluateOptions {
   readonly dns?: DnsFacts
   /** How the checks of the page's links ended (M2.3c); without them, rules that need `links` do not apply. */
   readonly links?: LinkFacts
+  /** The site's sitemaps; without them, rules that need them do not apply. */
+  readonly sitemap?: SitemapFacts
 }
 
 export interface Evaluation {
@@ -743,13 +814,21 @@ interface Collected {
   readonly redirects?: readonly Redirect[] | undefined
   readonly dns?: DnsFacts | undefined
   readonly links?: LinkFacts | undefined
+  readonly sitemap?: SitemapFacts | undefined
+  /**
+   * The sitemaps were asked for and robots.txt could not be read, so which they are is not known:
+   * the rules that read them could not check. A sitemap that could not be checked is one `failed`
+   * check in `sitemap` instead, for the rules to judge the rest.
+   */
+  readonly sitemapUnknown?: boolean
 }
 
 function evaluateRules(rules: readonly Rule[], page: PageFacts, collected: Collected): Evaluation {
   const results: RuleResult[] = []
   const findings: Finding[] = []
+  const reached = pageReached(page)
   for (const rule of rules) {
-    const outcome = evaluate(rule, page, collected)
+    const outcome = evaluate(rule, page, collected, reached)
     results.push(
       ruleResult(rule, outcome.status, {
         ...(outcome.error === undefined ? {} : { error: outcome.error }),
@@ -781,14 +860,16 @@ async function fetchRobots(pageUrl: string, base: SafeFetchOptions): Promise<Rob
     maxRedirects: ROBOTS_MAX_REDIRECTS,
   })
   const response = fetched.response
+  // A bot challenge in place of robots.txt is not the site's robots.txt: it tells nothing.
+  const challenged = response !== null && challengeOf(response.headers) !== null
   return {
     facts: collectRobots({
       url,
       response:
-        response === null
+        response === null || challenged
           ? null
           : { status: response.status, body: response.body, truncated: response.truncated },
-      errorCode: fetched.error?.code ?? null,
+      errorCode: challenged ? 'bot-challenge' : (fetched.error?.code ?? null),
     }),
     startedAt: fetched.startedAt,
     privateAccess: fetched.privateAccess,
@@ -831,12 +912,20 @@ interface Outcome {
   readonly omitted?: number
 }
 
-function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
+/**
+ * What a rule reads beside the page itself: robots.txt and the sitemaps are the site's, `response`
+ * is the page's answer, whatever it was, and `crux` is what Google holds of the URL's visitors,
+ * which was asked for when the page answered a bot challenge too. Their rules run whatever the
+ * page answered.
+ */
+const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set(['robots', 'sitemap', 'response', 'crux'])
+
+function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: boolean): Outcome {
   const { robots, rendered, crux } = collected
-  const needsPage = rule.needs.some((need) => need !== 'robots')
+  const needsPage = rule.needs.some((need) => !BESIDE_THE_PAGE.has(need))
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
-  if (needsPage && !isSuccess(page.status)) return { status: 'not-applicable', findings: [] }
+  if (needsPage && !reached) return { status: 'not-applicable', findings: [] }
   if (needsHtml && page.htmlTimedOut) {
     return { status: 'error', error: 'page-too-complex', findings: [] }
   }
@@ -845,6 +934,15 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
   }
   if (rule.needs.includes('robots') && (robots === undefined || robots.outcome === 'failed')) {
     return { status: 'error', error: 'robots-unchecked', findings: [] }
+  }
+  if (rule.needs.includes('sitemap') && collected.sitemapUnknown === true) {
+    return { status: 'error', error: 'sitemap-unchecked', findings: [] }
+  }
+  // Only for the rules that read them, like the redirects; not asked for, on a local site or
+  // without a scan, they leave the rules nothing to judge.
+  const sitemap = rule.needs.includes('sitemap') ? collected.sitemap : undefined
+  if (rule.needs.includes('sitemap') && sitemap === undefined) {
+    return { status: 'not-applicable', findings: [] }
   }
   // Without a key, or for a private page, CrUX was not asked: nothing to judge.
   if (rule.needs.includes('crux') && crux === undefined) {
@@ -895,9 +993,14 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected): Outcome {
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
+    ...(sitemap === undefined ? {} : { sitemap }),
   }
   try {
     if (!rule.appliesTo(page, evidence)) return { status: 'not-applicable', findings: [] }
+    // Evidence there in part, such as the sitemaps some of which could not be read, may leave the
+    // rule nothing to judge; then it is an error, and not a pass.
+    const couldNotCheck = rule.couldNotCheck?.(evidence) ?? null
+    if (couldNotCheck !== null) return { status: 'error', error: couldNotCheck, findings: [] }
     const detected = rule.detect(evidence)
     const { kept, total } = firstByPosition(detected, MAX_FINDINGS_PER_RULE)
     const status = rule.manualCheck === true ? 'needs-review' : total > 0 ? 'fail' : 'pass'
@@ -1045,9 +1148,16 @@ export function summarize(results: readonly RuleResult[]): Summary {
 
 function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[] {
   const notices: Notice[] = []
-  if (!isSuccess(page.status)) notices.push(notice('page-status', { status: String(page.status) }))
-  else if (!page.isHtml) notices.push(notice('not-html'))
-  else {
+  const challenge = challengeOf(page.headers)
+  if (challenge !== null) {
+    notices.push(
+      notice('bot-challenge', { service: challenge.service, status: String(page.status) }),
+    )
+  } else if (!isSuccess(page.status)) {
+    notices.push(notice('page-status', { status: String(page.status) }))
+  } else if (!page.isHtml) {
+    notices.push(notice('not-html'))
+  } else {
     if (page.htmlTimedOut) notices.push(notice('page-too-complex'))
     else if (page.text !== null && page.html !== null) {
       const loadsScripts = page.html.scripts.some(
@@ -1191,6 +1301,14 @@ function isJavaScript(type: string | null): boolean {
 
 function isSuccess(status: number): boolean {
   return status >= 200 && status < 300
+}
+
+/**
+ * Whether the scan reached the page: a 2xx answer that is not a bot challenge, which some services
+ * send as 2xx (AWS WAF's answers 202).
+ */
+function pageReached(page: PageFacts): boolean {
+  return isSuccess(page.status) && challengeOf(page.headers) === null
 }
 
 function lastHeader(headers: readonly (readonly [string, string])[], name: string): string | null {

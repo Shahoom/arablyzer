@@ -20,6 +20,7 @@ import {
   problemCount,
   problemsOf,
   START,
+  stateNotices,
   stepsOf,
   noProblemsNote,
   noteCount,
@@ -202,6 +203,16 @@ describe('outcomeOf', () => {
       target: { ...rtlLayout.target, http: { ...rtlLayout.target.http, status: 403 } },
     }
     expect(outcomeOf(refused)).toBe('blocked')
+    // A bot challenge, whatever its status: AWS WAF's answers 202.
+    const challenged: Report = {
+      ...rtlLayout,
+      target: { ...rtlLayout.target, http: { ...rtlLayout.target.http, status: 202 } },
+      scan: {
+        ...rtlLayout.scan,
+        notices: [{ code: 'bot-challenge', message: { ar: 'تحدٍّ', en: 'A challenge' } }],
+      },
+    }
+    expect(outcomeOf(challenged)).toBe('blocked')
     const partial = { ...rtlLayout, scan: { ...rtlLayout.scan, status: 'partial' as const } }
     expect(outcomeOf(partial)).toBe('partial')
   })
@@ -230,6 +241,34 @@ describe('outcomeOf', () => {
     expect(outcomeOf(refused)).toBe('opted-out')
     expect(optOutOf(report)?.message.en).toContain('“Disallow: /x” is on line 2')
     expect(optOutOf(rtlLayout)).toBeNull()
+  })
+})
+
+describe('stateNotices', () => {
+  const challenge = {
+    code: 'bot-challenge',
+    message: { ar: 'تحدٍّ من Cloudflare', en: 'A challenge' },
+  }
+  const other = { code: 'render-skipped', message: { ar: 'لم يُعرض', en: 'Not rendered' } }
+  const withNotices = (notices: Report['scan']['notices']): Report => ({
+    ...rtlLayout,
+    scan: { ...rtlLayout.scan, notices },
+  })
+
+  // M2.3c review: the copy of bot-challenge says the report shows the challenge, but the card of a
+  // site that blocked the scan showed no notice at all.
+  it('shows a blocked scan the challenge that blocked it, and none of the others', () => {
+    const blocked = withNotices([other, challenge])
+    expect(stateNotices('blocked', blocked)).toEqual([challenge])
+    // A refusal without a challenge has nothing to add to what the card says of the status.
+    expect(stateNotices('blocked', withNotices([other]))).toEqual([])
+  })
+
+  it('shows the other states every notice: an opt-out’s names the site’s rule', () => {
+    const notices = [other, challenge]
+    for (const outcome of ['opted-out', 'failed', 'partial', 'complete'] as const) {
+      expect(stateNotices(outcome, withNotices(notices)), outcome).toEqual(notices)
+    }
   })
 })
 

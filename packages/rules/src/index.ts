@@ -14,6 +14,7 @@ import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
+import { rule as botChallenge } from './rules/bot-challenge/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
@@ -50,6 +51,8 @@ import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/r
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
+import { rule as sitemapInvalid } from './rules/sitemap-invalid/rule'
+import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
 import { rule as spfMissing } from './rules/spf-missing/rule'
 import { rule as textCompressionMissing } from './rules/text-compression-missing/rule'
 import { rule as titleMissing } from './rules/title-missing/rule'
@@ -83,6 +86,7 @@ export const RULES: readonly Rule[] = [
   arLetterSpacing,
   arMojibake,
   arTatweel,
+  botChallenge,
   canonicalConflict,
   cspMissing,
   cwvClsPoor,
@@ -119,6 +123,8 @@ export const RULES: readonly Rule[] = [
   rtlHtmlDir,
   rtlMirroredIcons,
   rtlPhysicalCss,
+  sitemapInvalid,
+  sitemapMissing,
   spfMissing,
   textCompressionMissing,
   titleMissing,
@@ -161,6 +167,13 @@ export {
 } from './example'
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
 export { isLocalHost } from './lib/hosts'
+export {
+  CHALLENGE_SIGNALS,
+  challengeOf,
+  type Challenge,
+  type ChallengeSignal,
+} from './lib/challenges'
+export { isPublicUrl } from './lib/hosts'
 export {
   crawlerAccess,
   matchRobots,

@@ -5,7 +5,16 @@ import {
   DEFAULT_MAX_REDIRECTS,
   DEFAULT_MAX_REQUESTS,
 } from '@arablyzer/egress'
-import { MAX_LINKS, ROBOTS_MAX_BYTES, ROBOTS_MAX_REDIRECTS, USER_AGENT } from '@arablyzer/engine'
+import {
+  MAX_LINKS,
+  ROBOTS_MAX_BYTES,
+  ROBOTS_MAX_REDIRECTS,
+  SITEMAP_LIMIT,
+  SITEMAP_MAX_BYTES,
+  SITEMAP_MAX_REDIRECTS,
+  SITEMAP_TIMEOUT_MS,
+  USER_AGENT,
+} from '@arablyzer/engine'
 import type { BotFacts } from '../src/lib/bot'
 
 // What the bot's page says of it, from the code that does it (M2.4b), for src/generated/bot.json:
@@ -18,6 +27,10 @@ export function botFacts(): BotFacts {
     pageRedirects: DEFAULT_MAX_REDIRECTS,
     robotsRedirects: ROBOTS_MAX_REDIRECTS,
     robotsKib: ROBOTS_MAX_BYTES / 1024,
+    sitemaps: SITEMAP_LIMIT,
+    sitemapMib: SITEMAP_MAX_BYTES / (1024 * 1024),
+    sitemapRedirects: SITEMAP_MAX_REDIRECTS,
+    sitemapSeconds: SITEMAP_TIMEOUT_MS / 1000,
     requestsPerLoad: DEFAULT_MAX_REQUESTS,
     mibPerLoad: DEFAULT_MAX_BYTES / (1024 * 1024),
     viewport: { width: VIEWPORT.width, height: VIEWPORT.height },

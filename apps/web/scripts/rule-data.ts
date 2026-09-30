@@ -25,7 +25,8 @@ const DESCRIPTION = 160
 
 /**
  * What the rule reads, most telling first: a browser, Chrome's data, the domain's DNS records,
- * the answers of the page's links, robots.txt, the server's response (its headers, redirects or
+ * the answers of the page's links, the sitemaps (with robots.txt, which names them), robots.txt,
+ * the server's response (its headers, redirects or
  * connection), or the HTML.
  */
 export function ruleReads(rule: Rule): RuleReads {
@@ -33,6 +34,7 @@ export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('crux')) return 'crux'
   if (rule.needs.includes('dns')) return 'dns'
   if (rule.needs.includes('links')) return 'links'
+  if (rule.needs.includes('sitemap')) return 'sitemap'
   if (rule.needs.includes('robots')) return 'robots'
   if (SERVER_RESPONSE_RULES.has(rule.id)) return 'http'
   return 'html'

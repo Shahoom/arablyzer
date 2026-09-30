@@ -1,6 +1,8 @@
 import type { Engine } from '@arablyzer/collectors'
 import { ENGINES } from '@arablyzer/collectors'
 import { engineAvailable } from '@arablyzer/browser'
+import { createPolicy } from '@arablyzer/egress'
+import { serveHandler } from '@arablyzer/fixtures'
 import { afterEach, describe, expect, it } from 'vitest'
 import { scan } from '../../src/index'
 import { policyFor, renderRule, schemaErrors, tempSite, type TempSite } from '../helpers'
@@ -97,5 +99,64 @@ describe('scan with Lighthouse (M1.3b)', () => {
     expect(report.facts.lab?.metrics?.fcp).toBeGreaterThan(0)
     expect(report.score).toEqual(without.score)
     expect(report.findings).toEqual(without.findings)
+  })
+})
+
+// M2.3c review: a site can answer the scan's own request with the page and its browser with a bot
+// challenge, whose script, once run, may get past it (BUILD-PLAN §13). The browser is refused the
+// document before any script of it runs, and Lighthouse, whose navigation cannot be stopped so,
+// is not started.
+describe(`scan: a browser answered with a bot challenge (${engine})`, () => {
+  const CHALLENGE =
+    '<!doctype html><title>Just a moment...</title><script>fetch("/ran-inline")</script><script src="/challenge.js"></script>'
+  const PAGE =
+    '<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><p id="a">مرحبا بكم</p></html>'
+
+  it('stops that render, judges the page the plain fetch reached, and opens nothing in Lighthouse', async () => {
+    const asked: string[] = []
+    // The scan's own fetches say who they are and no more; a browser's user agent says Mozilla.
+    const answering = await serveHandler((req, res) => {
+      if (req.url !== '/favicon.ico') asked.push(req.url ?? '')
+      const browser = (req.headers['user-agent'] ?? '').includes('Mozilla')
+      if (req.url === '/' && browser) {
+        res.writeHead(403, {
+          'content-type': 'text/html; charset=UTF-8',
+          'cf-mitigated': 'challenge',
+        })
+        res.end(CHALLENGE)
+      } else if (req.url === '/') {
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+        res.end(PAGE)
+      } else {
+        res.writeHead(404, { 'content-type': 'text/plain' })
+        res.end('Not Found')
+      }
+    })
+    try {
+      const report = await scan(answering.url('/'), {
+        rules: [renderRule()],
+        policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: answering.port }] }),
+        render: { engines: [engine] },
+        lab: {},
+      })
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      expect(schemaErrors(report)).toBe('')
+      expect(report.scan.render?.map((run) => [run.engine, run.status])).toEqual([
+        [engine, 'failed'],
+      ])
+      const codes = report.scan.notices.map((notice) => notice.code)
+      expect(codes).toContain('render-challenged')
+      expect(codes).toContain('lab-challenged')
+      expect(report.facts.lab).toBeUndefined()
+      expect(report.rules).toEqual([
+        expect.objectContaining({ id: 'render-rule', status: 'error', error: 'not-rendered' }),
+      ])
+      expect(report.scan.status).toBe('partial')
+      // robots.txt, the scan's fetch, the browser's document, and no Lighthouse after them.
+      expect(asked.filter((path) => path !== '/robots.txt').slice(0, 2)).toEqual(['/', '/'])
+      expect(asked).not.toContain('/ran-file')
+    } finally {
+      await answering.close()
+    }
   })
 })

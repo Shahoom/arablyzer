@@ -86,8 +86,26 @@ export {
   type RobotsGroup,
   type RobotsInput,
   type RobotsRule,
+  type RobotsSitemap,
   type RobotsTxt,
 } from './robots'
+export {
+  ATOM_NAMESPACE,
+  collectSitemap,
+  isSitemapRefusal,
+  readSitemap,
+  SITEMAP_LIMIT,
+  SITEMAP_MAX_ATTRIBUTES,
+  SITEMAP_MAX_DEPTH,
+  SITEMAP_NAMESPACE,
+  sitemapTargets,
+  sitemapUrl,
+  type SitemapCheck,
+  type SitemapContent,
+  type SitemapFacts,
+  type SitemapFormat,
+  type SitemapInput,
+} from './sitemap'
 export {
   decodeStylesheet,
   readStylesheet,

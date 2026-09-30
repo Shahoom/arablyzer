@@ -119,6 +119,12 @@ export function optOutOf(report: Report): Notice | null {
   return report.scan.notices.find((notice) => notice.code === OPTED_OUT) ?? null
 }
 
+/**
+ * The notice of a page that answered with a bot challenge, which a service may send with any
+ * status, 2xx included (packages/engine, notices.ts; M2.3c).
+ */
+const BOT_CHALLENGE = 'bot-challenge'
+
 export type Outcome = 'complete' | 'partial' | 'blocked' | 'opted-out' | 'failed'
 
 /** How the report opens: whole, partial, refused by the site, opted out by it, or failed. */
@@ -127,7 +133,21 @@ export function outcomeOf(report: Report): Outcome {
   if (optOutOf(report) !== null) return 'opted-out'
   const status = report.target.http.status
   if (status !== null && REFUSALS.has(status)) return 'blocked'
+  if (report.scan.notices.some((notice) => notice.code === BOT_CHALLENGE)) return 'blocked'
   return report.scan.status
+}
+
+/**
+ * The notices a state's card shows under its words: every one for an opt-out, whose notice names
+ * the site's rule and where it is, and for a scan that could not run. A scan the site blocked
+ * shows the bot challenge that blocked it, when it was one, which names the service; what it says
+ * of the status is on the card already (M2.3c review: the challenge's copy says the report shows
+ * it).
+ */
+export function stateNotices(outcome: Outcome, report: Report): Notice[] {
+  return outcome === 'blocked'
+    ? report.scan.notices.filter((notice) => notice.code === BOT_CHALLENGE)
+    : report.scan.notices
 }
 
 /** What a tool's result says first (M2.2). */

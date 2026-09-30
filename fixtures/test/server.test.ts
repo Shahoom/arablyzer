@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   loadFixtureConfig,
   resolveFixtureResponse,
+  serveHandler,
   serveSite,
   sitePath,
   type FixtureSite,
@@ -344,6 +345,18 @@ describe('serveSite: a site under several names', () => {
     root = await mkdtemp(path.join(tmpdir(), 'arablyzer-names-'))
     await writeFile(path.join(root, 'index.html'), '<p>page</p>')
     await writeFile(
+      path.join(root, 'robots.txt'),
+      [
+        'User-agent: *',
+        'Sitemap: http://shop.example/sitemap.xml',
+        'sitemap:http://www.shop.example/ar/sitemap.xml',
+        'Sitemap: http://other.example/sitemap.xml',
+        'Sitemap: http://shop.example:8080/pinned.xml',
+        'Sitemap: /sitemap.xml',
+        '',
+      ].join('\n'),
+    )
+    await writeFile(
       path.join(root, 'site.json'),
       JSON.stringify({ host: 'shop.example', aliases: ['www.shop.example'] }),
     )
@@ -409,6 +422,25 @@ describe('serveSite: a site under several names', () => {
     ])
   })
 
+  it('sends Sitemap lines of robots.txt that name its own URLs back to its own port', async () => {
+    const port = String(site.port)
+    const robots = await requestAs('shop.example', '/robots.txt')
+    expect(robots.body.toString('utf8').split('\n')).toEqual([
+      'User-agent: *',
+      `Sitemap: http://shop.example:${port}/sitemap.xml`,
+      `sitemap:http://www.shop.example:${port}/ar/sitemap.xml`,
+      // Another site's address, one with a port of its own, and a path stay as written.
+      'Sitemap: http://other.example/sitemap.xml',
+      'Sitemap: http://shop.example:8080/pinned.xml',
+      'Sitemap: /sitemap.xml',
+      '',
+    ])
+    // Read without HTTP, the file is as written: it has no port to give.
+    const config = await loadFixtureConfig(root)
+    const resolved = await resolveFixtureResponse(root, config, '/robots.txt')
+    expect(resolved.body.toString('utf8')).toContain('Sitemap: http://shop.example/sitemap.xml')
+  })
+
   it('answers an alias with its own route, and the site’s files', async () => {
     const page = await requestAs('www.shop.example', '/')
     expect(page.status).toBe(200)
@@ -435,5 +467,24 @@ describe('serveSite: a site under several names', () => {
     } finally {
       await rm(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('serveHandler', () => {
+  it('answers as its handler says, by who asks, and lets go of its port when closed', async () => {
+    const handled = await serveHandler((req, res) => {
+      const browser = (req.headers['user-agent'] ?? '').includes('Mozilla')
+      res.writeHead(browser ? 403 : 200, { 'content-type': 'text/plain' })
+      res.end(browser ? 'challenge' : 'page')
+    })
+    try {
+      // The client of this file sends no user agent: the handler sees a caller that is no browser.
+      const plain = await request(handled.url('/'))
+      expect([plain.status, plain.body.toString('utf8')]).toEqual([200, 'page'])
+      expect(handled.url('/a?b=1')).toBe(`http://127.0.0.1:${handled.port}/a?b=1`)
+    } finally {
+      await handled.close()
+    }
+    await expect(request(`http://127.0.0.1:${handled.port}/`)).rejects.toThrow()
   })
 })

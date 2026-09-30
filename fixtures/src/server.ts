@@ -204,8 +204,9 @@ async function respond(
     return
   }
   if (resolved.drop === 'silence') return
-  const { status, body } = resolved
+  const { status } = resolved
   const headers = withOwnPort(resolved.headers, own)
+  const body = pathname === '/robots.txt' ? withOwnSitemaps(resolved.body, own) : resolved.body
   const contentType = headers['content-type']
   const text = typeof contentType === 'string' && TEXT_TYPE.test(contentType)
   const gzip =
@@ -242,23 +243,40 @@ function withOwnPort(
 ): Record<string, string | string[]> {
   const location = headers.location
   if (location === undefined) return headers
-  const rewrite = (value: string): string => {
-    let url: URL
-    try {
-      url = new URL(value)
-    } catch {
-      return value
-    }
-    if (url.protocol !== own.scheme || url.port !== '' || !own.names.includes(url.hostname)) {
-      return value
-    }
-    url.port = String(own.port)
-    return url.href
-  }
+  const rewrite = (value: string) => ownUrl(value, own)
   return {
     ...headers,
     location: Array.isArray(location) ? location.map(rewrite) : rewrite(location),
   }
+}
+
+/**
+ * robots.txt's Sitemap lines that name one of the site's own URLs without a port get the port
+ * the server listens on, as a Location does (M2.3c): the file cannot know it either.
+ */
+function withOwnSitemaps(body: Buffer, own: OwnSite): Buffer {
+  if (own.names.length === 0) return body
+  const text = body.toString('utf8')
+  const rewritten = text.replace(
+    /^([\t ]*sitemap[\t ]*:[\t ]*)(\S+)/gim,
+    (_line, key: string, value: string) => `${key}${ownUrl(value, own)}`,
+  )
+  return rewritten === text ? body : Buffer.from(rewritten, 'utf8')
+}
+
+/** A URL of one of the site's names, on its scheme and without a port, with the server's port. */
+function ownUrl(value: string, own: OwnSite): string {
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    return value
+  }
+  if (url.protocol !== own.scheme || url.port !== '' || !own.names.includes(url.hostname)) {
+    return value
+  }
+  url.port = String(own.port)
+  return url.href
 }
 
 export interface FixtureResponse {

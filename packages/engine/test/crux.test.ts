@@ -128,6 +128,60 @@ describe('CrUX in a scan (M1.3b)', () => {
     expect(report.facts.crux).toBeUndefined()
   })
 
+  // M2.3c review: CrUX never touches the site, so a site that challenges the scan can still be
+  // answered for by real visitors' data; a page the site refuses without a challenge has none asked.
+  describe('for a page the scan did not reach', () => {
+    const CHALLENGE = '<!doctype html><title>Just a moment...</title><script src="/c.js"></script>'
+    async function scanNotReached(status: number, headers: Record<string, string>) {
+      site = await tempSite(
+        {},
+        {
+          '/': {
+            status,
+            headers: { 'content-type': 'text/html; charset=UTF-8', ...headers },
+            body: CHALLENGE,
+          },
+        },
+      )
+      standIn = await serveCrux({ url: { lcp: 5_200, inp: 180, cls: 0.05 } })
+      return scan(site.url('/'), {
+        ruleIds: CRUX_RULES,
+        policy: createPolicy({
+          allowTargets: [site.port, standIn.port].map((port) => ({ address: '127.0.0.1', port })),
+        }),
+        crux: { apiKey: KEY, endpoint: standIn.endpoint },
+      })
+    }
+
+    it.each([
+      ['a Cloudflare challenge', 403, { 'cf-mitigated': 'challenge' }],
+      ['an AWS WAF challenge', 202, { 'x-amzn-waf-action': 'challenge' }],
+    ])(
+      'asks about %s, and the rules that read it judge the data',
+      async (_name, status, header) => {
+        const report = await scanNotReached(status, header)
+        expect(standIn?.queries).toEqual([{ url: site?.url('/'), formFactor: 'PHONE', key: KEY }])
+        expect(statuses(report)).toEqual({
+          'cwv-cls-poor': 'pass',
+          'cwv-inp-poor': 'pass',
+          'cwv-lcp-poor': 'fail',
+        })
+        expect(report.facts.crux).toMatchObject({ outcome: 'found', lcp: 5_200 })
+        expect(report.scan.notices.map((notice) => notice.code)).toEqual(['bot-challenge'])
+        // The page itself was not reached: partial, and no score, as for any such scan.
+        expect(report.scan.status).toBe('partial')
+        expect(report.score.overall).toBeNull()
+      },
+    )
+
+    it.each([403, 404, 503])('asks nothing about a page that answers HTTP %i', async (status) => {
+      const report = await scanNotReached(status, {})
+      expect(standIn?.queries).toEqual([])
+      expect(Object.values(statuses(report))).toEqual(Array(3).fill('not-applicable'))
+      expect(report.facts.crux).toBeUndefined()
+    })
+  })
+
   it('never sends a private page to Google', async () => {
     site = await tempSite({ 'index.html': PAGE })
     standIn = await serveCrux({ url: { lcp: 9_000 } })

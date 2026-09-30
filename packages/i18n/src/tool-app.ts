@@ -12,9 +12,12 @@ export interface ToolAppStrings {
     readonly submitting: string
     /**
      * Under the form: free, and what the tool reads: the page, robots.txt, the page drawn, the
-     * domain's DNS records, or the page and its links.
+     * domain's DNS records, the page and its links, robots.txt and the sitemaps, or real visitors'
+     * data from Chrome.
      */
-    readonly note: Readonly<Record<'html' | 'robots' | 'render' | 'dns' | 'links', string>>
+    readonly note: Readonly<
+      Record<'html' | 'robots' | 'render' | 'dns' | 'links' | 'sitemap' | 'crux', string>
+    >
   }
   readonly result: {
     readonly running: string
@@ -67,6 +70,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         render: 'مجاني وبلا تسجيل. نعرض الصفحة في المتصفحات كما يعرضها زائرك.',
         dns: 'مجاني وبلا تسجيل. نسأل DNS عبر HTTPS لدى Cloudflare، أو لدى المحلِّل الذي ضُبطت عليه الخدمة، عن سجلَّي TXT لنطاق الصفحة: SPF وDMARC. ويصل اسم النطاق إلى ذلك المحلِّل، ولا شيء آخر من الصفحة.',
         links: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم، ونطلب روابطها إلى موقعها.',
+        sitemap: 'مجاني وبلا تسجيل. نقرأ robots.txt وخرائط الموقع كما يرسلها الخادم.',
+        crux: 'مجاني وبلا تسجيل. نقرأ بيانات الزوار الحقيقيين من تقرير تجربة مستخدمي Chrome.',
       },
     },
     result: {
@@ -126,6 +131,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
         dns: 'Free, no sign-up. We ask Cloudflare’s DNS over HTTPS, or the resolver the service is set to, for two TXT records of the page’s domain, SPF and DMARC. The domain’s name goes there, and nothing else of the page.',
         links:
           'Free, no sign-up. We read the page as the server sends it, and ask for its links to its own site.',
+        sitemap: 'Free, no sign-up. We read robots.txt and the sitemaps as the server sends them.',
+        crux: 'Free, no sign-up. We read real visitors’ data from the Chrome UX Report.',
       },
     },
     result: {

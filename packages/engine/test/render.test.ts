@@ -222,6 +222,7 @@ describe('a render run in the report', () => {
         version: '153.0',
         status: 'rendered',
         error: null,
+        challenge: null,
         durationMs: 5,
         requests: {
           requests: 2,

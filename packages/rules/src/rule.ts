@@ -7,6 +7,7 @@ import type {
   PageFacts,
   RenderedFacts,
   RobotsFacts,
+  SitemapFacts,
   SourceLocation,
 } from '@arablyzer/collectors'
 import type { Category, JsonValue, Redirect, Severity } from '@arablyzer/report-schema'
@@ -23,7 +24,11 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * them. `crux`: real-user data from the Chrome UX Report, which needs an API key; without one the
  * rule does not apply (M1.3b). `dns`: with a 2xx page on a public name, the TXT records of the
  * name the rule's `txtName` gives from the page's organizational domain (M2.3c). `links`: with a
- * 2xx HTML page, how the checks of its links to its own site ended (M2.3c).
+ * 2xx HTML page, how the checks of its links to its own site ended (M2.3c). `sitemap`: the site's
+ * sitemaps, those robots.txt names or /sitemap.xml (M2.3c); like robots.txt, they are the site's,
+ * read whatever the page answered. `response`: the page's answer whatever its status, its status
+ * and headers, for a rule that judges how the server answered, such as with a bot challenge
+ * (M2.3c).
  */
 export type CollectorId =
   | 'http'
@@ -37,6 +42,8 @@ export type CollectorId =
   | 'crux'
   | 'dns'
   | 'links'
+  | 'sitemap'
+  | 'response'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -66,6 +73,12 @@ export interface Evidence {
    * ended. At least one answered, when it has any: when none did, the engine reports an error.
    */
   readonly links?: LinkFacts
+  /**
+   * Present when the rule needs `sitemap` and robots.txt could be read, so the scan knew which
+   * sitemaps to ask for. One it could not check is a `failed` check in it: a rule judges the rest,
+   * and says it could not check when the rest leaves it nothing (`couldNotCheck`).
+   */
+  readonly sitemap?: SitemapFacts
 }
 
 /** Detectors return data only; the wording comes from the copy files (docs/design/phase-0.md §1). */
@@ -122,6 +135,14 @@ export interface Rule<M extends string = string> {
    * reports and only counts the rest (M0.2 review: a hostile page cannot exhaust memory).
    */
   readonly detect: (evidence: Evidence) => Iterable<DetectorFinding<M>>
+  /**
+   * For a rule whose evidence can be there in part, such as the sitemaps, some of which the scan
+   * could not check: the id of the error the report gives the rule when what is there leaves it
+   * nothing to judge, and null when it can judge. Called after `appliesTo`, before `detect`; a rule
+   * without it never has this error (M2.3c review: one sitemap that could not be read took every
+   * verdict with it).
+   */
+  readonly couldNotCheck?: (evidence: Evidence) => string | null
   readonly copy: { readonly ar: RuleCopy; readonly en: RuleCopy }
 }
 

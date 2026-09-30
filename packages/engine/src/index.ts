@@ -15,6 +15,14 @@ export { CONCURRENCY, LINK_TIMEOUT_MS, LINKS_TIMEOUT_MS, MAX_LINKS } from './lin
 export { notice, type NoticeCode } from './notices'
 export { type ProgressListener, type ScanProgress } from './progress'
 export {
+  SITEMAP_LIMIT,
+  SITEMAP_MAX_ATTRIBUTES,
+  SITEMAP_MAX_BYTES,
+  SITEMAP_MAX_DEPTH,
+  SITEMAP_MAX_REDIRECTS,
+  SITEMAP_TIMEOUT_MS,
+} from './sitemap'
+export {
   ENGINE_VERSION,
   evaluatePage,
   MAX_FINDINGS_PER_RULE,

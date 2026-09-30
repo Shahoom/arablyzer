@@ -1,5 +1,6 @@
 import type { ToolDefinition } from './tool'
 import { definition as accessibilityCheck } from './tools/accessibility-check/tool'
+import { definition as aiAccess } from './tools/ai-access/tool'
 import { definition as aiCrawlerCheck } from './tools/ai-crawler-check/tool'
 import { definition as arabicFontCheck } from './tools/arabic-font-check/tool'
 import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
@@ -8,6 +9,7 @@ import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/t
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
 import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
+import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
@@ -30,6 +32,7 @@ import { definition as robotsCheck } from './tools/robots-check/tool'
 import { definition as rtlCheck } from './tools/rtl-check/tool'
 import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
 import { definition as securityHeaders } from './tools/security-headers/tool'
+import { definition as sitemapCheck } from './tools/sitemap-check/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
 import { definition as structuredDataCheck } from './tools/structured-data-check/tool'
 import { definition as tatweelCheck } from './tools/tatweel-check/tool'
@@ -43,6 +46,7 @@ import { definition as whatsappLinkCheck } from './tools/whatsapp-link-check/too
  */
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   accessibilityCheck,
+  aiAccess,
   aiCrawlerCheck,
   arabicFontCheck,
   arabicFormTest,
@@ -51,6 +55,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   bidiIsolationCheck,
   brokenLinks,
   canonicalCheck,
+  coreWebVitals,
   digitsConsistency,
   emailSecurity,
   fontFallbackCheck,
@@ -73,6 +78,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   rtlCheck,
   rtlOverflowCheck,
   securityHeaders,
+  sitemapCheck,
   socialPreview,
   structuredDataCheck,
   tatweelCheck,

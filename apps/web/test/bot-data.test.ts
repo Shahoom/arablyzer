@@ -1,5 +1,11 @@
 import { DEFAULT_DOH_URL, DEFAULT_MAX_REDIRECTS, DEFAULT_MAX_REQUESTS } from '@arablyzer/egress'
-import { MAX_LINKS, USER_AGENT } from '@arablyzer/engine'
+import {
+  MAX_LINKS,
+  SITEMAP_LIMIT,
+  SITEMAP_MAX_REDIRECTS,
+  SITEMAP_TIMEOUT_MS,
+  USER_AGENT,
+} from '@arablyzer/engine'
 import { PAGES_UI } from '@arablyzer/i18n'
 import { describe, expect, it } from 'vitest'
 import { botFacts } from '../scripts/bot-data'
@@ -14,6 +20,10 @@ describe('botFacts', () => {
     expect(facts.requestsPerLoad).toBe(DEFAULT_MAX_REQUESTS)
     expect(Number.isInteger(facts.robotsKib)).toBe(true)
     expect(Number.isInteger(facts.mibPerLoad)).toBe(true)
+    expect(facts.sitemaps).toBe(SITEMAP_LIMIT)
+    expect(Number.isInteger(facts.sitemapMib)).toBe(true)
+    expect(facts.sitemapRedirects).toBe(SITEMAP_MAX_REDIRECTS)
+    expect(facts.sitemapSeconds * 1000).toBe(SITEMAP_TIMEOUT_MS)
   })
 
   // M2.3c review: the two TXT lookups of the DNS rules go to a resolver outside the site, and the

@@ -1,10 +1,32 @@
 import type { Copy } from './copy'
+import { arabicCount, type ArabicForms } from './plural'
+
+/** Redirects a bot follows, as the object of «يتبع»: «تحويلاً واحداً»، «7 تحويلات»، «12 تحويلاً». */
+const REDIRECTS: ArabicForms = {
+  one: 'تحويلاً واحداً',
+  two: 'تحويلين',
+  few: '{n} تحويلات',
+  many: '{n} تحويلاً',
+  other: '{n} تحويل',
+}
+
+/** Seconds after a preposition: «بعد ثانية»، «بعد ثانيتين»، «بعد 10 ثوانٍ»، «بعد 12 ثانية». */
+const SECONDS: ArabicForms = {
+  one: 'ثانية واحدة',
+  two: 'ثانيتين',
+  few: '{n} ثوانٍ',
+  many: '{n} ثانية',
+}
 
 /** What the bot's page needs to say of it, each number from the code (apps/web, bot.json). */
 export interface BotNumbers {
   readonly pageRedirects: number
   readonly robotsRedirects: number
   readonly robotsKib: number
+  readonly sitemaps: number
+  readonly sitemapMib: number
+  readonly sitemapRedirects: number
+  readonly sitemapSeconds: number
   readonly requestsPerLoad: number
   readonly mibPerLoad: number
   readonly viewport: { readonly width: number; readonly height: number }
@@ -90,7 +112,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         title: 'متى يزور موقعك',
         items: [
           'حين يطلب أحد فحص صفحة من موقعك، في صفحة إحدى الأدوات أو في الفحص الكامل. لا يزور موقعك من تلقاء نفسه، ولا يتبع الروابط إلى صفحات أخرى.',
-          'يفحص الصفحة التي طُلبت وحدها: إن كانت تحوّل إلى صفحة أخرى تبعها، ولا يفتح غيرها.',
+          'يفحص الصفحة التي طُلبت وحدها: إن كانت تحوّل إلى صفحة أخرى تبعها، ولا يفتح صفحة غيرها.',
         ],
       },
       fetches: {
@@ -99,6 +121,10 @@ export const PAGES_UI: Copy<PagesStrings> = {
           pageRedirects,
           robotsRedirects,
           robotsKib,
+          sitemaps,
+          sitemapMib,
+          sitemapRedirects,
+          sitemapSeconds,
           requestsPerLoad,
           mibPerLoad,
           viewport,
@@ -109,6 +135,8 @@ export const PAGES_UI: Copy<PagesStrings> = {
           `الصفحة نفسها، ويتبع ${String(pageRedirects)} تحويلات على الأكثر.`,
           `حين يحتاج الفحص إلى سجلات البريد: سؤالان عن سجلات TXT، أحدهما لنطاق الصفحة والآخر للاسم \`_dmarc\` عليه، بأسلوب DNS عبر HTTPS إلى محلِّل Cloudflare (\`${dohUrl}\`) أو إلى المحلِّل الذي ضُبطت عليه الخدمة، عبر بروكسي الخروج نفسه. فيصل اسم النطاق إلى ذلك المحلِّل، ولا شيء آخر من الصفحة.`,
           `حين يحتاج الفحص إلى روابط الصفحة، وهذا في فحص الروابط المعطّلة: طلب \`HEAD\` لكل رابط من أول ${String(links)} رابطاً في الصفحة إلى موقعك نفسه، وطلب \`GET\` إن ردّ بخطأ أو تعذّر الاتصال، دون أن يتبع تحويلاً أو يقرأ محتوى، ودون المسارات التي يمنعها ملف robots.txt عن ArablyzerBot أو عن كل زاحف بالمجموعة \`User-agent: *\`. وبعد أول رد بالحالة \`429\` لا يطلب رابطاً آخر.`,
+          `حين يحتاج الفحص إلى خرائط الموقع: أول ${String(sitemaps)} خرائط يسمّيها robots.txt، أو \`/sitemap.xml\` إن لم يسمِّ شيئاً، ويقرأ أول ${String(sitemapMib)} ميغابايت من كل منها ويتبع ${arabicCount(sitemapRedirects, REDIRECTS)} على الأكثر، ولا يفتح الخرائط التي يسردها فهرس خرائط الموقع. ولا ينتظر الشبكة أكثر من ${arabicCount(sitemapSeconds, SECONDS)} للخرائط كلها.`,
+          'قد يكون في robots.txt عنوان خريطة على موقع آخر: يقرأ ArablyzerBot ملف robots.txt لذلك الموقع أولاً، ولا يجلب منه ما يطلب ألّا يجلبه ArablyzerBot أو كل الزواحف بمجموعة `User-agent: *`، ولا يتبع تحويلاً إلى موقع آخر إلا حيث يسمح robots.txt فيه.',
           `حين يحتاج الفحص إلى عرض الصفحة: يفتحها في Chromium وFirefox وWebKit بنافذة جوال عرضها ${String(viewport.width)} وارتفاعها ${String(viewport.height)}، فيحمّل كل متصفح ما تحمّله الصفحة لزائرها من ملفات CSS وخطوط وصور وسكربتات، بـ ${String(requestsPerLoad)} طلب و${String(mibPerLoad)} ميغابايت على الأكثر في كل متصفح.`,
           'تمرّ كل طلباته عبر بروكسي خروج واحد يرفض العناوين الخاصة والمحلية.',
         ],
@@ -118,7 +146,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         items: [
           'لا يرسل أي نموذج، ولا يكتب في الحقول، ولا يضغط الأزرار.',
           'لا يسجّل الدخول إلى أي حساب.',
-          'لا يتجاوز CAPTCHA ولا أي حماية من البوتات: إن ردّ موقعك بتحدٍّ، يقول التقرير إن الموقع منع الفحص.',
+          'لا يتجاوز CAPTCHA ولا أي حماية من البوتات: إن ردّ موقعك بتحدٍّ، يقول التقرير إن الموقع منع الفحص، وإن ردّ به على متصفح وحده، يتوقف عرض ذلك المتصفح عندئذ.',
         ],
       },
       optOut: {
@@ -172,7 +200,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         title: 'When it visits your site',
         items: [
           'When someone asks to check a page of your site, on a tool’s page or with the full scan. It never visits on its own, and it does not follow links to other pages.',
-          'It checks the page asked for alone: if that page redirects, it follows, and opens nothing else.',
+          'It checks the page asked for alone: if that page redirects, it follows, and opens no other page.',
         ],
       },
       fetches: {
@@ -181,6 +209,10 @@ export const PAGES_UI: Copy<PagesStrings> = {
           pageRedirects,
           robotsRedirects,
           robotsKib,
+          sitemaps,
+          sitemapMib,
+          sitemapRedirects,
+          sitemapSeconds,
           requestsPerLoad,
           mibPerLoad,
           viewport,
@@ -191,6 +223,8 @@ export const PAGES_UI: Copy<PagesStrings> = {
           `The page itself, following at most ${String(pageRedirects)} redirects.`,
           `When the check needs the domain’s mail records: two TXT lookups, one for the page’s domain and one for its \`_dmarc\` name, as DNS over HTTPS to Cloudflare’s resolver (\`${dohUrl}\`) or to the resolver the service is configured with, through the same egress proxy. The domain’s name goes to that resolver, and nothing else of the page.`,
           `When the check needs the page’s links, as the broken-link check does: a \`HEAD\` request to each of the first ${String(links)} links on the page to your own site, and a \`GET\` where it answers an error or the connection fails, following no redirect and reading no content, and skipping the paths robots.txt disallows for ArablyzerBot or for every crawler with \`User-agent: *\`. After the first \`429\` it asks for no more links.`,
+          `When the check reads your sitemaps: the first ${String(sitemaps)} your robots.txt names, or \`/sitemap.xml\` when it names none, reading the first ${String(sitemapMib)} MB of each and following at most ${String(sitemapRedirects)} redirects, and never the sitemaps a sitemap index lists. It waits no more than ${String(sitemapSeconds)} seconds on the network for all of them.`,
+          'A sitemap your robots.txt names may be on another host: the bot reads that host’s robots.txt first, does not fetch what it asks ArablyzerBot, or every crawler with `User-agent: *`, to leave alone, and follows a redirect to another host only where that host’s robots.txt allows it.',
           `When the check renders the page: it opens it in Chromium, Firefox and WebKit, in a phone window ${String(viewport.width)} wide and ${String(viewport.height)} high, and each browser loads what the page loads for a visitor (stylesheets, fonts, images, scripts), at most ${String(requestsPerLoad)} requests and ${String(mibPerLoad)} MB per browser.`,
           'Every request goes through one egress proxy that refuses private and local addresses.',
         ],
@@ -200,7 +234,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         items: [
           'It never submits a form, types into a field, or presses a button.',
           'It never logs into an account.',
-          'It never gets past a CAPTCHA or any bot protection: if your site answers with a challenge, the report says the site blocked the check.',
+          'It never gets past a CAPTCHA or any bot protection: if your site answers with a challenge, the report says the site blocked the check, and if only a browser is answered with one, that browser’s render stops there.',
         ],
       },
       optOut: {

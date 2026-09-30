@@ -199,7 +199,10 @@ describe('scan', () => {
       rules: [flagRule(), testRule({ id: 'robots-rule', needs: ['robots'], detect: () => [] })],
       policy: policyFor(local),
     })
-    expect(report.scan.status).toBe('complete')
+    // Nothing of the page was checked: the scan is short, and its robots.txt rule alone is no
+    // score for a page (M2.3c review).
+    expect(report.scan.status).toBe('partial')
+    expect(report.score).toMatchObject({ overall: null, categories: { onpage: null } })
     expect(report.rules.map((rule) => [rule.id, rule.status])).toEqual([
       ['robots-rule', 'pass'],
       ['test-rule', 'not-applicable'],
@@ -214,6 +217,24 @@ describe('scan', () => {
       },
     ])
   })
+
+  it.each([401, 403, 429, 500, 503])(
+    'gives a page the site refuses with HTTP %i no score, and does not call the scan complete',
+    async (status) => {
+      const local = await site(
+        { 'robots.txt': 'User-agent: *\nAllow: /\n' },
+        { '/': { status, body: 'Forbidden' } },
+      )
+      const report = await scan(local.url('/'), {
+        rules: [flagRule(), testRule({ id: 'robots-rule', needs: ['robots'], detect: () => [] })],
+        policy: policyFor(local),
+      })
+      expect(schemaErrors(report)).toBe('')
+      expect(report.scan.status).toBe('partial')
+      expect(report.score.overall).toBeNull()
+      expect(report.target.http.status).toBe(status)
+    },
+  )
 
   it('checks only headers on non-HTML responses', async () => {
     const local = await site(

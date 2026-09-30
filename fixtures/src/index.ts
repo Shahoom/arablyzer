@@ -16,6 +16,7 @@ export {
   type DohStandIn,
   type DohZone,
 } from './doh'
+export { serveHandler, type HandlerSite } from './handler'
 export {
   loadFixtureConfig,
   loadSiteConfig,

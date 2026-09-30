@@ -24,9 +24,11 @@ export type ToolCategoryName =
 
 /**
  * What a tool reads, shown on its card: the page as sent, robots.txt, browsers, Chrome's data,
- * the server's response, the domain's DNS records or the page's links; or what it is, a generator.
+ * the server's response, the domain's DNS records, the page's links or the sitemaps; or what it
+ * is, a generator.
  */
-export type ToolTag = 'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links' | 'generator'
+export type ToolTag =
+  'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links' | 'sitemap' | 'generator'
 
 /** The tools' directory and the tool pages (M2.2), around each tool's own copy. */
 export interface ToolsStrings {
@@ -179,6 +181,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       dns: 'DNS',
       links: 'الروابط',
       generator: 'مولّد',
+      sitemap: 'خريطة الموقع',
     },
     home: {
       kicker: 'الأدوات',
@@ -194,6 +197,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         dns: 'يقرأ سجلات DNS',
         links: 'يطلب روابط الصفحة',
         generator: 'مولّد',
+        sitemap: 'يقرأ خرائط الموقع',
       },
     },
     page: {
@@ -304,6 +308,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       dns: 'DNS',
       links: 'Links',
       generator: 'Generator',
+      sitemap: 'Sitemap',
     },
     home: {
       kicker: 'Tools',
@@ -319,6 +324,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         dns: 'Reads DNS records',
         links: 'Asks for the page’s links',
         generator: 'Generator',
+        sitemap: 'Reads the sitemaps',
       },
     },
     page: {
