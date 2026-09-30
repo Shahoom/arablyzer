@@ -19,6 +19,13 @@ export const TURNSTILE_ACTION = 'scan'
  */
 export const SCAN_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/
 
+/**
+ * A report's deletion token: 32 random bytes in base64url, given once, with the scan's ID, when
+ * the scan is created (M5, issue #33). Whoever holds it deletes the scan and its report
+ * (`DELETE /api/reports/:id` with `Authorization: Bearer <token>`); the API keeps only its hash.
+ */
+export const DELETE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
+
 /** Why a URL is not scanned: the egress package's own codes for it. */
 export const URL_ERROR_CODES = [
   'invalid-url',
@@ -68,6 +75,11 @@ export const MAX_TOOL_SLUG_LENGTH = 64
 /** `202 Accepted`: the scan is queued, and its page is `/r/{id}`. */
 export interface CreateScanResponse {
   readonly id: string
+  /**
+   * What deletes the scan and its report, DELETE_TOKEN_PATTERN: given here and nowhere else, and
+   * kept by the API only as a hash, so a page that loses it cannot get it again.
+   */
+  readonly deleteToken: string
 }
 
 /** Any refusal, with its HTTP status (400, 403, 422, 429 or 503). */

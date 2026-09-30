@@ -106,7 +106,7 @@ describe.skipIf(valkeyUrl === undefined || databaseUrl === undefined)('the scan 
       body: JSON.stringify({ url: site.url('/'), turnstileToken: '' }),
     })
     expect(created.status).toBe(202)
-    const { id } = (await created.json()) as { id: string }
+    const { id, deleteToken } = (await created.json()) as { id: string; deleteToken: string }
     const stream = await (await app.request(`/api/scans/${id}/events`)).text()
     const types = stream
       .split('\n')
@@ -123,5 +123,26 @@ describe.skipIf(valkeyUrl === undefined || databaseUrl === undefined)('the scan 
     expect(await (await app.request(`/api/scans/${id}`)).json()).toMatchObject({
       state: 'complete',
     })
+
+    // The token deletes the scan and its report, and PostgreSQL holds its hash, never the token.
+    const kept = await pool.query<{ delete_token_hash: string }>(
+      'SELECT delete_token_hash FROM scans WHERE id = $1',
+      [id],
+    )
+    expect(kept.rows[0]?.delete_token_hash).toMatch(/^[0-9a-f]{64}$/)
+    expect(kept.rows[0]?.delete_token_hash).not.toContain(deleteToken)
+    const refused = await app.request(`/api/reports/${id}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${'B'.repeat(43)}` },
+    })
+    expect(refused.status).toBe(403)
+    const deleted = await app.request(`/api/reports/${id}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${deleteToken}` },
+    })
+    expect(deleted.status).toBe(204)
+    expect((await app.request(`/api/reports/${id}`)).status).toBe(404)
+    const left = await pool.query('SELECT 1 FROM scans WHERE id = $1', [id])
+    expect(left.rowCount).toBe(0)
   }, 60_000)
 })

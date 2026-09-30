@@ -39,6 +39,63 @@ describe('MemoryScanStore', () => {
   })
 })
 
+describe('MemoryScanStore.delete', () => {
+  const report = { scan: { status: 'complete' } } as unknown as Report
+
+  it('deletes a scan and its report for the hash it was created with, and for no other', async () => {
+    const store = new MemoryScanStore()
+    await store.create({
+      id: 'a',
+      url: 'https://example.com/',
+      createdAt: NOW,
+      deleteTokenHash: 'hash-a',
+    })
+    await store.start('a', NOW)
+    await store.finish('a', report, NOW)
+    expect(await store.delete('a', 'hash-b')).toBe('forbidden')
+    expect(await store.delete('a', '')).toBe('forbidden')
+    expect(await store.get('a')).toMatchObject({ state: 'complete', report })
+    expect(await store.delete('a', 'hash-a')).toBe('deleted')
+    expect(await store.get('a')).toBeNull()
+    expect(await store.delete('a', 'hash-a')).toBe('missing')
+  })
+
+  it('deletes a scan in any state, and one with no hash never, by any', async () => {
+    const store = new MemoryScanStore()
+    await store.create({
+      id: 'queued',
+      url: 'https://example.com/',
+      createdAt: NOW,
+      deleteTokenHash: 'h',
+    })
+    await store.create({
+      id: 'running',
+      url: 'https://example.com/',
+      createdAt: NOW,
+      deleteTokenHash: 'h',
+    })
+    await store.start('running', NOW)
+    await store.create({ id: 'old', url: 'https://example.com/', createdAt: NOW })
+    expect(await store.delete('queued', 'h')).toBe('deleted')
+    expect(await store.delete('running', 'h')).toBe('deleted')
+    expect(await store.delete('old', 'h')).toBe('forbidden')
+    expect(await store.delete('old', '')).toBe('forbidden')
+    expect(await store.get('old')).not.toBeNull()
+    expect(await store.delete('nobody', 'h')).toBe('missing')
+  })
+
+  it('never gives the hash back with the scan', async () => {
+    const store = new MemoryScanStore()
+    await store.create({
+      id: 'a',
+      url: 'https://example.com/',
+      createdAt: NOW,
+      deleteTokenHash: 'hash-a',
+    })
+    expect(JSON.stringify(await store.get('a'))).not.toContain('hash-a')
+  })
+})
+
 describe('MemoryScanStore.deleteOlderThan', () => {
   it('deletes the scans created before a time, whatever their state, and their reports', async () => {
     const store = new MemoryScanStore()

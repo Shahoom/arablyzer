@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  DELETE_TOKEN_PATTERN,
   MAX_TOOL_SLUG_LENGTH,
   MAX_URL_LENGTH,
   SCAN_ERROR_CODES,
@@ -43,6 +44,7 @@ export const CreateScanRequest = z.strictObject({
 
 export const CreateScanResponse = z.strictObject({
   id: z.string().regex(SCAN_ID_PATTERN),
+  deleteToken: z.string().regex(DELETE_TOKEN_PATTERN),
 }) satisfies z.ZodType<CreateScanResponseShape>
 
 export const ScanErrorResponse = z.strictObject({

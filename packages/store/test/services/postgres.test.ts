@@ -155,6 +155,60 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
     expect(await store.states([])).toEqual(new Map())
   })
 
+  describe('deleting a report with its token', () => {
+    const create = (id: string, deleteTokenHash?: string) =>
+      store.create({
+        id,
+        url: 'https://example.com/?token=secret',
+        createdAt: NOW,
+        ...(deleteTokenHash === undefined ? {} : { deleteTokenHash }),
+      })
+    const hashes = async (id: string) =>
+      (
+        await pool.query<{ delete_token_hash: string | null }>(
+          'SELECT delete_token_hash FROM scans WHERE id = $1',
+          [id],
+        )
+      ).rows[0]?.delete_token_hash
+
+    it('keeps the hash it is given, and never gives it back with the scan', async () => {
+      await create('AbCdEfGhIjKlMnOpQrSt_h', 'a'.repeat(64))
+      expect(await hashes('AbCdEfGhIjKlMnOpQrSt_h')).toBe('a'.repeat(64))
+      expect(JSON.stringify(await store.get('AbCdEfGhIjKlMnOpQrSt_h'))).not.toContain('aaaa')
+      await create('AbCdEfGhIjKlMnOpQrSt_i')
+      expect(await hashes('AbCdEfGhIjKlMnOpQrSt_i')).toBeNull()
+    })
+
+    it('deletes the scan and its report for the hash, and for no other, in any state', async () => {
+      const id = 'AbCdEfGhIjKlMnOpQrSt_j'
+      await create(id, 'b'.repeat(64))
+      await store.start(id, NOW)
+      await store.finish(
+        id,
+        { scan: { status: 'complete' }, score: { overall: 90 } } as unknown as Report,
+        NOW,
+      )
+      expect(await store.delete(id, 'c'.repeat(64))).toBe('forbidden')
+      expect(await store.delete(id, '')).toBe('forbidden')
+      expect(await store.get(id)).not.toBeNull()
+      expect(await store.delete(id, 'b'.repeat(64))).toBe('deleted')
+      expect(await store.get(id)).toBeNull()
+      expect(await store.delete(id, 'b'.repeat(64))).toBe('missing')
+      const queued = 'AbCdEfGhIjKlMnOpQrSt_k'
+      await create(queued, 'd'.repeat(64))
+      expect(await store.delete(queued, 'd'.repeat(64))).toBe('deleted')
+    })
+
+    it('never deletes a scan that has no hash, as those before the token had none', async () => {
+      const id = 'AbCdEfGhIjKlMnOpQrSt_l'
+      await create(id)
+      for (const guess of ['', 'null', 'NULL', ' ']) {
+        expect(await store.delete(id, guess), JSON.stringify(guess)).toBe('forbidden')
+      }
+      expect(await store.get(id)).not.toBeNull()
+    })
+  })
+
   describe('retention', () => {
     const day = 24 * 60 * 60 * 1000
     const ago = (days: number) => new Date(NOW.getTime() - days * day)

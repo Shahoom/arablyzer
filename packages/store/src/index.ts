@@ -7,6 +7,7 @@ export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
 export { scans } from './postgres/schema'
 export { PostgresScanStore, type PostgresScanStoreOptions } from './postgres/store'
 export type {
+  Deletion,
   NewScan,
   ScanEvents,
   ScanJob,

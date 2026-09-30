@@ -6,7 +6,7 @@ import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core'
 import type { Pool } from 'pg'
-import type { NewScan, ScanRecord, ScanStore } from '../types'
+import type { Deletion, NewScan, ScanRecord, ScanStore } from '../types'
 import { scans } from './schema'
 
 const MIGRATIONS = fileURLToPath(new URL('../../drizzle/', import.meta.url))
@@ -55,6 +55,7 @@ export class PostgresScanStore implements ScanStore {
       createdAt: scan.createdAt,
       tool: scan.tool ?? null,
       state: 'queued',
+      deleteTokenHash: scan.deleteTokenHash ?? null,
     })
   }
 
@@ -97,6 +98,22 @@ export class PostgresScanStore implements ScanStore {
       { state: 'failed', finishedAt: at },
     )
     return rows.map((row) => row.id)
+  }
+
+  async delete(id: string, tokenHash: string): Promise<Deletion> {
+    // One statement decides: the row goes only where the hash is its own, and a null hash is no
+    // hash. Only when nothing went, is the scan asked for, to tell a wrong hash from no scan.
+    const deleted = await this.#db
+      .delete(scans)
+      .where(and(eq(scans.id, id), eq(scans.deleteTokenHash, tokenHash)))
+      .returning({ id: scans.id })
+    if (deleted.length > 0) return 'deleted'
+    const [row] = await this.#db
+      .select({ id: scans.id })
+      .from(scans)
+      .where(eq(scans.id, id))
+      .limit(1)
+    return row === undefined ? 'missing' : 'forbidden'
   }
 
   async deleteOlderThan(before: Date): Promise<number> {

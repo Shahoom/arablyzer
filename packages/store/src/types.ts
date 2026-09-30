@@ -21,7 +21,15 @@ export interface NewScan {
   readonly createdAt: Date
   /** A tool's slug: the scan runs that tool's rules alone. */
   readonly tool?: string
+  /**
+   * The hash of the scan's deletion token (M5, issue #33): what `delete` compares. Never the
+   * token, and never given back. A scan without one cannot be deleted by a token.
+   */
+  readonly deleteTokenHash?: string
 }
+
+/** What `delete` did: deleted it, refused the hash, or found no such scan. */
+export type Deletion = 'deleted' | 'forbidden' | 'missing'
 
 /**
  * Scans and their reports. A scan moves one way, queued → running → finished, and each move is
@@ -41,6 +49,11 @@ export interface ScanStore {
   failStale(startedBefore: Date, at: Date): Promise<string[]>
   /** Where each of these scans is, without their reports; one the store does not have is left out. */
   states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>>
+  /**
+   * Deletes the scan, in any state, with its report, when `tokenHash` is the hash it was created
+   * with: forbidden, with nothing changed, for any other, and for a scan created without one.
+   */
+  delete(id: string, tokenHash: string): Promise<Deletion>
   /**
    * Deletes the scans created before the time, in any state, with their reports (retention,
    * issue #33): a scan created at the time is kept. The number deleted.

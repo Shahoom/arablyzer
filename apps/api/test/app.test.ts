@@ -1,10 +1,11 @@
-import type { ScanEvent } from '@arablyzer/api-contract'
+import { DELETE_TOKEN_PATTERN, type ScanEvent } from '@arablyzer/api-contract'
 import { DEFAULT_POLICY, type Resolver } from '@arablyzer/egress'
 import { DEVELOPMENT_LIMITS, type ScanLimits } from '@arablyzer/plans'
 import type { Report } from '@arablyzer/report-schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApp, type ApiDeps } from '../src/app'
 import { clientAddress, connectionKey, networkKey } from '../src/client'
+import { hashDeleteToken } from '../src/ids'
 import { RECORD_GRACE_MS } from '../src/places'
 import {
   MemoryInFlight,
@@ -671,6 +672,227 @@ describe('reading a scan', () => {
     expect((await app.request(`/api/reports/${id}`)).status).toBe(404)
     expect((await app.request('/api/reports/AbCdEfGhIjKlMnOpQrSt_-')).status).toBe(404)
     expect((await app.request('/api/scans/..%2F..%2Fetc')).status).toBe(404)
+  })
+})
+
+// M5, issue #33: a report is opened by its link alone, so whoever made it needs a way to have it
+// deleted: a token given once, with the scan's ID, and kept only as its hash.
+describe('deleting a report', () => {
+  interface Started {
+    id: string
+    deleteToken: string
+  }
+  const start = async (
+    scanOf: ReturnType<typeof setup>['scanOf'],
+    url = 'https://example.com/',
+  ): Promise<Started> => (await (await scanOf(url)).json()) as Started
+  const bearer = (token: string) => ({ authorization: `Bearer ${token}` })
+  const del = (
+    app: ReturnType<typeof setup>['app'],
+    id: string,
+    headers: Record<string, string> = {},
+  ) => app.request(`/api/reports/${id}`, { method: 'DELETE', headers })
+  /** The scan store's `delete`, counted, so a test can say it was never asked. */
+  const watch = (store: MemoryScanStore) => {
+    const asked: string[] = []
+    const original = store.delete.bind(store)
+    store.delete = (id, hash) => {
+      asked.push(id)
+      return original(id, hash)
+    }
+    return asked
+  }
+  const finished = async (store: MemoryScanStore, id: string) => {
+    await store.start(id, NOW)
+    await store.finish(id, { scan: { status: 'complete' }, rules: [] } as unknown as Report, NOW)
+  }
+
+  describe('the token', () => {
+    it('is given with the scan’s ID when it is created, and is not one scan’s twice', async () => {
+      const { post, scanOf } = setup({ limits: { ...DEVELOPMENT_LIMITS, inFlight: 5 } })
+      const response = await scanOf('https://example.com/')
+      expect(response.status).toBe(202)
+      const body = (await response.json()) as Started
+      expect(Object.keys(body).sort()).toEqual(['deleteToken', 'id'])
+      expect(body.deleteToken).toMatch(DELETE_TOKEN_PATTERN)
+      const second = (await (await scanOf('https://example.org/')).json()) as Started
+      expect(second.deleteToken).not.toBe(body.deleteToken)
+      // A tool page's scan has one too.
+      const tool = (await (
+        await post({ url: 'https://example.com/', turnstileToken: 'human', tool: 'rtl-check' })
+      ).json()) as Started
+      expect(tool.deleteToken).toMatch(DELETE_TOKEN_PATTERN)
+    })
+
+    it('is kept as its hash alone: the store cannot give it back', async () => {
+      const { scanOf, store } = setup()
+      const { id, deleteToken } = await start(scanOf)
+      const hash = hashDeleteToken(deleteToken)
+      expect(hash).toMatch(/^[0-9a-f]{64}$/)
+      expect(hash).not.toContain(deleteToken)
+      // What is stored is the hash: the token itself is nothing to the store.
+      expect(await store.delete(id, deleteToken)).toBe('forbidden')
+      expect(await store.delete(id, hash)).toBe('deleted')
+      // SHA-256, whose test vector is known.
+      expect(hashDeleteToken('abc')).toBe(
+        'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+      )
+    })
+
+    it('is never shown again: not with the scan, its report, its events, or an error', async () => {
+      const { app, scanOf, store } = setup()
+      const { id, deleteToken } = await start(scanOf)
+      await finished(store, id)
+      const seen = [
+        await (await app.request(`/api/scans/${id}`)).text(),
+        await (await app.request(`/api/reports/${id}`)).text(),
+        await (await app.request(`/api/scans/${id}/events`)).text(),
+        await (await del(app, id, bearer('B'.repeat(43)))).text(),
+      ].join('\n')
+      expect(seen).not.toContain(deleteToken)
+      expect(seen).not.toContain(hashDeleteToken(deleteToken))
+    })
+  })
+
+  describe('DELETE /api/reports/:id', () => {
+    it('deletes the scan and its report for its token, and nothing of it is left', async () => {
+      const { app, scanOf, store } = setup()
+      const { id, deleteToken } = await start(scanOf)
+      await finished(store, id)
+      expect((await app.request(`/api/reports/${id}`)).status).toBe(200)
+      const response = await del(app, id, bearer(deleteToken))
+      expect(response.status).toBe(204)
+      expect(await response.text()).toBe('')
+      expect(response.headers.get('cache-control')).toBe('no-store')
+      expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow')
+      for (const path of [`/api/reports/${id}`, `/api/scans/${id}`, `/api/scans/${id}/events`]) {
+        expect((await app.request(path)).status, path).toBe(404)
+      }
+      expect(await store.get(id)).toBeNull()
+      // Once deleted, it is not there to delete again.
+      const again = await del(app, id, bearer(deleteToken))
+      expect(await refusal(again)).toEqual({ status: 404, body: { error: 'not-found' } })
+    })
+
+    it('deletes a scan that has not ended, which the worker then leaves alone', async () => {
+      const { app, scanOf, store } = setup()
+      const { id, deleteToken } = await start(scanOf)
+      expect((await del(app, id, bearer(deleteToken))).status).toBe(204)
+      expect(await store.start(id, NOW)).toBe(false)
+    })
+
+    it('refuses another scan’s token, and a token that is nobody’s, and keeps the report', async () => {
+      const { app, scanOf, store } = setup({ limits: { ...DEVELOPMENT_LIMITS, inFlight: 5 } })
+      const first = await start(scanOf)
+      const second = await start(scanOf, 'https://example.org/')
+      for (const token of [
+        second.deleteToken,
+        'B'.repeat(43),
+        first.deleteToken.slice(0, -1) + 'A',
+      ]) {
+        const response = await del(app, first.id, bearer(token))
+        expect(await refusal(response), token).toEqual({
+          status: 403,
+          body: { error: 'forbidden' },
+        })
+      }
+      expect(await store.get(first.id)).not.toBeNull()
+      expect(await store.get(second.id)).not.toBeNull()
+    })
+
+    it('asks for a bearer token, and does not ask the store without one', async () => {
+      const { app, scanOf, store } = setup()
+      const { id, deleteToken } = await start(scanOf)
+      const asked = watch(store)
+      for (const authorization of [
+        undefined,
+        '',
+        `Basic ${btoa('user:pass')}`,
+        'Bearer',
+        'Bearer ',
+        'Bearer short',
+        `Bearer ${deleteToken}A`,
+        `Bearer ${deleteToken.slice(1)}`,
+        `Bearer ${deleteToken} ${deleteToken}`,
+        `Token ${deleteToken}`,
+        deleteToken,
+        `Bearer ${deleteToken.slice(0, 42)}=`,
+      ]) {
+        const response = await del(app, id, authorization === undefined ? {} : { authorization })
+        expect(await refusal(response), String(authorization)).toEqual({
+          status: 401,
+          body: { error: 'unauthorized' },
+        })
+        expect(response.headers.get('www-authenticate')).toBe('Bearer')
+      }
+      expect(asked).toEqual([])
+      // The scheme is not case-sensitive (RFC 7235).
+      expect((await del(app, id, { authorization: `bearer ${deleteToken}` })).status).toBe(204)
+    })
+
+    it('answers 404 to an ID it cannot have given, without asking the store', async () => {
+      const { app, store } = setup()
+      const asked = watch(store)
+      for (const id of [
+        '1',
+        '..%2F..%2Fetc',
+        'AbCdEfGhIjKlMnOpQrSt_-x',
+        'AbCdEfGhIjKlMnOpQrSt=-',
+      ]) {
+        const response = await del(app, id, bearer('B'.repeat(43)))
+        expect(await refusal(response), id).toEqual({ status: 404, body: { error: 'not-found' } })
+      }
+      expect(asked).toEqual([])
+      const response = await del(app, 'AbCdEfGhIjKlMnOpQrSt_-', bearer('B'.repeat(43)))
+      expect(response.status).toBe(404)
+      expect(asked).toEqual(['AbCdEfGhIjKlMnOpQrSt_-'])
+    })
+
+    it('needs no Origin or type: the token is what allows it, and a page cannot send one', async () => {
+      const site = 'https://arablyzer.example'
+      const { app } = setup({ origin: site })
+      const created = await app.request('/api/scans', {
+        method: 'POST',
+        headers: { origin: site, 'content-type': 'application/json' },
+        body: JSON.stringify({ url: 'https://example.com/', turnstileToken: 'human' }),
+      })
+      const first = (await created.json()) as Started
+      // curl sends neither, and may delete the report it made.
+      expect((await del(app, first.id, bearer(first.deleteToken))).status).toBe(204)
+      // A page on another site cannot send the token: it needs a preflight the API never answers.
+      const preflight = await app.request(`/api/reports/${first.id}`, {
+        method: 'OPTIONS',
+        headers: {
+          origin: 'https://evil.example',
+          'access-control-request-method': 'DELETE',
+          'access-control-request-headers': 'authorization',
+        },
+      })
+      expect(preflight.status).toBe(404)
+      expect(preflight.headers.get('access-control-allow-origin')).toBeNull()
+    })
+
+    it('answers 503 when the store fails, and says so once in a while', async () => {
+      const logged: string[] = []
+      const { app, scanOf, store } = setup({ log: (message) => logged.push(message) })
+      const { id, deleteToken } = await start(scanOf)
+      store.delete = () => Promise.reject(new Error('Connection terminated'))
+      const response = await del(app, id, bearer(deleteToken))
+      expect(await refusal(response)).toEqual({ status: 503, body: { error: 'unavailable' } })
+      expect(logged).toEqual(['API: Connection terminated'])
+    })
+
+    it('frees the visitor’s place for a scan that was deleted, once the API can tell it is gone', async () => {
+      const { app, scanOf, inFlight } = setup({ limits: { ...DEVELOPMENT_LIMITS, inFlight: 1 } })
+      const first = await start(scanOf)
+      expect((await scanOf('https://example.org/')).status).toBe(429)
+      expect((await del(app, first.id, bearer(first.deleteToken))).status).toBe(204)
+      // Still within the API's own timeouts, the place is a scan about to have its record; later, not.
+      expect((await scanOf('https://example.org/')).status).toBe(429)
+      await inFlight.release('key-of-203.0.113.9', [first.id])
+      await inFlight.hold('key-of-203.0.113.9', first.id, 1, NOW.getTime() - RECORD_GRACE_MS - 1)
+      expect((await scanOf('https://example.org/')).status).toBe(202)
+    })
   })
 })
 

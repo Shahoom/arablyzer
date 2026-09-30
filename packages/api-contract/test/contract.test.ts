@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CreateScanRequest,
   CreateScanResponse,
+  DELETE_TOKEN_PATTERN,
   isScanErrorCode,
   MAX_URL_LENGTH,
   reportPath,
@@ -61,7 +62,34 @@ describe('the scan contract', () => {
     expect(SCAN_ID_PATTERN.test('AbCdEfGhIjKlMnOpQrSt_-')).toBe(true)
     expect(SCAN_ID_PATTERN.test('1')).toBe(false)
     expect(SCAN_ID_PATTERN.test('../../etc/passwd000000')).toBe(false)
-    expect(CreateScanResponse.safeParse({ id: 'AbCdEfGhIjKlMnOpQrSt_-' }).success).toBe(true)
+    const token = 'A'.repeat(43)
+    expect(
+      CreateScanResponse.safeParse({ id: 'AbCdEfGhIjKlMnOpQrSt_-', deleteToken: token }),
+    ).toMatchObject({
+      success: true,
+    })
+  })
+
+  // M5, issue #33: the scan's creation is the one time its deletion token is given.
+  it('gives the deletion token with the ID, 32 random bytes in base64url, and nothing else', () => {
+    const id = 'AbCdEfGhIjKlMnOpQrSt_-'
+    const token = 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-abcde'
+    expect(token).toHaveLength(43)
+    expect(DELETE_TOKEN_PATTERN.test(token)).toBe(true)
+    expect(CreateScanResponse.parse({ id, deleteToken: token })).toEqual({ id, deleteToken: token })
+    expect(CreateScanResponse.safeParse({ id }).success).toBe(false)
+    expect(CreateScanResponse.safeParse({ id, deleteToken: token, extra: 1 }).success).toBe(false)
+    for (const bad of [
+      '',
+      'x',
+      token.slice(1),
+      `${token}A`,
+      `${token.slice(1)}=`,
+      `${token.slice(1)}/`,
+    ]) {
+      expect(DELETE_TOKEN_PATTERN.test(bad), bad).toBe(false)
+      expect(CreateScanResponse.safeParse({ id, deleteToken: bad }).success, bad).toBe(false)
+    }
   })
 
   it('refuses with a known code', () => {

@@ -1,8 +1,10 @@
 import {
   CreateScanRequest,
+  DELETE_TOKEN_PATTERN,
   SCAN_ID_PATTERN,
   TERMINAL_EVENTS,
   type ScanErrorCode,
+  type CreateScanResponse,
   type ScanErrorResponse,
   type ScanEvent,
   type ScanSummary,
@@ -25,6 +27,7 @@ import {
   type ScanStore,
   type StoredEvent,
 } from '@arablyzer/store'
+import { hashDeleteToken, newDeleteToken } from './ids'
 import { holdPlace } from './places'
 import { parseTarget, resolveTarget } from './target'
 import type { TurnstileCheck } from './turnstile'
@@ -255,10 +258,13 @@ export function createApp(deps: ApiDeps): Hono {
 
         // Stored and announced before it is queued, so the worker never starts a scan whose
         // record or first event is not there yet.
+        // Given once, in the answer below, and kept as its hash alone (M5, issue #33).
+        const deleteToken = newDeleteToken()
         await deps.store.create({
           id,
           url: resolved.value,
           createdAt: at,
+          deleteTokenHash: hashDeleteToken(deleteToken),
           ...(tool === undefined ? {} : { tool }),
         })
         try {
@@ -275,7 +281,8 @@ export function createApp(deps: ApiDeps): Hono {
           throw error
         }
         queued = true
-        return c.json({ id }, 202)
+        const created: CreateScanResponse = { id, deleteToken }
+        return c.json(created, 202)
       } finally {
         if (!queued) await deps.inFlight.release(visitor, [id]).catch(() => undefined)
       }
@@ -396,6 +403,26 @@ export function createApp(deps: ApiDeps): Hono {
       return c.json({ state: scan.state }, scan.state === 'failed' ? 404 : 409)
     }
     return c.json(scan.report)
+  })
+
+  /**
+   * Deletes a scan and its report (M5, issue #33), for the token its creation gave. A page on
+   * another site cannot send one: it needs a preflight, which the API never answers. Not asking
+   * an Origin or a type is deliberate: the token is what allows it, and whoever holds it may
+   * send it from anywhere, curl included.
+   */
+  app.delete('/api/reports/:id', async (c) => {
+    const id = c.req.param('id')
+    if (!SCAN_ID_PATTERN.test(id)) return c.notFound()
+    const token = /^Bearer +([^ ]+)$/i.exec(c.req.header('authorization') ?? '')?.[1]
+    if (token === undefined || !DELETE_TOKEN_PATTERN.test(token)) {
+      c.header('WWW-Authenticate', 'Bearer')
+      return c.json({ error: 'unauthorized' }, 401)
+    }
+    const deleted = await deps.store.delete(id, hashDeleteToken(token))
+    if (deleted === 'missing') return c.notFound()
+    if (deleted === 'forbidden') return c.json({ error: 'forbidden' }, 403)
+    return c.body(null, 204)
   })
 
   app.notFound((c) => c.json({ error: 'not-found' }, 404))
