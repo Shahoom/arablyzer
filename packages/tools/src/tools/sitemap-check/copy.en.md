@@ -64,7 +64,7 @@ No. It reads the first 3 sitemaps robots.txt names, or `/sitemap.xml`, up to `25
 
 ### My sitemap is gzipped. Does that count?
 
-Yes. The sitemaps protocol allows a sitemap compressed with gzip, as long as it is no larger than `50 MB` once uncompressed, and the check decompresses it before reading it.
+Yes. The sitemaps protocol allows a sitemap compressed with gzip, as long as it is no larger than `50 MB` once uncompressed, and the check decompresses it before reading it. A gzip file that will not decompress fails, as Search Console reports a compression error.
 
 ## Methodology
 

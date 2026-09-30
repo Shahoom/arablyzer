@@ -3,7 +3,13 @@ import { gzipSync } from 'node:zlib'
 import { collectPage, type SitemapFacts } from '@arablyzer/collectors'
 import { createPolicy, type Resolver } from '@arablyzer/egress'
 import { afterEach, describe, expect, it } from 'vitest'
-import { evaluatePage, scan, SITEMAP_LIMIT, SITEMAP_MAX_BYTES } from '../src/index'
+import {
+  evaluatePage,
+  scan,
+  SITEMAP_LIMIT,
+  SITEMAP_MAX_BYTES,
+  SITEMAP_MAX_REDIRECTS,
+} from '../src/index'
 import { policyFor, resolverFor, schemaErrors, tempSite, testRule, type TempSite } from './helpers'
 
 let sites: TempSite[] = []
@@ -162,6 +168,38 @@ describe('scan: sitemaps', () => {
       { content: { kind: 'sitemap', format: 'urlset', entries: 1 }, truncated: false },
       { content: { kind: 'sitemap', format: 'text', entries: null }, truncated: true },
     ])
+  })
+
+  // The bot's page says how many redirects it follows for a sitemap, from this number.
+  it(`follows at most ${String(SITEMAP_MAX_REDIRECTS)} redirects to a sitemap`, async () => {
+    const chain = (length: number) => ({
+      files: { [`hop${String(length)}`]: URLSET },
+      config: Object.fromEntries(
+        Array.from({ length }, (_, index) => [
+          `/hop${String(index)}`,
+          { status: 301, headers: { location: `/hop${String(index + 1)}` } },
+        ]),
+      ),
+    })
+    for (const [length, outcome] of [
+      [SITEMAP_MAX_REDIRECTS, 'fetched'],
+      [SITEMAP_MAX_REDIRECTS + 1, 'failed'],
+    ] as const) {
+      const { files, config } = chain(length)
+      const local = await site(
+        {
+          'site.json': SHOP,
+          'index.html': PAGE,
+          'robots.txt': 'Sitemap: http://shop.example/hop0\n',
+          ...files,
+        },
+        config,
+      )
+      await scanned(local)
+      expect(seen?.checked, String(length)).toMatchObject([
+        outcome === 'failed' ? { outcome, code: 'too-many-redirects' } : { outcome },
+      ])
+    }
   })
 
   // M2.3c review: the spaces above are past the parser at once, so they proved the limit on what

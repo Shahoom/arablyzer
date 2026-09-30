@@ -132,6 +132,19 @@ export function outcomeOf(report: Report): Outcome {
   return report.scan.status
 }
 
+/**
+ * The notices a state's card shows under its words: every one for an opt-out, whose notice names
+ * the site's rule and where it is, and for a scan that could not run. A scan the site blocked
+ * shows the bot challenge that blocked it, when it was one, which names the service; what it says
+ * of the status is on the card already (M2.3c review: the challenge's copy says the report shows
+ * it).
+ */
+export function stateNotices(outcome: Outcome, report: Report): Notice[] {
+  return outcome === 'blocked'
+    ? report.scan.notices.filter((notice) => notice.code === BOT_CHALLENGE)
+    : report.scan.notices
+}
+
 /** What a tool's result says first (M2.2). */
 export type ToolVerdict =
   'blocked' | 'opted-out' | 'problems' | 'incomplete' | 'review' | 'passed' | 'not-applicable'

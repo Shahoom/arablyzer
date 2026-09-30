@@ -4,11 +4,11 @@
 
 ### none
 
-No sitemap is named in robots.txt, and {url} answered HTTP {status}.
+robots.txt names no sitemap as a full URL, and {url} answered HTTP {status}.
 
 ### html
 
-No sitemap is named in robots.txt, and {url} answers with an HTML page, not a sitemap.
+robots.txt names no sitemap as a full URL, and {url} answers with an HTML page, not a sitemap.
 
 ## Why it matters
 

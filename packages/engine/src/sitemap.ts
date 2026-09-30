@@ -2,15 +2,22 @@ import { constants, createGunzip } from 'node:zlib'
 import {
   collectSitemap,
   SITEMAP_LIMIT,
+  SITEMAP_MAX_ATTRIBUTES,
+  SITEMAP_MAX_DEPTH,
   sitemapTargets,
   type RobotsFacts,
   type SitemapCheck,
   type SitemapFacts,
 } from '@arablyzer/collectors'
-import { DEFAULT_MAX_BYTES, safeFetch, type SafeFetchOptions } from '@arablyzer/egress'
+import {
+  DEFAULT_MAX_BYTES,
+  DEFAULT_MAX_REDIRECTS,
+  safeFetch,
+  type SafeFetchOptions,
+} from '@arablyzer/egress'
 import { challengeOf } from '@arablyzer/rules'
 
-export { SITEMAP_LIMIT }
+export { SITEMAP_LIMIT, SITEMAP_MAX_ATTRIBUTES, SITEMAP_MAX_DEPTH }
 
 /**
  * How long a scan's sitemap fetches may take together, robots.txt of another site among them:
@@ -23,6 +30,9 @@ export const SITEMAP_TIMEOUT_MS = 10_000
  * The protocol allows 50 MB; a larger sitemap is judged in its first part.
  */
 export const SITEMAP_MAX_BYTES = DEFAULT_MAX_BYTES
+
+/** The redirects the fetch of a sitemap follows: the scan's own limit for a page (BUILD-PLAN §11). */
+export const SITEMAP_MAX_REDIRECTS = DEFAULT_MAX_REDIRECTS
 
 const SITEMAP_ACCEPT = 'application/xml,text/xml;q=0.9,*/*;q=0.8'
 
@@ -86,6 +96,7 @@ async function fetchSitemap(
     timeoutMs: Math.min(context.base.timeoutMs ?? SITEMAP_TIMEOUT_MS, SITEMAP_TIMEOUT_MS),
     accept: SITEMAP_ACCEPT,
     maxBytes: SITEMAP_MAX_BYTES,
+    maxRedirects: SITEMAP_MAX_REDIRECTS,
     onTooLarge: 'truncate',
     // Nor is it followed to a site that keeps the bot from where it leads.
     beforeRedirect: (to, hop) => context.allowed(to, hop.privateAccess, hop.signal),

@@ -9,7 +9,13 @@ import { followScan } from './events'
 import { Progress } from './report/Progress'
 import { ReportView, type Fixes } from './report/ReportView'
 import { StateCard } from './report/StateCard'
-import { advance, outcomeOf, START, type Progress as ProgressState } from './report-model'
+import {
+  advance,
+  outcomeOf,
+  START,
+  stateNotices,
+  type Progress as ProgressState,
+} from './report-model'
 
 type View =
   | { readonly kind: 'loading' }
@@ -182,8 +188,9 @@ function Shown({ view, lang }: { view: View; lang: Lang }) {
             lang={lang}
             status={view.report.target.http.status}
             url={view.report.target.url}
-            // An opt-out's notice names the site's rule and where it is.
-            notices={outcome === 'blocked' ? [] : view.report.scan.notices}
+            // An opt-out's notice names the site's rule and where it is; a blocked scan's, the
+            // bot challenge that blocked it.
+            notices={stateNotices(outcome, view.report)}
           />
         )
       }

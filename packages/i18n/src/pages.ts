@@ -1,4 +1,22 @@
 import type { Copy } from './copy'
+import { arabicCount, type ArabicForms } from './plural'
+
+/** Redirects a bot follows, as the object of «يتبع»: «تحويلاً واحداً»، «7 تحويلات»، «12 تحويلاً». */
+const REDIRECTS: ArabicForms = {
+  one: 'تحويلاً واحداً',
+  two: 'تحويلين',
+  few: '{n} تحويلات',
+  many: '{n} تحويلاً',
+  other: '{n} تحويل',
+}
+
+/** Seconds after a preposition: «بعد ثانية»، «بعد ثانيتين»، «بعد 10 ثوانٍ»، «بعد 12 ثانية». */
+const SECONDS: ArabicForms = {
+  one: 'ثانية واحدة',
+  two: 'ثانيتين',
+  few: '{n} ثوانٍ',
+  many: '{n} ثانية',
+}
 
 /** What the bot's page needs to say of it, each number from the code (apps/web, bot.json). */
 export interface BotNumbers {
@@ -7,6 +25,8 @@ export interface BotNumbers {
   readonly robotsKib: number
   readonly sitemaps: number
   readonly sitemapMib: number
+  readonly sitemapRedirects: number
+  readonly sitemapSeconds: number
   readonly requestsPerLoad: number
   readonly mibPerLoad: number
   readonly viewport: { readonly width: number; readonly height: number }
@@ -99,13 +119,16 @@ export const PAGES_UI: Copy<PagesStrings> = {
           robotsKib,
           sitemaps,
           sitemapMib,
+          sitemapRedirects,
+          sitemapSeconds,
           requestsPerLoad,
           mibPerLoad,
           viewport,
         }) => [
           `ملف robots.txt أولاً، ليعرف هل تمنعه، ويتبع ${String(robotsRedirects)} تحويلات على الأكثر ويقرأ أول ${String(robotsKib)} كيلوبايت منه.`,
           `الصفحة نفسها، ويتبع ${String(pageRedirects)} تحويلات على الأكثر.`,
-          `حين يحتاج الفحص إلى خريطة الموقع: أول ${String(sitemaps)} خرائط يسمّيها robots.txt، أو \`/sitemap.xml\` إن لم يسمِّ شيئاً، ويقرأ أول ${String(sitemapMib)} ميغابايت من كل منها، ولا يفتح الخرائط التي يسردها فهرس خرائط الموقع.`,
+          `حين يحتاج الفحص إلى خرائط الموقع: أول ${String(sitemaps)} خرائط يسمّيها robots.txt، أو \`/sitemap.xml\` إن لم يسمِّ شيئاً، ويقرأ أول ${String(sitemapMib)} ميغابايت من كل منها ويتبع ${arabicCount(sitemapRedirects, REDIRECTS)} على الأكثر، ولا يفتح الخرائط التي يسردها فهرس خرائط الموقع. ويتوقف بعد ${arabicCount(sitemapSeconds, SECONDS)} للخرائط كلها.`,
+          'قد يكون في robots.txt عنوان خريطة على موقع آخر: يقرأ ArablyzerBot ملف robots.txt لذلك الموقع أولاً، ولا يجلب منه ما يطلب ألّا يجلبه ArablyzerBot، ولا يتبع تحويلاً إلى موقع آخر إلا حيث يسمح robots.txt فيه.',
           `حين يحتاج الفحص إلى عرض الصفحة: يفتحها في Chromium وFirefox وWebKit بنافذة جوال عرضها ${String(viewport.width)} وارتفاعها ${String(viewport.height)}، فيحمّل كل متصفح ما تحمّله الصفحة لزائرها من ملفات CSS وخطوط وصور وسكربتات، بـ ${String(requestsPerLoad)} طلب و${String(mibPerLoad)} ميغابايت على الأكثر في كل متصفح.`,
           'تمرّ كل طلباته عبر بروكسي خروج واحد يرفض العناوين الخاصة والمحلية.',
         ],
@@ -115,7 +138,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         items: [
           'لا يرسل أي نموذج، ولا يكتب في الحقول، ولا يضغط الأزرار.',
           'لا يسجّل الدخول إلى أي حساب.',
-          'لا يتجاوز CAPTCHA ولا أي حماية من البوتات: إن ردّ موقعك بتحدٍّ، يقول التقرير إن الموقع منع الفحص.',
+          'لا يتجاوز CAPTCHA ولا أي حماية من البوتات: إن ردّ موقعك بتحدٍّ، يقول التقرير إن الموقع منع الفحص، وإن ردّ به على متصفح وحده، يتوقف عرض ذلك المتصفح عندئذ.',
         ],
       },
       optOut: {
@@ -180,13 +203,16 @@ export const PAGES_UI: Copy<PagesStrings> = {
           robotsKib,
           sitemaps,
           sitemapMib,
+          sitemapRedirects,
+          sitemapSeconds,
           requestsPerLoad,
           mibPerLoad,
           viewport,
         }) => [
           `robots.txt first, to know whether you block it, following at most ${String(robotsRedirects)} redirects and reading its first ${String(robotsKib)} KB.`,
           `The page itself, following at most ${String(pageRedirects)} redirects.`,
-          `When the check reads your sitemaps: the first ${String(sitemaps)} your robots.txt names, or \`/sitemap.xml\` when it names none, reading the first ${String(sitemapMib)} MB of each, and never the sitemaps a sitemap index lists.`,
+          `When the check reads your sitemaps: the first ${String(sitemaps)} your robots.txt names, or \`/sitemap.xml\` when it names none, reading the first ${String(sitemapMib)} MB of each and following at most ${String(sitemapRedirects)} redirects, and never the sitemaps a sitemap index lists. It stops after ${String(sitemapSeconds)} seconds for all of them.`,
+          'A sitemap your robots.txt names may be on another host: the bot reads that host’s robots.txt first, does not fetch what it asks ArablyzerBot to leave alone, and follows a redirect to another host only where that host’s robots.txt allows it.',
           `When the check renders the page: it opens it in Chromium, Firefox and WebKit, in a phone window ${String(viewport.width)} wide and ${String(viewport.height)} high, and each browser loads what the page loads for a visitor (stylesheets, fonts, images, scripts), at most ${String(requestsPerLoad)} requests and ${String(mibPerLoad)} MB per browser.`,
           'Every request goes through one egress proxy that refuses private and local addresses.',
         ],
@@ -196,7 +222,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         items: [
           'It never submits a form, types into a field, or presses a button.',
           'It never logs into an account.',
-          'It never gets past a CAPTCHA or any bot protection: if your site answers with a challenge, the report says the site blocked the check.',
+          'It never gets past a CAPTCHA or any bot protection: if your site answers with a challenge, the report says the site blocked the check, and if only a browser is answered with one, that browser’s render stops there.',
         ],
       },
       optOut: {

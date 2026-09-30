@@ -5,6 +5,8 @@ import {
   ROBOTS_MAX_REDIRECTS,
   SITEMAP_LIMIT,
   SITEMAP_MAX_BYTES,
+  SITEMAP_MAX_REDIRECTS,
+  SITEMAP_TIMEOUT_MS,
   USER_AGENT,
 } from '@arablyzer/engine'
 import type { BotFacts } from '../src/lib/bot'
@@ -21,6 +23,8 @@ export function botFacts(): BotFacts {
     robotsKib: ROBOTS_MAX_BYTES / 1024,
     sitemaps: SITEMAP_LIMIT,
     sitemapMib: SITEMAP_MAX_BYTES / (1024 * 1024),
+    sitemapRedirects: SITEMAP_MAX_REDIRECTS,
+    sitemapSeconds: SITEMAP_TIMEOUT_MS / 1000,
     requestsPerLoad: DEFAULT_MAX_REQUESTS,
     mibPerLoad: DEFAULT_MAX_BYTES / (1024 * 1024),
     viewport: { width: VIEWPORT.width, height: VIEWPORT.height },

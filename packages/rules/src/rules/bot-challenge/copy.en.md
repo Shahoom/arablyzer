@@ -24,8 +24,8 @@ The site answered this check's request with a {service} challenge instead of the
 1. We fetch the page as `ArablyzerBot` and read its answer's headers, whatever its status.
 2. A challenge is told apart by the signals its service documents alone: Cloudflare's `cf-mitigated: challenge` header, which it sets on every kind of challenge page, and AWS WAF's `x-amzn-waf-action` header, `challenge` with the status `202` or `captcha` with `405`.
 3. We guess nothing from the page's text, a plain refusal such as `403` without these headers is not a challenge to us, and other services' challenges go undetected.
-4. When the answer is a challenge, no other check takes it for the page: the report says the site answered with a challenge, and the page is neither rendered in a browser nor measured, since running the challenge's script could get past it.
-5. It is information: it never changes the score.
+4. When the answer is a challenge, no other check takes it for the page: the report says the site answered with a challenge, and the page is neither rendered in a browser nor measured, since running the challenge's script could get past it. When our own request reaches the page but a browser is answered with a challenge, that browser's render stops at the answer and nothing more is asked of the site for it, and Lighthouse does not run.
+5. It is information, so the rule itself deducts nothing. A page the site answers with a challenge was not checked, though: the scan has no score, overall or by category, and is partial.
 
 ## References
 

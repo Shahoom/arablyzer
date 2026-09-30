@@ -1,5 +1,10 @@
 import { DEFAULT_MAX_REDIRECTS, DEFAULT_MAX_REQUESTS } from '@arablyzer/egress'
-import { SITEMAP_LIMIT, USER_AGENT } from '@arablyzer/engine'
+import {
+  SITEMAP_LIMIT,
+  SITEMAP_MAX_REDIRECTS,
+  SITEMAP_TIMEOUT_MS,
+  USER_AGENT,
+} from '@arablyzer/engine'
 import { describe, expect, it } from 'vitest'
 import { botFacts } from '../scripts/bot-data'
 
@@ -15,5 +20,7 @@ describe('botFacts', () => {
     expect(Number.isInteger(facts.mibPerLoad)).toBe(true)
     expect(facts.sitemaps).toBe(SITEMAP_LIMIT)
     expect(Number.isInteger(facts.sitemapMib)).toBe(true)
+    expect(facts.sitemapRedirects).toBe(SITEMAP_MAX_REDIRECTS)
+    expect(facts.sitemapSeconds * 1000).toBe(SITEMAP_TIMEOUT_MS)
   })
 })
