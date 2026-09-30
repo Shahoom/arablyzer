@@ -1,0 +1,7 @@
+{
+  "host": "chain.example",
+  "tls": {
+    "lifetimeDays": 90,
+    "daysLeft": 60
+  }
+}

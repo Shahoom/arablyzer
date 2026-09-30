@@ -17,7 +17,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'index',
   severity: 'serious',
-  needs: ['http'],
+  needs: ['headers'],
   messages: ['multiple-tags', 'header-mismatch', 'multiple-headers'],
   appliesTo: (page) => canonicals(page).length > 0,
   detect: ({ page }) => {

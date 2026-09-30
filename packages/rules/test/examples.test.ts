@@ -12,10 +12,14 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'cwv-cls-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-inp-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-lcp-poor': "real visitors' data from the Chrome UX Report, not the page",
+  'frame-protection-missing': 'response headers, whose absence no excerpt shows',
   'hsts-missing': 'a response header, whose absence no excerpt shows',
   'https-missing': 'the address the page answers at',
+  'redirect-chain': 'the redirects before the page, which no excerpt shows',
+  'redirect-temporary': 'the redirects before the page, which no excerpt shows',
   'text-compression-missing': 'how the server sends the page’s files',
   'tls-expiring': 'the server’s certificate',
+  'x-content-type-options-missing': 'a response header, whose absence no excerpt shows',
 }
 
 const fold = (text: string) => text.replace(/\s+/g, ' ').trim()

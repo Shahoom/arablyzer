@@ -71,6 +71,14 @@ describe('ruleReads', () => {
     expect(reads('cwv-lcp-poor')).toBe('crux')
     expect(reads('robots-blocks-googlebot')).toBe('robots')
     expect(reads('title-missing')).toBe('html')
+    // The server's response: its headers, even with a <meta> that counts too, its redirects and
+    // its connection; not the page rules that read a header beside the HTML.
+    expect(reads('csp-missing')).toBe('http')
+    expect(reads('redirect-chain')).toBe('http')
+    expect(reads('tls-expiring')).toBe('http')
+    expect(reads('canonical-conflict')).toBe('html')
+    expect(reads('mixed-content')).toBe('html')
+    expect(reads('page-noindex')).toBe('html')
   })
 })
 

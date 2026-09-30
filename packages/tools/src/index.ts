@@ -17,6 +17,7 @@ export {
   type Lang,
   type ToolCopy,
 } from './copy'
+export { locationOf, parseHttpExample, REDIRECT_STATUSES, type HttpResponse } from './http'
 export { TOOL_DEFINITIONS, toolDefinition } from './registry'
 export {
   defineTool,

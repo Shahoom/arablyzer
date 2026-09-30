@@ -15,6 +15,7 @@ import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
 import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
 import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
@@ -22,6 +23,7 @@ import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rej
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
 import { rule as formLabelMissing } from './rules/form-label-missing/rule'
 import { rule as formPhoneDirection } from './rules/form-phone-direction/rule'
+import { rule as frameProtectionMissing } from './rules/frame-protection-missing/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
@@ -34,6 +36,9 @@ import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as priceDecimals } from './rules/price-decimals/rule'
 import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
+import { rule as redirectChain } from './rules/redirect-chain/rule'
+import { rule as redirectTemporary } from './rules/redirect-temporary/rule'
+import { rule as referrerPolicyMissing } from './rules/referrer-policy-missing/rule'
 import { rule as robotsBlocksAiSearch } from './rules/robots-blocks-ai-search/rule'
 import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/rule'
 import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
@@ -46,8 +51,10 @@ import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as tlsExpiring } from './rules/tls-expiring/rule'
 import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
+import { rule as xContentTypeOptionsMissing } from './rules/x-content-type-options-missing/rule'
 
 export { RULESET_VERSION } from './version'
+export { SERVER_RESPONSE_RULES } from './server-rules'
 
 /** Every rule, sorted by id. */
 export const RULES: readonly Rule[] = [
@@ -67,6 +74,7 @@ export const RULES: readonly Rule[] = [
   arMojibake,
   arTatweel,
   canonicalConflict,
+  cspMissing,
   cwvClsPoor,
   cwvInpPoor,
   cwvLcpPoor,
@@ -74,6 +82,7 @@ export const RULES: readonly Rule[] = [
   formArabicNameRejected,
   formLabelMissing,
   formPhoneDirection,
+  frameProtectionMissing,
   h1Missing,
   hreflangInvalidCode,
   hstsMissing,
@@ -86,6 +95,9 @@ export const RULES: readonly Rule[] = [
   pageNoindex,
   priceDecimals,
   productOfferInvalid,
+  redirectChain,
+  redirectTemporary,
+  referrerPolicyMissing,
   robotsBlocksAiSearch,
   robotsBlocksGooglebot,
   rtlBidiIsolation,
@@ -98,6 +110,7 @@ export const RULES: readonly Rule[] = [
   tlsExpiring,
   viewportMissing,
   whatsappLinkFormat,
+  xContentTypeOptionsMissing,
 ]
 
 export function ruleById(id: string): Rule | undefined {

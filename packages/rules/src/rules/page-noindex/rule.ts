@@ -12,7 +12,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'index',
   severity: 'critical',
-  needs: ['http'],
+  needs: ['headers'],
   messages: ['meta', 'header'],
   appliesTo: () => true,
   detect: ({ page }) => {

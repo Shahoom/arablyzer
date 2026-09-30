@@ -22,15 +22,18 @@ import { definition as mixedContent } from './tools/mixed-content/tool'
 import { definition as phoneFormatCheck } from './tools/phone-format-check/tool'
 import { definition as priceFormatCheck } from './tools/price-format-check/tool'
 import { definition as productPageCheck } from './tools/product-page-check/tool'
+import { definition as redirectChainCheck } from './tools/redirect-chain-check/tool'
 import { definition as robotsCheck } from './tools/robots-check/tool'
 import { definition as robotsTester } from './tools/robots-tester/tool'
 import { definition as rtlCheck } from './tools/rtl-check/tool'
 import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
 import { definition as schemaGenerator } from './tools/schema-generator/tool'
+import { definition as securityHeaders } from './tools/security-headers/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
 import { definition as structuredDataCheck } from './tools/structured-data-check/tool'
 import { definition as tatweelCheck } from './tools/tatweel-check/tool'
 import { definition as titleMetaCheck } from './tools/title-meta-check/tool'
+import { definition as tlsCheck } from './tools/tls-check/tool'
 import { definition as whatsappLinkCheck } from './tools/whatsapp-link-check/tool'
 import { definition as whatsappLinkGenerator } from './tools/whatsapp-link-generator/tool'
 
@@ -62,15 +65,18 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   phoneFormatCheck,
   priceFormatCheck,
   productPageCheck,
+  redirectChainCheck,
   robotsCheck,
   robotsTester,
   rtlCheck,
   rtlOverflowCheck,
   schemaGenerator,
+  securityHeaders,
   socialPreview,
   structuredDataCheck,
   tatweelCheck,
   titleMetaCheck,
+  tlsCheck,
   whatsappLinkCheck,
   whatsappLinkGenerator,
 ]

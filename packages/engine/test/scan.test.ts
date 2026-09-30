@@ -11,6 +11,7 @@ import {
   scan,
   USER_AGENT,
 } from '../src/index'
+import type { Rule } from '@arablyzer/rules'
 import { flagRule, policyFor, schemaErrors, tempSite, testRule, type TempSite } from './helpers'
 
 let sites: TempSite[] = []
@@ -146,6 +147,37 @@ describe('scan', () => {
     expect(report.target.finalUrl).toBe(local.url('/final/'))
     expect(report.target.http.redirects).toEqual([{ url: local.url('/'), status: 301 }])
     expect(report.findings[0]?.evidence.url).toBe(local.url('/final/'))
+  })
+
+  it('gives the rules that need them the redirects the fetch followed, in order (M2.3a)', async () => {
+    const local = await site(
+      { 'ar/index.html': ARABIC_PAGE },
+      {
+        '/': { status: 302, headers: { location: '/ar' } },
+        '/ar': { status: 301, headers: { location: '/ar/' } },
+      },
+    )
+    const seen: Record<string, unknown> = {}
+    const watch = (id: string, needs: Rule['needs']) =>
+      testRule({
+        id,
+        needs,
+        detect: (evidence) => {
+          seen[id] = evidence.redirects
+          return []
+        },
+      })
+    const rules = [watch('reads-redirects', ['redirects']), watch('reads-html', ['html'])]
+    const report = await scan(local.url('/'), { rules, policy: policyFor(local) })
+    const hops = [
+      { url: local.url('/'), status: 302 },
+      { url: local.url('/ar'), status: 301 },
+    ]
+    expect(seen).toEqual({ 'reads-redirects': hops, 'reads-html': undefined })
+    // The report is what it was: the redirects are in its target, and nowhere else.
+    expect(report.target.http.redirects).toEqual(hops)
+    expect(report.rules.map((rule) => rule.status)).toEqual(['pass', 'pass'])
+    expect(JSON.stringify(report.facts)).toBe('{}')
   })
 
   it('fails the scan on a blocked address without revealing it', async () => {

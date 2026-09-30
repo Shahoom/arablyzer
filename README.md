@@ -131,8 +131,14 @@ Each rule lives in `packages/rules/src/rules/<id>/` with its detector, tests, wr
 | [`form-arabic-digits-rejected`](packages/rules/src/rules/form-arabic-digits-rejected/copy.en.md) | Number fields' `pattern` accepts Arabic-Indic digits |
 | [`https-missing`](packages/rules/src/rules/https-missing/copy.en.md) | A public page is served over HTTPS |
 | [`hsts-missing`](packages/rules/src/rules/hsts-missing/copy.en.md) | An HTTPS page sends `Strict-Transport-Security` |
+| [`csp-missing`](packages/rules/src/rules/csp-missing/copy.en.md) | A public page enforces a Content Security Policy, in its header or a `<meta>` in `<head>` |
+| [`x-content-type-options-missing`](packages/rules/src/rules/x-content-type-options-missing/copy.en.md) | A public page sends `X-Content-Type-Options: nosniff` |
+| [`frame-protection-missing`](packages/rules/src/rules/frame-protection-missing/copy.en.md) | A public page keeps other sites from framing it, with `frame-ancestors` or `X-Frame-Options` |
+| [`referrer-policy-missing`](packages/rules/src/rules/referrer-policy-missing/copy.en.md) | A public page states its referrer policy, in a `Referrer-Policy` header or a `<meta name="referrer">` (information) |
 | [`mixed-content`](packages/rules/src/rules/mixed-content/copy.en.md) | An HTTPS page loads nothing over `http:`, and its forms send nothing there |
 | [`tls-expiring`](packages/rules/src/rules/tls-expiring/copy.en.md) | The TLS certificate is not about to expire |
+| [`redirect-chain`](packages/rules/src/rules/redirect-chain/copy.en.md) | The page is reached through one redirect at most |
+| [`redirect-temporary`](packages/rules/src/rules/redirect-temporary/copy.en.md) | A move to HTTPS, or between a name and its `www.`, is a permanent redirect (301 or 308) |
 
 These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
 

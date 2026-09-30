@@ -17,13 +17,14 @@ function withStatus(...statuses: string[]): Set<string> {
   )
 }
 
-// M1.3 plan §5: twenty local pages that between them fail every rule. The reports come from the
-// scanner image (test/golden); this reads the committed ones, so a new rule needs a page too.
+// M1.3 plan §5: local pages that between them fail every rule, twenty then, and two more for the
+// redirect rules (M2.3a). The reports come from the scanner image (test/golden); this reads the
+// committed ones, so a new rule needs a page too.
 describe('golden reports', () => {
-  it('are twenty, one for each page, and none for a page that is gone', () => {
-    expect(GOLDEN_NAMES).toHaveLength(20)
+  it('are twenty-two, one for each page, and none for a page that is gone', () => {
+    expect(GOLDEN_NAMES).toHaveLength(22)
     expect(reports).toHaveLength(GOLDEN_NAMES.length)
-    expect(readdirSync(REPORTS).filter((file) => file.endsWith('.json'))).toHaveLength(20)
+    expect(readdirSync(REPORTS).filter((file) => file.endsWith('.json'))).toHaveLength(22)
   })
 
   it('have pages numbered once each, which gives each its port', () => {

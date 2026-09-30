@@ -32,6 +32,28 @@ describe('evaluatePage', () => {
     expect(results[0]).toMatchObject({ status: 'error', error: 'robots-unchecked' })
   })
 
+  it('passes the redirects to the rules that need them, which do not apply without them', () => {
+    const hops = [{ url: 'http://example.com/', status: 301 }]
+    const redirectRule = testRule({
+      id: 'redirect-rule',
+      needs: ['redirects'],
+      detect: ({ redirects = [] }) =>
+        redirects.map((hop) => ({ message: 'found' as const, values: { what: hop.url } })),
+    })
+    expect(evaluatePage(page('<p>x</p>'), { rules: [redirectRule] }).results[0]).toMatchObject({
+      status: 'not-applicable',
+    })
+    const { results, findings } = evaluatePage(page('<p>x</p>'), {
+      rules: [redirectRule],
+      redirects: hops,
+    })
+    expect(results[0]).toMatchObject({ status: 'fail' })
+    expect(findings.map((finding) => finding.message.en)).toEqual(['Found http://example.com/'])
+    expect(
+      evaluatePage(page('<p>x</p>'), { rules: [redirectRule], redirects: [] }).results[0],
+    ).toMatchObject({ status: 'pass' })
+  })
+
   it('selects rules by id, like scan', () => {
     const rules = [flagRule(), testRule({ id: 'other-rule', detect: () => [] })]
     expect(

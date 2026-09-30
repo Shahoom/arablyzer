@@ -1,10 +1,11 @@
 import type { RuleReads } from '@arablyzer/i18n'
 import {
   loadRuleExample,
-  RULES,
-  SECTION_HEADINGS,
   type Rule,
   type RuleCopy,
+  RULES,
+  SECTION_HEADINGS,
+  SERVER_RESPONSE_RULES,
 } from '@arablyzer/rules'
 import { SEVERITY_WEIGHTS } from '@arablyzer/scoring'
 import { renderMarkdown } from '@arablyzer/seo/markdown'
@@ -22,11 +23,15 @@ const NEAR = 3
 /** A meta description's length, past which search results cut it. */
 const DESCRIPTION = 160
 
-/** What the rule reads, most telling first: a browser, Chrome's data, robots.txt, or the HTML. */
+/**
+ * What the rule reads, most telling first: a browser, Chrome's data, robots.txt, the server's
+ * response (its headers, redirects or connection), or the HTML.
+ */
 export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('render')) return 'render'
   if (rule.needs.includes('crux')) return 'crux'
   if (rule.needs.includes('robots')) return 'robots'
+  if (SERVER_RESPONSE_RULES.has(rule.id)) return 'http'
   return 'html'
 }
 

@@ -2,14 +2,16 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { collectPage, collectRobots, type RobotsFacts } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
+import type { Redirect } from '@arablyzer/report-schema'
 import { RULES, ruleById } from '@arablyzer/rules'
-import type { CodeExample, Lang, Tool } from '../src/index'
+import { locationOf, parseHttpExample, type CodeExample, type Lang, type Tool } from '../src/index'
 
-// BUILD-PLAN §6.1: the example on a tool's page is live. A tool that reads the HTML or robots.txt
-// judges its examples as the page says; one that renders the page shows examples taken from its
-// rules' own fixtures, which the engine's browser suite renders in every engine
-// (packages/engine, fixtures.browser.test.ts), and whose wrong ones fail and right ones pass.
-// Shared by the test and by scripts/check-copy.ts, which checks one tool's copy as it is written.
+// BUILD-PLAN §6.1: the example on a tool's page is live. A tool that reads the HTML, robots.txt
+// or the response's headers and redirects judges its examples as the page says; one that renders
+// the page shows examples taken from its rules' own fixtures, which the engine's browser suite
+// renders in every engine (packages/engine, fixtures.browser.test.ts), and whose wrong ones fail
+// and right ones pass. Shared by the test and by scripts/check-copy.ts, which checks one tool's
+// copy as it is written.
 
 const PAGE_URL = 'https://example.com/'
 const encode = (text: string) => new TextEncoder().encode(text)
@@ -21,8 +23,29 @@ export function rendersPage(tool: Tool): boolean {
   return tool.rules.some((id) => ruleById(id)?.needs.includes('render') === true)
 }
 
-/** The tool's rules on an example: HTML as the page itself, robots.txt beside a plain page. */
+/**
+ * The tool's rules on an example: HTML as the page itself, robots.txt beside a plain page, and an
+ * HTTP example as the answers to a request for PAGE_URL: each redirect's Location is where the
+ * next response came from, and the last response is the page, without a body.
+ */
 export function evaluateExample(tool: Tool, example: CodeExample) {
+  if (example.lang === 'http') {
+    const responses = parseHttpExample(example.code)
+    const redirects: Redirect[] = []
+    let url = PAGE_URL
+    for (const response of responses.slice(0, -1)) {
+      redirects.push({ url, status: response.status })
+      url = new URL(locationOf(response), url).href
+    }
+    const last = responses.at(-1)
+    const page = collectPage({
+      url,
+      status: last?.status ?? 200,
+      headers: last?.headers ?? [],
+      body: encode(''),
+    })
+    return evaluatePage(page, { rules: RULES, ruleIds: tool.rules, redirects }).results
+  }
   const html = example.lang === 'html' ? example.code : '<!doctype html><p>مرحبا</p>'
   const page = collectPage({
     url: PAGE_URL,
@@ -45,10 +68,21 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
   }).results
 }
 
-/** Whether an example can speak to a rule: robots.txt to the rules that read it, HTML to the rest. */
-function speaksTo(example: CodeExample, ruleId: string): boolean {
+/**
+ * Whether an example can speak to a rule: robots.txt to the rules that read it, an HTTP exchange
+ * to those that read the response's headers or its redirects, HTML to the rest. A rule an example
+ * cannot speak to, such as one that reads the certificate, need not pass it: it must not fail.
+ */
+export function speaksTo(example: CodeExample, ruleId: string): boolean {
   const reads = ruleById(ruleId)?.needs ?? []
-  return example.lang === 'robots.txt' ? reads.includes('robots') : !reads.includes('robots')
+  switch (example.lang) {
+    case 'robots.txt':
+      return reads.includes('robots')
+    case 'http':
+      return reads.includes('headers') || reads.includes('redirects')
+    case 'html':
+      return !reads.includes('robots')
+  }
 }
 
 /** Every text file of a rule's fixtures whose directory starts with `kind`, whitespace folded. */

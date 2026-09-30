@@ -5,7 +5,7 @@ import path from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
-import { FixtureConfig, SiteConfig, type RouteOverride } from './config'
+import { FixtureConfig, routeKey, SiteConfig, type RouteOverride } from './config'
 import { certificateWindow, serverCertificate } from './tls'
 
 export interface FixtureSite {
@@ -13,6 +13,8 @@ export interface FixtureSite {
   readonly port: number
   /** The host name the site is scanned under: 127.0.0.1, or its site.json host. */
   readonly hostname: string
+  /** Every name the site answers to: its host and its aliases, or 127.0.0.1. */
+  readonly hostnames: readonly string[]
   /**
    * Each request it answered, in order, as "GET /path?query": what a scan asked the site for,
    * and what it never did.
@@ -102,21 +104,35 @@ export async function serveSite(
   const config = await loadFixtureConfig(siteRoot)
   const site = await loadSiteConfig(siteRoot)
   const hostname = site.host ?? '127.0.0.1'
+  // The site's .example names: a redirect to one of them comes back to this server.
+  const names = site.host === undefined ? [] : [site.host, ...(site.aliases ?? [])]
+  for (const key of Object.keys(config)) {
+    const name = /^\/\/([^/]+)\//.exec(key)?.[1]
+    if (name !== undefined && !names.includes(name)) {
+      throw new Error(`${path.join(siteRoot, CONFIG_FILE)}: ${key} names no host of the site`)
+    }
+  }
+  const scheme = site.tls === undefined ? 'http:' : 'https:'
+  // The port it listens on, once it does.
+  let listening = 0
   // One array for the site's life: a copy of the site object still sees every request.
   const requests: string[] = []
   const handler: http.RequestListener = (req, res) => {
     requests.push(`${req.method ?? ''} ${req.url ?? ''}`)
-    respond(siteRoot, config, { compressText, cleanUrls }, req, res).catch((error: unknown) => {
-      res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
-      res.end(String(error))
-    })
+    const own = { names, scheme, port: listening }
+    respond(siteRoot, config, { compressText, cleanUrls }, own, req, res).catch(
+      (error: unknown) => {
+        res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
+        res.end(String(error))
+      },
+    )
   }
   const server =
     site.tls === undefined
       ? http.createServer(handler)
       : https.createServer(
           serverCertificate(
-            [hostname, ...(hostname === '127.0.0.1' ? [] : ['127.0.0.1'])],
+            [hostname, ...(site.aliases ?? []), ...(hostname === '127.0.0.1' ? [] : ['127.0.0.1'])],
             ...certificateWindow(site.tls.lifetimeDays, site.tls.daysLeft),
           ),
           handler,
@@ -129,11 +145,13 @@ export async function serveSite(
   if (address === null || typeof address === 'string') {
     throw new Error('Fixture server has no TCP address')
   }
+  listening = address.port
   const origin = `${site.tls === undefined ? 'http' : 'https'}://${hostname}:${address.port}`
   return {
     origin,
     port: address.port,
     hostname,
+    hostnames: names.length === 0 ? [hostname] : names,
     requests,
     url: (pathname = '/') => new URL(pathname, origin).href,
     close: () =>
@@ -149,10 +167,18 @@ export async function serveSite(
 
 const TEXT_TYPE = /^(?:text\/|application\/(?:javascript|json|xml)|image\/svg\+xml)/
 
+/** What a site's server knows of itself: its .example names, its scheme, and its port. */
+interface OwnSite {
+  readonly names: readonly string[]
+  readonly scheme: string
+  readonly port: number
+}
+
 async function respond(
   root: string,
   config: FixtureConfig,
   { compressText, cleanUrls }: { compressText: boolean; cleanUrls: boolean },
+  own: OwnSite,
   req: http.IncomingMessage,
   res: http.ServerResponse,
 ): Promise<void> {
@@ -162,9 +188,13 @@ async function respond(
     return
   }
   const pathname = new URL(req.url ?? '/', 'http://fixture.invalid').pathname
-  const { status, headers, body } = await resolveFixtureResponse(root, config, pathname, {
+  const host = requestHost(req)
+  const resolved = await resolveFixtureResponse(root, config, pathname, {
     cleanUrls,
+    ...(host === null || !own.names.includes(host) ? {} : { host }),
   })
+  const { status, body } = resolved
+  const headers = withOwnPort(resolved.headers, own)
   const contentType = headers['content-type']
   const text = typeof contentType === 'string' && TEXT_TYPE.test(contentType)
   const gzip =
@@ -180,6 +210,46 @@ async function respond(
   res.end(req.method === 'HEAD' ? undefined : sent)
 }
 
+/** The name the request asked for, from its Host header; null without one. */
+function requestHost(req: http.IncomingMessage): string | null {
+  const host = req.headers.host
+  if (host === undefined || host === '') return null
+  try {
+    return new URL(`http://${host}`).hostname
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A Location to one of the site's own names, without a port, gets the port the server listens on:
+ * fixture.json cannot know it, and the page it names is on the same server.
+ */
+function withOwnPort(
+  headers: Record<string, string | string[]>,
+  own: OwnSite,
+): Record<string, string | string[]> {
+  const location = headers.location
+  if (location === undefined) return headers
+  const rewrite = (value: string): string => {
+    let url: URL
+    try {
+      url = new URL(value)
+    } catch {
+      return value
+    }
+    if (url.protocol !== own.scheme || url.port !== '' || !own.names.includes(url.hostname)) {
+      return value
+    }
+    url.port = String(own.port)
+    return url.href
+  }
+  return {
+    ...headers,
+    location: Array.isArray(location) ? location.map(rewrite) : rewrite(location),
+  }
+}
+
 export interface FixtureResponse {
   readonly status: number
   /** Lowercased names; a list for repeated headers. */
@@ -187,15 +257,19 @@ export interface FixtureResponse {
   readonly body: Buffer
 }
 
-/** What the server answers for a path; rule tests use it to read fixtures without HTTP. */
+/**
+ * What the server answers for a path, on one of the site's aliases when `host` names it; rule
+ * tests use it to read fixtures without HTTP.
+ */
 export async function resolveFixtureResponse(
   root: string,
   config: FixtureConfig,
   pathname: string,
-  { cleanUrls = false }: { cleanUrls?: boolean } = {},
+  { cleanUrls = false, host }: { cleanUrls?: boolean; host?: string } = {},
 ): Promise<FixtureResponse> {
   const siteRoot = path.resolve(root)
-  const override: RouteOverride | undefined = config[pathname]
+  const override: RouteOverride | undefined =
+    (host === undefined ? undefined : config[routeKey(host, pathname)]) ?? config[pathname]
   const file =
     (await readSiteFile(siteRoot, pathname)) ??
     (cleanUrls && !pathname.endsWith('/') && path.extname(pathname) === ''

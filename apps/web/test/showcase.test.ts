@@ -46,11 +46,11 @@ describe('the showcase', () => {
       expect(lines.at(-1)).not.toBe('')
     }
     expect(terminalLines('ar').slice(1, 3)).toEqual([
-      '3 فشلت · 18 نجحت · 26 لا تنطبق',
+      '3 فشلت · 18 نجحت · 32 لا تنطبق',
       'الدرجة 90 من 100',
     ])
     expect(terminalLines('en').slice(1, 3)).toEqual([
-      '3 failed · 18 passed · 26 not applicable',
+      '3 failed · 18 passed · 32 not applicable',
       'Score 90/100',
     ])
   })

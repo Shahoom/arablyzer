@@ -138,7 +138,7 @@ function section(id: string, heading: string, content: readonly string[]): strin
 }
 
 function code(example: CodeExample): string {
-  const language = example.lang === 'html' ? 'html' : 'robots-txt'
+  const language = example.lang === 'robots.txt' ? 'robots-txt' : example.lang
   return `<pre dir="ltr"><code class="language-${language}">${escapeHtml(example.code)}</code></pre>`
 }
 

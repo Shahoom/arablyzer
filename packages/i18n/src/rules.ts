@@ -1,8 +1,11 @@
 import type { Copy } from './copy'
 import { arabicCount, englishCount } from './plural'
 
-/** What a rule reads, on its page: the rendered page, robots.txt, Chrome's data, or the page. */
-export type RuleReads = 'html' | 'robots' | 'render' | 'crux'
+/**
+ * What a rule reads, on its page: the rendered page, robots.txt, Chrome's data, the server's
+ * response (its headers, redirects or connection), or the page.
+ */
+export type RuleReads = 'html' | 'robots' | 'render' | 'crux' | 'http'
 
 /** The rule library (BUILD-PLAN §6.2, M2.4): its index and each rule's page, around the copy. */
 export interface RulesStrings {
@@ -78,6 +81,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         robots: 'تقرأ robots.txt',
         render: 'تحتاج عرض الصفحة في المتصفح',
         crux: 'تقرأ بيانات زوار Chrome',
+        http: 'تقرأ رد الخادم',
       },
       manual: 'تحتاج مراجعة بشرية',
       example: 'مثال',
@@ -119,6 +123,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         robots: 'Reads robots.txt',
         render: 'Renders the page in browsers',
         crux: 'Reads Chrome’s visitor data',
+        http: 'Reads the server’s response',
       },
       manual: 'Needs a person’s review',
       example: 'Example',

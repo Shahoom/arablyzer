@@ -116,6 +116,13 @@ describe('parseToolCopy', () => {
     })
   })
 
+  it('reads an HTTP example as written', () => {
+    const exchange =
+      'HTTP/1.1 301 Moved Permanently\nLocation: https://www.example.com/\n\nHTTP/1.1 200 OK'
+    const copy = parse(AR.replace('```html\n<html lang="en">', `\`\`\`http\n${exchange}`))
+    expect(copy.example.wrong).toEqual({ lang: 'http', code: exchange })
+  })
+
   it('reads English headings and robots.txt examples, and leaves reviewed unset without it', () => {
     const copy = parse(EN, 'en')
     expect(copy.example.wrong).toEqual({ lang: 'robots.txt', code: 'User-agent: *\nDisallow: /' })
@@ -198,7 +205,12 @@ describe('parseToolCopy', () => {
     [
       'an example in another language',
       AR.replace('```html\n<html lang="en">', '```css\n<html lang="en">'),
-      /code block must be html or robots.txt/,
+      /code block must be html, robots.txt or http/,
+    ],
+    [
+      'an HTTP example its test cannot read',
+      AR.replace('```html\n<html lang="en">\n```', '```http\nHTTP/1.1 301 Moved Permanently\n```'),
+      /"### خطأ": the last response is the page, not a redirect/,
     ],
     [
       'text beside the example code',

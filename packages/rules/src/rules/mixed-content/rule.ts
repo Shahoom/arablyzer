@@ -12,7 +12,7 @@ export const rule = defineRule({
   version: '1.0.0',
   category: 'trust',
   severity: 'serious',
-  needs: ['html'],
+  needs: ['headers', 'html'],
   messages: ['blockable', 'upgradable', 'form'],
   appliesTo: (page) => page.url.startsWith('https:') && page.html !== null,
   detect: ({ page }) => {

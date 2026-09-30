@@ -18,15 +18,29 @@ const span = (className: string, text: string) =>
 
 /**
  * An example's code as the design draws it (the Tool-WhatsApp board): its markup muted, the
- * values in quotes, a CSS declaration's value or a robots.txt rule's path in the colour of the
- * example, the signal for the wrong one and pass for the right one; the text between tags as it
- * is. Escaped throughout.
+ * values in quotes, a CSS declaration's value, a robots.txt rule's path or an HTTP header's value
+ * in the colour of the example, the signal for the wrong one and pass for the right one; the text
+ * between tags as it is. Escaped throughout.
  */
 export function highlight(
   code: string,
-  lang: 'html' | 'css' | 'json' | 'robots.txt',
+  lang: 'html' | 'css' | 'json' | 'robots.txt' | 'http',
   tone: keyof typeof TONE,
 ): string {
+  if (lang === 'http') {
+    // An HTTP exchange: each status line muted, each header's name muted and its value in the
+    // example's colour, blank lines between the responses as they are.
+    return code
+      .split('\n')
+      .map((line) => {
+        if (/^HTTP\/\S+\s/.test(line)) return span(MUTED, line)
+        const match = /^([!#$%&'*+\-.^_`|~0-9A-Za-z]+:)(.*)$/.exec(line)
+        if (match === null) return escapeHtml(line)
+        const [, name = '', value = ''] = match
+        return `${span(MUTED, name)}${value === '' ? '' : span(TONE[tone], value)}`
+      })
+      .join('\n')
+  }
   if (lang === 'json') {
     // A member on its own line, its value in the example's colour; an object or an array it
     // opens stays muted, as do braces and brackets.
