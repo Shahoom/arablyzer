@@ -206,7 +206,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: The stack's settings, for this run
         run: |
-          secret() { openssl rand -hex 24; }
+          secret() { openssl rand -hex 32; }
           {
             # The host Turnstile's test keys answer with.
             echo ARABLYZER_SITE=https://example.com

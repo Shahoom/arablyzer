@@ -1,8 +1,11 @@
 import { serve } from '@hono/node-server'
 import {
   BullMQScanQueue,
+  POSTGRES_PROTOCOLS,
   PostgresScanStore,
+  productionUrl,
   quietly,
+  VALKEY_PROTOCOLS,
   ValkeyRateLimiter,
   ValkeyScanEvents,
 } from '@arablyzer/store'
@@ -15,18 +18,19 @@ import { apiDeps } from './config'
 // Valkey for the queue, the events and the limits. It brings the tables up to date first.
 // Production's checks hold whatever NODE_ENV says; dev.ts is the one for development.
 const env: Readonly<Record<string, string | undefined>> = { ...process.env, NODE_ENV: 'production' }
-const required = (name: string): string => {
-  const value = env[name]?.trim()
-  if (value === undefined || value === '') throw new Error(`${name} must be set`)
-  return value
-}
 const log = (text: string) => {
   console.error(text)
 }
 
+// The URLs are read before a client sees them, so that one it cannot read is told by its name,
+// never by its text, whose password ioredis and pg would print; and their passwords are 32
+// characters or more (packages/store).
+const redisUrl = productionUrl('VALKEY_URL', env.VALKEY_URL, VALKEY_PROTOCOLS)
+const databaseUrl = productionUrl('DATABASE_URL', env.DATABASE_URL, POSTGRES_PROTOCOLS)
+
 // A request is answered, 503 when it must be, rather than waiting for Valkey to come back: no
 // command waits for a connection, and none waits more than five seconds for its answer.
-const redis = new Redis(required('VALKEY_URL'), {
+const redis = new Redis(redisUrl, {
   enableOfflineQueue: false,
   commandTimeout: 5_000,
   maxRetriesPerRequest: 1,
@@ -37,7 +41,7 @@ await new Promise<void>((resolve) => {
   else redis.once('ready', resolve)
 })
 const pool = new pg.Pool({
-  connectionString: required('DATABASE_URL'),
+  connectionString: databaseUrl,
   max: 10,
   connectionTimeoutMillis: 5_000,
 })

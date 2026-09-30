@@ -1,4 +1,11 @@
 export { BullMQScanQueue, SCAN_QUEUE, SCAN_WORKER } from './bullmq'
+export {
+  connectionUrl,
+  POSTGRES_PROTOCOLS,
+  productionUrl,
+  VALKEY_PROTOCOLS,
+  type ConnectionUrlOptions,
+} from './connection'
 export { MemoryRateLimiter, secondsUntilOne, type RateLimiter, type Taken } from './limits'
 export { quietly } from './log'
 export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
