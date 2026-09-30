@@ -42,7 +42,8 @@ export function apiDeps(
   if ((site === undefined || site === '') && production) {
     throw new Error('ARABLYZER_SITE must be set in production: Turnstile checks its host name')
   }
-  const hostname = site === undefined || site === '' ? undefined : new URL(site).hostname
+  const siteUrl = site === undefined || site === '' ? undefined : new URL(site)
+  const hostname = siteUrl?.hostname
   const turnstile =
     secret === undefined || secret === ''
       ? noTurnstile
@@ -64,6 +65,7 @@ export function apiDeps(
   }
 
   return {
+    ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
     limits: limitsFrom(env),
     policy,
     resolver,

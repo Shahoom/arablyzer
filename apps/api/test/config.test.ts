@@ -68,6 +68,18 @@ describe('apiDeps', () => {
     }
   })
 
+  it('takes the site’s origin from ARABLYZER_SITE, whatever path it is given with', () => {
+    expect(apiDeps(PRODUCTION, stores()).origin).toBe('https://arablyzer.example')
+    expect(
+      apiDeps({ ...PRODUCTION, ARABLYZER_SITE: 'https://arablyzer.example/en/' }, stores()).origin,
+    ).toBe('https://arablyzer.example')
+    expect(
+      apiDeps({ ...PRODUCTION, ARABLYZER_SITE: 'http://localhost:4321' }, stores()).origin,
+    ).toBe('http://localhost:4321')
+    // Development without a site: no origin to hold requests to.
+    expect(apiDeps({ NODE_ENV: 'development' }, stores(), () => undefined).origin).toBeUndefined()
+  })
+
   it('never opens private addresses in production', () => {
     expect(() => apiDeps({ ...PRODUCTION, ARABLYZER_ALLOW_PRIVATE: '1' }, stores())).toThrow(
       /never in production/,

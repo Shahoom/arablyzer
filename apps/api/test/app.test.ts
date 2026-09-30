@@ -381,6 +381,140 @@ describe('visitors on IPv6', () => {
   })
 })
 
+// Issue #30: the API read whatever body it was sent as JSON, whatever its type, so a page on any
+// site could POST to it with a "simple" request, which no preflight guards, and spend a visitor's
+// limits or fill the queue from their browsers.
+describe('who may start a scan', () => {
+  const SITE = 'https://arablyzer.example'
+  /** The headers of a request from this origin, with this type; null for none of either. */
+  const from = (origin: string | null, type: string | null = 'application/json') => ({
+    ...(origin === null ? {} : { origin }),
+    ...(type === null ? {} : { 'content-type': type }),
+  })
+  /**
+   * A POST with exactly these headers: a string body would add a text type of its own, so the
+   * body is bytes.
+   */
+  const send = (
+    app: ReturnType<typeof setup>['app'],
+    headers: Record<string, string>,
+    body = JSON.stringify({ url: 'https://example.com/', turnstileToken: 'human' }),
+  ) => app.request('/api/scans', { method: 'POST', headers, body: new TextEncoder().encode(body) })
+
+  describe('the body’s type', () => {
+    it('takes application/json, in any case, with parameters', async () => {
+      const { app } = setup({ limits: { ...DEVELOPMENT_LIMITS, inFlight: 5 } })
+      for (const type of [
+        'application/json',
+        'Application/JSON',
+        'application/json; charset=utf-8',
+      ]) {
+        expect((await send(app, from(null, type))).status, type).toBe(202)
+      }
+    })
+
+    it('refuses every other type, and none, before it reads the body or asks anyone', async () => {
+      const { app, turnstileCalls, queue } = setup()
+      for (const type of [
+        'text/plain',
+        'text/plain;charset=UTF-8',
+        'application/x-www-form-urlencoded',
+        'multipart/form-data; boundary=x',
+        'text/json',
+        'application/jsonp',
+        'application/json-seq',
+        'application/vnd.api+json',
+        'application/ json',
+        '',
+        null,
+      ]) {
+        const response = await send(app, from(null, type))
+        expect(await refusal(response), String(type)).toEqual({
+          status: 400,
+          body: { error: 'bad-request' },
+        })
+      }
+      expect(turnstileCalls).toEqual([])
+      expect(await queue.waiting()).toBe(0)
+    })
+  })
+
+  describe('the request’s origin', () => {
+    it('takes a request from the site, and refuses one from any other origin', async () => {
+      const { app, queue } = setup({ origin: SITE })
+      expect((await send(app, from(SITE))).status).toBe(202)
+      for (const origin of [
+        'https://evil.example',
+        'null',
+        'http://arablyzer.example',
+        'https://arablyzer.example:8443',
+        'https://arablyzer.example.evil.example',
+        'https://www.arablyzer.example',
+        'https://arablyzer.example/',
+        'https://ARABLYZER.example',
+        SITE.toUpperCase(),
+        '',
+      ]) {
+        const response = await send(app, from(origin))
+        expect(await refusal(response), origin).toEqual({
+          status: 400,
+          body: { error: 'bad-request' },
+        })
+      }
+      expect(await queue.waiting()).toBe(1)
+    })
+
+    it('refuses a request with no origin: a browser always sends one with a POST', async () => {
+      const { app } = setup({ origin: SITE })
+      expect((await send(app, from(null))).status).toBe(400)
+    })
+
+    it('asks no origin where the site’s is not set, as in development', async () => {
+      const { app } = setup()
+      expect((await send(app, from('http://localhost:4321'))).status).toBe(202)
+      expect((await send(app, from(null))).status).toBe(202)
+    })
+
+    it('refuses before Turnstile, before the throttle, and at no cost to the visitor', async () => {
+      const { app, turnstileCalls } = setup({
+        origin: SITE,
+        limits: { ...DEVELOPMENT_LIMITS, attempts: { scans: 1, seconds: 3600 } },
+      })
+      for (let i = 0; i < 5; i++)
+        expect((await send(app, from('https://evil.example'))).status).toBe(400)
+      expect(turnstileCalls).toEqual([])
+      // Not one of them was counted against the visitor, whose own request is still let through.
+      expect((await send(app, from(SITE))).status).toBe(202)
+    })
+
+    it('says so in the log, once in a while, and never with what the request sent', async () => {
+      const logged: string[] = []
+      const { app } = setup({ origin: SITE, log: (message) => logged.push(message) })
+      for (let i = 0; i < 4; i++) await send(app, from('https://evil.example/attack?token=secret'))
+      expect(logged).toHaveLength(1)
+      expect(logged[0]).toMatch(/origin/i)
+      expect(logged[0]).not.toContain('evil')
+      expect(logged[0]).not.toContain('secret')
+    })
+
+    it('answers no preflight, so a page on another site cannot send JSON to it', async () => {
+      const { app } = setup({ origin: SITE })
+      const response = await app.request('/api/scans', {
+        method: 'OPTIONS',
+        headers: {
+          origin: 'https://evil.example',
+          'access-control-request-method': 'POST',
+          'access-control-request-headers': 'content-type',
+        },
+      })
+      expect(response.status).toBe(404)
+      expect(
+        [...response.headers.keys()].filter((name) => name.startsWith('access-control')),
+      ).toEqual([])
+    })
+  })
+})
+
 describe('the scans a visitor has in flight', () => {
   const capped = (inFlight: number) => ({ limits: { ...DEVELOPMENT_LIMITS, inFlight } })
   /** The key `setup` gives the visitor at 203.0.113.9. */
