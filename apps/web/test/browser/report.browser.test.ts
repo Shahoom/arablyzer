@@ -30,10 +30,12 @@ const OPTED_OUT = 'OptedOutOptedOutOpte_3'
 
 /**
  * Rules a report page fails on purpose: it is never indexed (BUILD-PLAN §6.5), and the page its
- * server sends is a shell whose heading the island draws, so a rule that reads the HTML as sent
- * finds none. Search engines never read it; a visitor, and a screen reader, get the heading.
+ * server sends is a shell whose heading and report the island draws, so a rule that reads the
+ * HTML as sent finds no heading (h1-missing), and most of the words a browser draws are written
+ * by scripts (js-only-content, M2.3c). Search engines never read it; a visitor, and a screen
+ * reader, get the heading and the report.
  */
-const BY_DESIGN = new Set(['page-noindex', 'h1-missing'])
+const BY_DESIGN = new Set(['page-noindex', 'h1-missing', 'js-only-content'])
 
 let root = ''
 let site: FixtureSite
