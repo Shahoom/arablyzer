@@ -785,11 +785,10 @@ describe('deleting a report', () => {
       const { app, scanOf, store } = setup({ limits: { ...DEVELOPMENT_LIMITS, inFlight: 5 } })
       const first = await start(scanOf)
       const second = await start(scanOf, 'https://example.org/')
-      for (const token of [
-        second.deleteToken,
-        'B'.repeat(43),
-        first.deleteToken.slice(0, -1) + 'A',
-      ]) {
+      // The token with its last character changed to another, whichever it is (they are random).
+      const last = first.deleteToken.at(-1)
+      const nearly = first.deleteToken.slice(0, -1) + (last === 'A' ? 'B' : 'A')
+      for (const token of [second.deleteToken, 'B'.repeat(43), nearly]) {
         const response = await del(app, first.id, bearer(token))
         expect(await refusal(response), token).toEqual({
           status: 403,
