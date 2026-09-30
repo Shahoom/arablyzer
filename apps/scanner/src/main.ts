@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server'
 import { createScannerApp } from './app'
+import { assertIsolated } from './isolation'
 import { localScanner } from './local'
 import { scanOptionsFrom } from './options'
 
@@ -14,6 +15,9 @@ const token = env.ARABLYZER_SCANNER_TOKEN?.trim() ?? ''
 if (token.length < MIN_TOKEN_LENGTH) {
   throw new Error(`ARABLYZER_SCANNER_TOKEN must be set, ${MIN_TOKEN_LENGTH} characters or more`)
 }
+// WebKit runs only where the network reaches the egress proxy alone, which Compose says
+// (ARABLYZER_NETWORK_ISOLATED); the container is asked, and refuses to start if it is not so.
+await assertIsolated(env)
 const options = scanOptionsFrom(env)
 if (options.policy?.upstream === undefined) {
   throw new Error(

@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -80,8 +80,11 @@ function inspect(service: string): Container {
   )
 }
 
+/** Compose's name for the stack's project: `name` in compose.yaml, unless the environment names another. */
+const PROJECT = process.env.COMPOSE_PROJECT_NAME ?? 'arablyzer'
+
 function network(name: string): Network {
-  return only(JSON.parse(docker('network', 'inspect', `arablyzer_${name}`)) as Network[], name)
+  return only(JSON.parse(docker('network', 'inspect', `${PROJECT}_${name}`)) as Network[], name)
 }
 
 /** A Node script run in one of the stack's containers: its standard output. */
@@ -480,6 +483,43 @@ describe('the networks', () => {
         service,
       ).toEqual([])
     }
+  })
+})
+
+describe('the scanner', () => {
+  it('refuses to start where its network has a way out, though it is told the network is isolated', () => {
+    const { Config: scanner } = inspect('scanner')
+    expect(scanner.Env).toContain('ARABLYZER_NETWORK_ISOLATED=1')
+    // Its own image and settings, on the edge network, which has a way out through the host.
+    const started = spawnSync(
+      'docker',
+      [
+        ...['run', '--rm', '--network', `${PROJECT}_edge`, '--read-only', '--tmpfs', '/tmp'],
+        ...['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true'],
+        ...scanner.Env.flatMap((entry) => ['--env', entry]),
+        ...['--entrypoint', 'node', scanner.Image, '--import', 'tsx', 'apps/scanner/src/main.ts'],
+      ],
+      { encoding: 'utf8', timeout: 60_000 },
+    )
+    expect(started.status).toBe(1)
+    expect(started.stderr).toMatch(/ARABLYZER_NETWORK_ISOLATED is set, but .* not isolated/)
+    expect(started.stderr).toContain('default route')
+    expect(started.stdout).not.toContain('Scanner on port')
+  })
+
+  it('has no way out where it runs: no default route, and no outside name that resolves', () => {
+    const checked = JSON.parse(
+      compose(
+        'exec',
+        '-T',
+        'scanner',
+        'node',
+        '--import',
+        'tsx',
+        'apps/scanner/src/check-isolation.ts',
+      ),
+    ) as { problems: string[] }
+    expect(checked.problems).toEqual([])
   })
 })
 
