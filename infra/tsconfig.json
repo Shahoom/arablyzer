@@ -1,4 +1,4 @@
 {
   "extends": "../tsconfig.base.json",
-  "include": ["checks", "test", "verify-deploy.ts", "vitest.config.ts"]
+  "include": ["checks", "load", "test", "verify-deploy.ts", "vitest.config.ts"]
 }

@@ -219,6 +219,20 @@ export default defineConfig(
     },
   },
   {
+    // The load test asks a stack that runs on this machine, on its published port, as visitors
+    // do (M2.5): `fetch` alone, no socket of its own, and never in CI (infra/load/README.md).
+    files: ['infra/load/**'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
     // The site's Lighthouse run in CI, on its own pages on loopback (M2.1 plan §3).
     files: ['apps/web/scripts/lighthouse.ts'],
     rules: networkRules({ allowProcesses: true, allow: ['lighthouse', 'chrome-launcher'] }),
