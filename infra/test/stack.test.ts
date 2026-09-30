@@ -1,6 +1,24 @@
-import { execFileSync, spawnSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import { spawnSync } from 'node:child_process'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import {
+  apiBelievesTheProxyAlone,
+  containersHardened,
+  databaseRoles,
+  dockerEngine,
+  egressPorts,
+  egressRefusals,
+  egressRefusesTheServer,
+  hostServicesOutOfReach,
+  internalNetworks,
+  noIpv6,
+  scannerNetworkClosed,
+  scannerReach,
+  servicesUp,
+  siteOnLoopback,
+  valkeyAccess,
+  workerReach,
+} from '../checks/checks'
+import { Stack, type HostProbe } from '../checks/stack'
 
 // The stack as Compose runs it (M2.1 plan §5b), tested from outside, with compose.e2e.yaml's
 // golden site. CI starts it; by hand:
@@ -8,150 +26,25 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 //   docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml up -d --build --wait
 //   pnpm test:stack
 //
-// It runs a listener on the host's own network while it runs, and at its end it stops the API
-// for a moment, and starts it again.
+// The isolation checks are infra/checks/checks.ts's, which infra/verify-deploy.ts runs on a stack
+// that was deployed. It runs a listener on the host's own network while it runs, and at its end
+// it stops the API for a moment, and starts it again. Beside another stack on the same Docker,
+// COMPOSE_PROJECT_NAME, ARABLYZER_PORT and ARABLYZER_STACK_URL name its own.
 
 const SITE = process.env.ARABLYZER_STACK_URL ?? 'http://127.0.0.1:8080'
 /** Golden site 04, on the test network's public-looking subnet (compose.e2e.yaml). */
-const FIXTURE = 'http://93.184.215.50/'
+const FIXTURE_ADDRESS = '93.184.215.50'
+const FIXTURE = `http://${FIXTURE_ADDRESS}/`
 /** What Cloudflare's test site keys give, and its test secret accepts (infra/.env.example). */
 const DUMMY_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX'
-const INFRA = fileURLToPath(new URL('..', import.meta.url))
-/** A name the container's networks do not have: Docker's DNS knows it not, or cannot ask on. */
-const UNRESOLVED = /^(?:ENOTFOUND|EAI_AGAIN)$/
-/** The networks without a way out, compose.yaml's and the test's own. */
-const INTERNAL = ['data', 'scan', 'isolated', 'testnet'] as const
-const SERVICES = ['web', 'api', 'worker', 'scanner', 'egress', 'valkey', 'postgres'] as const
-/** The services that run Node, which reaps no process it did not start. */
-const NODE_SERVICES = ['api', 'worker', 'scanner'] as const
 
-interface Container {
-  readonly Config: { readonly Image: string; readonly Env: readonly string[] }
-  readonly State: { readonly Health?: { readonly Status: string } }
-  readonly HostConfig: {
-    readonly NanoCpus: number
-    readonly PidsLimit: number | null
-    readonly Memory: number
-    readonly MemorySwap: number
-    readonly ReadonlyRootfs: boolean
-    readonly CapDrop: readonly string[] | null
-    readonly SecurityOpt: readonly string[] | null
-    readonly Init: boolean | null
-    readonly LogConfig: { readonly Type: string; readonly Config: Readonly<Record<string, string>> }
-  }
-}
-
-interface Network {
-  readonly Internal: boolean
-  readonly Options: Readonly<Record<string, string>>
-  readonly IPAM: {
-    readonly Config: readonly { readonly Subnet: string; readonly Gateway?: string }[]
-  }
-}
-
-function docker(...args: string[]): string {
-  return execFileSync('docker', args, { encoding: 'utf8', timeout: 120_000 }).trim()
-}
-
-/** docker compose, on the stack: its standard output. */
-function compose(...args: string[]): string {
-  return execFileSync(
-    'docker',
-    ['compose', '-f', 'compose.yaml', '-f', 'compose.e2e.yaml', ...args],
-    {
-      cwd: INFRA,
-      encoding: 'utf8',
-      timeout: 120_000,
-    },
-  ).trim()
-}
-
-function only<T>(items: readonly T[], what: string): T {
-  const [item] = items
-  if (item === undefined || items.length !== 1) throw new Error(`Not one ${what}`)
-  return item
-}
-
-/** What `docker inspect` says of a service's container. */
-function inspect(service: string): Container {
-  return only(
-    JSON.parse(docker('inspect', compose('ps', '--quiet', service))) as Container[],
-    service,
-  )
-}
-
-/** Compose's name for the stack's project: `name` in compose.yaml, unless the environment names another. */
-const PROJECT = process.env.COMPOSE_PROJECT_NAME ?? 'arablyzer'
-
-function network(name: string): Network {
-  return only(JSON.parse(docker('network', 'inspect', `${PROJECT}_${name}`)) as Network[], name)
-}
-
-/** A Node script run in one of the stack's containers: its standard output. */
-function inside(service: string, script: string): string {
-  return compose('exec', '-T', service, 'node', '-e', script)
-}
-
-/** TCP connections from a container, all at once: 'open', 'timeout' or the error's code, by host. */
-function reach(service: string, hosts: readonly string[], port: number): Record<string, string> {
-  return JSON.parse(
-    inside(
-      service,
-      `const net = require('net');
-       Promise.all(${JSON.stringify(hosts)}.map((host) => new Promise((done) => {
-         const s = net.connect(${String(port)}, host);
-         s.setTimeout(3000, () => { s.destroy(); done([host, 'timeout']) });
-         s.on('connect', () => { s.destroy(); done([host, 'open']) });
-         s.on('error', (e) => done([host, e.code || e.message]));
-       }))).then((all) => console.log(JSON.stringify(Object.fromEntries(all))));`,
-    ),
-  ) as Record<string, string>
-}
-
-const reachOne = (service: string, host: string, port: number) => reach(service, [host], port)[host]
-
-/** A CONNECT through the egress proxy, from the scanner: the proxy's status line. */
-function tunnel(authority: string): string {
-  return inside(
-    'scanner',
-    `const s = require('net').connect(4750, 'egress', () =>
-       s.write('CONNECT ${authority} HTTP/1.1\\r\\nHost: ${authority}\\r\\n\\r\\n'));
-     let seen = '';
-     s.on('data', (d) => { seen += d; if (seen.includes('\\r\\n')) { console.log(seen.split('\\r\\n')[0]); process.exit(0) } });
-     s.on('error', (e) => { console.log(e.code); process.exit(0) });
-     setTimeout(() => { console.log('timeout'); process.exit(0) }, 15000);`,
-  )
-}
-
-/** The processes in a container, by the kernel's name for each, and their state. */
-function processes(service: string): { name: string; state: string }[] {
-  return JSON.parse(
-    inside(
-      service,
-      `const fs = require('fs');
-       const all = [];
-       for (const pid of fs.readdirSync('/proc').filter((entry) => /^\\d+$/.test(entry))) {
-         try {
-           const stat = fs.readFileSync('/proc/' + pid + '/stat', 'utf8');
-           const close = stat.lastIndexOf(')');
-           all.push({ name: stat.slice(stat.indexOf('(') + 1, close), state: stat.slice(close + 2, close + 3) });
-         } catch {}
-       }
-       console.log(JSON.stringify(all));`,
-    ),
-  ) as { name: string; state: string }[]
-}
-
-const addressNumber = (address: string) =>
-  address.split('.').reduce((number, part) => number * 256 + Number(part), 0)
-
-function inSubnet(address: string, cidr: string): boolean {
-  const [base = '', bits = '32'] = cidr.split('/')
-  const size = 2 ** (32 - Number(bits))
-  const start = Math.floor(addressNumber(base) / size) * size
-  const number = addressNumber(address)
-  return number >= start && number < start + size
-}
+const stack = new Stack({
+  files: ['compose.yaml', 'compose.e2e.yaml'],
+  project: process.env.COMPOSE_PROJECT_NAME ?? 'arablyzer',
+  probe: FIXTURE_ADDRESS,
+})
+const compose = (...args: string[]) => stack.compose(...args)
+const inspect = (service: string) => stack.inspect(service)
 
 async function scanEvents(id: string): Promise<{ type: string }[]> {
   const response = await fetch(`${SITE}/api/scans/${id}/events`, {
@@ -189,44 +82,24 @@ function postScan(url: string): Promise<Response> {
 }
 
 /** A service on the host's own network, and the host's addresses, for the networks' tests. */
-const host = { listener: '', port: 0, addresses: [] as string[] }
+let host: HostProbe
 
 beforeAll(async () => {
-  const image = inspect('api').Config.Image
-  host.listener = docker(
-    'run',
-    '--detach',
-    '--rm',
-    '--network',
-    'host',
-    '--entrypoint',
-    'node',
-    image,
-    '-e',
-    "const s = require('net').createServer((c) => c.end('host\\n')); s.listen(0, () => console.log(s.address().port))",
-  )
-  for (let tries = 0; host.port === 0 && tries < 100; tries++) {
-    const logged = docker('logs', host.listener)
-    if (/^\d+$/.test(logged)) host.port = Number(logged)
-    else await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-  host.addresses = JSON.parse(
-    docker(
-      'run',
-      '--rm',
-      '--network',
-      'host',
-      '--entrypoint',
-      'node',
-      image,
-      '-e',
-      "console.log(JSON.stringify(Object.values(require('os').networkInterfaces()).flat().filter((a) => a.family === 'IPv4' && !a.internal).map((a) => a.address)))",
-    ),
-  ) as string[]
+  host = await stack.startHostProbe()
 })
 
 afterAll(() => {
-  if (host.listener !== '') docker('rm', '--force', host.listener)
+  host.stop()
+})
+
+describe('the deployment', () => {
+  it('runs on Docker Engine 28 or later, where the internal networks give the host no address', () => {
+    expect(dockerEngine()).toEqual([])
+  })
+
+  it('has every service up and healthy, and the database step finished', () => {
+    expect(servicesUp(stack)).toEqual([])
+  })
 })
 
 describe('the site server', () => {
@@ -237,6 +110,8 @@ describe('the site server', () => {
     expect(response.headers.get('x-content-type-options')).toBe('nosniff')
     expect(response.headers.get('x-frame-options')).toBe('DENY')
     expect(response.headers.get('strict-transport-security')).toBe('max-age=31536000')
+    // The one directive a page's own <meta> policy cannot carry.
+    expect(response.headers.get('content-security-policy')).toBe("frame-ancestors 'none'")
     expect(response.headers.get('server')).toBeNull()
     expect(await response.text()).toContain('lang="ar"')
   })
@@ -246,6 +121,7 @@ describe('the site server', () => {
     expect(response.status).toBe(404)
     expect(response.headers.get('x-content-type-options')).toBe('nosniff')
     expect(response.headers.get('x-frame-options')).toBe('DENY')
+    expect(response.headers.get('content-security-policy')).toBe("frame-ancestors 'none'")
     expect(response.headers.get('server')).toBeNull()
   })
 
@@ -349,7 +225,37 @@ describe('the site server', () => {
   })
 
   it("is published on the host's loopback alone, for the host's own proxy", () => {
-    expect(compose('port', 'web', '8080')).toMatch(/^127\.0\.0\.1:\d+$/)
+    expect(siteOnLoopback(stack)).toEqual([])
+  })
+
+  it('has timeouts for a request’s headers and body, and none for a response, which a scan’s events are one of', () => {
+    const config = JSON.parse(
+      compose('exec', '-T', 'web', 'caddy', 'adapt', '--config', '/etc/caddy/Caddyfile'),
+    ) as { apps: { http: { servers: Record<string, Record<string, number | undefined>> } } }
+    const [server] = Object.values(config.apps.http.servers)
+    const SECOND = 1_000_000_000
+    expect(server?.read_header_timeout).toBe(10 * SECOND)
+    expect(server?.read_timeout).toBe(30 * SECOND)
+    expect(server?.idle_timeout).toBe(120 * SECOND)
+    // A write timeout would cut a scan's event stream, which lasts minutes.
+    expect(server?.write_timeout).toBeUndefined()
+  })
+
+  it('closes a connection that is slow to send its headers, within the timeout', () => {
+    // From the API's container, which reaches the site's server on the edge network: a request
+    // that is never finished, held open by nothing but the timeout.
+    const closedAfterMs = Number(
+      stack.inside(
+        'api',
+        `const s = require('net').connect(8080, 'web', () => s.write('GET / HTTP/1.1\\r\\nHost: slow\\r\\n'));
+         s.on('error', () => {});
+         const started = Date.now();
+         s.on('close', () => { console.log(Date.now() - started); process.exit(0) });
+         setTimeout(() => { console.log(-1); process.exit(0) }, 30000);`,
+      ),
+    )
+    expect(closedAfterMs).toBeGreaterThanOrEqual(9_000)
+    expect(closedAfterMs).toBeLessThan(15_000)
   })
 })
 
@@ -402,7 +308,7 @@ describe('a scan through the whole stack', () => {
   }, 120_000)
 
   it('leaves the scanner no browser and no zombie once the scan is over', () => {
-    const left = processes('scanner')
+    const left = stack.processes('scanner')
     expect(left.filter((running) => running.state === 'Z')).toEqual([])
     expect(
       left.filter((running) =>
@@ -422,67 +328,29 @@ describe('a scan through the whole stack', () => {
 
 describe('the networks', () => {
   it('give the scanner the egress proxy and the worker alone: no store, no site', () => {
-    expect(reachOne('scanner', 'egress', 4750)).toBe('open')
-    for (const [name, port] of [
-      ['valkey', 6379],
-      ['postgres', 5432],
-      ['api', 8787],
-      ['web', 8080],
-    ] as const) {
-      expect(reachOne('scanner', name, port), name).toMatch(UNRESOLVED)
-    }
-    expect(reachOne('scanner', '93.184.215.50', 80)).not.toBe('open')
+    expect(scannerReach(stack)).toEqual([])
   })
 
   it('give the worker the stores and the scanner, and no way out', () => {
-    expect(reachOne('worker', 'scanner', 8788)).toBe('open')
-    expect(reachOne('worker', 'valkey', 6379)).toBe('open')
-    expect(reachOne('worker', 'egress', 4750)).toMatch(UNRESOLVED)
-    expect(reachOne('worker', '93.184.215.50', 80)).not.toBe('open')
+    expect(workerReach(stack)).toEqual([])
   })
 
   it('give the host no address on the internal ones', () => {
     expect(host.addresses.length).toBeGreaterThan(0)
-    for (const name of INTERNAL) {
-      const internal = network(name)
-      expect(internal.Internal, name).toBe(true)
-      expect(internal.Options['com.docker.network.bridge.gateway_mode_ipv4'], name).toBe('isolated')
-      for (const { Subnet } of internal.IPAM.Config) {
-        expect(
-          host.addresses.filter((address) => inSubnet(address, Subnet)),
-          `${name} ${Subnet}`,
-        ).toEqual([])
-      }
-    }
+    expect(internalNetworks(stack, host)).toEqual([])
+    // The test's own network is one of them.
+    expect(stack.internalNetworks()).toEqual(['data', 'isolated', 'scan', 'testnet'])
   })
 
   it("keep the host's own services out of the scanner's and the worker's reach", () => {
     expect(host.port).toBeGreaterThan(0)
     // The edge network has a way out, through the host: there, the listener answers.
-    expect(Object.values(reach('api', host.addresses, host.port))).toContain('open')
-    for (const service of ['scanner', 'worker']) {
-      for (const [address, outcome] of Object.entries(reach(service, host.addresses, host.port))) {
-        // Refused would mean the host answered: an address of its, reached.
-        expect(outcome, `${service} → ${address}`).not.toMatch(/^(?:open|ECONNREFUSED)$/)
-      }
-    }
+    expect(Object.values(stack.reach('api', host.addresses, host.port))).toContain('open')
+    expect(hostServicesOutOfReach(stack, host)).toEqual([])
   })
 
   it('give the scanner and the worker no IPv6 address but loopback', () => {
-    for (const service of ['scanner', 'worker']) {
-      const table = inside(
-        service,
-        "try { console.log(require('fs').readFileSync('/proc/net/if_inet6', 'utf8')) } catch { console.log('') }",
-      )
-      const interfaces = table
-        .split('\n')
-        .filter((line) => line.trim() !== '')
-        .map((line) => line.trim().split(/\s+/).at(-1))
-      expect(
-        interfaces.filter((name) => name !== 'lo'),
-        service,
-      ).toEqual([])
-    }
+    expect(noIpv6(stack)).toEqual([])
   })
 })
 
@@ -494,8 +362,8 @@ describe('the scanner', () => {
     const started = spawnSync(
       'docker',
       [
-        ...['run', '--rm', '--network', `${PROJECT}_edge`, '--read-only', '--tmpfs', '/tmp'],
-        ...['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true'],
+        ...['run', '--rm', '--network', `${stack.options.project}_edge`, '--read-only'],
+        ...['--tmpfs', '/tmp', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true'],
         ...scanner.Env.flatMap((entry) => ['--env', entry]),
         ...['--entrypoint', 'node', scanner.Image, '--import', 'tsx', 'apps/scanner/src/main.ts'],
       ],
@@ -508,63 +376,34 @@ describe('the scanner', () => {
   })
 
   it('has no way out where it runs: no default route, and no outside name that resolves', () => {
-    const checked = JSON.parse(
-      compose(
-        'exec',
-        '-T',
-        'scanner',
-        'node',
-        '--import',
-        'tsx',
-        'apps/scanner/src/check-isolation.ts',
-      ),
-    ) as { problems: string[] }
-    expect(checked.problems).toEqual([])
+    expect(scannerNetworkClosed(stack)).toEqual([])
   })
 })
 
 describe('the egress proxy', () => {
   it('opens a public address on 80 and 443 alone', () => {
-    expect(tunnel('93.184.215.50:80')).toMatch(/^HTTP\/1\.[01] 200/)
-    expect(tunnel('93.184.215.50:8080')).toMatch(/^HTTP\/1\.1 500/)
+    expect(egressPorts(stack)).toEqual([])
   })
 
   it('refuses every private, local and metadata address, and the stack itself', () => {
-    for (const authority of [
-      '10.0.0.1:80',
-      '127.0.0.1:80',
-      '169.254.169.254:80',
-      '172.17.0.1:80',
-      '192.168.1.1:443',
-      '100.64.0.1:80',
-      '[::1]:80',
-      '[fd00::1]:443',
-      'valkey:6379',
-      'postgres:80',
-      'api:80',
-    ]) {
-      expect(tunnel(authority), authority).toMatch(/^HTTP\/1\.1 (407|502)/)
-    }
+    expect(egressRefusals(stack)).toEqual([])
   })
 
-  it("refuses the server's own addresses, IPv4 and IPv6, which the API, the scanner and it are all given", async () => {
-    const given = (['egress', 'api', 'scanner'] as const).map(
-      (service) =>
-        inspect(service)
-          .Config.Env.find((entry) => entry.startsWith('ARABLYZER_DENY_CIDRS='))
-          ?.slice('ARABLYZER_DENY_CIDRS='.length) ?? '',
-    )
-    expect(new Set(given).size).toBe(1)
-    const cidrs = (given[0] ?? '').split(',').map((cidr) => cidr.trim())
+  it("refuses the server's own addresses, IPv4 and IPv6, which the API, the scanner and it are all given", () => {
+    const cidrs = (stack.env('egress', 'ARABLYZER_DENY_CIDRS') ?? '')
+      .split(',')
+      .map((cidr) => cidr.trim())
     // CI's list has both: the address of the test network, and an IPv6 one.
     expect(cidrs.some((cidr) => /^\d+\.\d+\.\d+\.\d+\/\d+$/.test(cidr))).toBe(true)
     expect(cidrs.some((cidr) => /^[0-9a-f:]+\/\d+$/i.test(cidr))).toBe(true)
-    for (const cidr of cidrs) {
-      const address = cidr.split('/')[0] ?? ''
-      const authority = address.includes(':') ? `[${address}]` : address
-      // Refused for the rule, not unreachable: 407 is the refusal's own answer.
-      expect(tunnel(`${authority}:80`), cidr).toMatch(/^HTTP\/1\.1 407/)
-      const refused = await postScan(`http://${authority}/`)
+    // Each range of the list, and each address the host has.
+    expect(egressRefusesTheServer(stack, host)).toEqual([])
+  })
+
+  it("is not the only one to refuse them: the API refuses a scan of the server's own addresses", async () => {
+    for (const cidr of (stack.env('api', 'ARABLYZER_DENY_CIDRS') ?? '').split(',')) {
+      const address = cidr.trim().split('/')[0] ?? ''
+      const refused = await postScan(`http://${address.includes(':') ? `[${address}]` : address}/`)
       expect(refused.status, cidr).toBe(422)
       expect(await refused.json(), cidr).toEqual({ error: 'blocked-address' })
     }
@@ -577,50 +416,57 @@ describe('the egress proxy', () => {
 })
 
 describe('the API', () => {
-  /** A scan request to the API's own port, as anything on the edge network can send it. */
-  function askDirectly(withSecret: boolean): { status: number; body: unknown } {
-    return JSON.parse(
-      inside(
-        'api',
-        `const headers = { 'content-type': 'application/json', 'x-forwarded-for': '198.51.100.9' };
-         if (${String(withSecret)}) headers['x-arablyzer-proxy-secret'] = process.env.ARABLYZER_PROXY_SECRET;
-         fetch('http://127.0.0.1:8787/api/scans', {
-           method: 'POST',
-           headers,
-           body: JSON.stringify({ url: 'http://example.com/', turnstileToken: '' }),
-         }).then(async (r) => console.log(JSON.stringify({ status: r.status, body: await r.json() })));`,
-      ),
-    ) as { status: number; body: unknown }
-  }
-
   it("believes the address in X-Forwarded-For only of a request with the site server's secret", () => {
     // Without the secret, whoever reaches the API's port could be any visitor: none is believed,
     // and no scan starts. With it, the address is taken, and the request goes on to Turnstile's
     // check, which an empty token fails before any request is made: nothing is queued.
-    expect(askDirectly(false)).toEqual({ status: 503, body: { error: 'unavailable' } })
-    expect(askDirectly(true)).toEqual({ status: 403, body: { error: 'turnstile-failed' } })
+    expect(apiBelievesTheProxyAlone(stack)).toEqual([])
+  })
+})
+
+describe('the stores', () => {
+  it('give the API and the worker a role that reads and writes the scans and changes nothing', () => {
+    expect(databaseRoles(stack)).toEqual([])
+  })
+
+  it('give the application user of Valkey the queue’s commands, and not the dangerous ones', () => {
+    expect(valkeyAccess(stack)).toEqual([])
+  })
+
+  // `openssl rand -base64` makes a password with a `/` one time in three, and ioredis prints the
+  // URL it cannot read, password and all, in the error of a process that dies of it.
+  it('start no service on a URL they cannot read, and print nothing of its password', () => {
+    const password = `${'ab12'.repeat(8)}/${'cd34'.repeat(8)}`
+    for (const [service, entry, variable] of [
+      ['api', 'apps/api/src/server.ts', 'VALKEY_URL'],
+      ['worker', 'apps/worker/src/main.ts', 'VALKEY_URL'],
+    ] as const) {
+      const { Config: config } = inspect(service)
+      const started = spawnSync(
+        'docker',
+        [
+          ...['run', '--rm', '--network', 'none', '--read-only', '--tmpfs', '/tmp'],
+          ...['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true'],
+          ...config.Env.filter((entry) => !entry.startsWith(`${variable}=`)).flatMap((entry) => [
+            '--env',
+            entry,
+          ]),
+          ...['--env', `${variable}=redis://arablyzer:${password}@valkey:6379`],
+          ...['--entrypoint', 'node', config.Image, '--import', 'tsx', entry],
+        ],
+        { encoding: 'utf8', timeout: 60_000 },
+      )
+      expect(started.status, service).toBe(1)
+      expect(started.stderr, service).toContain(`${variable} is not a URL of the form`)
+      expect(started.stderr + started.stdout, service).not.toContain(password)
+      expect(started.stderr + started.stdout, service).not.toContain('ab12ab12')
+    }
   })
 })
 
 describe('the containers', () => {
   it('run read-only, unprivileged, with caps on CPU, processes, memory and logs', () => {
-    for (const service of SERVICES) {
-      const { HostConfig: config } = inspect(service)
-      expect(config.ReadonlyRootfs, service).toBe(true)
-      expect(config.CapDrop, service).toEqual(['ALL'])
-      expect(config.SecurityOpt, service).toContain('no-new-privileges:true')
-      expect(config.NanoCpus, service).toBeGreaterThan(0)
-      expect(config.PidsLimit ?? 0, service).toBeGreaterThan(0)
-      expect(config.Memory, service).toBeGreaterThan(0)
-      // No swap past the memory limit.
-      expect(config.MemorySwap, service).toBe(config.Memory)
-      expect(config.LogConfig, service).toEqual({
-        Type: 'json-file',
-        Config: { 'max-file': '3', 'max-size': '10m' },
-      })
-    }
-    for (const service of NODE_SERVICES)
-      expect(inspect(service).HostConfig.Init, service).toBe(true)
+    expect(containersHardened(stack)).toEqual([])
   })
 })
 
