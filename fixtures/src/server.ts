@@ -1,0 +1,154 @@
+import { readFile, stat } from 'node:fs/promises'
+import http from 'node:http'
+import path from 'node:path'
+import { z } from 'zod'
+import { FixtureConfig, type RouteOverride } from './config'
+
+export interface FixtureSite {
+  readonly origin: string
+  readonly port: number
+  url(pathname?: string): string
+  close(): Promise<void>
+}
+
+const CONFIG_FILE = 'fixture.json'
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.woff2': 'font/woff2',
+}
+
+export async function loadFixtureConfig(root: string): Promise<FixtureConfig> {
+  const file = path.join(root, CONFIG_FILE)
+  let text: string
+  try {
+    text = await readFile(file, 'utf8')
+  } catch (error) {
+    if (isNotFound(error)) return {}
+    throw error
+  }
+  const parsed = FixtureConfig.safeParse(JSON.parse(text))
+  if (!parsed.success) throw new Error(`Invalid ${file}:\n${z.prettifyError(parsed.error)}`)
+  return parsed.data
+}
+
+/** Serve one fixture site directory on its own 127.0.0.1 origin, so /robots.txt sits at the root. */
+export async function serveSite(root: string): Promise<FixtureSite> {
+  const siteRoot = path.resolve(root)
+  const config = await loadFixtureConfig(siteRoot)
+  const server = http.createServer((req, res) => {
+    respond(siteRoot, config, req, res).catch((error: unknown) => {
+      res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
+      res.end(String(error))
+    })
+  })
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', resolve)
+  })
+  const address = server.address()
+  if (address === null || typeof address === 'string') {
+    throw new Error('Fixture server has no TCP address')
+  }
+  const origin = `http://127.0.0.1:${address.port}`
+  return {
+    origin,
+    port: address.port,
+    url: (pathname = '/') => new URL(pathname, origin).href,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.closeAllConnections()
+        server.close((error) => {
+          if (error) reject(error)
+          else resolve()
+        })
+      }),
+  }
+}
+
+async function respond(
+  root: string,
+  config: FixtureConfig,
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+): Promise<void> {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, { allow: 'GET, HEAD' })
+    res.end()
+    return
+  }
+  const pathname = new URL(req.url ?? '/', 'http://fixture.invalid').pathname
+  const override: RouteOverride | undefined = config[pathname]
+  const file = await readSiteFile(root, pathname)
+  const status = override?.status ?? (file === null ? 404 : 200)
+  const body =
+    override?.body !== undefined
+      ? Buffer.from(override.body, 'utf8')
+      : (file?.body ?? Buffer.from(status === 404 ? 'Not Found' : ''))
+  const headers: Record<string, string | string[]> = {
+    'content-type': file?.contentType ?? 'text/plain; charset=utf-8',
+  }
+  for (const [name, value] of Object.entries(override?.headers ?? {})) {
+    headers[name.toLowerCase()] = value
+  }
+  res.writeHead(status, wireHeaders(headers))
+  res.end(req.method === 'HEAD' ? undefined : body)
+}
+
+/** Node only writes latin1 header text; send UTF-8 values (Arabic paths) as raw bytes, like real servers. */
+function wireHeaders(
+  headers: Record<string, string | string[]>,
+): Record<string, string | string[]> {
+  const toWire = (value: string) =>
+    hasCharAbove(value, 0xff) ? Buffer.from(value, 'utf8').toString('latin1') : value
+  return Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => [
+      name,
+      Array.isArray(value) ? value.map(toWire) : toWire(value),
+    ]),
+  )
+}
+
+function hasCharAbove(value: string, max: number): boolean {
+  for (let i = 0; i < value.length; i++) {
+    if (value.charCodeAt(i) > max) return true
+  }
+  return false
+}
+
+async function readSiteFile(
+  root: string,
+  pathname: string,
+): Promise<{ body: Buffer; contentType: string } | null> {
+  let decoded: string
+  try {
+    decoded = decodeURIComponent(pathname)
+  } catch {
+    return null
+  }
+  const relative = decoded.endsWith('/') ? `${decoded}index.html` : decoded
+  const filePath = path.resolve(root, `.${relative}`)
+  if (!filePath.startsWith(root + path.sep) || path.basename(filePath) === CONFIG_FILE) return null
+  try {
+    const info = await stat(filePath)
+    if (!info.isFile()) return null
+    const contentType =
+      CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream'
+    return { body: await readFile(filePath), contentType }
+  } catch (error) {
+    if (isNotFound(error)) return null
+    throw error
+  }
+}
+
+function isNotFound(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'
+}

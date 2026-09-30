@@ -1,0 +1,21 @@
+{
+  "name": "@arablyzer/egress",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run test/unit",
+    "test:ssrf": "vitest run test/ssrf"
+  },
+  "dependencies": {
+    "ipaddr.js": "^2.5.0"
+  },
+  "devDependencies": {
+    "@arablyzer/fixtures": "workspace:*"
+  }
+}
