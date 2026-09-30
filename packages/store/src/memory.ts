@@ -55,6 +55,17 @@ export class MemoryScanStore implements ScanStore {
     return stale.map((scan) => scan.id)
   }
 
+  deleteOlderThan(before: Date): Promise<number> {
+    let deleted = 0
+    for (const [id, scan] of this.#scans) {
+      if (scan.createdAt < before) {
+        this.#scans.delete(id)
+        deleted++
+      }
+    }
+    return Promise.resolve(deleted)
+  }
+
   states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>> {
     const states = new Map<string, ScanState>()
     for (const id of ids) {

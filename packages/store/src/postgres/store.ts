@@ -13,14 +13,24 @@ const MIGRATIONS = fileURLToPath(new URL('../../drizzle/', import.meta.url))
 /** The advisory lock the migration holds, so API processes that start together migrate once. */
 const MIGRATION_LOCK = 0x6172_6162 // "arab"
 
+/** How many scans one statement of a retention sweep deletes: each holds a report. */
+const DELETE_BATCH = 500
+
+export interface PostgresScanStoreOptions {
+  /** How many scans one statement of deleteOlderThan deletes; tests make it small. */
+  readonly deleteBatch?: number
+}
+
 /** Scans in PostgreSQL through Drizzle. */
 export class PostgresScanStore implements ScanStore {
   readonly #pool: Pool
   readonly #db: NodePgDatabase<{ scans: typeof scans }>
+  readonly #deleteBatch: number
 
-  constructor(pool: Pool) {
+  constructor(pool: Pool, options: PostgresScanStoreOptions = {}) {
     this.#pool = pool
     this.#db = drizzle(pool, { schema: { scans } })
+    this.#deleteBatch = options.deleteBatch ?? DELETE_BATCH
   }
 
   /** Brings the tables up to this version's schema (packages/store/drizzle), one process at a time. */
@@ -87,6 +97,25 @@ export class PostgresScanStore implements ScanStore {
       { state: 'failed', finishedAt: at },
     )
     return rows.map((row) => row.id)
+  }
+
+  async deleteOlderThan(before: Date): Promise<number> {
+    // In batches, so no one statement holds the reports of a table's worth of scans: the first
+    // sweep after retention is set may find years of them.
+    let deleted = 0
+    for (;;) {
+      const oldest = this.#db
+        .select({ id: scans.id })
+        .from(scans)
+        .where(lt(scans.createdAt, before))
+        .limit(this.#deleteBatch)
+      const rows = await this.#db
+        .delete(scans)
+        .where(inArray(scans.id, oldest))
+        .returning({ id: scans.id })
+      deleted += rows.length
+      if (rows.length < this.#deleteBatch) return deleted
+    }
   }
 
   async states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>> {

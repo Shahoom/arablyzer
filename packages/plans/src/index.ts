@@ -122,3 +122,21 @@ export function limitsFrom(env: Env): ScanLimits {
     inFlight: read(VARIABLES.inFlight, d.inFlight),
   })
 }
+
+/** How long reports and the scans they belong to are kept, in days: the owner's number. */
+export const RETENTION_VARIABLE = 'ARABLYZER_REPORT_RETENTION_DAYS'
+
+/**
+ * The days a report is kept, or null where the variable is not set, which means it is kept
+ * whatever its age: there is no default number, not even in production, for the number is the
+ * owner's decision (issue #33, Phase 2 design §7.3). Set to anything but a whole number of days,
+ * it refuses to start, rather than keep or delete by a guess.
+ */
+export function retentionDaysFrom(env: Env): number | null {
+  const raw = env[RETENTION_VARIABLE]?.trim()
+  if (raw === undefined || raw === '') return null
+  if (!/^\d+$/.test(raw) || Number(raw) < 1 || !Number.isSafeInteger(Number(raw))) {
+    throw new Error(`${RETENTION_VARIABLE} must be a whole number of days, at least 1, not ${raw}`)
+  }
+  return Number(raw)
+}

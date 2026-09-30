@@ -41,6 +41,11 @@ export interface ScanStore {
   failStale(startedBefore: Date, at: Date): Promise<string[]>
   /** Where each of these scans is, without their reports; one the store does not have is left out. */
   states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>>
+  /**
+   * Deletes the scans created before the time, in any state, with their reports (retention,
+   * issue #33): a scan created at the time is kept. The number deleted.
+   */
+  deleteOlderThan(before: Date): Promise<number>
 }
 
 /** What the worker is given: the scan and its page, and nothing else. */

@@ -39,6 +39,31 @@ describe('MemoryScanStore', () => {
   })
 })
 
+describe('MemoryScanStore.deleteOlderThan', () => {
+  it('deletes the scans created before a time, whatever their state, and their reports', async () => {
+    const store = new MemoryScanStore()
+    const report = { scan: { status: 'complete' } } as unknown as Report
+    for (const [id, age] of [
+      ['ancient', 100],
+      ['old', 31],
+      ['edge', 30],
+      ['recent', 1],
+      ['new', 0],
+    ] as const) {
+      await store.create({ id, url: 'https://example.com/', createdAt: minutes(-age * 24 * 60) })
+    }
+    await store.start('ancient', NOW)
+    await store.finish('ancient', report, NOW)
+    await store.start('old', NOW)
+    expect(await store.deleteOlderThan(minutes(-30 * 24 * 60))).toBe(2)
+    expect(await store.get('ancient')).toBeNull()
+    expect(await store.get('old')).toBeNull()
+    // "Older than" is strictly older: a scan created at the cutoff is kept.
+    for (const id of ['edge', 'recent', 'new']) expect(await store.get(id), id).not.toBeNull()
+    expect(await store.deleteOlderThan(minutes(-30 * 24 * 60))).toBe(0)
+  })
+})
+
 describe('MemoryScanStore.states', () => {
   it('says where each scan it has is, and knows none it has not', async () => {
     const store = new MemoryScanStore()

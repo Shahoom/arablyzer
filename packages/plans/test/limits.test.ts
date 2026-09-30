@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { DEVELOPMENT_LIMITS, hostLimitFrom, limitsFrom } from '../src/index'
+import {
+  DEVELOPMENT_LIMITS,
+  hostLimitFrom,
+  limitsFrom,
+  retentionDaysFrom,
+  RETENTION_VARIABLE,
+} from '../src/index'
 
 const ALL = {
   ARABLYZER_LIMIT_CONNECTION_SCANS: '5',
@@ -80,5 +86,29 @@ describe('hostLimitFrom', () => {
       hostLimitFrom({ NODE_ENV: 'production', ARABLYZER_LIMIT_HOST_SCANS: '5' }),
     ).toThrow(/ARABLYZER_LIMIT_HOST_SECONDS must be set in production/)
     expect(() => hostLimitFrom({ ARABLYZER_LIMIT_HOST_SECONDS: '0' })).toThrow(/whole number/)
+  })
+})
+
+describe('retentionDaysFrom', () => {
+  it('has no number of its own: unset, empty and blank all mean reports are kept', () => {
+    expect(RETENTION_VARIABLE).toBe('ARABLYZER_REPORT_RETENTION_DAYS')
+    expect(retentionDaysFrom({})).toBeNull()
+    expect(retentionDaysFrom({ ARABLYZER_REPORT_RETENTION_DAYS: '' })).toBeNull()
+    expect(retentionDaysFrom({ ARABLYZER_REPORT_RETENTION_DAYS: '   ' })).toBeNull()
+    // Not even production has one: the owner's number, and never a default.
+    expect(retentionDaysFrom({ NODE_ENV: 'production' })).toBeNull()
+  })
+
+  it('reads the owner’s number of days', () => {
+    expect(retentionDaysFrom({ ARABLYZER_REPORT_RETENTION_DAYS: '90' })).toBe(90)
+    expect(retentionDaysFrom({ ARABLYZER_REPORT_RETENTION_DAYS: ' 1 ' })).toBe(1)
+  })
+
+  it('takes whole numbers of at least 1 only, and refuses to start on any other', () => {
+    for (const bad of ['0', '-1', '1.5', 'ten', '1e3', '99999999999999999999', '30 days']) {
+      expect(() => retentionDaysFrom({ ARABLYZER_REPORT_RETENTION_DAYS: bad }), bad).toThrow(
+        /ARABLYZER_REPORT_RETENTION_DAYS must be a whole number of days, at least 1/,
+      )
+    }
   })
 })

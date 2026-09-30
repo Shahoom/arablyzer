@@ -121,6 +121,8 @@ services:
       # own numbers.
       ARABLYZER_LIMIT_HOST_SCANS: ${ARABLYZER_LIMIT_HOST_SCANS:?}
       ARABLYZER_LIMIT_HOST_SECONDS: ${ARABLYZER_LIMIT_HOST_SECONDS:?}
+      # Days reports are kept: the owner's number, and unset (empty) keeps them all.
+      ARABLYZER_REPORT_RETENTION_DAYS: ${ARABLYZER_REPORT_RETENTION_DAYS:-}
     networks: [data, scan]
     depends_on:
       api: { condition: service_healthy }

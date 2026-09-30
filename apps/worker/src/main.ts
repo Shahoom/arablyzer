@@ -13,6 +13,7 @@ import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
 import pg from 'pg'
 import { hostLimited } from './hosts'
+import { startRetention } from './retention'
 import { failScan, runScan, scanJobOf } from './run'
 
 // The worker as Compose and staging run it (M2.1 plan §5b): it takes one job at a time, has the
@@ -99,10 +100,13 @@ const sweep = () => {
 }
 sweep()
 const sweeping = setInterval(sweep, SWEEP_MS)
+// Reports older than the owner's number of days are deleted; unset, they are kept, and it says so.
+const retention = startRetention(env, { store: deps.store, log })
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     clearInterval(sweeping)
+    retention.stop()
     // The scan running finishes first (Compose's stop_grace_period is longer than its budget);
     // the queue keeps the rest.
     void worker.close().finally(() => {

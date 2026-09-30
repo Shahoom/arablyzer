@@ -5,7 +5,7 @@ export { MemoryRateLimiter, secondsUntilOne, type RateLimiter, type Taken } from
 export { quietly } from './log'
 export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
 export { scans } from './postgres/schema'
-export { PostgresScanStore } from './postgres/store'
+export { PostgresScanStore, type PostgresScanStoreOptions } from './postgres/store'
 export type {
   NewScan,
   ScanEvents,

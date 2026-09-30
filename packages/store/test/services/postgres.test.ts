@@ -155,6 +155,71 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
     expect(await store.states([])).toEqual(new Map())
   })
 
+  describe('retention', () => {
+    const day = 24 * 60 * 60 * 1000
+    const ago = (days: number) => new Date(NOW.getTime() - days * day)
+    /** A store of its own, so the scans of the tests before it are not counted. */
+    async function fresh(batch?: number) {
+      const own = await database()
+      const scans = new PostgresScanStore(
+        own.pool,
+        batch === undefined ? {} : { deleteBatch: batch },
+      )
+      await scans.migrate()
+      return { ...own, scans }
+    }
+
+    it('deletes the scans created before a time, in any state, and their reports, and only those', async () => {
+      const { scans, pool, drop } = await fresh()
+      try {
+        const report = { scan: { status: 'complete' }, score: { overall: 90 } } as unknown as Report
+        const made = async (id: string, days: number) =>
+          scans.create({ id, url: 'https://example.com/?token=secret', createdAt: ago(days) })
+        await made('AbCdEfGhIjKlMnOpQrSt_a', 120)
+        await made('AbCdEfGhIjKlMnOpQrSt_b', 45)
+        await made('AbCdEfGhIjKlMnOpQrSt_c', 30)
+        await made('AbCdEfGhIjKlMnOpQrSt_d', 2)
+        await scans.start('AbCdEfGhIjKlMnOpQrSt_a', NOW)
+        await scans.finish('AbCdEfGhIjKlMnOpQrSt_a', report, NOW)
+        await scans.fail('AbCdEfGhIjKlMnOpQrSt_b', NOW)
+        expect(await scans.deleteOlderThan(ago(30))).toBe(2)
+        expect(await scans.get('AbCdEfGhIjKlMnOpQrSt_a')).toBeNull()
+        expect(await scans.get('AbCdEfGhIjKlMnOpQrSt_b')).toBeNull()
+        // At the cutoff is not older than it.
+        expect(await scans.get('AbCdEfGhIjKlMnOpQrSt_c')).not.toBeNull()
+        expect(await scans.get('AbCdEfGhIjKlMnOpQrSt_d')).not.toBeNull()
+        const { rows } = await pool.query<{ count: string }>('SELECT count(*) FROM scans')
+        expect(rows[0]?.count).toBe('2')
+        expect(await scans.deleteOlderThan(ago(30))).toBe(0)
+      } finally {
+        await drop()
+      }
+    })
+
+    it('deletes in batches, so no one statement holds many reports, until none is left', async () => {
+      const { scans, pool, drop } = await fresh(2)
+      try {
+        for (let i = 0; i < 7; i++) {
+          await scans.create({
+            id: `AbCdEfGhIjKlMnOpQrSt_${String(i)}`,
+            url: 'https://example.com/',
+            createdAt: ago(60 + i),
+          })
+        }
+        await scans.create({
+          id: 'AbCdEfGhIjKlMnOpQrSt_k',
+          url: 'https://example.com/',
+          createdAt: ago(1),
+        })
+        expect(await scans.deleteOlderThan(ago(30))).toBe(7)
+        const { rows } = await pool.query<{ id: string }>('SELECT id FROM scans')
+        expect(rows.map((row) => row.id)).toEqual(['AbCdEfGhIjKlMnOpQrSt_k'])
+      } finally {
+        await drop()
+      }
+    })
+  })
+
   it('migrates once when processes start together', async () => {
     await Promise.all([store.migrate(), new PostgresScanStore(pool).migrate()])
   })
