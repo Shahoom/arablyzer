@@ -128,8 +128,12 @@ describe('renderToolPage', () => {
     expect(ar).toContain(
       '<a href="/rules/rtl-html-dir">صفحة عربية بلا dir=&quot;rtl&quot; في وسم html</a>',
     )
-    expect(ar).toContain('<a href="/tools/whatsapp-link-check">فحص رابط واتساب</a>')
-    expect(en).toContain('<a href="/en/tools/whatsapp-link-check">WhatsApp link checker</a>')
+    expect(ar).toContain(
+      '<a href="/tools/bidi-isolation-check">فحص الأرقام والإنجليزي داخل العربي</a>',
+    )
+    expect(en).toContain(
+      '<a href="/en/tools/bidi-isolation-check">Numbers and English in Arabic text checker</a>',
+    )
     expect(en).toContain('<a href="/en/rules/ar-html-lang">')
   })
 
