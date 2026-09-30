@@ -46,7 +46,7 @@ describe('golden reports', () => {
   })
 
   it('include a page, rendered, that passes everything it can', () => {
-    // A bot challenge is rendered in no engine: the page that is one passes nothing it cannot.
+    // A bot challenge is rendered in no engine, and its scan has no score: it is never this page.
     const clean = reports.filter(
       (report) =>
         report.score.overall === 100 &&
