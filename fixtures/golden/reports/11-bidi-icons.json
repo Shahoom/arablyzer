@@ -67,21 +67,21 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 21,
-    "fail": 2,
+    "pass": 22,
+    "fail": 1,
     "needsReview": 2,
     "notApplicable": 36,
     "error": 0,
     "bySeverity": {
       "critical": 0,
       "serious": 1,
-      "moderate": 1,
+      "moderate": 0,
       "minor": 0,
       "info": 0
     }
   },
   "score": {
-    "overall": 91,
+    "overall": 94,
     "categories": {
       "ai": 100,
       "ar-content": 100,
@@ -91,7 +91,7 @@
       "forms": null,
       "index": 100,
       "intl": 100,
-      "links": 0,
+      "links": 100,
       "onpage": 100,
       "rtl": 67,
       "schema": null,
@@ -509,7 +509,7 @@
       "version": "1.0.0",
       "category": "links",
       "severity": "moderate",
-      "status": "fail",
+      "status": "pass",
       "title": {
         "ar": "روابط معطّلة إلى صفحات الموقع نفسه",
         "en": "Broken links to the site's own pages"
@@ -881,28 +881,6 @@
         },
         "values": {
           "text": "C++"
-        }
-      }
-    },
-    {
-      "ruleId": "link-broken",
-      "severity": "moderate",
-      "fingerprint": "23671f1d508095fb",
-      "message": {
-        "ar": "الرابط إلى http://127.0.0.1:30011/projects يرد بالحالة 404، وهي خطأ: من يتبعه يصل إلى صفحة خطأ بدل الصفحة التي أرادها.",
-        "en": "The link to http://127.0.0.1:30011/projects answers 404, an error: whoever follows it reaches an error page instead of the page they wanted."
-      },
-      "evidence": {
-        "url": "http://127.0.0.1:30011/",
-        "selector": "body > main > p:nth-of-type(3) > a",
-        "snippet": "<a href=\"/projects\">",
-        "location": {
-          "line": 18,
-          "column": 9
-        },
-        "values": {
-          "url": "http://127.0.0.1:30011/projects",
-          "status": 404
         }
       }
     },
