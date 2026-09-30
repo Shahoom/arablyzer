@@ -127,6 +127,9 @@ services:
   scanner:
     <<: *hardened
     build: { context: .., target: scanner }
+    # Serves one scan, then ends its process (M3.1: its browsers run without a sandbox of their own,
+    # beside the worker's token and the CrUX key); `restart` above starts a clean one, with an
+    # empty tmpfs and none of the last page's processes, and the worker waits for it (apps/worker).
     # Reaps the browsers' processes whose parent has gone.
     init: true
     # The browsers' profiles and caches, in memory; Firefox needs a home it can write to.

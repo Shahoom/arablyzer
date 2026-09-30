@@ -18,9 +18,10 @@ export const SCAN_WORKER = {
 /**
  * Scans in BullMQ, on Valkey. Each is tried once: a scan that fails is reported as failed, never
  * run again behind the visitor's back (with SCAN_WORKER, and the stores' one-way states). Once
- * run: a scan whose scanner was not there, as when it died and Compose is starting it again, has
- * not run, and the worker asks again inside the job (apps/worker, run.ts), so BullMQ's attempts
- * stay one. Finished jobs are dropped; their reports are in PostgreSQL.
+ * run: a scan whose scanner was not there, as when it died or ended its process after its scan
+ * and Compose is starting it again, has not run, and the worker asks again inside the job
+ * (apps/worker, run.ts), so BullMQ's attempts stay one. Finished jobs are dropped; their reports
+ * are in PostgreSQL.
  */
 export class BullMQScanQueue implements ScanQueue {
   readonly #queue: Queue<ScanJob>

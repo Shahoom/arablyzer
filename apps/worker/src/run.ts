@@ -19,11 +19,11 @@ export interface WorkerDeps {
 
 /**
  * How a scanner that is not there is waited for (H1 of the pre-launch review). A scanner that
- * died is started again by Compose, and until it is, a scan that finds no scanner has not begun.
- * A scan is tried once, and never run again behind the visitor's back; but this one has not run.
- * It asks again after a short wait, which doubles to a longest, until a minute has gone: a scanner
- * that is back by then never fails a scan, or the scans queued behind it, and one that is not
- * fails that scan alone.
+ * died, or that ended its process after its scan (M3), is started again by Compose, and until it
+ * is, a scan that finds no scanner has not begun. A scan is tried once, and never run again
+ * behind the visitor's back; but this one has not run. It asks again after a short wait, which
+ * doubles to a longest, until a minute has gone: a scanner that is back by then never fails a
+ * scan, or the scans queued behind it, and one that is not fails that scan alone.
  */
 export const RETRY_FIRST_MS = 500
 export const RETRY_LONGEST_MS = 5_000

@@ -26,6 +26,15 @@ export interface ScannerDeps {
    * here: main.ts ends the process, and Compose starts it again.
    */
   readonly onStuck?: () => void
+  /**
+   * Given, the scanner serves one scan (M3 of the pre-launch review): its browsers run without a
+   * sandbox of their own, in the process that holds the worker's token and the CrUX key, so a
+   * renderer that a page took over could go on to forge the reports of the scans after its own.
+   * When that scan has ended, however it ended, this is called: main.ts ends the process once the
+   * answer is out, and Compose starts it again clean. Until then the scanner says it is
+   * restarting, to health and to any scan, and takes none.
+   */
+  readonly onServed?: () => void
 }
 
 /** A scan request is a URL: 8 KB is ample, and nothing larger is read. */
@@ -39,7 +48,8 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
  * The scanner's HTTP interface, for the worker alone (M2.1 plan §5b): one scan at a time, its
  * events and then its report as NDJSON. It holds no credential but the token it checks, and the
  * network it listens on reaches the worker alone. A worker that closes the connection stops the
- * scan, and so does the scan's own limit; one that will not stop makes the scanner unhealthy.
+ * scan, and so does the scan's own limit; one that will not stop makes the scanner unhealthy. It
+ * is healthy when it can take a scan: once it has served its one (`onServed`), it is not.
  */
 export function createScannerApp(deps: ScannerDeps): Hono {
   const expected = Buffer.from(`Bearer ${deps.token}`)
@@ -47,14 +57,19 @@ export function createScannerApp(deps: ScannerDeps): Hono {
   const stopGraceMs = deps.stopGraceMs ?? STOP_GRACE_MS
   /** When the scan running started; null when none is. */
   let runningSince: number | null = null
+  /** Whether the one scan this scanner serves has ended (`onServed`): it takes no other. */
+  let served = false
   const app = new Hono()
 
-  // Up, unless a scan has run past its limit: Compose sees the scanner stuck.
-  app.get('/health', (c) =>
-    runningSince !== null && Date.now() - runningSince > hardLimitMs
+  // Up, unless a scan has run past its limit, or its one scan is served and its process is about
+  // to end: Compose sees a scanner that is stuck, or one that is on its way out, and not one that
+  // can take a scan.
+  app.get('/health', (c) => {
+    if (served) return c.text('restarting', 503)
+    return runningSince !== null && Date.now() - runningSince > hardLimitMs
       ? c.text('stuck', 503)
-      : c.text('ok'),
-  )
+      : c.text('ok')
+  })
 
   app.post(
     SCAN_PATH,
@@ -75,10 +90,16 @@ export function createScannerApp(deps: ScannerDeps): Hono {
       }
       const request = ScanRequest.safeParse(raw)
       if (!request.success) return c.json({ error: 'bad-request' }, 400)
+      // A scanner that has served its scan takes none: the worker asks again, of the one Compose
+      // starts (apps/worker).
+      if (served) return c.json({ error: 'restarting' }, 503)
       // One scan at a time, one browser at a time (BUILD-PLAN §11): the worker takes one job.
       if (runningSince !== null) return c.json({ error: 'busy' }, 503)
       runningSince = Date.now()
       c.header('content-type', 'application/x-ndjson')
+      // The process ends when the answer is out, and the connection with it: an idle one would
+      // keep the server from closing until it timed out.
+      if (deps.onServed !== undefined) c.header('connection', 'close')
       return stream(c, async (out) => {
         const stop = new AbortController()
         out.onAbort(() => {
@@ -112,6 +133,14 @@ export function createScannerApp(deps: ScannerDeps): Hono {
           clearTimeout(limit)
           clearTimeout(stuck)
           runningSince = null
+          if (deps.onServed !== undefined) {
+            served = true
+            try {
+              deps.onServed()
+            } catch (error) {
+              deps.log?.(`The scanner could not end its process: ${message(error)}`)
+            }
+          }
         }
       })
     },
