@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>اتصل بنا | متجر الواحة</title>
+    <meta name="description" content="عنوان متجر الواحة في مسقط، ونموذج لمراسلتنا." />
+    <meta property="og:title" content="اتصل بنا | متجر الواحة" />
+    <meta property="og:description" content="عنوان متجر الواحة في مسقط، ونموذج لمراسلتنا." />
+    <meta property="og:image" content="https://www.example.com/og.png" />
+    <link rel="alternate" hreflang="ar-OM" href="https://www.example.com/contact" />
+    <link rel="alternate" hreflang="en" href="https://www.example.com/en/contact" />
+    <link rel="alternate" hreflang="x-default" href="https://www.example.com/contact" />
+    <style>
+      @font-face {
+        font-family: 'Brand Arabic';
+        src: url('/_shared/fonts/arablyzer-test-arabic.woff2') format('woff2');
+        font-display: swap;
+      }
+      body {
+        margin: 16px;
+        font-family: 'Brand Arabic', serif;
+      }
+      label,
+      input,
+      textarea {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>اتصل بنا</h1>
+      <img src="/images/sadu.webp" width="128" height="128" alt="نقش سدو أحمر ورملي" />
+      <p>متجرنا في مسقط، قرب سوق مطرح.</p>
+      <form action="/contact" method="post">
+        <label for="name">الاسم</label>
+        <input id="name" name="name" type="text" autocomplete="name" pattern="[\p{L} ]{3,40}" required />
+        <label for="phone">رقم الجوال</label>
+        <input id="phone" name="phone" type="tel" dir="ltr" autocomplete="tel" pattern="[0-9٠-٩]{8}" required />
+        <label for="message">رسالتك</label>
+        <textarea id="message" name="message" rows="4"></textarea>
+        <button type="submit">أرسل</button>
+      </form>
+    </main>
+    <footer>
+      <p lang="en" dir="ltr">Oasis Store, Muscat</p>
+    </footer>
+  </body>
+</html>

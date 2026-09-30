@@ -20,6 +20,21 @@ pnpm test:browser  # the browser SSRF suite, rendered facts and render rule fixt
 
 `pnpm test:browser` needs a browser. `npx playwright-core@1.63.0 install chromium firefox webkit` installs Playwright's own; `ARABLYZER_CHROMIUM_PATH` (and `_FIREFOX_`, `_WEBKIT_`) points at an installed one instead. CI installs all three and sets `ARABLYZER_REQUIRE_ENGINES=chromium,firefox,webkit`, so a missing engine fails the run.
 
+### The scanner image and the golden reports
+
+The `Dockerfile` builds the scanner image: Node 24, the three browsers Playwright pins, and the fonts they draw with, listed in [`fixtures/golden/fonts.txt`](fixtures/golden/fonts.txt), so what the browsers draw does not depend on the machine. CI builds it for linux/amd64 on every pull request and never pushes it.
+
+The twenty pages in [`fixtures/golden/sites`](fixtures/golden/sites) between them fail every rule, and each rule that does more than ask for a review passes on one of them too. Their reports in [`fixtures/golden/reports`](fixtures/golden/reports) come from the image alone, since fonts and rendering differ between machines: they hold for linux/amd64. CI scans the pages again in the image and compares, leaving out times and the date of a test certificate; a report that differs, or has none yet, is kept as the `golden-actual` artifact, which is where reports are committed from. A change to a golden report needs explicit approval in its pull request. The three pages served over HTTPS are scanned without the browsers, which do not trust the test certificate authority of the fixtures; Arablyzer never loosens that.
+
+```bash
+docker build --platform linux/amd64 -t arablyzer .
+# Compare, as CI does; --network none leaves loopback alone, so WebKit renders too. What differs,
+# or has no report yet (fonts.txt too), is written to golden-actual/, to review and copy over.
+mkdir -p golden-actual && chmod 777 golden-actual
+docker run --rm --platform linux/amd64 --network none -e ARABLYZER_NETWORK_ISOLATED=1 \
+  -e ARABLYZER_GOLDEN_OUT=/out -v "$PWD/golden-actual:/out" --entrypoint pnpm arablyzer test:golden
+```
+
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
 - Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md)
 

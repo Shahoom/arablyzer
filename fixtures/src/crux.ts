@@ -96,7 +96,10 @@ export function answerCrux(
  * from `data` (answerCrux), so the engine and the CrUX rules are tested without a key or the
  * network.
  */
-export async function serveCrux(data: CruxData): Promise<CruxStandIn> {
+export async function serveCrux(
+  data: CruxData,
+  { port = 0 }: { port?: number } = {},
+): Promise<CruxStandIn> {
   const queries: CruxQuery[] = []
   const server = http.createServer((req, res) => {
     const chunks: Buffer[] = []
@@ -133,8 +136,9 @@ export async function serveCrux(data: CruxData): Promise<CruxStandIn> {
       res.end(JSON.stringify(answer.body))
     })
   })
-  await new Promise<void>((resolve) => {
-    server.listen(0, '127.0.0.1', resolve)
+  await new Promise<void>((resolve, reject) => {
+    server.once('error', reject)
+    server.listen(port, '127.0.0.1', resolve)
   })
   const address = server.address()
   if (address === null || typeof address === 'string') throw new Error('The stand-in has no port')

@@ -1,0 +1,6 @@
+# The staging rules, left in place
+User-agent: *
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
