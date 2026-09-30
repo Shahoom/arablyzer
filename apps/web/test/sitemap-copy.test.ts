@@ -43,7 +43,7 @@ describe('the sitemap copy’s numbers', () => {
       [
         `first ${String(SITEMAP_LIMIT)} sitemaps`,
         `up to \`${String(mib)} MB\``,
-        `within ${inWords(seconds)} seconds`,
+        `no more than ${inWords(seconds)} seconds`,
         `more than ${String(SITEMAP_MAX_DEPTH)} levels`,
         `more than ${String(SITEMAP_MAX_ATTRIBUTES)} attributes`,
       ],
@@ -53,7 +53,7 @@ describe('the sitemap copy’s numbers', () => {
       [
         `أول ${String(SITEMAP_LIMIT)} خرائط`,
         `حتى \`${String(mib)} MB\``,
-        `في ${String(seconds)} ثوانٍ`,
+        `أكثر من ${String(seconds)} ثوانٍ`,
         `${String(SITEMAP_MAX_DEPTH)} مستوى`,
         `${String(SITEMAP_MAX_ATTRIBUTES)} سمة`,
       ],
@@ -69,7 +69,7 @@ describe('the sitemap copy’s numbers', () => {
       [
         `first ${String(SITEMAP_LIMIT)} sitemaps`,
         `up to \`${String(mib)} MB\``,
-        `within ${inWords(seconds)} seconds`,
+        `no more than ${inWords(seconds)} seconds`,
       ],
     ],
     [
@@ -77,7 +77,7 @@ describe('the sitemap copy’s numbers', () => {
       [
         `أول ${String(SITEMAP_LIMIT)} خرائط`,
         `حتى \`${String(mib)} MB\``,
-        `في ${String(seconds)} ثوانٍ`,
+        `أكثر من ${String(seconds)} ثوانٍ`,
       ],
     ],
   ] as const)('are the code’s own on the sitemap checker’s page (%s)', (lang, phrases) => {

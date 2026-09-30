@@ -64,7 +64,7 @@ import { fetchCrux, type CruxOptions } from './crux'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
-import { fetchSitemaps } from './sitemap'
+import { fetchSitemaps, SITEMAP_TIMEOUT_MS } from './sitemap'
 
 export { ENGINE_VERSION, USER_AGENT }
 /** Keeps reports small; the rest of a rule's findings are counted in findingsOmitted. */
@@ -390,24 +390,6 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   // For the rules that read it, and in the report only then: a scan without them reports as it
   // did before robots.txt came first.
   const robots = rules.some((rule) => rule.needs.includes('robots')) ? robotsRead.facts : undefined
-  // The site's sitemaps, when a rule the scan runs reads them (M2.3c): those its robots.txt names,
-  // or /sitemap.xml, with the lockdown the page's chain ended with, and each site's opt-out. They
-  // are for search engines, which reach public sites alone: a local site is not asked for them.
-  const sitemapRead =
-    rules.some((rule) => rule.needs.includes('sitemap')) && isPublicUrl(response.url)
-      ? await fetchSitemaps(robotsRead.facts, new URL(response.url).origin, {
-          base: { ...base, policy: robotsPolicy },
-          privateAccess: fetched.privateAccess,
-          allowed: async (to, privateAccess, signal) =>
-            (await robotsFor(to, privateAccess ? policy : lockdown, signal)).rule === null,
-        })
-      : undefined
-  const sitemap =
-    sitemapRead !== undefined && 'facts' in sitemapRead ? sitemapRead.facts : undefined
-  // Some sitemap could not be checked, or robots.txt could not be read, so none is known.
-  const sitemapUnread =
-    sitemapRead !== undefined &&
-    (sitemap === undefined || sitemap.checked.some((check) => check.outcome === 'failed'))
   // Real-user data, when a rule the scan runs reads it: the page's URL goes to Google with the
   // key. A scan none of whose rules reads it (a tool's, M2.2) asks nothing and says nothing of it.
   const readsCrux = rules.some((rule) => rule.needs.includes('crux'))
@@ -418,8 +400,12 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : fetched.privateAccess
         ? 'crux-private'
         : null
+  // Real visitors' data is asked of Google, which never touches the site: a page the site
+  // answered with a bot challenge has some to be asked for as much as one it sent, and a page it
+  // refused any other way has none worth the question (M2.3c).
+  const cruxAsked = isSuccess(page.status) || challengeOf(page.headers) !== null
   const crux =
-    readsCrux && cruxSkipped === null && options.crux !== undefined && reached
+    readsCrux && cruxSkipped === null && options.crux !== undefined && cruxAsked
       ? await fetchCrux(response.url, options.crux, { ...base, policy })
       : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
@@ -455,6 +441,27 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
           started,
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         })
+  // The site's sitemaps, when a rule the scan runs reads them (M2.3c): those its robots.txt names,
+  // or /sitemap.xml, with the lockdown the page's chain ended with, and each site's opt-out. They
+  // are for search engines, which reach public sites alone: a local site is not asked for them.
+  // After the render and Lighthouse, so that waiting for a sitemap cannot shorten either; they wait
+  // for what the scan has left, SITEMAP_TIMEOUT_MS at most, and only the network's time counts.
+  const sitemapRead =
+    rules.some((rule) => rule.needs.includes('sitemap')) && isPublicUrl(response.url)
+      ? await fetchSitemaps(robotsRead.facts, new URL(response.url).origin, {
+          base: { ...base, policy: robotsPolicy },
+          privateAccess: fetched.privateAccess,
+          budgetMs: Math.min(SITEMAP_TIMEOUT_MS, SCAN_BUDGET_MS - (performance.now() - started)),
+          allowed: async (to, privateAccess, signal) =>
+            (await robotsFor(to, privateAccess ? policy : lockdown, signal)).rule === null,
+        })
+      : undefined
+  const sitemap =
+    sitemapRead !== undefined && 'facts' in sitemapRead ? sitemapRead.facts : undefined
+  // Some sitemap could not be checked, or robots.txt could not be read, so none is known.
+  const sitemapUnread =
+    sitemapRead !== undefined &&
+    (sitemap === undefined || sitemap.checked.some((check) => check.outcome === 'failed'))
   const notices = [
     ...pageNotices(page, robots),
     ...(renderSkipped ? [notice('render-skipped')] : []),
@@ -816,10 +823,12 @@ interface Outcome {
 }
 
 /**
- * What a rule reads beside the page itself: robots.txt and the sitemaps are the site's, and
- * `response` is the page's answer, whatever it was. Their rules run whatever the page answered.
+ * What a rule reads beside the page itself: robots.txt and the sitemaps are the site's, `response`
+ * is the page's answer, whatever it was, and `crux` is what Google holds of the URL's visitors,
+ * which was asked for when the page answered a bot challenge too. Their rules run whatever the
+ * page answered.
  */
-const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set(['robots', 'sitemap', 'response'])
+const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set(['robots', 'sitemap', 'response', 'crux'])
 
 function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: boolean): Outcome {
   const { robots, rendered, crux } = collected

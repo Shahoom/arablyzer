@@ -127,7 +127,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         }) => [
           `ملف robots.txt أولاً، ليعرف هل تمنعه، ويتبع ${String(robotsRedirects)} تحويلات على الأكثر ويقرأ أول ${String(robotsKib)} كيلوبايت منه.`,
           `الصفحة نفسها، ويتبع ${String(pageRedirects)} تحويلات على الأكثر.`,
-          `حين يحتاج الفحص إلى خرائط الموقع: أول ${String(sitemaps)} خرائط يسمّيها robots.txt، أو \`/sitemap.xml\` إن لم يسمِّ شيئاً، ويقرأ أول ${String(sitemapMib)} ميغابايت من كل منها ويتبع ${arabicCount(sitemapRedirects, REDIRECTS)} على الأكثر، ولا يفتح الخرائط التي يسردها فهرس خرائط الموقع. ويتوقف بعد ${arabicCount(sitemapSeconds, SECONDS)} للخرائط كلها.`,
+          `حين يحتاج الفحص إلى خرائط الموقع: أول ${String(sitemaps)} خرائط يسمّيها robots.txt، أو \`/sitemap.xml\` إن لم يسمِّ شيئاً، ويقرأ أول ${String(sitemapMib)} ميغابايت من كل منها ويتبع ${arabicCount(sitemapRedirects, REDIRECTS)} على الأكثر، ولا يفتح الخرائط التي يسردها فهرس خرائط الموقع. ولا ينتظر الشبكة أكثر من ${arabicCount(sitemapSeconds, SECONDS)} للخرائط كلها.`,
           'قد يكون في robots.txt عنوان خريطة على موقع آخر: يقرأ ArablyzerBot ملف robots.txt لذلك الموقع أولاً، ولا يجلب منه ما يطلب ألّا يجلبه ArablyzerBot، ولا يتبع تحويلاً إلى موقع آخر إلا حيث يسمح robots.txt فيه.',
           `حين يحتاج الفحص إلى عرض الصفحة: يفتحها في Chromium وFirefox وWebKit بنافذة جوال عرضها ${String(viewport.width)} وارتفاعها ${String(viewport.height)}، فيحمّل كل متصفح ما تحمّله الصفحة لزائرها من ملفات CSS وخطوط وصور وسكربتات، بـ ${String(requestsPerLoad)} طلب و${String(mibPerLoad)} ميغابايت على الأكثر في كل متصفح.`,
           'تمرّ كل طلباته عبر بروكسي خروج واحد يرفض العناوين الخاصة والمحلية.',
@@ -211,7 +211,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
         }) => [
           `robots.txt first, to know whether you block it, following at most ${String(robotsRedirects)} redirects and reading its first ${String(robotsKib)} KB.`,
           `The page itself, following at most ${String(pageRedirects)} redirects.`,
-          `When the check reads your sitemaps: the first ${String(sitemaps)} your robots.txt names, or \`/sitemap.xml\` when it names none, reading the first ${String(sitemapMib)} MB of each and following at most ${String(sitemapRedirects)} redirects, and never the sitemaps a sitemap index lists. It stops after ${String(sitemapSeconds)} seconds for all of them.`,
+          `When the check reads your sitemaps: the first ${String(sitemaps)} your robots.txt names, or \`/sitemap.xml\` when it names none, reading the first ${String(sitemapMib)} MB of each and following at most ${String(sitemapRedirects)} redirects, and never the sitemaps a sitemap index lists. It waits no more than ${String(sitemapSeconds)} seconds on the network for all of them.`,
           'A sitemap your robots.txt names may be on another host: the bot reads that host’s robots.txt first, does not fetch what it asks ArablyzerBot to leave alone, and follows a redirect to another host only where that host’s robots.txt allows it.',
           `When the check renders the page: it opens it in Chromium, Firefox and WebKit, in a phone window ${String(viewport.width)} wide and ${String(viewport.height)} high, and each browser loads what the page loads for a visitor (stylesheets, fonts, images, scripts), at most ${String(requestsPerLoad)} requests and ${String(mibPerLoad)} MB per browser.`,
           'Every request goes through one egress proxy that refuses private and local addresses.',
