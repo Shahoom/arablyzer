@@ -22,9 +22,11 @@ export function toolRenders(tool: Tool): boolean {
 
 /**
  * What the tool reads, for its card: browsers, Chrome's data, DNS records, the page's links,
- * the sitemaps, robots.txt, the server's response, or the page's HTML.
+ * the sitemaps, robots.txt, the server's response, or the page's HTML; a generator reads
+ * nothing, and says what it is.
  */
 export function toolTag(tool: Tool): ToolTag {
+  if (tool.kind === 'generator') return 'generator'
   const rules = rulesOf(tool)
   const needs = rules.flatMap((rule) => rule.needs)
   if (needs.includes('render')) return 'render'
@@ -83,6 +85,7 @@ export function toolsData(): ToolsData {
       })),
       related: [...tool.related],
       updated: tool.updated,
+      kind: tool.kind ?? 'scan',
       renders: toolRenders(tool),
       reportsOnly: reportsOnly(tool.rules),
       tag: toolTag(tool),

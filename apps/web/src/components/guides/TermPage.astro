@@ -1,0 +1,103 @@
+---
+import { GUIDES_UI } from '@arablyzer/i18n'
+import { breadcrumbList, definedTerm } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import { fixGuideData, termData } from '../../lib/guide-data'
+import { ruleData } from '../../lib/rule-data'
+import { siteOf } from '../../lib/site'
+import { toolData } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
+import DocPage from '../pages/DocPage.astro'
+import DocBody from './DocBody.astro'
+import LinkBox from './LinkBox.astro'
+
+// A glossary term (BUILD-PLAN §6.3, M2.4d): what it is, why it matters, an example, the usual
+// mistakes, and the tools, rules, guides and terms around it.
+
+interface Props {
+  lang: Lang
+  slug: string
+}
+const { lang, slug } = Astro.props
+const term = termData(slug)
+const copy = term.copy[lang]
+const t = GUIDES_UI[lang].glossary
+const site = siteOf(Astro.site)
+const path = PATHS.term(slug)
+const url = pageUrl(site, lang, path)
+const glossaryUrl = pageUrl(site, lang, PATHS.glossary)
+const jsonLd = [
+  definedTerm({
+    name: copy.title,
+    description: copy.description,
+    url,
+    lang,
+    termCode: term.term,
+    set: { name: t.title, url: glossaryUrl },
+  }),
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.title, url: glossaryUrl },
+    { name: copy.title, url },
+  ]),
+]
+const tools = term.tools.map((tool) => ({
+  href: localePath(lang, PATHS.tool(tool)),
+  title: toolData(tool).copy[lang].title,
+}))
+const rules = term.rules.map((rule) => ({
+  href: localePath(lang, PATHS.rule(rule)),
+  title: ruleData(rule).copy[lang].title,
+  code: rule,
+}))
+const guides = term.guides.map((guide) => ({
+  href: localePath(lang, PATHS.fixGuide(guide)),
+  title: fixGuideData(guide).message[lang],
+}))
+const related = term.related.map((other) => ({
+  href: localePath(lang, PATHS.term(other)),
+  title: termData(other).copy[lang].title,
+}))
+---
+
+<DocPage
+  lang={lang}
+  path={path}
+  title={`${copy.title} — Arablyzer`}
+  description={copy.description}
+  jsonLd={jsonLd}
+  crumb={copy.title}
+  breadcrumbLabel={t.breadcrumb}
+  parent={{ name: t.title, href: localePath(lang, PATHS.glossary) }}
+>
+  <Fragment slot="head">
+    <h1 class="m-0 text-[32px] leading-[1.2] font-semibold text-balance md:text-[52px]">
+      <Bidi text={copy.title} lang={lang} />
+    </h1>
+    <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+      <Bidi text={copy.description} lang={lang} />
+    </p>
+    {lang === 'ar' && (
+      <p class="m-0 flex flex-wrap items-baseline gap-x-2 text-sm text-ink-3">
+        {t.term}:
+        <span lang="en" dir="ltr" class="font-mono text-ink-2">
+          {term.term}
+        </span>
+      </p>
+    )}
+  </Fragment>
+  <div slot="aside" class="flex flex-col gap-4">
+    <LinkBox lang={lang} id="tools-title" title={t.tools} links={tools} />
+    <LinkBox lang={lang} id="rules-title" title={t.rules} links={rules} />
+    <LinkBox lang={lang} id="guides-title" title={t.guides} links={guides} />
+    <LinkBox lang={lang} id="related-title" title={t.related} links={related} />
+    <p class="m-0 text-sm text-ink-3">
+      {t.updated}{' '}
+      <time datetime={term.updated} dir="ltr" class="font-mono">
+        {term.updated}
+      </time>
+    </p>
+  </div>
+  <DocBody copy={copy} />
+</DocPage>

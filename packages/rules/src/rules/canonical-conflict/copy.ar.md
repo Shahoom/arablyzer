@@ -45,5 +45,5 @@ reviewed: true
 ## المراجع
 
 - [Google: كيفية تحديد عنوان URL أساسي باستخدام rel="canonical"](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls?hl=ar)
-- [Google: خمسة أخطاء شائعة في rel=canonical](https://developers.google.com/search/blog/2013/04/5-common-mistakes-with-relcanonical) (بالإنجليزية)
+- [Google: خمسة أخطاء شائعة في rel=canonical](https://developers.google.com/search/blog/2013/04/5-common-mistakes-with-relcanonical?hl=ar)
 - [RFC 6596: علاقة الربط canonical](https://www.rfc-editor.org/rfc/rfc6596.html) (بالإنجليزية)

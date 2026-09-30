@@ -10,7 +10,7 @@ export interface SiteStrings {
   readonly statusBar: string
   readonly navLabel: string
   /** The header's sections, each named as its page is built (apps/web, NAV). */
-  readonly nav: { readonly tools: string; readonly rules: string }
+  readonly nav: { readonly tools: string; readonly rules: string; readonly fix: string }
   /** The header's call to action, to the scan form. */
   readonly scanCta: string
   /** The link to the same page in the other language, written in that language. */
@@ -23,6 +23,7 @@ export interface SiteStrings {
     readonly github: string
     readonly methodology: string
     readonly bot: string
+    readonly glossary: string
     readonly license: string
     readonly builtBy: string
     readonly cloudtopia: string
@@ -37,7 +38,7 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'انتقل إلى المحتوى',
     statusBar: 'أدوات مجانية وبلا تسجيل · الكود مفتوح المصدر',
     navLabel: 'أقسام الموقع',
-    nav: { tools: 'الأدوات', rules: 'مكتبة القواعد' },
+    nav: { tools: 'الأدوات', rules: 'مكتبة القواعد', fix: 'أدلة الإصلاح' },
     scanCta: 'افحص موقعك',
     otherLang: { label: 'English', short: 'EN' },
     footer: {
@@ -47,6 +48,7 @@ export const SITE: Copy<SiteStrings> = {
       github: 'الكود على GitHub',
       methodology: 'المنهجية',
       bot: 'ArablyzerBot وكيف تمنعه',
+      glossary: 'المسرد',
       license: 'مفتوح المصدر بترخيص AGPL-3.0',
       builtBy: 'بناه',
       cloudtopia: 'كلاود توبيا',
@@ -58,7 +60,7 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'Skip to content',
     statusBar: 'Free tools, no sign-up · Open source',
     navLabel: 'Site sections',
-    nav: { tools: 'Tools', rules: 'Rule library' },
+    nav: { tools: 'Tools', rules: 'Rule library', fix: 'Fix guides' },
     scanCta: 'Check your site',
     otherLang: { label: 'العربية', short: 'العربية' },
     footer: {
@@ -69,6 +71,7 @@ export const SITE: Copy<SiteStrings> = {
       github: 'The code on GitHub',
       methodology: 'Methodology',
       bot: 'ArablyzerBot, and how to block it',
+      glossary: 'Glossary',
       license: 'Open source under AGPL-3.0',
       builtBy: 'Built by',
       cloudtopia: 'CloudTopia',

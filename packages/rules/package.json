@@ -7,7 +7,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./challenges": "./src/lib/challenges.ts",
-    "./version": "./src/version.ts"
+    "./version": "./src/version.ts",
+    "./hreflang": "./src/lib/hreflang.ts",
+    "./iso-codes": "./src/lib/iso-codes.ts",
+    "./robots-match": "./src/lib/robots.ts",
+    "./whatsapp": "./src/lib/whatsapp.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

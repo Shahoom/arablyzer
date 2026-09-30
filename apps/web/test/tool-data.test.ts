@@ -47,6 +47,8 @@ describe('the tools as their pages have them', () => {
     expect(tag('broken-links')).toBe('links')
     expect(tag('js-rendering-check')).toBe('render')
     expect(tag('payment-methods-detector')).toBe('html')
+    expect(tag('robots-tester')).toBe('robots')
+    expect(tag('whatsapp-link-generator')).toBe('generator')
   })
 
   // M2.3c review: a tool of information rules says what it found as notes, and "none found".
@@ -61,6 +63,13 @@ describe('the tools as their pages have them', () => {
       'logical-css-check',
       'payment-methods-detector',
     ])
+  })
+
+  it('says where each tool runs: the scanner, or the visitor’s browser', () => {
+    const kind = (slug: string) => data.tools.find((tool) => tool.slug === slug)?.kind
+    expect(kind('rtl-check')).toBe('scan')
+    expect(kind('robots-tester')).toBe('paste')
+    expect(kind('schema-generator')).toBe('generator')
   })
 
   it('names each tool in both languages, for the report page of its result', () => {

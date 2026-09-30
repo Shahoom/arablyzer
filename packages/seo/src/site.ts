@@ -33,6 +33,10 @@ export const PATHS = {
   rules: '/rules',
   methodology: '/methodology',
   bot: '/bot',
+  fix: '/fix',
+  fixGuide: (slug: string) => `/fix/${slug}`,
+  glossary: '/glossary',
+  term: (slug: string) => `/glossary/${slug}`,
   rule: (id: string) => `/rules/${id}`,
 } as const
 

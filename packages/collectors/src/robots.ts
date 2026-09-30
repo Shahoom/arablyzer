@@ -113,14 +113,14 @@ type Key = 'user-agent' | 'allow' | 'disallow' | 'sitemap'
  */
 export function parseRobotsTxt(body: Uint8Array): RobotsTxt {
   const start = body[0] === 0xef && body[1] === 0xbb && body[2] === 0xbf ? 3 : 0
-  const bytes = Buffer.from(body.buffer, body.byteOffset + start, body.length - start)
+  const bytes = body.subarray(start)
   const groups: { agents: RobotsAgent[]; rules: RobotsRule[] }[] = []
   const sitemaps: RobotsSitemap[] = []
   let current: { agents: RobotsAgent[]; rules: RobotsRule[] } | null = null
   let sawRule = false
 
   let lineNumber = 0
-  for (const line of lines(bytes.toString('latin1'))) {
+  for (const line of lines(latin1(bytes))) {
     lineNumber++
     const parsed = keyAndValue(line)
     if (parsed === null) continue
@@ -246,7 +246,22 @@ function trim(value: string): string {
   return value.slice(start, end)
 }
 
+/**
+ * Bytes as a string of one character each (U+0000 to U+00FF): paths are matched byte for byte,
+ * as Google does. Without Node's Buffer, so the paste tool runs the same parser in the browser.
+ */
+function latin1(bytes: Uint8Array): string {
+  let text = ''
+  // In pieces: String.fromCharCode takes its arguments on the stack.
+  for (let at = 0; at < bytes.length; at += 8192) {
+    text += String.fromCharCode(...bytes.subarray(at, at + 8192))
+  }
+  return text
+}
+
+const UTF8 = new TextDecoder('utf-8')
+
 /** Byte strings back to text for display; invalid UTF-8 shows as U+FFFD. */
 function utf8(binary: string): string {
-  return Buffer.from(binary, 'latin1').toString('utf8')
+  return UTF8.decode(Uint8Array.from(binary, (character) => character.charCodeAt(0)))
 }

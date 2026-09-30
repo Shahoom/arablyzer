@@ -3,6 +3,7 @@ export { renderHead, type HeadOptions } from './head'
 export { escapeHtml } from './html'
 export {
   breadcrumbList,
+  definedTerm,
   itemList,
   jsonLdScript,
   techArticle,

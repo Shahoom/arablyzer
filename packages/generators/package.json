@@ -1,0 +1,21 @@
+{
+  "name": "@arablyzer/generators",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@arablyzer/collectors": "workspace:*",
+    "@arablyzer/rules": "workspace:*"
+  },
+  "devDependencies": {
+    "@arablyzer/engine": "workspace:*"
+  }
+}

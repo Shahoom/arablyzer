@@ -1,6 +1,7 @@
 import type { ToolCategoryName, ToolTag } from '@arablyzer/i18n'
 import type { Severity } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
+import type { ToolKind } from '@arablyzer/tools'
 import raw from '../generated/tools.json'
 
 // The tools as their pages need them, from src/generated/tools.json, which scripts/generate.ts
@@ -40,6 +41,8 @@ export interface ToolData {
   readonly related: readonly string[]
   /** YYYY-MM-DD. */
   readonly updated: string
+  /** A scan runs on the scanner; a paste tool and a generator in the visitor's browser. */
+  readonly kind: ToolKind
   /** Whether the tool renders the page in browsers. */
   readonly renders: boolean
   /**
