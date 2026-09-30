@@ -5,18 +5,35 @@
  */
 
 export interface Window {
-  /** Scans allowed in the window. */
+  /** Scans allowed in the window (for `attempts`, requests). */
   readonly scans: number
   readonly seconds: number
 }
 
 export interface ScanLimits {
-  /** One connection's scans: a token bucket that refills evenly over the window. */
+  /**
+   * One visitor's scans: a token bucket that refills evenly over the window. A visitor is an IPv4
+   * address, or an IPv6 address's /48 (apps/api client.ts).
+   */
   readonly perConnection: Window
+  /**
+   * The scans of one IPv6 network together, its /32, which holds 65,536 /48s: a provider's
+   * allocation cannot multiply a visitor's limit by spreading over them. A bucket like the
+   * visitor's, and larger.
+   */
+  readonly perNetwork: Window
+  /**
+   * The requests one visitor makes to start a scan, whatever comes of them, counted before
+   * Turnstile is asked: a request past it is refused without a call to Cloudflare. It has room
+   * for the requests that fail, so it is larger than `perConnection`.
+   */
+  readonly attempts: Window
   /** Scans of one host by everyone together, so no site is flooded through Arablyzer. */
   readonly perHost: Window
   /** Scans waiting in the queue; past it, new ones are refused as unavailable. */
   readonly queue: number
+  /** The scans one visitor has queued or running at once; past it, a new one is refused. */
+  readonly inFlight: number
 }
 
 /**
@@ -25,16 +42,24 @@ export interface ScanLimits {
  */
 export const DEVELOPMENT_LIMITS: ScanLimits = Object.freeze({
   perConnection: Object.freeze({ scans: 10, seconds: 3600 }),
+  perNetwork: Object.freeze({ scans: 100, seconds: 3600 }),
+  attempts: Object.freeze({ scans: 60, seconds: 3600 }),
   perHost: Object.freeze({ scans: 20, seconds: 3600 }),
   queue: 50,
+  inFlight: 2,
 })
 
 const VARIABLES = {
   connectionScans: 'ARABLYZER_LIMIT_CONNECTION_SCANS',
   connectionSeconds: 'ARABLYZER_LIMIT_CONNECTION_SECONDS',
+  networkScans: 'ARABLYZER_LIMIT_NETWORK_SCANS',
+  networkSeconds: 'ARABLYZER_LIMIT_NETWORK_SECONDS',
+  attemptRequests: 'ARABLYZER_LIMIT_ATTEMPT_REQUESTS',
+  attemptSeconds: 'ARABLYZER_LIMIT_ATTEMPT_SECONDS',
   hostScans: 'ARABLYZER_LIMIT_HOST_SCANS',
   hostSeconds: 'ARABLYZER_LIMIT_HOST_SECONDS',
   queue: 'ARABLYZER_LIMIT_QUEUE',
+  inFlight: 'ARABLYZER_LIMIT_INFLIGHT',
 } as const
 
 /**
@@ -60,10 +85,19 @@ export function limitsFrom(env: Readonly<Record<string, string | undefined>>): S
       scans: read(VARIABLES.connectionScans, d.perConnection.scans),
       seconds: read(VARIABLES.connectionSeconds, d.perConnection.seconds),
     }),
+    perNetwork: Object.freeze({
+      scans: read(VARIABLES.networkScans, d.perNetwork.scans),
+      seconds: read(VARIABLES.networkSeconds, d.perNetwork.seconds),
+    }),
+    attempts: Object.freeze({
+      scans: read(VARIABLES.attemptRequests, d.attempts.scans),
+      seconds: read(VARIABLES.attemptSeconds, d.attempts.seconds),
+    }),
     perHost: Object.freeze({
       scans: read(VARIABLES.hostScans, d.perHost.scans),
       seconds: read(VARIABLES.hostSeconds, d.perHost.seconds),
     }),
     queue: read(VARIABLES.queue, d.queue),
+    inFlight: read(VARIABLES.inFlight, d.inFlight),
   })
 }

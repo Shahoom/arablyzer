@@ -22,9 +22,14 @@ const PRODUCTION = {
   ARABLYZER_LIMIT_SECRET: 'limit-secret',
   ARABLYZER_LIMIT_CONNECTION_SCANS: '10',
   ARABLYZER_LIMIT_CONNECTION_SECONDS: '3600',
+  ARABLYZER_LIMIT_NETWORK_SCANS: '100',
+  ARABLYZER_LIMIT_NETWORK_SECONDS: '3600',
+  ARABLYZER_LIMIT_ATTEMPT_REQUESTS: '60',
+  ARABLYZER_LIMIT_ATTEMPT_SECONDS: '3600',
   ARABLYZER_LIMIT_HOST_SCANS: '20',
   ARABLYZER_LIMIT_HOST_SECONDS: '3600',
   ARABLYZER_LIMIT_QUEUE: '50',
+  ARABLYZER_LIMIT_INFLIGHT: '2',
 } as const
 
 const without = (name: keyof typeof PRODUCTION) =>
@@ -47,6 +52,18 @@ describe('apiDeps', () => {
     expect(() => apiDeps(without('ARABLYZER_LIMIT_QUEUE'), stores())).toThrow(
       /ARABLYZER_LIMIT_QUEUE/,
     )
+  })
+
+  it('refuses to start in production without any of the limits the abuse checks use', () => {
+    for (const name of [
+      'ARABLYZER_LIMIT_NETWORK_SCANS',
+      'ARABLYZER_LIMIT_NETWORK_SECONDS',
+      'ARABLYZER_LIMIT_ATTEMPT_REQUESTS',
+      'ARABLYZER_LIMIT_ATTEMPT_SECONDS',
+      'ARABLYZER_LIMIT_INFLIGHT',
+    ] as const) {
+      expect(() => apiDeps(without(name), stores()), name).toThrow(new RegExp(name))
+    }
   })
 
   it('never opens private addresses in production', () => {
