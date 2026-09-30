@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { MEASURE_LIMITS } from '@arablyzer/browser'
-import { MAX_SITE_LINKS } from '@arablyzer/collectors'
+import { MAX_SITE_LINKS, MAX_TEXT_ALTERNATIVES } from '@arablyzer/collectors'
 import { MIN_DRAWN_WORDS, RENDERED_TEXT_LENGTH, SCRIPTED_SHARE } from '@arablyzer/rules'
 import { describe, expect, it } from 'vitest'
 import { DNS_TIMEOUT_MS } from '../src/dns'
@@ -115,6 +115,15 @@ const STATEMENTS: readonly Statement[] = [
     ],
   },
   {
+    what: 'the names of a page that are read, from each end',
+    en: `first ${thousands(MAX_TEXT_ALTERNATIVES)} and the last ${thousands(MAX_TEXT_ALTERNATIVES)} names`,
+    ar: `أول ${thousands(MAX_TEXT_ALTERNATIVES)} اسم وآخر ${thousands(MAX_TEXT_ALTERNATIVES)} اسم`,
+    where: [
+      ['rule', 'payment-methods'],
+      ['tool', 'payment-methods-detector'],
+    ],
+  },
+  {
     what: 'the elements the browsers measure',
     en: `first ${String(MEASURE_LIMITS.maxBlocks)} visible elements`,
     ar: `أول ${String(MEASURE_LIMITS.maxBlocks)} عنصر`,
@@ -204,11 +213,12 @@ describe('the figures the copy states', () => {
           'links',
         )
         allowed(
-          [MAX_LINKS, MEASURE_LIMITS.maxBlocks, MEASURE_LIMITS.textLength],
+          [MAX_LINKS, MEASURE_LIMITS.maxBlocks, MEASURE_LIMITS.textLength, MAX_TEXT_ALTERNATIVES],
           figures(source, /(?:\bfirst|أول) (\d[\d,]*)/g),
           'first',
         )
         allowed([MIN_DRAWN_WORDS], figures(source, /\b(\d+) (?:Arabic words|كلمة عربية)/g), 'words')
+        allowed([MAX_TEXT_ALTERNATIVES], figures(source, /\b(\d[\d,]*) (?:names|اسم)/g), 'names')
       }
     },
   )

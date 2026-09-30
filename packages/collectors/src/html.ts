@@ -129,7 +129,10 @@ export interface HtmlFacts {
   readonly fields: readonly FieldElement[]
   /** The first MAX_INSECURE_LOADS, in document order. */
   readonly insecureLoads: readonly InsecureLoadElement[]
-  /** The first MAX_TEXT_ALTERNATIVES, in document order. */
+  /**
+   * The first MAX_TEXT_ALTERNATIVES and the last MAX_TEXT_ALTERNATIVES, in document order: a
+   * store's payment logos sit in its footer, after every product image.
+   */
   readonly textAlternatives: readonly TextAlternative[]
 }
 
@@ -175,17 +178,16 @@ export function collectHtml(
   const headings: HeadingElement[] = []
   const fields: FieldElement[] = []
   const insecureLoads: InsecureLoadElement[] = []
-  const textAlternatives: TextAlternative[] = []
+  const firstAlternatives: TextAlternative[] = []
+  const lastAlternatives = new LastKept<TextAlternative>(MAX_TEXT_ALTERNATIVES)
   const walk: Walk = { left: options.walkBudget ?? WALK_BUDGET }
   const labels = labelsByField(all, walk)
   const forms = formIds(all)
   for (const element of all) {
-    if (textAlternatives.length < MAX_TEXT_ALTERNATIVES) {
-      for (const [source, text] of textAlternativesOf(element)) {
-        if (textAlternatives.length < MAX_TEXT_ALTERNATIVES) {
-          textAlternatives.push({ ...index.ref(element), tag: element.tagName, source, text })
-        }
-      }
+    for (const [source, text] of textAlternativesOf(element)) {
+      const alternative = { ...index.ref(element), tag: element.tagName, source, text }
+      if (firstAlternatives.length < MAX_TEXT_ALTERNATIVES) firstAlternatives.push(alternative)
+      else lastAlternatives.add(alternative)
     }
     if (insecureLoads.length < MAX_INSECURE_LOADS && isHtmlElement(element, element.tagName)) {
       for (const load of insecureLoadsOf(element, baseUrl, forms)) {
@@ -291,13 +293,42 @@ export function collectHtml(
     headings,
     fields,
     insecureLoads,
-    textAlternatives,
+    textAlternatives: [...firstAlternatives, ...lastAlternatives.toArray()],
   }
 }
 
 export const MAX_INSECURE_LOADS = 100
-/** Text alternatives kept from one page: enough for any page's images and labels. */
-export const MAX_TEXT_ALTERNATIVES = 2_000
+/**
+ * Text alternatives kept from one page (M2.3c review): the first this many and the last this many,
+ * in document order, so a page's payment logos, which sit in its footer, are kept beside its first
+ * images and labels, however many products come between. What lies between is not kept, which the
+ * copy of the rule that reads them states.
+ */
+export const MAX_TEXT_ALTERNATIVES = 1_000
+
+/** The last `size` items added, in the order they were added, kept in a ring. */
+class LastKept<T> {
+  readonly #size: number
+  readonly #items: T[] = []
+  #next = 0
+
+  constructor(size: number) {
+    this.#size = size
+  }
+
+  add(item: T): void {
+    if (this.#items.length < this.#size) {
+      this.#items.push(item)
+      return
+    }
+    this.#items[this.#next] = item
+    this.#next = (this.#next + 1) % this.#size
+  }
+
+  toArray(): T[] {
+    return [...this.#items.slice(this.#next), ...this.#items.slice(0, this.#next)]
+  }
+}
 
 /**
  * An element's names for those who cannot see it: an image's alt, an <svg>'s first <title>, and

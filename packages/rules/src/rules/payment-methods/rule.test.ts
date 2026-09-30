@@ -1,3 +1,4 @@
+import { MAX_TEXT_ALTERNATIVES } from '@arablyzer/collectors'
 import { describe, expect, it } from 'vitest'
 import { applies, detectAll, fixtureEvidence, htmlPage } from '../../../test/helpers'
 import { rule } from './rule'
@@ -85,6 +86,26 @@ describe('payment-methods', () => {
     expect(
       detectAll(rule, on('<img alt="mada"><img alt="مدى"><span aria-label="mada"></span>')),
     ).toMatchObject([{ values: { method: 'mada' }, selector: 'body > img:nth-of-type(1)' }])
+  })
+
+  // M2.3c review: the collector kept the first 2,000 names of a page, and payment logos sit in the
+  // footer, after every product image; it keeps the last ones as well.
+  it('finds the logos in the footer of a page with thousands of product images', () => {
+    const products = '<img src="/p.jpg" alt="منتج">'.repeat(3 * MAX_TEXT_ALTERNATIVES)
+    expect(
+      methods(`${products}<footer><img alt="مدى"><img alt="Apple Pay"><img alt="Tabby"></footer>`),
+    ).toEqual(['mada', 'Apple Pay', 'Tabby'])
+    // What lies between the two ends is not read: a logo there is not found.
+    const between = `${'<img alt="منتج">'.repeat(MAX_TEXT_ALTERNATIVES)}<img alt="مدى">${'<img alt="منتج">'.repeat(MAX_TEXT_ALTERNATIVES + 5)}`
+    expect(methods(between)).toEqual([])
+  })
+
+  // The lists of names are not exhaustive: a spelling they lack, or a name inside a longer phrase,
+  // is not found, which the copy says.
+  it('does not find a spelling or a phrase its lists lack', () => {
+    expect(
+      methods('<img alt="مدي"><img alt="Pay with mada"><img alt="ادفع عبر مدى"><img alt="Madda">'),
+    ).toEqual([])
   })
 
   it('applies to an HTML page', () => {

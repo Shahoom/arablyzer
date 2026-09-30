@@ -31,10 +31,11 @@ There is nothing to fix here: the rule lists what the page shows. For a payment 
 ## How we detect
 
 1. We read the page's HTML as the server sends it, before JavaScript runs, and click nothing, submit no form and start no payment.
-2. We read the names of images and icons: an image's `alt`, an SVG icon's `<title>`, and `aria-label`. A name names a payment method when it is the method's name alone, in any letter case and without spaces or hyphens, or with a word beside it such as `logo`, «شعار» or «بطاقة». So «شعار مدى» names mada, and «على مدى عشرين عاماً» does not.
-3. We know Tabby's and Tamara's messages and Apple's Apple Pay button by the script the page loads, when it is from the host the provider's own guide gives: `checkout.tabby.ai` for Tabby, `cdn.tamara.co` for Tamara, and `applepay.cdn-apple.com` for Apple Pay.
-4. We do not read the names in the page's text: «مدى» is also a common Arabic word, and a page may speak of a payment method it does not take. What scripts add after loading is not seen.
-5. Each method is named once, where the page first shows it. The result is information, never deducted from the score.
+2. We read the names of images and icons: an image's `alt`, an SVG icon's `<title>`, and `aria-label`. A page has many, so we keep the first 1,000 and the last 1,000 names of a page, in its order: the logos in a footer are read after thousands of product images, and a name between the two ends is not read.
+3. A name names a payment method when it is the method's name alone, in any letter case and without spaces or hyphens, or with a word beside it such as `logo`, «شعار» or «بطاقة». So «شعار مدى» names mada, and «على مدى عشرين عاماً» does not. The lists of names are not exhaustive: a spelling we do not know, such as «مدي», or a name inside a longer phrase, such as “Pay with mada”, is not found.
+4. We know Tabby's and Tamara's messages and Apple's Apple Pay button by the script the page loads, when it is from the host the provider's own guide gives: `checkout.tabby.ai` for Tabby, `cdn.tamara.co` for Tamara, and `applepay.cdn-apple.com` for Apple Pay.
+5. We do not read the names in the page's text: «مدى» is also a common Arabic word, and a page may speak of a payment method it does not take. What scripts add after loading is not seen.
+6. Each method is named once, where the page first shows it. The result is information, never deducted from the score.
 
 ## References
 

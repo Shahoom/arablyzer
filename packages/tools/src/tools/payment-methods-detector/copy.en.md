@@ -49,7 +49,7 @@ Name each payment method's logo in its text alternative, so a screen reader know
 
 ### Why does the detector not find a payment method I show?
 
-For one of these reasons: its logo has no name in a text alternative; its name is only in the page's text, which we do not read for names, since «مدى» is a common Arabic word; a script adds it after loading; or it shows on the payment page alone, and we never start a payment.
+For one of these reasons: its logo has no name in a text alternative; the name is spelled in a way our lists do not know, such as «مدي», or sits inside a longer phrase, such as “Pay with mada”, since the lists of names are not exhaustive; it is one of the names between the first 1,000 and the last 1,000 of a page that has more, which we do not read; its name is only in the page's text, which we do not read for names, since «مدى» is a common Arabic word; a script adds it after loading; or it shows on the payment page alone, and we never start a payment.
 
 ### Does the detector check that the payment method works?
 
@@ -65,4 +65,4 @@ No. It finds the five methods it is made for: mada, Apple Pay, STC Pay, Tabby an
 
 ## Methodology
 
-We fetch the page as `ArablyzerBot`, follow its redirects and read its HTML as the server sends it, before JavaScript runs, and we click nothing, submit no form and start no payment. We read images' text alternatives, SVG icons' `<title>`, and `aria-label`, and count a name as naming a payment method when it is the method's name alone, in Arabic or Latin letters and any letter case, without spaces or hyphens, or with a word such as `logo` or «شعار». We know Tabby's and Tamara's messages and Apple's Apple Pay button by a script the page loads from the host the provider's guide gives. We do not read the names in the page's text. Each method is named once, where the page first shows it, and the result is information, never deducted. The same page gives the same result every time.
+We fetch the page as `ArablyzerBot`, follow its redirects and read its HTML as the server sends it, before JavaScript runs, and we click nothing, submit no form and start no payment. We read images' text alternatives, SVG icons' `<title>`, and `aria-label`, keeping the first 1,000 and the last 1,000 names of a page, and count a name as naming a payment method when it is the method's name alone, in Arabic or Latin letters and any letter case, without spaces or hyphens, or with a word such as `logo` or «شعار». We know Tabby's and Tamara's messages and Apple's Apple Pay button by a script the page loads from the host the provider's guide gives. We do not read the names in the page's text. Each method is named once, where the page first shows it, and the result is information, never deducted. The same page gives the same result every time.

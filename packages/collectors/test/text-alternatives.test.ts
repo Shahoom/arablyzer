@@ -43,8 +43,40 @@ describe('collectPage: text alternatives', () => {
     ).toEqual([])
   })
 
-  it(`keeps the first ${String(MAX_TEXT_ALTERNATIVES)}`, () => {
-    const images = '<img alt="صورة">'.repeat(MAX_TEXT_ALTERNATIVES + 10)
-    expect(alternatives(images)).toHaveLength(MAX_TEXT_ALTERNATIVES)
+  // M2.3c review: a store's payment logos sit in its footer, after every product image.
+  it(`keeps the first ${String(MAX_TEXT_ALTERNATIVES)} and the last ${String(MAX_TEXT_ALTERNATIVES)}, in document order`, () => {
+    const count = 3 * MAX_TEXT_ALTERNATIVES
+    const images = Array.from({ length: count }, (_, index) => `<img alt="صورة ${String(index)}">`)
+    const kept = alternatives(images.join('')).map(([, , text]) => text)
+    expect(kept).toHaveLength(2 * MAX_TEXT_ALTERNATIVES)
+    const wanted = [
+      ...images.slice(0, MAX_TEXT_ALTERNATIVES),
+      ...images.slice(count - MAX_TEXT_ALTERNATIVES),
+    ].map((image) => /alt="([^"]*)"/.exec(image)?.[1])
+    expect(kept).toEqual(wanted)
+    expect(kept).toContain('صورة 0')
+    expect(kept).toContain(`صورة ${String(count - 1)}`)
+    expect(kept).not.toContain(`صورة ${String(MAX_TEXT_ALTERNATIVES + 5)}`)
+  })
+
+  it('keeps every one of a page that has no more than the two ends hold, once each', () => {
+    for (const count of [
+      MAX_TEXT_ALTERNATIVES - 1,
+      MAX_TEXT_ALTERNATIVES,
+      2 * MAX_TEXT_ALTERNATIVES,
+    ]) {
+      const images = Array.from(
+        { length: count },
+        (_, index) => `<img alt="صورة ${String(index)}">`,
+      )
+      const kept = alternatives(images.join('')).map(([, , text]) => text)
+      expect(kept, String(count)).toHaveLength(count)
+      expect(new Set(kept).size, String(count)).toBe(count)
+    }
+    const over = Array.from(
+      { length: 2 * MAX_TEXT_ALTERNATIVES + 1 },
+      (_, index) => `<img alt="صورة ${String(index)}">`,
+    )
+    expect(alternatives(over.join(''))).toHaveLength(2 * MAX_TEXT_ALTERNATIVES)
   })
 })
