@@ -197,7 +197,7 @@ describe('runScan', () => {
 })
 
 // H1 of the pre-launch review: a scanner that had died, which Compose starts again (as it does after
-// every scan the scanner serves, M3), was never asked again: "not there" was final, each scan is
+// a scan that started a browser, M3), was never asked again: "not there" was final, each scan is
 // tried once, and so every scan queued behind the one that died failed within a moment.
 describe('runScan, while the scanner is not there', () => {
   /** A clock that only the waits move, so a test of a minute takes no time. */

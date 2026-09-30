@@ -5,6 +5,7 @@ import {
   SCANNER_TIMEOUT_MS,
   ScanRequest,
   type Scanner,
+  type ScannerEvent,
   type ScannerLineOut,
 } from '@arablyzer/scanner-client'
 import { Hono } from 'hono'
@@ -27,15 +28,25 @@ export interface ScannerDeps {
    */
   readonly onStuck?: () => void
   /**
-   * Given, the scanner serves one scan (M3 of the pre-launch review): its browsers run without a
-   * sandbox of their own, in the process that holds the worker's token and the CrUX key, so a
-   * renderer that a page took over could go on to forge the reports of the scans after its own.
-   * When that scan has ended, however it ended, this is called: main.ts ends the process once the
-   * answer is out, and Compose starts it again clean. Until then the scanner says it is
-   * restarting, to health and to any scan, and takes none.
+   * Given, a scan that started a browser or Lighthouse is the last of its process (M3 of the
+   * pre-launch review): the browsers run without a sandbox of their own, in the process that holds
+   * the worker's token and the CrUX key, so a renderer that a page took over could go on to forge
+   * the reports of the scans after its own. When such a scan has ended, however it ended, this is
+   * called: main.ts ends the process once the answer is out, and Compose starts it again clean.
+   * Until then the scanner says it is restarting, to health and to any scan, and takes none. A
+   * scan that started none has run no page's code in the process, and leaves it as it is.
    */
-  readonly onServed?: () => void
+  readonly onBrowserUsed?: () => void
 }
+
+/**
+ * Whether a scan's step says a browser, or Lighthouse, is about to start: the engine sends it
+ * before it launches one, and never launches one without it (its tests hold it to that). One that
+ * then does not start, as when a browser is not there, counts too: better a process that ends
+ * without need than one that runs on after a browser.
+ */
+const startsBrowser = (event: ScannerEvent) =>
+  event.type === 'render-start' || event.type === 'lab-start'
 
 /** A scan request is a URL: 8 KB is ample, and nothing larger is read. */
 const MAX_BODY_BYTES = 8 * 1024
@@ -49,7 +60,7 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
  * events and then its report as NDJSON. It holds no credential but the token it checks, and the
  * network it listens on reaches the worker alone. A worker that closes the connection stops the
  * scan, and so does the scan's own limit; one that will not stop makes the scanner unhealthy. It
- * is healthy when it can take a scan: once it has served its one (`onServed`), it is not.
+ * is healthy when it can take a scan: once a scan has started a browser (`onBrowserUsed`), it is not.
  */
 export function createScannerApp(deps: ScannerDeps): Hono {
   const expected = Buffer.from(`Bearer ${deps.token}`)
@@ -57,15 +68,15 @@ export function createScannerApp(deps: ScannerDeps): Hono {
   const stopGraceMs = deps.stopGraceMs ?? STOP_GRACE_MS
   /** When the scan running started; null when none is. */
   let runningSince: number | null = null
-  /** Whether the one scan this scanner serves has ended (`onServed`): it takes no other. */
-  let served = false
+  /** Whether a scan that started a browser has ended (`onBrowserUsed`): the scanner takes no other. */
+  let retiring = false
   const app = new Hono()
 
-  // Up, unless a scan has run past its limit, or its one scan is served and its process is about
-  // to end: Compose sees a scanner that is stuck, or one that is on its way out, and not one that
-  // can take a scan.
+  // Up, unless a scan has run past its limit, or a scan that started a browser has ended and the
+  // process is about to end: Compose sees a scanner that is stuck, or one that is on its way out,
+  // and not one that can take a scan.
   app.get('/health', (c) => {
-    if (served) return c.text('restarting', 503)
+    if (retiring) return c.text('restarting', 503)
     return runningSince !== null && Date.now() - runningSince > hardLimitMs
       ? c.text('stuck', 503)
       : c.text('ok')
@@ -90,16 +101,17 @@ export function createScannerApp(deps: ScannerDeps): Hono {
       }
       const request = ScanRequest.safeParse(raw)
       if (!request.success) return c.json({ error: 'bad-request' }, 400)
-      // A scanner that has served its scan takes none: the worker asks again, of the one Compose
-      // starts (apps/worker).
-      if (served) return c.json({ error: 'restarting' }, 503)
+      // A scanner whose process is about to end takes no scan: the worker asks again, of the one
+      // Compose starts (apps/worker).
+      if (retiring) return c.json({ error: 'restarting' }, 503)
       // One scan at a time, one browser at a time (BUILD-PLAN §11): the worker takes one job.
       if (runningSince !== null) return c.json({ error: 'busy' }, 503)
       runningSince = Date.now()
       c.header('content-type', 'application/x-ndjson')
-      // The process ends when the answer is out, and the connection with it: an idle one would
-      // keep the server from closing until it timed out.
-      if (deps.onServed !== undefined) c.header('connection', 'close')
+      // The process ends when the answer is out, if the scan starts a browser, and the connection
+      // with it: an idle one would keep the server from closing until it timed out. Asked for
+      // before the scan says whether it will: a connection is cheap.
+      if (deps.onBrowserUsed !== undefined) c.header('connection', 'close')
       return stream(c, async (out) => {
         const stop = new AbortController()
         out.onAbort(() => {
@@ -115,10 +127,13 @@ export function createScannerApp(deps: ScannerDeps): Hono {
         const send = (line: ScannerLineOut) => out.write(`${JSON.stringify(line)}\n`)
         // Events keep their order: each is written after the one before it.
         let written: Promise<unknown> = Promise.resolve()
+        // Whether the scan has started a browser or Lighthouse, by the steps it has sent.
+        const seen = { browser: false }
         try {
           const report = await deps.scanner(
             request.data,
             (event) => {
+              if (startsBrowser(event)) seen.browser = true
               written = written.then(() => send({ type: 'event', event })).catch(() => undefined)
             },
             stop.signal,
@@ -133,10 +148,10 @@ export function createScannerApp(deps: ScannerDeps): Hono {
           clearTimeout(limit)
           clearTimeout(stuck)
           runningSince = null
-          if (deps.onServed !== undefined) {
-            served = true
+          if (seen.browser && deps.onBrowserUsed !== undefined) {
+            retiring = true
             try {
-              deps.onServed()
+              deps.onBrowserUsed()
             } catch (error) {
               deps.log?.(`The scanner could not end its process: ${message(error)}`)
             }

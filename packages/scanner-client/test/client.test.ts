@@ -199,7 +199,7 @@ describe('remoteScanner', () => {
 })
 
 // H1 of the pre-launch review: a scanner that had died, which Compose starts again (as it does after
-// every scan the scanner serves, M3), was not asked again: its scans failed, and so did the whole
+// a scan that started a browser, M3), was not asked again: its scans failed, and so did the whole
 // queue behind them. What says "not there" is a scan that has not started, so the worker can ask
 // again, and only that.
 describe('remoteScanner, when the scanner is not there', () => {

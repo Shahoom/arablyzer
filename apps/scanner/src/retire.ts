@@ -2,10 +2,10 @@
  * How long the scanner's process lives at the least, in ms. Docker restarts a container that ends
  * by itself (compose.yaml: `restart: unless-stopped`) after a pause that starts at 100 ms and
  * doubles, up to a minute, for as long as the container has lived under ten seconds; one that
- * lived ten or more starts again at once. A scanner that serves one scan and ends its process
- * would otherwise wait longer for each of the quick scans in a queue, and the worker's wait for it
- * (apps/worker, run.ts) is a minute in all. The uptime counts from the process, a moment after
- * the container.
+ * lived ten or more starts again at once. A scanner that ends its process after a scan that started
+ * a browser would otherwise wait longer for each of those that end quickly, as a page that does not
+ * load does, and the worker's wait for it (apps/worker, run.ts) is a minute in all. The uptime
+ * counts from the process, a moment after the container.
  */
 export const MIN_UPTIME_MS = 11_000
 
@@ -31,8 +31,9 @@ export interface RetireOptions {
 const retiring = new WeakSet<object>()
 
 /**
- * Ends the scanner's process after the scan it served (M3 of the pre-launch review), so that
- * Compose starts it again, clean: no browser, no file and no memory of a page is left in it. The
+ * Ends the scanner's process after a scan that started a browser (M3 of the pre-launch review),
+ * so that Compose starts it again, clean: no browser, no file and no memory of a page is left in
+ * it. The
  * server stops taking connections at once, and the process ends when the last one has gone, that
  * of the scan's answer (which asked for its connection to close, app.ts) being the last, and when
  * MIN_UPTIME_MS has passed. A connection that will not go is waited for a grace, and no longer.

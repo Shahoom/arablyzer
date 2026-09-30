@@ -32,9 +32,9 @@ export type Fetcher = (input: string, init: RequestInit) => Promise<Response>
 
 /**
  * The scanner did not take the scan: a connection refused, a name that resolves to nothing, or a
- * 503 before it sent a line (busy, or ending its process after its scan: M3 of the pre-launch
- * review). Nothing of the scan has run, so asking again is safe; anything after the scanner took
- * it is not this.
+ * 503 before it sent a line (busy, or ending its process after a scan that started a browser: M3
+ * of the pre-launch review). Nothing of the scan has run, so asking again is safe; anything after
+ * the scanner took it is not this.
  */
 export class ScannerUnavailable extends Error {}
 

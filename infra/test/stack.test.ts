@@ -187,9 +187,10 @@ function postScan(url: string): Promise<Response> {
 }
 
 /**
- * Waits for a scanner that can take a scan: the scanner serves one scan and ends its process, and
- * Compose starts it again (M3.1), so between scans there is a moment with none. Asked as the worker
- * asks it, of its health: one that has served its scan says it is restarting, and is not there yet.
+ * Waits for a scanner that can take a scan: after a scan that started a browser the scanner ends its
+ * process and Compose starts it again (M3), so after one there is a moment with none. Asked as the
+ * worker asks it, of its health: one whose process is about to end says it is restarting, and is
+ * not there yet.
  */
 async function scannerUp(): Promise<void> {
   for (let tries = 0; tries < 180; tries++) {
@@ -205,6 +206,22 @@ async function scannerUp(): Promise<void> {
     await new Promise((resolve) => setTimeout(resolve, 1_000))
   }
   throw new Error('The scanner did not come back up')
+}
+
+/** A scan of the test site through the API, to its end: a tool page's for a tool, else a whole one. */
+async function scanned(tool?: string): Promise<void> {
+  const created = await fetch(`${SITE}/api/scans`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      url: FIXTURE,
+      turnstileToken: DUMMY_TOKEN,
+      ...(tool === undefined ? {} : { tool }),
+    }),
+  })
+  expect(created.status).toBe(202)
+  const { id } = (await created.json()) as { id: string }
+  expect((await scanEvents(id)).at(-1)?.type).toBe('done')
 }
 
 /** A service on the host's own network, and the host's addresses, for the networks' tests. */
@@ -420,7 +437,7 @@ describe('a scan through the whole stack', () => {
     expect(report.rules.map((rule) => rule.id).sort()).toEqual(['ar-html-lang', 'rtl-html-dir'])
   }, 120_000)
 
-  it('ends the scanner’s process after each scan, and Compose starts a clean one', async () => {
+  it('keeps the scanner’s process after a scan that starts no browser, and ends it after one that does', async () => {
     await scannerUp()
     const before = inspect('scanner')
     // What a browser that a page took over could leave in the scanner's memory-backed directories
@@ -430,15 +447,18 @@ describe('a scan through the whole stack', () => {
       `require('fs').writeFileSync('/tmp/left-by-the-last-page', 'x');
        require('child_process').spawn('sleep', ['600'], { detached: true, stdio: 'ignore' }).unref();`,
     )
-    const created = await fetch(`${SITE}/api/scans`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ url: FIXTURE, turnstileToken: DUMMY_TOKEN, tool: 'rtl-check' }),
-    })
-    expect(created.status).toBe(202)
-    const { id } = (await created.json()) as { id: string }
-    expect((await scanEvents(id)).at(-1)?.type).toBe('done')
-    // A new process, in the same container: started again, by the restart policy, since it ended.
+    const left = () =>
+      inside('scanner', "console.log(require('fs').existsSync('/tmp/left-by-the-last-page'))")
+    // A tool page's scan starts no browser: no page's code ran in the scanner, and it is the same
+    // process, and takes the next scan at once.
+    await scanned('rtl-check')
+    const kept = inspect('scanner')
+    expect(kept.RestartCount).toBe(before.RestartCount)
+    expect(kept.State.StartedAt).toBe(before.State.StartedAt)
+    expect(left()).toBe('true')
+    // A whole scan renders in three browsers: it is the last of its process, and Compose starts
+    // another, in the same container, since it ended.
+    await scanned()
     for (
       let tries = 0;
       tries < 180 && inspect('scanner').RestartCount === before.RestartCount;
@@ -451,11 +471,9 @@ describe('a scan through the whole stack', () => {
     expect(after.RestartCount).toBeGreaterThan(before.RestartCount)
     expect(after.State.StartedAt).not.toBe(before.State.StartedAt)
     // Nothing of the scan before is in it: not the file, not the process.
-    expect(
-      inside('scanner', "console.log(require('fs').existsSync('/tmp/left-by-the-last-page'))"),
-    ).toBe('false')
+    expect(left()).toBe('false')
     expect(processes('scanner').filter((running) => running.name === 'sleep')).toEqual([])
-  }, 420_000)
+  }, 600_000)
 
   it('leaves the scanner no browser and no zombie once the scan is over', async () => {
     await scannerUp()
@@ -478,7 +496,7 @@ describe('a scan through the whole stack', () => {
 })
 
 describe('the networks', () => {
-  // The scans above each ended the scanner's process: these look inside it.
+  // A scan above ended the scanner's process: these look inside its successor.
   beforeAll(scannerUp, 300_000)
 
   it('give the scanner the egress proxy and the worker alone: no store, no site', () => {

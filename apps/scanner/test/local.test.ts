@@ -7,6 +7,9 @@ import { RULES } from '@arablyzer/rules'
 import { eventOf } from '../src/events'
 import { localScanner, optionsFor } from '../src/local'
 
+/** The steps the engine sends before it starts a browser, and before Lighthouse. */
+const BROWSER_STEPS: ReadonlySet<string> = new Set(['render-start', 'lab-start'])
+
 const CLEAN_CONTACT = fileURLToPath(
   new URL('../../../fixtures/golden/sites/20-clean-contact/', import.meta.url),
 )
@@ -38,6 +41,8 @@ describe('localScanner', () => {
         error: null,
       })
       expect(seen.at(-1)?.type).toBe('rules')
+      // A scan that asked for no browser sends no step that says one is starting.
+      expect(seen.filter((event) => BROWSER_STEPS.has(event.type))).toEqual([])
     } finally {
       await site.close()
     }
@@ -74,10 +79,13 @@ describe('localScanner', () => {
   it("runs a tool page's scan with the tool's rules alone", async () => {
     const site = await serveSite(CLEAN_CONTACT)
     try {
+      const seen: ScanEvent[] = []
       const report = await localScanner({
         policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
-      })({ url: site.url('/'), tool: 'rtl-check' }, () => undefined)
+      })({ url: site.url('/'), tool: 'rtl-check' }, (event) => seen.push(event))
       expect(report.rules.map((rule) => rule.id).sort()).toEqual(['ar-html-lang', 'rtl-html-dir'])
+      // No browser and no Lighthouse: the scanner keeps its process after it (M3).
+      expect(seen.filter((event) => BROWSER_STEPS.has(event.type))).toEqual([])
     } finally {
       await site.close()
     }

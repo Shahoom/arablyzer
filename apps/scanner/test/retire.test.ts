@@ -100,14 +100,14 @@ describe('retireAfterAnswer', () => {
 
   it('states a minimum uptime that clears the ten seconds after which Docker restarts at once', () => {
     // Docker doubles the pause before it restarts a container, from 100 ms to a minute, for as long
-    // as the container lives under ten seconds: a scanner that serves one scan quickly would
-    // otherwise wait a minute for each.
+    // as the container lives under ten seconds: a scanner that ends its process after a browser
+    // scan that ended quickly would otherwise wait a minute for each.
     expect(MIN_UPTIME_MS).toBeGreaterThan(10_000)
     expect(MIN_UPTIME_MS).toBeLessThanOrEqual(15_000)
   })
 })
 
-describe('a scanner that ends its process after its scan, on a real connection', () => {
+describe('a scanner that ends its process after a browser scan, on a real connection', () => {
   it('sends the whole answer first, and then refuses connections, as a scanner that is not there', async () => {
     const report = Report.parse(rtlLayoutJson)
     const exits: number[] = []
@@ -118,8 +118,12 @@ describe('a scanner that ends its process after its scan, on a real connection',
     let server: ReturnType<typeof serve> | undefined
     const app = createScannerApp({
       token: TOKEN,
-      scanner: () => Promise.resolve(report),
-      onServed: () => {
+      // A scan that started a browser, which is the scan that ends the process.
+      scanner: (_request, onEvent) => {
+        onEvent({ type: 'render-start', engine: 'chromium' })
+        return Promise.resolve(report)
+      },
+      onBrowserUsed: () => {
         if (server === undefined) throw new Error('No server yet')
         retireAfterAnswer(server, {
           exit: (code) => {
