@@ -3,6 +3,7 @@ import { parseToolCopy } from '../src/copy'
 
 const AR = `---
 reviewed: false
+summary: هل تُقرأ صفحتك من اليمين؟
 ---
 
 # فحص RTL
@@ -48,7 +49,11 @@ reviewed: false
 نقرأ HTML الخام.
 `
 
-const EN = `# RTL checker
+const EN = `---
+summary: Does your page read right to left?
+---
+
+# RTL checker
 
 Checks the direction.
 
@@ -95,6 +100,7 @@ describe('parseToolCopy', () => {
     expect(parse(AR)).toEqual({
       title: 'فحص RTL',
       description: 'يتحقق من اتجاه الصفحة ولغتها.',
+      summary: 'هل تُقرأ صفحتك من اليمين؟',
       checks: ['أن `dir="rtl"` في وسم `<html>`.', 'أن `lang` لغة عربية.'],
       example: {
         wrong: { lang: 'html', code: '<html lang="en">' },
@@ -110,10 +116,24 @@ describe('parseToolCopy', () => {
     })
   })
 
-  it('reads English headings and robots.txt examples, and leaves reviewed unset without front matter', () => {
+  it('reads English headings and robots.txt examples, and leaves reviewed unset without it', () => {
     const copy = parse(EN, 'en')
     expect(copy.example.wrong).toEqual({ lang: 'robots.txt', code: 'User-agent: *\nDisallow: /' })
     expect(copy.reviewed).toBeNull()
+    expect(copy.summary).toBe('Does your page read right to left?')
+  })
+
+  it("needs the card's line, plain, and reads a # inside it", () => {
+    expect(() => parse(AR.replace('summary: هل تُقرأ صفحتك من اليمين؟\n', ''))).toThrow(
+      /front matter needs `summary:`/,
+    )
+    expect(() => parse(AR.replace('summary: هل تُقرأ صفحتك من اليمين؟', 'summary:'))).toThrow(
+      /summary is empty/,
+    )
+    expect(() => parse(AR.replace('من اليمين؟', '**من اليمين**؟'))).toThrow(/plain text/)
+    expect(parse(AR.replace('من اليمين؟', 'من اليمين في C#؟ # a comment')).summary).toBe(
+      'هل تُقرأ صفحتك من اليمين في C#؟',
+    )
   })
 
   it('keeps the description plain, for the meta description', () => {

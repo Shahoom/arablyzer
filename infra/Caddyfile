@@ -55,8 +55,9 @@
 		}
 	}
 
-	# A report's link opens the report page of its language, never indexed (§6.5).
-	@report path_regexp report ^/(en/)?r/(?:[A-Za-z0-9_-]{22}/?|index\.html)?$
+	# A report's link opens the report page of its language, never indexed (§6.5). The page's
+	# file by its name goes to /r/ or /en/r/ first, as every page's does (below).
+	@report path_regexp report ^/(en/)?r/(?:[A-Za-z0-9_-]{22}/?)?$
 	handle @report {
 		header X-Robots-Tag "noindex, nofollow"
 		root * /srv
@@ -64,8 +65,24 @@
 		file_server
 	}
 
+	# A page is its path's .html file (Astro's build.format 'preserve'): /tools is tools.html,
+	# /tools/rtl-check is tools/rtl-check.html; a directory's page is its index.html.
 	handle {
 		root * /srv
+		# Each page has one address (§6.5): its file's name, or a slash after it, goes there for
+		# good, with the query: /index.html is /, /en/index is /en/, /tools.html and /tools/ are
+		# /tools. A directory with a page keeps its slash, and file_server sends /en to /en/.
+		# Only paths in the site's own characters redirect: to a browser, /\host is another site.
+		@index path_regexp index ^((?:/[\w.~-]+)*/)index(?:\.html)?$
+		redir @index {re.index.1}{?query} 308
+		@html path_regexp html ^((?:/[\w.~-]+)+)\.html$
+		redir @html {re.html.1}{?query} 308
+		@slash {
+			path_regexp slash ^((?:/[\w.~-]+)+)/$
+			not file {path}index.html
+		}
+		redir @slash {re.slash.1}{?query} 308
+		try_files {path}.html {path}
 		file_server
 	}
 

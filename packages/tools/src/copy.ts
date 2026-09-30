@@ -21,6 +21,8 @@ export interface ToolCopy {
   readonly title: string
   /** The line under the H1, and the meta description: plain text. */
   readonly description: string
+  /** The tool's card in the directory: one short line, plain text (front matter `summary`). */
+  readonly summary: string
   /** "What this tool checks": one line of Markdown each. */
   readonly checks: readonly string[]
   /** A live example: tests check that the tool fails `wrong` and passes `right`. */
@@ -85,7 +87,7 @@ export function parseToolCopy(markdown: string, lang: Lang, file: string): ToolC
     throw new Error(`${file}: ${message}`)
   }
   const headings = TOOL_HEADINGS[lang]
-  const { reviewed, body } = frontMatter(markdown.replace(/\r\n?/g, '\n'), fail)
+  const { reviewed, summary, body } = frontMatter(markdown.replace(/\r\n?/g, '\n'), fail)
 
   let title: string | null = null
   const description: string[][] = []
@@ -190,9 +192,11 @@ export function parseToolCopy(markdown: string, lang: Lang, file: string): ToolC
     return { question, answer }
   })
 
+  if (summary === null) return fail("front matter needs `summary:`, the line on the tool's card")
   return {
     title,
     description: plain(paragraphs[0]?.join(' ') ?? '', fail),
+    summary: plain(summary, fail),
     checks,
     example: { wrong: example('wrong'), right: example('right') },
     fix: text('fix'),
@@ -205,21 +209,30 @@ export function parseToolCopy(markdown: string, lang: Lang, file: string): ToolC
 function frontMatter(
   text: string,
   fail: (message: string) => never,
-): { reviewed: boolean | null; body: string } {
-  if (!text.startsWith('---\n')) return { reviewed: null, body: text }
+): { reviewed: boolean | null; summary: string | null; body: string } {
+  if (!text.startsWith('---\n')) return { reviewed: null, summary: null, body: text }
   const end = text.indexOf('\n---\n', 3)
   if (end === -1) fail('front matter is not closed with ---')
   let reviewed: boolean | null = null
+  let summary: string | null = null
   for (const line of text.slice(4, end).split('\n')) {
-    const content = line.replace(/#.*$/, '').trim()
+    // A comment starts at " #": a summary may hold a "#" of its own, as in C#.
+    const content = line.replace(/(?:^|\s)#.*$/, '').trim()
     if (content === '') continue
     const match = /^([A-Za-z]+):\s*(.*)$/.exec(content)
-    if (match?.[1] !== 'reviewed') fail(`unknown front matter line "${line}"`)
-    const value = match[2]
-    if (value !== 'true' && value !== 'false') fail('reviewed must be true or false')
-    reviewed = value === 'true'
+    const key = match?.[1]
+    const value = match?.[2] ?? ''
+    if (key === 'reviewed') {
+      if (value !== 'true' && value !== 'false') fail('reviewed must be true or false')
+      reviewed = value === 'true'
+    } else if (key === 'summary') {
+      if (value === '') fail('summary is empty')
+      summary = value
+    } else {
+      fail(`unknown front matter line "${line}"`)
+    }
   }
-  return { reviewed, body: text.slice(end + 5) }
+  return { reviewed, summary, body: text.slice(end + 5) }
 }
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})/m

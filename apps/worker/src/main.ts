@@ -10,7 +10,7 @@ import {
 import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
 import pg from 'pg'
-import { failScan, runScan } from './run'
+import { failScan, runScan, scanJobOf } from './run'
 
 // The worker as Compose and staging run it (M2.1 plan §5b): it takes one job at a time, has the
 // scanner container run it, and stores the report. It runs no browser: the scanner does, on a
@@ -50,10 +50,13 @@ const deps = {
 const worker = new Worker<ScanJob>(
   SCAN_QUEUE,
   async (job) => {
-    const { id, url } = job.data
-    if (typeof id !== 'string' || typeof url !== 'string')
+    let scan: ScanJob
+    try {
+      scan = scanJobOf(job.data)
+    } catch {
       throw new Error(`Job ${job.id ?? ''} is not a scan`)
-    await runScan({ id, url }, deps)
+    }
+    await runScan(scan, deps)
   },
   { connection: redis, ...SCAN_WORKER },
 )

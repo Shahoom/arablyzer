@@ -25,6 +25,7 @@
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/rules": "workspace:*",
     "@arablyzer/seo": "workspace:*",
+    "@arablyzer/tools": "workspace:*",
     "@astrojs/preact": "6.0.5",
     "@fontsource/ibm-plex-mono": "5.3.0",
     "@fontsource/ibm-plex-sans-arabic": "5.3.0",
@@ -39,6 +40,7 @@
     "@astrojs/check": "0.9.10",
     "chrome-launcher": "1.2.1",
     "lighthouse": "13.5.0",
+    "playwright-core": "1.63.0",
     "typescript": "~6.0.3"
   }
 }

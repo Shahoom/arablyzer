@@ -1,3 +1,7 @@
+---
+summary: Does your page declare that it is Arabic and reads right to left?
+---
+
 # RTL checker
 
 Checks that your Arabic page declares on its html element that it is Arabic and reads right to left, as browsers and screen readers need.

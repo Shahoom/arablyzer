@@ -65,6 +65,8 @@ export interface ReportStrings {
     readonly copied: string
     readonly json: string
     readonly rescan: string
+    /** A tool page's scan (M2.2): its kicker, before the tool's slug. */
+    readonly tool: string
   }
   readonly score: {
     readonly title: string
@@ -89,6 +91,10 @@ export interface ReportStrings {
   readonly findings: {
     readonly title: string
     readonly none: string
+    /** Some rules could not run: those that did found nothing, which is not a clean page. */
+    readonly noneIncomplete: string
+    /** No rule could run: the report cannot say whether the page has problems. */
+    readonly noneUnknown: string
     readonly selector: string
     readonly seenIn: string
     readonly fix: string
@@ -115,7 +121,12 @@ export interface ReportStrings {
   /** When a scan does not go as it should (the approved States design). */
   readonly states: {
     readonly blocked: { readonly title: string; readonly text: (status: string) => string }
-    readonly partial: { readonly title: string; readonly text: string }
+    readonly partial: {
+      readonly title: string
+      readonly text: string
+      /** A tool's result, which has no score. */
+      readonly tool: string
+    }
     readonly failed: {
       readonly title: string
       /** No report: the scan could not run. */
@@ -207,6 +218,7 @@ export const REPORT: Copy<ReportStrings> = {
       copied: 'نُسخ الرابط',
       json: 'JSON',
       rescan: 'أعد الفحص',
+      tool: 'نتيجة أداة',
     },
     score: {
       title: 'الدرجة',
@@ -234,6 +246,9 @@ export const REPORT: Copy<ReportStrings> = {
     findings: {
       title: 'المخالفات',
       none: 'لم تجد القواعد أي مشكلة.',
+      noneIncomplete:
+        'لم تجد القواعد التي اكتملت أي مشكلة، لكن بعضها لم يكتمل، فلا نقول إن الصفحة بلا مشاكل.',
+      noneUnknown: 'لم تكتمل أي قاعدة، فلا نعرف إن كانت في الصفحة مشاكل.',
       selector: 'المحدِّد',
       seenIn: 'ظهرت في',
       fix: 'كيف تُصلح',
@@ -258,6 +273,7 @@ export const REPORT: Copy<ReportStrings> = {
       partial: {
         title: 'تقرير جزئي',
         text: 'بعض الفحوص لم تكتمل. الدرجة محسوبة على القواعد التي عملت، والتقرير يسمّي ما لم يعمل.',
+        tool: 'بعض الفحوص لم تكتمل، والتقرير يسمّي ما لم يعمل.',
       },
       failed: {
         title: 'تعذّر الفحص',
@@ -352,6 +368,7 @@ export const REPORT: Copy<ReportStrings> = {
       copied: 'Link copied',
       json: 'JSON',
       rescan: 'Scan again',
+      tool: 'A tool’s result',
     },
     score: {
       title: 'Score',
@@ -379,6 +396,9 @@ export const REPORT: Copy<ReportStrings> = {
     findings: {
       title: 'Problems',
       none: 'The rules found no problems.',
+      noneIncomplete:
+        'The rules that finished found no problems, but some did not finish, so we do not say the page has none.',
+      noneUnknown: 'No rule finished, so we cannot say whether the page has problems.',
       selector: 'Selector',
       seenIn: 'Seen in',
       fix: 'How to fix',
@@ -408,6 +428,7 @@ export const REPORT: Copy<ReportStrings> = {
       partial: {
         title: 'Partial report',
         text: 'Some checks did not finish. The score counts the rules that ran, and the report names what did not.',
+        tool: 'Some checks did not finish, and the report names what did not.',
       },
       failed: {
         title: 'The scan could not run',

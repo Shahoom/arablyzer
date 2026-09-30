@@ -1,16 +1,27 @@
 import type { ScanEvent, ScanState } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
-import type { ScanEvents, ScanJob, ScanQueue, ScanRecord, ScanStore, StoredEvent } from './types'
+import type {
+  NewScan,
+  ScanEvents,
+  ScanJob,
+  ScanQueue,
+  ScanRecord,
+  ScanStore,
+  StoredEvent,
+} from './types'
 
 // The stores in memory, for tests and `pnpm dev`: one process, nothing kept after it ends.
 
 export class MemoryScanStore implements ScanStore {
   readonly #scans = new Map<string, ScanRecord>()
 
-  create(scan: { id: string; url: string; createdAt: Date }): Promise<void> {
+  create(scan: NewScan): Promise<void> {
     if (this.#scans.has(scan.id)) return Promise.reject(new Error(`Scan ${scan.id} exists`))
     this.#scans.set(scan.id, {
-      ...scan,
+      id: scan.id,
+      url: scan.url,
+      createdAt: scan.createdAt,
+      tool: scan.tool ?? null,
       state: 'queued',
       startedAt: null,
       finishedAt: null,

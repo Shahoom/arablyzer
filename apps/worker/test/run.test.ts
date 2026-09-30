@@ -3,7 +3,7 @@ import type { Report } from '@arablyzer/report-schema'
 import type { Scanner } from '@arablyzer/scanner-client'
 import { MemoryScanEvents, MemoryScanStore } from '@arablyzer/store'
 import { describe, expect, it } from 'vitest'
-import { failScan, runScan } from '../src/run'
+import { failScan, runScan, scanJobOf } from '../src/run'
 
 const NOW = new Date('2026-09-28T12:00:00Z')
 const ID = 'AbCdEfGhIjKlMnOpQrSt_-'
@@ -57,6 +57,27 @@ describe('runScan', () => {
       { type: 'rules', rules: 47 },
       { type: 'done', state: 'partial' },
     ])
+  })
+
+  it("asks the scanner for a tool page's scan with its tool, and a whole scan without", async () => {
+    const { store, events } = await setup()
+    const asked: unknown[] = []
+    const report = { scan: { status: 'complete' } } as unknown as Report
+    const scanner: Scanner = (request) => {
+      asked.push(request)
+      return Promise.resolve(report)
+    }
+    await runScan(
+      { id: ID, url: 'https://example.com/', tool: 'rtl-check' },
+      { store, events, scanner, now: () => NOW },
+    )
+    expect(asked).toEqual([{ url: 'https://example.com/', tool: 'rtl-check' }])
+    await store.create({ id: 'whole', url: 'https://example.com/', createdAt: NOW })
+    await runScan(
+      { id: 'whole', url: 'https://example.com/' },
+      { store, events, scanner, now: () => NOW },
+    )
+    expect(asked.at(-1)).toEqual({ url: 'https://example.com/' })
   })
 
   it('fails a scan that could not run, with no report, and says so', async () => {
@@ -165,5 +186,25 @@ describe('runScan', () => {
     await failScan(ID, { store, events })
     expect(await store.get(ID)).toMatchObject({ state: 'partial', report })
     expect(await events.since(ID, null)).toEqual([])
+  })
+})
+
+describe('scanJobOf', () => {
+  it("reads a queued job's scan, with the tool a tool page asked for", () => {
+    expect(scanJobOf({ id: ID, url: 'https://example.com/' })).toEqual({
+      id: ID,
+      url: 'https://example.com/',
+    })
+    expect(scanJobOf({ id: ID, url: 'https://example.com/', tool: 'rtl-check' })).toEqual({
+      id: ID,
+      url: 'https://example.com/',
+      tool: 'rtl-check',
+    })
+  })
+
+  it('refuses what is not a scan', () => {
+    for (const data of [null, 'scan', { id: ID }, { url: 'x' }, { id: ID, url: 'x', tool: 3 }]) {
+      expect(() => scanJobOf(data)).toThrow('Not a scan')
+    }
   })
 })

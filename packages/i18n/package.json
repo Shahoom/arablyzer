@@ -7,7 +7,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./scan-form": "./src/scan-form.ts",
-    "./report": "./src/report.ts"
+    "./report": "./src/report.ts",
+    "./tools": "./src/tools.ts",
+    "./tool-app": "./src/tool-app.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

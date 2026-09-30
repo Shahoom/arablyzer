@@ -5,11 +5,22 @@ import type { Report } from '@arablyzer/report-schema'
 export interface ScanRecord {
   readonly id: string
   readonly url: string
+  /** The tool the scan ran (M2.2), or null for a whole scan. */
+  readonly tool: string | null
   readonly state: ScanState
   readonly createdAt: Date
   readonly startedAt: Date | null
   readonly finishedAt: Date | null
   readonly report: Report | null
+}
+
+/** A scan as the API records it, before it is queued. */
+export interface NewScan {
+  readonly id: string
+  readonly url: string
+  readonly createdAt: Date
+  /** A tool's slug: the scan runs that tool's rules alone. */
+  readonly tool?: string
 }
 
 /**
@@ -18,11 +29,7 @@ export interface ScanRecord {
  * nothing, so a job run twice never scans twice or overwrites a report.
  */
 export interface ScanStore {
-  create(scan: {
-    readonly id: string
-    readonly url: string
-    readonly createdAt: Date
-  }): Promise<void>
+  create(scan: NewScan): Promise<void>
   get(id: string): Promise<ScanRecord | null>
   /** Queued → running. */
   start(id: string, at: Date): Promise<boolean>
@@ -38,6 +45,8 @@ export interface ScanStore {
 export interface ScanJob {
   readonly id: string
   readonly url: string
+  /** A tool's slug, when a tool page asked: its rules alone. */
+  readonly tool?: string
 }
 
 export interface ScanQueue {

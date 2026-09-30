@@ -1,17 +1,25 @@
 import { reportPath } from '@arablyzer/api-contract/codes'
 import { CATEGORIES, REPORT } from '@arablyzer/i18n/report'
-import type { Finding, Report, RuleResult, Severity } from '@arablyzer/report-schema'
+import type { Report, RuleResult, Severity } from '@arablyzer/report-schema'
 import { STRINGS } from '@arablyzer/seo/strings'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { Braces, Check, Copy, EyeOff, RotateCcw } from 'lucide-preact'
 import type { TargetedKeyboardEvent } from 'preact'
 import { useState } from 'preact/hooks'
 import { METHODOLOGY } from '../../lib/site'
-import { ENGINES, problemsOf, valueOf, type RuleFindings } from '../report-model'
+import { ENGINES, noProblemsNote, problemsOf, type RuleFindings } from '../report-model'
 import { Bidi } from './Bidi'
+import { Evidence } from './Evidence'
+import { Notices } from './Notices'
 import { Crosshairs, ENGINE_LABEL, SectionHead, SeverityPill } from './ui'
 
 export type Fixes = Readonly<Record<string, { readonly fix: string }>>
+
+/** A tool's result's tool: its slug, and its name in the page's language when it is known. */
+export interface ToolRef {
+  readonly slug: string
+  readonly title: string | null
+}
 
 /** The finished report (the approved Report design). */
 export function ReportView({
@@ -19,23 +27,26 @@ export function ReportView({
   report,
   fixes,
   lang,
+  tool,
 }: {
   id: string
   report: Report
   fixes: Fixes | null
   lang: Lang
+  /** The tool a tool page's scan ran (M2.2): its rules alone, so no overall score. */
+  tool?: ToolRef | undefined
 }) {
   const problems = problemsOf(report)
   const [tab, setTab] = useState<Tab>('problems')
   return (
     <div className="flex flex-col">
-      <ReportHeader id={id} report={report} lang={lang} />
+      <ReportHeader id={id} report={report} lang={lang} tool={tool} />
       <div className="grid items-start gap-8 px-5 pt-8 pb-16 md:px-16 lg:grid-cols-12 lg:gap-x-8">
         <aside
           className="flex flex-col gap-5 lg:sticky lg:top-6 lg:col-span-4"
           aria-label={REPORT[lang].contents.title}
         >
-          <ScoreCard report={report} lang={lang} />
+          {tool === undefined && <ScoreCard report={report} lang={lang} />}
           <Contents report={report} problems={problems.length} lang={lang} onOpen={setTab} />
         </aside>
         <div className="flex min-w-0 flex-col gap-6 lg:col-span-8">
@@ -46,27 +57,15 @@ export function ReportView({
             >
               <strong className="text-moderate">{REPORT[lang].states.partial.title}</strong>
               <span className="text-[15px] leading-[1.7] text-ink-2">
-                {REPORT[lang].states.partial.text}
+                {/* A tool's result has no score to speak of. */}
+                {tool === undefined
+                  ? REPORT[lang].states.partial.text
+                  : REPORT[lang].states.partial.tool}
               </span>
             </div>
           )}
           <Engines report={report} lang={lang} />
-          {report.scan.notices.length > 0 && (
-            <section aria-labelledby="notices-title" className="flex flex-col gap-2">
-              <h2 id="notices-title" className="sr-only">
-                {REPORT[lang].notices}
-              </h2>
-              {report.scan.notices.map((notice) => (
-                <p
-                  key={notice.code}
-                  role="note"
-                  className="m-0 border border-measure-soft bg-measure-soft px-5 py-3.5 text-[15px] leading-[1.7] text-ink-2"
-                >
-                  <Bidi text={notice.message[lang]} lang={lang} />
-                </p>
-              ))}
-            </section>
-          )}
+          <Notices notices={report.scan.notices} lang={lang} id="notices-title" />
           <Results
             report={report}
             problems={problems}
@@ -81,7 +80,17 @@ export function ReportView({
   )
 }
 
-function ReportHeader({ id, report, lang }: { id: string; report: Report; lang: Lang }) {
+function ReportHeader({
+  id,
+  report,
+  lang,
+  tool,
+}: {
+  id: string
+  report: Report
+  lang: Lang
+  tool: ToolRef | undefined
+}) {
   const t = REPORT[lang].header
   const [copied, setCopied] = useState(false)
   const url = report.target.finalUrl ?? report.target.url
@@ -93,7 +102,12 @@ function ReportHeader({ id, report, lang }: { id: string; report: Report; lang: 
       })
       .catch(() => undefined)
   }
-  const rescan = `${localePath(lang, '/')}?url=${encodeURIComponent(report.target.url)}#scan`
+  // Again with the same page: the tool's page for a tool's result, the home page's form otherwise.
+  const again = encodeURIComponent(report.target.url)
+  const rescan =
+    tool === undefined
+      ? `${localePath(lang, '/')}?url=${again}#scan`
+      : `${localePath(lang, `/tools/${tool.slug}`)}?url=${again}`
   const button =
     'flex h-[46px] items-center gap-2 border-[1.5px] border-ink bg-white px-4 text-[15px] font-semibold hover:text-signal'
   return (
@@ -103,7 +117,30 @@ function ReportHeader({ id, report, lang }: { id: string; report: Report; lang: 
     >
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex min-w-0 flex-col gap-3">
-          <span className="text-sm font-semibold text-signal">{t.kicker}</span>
+          {tool === undefined ? (
+            <span className="text-sm font-semibold text-signal">{t.kicker}</span>
+          ) : (
+            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-signal">
+              {t.tool}
+              {/* The tool's name; its slug when the name could not be read. */}
+              {tool.title === null ? (
+                <a
+                  href={localePath(lang, `/tools/${tool.slug}`)}
+                  dir="ltr"
+                  className="font-mono font-normal text-ink-2 underline underline-offset-4 hover:text-signal"
+                >
+                  {tool.slug}
+                </a>
+              ) : (
+                <a
+                  href={localePath(lang, `/tools/${tool.slug}`)}
+                  className="font-normal text-ink-2 underline underline-offset-4 hover:text-signal"
+                >
+                  <Bidi text={tool.title} lang={lang} />
+                </a>
+              )}
+            </span>
+          )}
           <h1 id="report-title" className="m-0 text-3xl leading-tight font-semibold md:text-[38px]">
             {t.title}
           </h1>
@@ -420,7 +457,12 @@ function Results({
       aria-labelledby="results-title"
       className="flex scroll-mt-6 flex-col gap-4"
     >
-      <SectionHead number={2} id="results-title" title={t.results} />
+      {/* The browsers are § 01 when the scan rendered the page; without them, the results are. */}
+      <SectionHead
+        number={(report.scan.render ?? []).length > 0 ? 2 : 1}
+        id="results-title"
+        title={t.results}
+      />
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 border-b-2 border-ink">
         <div
           role="tablist"
@@ -480,9 +522,7 @@ function Results({
       >
         {tab === 'problems' &&
           (shown.length === 0 ? (
-            <p className="m-0 border border-pass bg-pass-soft px-5 py-4 text-pass">
-              {t.findings.none}
-            </p>
+            <NoProblems report={report} lang={lang} />
           ) : (
             shown.map((entry, index) => (
               <FindingCard
@@ -500,6 +540,20 @@ function Results({
         )}
       </div>
     </section>
+  )
+}
+
+/** No problem listed: a clean page only when every rule finished (noProblemsNote). */
+function NoProblems({ report, lang }: { report: Report; lang: Lang }) {
+  const t = REPORT[lang].findings
+  const note = noProblemsNote(report)
+  if (note === 'none') {
+    return <p className="m-0 border border-pass bg-pass-soft px-5 py-4 text-pass">{t.none}</p>
+  }
+  return (
+    <p className="m-0 border border-tick bg-white px-5 py-4 text-ink-2">
+      {note === 'incomplete' ? t.noneIncomplete : t.noneUnknown}
+    </p>
   )
 }
 
@@ -546,7 +600,7 @@ function FindingCard({
           )}
         </div>
         <h3 id={`${code}-title`} className="m-0 text-xl leading-snug font-semibold md:text-[23px]">
-          {rule.title[lang]}
+          <Bidi text={rule.title[lang]} lang={lang} />
         </h3>
       </header>
       <ul className="m-0 flex list-none flex-col p-0">
@@ -581,147 +635,6 @@ function FindingCard({
   )
 }
 
-function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
-  const t = REPORT[lang].findings
-  const { selector, snippet, engines, location, box } = finding.evidence
-  const overflow = valueOf(finding, 'overflow')
-  const viewport = valueOf(finding, 'viewportWidth')
-  return (
-    <div className="flex flex-col gap-4">
-      {box !== undefined && overflow !== null && viewport !== null && (
-        <OverflowDiagram
-          x={box.x}
-          width={box.width}
-          overflow={overflow}
-          viewport={viewport}
-          label={t.overflow(overflow, viewport)}
-        />
-      )}
-      <dl className="m-0 grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-[15px]">
-        {selector !== undefined && (
-          <>
-            <dt className="text-ink-3">{t.selector}</dt>
-            <dd className="m-0 min-w-0">
-              {/* A box of its own, so a selector that wraps keeps its lines to the left in Arabic. */}
-              <code
-                dir="ltr"
-                className="inline-block max-w-full bg-paper px-2 py-0.5 text-start font-mono text-sm break-all"
-              >
-                {selector}
-              </code>
-              {location !== undefined && (
-                <span dir="ltr" className="ms-2 font-mono text-xs text-ink-3">
-                  :{location.line}
-                </span>
-              )}
-            </dd>
-          </>
-        )}
-        {engines !== undefined && engines.length > 0 && (
-          <>
-            <dt className="text-ink-3">{t.seenIn}</dt>
-            <dd className="m-0 flex flex-wrap gap-1.5">
-              {engines.map((engine) => (
-                <span
-                  key={engine}
-                  dir="ltr"
-                  className="bg-signal-soft px-2 py-0.5 font-mono text-xs text-signal"
-                >
-                  {ENGINE_LABEL[engine]}
-                </span>
-              ))}
-            </dd>
-          </>
-        )}
-      </dl>
-      {snippet !== undefined && (
-        <pre
-          dir="ltr"
-          // Focusable, so a keyboard can scroll a line wider than the card.
-          tabIndex={0}
-          className="m-0 overflow-x-auto bg-panel px-4 py-3 font-mono text-[13px] text-panel-soft"
-        >
-          <code>{snippet}</code>
-        </pre>
-      )}
-    </div>
-  )
-}
-
-/** The element past the phone's edge, to scale, as on the home page. */
-function OverflowDiagram({
-  x,
-  width,
-  overflow,
-  viewport,
-  label,
-}: {
-  x: number
-  width: number
-  overflow: number
-  viewport: number
-  label: string
-}) {
-  const scale = 150 / viewport
-  const screen = { x: 300, width: 150 }
-  const start = Math.max(4, screen.x + x * scale)
-  const end = Math.max(start + 4, Math.min(screen.x + (x + width) * scale, 516))
-  const round = (value: number) => Math.round(value * 10) / 10
-  return (
-    <div className="max-w-[520px] border border-rule-soft bg-paper p-3">
-      <svg
-        width="100%"
-        viewBox="0 0 520 148"
-        fill="none"
-        role="img"
-        aria-label={label}
-        direction="ltr"
-      >
-        <rect
-          x={screen.x}
-          y="8"
-          width={screen.width}
-          height="124"
-          className="stroke-ink"
-          strokeWidth="1.5"
-        />
-        <rect
-          x={round(start)}
-          y="26"
-          width={round(end - start)}
-          height="30"
-          className="fill-signal-soft stroke-signal"
-          strokeWidth="1.5"
-          strokeDasharray="4 3"
-        />
-        <path
-          d={`M${round(start)} 96H${screen.x}M${round(start)} 90v12M${screen.x} 90v12`}
-          className="stroke-measure"
-          strokeWidth="1.2"
-        />
-        <text
-          x={round((start + screen.x) / 2)}
-          y="120"
-          textAnchor="middle"
-          fontSize="13"
-          className="fill-measure font-mono"
-        >
-          {overflow}px
-        </text>
-        <text
-          x={screen.x + screen.width / 2}
-          y="80"
-          textAnchor="middle"
-          fontSize="12"
-          className="fill-ink-3 font-mono"
-        >
-          {viewport}px
-        </text>
-      </svg>
-    </div>
-  )
-}
-
 function RuleList({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang }) {
   if (rules.length === 0) {
     return <p className="m-0 px-1 py-2 text-ink-3">{REPORT[lang].noRules}</p>
@@ -733,7 +646,9 @@ function RuleList({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang })
           key={rule.id}
           className="flex flex-wrap items-center justify-between gap-3 border-b border-rule-soft px-5 py-3 last:border-b-0"
         >
-          <span className="text-[15px]">{rule.title[lang]}</span>
+          <span className="text-[15px]">
+            <Bidi text={rule.title[lang]} lang={lang} />
+          </span>
           <code dir="ltr" className="font-mono text-xs text-ink-3">
             {rule.id}
           </code>

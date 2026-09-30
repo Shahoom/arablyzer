@@ -1,5 +1,6 @@
 ---
-reviewed: true
+reviewed: false # the card line (summary) is new in M2.2
+summary: هل يمنع ملف robots.txt زواحف البحث بالذكاء الاصطناعي من صفحتك؟
 ---
 
 # فحص زواحف الذكاء الاصطناعي

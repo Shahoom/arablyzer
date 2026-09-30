@@ -9,6 +9,7 @@ import Faq from './Faq.astro'
 import FinalCta from './FinalCta.astro'
 import Hero from './Hero.astro'
 import Honest from './Honest.astro'
+import HomeTools from './HomeTools.astro'
 import HowItWorks from './HowItWorks.astro'
 import TopicStrip from './TopicStrip.astro'
 
@@ -30,7 +31,6 @@ const jsonLd = [
   },
   webApplication({ name: 'Arablyzer', description: t.meta.description, url, lang }),
 ]
-// The tools section (§ 04 in the design) comes with the tool pages, in M2.2.
 ---
 
 <Page
@@ -44,7 +44,8 @@ const jsonLd = [
   <TopicStrip lang={lang} />
   <HowItWorks lang={lang} number={2} />
   <ArabicLayer lang={lang} number={3} />
-  <Honest lang={lang} number={4} />
-  <Faq lang={lang} number={5} />
+  <HomeTools lang={lang} number={4} />
+  <Honest lang={lang} number={5} />
+  <Faq lang={lang} number={6} />
   <FinalCta lang={lang} />
 </Page>

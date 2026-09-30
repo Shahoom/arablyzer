@@ -4,7 +4,7 @@ import { createPolicy } from '@arablyzer/egress'
 import { scan } from '@arablyzer/engine'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
 import type { Engine, Report } from '@arablyzer/report-schema'
-import { builtPages, isKnownGap } from '@arablyzer/seo/audit'
+import { builtPages, isKnownGap, representativePages } from '@arablyzer/seo/audit'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The site scanned by Arablyzer, in its three engines, as a visitor's scan would (M2.1 plan §3,
@@ -29,6 +29,13 @@ const SERVER_RULES = new Set(['https-missing', 'hsts-missing', 'tls-expiring'])
 const PAGES = builtPages(DIST)
   .map((page) => page.path)
   .filter((path) => !/^\/(?:en\/)?r(?:\/|$)/.test(path))
+/**
+ * The pages that stand for the rest render in the three engines; the other tool pages, one
+ * template with other words, in Chromium, which keeps the run short as the tools grow (M2.2).
+ */
+const EVERY_ENGINE = new Set(representativePages(builtPages(DIST)).map((page) => page.path))
+const enginesFor = (path: string): Engine[] =>
+  EVERY_ENGINE.has(path) ? [...ENGINES] : ['chromium']
 
 let site: FixtureSite
 
@@ -68,16 +75,17 @@ function problems(report: Report) {
 }
 
 describe.each(PAGES)('Arablyzer on its own page %s', (path) => {
-  it(`passes every rule in ${ENGINES.join(', ')}`, async () => {
+  const engines = enginesFor(path)
+  it(`passes every rule in ${engines.join(', ')}`, async () => {
     const report = await scan(site.url(path), {
       // The pages are served on loopback: the policy opens that one address and port alone.
       policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
       // CI's runner is a throwaway VM and these pages are ours, so WebKit runs there as in the
       // browser SSRF suite (M2.1 plan §3).
-      render: { engines: ENGINES, networkIsolated: true },
+      render: { engines, networkIsolated: true },
     })
     expect(report.scan.render?.map((run) => [run.engine, run.status])).toEqual(
-      ENGINES.map((engine) => [engine, 'rendered']),
+      engines.map((engine) => [engine, 'rendered']),
     )
     expect(problems(report)).toEqual([])
     const review = report.rules.filter((rule) => rule.status === 'needs-review')

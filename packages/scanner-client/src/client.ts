@@ -1,12 +1,18 @@
 import type { Report } from '@arablyzer/report-schema'
-import { MAX_SCANNER_EVENTS, SCAN_PATH, ScannerLine, type ScannerEvent } from './protocol'
+import {
+  MAX_SCANNER_EVENTS,
+  SCAN_PATH,
+  ScannerLine,
+  type ScannerEvent,
+  type ScanRequest,
+} from './protocol'
 
 /**
  * A scan: its steps' events as they happen, then its report. It throws when the scan could not
  * run; a page a scan could not fetch is a report, not a throw.
  */
 export type Scanner = (
-  url: string,
+  request: ScanRequest,
   onEvent: (event: ScannerEvent) => void,
   signal?: AbortSignal,
 ) => Promise<Report>
@@ -35,12 +41,15 @@ export function remoteScanner(
   timeoutMs = SCANNER_TIMEOUT_MS,
 ): Scanner {
   const url = new URL(SCAN_PATH, endpoint).href
-  return async (target, onEvent, signal) => {
+  return async (request, onEvent, signal) => {
     const deadline = AbortSignal.timeout(timeoutMs)
     const response = await fetcher(url, {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify({ url: target }),
+      body: JSON.stringify({
+        url: request.url,
+        ...(request.tool === undefined ? {} : { tool: request.tool }),
+      }),
       signal: signal === undefined ? deadline : AbortSignal.any([deadline, signal]),
     })
     if (response.status !== 200 || response.body === null) {

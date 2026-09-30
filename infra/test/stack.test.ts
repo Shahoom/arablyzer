@@ -251,11 +251,65 @@ describe('the site server', () => {
       ['/r/AbCdEfGhIjKlMnOpQrSt_-', 'ar'],
       ['/en/r/AbCdEfGhIjKlMnOpQrSt_-', 'en'],
       ['/r/', 'ar'],
+      ['/en/r/', 'en'],
+      // By its file's name, through the redirect to the page.
+      ['/r/index', 'ar'],
+      ['/en/r/index.html', 'en'],
     ] as const) {
       const response = await fetch(`${SITE}${path}`)
       expect(response.status, path).toBe(200)
       expect(response.headers.get('x-robots-tag'), path).toBe('noindex, nofollow')
       expect(await response.text(), path).toContain(`lang="${lang}"`)
+    }
+  })
+
+  it('serves every page at its clean address: the tools, and each tool', async () => {
+    for (const [path, lang] of [
+      ['/tools', 'ar'],
+      ['/tools/rtl-check', 'ar'],
+      ['/en/tools', 'en'],
+      ['/en/tools/rtl-check', 'en'],
+    ] as const) {
+      const response = await fetch(`${SITE}${path}`)
+      expect(response.status, path).toBe(200)
+      expect(response.headers.get('x-content-type-options'), path).toBe('nosniff')
+      expect(await response.text(), path).toContain(`lang="${lang}"`)
+    }
+  })
+
+  it("sends a page's other addresses to its own for good, with the security headers", async () => {
+    for (const [path, own] of [
+      // A slash after a page's address.
+      ['/tools/', '/tools'],
+      ['/tools/rtl-check/', '/tools/rtl-check'],
+      ['/en/tools/', '/en/tools'],
+      // A page's file, or a directory's index, by its name.
+      ['/index', '/'],
+      ['/index.html', '/'],
+      ['/en/index', '/en/'],
+      ['/en/index.html', '/en/'],
+      ['/tools.html', '/tools'],
+      ['/tools/rtl-check.html', '/tools/rtl-check'],
+      ['/r/index', '/r/'],
+      ['/en/r/index', '/en/r/'],
+      // A directory's page without its slash.
+      ['/en', '/en/'],
+      // The query goes along: a tool page reads the address to scan from it.
+      [
+        '/tools/rtl-check/?url=https%3A%2F%2Fexample.com%2F',
+        '/tools/rtl-check?url=https%3A%2F%2Fexample.com%2F',
+      ],
+    ] as const) {
+      const response = await fetch(`${SITE}${path}`, { redirect: 'manual' })
+      expect(response.status, path).toBe(308)
+      expect(response.headers.get('location'), path).toBe(own)
+      expect(response.headers.get('x-content-type-options'), path).toBe('nosniff')
+      expect(response.headers.get('strict-transport-security'), path).toBe('max-age=31536000')
+      expect(response.headers.get('server'), path).toBeNull()
+    }
+    // A directory's page keeps its slash.
+    for (const path of ['/', '/en/']) {
+      expect((await fetch(`${SITE}${path}`, { redirect: 'manual' })).status, path).toBe(200)
     }
   })
 
@@ -292,6 +346,25 @@ describe('a scan through the whole stack', () => {
       expect.arrayContaining(['rtl-horizontal-overflow', 'ar-letter-spacing', 'rtl-physical-css']),
     )
   }, 300_000)
+
+  it("runs a tool page's scan with the tool's rules alone, and no browser", async () => {
+    const created = await fetch(`${SITE}/api/scans`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url: FIXTURE, turnstileToken: DUMMY_TOKEN, tool: 'rtl-check' }),
+    })
+    expect(created.status).toBe(202)
+    const { id } = (await created.json()) as { id: string }
+    const events = await scanEvents(id)
+    expect(events.at(-1)?.type).toBe('done')
+    expect(events.map((event) => event.type)).not.toContain('render-start')
+    const summary = (await (await fetch(`${SITE}/api/scans/${id}`)).json()) as { tool?: string }
+    expect(summary.tool).toBe('rtl-check')
+    const report = (await (await fetch(`${SITE}/api/reports/${id}`)).json()) as {
+      rules: { id: string }[]
+    }
+    expect(report.rules.map((rule) => rule.id).sort()).toEqual(['ar-html-lang', 'rtl-html-dir'])
+  }, 120_000)
 
   it('leaves the scanner no browser and no zombie once the scan is over', () => {
     const left = processes('scanner')

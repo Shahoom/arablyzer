@@ -1,9 +1,9 @@
-import { defineTool } from '../../tool'
+import type { ToolDefinition } from '../../tool'
 
-export const tool = defineTool({
+export const definition: ToolDefinition = {
   slug: 'rtl-check',
   category: 'rtl',
   rules: ['rtl-html-dir', 'ar-html-lang'],
   related: ['whatsapp-link-check', 'ai-crawler-check'],
   updated: '2026-09-24',
-})
+}

@@ -1,0 +1,271 @@
+---
+import { TOOLS_UI } from '@arablyzer/i18n'
+import { breadcrumbList, webApplication } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import Check from '@lucide/astro/icons/check'
+import ChevronLeft from '@lucide/astro/icons/chevron-left'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+import X from '@lucide/astro/icons/x'
+import ToolApp from '../../islands/ToolApp'
+import Page from '../../layouts/Page.astro'
+import { METHODOLOGY, scanFormHref, siteOf } from '../../lib/site'
+import { TOOLS_DATA, toolData } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
+import SeverityPill from '../SeverityPill.astro'
+
+interface Props {
+  lang: Lang
+  slug: string
+}
+const { lang, slug } = Astro.props
+const tool = toolData(slug)
+const copy = tool.copy[lang]
+const t = TOOLS_UI[lang]
+const headings = TOOLS_DATA.headings[lang]
+const site = siteOf(Astro.site)
+const path = PATHS.tool(slug)
+const url = pageUrl(site, lang, path)
+const toolsPath = localePath(lang, PATHS.tools)
+const category = t.categories[tool.category].name
+const Next = lang === 'ar' ? ChevronLeft : ChevronRight
+const near = tool.related.map((other) => ({
+  href: localePath(lang, PATHS.tool(other)),
+  title: toolData(other).copy[lang].title,
+}))
+const jsonLd = [
+  webApplication({ name: copy.title, description: copy.description, url, lang }),
+  // From the home page, as the directory's: a search result shows this trail.
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.directory.title, url: pageUrl(site, lang, PATHS.tools) },
+    { name: copy.title, url },
+  ]),
+]
+const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
+---
+
+<Page
+  lang={lang}
+  path={path}
+  title={`${copy.title} — Arablyzer`}
+  description={copy.description}
+  jsonLd={jsonLd}
+>
+  <div class="tool-layout px-5 pt-7 pb-16 md:px-16 md:pt-10 md:pb-[88px]">
+    <div class="tool-main flex min-w-0 flex-col gap-12 md:gap-14">
+      <div class="flex flex-col gap-5 md:gap-[22px]">
+        <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
+          <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
+            <li class="flex items-center gap-2">
+              <a href={toolsPath} class="text-ink-3 hover:text-signal">
+                {t.directory.title}
+              </a>
+              <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
+            </li>
+            <li>
+              <a href={`${toolsPath}#cat-${tool.category}`} class="text-ink-3 hover:text-signal">
+                {category}
+              </a>
+            </li>
+          </ol>
+        </nav>
+        <h1 class="m-0 text-[32px] leading-[1.25] font-semibold text-balance md:text-[52px] md:leading-[1.2]">
+          {copy.title}
+        </h1>
+        <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+          {copy.description}
+        </p>
+        {/* Started when the browser is idle, or after half a second at most: a busy page, such as
+            CI's Chromium, may never be idle, and the tool's button waits for its island. */}
+        <ToolApp
+          client:idle={{ timeout: 500 }}
+          lang={lang}
+          tool={slug}
+          reads={tool.renders ? 'render' : tool.tag === 'robots' ? 'robots' : 'html'}
+        />
+      </div>
+
+      <section id="checks" aria-labelledby="checks-title" class="flex flex-col gap-4 md:gap-[18px]">
+        <h2 id="checks-title" class={heading}>
+          {headings.checks}
+        </h2>
+        <ul class="prose-tool m-0 flex flex-col gap-2.5 ps-[22px] text-base leading-[1.8] text-ink-2 md:text-[17px]">
+          {copy.checks.map((item) => (
+            <li set:html={item} />
+          ))}
+        </ul>
+      </section>
+
+      <section
+        id="example"
+        aria-labelledby="example-title"
+        class="flex flex-col gap-4 md:gap-[18px]"
+      >
+        <h2 id="example-title" class={heading}>
+          {headings.example}
+        </h2>
+        <div class="grid gap-4 md:grid-cols-2">
+          {(['wrong', 'right'] as const).map((kind) => (
+            <figure class="m-0 flex min-w-0 flex-col border border-rule-strong bg-white">
+              <figcaption
+                class:list={[
+                  'flex items-center gap-2 border-b border-rule-soft px-4 py-2.5 text-sm font-semibold',
+                  kind === 'wrong' ? 'text-signal' : 'text-pass',
+                ]}
+              >
+                {kind === 'wrong' ? (
+                  <X size={14} stroke-width={2.6} aria-hidden="true" />
+                ) : (
+                  <Check size={14} stroke-width={2.6} aria-hidden="true" />
+                )}
+                {headings[kind]}
+              </figcaption>
+              <pre
+                dir="ltr"
+                tabindex="0"
+                class="m-0 overflow-x-auto px-4 py-[18px] text-start font-mono text-[13px] leading-[1.7] md:text-sm"
+                set:html={copy.example[kind].html}
+              />
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      <section id="fix" aria-labelledby="fix-title" class="flex flex-col gap-4 md:gap-[18px]">
+        <h2 id="fix-title" class={heading}>
+          {headings.fix}
+        </h2>
+        <div
+          class="prose-fix prose-tool text-base leading-[1.8] text-ink-2 md:text-[17px]"
+          set:html={copy.fix}
+        />
+      </section>
+
+      <section id="faq" aria-labelledby="faq-title" class="flex flex-col">
+        <h2 id="faq-title" class:list={[heading, 'mb-3']}>
+          {headings.faq}
+        </h2>
+        {copy.faq.map((entry, index) => (
+          <div
+            class:list={[
+              'flex flex-col gap-3 py-[18px]',
+              index === 0 ? 'border-t border-ink' : 'border-t border-rule',
+              index === copy.faq.length - 1 && 'border-b border-rule',
+            ]}
+          >
+            <h3 class="m-0 text-lg leading-snug font-semibold" set:html={entry.question} />
+            <div
+              class="prose-fix prose-tool text-base leading-[1.8] text-ink-2"
+              set:html={entry.answer}
+            />
+          </div>
+        ))}
+      </section>
+    </div>
+
+    <aside class="tool-aside flex min-w-0 flex-col gap-4">
+      <section id="links" aria-labelledby="runs-title" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-3 border border-rule-strong bg-white p-[22px]">
+          <h2 id="runs-title" class="m-0 text-sm font-semibold text-ink-3">
+            {t.page.runs}
+          </h2>
+          <ul class="m-0 flex list-none flex-col gap-5 p-0">
+            {tool.rules.map((rule) => (
+              <li class="flex flex-col gap-1.5">
+                <code dir="ltr" class="self-start font-mono text-sm text-ink-2">
+                  {rule.id}
+                </code>
+                <span class="text-base leading-[1.6] font-semibold">
+                  <Bidi text={rule.title[lang]} lang={lang} />
+                </span>
+                <span class="self-start">
+                  <SeverityPill severity={rule.severity} lang={lang} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {near.length > 0 && (
+          <nav
+            aria-labelledby="near-title"
+            class="flex flex-col gap-1 border border-rule-strong bg-white p-[22px]"
+          >
+            <h2 id="near-title" class="m-0 mb-2 text-sm font-semibold text-ink-3">
+              {t.page.near}
+            </h2>
+            {near.map((other, index) => (
+              <a
+                href={other.href}
+                class:list={[
+                  'flex items-center justify-between gap-3 py-2.5 text-base hover:text-signal',
+                  index < near.length - 1 && 'border-b border-rule-soft',
+                ]}
+              >
+                {other.title}
+                <Next size={16} stroke-width={2} aria-hidden="true" class="shrink-0" />
+              </a>
+            ))}
+          </nav>
+        )}
+      </section>
+    </aside>
+
+    <section
+      id="about"
+      aria-labelledby="about-title"
+      class="tool-about flex flex-col gap-3.5 border border-rule-strong bg-white p-6"
+    >
+      <h2 id="about-title" class="m-0 text-xl font-semibold">
+        {headings.methodology}
+      </h2>
+      <div
+        class="prose-fix prose-tool text-[15px] leading-[1.9] text-ink-2"
+        set:html={copy.methodology}
+      />
+      <p class="m-0 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-dashed border-tick pt-3.5 text-sm text-ink-2">
+        <span>
+          {t.page.updated}{' '}
+          <time datetime={tool.updated} dir="ltr" class="font-mono">
+            {tool.updated}
+          </time>
+        </span>
+        <a href={METHODOLOGY} class="underline underline-offset-4 hover:text-signal">
+          {t.page.methodology}
+        </a>
+        <a href={scanFormHref(lang)} class="underline underline-offset-4 hover:text-signal">
+          {t.page.fullScan}
+        </a>
+      </p>
+    </section>
+  </div>
+</Page>
+
+<style>
+  .tool-layout {
+    display: grid;
+    gap: 3rem;
+  }
+  @media (min-width: 1024px) {
+    /* The design's twelve columns: the tool in eight, what it runs and its neighbours in four. */
+    .tool-layout {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      grid-template-areas:
+        'main aside'
+        'about aside';
+      column-gap: 56px;
+      row-gap: 56px;
+      align-items: start;
+    }
+    .tool-main {
+      grid-area: main;
+    }
+    .tool-aside {
+      grid-area: aside;
+      padding-block-start: 48px;
+    }
+    .tool-about {
+      grid-area: about;
+    }
+  }
+</style>

@@ -49,7 +49,14 @@ export interface CreateScanRequest {
   readonly url: string
   /** Turnstile's token; the API checks it with Cloudflare. */
   readonly turnstileToken: string
+  /** A tool's slug (packages/tools): the scan runs that tool's rules alone (M2.2). */
+  readonly tool?: string
 }
+
+/** A tool's slug, as the site sends it: ASCII kebab-case (BUILD-PLAN §5.1). */
+export const TOOL_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+/** The longest slug the API reads. */
+export const MAX_TOOL_SLUG_LENGTH = 64
 
 /** `202 Accepted`: the scan is queued, and its page is `/r/{id}`. */
 export interface CreateScanResponse {
@@ -80,6 +87,8 @@ export interface ScanSummary {
   readonly state: ScanState
   /** ISO 8601. */
   readonly createdAt: string
+  /** The tool the scan ran, when a tool page asked for it: its rules alone, and no score. */
+  readonly tool?: string
 }
 
 /**

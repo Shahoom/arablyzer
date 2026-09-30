@@ -20,6 +20,7 @@
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/scanner": "workspace:*",
     "@arablyzer/store": "workspace:*",
+    "@arablyzer/tools": "workspace:*",
     "@hono/node-server": "2.1.1",
     "hono": "4.13.10",
     "ioredis": "5.11.1",

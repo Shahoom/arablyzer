@@ -9,12 +9,16 @@ export interface SiteStrings {
   readonly skipToContent: string
   readonly statusBar: string
   readonly navLabel: string
+  /** The header's sections, each named as its page is built (apps/web, NAV). */
+  readonly nav: { readonly tools: string }
   /** The header's call to action, to the scan form. */
   readonly scanCta: string
   /** The link to the same page in the other language, written in that language. */
   readonly otherLang: { readonly label: string; readonly short: string }
   readonly footer: {
     readonly about: string
+    /** Over the site's sections (NAV), as the header lists them. */
+    readonly sections: string
     readonly project: string
     readonly github: string
     readonly license: string
@@ -31,10 +35,12 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'انتقل إلى المحتوى',
     statusBar: 'أدوات مجانية وبلا تسجيل · الكود مفتوح المصدر',
     navLabel: 'أقسام الموقع',
+    nav: { tools: 'الأدوات' },
     scanCta: 'افحص موقعك',
     otherLang: { label: 'English', short: 'EN' },
     footer: {
       about: 'محلّل المواقع العربية: أدوات مجانية تفحص ما يراه الزبون العربي فعلاً.',
+      sections: 'الأقسام',
       project: 'المشروع',
       github: 'الكود على GitHub',
       license: 'مفتوح المصدر بترخيص AGPL-3.0',
@@ -48,11 +54,13 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'Skip to content',
     statusBar: 'Free tools, no sign-up · Open source',
     navLabel: 'Site sections',
+    nav: { tools: 'Tools' },
     scanCta: 'Check your site',
     otherLang: { label: 'العربية', short: 'العربية' },
     footer: {
       about:
         'The Arabic website analyzer: free tools that check what Arabic-speaking customers actually see.',
+      sections: 'Sections',
       project: 'Project',
       github: 'The code on GitHub',
       license: 'Open source under AGPL-3.0',

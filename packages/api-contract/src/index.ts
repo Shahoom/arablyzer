@@ -1,8 +1,10 @@
 import { z } from 'zod'
 import {
+  MAX_TOOL_SLUG_LENGTH,
   MAX_URL_LENGTH,
   SCAN_ERROR_CODES,
   SCAN_ID_PATTERN,
+  TOOL_SLUG_PATTERN,
   type CreateScanRequest as CreateScanRequestShape,
   type CreateScanResponse as CreateScanResponseShape,
   type ScanErrorResponse as ScanErrorResponseShape,
@@ -22,6 +24,10 @@ export type ScanSummary = ScanSummaryShape
 /** Turnstile's tokens are at most 2,048 characters (Cloudflare's server-side validation docs). */
 const TURNSTILE_TOKEN_MAX = 2048
 
+function toolSlug() {
+  return z.string().max(MAX_TOOL_SLUG_LENGTH).regex(TOOL_SLUG_PATTERN)
+}
+
 /**
  * The URL is checked by the egress package after this, which gives the precise reason; here it
  * only has to be a string of a size worth checking.
@@ -32,6 +38,7 @@ export const CreateScanRequest = z.strictObject({
     .min(1)
     .max(MAX_URL_LENGTH * 2),
   turnstileToken: z.string().max(TURNSTILE_TOKEN_MAX),
+  tool: toolSlug().optional(),
 }) satisfies z.ZodType<CreateScanRequestShape>
 
 export const CreateScanResponse = z.strictObject({
@@ -91,4 +98,5 @@ export const ScanSummary = z.strictObject({
   url: z.string(),
   state: z.enum(['queued', 'running', 'complete', 'partial', 'failed']),
   createdAt: z.iso.datetime(),
+  tool: toolSlug().optional(),
 }) satisfies z.ZodType<ScanSummaryShape>

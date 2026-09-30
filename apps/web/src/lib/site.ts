@@ -1,3 +1,4 @@
+import type { SiteStrings } from '@arablyzer/i18n'
 import { defineSite, localePath, PATHS, type Lang, type Site } from '@arablyzer/seo/site'
 
 /** The site the pages are built for, from astro.config.ts's `site`. */
@@ -29,9 +30,11 @@ export const CLOUDTOPIA = 'https://cloudtopia.net'
 
 /**
  * Pages the header lists, in order, as they are built (M2.2 to M2.4). A link to a page that does
- * not exist fails the self-audit, so each comes with its page.
+ * not exist fails the self-audit, so each comes with its page. `key` names its label in SITE.nav.
  */
-export const NAV: readonly { readonly key: string; readonly path: string }[] = []
+export const NAV: readonly { readonly key: keyof SiteStrings['nav']; readonly path: string }[] = [
+  { key: 'tools', path: PATHS.tools },
+]
 
 /** The home page's scan form, which the header's call to action goes to. */
 export function scanFormHref(lang: Lang): string {

@@ -23,6 +23,8 @@ const ENGINES = (['chromium', 'firefox', 'webkit'] as const).filter(
 )
 const DONE = 'DoneDoneDoneDoneDone_0'
 const RUNNING = 'RunningRunningRunnin_1'
+/** A tool page's scan (M2.2): the same report, shown as the tool's result, with no score. */
+const TOOL = 'ToolToolToolToolTool_2'
 
 /**
  * Rules a report page fails on purpose: it is never indexed (BUILD-PLAN §6.5), and the page its
@@ -38,11 +40,12 @@ const json = (value: unknown) => ({
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify(value),
 })
-const summary = (id: string, state: string) => ({
+const summary = (id: string, state: string, tool?: string) => ({
   id,
   url: 'http://store.example/checkout',
   state,
   createdAt: '2026-09-28T12:00:00.000Z',
+  ...(tool === undefined ? {} : { tool }),
 })
 
 beforeAll(async () => {
@@ -66,6 +69,9 @@ beforeAll(async () => {
       [`/r/${RUNNING}`]: html,
       [`/api/scans/${DONE}`]: json(summary(DONE, 'complete')),
       [`/api/reports/${DONE}`]: json(report),
+      [`/r/${TOOL}`]: html,
+      [`/api/scans/${TOOL}`]: json(summary(TOOL, 'complete', 'rtl-check')),
+      [`/api/reports/${TOOL}`]: json(report),
       [`/api/scans/${RUNNING}`]: json(summary(RUNNING, 'running')),
       [`/api/scans/${RUNNING}/events`]: {
         headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-store' },
@@ -121,6 +127,11 @@ describe('the report page, rendered', () => {
     expect(report.scan.render?.map((run) => [run.engine, run.status])).toEqual(
       ENGINES.map((engine) => [engine, 'rendered']),
     )
+    expect(problems(report)).toEqual([])
+  }, 180_000)
+
+  it(`shows a tool's result and passes every rule in ${ENGINES.join(', ')}`, async () => {
+    const report = await scanned(TOOL)
     expect(problems(report)).toEqual([])
   }, 180_000)
 

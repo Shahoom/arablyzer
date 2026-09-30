@@ -1,6 +1,6 @@
 import { renderMarkdown } from '@arablyzer/seo'
 import { describe, expect, it } from 'vitest'
-import { fixHtml, WHOLE } from '../scripts/fix-html'
+import { fixHtml, WHOLE } from '../src/lib/fix-html'
 
 describe('fixHtml', () => {
   it('scrolls a table on its own, and lets a keyboard reach it and every code block', () => {

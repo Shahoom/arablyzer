@@ -28,6 +28,7 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
     expect(await store.get(id)).toEqual({
       id,
       url: 'https://example.com/',
+      tool: null,
       state: 'queued',
       createdAt: NOW,
       startedAt: null,
@@ -52,6 +53,27 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
       [id],
     )
     expect(rows[0]?.score).toBe(81)
+  })
+
+  it("keeps the tool a tool page's scan ran", async () => {
+    const id = 'AbCdEfGhIjKlMnOpQrSt_t'
+    await store.create({ id, url: 'https://example.com/', createdAt: NOW, tool: 'rtl-check' })
+    expect((await store.get(id))?.tool).toBe('rtl-check')
+  })
+
+  it("lists no overall score for a tool page's scan: the score is a whole scan's", async () => {
+    const id = 'AbCdEfGhIjKlMnOpQrSt_u'
+    await store.create({ id, url: 'https://example.com/', createdAt: NOW, tool: 'rtl-check' })
+    await store.start(id, NOW)
+    // Its two rules passed: 100, of those rules alone.
+    const report = { scan: { status: 'complete' }, score: { overall: 100 } } as unknown as Report
+    expect(await store.finish(id, report, NOW)).toBe(true)
+    expect(await store.get(id)).toMatchObject({ state: 'complete', tool: 'rtl-check', report })
+    const { rows } = await pool.query<{ score: number | null }>(
+      'SELECT score FROM scans WHERE id = $1',
+      [id],
+    )
+    expect(rows[0]?.score).toBeNull()
   })
 
   it('fails a scan that could not run, and knows no scan it was not given', async () => {

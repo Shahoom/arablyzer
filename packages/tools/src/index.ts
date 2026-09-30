@@ -1,10 +1,8 @@
-import type { Tool } from './tool'
-import { tool as aiCrawlerCheck } from './tools/ai-crawler-check/tool'
-import { tool as rtlCheck } from './tools/rtl-check/tool'
-import { tool as whatsappLinkCheck } from './tools/whatsapp-link-check/tool'
+import { TOOL_DEFINITIONS } from './registry'
+import { defineTool, type Tool } from './tool'
 
-/** Every tool, sorted by slug. */
-export const TOOLS: readonly Tool[] = [aiCrawlerCheck, rtlCheck, whatsappLinkCheck]
+/** Every tool with its page's copy, sorted by slug. */
+export const TOOLS: readonly Tool[] = TOOL_DEFINITIONS.map(defineTool)
 
 export function toolBySlug(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug)
@@ -19,6 +17,7 @@ export {
   type Lang,
   type ToolCopy,
 } from './copy'
+export { TOOL_DEFINITIONS, toolDefinition } from './registry'
 export {
   defineTool,
   TOOL_CATEGORIES,
