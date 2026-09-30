@@ -79,6 +79,14 @@ These read the page as a browser rendered it, so they run with `--render`:
 | [`ar-font-no-arabic`](packages/rules/src/rules/ar-font-no-arabic/copy.en.md) | The web font set for Arabic text has the Arabic letters (Chromium) |
 | [`rtl-bidi-isolation`](packages/rules/src/rules/rtl-bidi-isolation/copy.en.md) | Numbers and Latin words inside right-to-left text are drawn in order |
 | [`rtl-horizontal-overflow`](packages/rules/src/rules/rtl-horizontal-overflow/copy.en.md) | A right-to-left page fits a phone screen without scrolling sideways |
+| [`a11y-image-alt`](packages/rules/src/rules/a11y-image-alt/copy.en.md) | Images have a text alternative (axe-core) |
+| [`a11y-color-contrast`](packages/rules/src/rules/a11y-color-contrast/copy.en.md) | Text, Arabic included, has the contrast WCAG asks for (axe-core) |
+| [`a11y-color-contrast-review`](packages/rules/src/rules/a11y-color-contrast-review/copy.en.md) | Text whose contrast axe-core cannot measure, such as text over an image, for review |
+| [`a11y-link-name`](packages/rules/src/rules/a11y-link-name/copy.en.md) | Links have an accessible name (axe-core) |
+| [`a11y-button-name`](packages/rules/src/rules/a11y-button-name/copy.en.md) | Buttons have an accessible name (axe-core) |
+| [`a11y-valid-lang`](packages/rules/src/rules/a11y-valid-lang/copy.en.md) | `lang` attributes inside the page name a language (axe-core) |
+| [`form-label-missing`](packages/rules/src/rules/form-label-missing/copy.en.md) | Form fields have a label (axe-core) |
+| [`form-phone-direction`](packages/rules/src/rules/form-phone-direction/copy.en.md) | Phone fields show numbers left to right |
 
 ## Tools / الأدوات
 

@@ -15,6 +15,8 @@ export interface MeasureLimits {
   readonly maxTokens: number
   readonly maxBidi: number
   readonly maxFontFaces: number
+  /** Text fields reported with their computed direction. */
+  readonly maxFields: number
   readonly textLength: number
   readonly timeMs: number
 }
@@ -56,6 +58,22 @@ export interface Measured {
     readonly text: string
     readonly kind: 'number' | 'latin'
   }[]
+  readonly fields: readonly {
+    readonly selector: string
+    readonly box: MeasuredBox
+    readonly tag: 'input' | 'textarea'
+    readonly type: string
+    readonly name: string | null
+    readonly id: string | null
+    readonly autocomplete: readonly string[]
+    readonly inputmode: string | null
+    readonly placeholder: string | null
+    readonly label: string | null
+    readonly ariaLabel: string | null
+    readonly dirAttribute: string | null
+    readonly direction: string
+    readonly unicodeBidi: string
+  }[]
   /** The time limit stopped the walk early. */
   readonly truncated: boolean
 }
@@ -67,6 +85,7 @@ export const MEASURE_LIMITS: MeasureLimits = {
   maxTokens: 500,
   maxBidi: 20,
   maxFontFaces: 100,
+  maxFields: 200,
   textLength: 200,
   timeMs: 5_000,
 }
@@ -320,6 +339,56 @@ export function measurePage(limits: MeasureLimits): Measured {
     })
   })
 
+  // Text fields with their computed direction: a phone number typed right to left shows reversed.
+  const NOT_TEXT = new Set([
+    'hidden',
+    'checkbox',
+    'radio',
+    'file',
+    'image',
+    'range',
+    'color',
+    'submit',
+    'reset',
+    'button',
+  ])
+  const fields: Measured['fields'][number][] = []
+  const attribute = (element: Element, name: string, length = 200): string | null =>
+    element.getAttribute(name)?.slice(0, length) ?? null
+  for (const element of Array.from(document.querySelectorAll('input, textarea'))) {
+    if (fields.length >= limits.maxFields || late()) break
+    const input = element as HTMLInputElement | HTMLTextAreaElement
+    const tag = input.localName === 'textarea' ? 'textarea' : 'input'
+    const type = tag === 'textarea' ? 'textarea' : (input as HTMLInputElement).type
+    if (NOT_TEXT.has(type)) continue
+    const style = getComputedStyle(input)
+    // null for some input types, although the DOM types say otherwise.
+    const labelList: unknown = input.labels
+    const labels = (labelList instanceof NodeList ? Array.from(labelList) : [])
+      .map((label) => (label.textContent ?? '').replace(/\s+/g, ' ').trim())
+      .filter((text) => text !== '')
+      .join(' ')
+    fields.push({
+      selector: selectorOf(input),
+      box: box(input.getBoundingClientRect()),
+      tag,
+      type: type.slice(0, 50),
+      name: attribute(input, 'name'),
+      id: attribute(input, 'id'),
+      autocomplete: (attribute(input, 'autocomplete') ?? '')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter((token) => token !== ''),
+      inputmode: attribute(input, 'inputmode', 50)?.toLowerCase() ?? null,
+      placeholder: attribute(input, 'placeholder'),
+      label: labels === '' ? null : labels.slice(0, 200),
+      ariaLabel: attribute(input, 'aria-label'),
+      dirAttribute: attribute(input, 'dir', 20)?.toLowerCase() ?? null,
+      direction: style.direction,
+      unicodeBidi: style.unicodeBidi.slice(0, 50),
+    })
+  }
+
   const viewportMeta = document.querySelector('meta[name="viewport" i]')
   return {
     dir: pageDir,
@@ -332,6 +401,7 @@ export function measurePage(limits: MeasureLimits): Measured {
     arabicTextOmitted,
     fontFaces,
     bidi,
+    fields,
     truncated,
   }
 }

@@ -19,7 +19,8 @@
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/engine": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
-    "@arablyzer/rules": "workspace:*"
+    "@arablyzer/rules": "workspace:*",
+    "axe-core": "4.13.0"
   },
   "devDependencies": {
     "@arablyzer/fixtures": "workspace:*",

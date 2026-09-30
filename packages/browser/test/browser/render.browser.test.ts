@@ -233,6 +233,111 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     ])
   })
 
+  it('runs axe-core’s curated rules, contrast of Arabic text included, which axe alone skips', async () => {
+    const png =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGP4z8CAFWEXHbQSACj/P8Fu7N9hAAAAAElFTkSuQmCC'
+    const page = await facts(engine, {
+      '/': arabicPage(`<main>
+<p style="color:#222">نص داكن أول على خلفية بيضاء</p>
+<p style="color:#222">نص داكن ثان على خلفية بيضاء</p>
+<p style="color:#222">نص داكن ثالث على خلفية بيضاء</p>
+<p id="low" style="color:#aaaaaa;background:#ffffff">نص رمادي فاتح على خلفية بيضاء</p>
+<p id="lowen" style="color:#aaaaaa;background:#ffffff">Light grey English text</p>
+<p id="over" style="color:#ffffff;background-image:url(${png});background-size:cover">نص أبيض فوق صورة</p>
+<img id="noalt" src="${png}" width="40" height="40">
+<a id="emptylink" href="/cart"><svg aria-hidden="true" width="10" height="10"></svg></a>
+<button id="emptybtn"><span></span></button>
+<p id="badlang" lang="arabic">نص بلغة غير صالحة</p>
+<input id="nolabel" name="phone">
+<label>الاسم <input id="labelled" name="name"></label>
+</main>`),
+    })
+    const a11y = page.a11y
+    if (a11y === null) throw new Error('axe did not run')
+    const violations = Object.fromEntries(
+      a11y.rules.map((rule) => [rule.id, rule.violations.map((node) => node.selector)]),
+    )
+    expect(violations).toEqual({
+      'image-alt': ['#noalt'],
+      'color-contrast': ['#low', '#lowen'],
+      'link-name': ['#emptylink'],
+      'button-name': ['#emptybtn'],
+      'valid-lang': ['#badlang'],
+      label: ['#nolabel'],
+    })
+    const contrast = a11y.rules.find((rule) => rule.id === 'color-contrast')
+    expect(contrast?.violations[0]?.contrast).toMatchObject({ ratio: 2.32, expected: 4.5 })
+    expect(contrast?.incomplete.map((node) => [node.selector, node.reason])).toEqual([
+      ['#over', 'bgImage'],
+    ])
+    expect(a11y.rules.every((rule) => rule.applicable)).toBe(true)
+    expect(a11y.axeVersion).toBe('4.13.0')
+  })
+
+  it('says which axe rules had nothing to check on the page', async () => {
+    const page = await facts(engine, { '/': arabicPage('<p>نص عربي قصير</p>') })
+    const applicable = Object.fromEntries(
+      (page.a11y?.rules ?? []).map((rule) => [rule.id, rule.applicable]),
+    )
+    expect(applicable).toEqual({
+      'image-alt': false,
+      'color-contrast': true,
+      'link-name': false,
+      'button-name': false,
+      'valid-lang': false,
+      label: false,
+    })
+  })
+
+  it('lets no large result reach Node when the page poisons the built-ins our scripts use (M1.2b review)', async () => {
+    const outcome = await rendered(engine, {
+      '/': arabicPage(
+        '<p>نص عربي</p><script>String.prototype.slice = function () { return "x".repeat(1000000) }</script>',
+      ),
+    })
+    expect(outcome.status).toBe('failed')
+    expect(outcome.error).toMatch(/over the limit/)
+  })
+
+  it('keeps axe’s results out, and the rest of the facts, when the page stands in for axe (M1.2b review)', async () => {
+    const fake = `{
+      _cache: { set() {} },
+      run: async () => ({
+        violations: [{ id: 'image-alt', nodes: { slice: () => Array.from({ length: 100000 }, () => ({ target: ['#x'], html: '<img>', any: [], all: [], none: [] })) } }],
+        incomplete: [],
+        inapplicable: [],
+      }),
+    }`
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<p>نص عربي</p><img src="/x.png"><script>Object.defineProperty(window, 'axe', { get: () => (${fake}), set() {} })</script>`,
+      ),
+    })
+    expect(page.a11y).toBeNull()
+    expect(page.arabicText.length).toBeGreaterThan(0)
+  })
+
+  it('reports text fields with their computed direction', async () => {
+    const page = await facts(engine, {
+      '/': arabicPage(`<form>
+<label for="p1">رقم الجوال</label><input id="p1" name="phone" inputmode="tel">
+<input id="p2" type="tel" name="mobile">
+<input id="p3" name="whatsapp" dir="ltr">
+<textarea id="t1" name="notes"></textarea>
+<input type="hidden" name="token" value="x"><input type="checkbox" name="agree">
+</form>`),
+    })
+    const fields = Object.fromEntries(
+      page.fields.map((field) => [field.selector, [field.type, field.direction, field.label]]),
+    )
+    expect(fields['#p1']).toEqual(['text', 'rtl', 'رقم الجوال'])
+    expect(fields['#p3']).toEqual(['text', 'ltr', null])
+    expect(fields['#t1']).toEqual(['textarea', 'rtl', null])
+    expect(Object.keys(fields)).toEqual(['#p1', '#p2', '#p3', '#t1'])
+    // Measured in all three: Chromium 153 and Firefox 155 here, WebKit 26.6 in CI (run 36295996310).
+    expect(fields['#p2']?.[1]).toBe('ltr')
+  })
+
   it('takes a PNG of the first screen when asked', async () => {
     const outcome = await rendered(
       engine,

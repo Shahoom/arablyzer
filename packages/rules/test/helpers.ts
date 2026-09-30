@@ -3,6 +3,9 @@ import { fileURLToPath } from 'node:url'
 import {
   collectPage,
   collectRobots,
+  type A11yNodeFact,
+  type A11yRuleFact,
+  type A11yRuleId,
   type ArabicTextBlock,
   type Engine,
   type Header,
@@ -126,10 +129,43 @@ export function renderedFacts(
     fontRequests: [],
     ...(engine === 'chromium' ? { usedFonts: [] } : {}),
     bidi: [],
+    fields: [],
+    a11y: null,
     truncated: false,
     limited: false,
     ...overrides,
   }
+}
+
+/** An element axe reported. */
+export function axeNode(selector: string, overrides: Partial<A11yNodeFact> = {}): A11yNodeFact {
+  return {
+    selector,
+    snippet: `<p id="${selector.slice(1)}">`,
+    reason: null,
+    contrast: null,
+    ...overrides,
+  }
+}
+
+/** axe's result for one of its rules: applicable, and nothing found unless given. */
+export function axeRule(id: A11yRuleId, overrides: Partial<A11yRuleFact> = {}): A11yRuleFact {
+  const violations = overrides.violations ?? []
+  const incomplete = overrides.incomplete ?? []
+  return {
+    id,
+    applicable: true,
+    violations,
+    violationCount: violations.length,
+    incomplete,
+    incompleteCount: incomplete.length,
+    ...overrides,
+  }
+}
+
+/** One engine's facts with axe's results for the given rules. */
+export function withAxe(engine: Engine, ...rules: A11yRuleFact[]): RenderedFacts {
+  return renderedFacts(engine, { a11y: { axeVersion: '4.13.0', rules } })
 }
 
 /** Evidence for a rule that needs `render`: the page's HTML and each engine's facts. */

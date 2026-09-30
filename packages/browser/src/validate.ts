@@ -1,4 +1,10 @@
-import type { Engine, FontRequestFact, RenderedFacts, UsedFontsFact } from '@arablyzer/collectors'
+import type {
+  A11yFacts,
+  Engine,
+  FontRequestFact,
+  RenderedFacts,
+  UsedFontsFact,
+} from '@arablyzer/collectors'
 import { z } from 'zod'
 import { MEASURE_LIMITS } from './measure'
 
@@ -50,6 +56,26 @@ const Measured = z.strictObject({
       }),
     )
     .max(MEASURE_LIMITS.maxBidi),
+  fields: z
+    .array(
+      z.strictObject({
+        selector,
+        box: Box,
+        tag: z.enum(['input', 'textarea']),
+        type: z.string().max(50),
+        name: z.string().max(200).nullable(),
+        id: z.string().max(200).nullable(),
+        autocomplete: z.array(z.string().max(200)).max(50),
+        inputmode: z.string().max(50).nullable(),
+        placeholder: z.string().max(200).nullable(),
+        label: z.string().max(200).nullable(),
+        ariaLabel: z.string().max(200).nullable(),
+        dirAttribute: z.string().max(20).nullable(),
+        direction: z.enum(['ltr', 'rtl']),
+        unicodeBidi: z.string().max(50),
+      }),
+    )
+    .max(MEASURE_LIMITS.maxFields),
   truncated: z.boolean(),
 })
 
@@ -62,11 +88,20 @@ export interface FactsContext {
   readonly usedFonts?: readonly UsedFontsFact[]
   /** The proxy or the browser stopped requests at their limits. */
   readonly limited: boolean
+  /** axe-core's results; null or absent when axe did not run. */
+  readonly a11y?: A11yFacts | null
 }
 
 /** The page script's result as RenderedFacts; throws when it is not what the script returns. */
 export function toFacts(measured: unknown, context: FactsContext): RenderedFacts {
-  const facts = Measured.parse(measured)
+  const parsed = Measured.safeParse(measured)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    throw new Error(
+      `the page's measurements are not what the script returns, at ${issue === undefined ? 'the top' : issue.path.join('.') || 'the top'}`,
+    )
+  }
+  const facts = parsed.data
   return {
     engine: context.engine,
     version: context.version,
@@ -84,6 +119,8 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     fontRequests: context.fontRequests,
     ...(context.usedFonts === undefined ? {} : { usedFonts: context.usedFonts }),
     bidi: facts.bidi,
+    fields: facts.fields,
+    a11y: context.a11y ?? null,
     truncated: facts.truncated,
     limited: context.limited,
   }

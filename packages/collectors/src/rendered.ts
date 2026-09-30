@@ -74,6 +74,67 @@ export interface BidiTokenFact extends RenderedElement {
   readonly kind: 'number' | 'latin'
 }
 
+/** A form field as the engine rendered it, for rules that need its computed style. */
+export interface RenderedFieldFact extends RenderedElement {
+  readonly tag: 'input' | 'textarea'
+  /** An input's type as the engine reads it (unknown types are "text"); "textarea" for a textarea. */
+  readonly type: string
+  readonly name: string | null
+  readonly id: string | null
+  /** Tokens of the autocomplete attribute, lowercased. */
+  readonly autocomplete: readonly string[]
+  /** Lowercased. */
+  readonly inputmode: string | null
+  readonly placeholder: string | null
+  /** The text of the field's labels, joined; null when none labels it. */
+  readonly label: string | null
+  readonly ariaLabel: string | null
+  /** The dir attribute as written, lowercased. */
+  readonly dirAttribute: string | null
+  /** Computed. */
+  readonly direction: 'ltr' | 'rtl'
+  /** Computed. */
+  readonly unicodeBidi: string
+}
+
+/** axe-core rules Arablyzer reports, each through a rule of its own (Phase 1 design §3). */
+export type A11yRuleId =
+  'image-alt' | 'color-contrast' | 'link-name' | 'button-name' | 'valid-lang' | 'label'
+
+/** An element axe reported, with what its check measured. */
+export interface A11yNodeFact {
+  readonly selector: string
+  /** The start of the element's HTML, as axe gives it. */
+  readonly snippet: string
+  /** Why axe reported it: the message key of the check (such as `bgImage`), when it gives one. */
+  readonly reason: string | null
+  /** color-contrast: the colours and ratios axe measured. */
+  readonly contrast: {
+    readonly foreground: string
+    readonly background: string
+    readonly ratio: number
+    readonly expected: number
+  } | null
+}
+
+export interface A11yRuleFact {
+  readonly id: A11yRuleId
+  /** The page has something the rule checks (axe did not list it as inapplicable). */
+  readonly applicable: boolean
+  /** What axe found wrong (the first 20), and how many in all. */
+  readonly violations: readonly A11yNodeFact[]
+  readonly violationCount: number
+  /** What axe could not decide (the first 20), and how many in all. */
+  readonly incomplete: readonly A11yNodeFact[]
+  readonly incompleteCount: number
+}
+
+/** axe-core's results for the curated rules, in one engine. */
+export interface A11yFacts {
+  readonly axeVersion: string
+  readonly rules: readonly A11yRuleFact[]
+}
+
 export interface RenderedFacts {
   readonly engine: Engine
   readonly version: string
@@ -107,6 +168,10 @@ export interface RenderedFacts {
   readonly usedFonts?: readonly UsedFontsFact[]
   /** Out-of-order tokens (the first 20). */
   readonly bidi: readonly BidiTokenFact[]
+  /** Text fields (the first 200). */
+  readonly fields: readonly RenderedFieldFact[]
+  /** axe-core's results; null when axe did not run or did not finish in time. */
+  readonly a11y: A11yFacts | null
   /** Measuring stopped at its time or node limit, so the lists may be incomplete. */
   readonly truncated: boolean
   /**

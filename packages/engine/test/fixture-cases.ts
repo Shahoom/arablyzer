@@ -17,6 +17,11 @@ export const RENDER_RULES: ReadonlySet<string> = new Set(
   RULES.filter((rule) => rule.needs.includes('render')).map((rule) => rule.id),
 )
 
+/** Rules that ask for a person's review: they never fail, so their fixtures need review or not. */
+export const MANUAL_RULES: ReadonlySet<string> = new Set(
+  RULES.filter((rule) => rule.manualCheck === true).map((rule) => rule.id),
+)
+
 /** Every rule's wrong and right fixture sites. */
 export const FIXTURE_CASES: readonly FixtureCase[] = RULES.flatMap((rule) => {
   const root = `${RULES_DIR}${rule.id}/fixtures/`
