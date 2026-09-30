@@ -6,7 +6,7 @@ import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { Braces, Check, Copy, EyeOff, RotateCcw } from 'lucide-preact'
 import type { TargetedKeyboardEvent } from 'preact'
 import { useState } from 'preact/hooks'
-import { METHODOLOGY } from '../../lib/site'
+import { methodologyHref } from '../../lib/site'
 import { ENGINES, noProblemsNote, problemsOf, type RuleFindings } from '../report-model'
 import { Bidi } from './Bidi'
 import { Evidence } from './Evidence'
@@ -287,7 +287,7 @@ function ScoreCard({ report, lang }: { report: Report; lang: Lang }) {
         })}
       </div>
       <a
-        href={METHODOLOGY}
+        href={methodologyHref(lang)}
         className="border-t border-panel-line px-5 py-3.5 text-[13px] text-panel-measure underline underline-offset-4"
       >
         {t.methodology}

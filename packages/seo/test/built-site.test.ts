@@ -68,7 +68,7 @@ describe('builtPages', () => {
 })
 
 describe('representativePages', () => {
-  it('keeps every page but the tool pages past the first in each language, and the reports', () => {
+  it('keeps every page but the tool and rule pages past the first in each language, the reports and the 404 page', () => {
     const dir = build({
       'index.html': home('ar'),
       'en/index.html': home('en'),
@@ -78,11 +78,17 @@ describe('representativePages', () => {
       'en/tools/a-check.html': page('en', '/tools/a-check'),
       'en/tools/b-check.html': page('en', '/tools/b-check'),
       'r/index.html': '<!doctype html><title>تقرير</title>',
+      'rules/a-rule.html': page('ar', '/rules/a-rule'),
+      'rules/b-rule.html': page('ar', '/rules/b-rule'),
+      'en/rules/a-rule.html': page('en', '/rules/a-rule'),
+      '404.html': '<!doctype html><title>404</title>',
     })
     expect(representativePages(builtPages(dir)).map((built) => built.path)).toEqual([
       '/',
       '/en/',
+      '/en/rules/a-rule',
       '/en/tools/a-check',
+      '/rules/a-rule',
       '/tools',
       '/tools/a-check',
     ])
@@ -145,6 +151,26 @@ describe('auditBuiltSite', () => {
     )
   })
 
+  it('keeps the 404 pages out of search engines, without a canonical', () => {
+    const notFound = (lang: Lang, robots: string) =>
+      `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head><title>404</title>${robots}</head><body><h1>404</h1></body></html>`
+    const noindex = '<meta name="robots" content="noindex, nofollow">'
+    const right = build({
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      '404.html': notFound('ar', noindex),
+      'en/404.html': notFound('en', noindex),
+    })
+    expect(auditBuiltSite(right, SITE).problems).toEqual([])
+    const wrong = build({
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      '404.html': notFound('ar', ''),
+      'en/404.html': notFound('en', noindex),
+    })
+    expect(auditBuiltSite(wrong, SITE).problems.map((problem) => problem.page)).toEqual(['/404'])
+  })
+
   it('keeps the report page out of search engines', () => {
     const dir = build({
       'index.html': home('ar'),
@@ -156,7 +182,8 @@ describe('auditBuiltSite', () => {
       {
         page: '/r/',
         check: 'noindex',
-        message: 'report pages need <meta name="robots" content="noindex"> in <head>',
+        message:
+          'a page kept out of search engines needs <meta name="robots" content="noindex"> in <head>',
       },
     ])
   })

@@ -1,4 +1,10 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import type { ScanEvent } from '@arablyzer/api-contract/codes'
+import { createPolicy } from '@arablyzer/egress'
+import { scan } from '@arablyzer/engine'
+import { serveSite } from '@arablyzer/fixtures'
 import checkoutFormJson from '@arablyzer/fixtures/golden/reports/07-checkout-form.json'
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
 import { REPORT } from '@arablyzer/i18n/report'
@@ -7,6 +13,7 @@ import { describe, expect, it } from 'vitest'
 import { idFromPath } from '../src/islands/ReportApp'
 import {
   advance,
+  optOutOf,
   outcomeOf,
   problemCount,
   problemsOf,
@@ -19,13 +26,31 @@ import {
 
 const rtlLayout = Report.parse(rtlLayoutJson)
 
+/** The report the engine gives for a page its site asks ArablyzerBot not to check (M2.4 plan §2). */
+async function optedOut(): Promise<Report> {
+  const root = await mkdtemp(path.join(tmpdir(), 'arablyzer-opt-out-'))
+  await writeFile(path.join(root, 'robots.txt'), 'User-agent: ArablyzerBot\nDisallow: /x\n')
+  const site = await serveSite(root)
+  try {
+    return await scan(site.url('/x'), {
+      policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: site.port }] }),
+    })
+  } finally {
+    await site.close()
+    await rm(root, { recursive: true, force: true })
+  }
+}
+
 describe('advance', () => {
   it('folds a scan’s events into what the progress page shows', () => {
     const events: ScanEvent[] = [
       { type: 'queued', ahead: 1 },
       { type: 'started', engines: ['firefox', 'chromium'] },
-      { type: 'page', status: 200, contentType: 'text/html', error: null },
+      { type: 'robots', outcome: 'fetched', status: 200 },
+      // A redirect to another site: its robots.txt comes before its page, and the latest one
+      // read is shown.
       { type: 'robots', outcome: 'unavailable', status: 404 },
+      { type: 'page', status: 200, contentType: 'text/html', error: null },
       { type: 'crux', outcome: 'skipped' },
       { type: 'render-start', engine: 'chromium' },
       {
@@ -88,22 +113,30 @@ describe('stepsOf', () => {
     ])
   })
 
-  it('follows the engine: one step at a time, readings as they come', () => {
-    expect(
-      steps(
-        fold([
-          { type: 'started', engines: ['chromium', 'firefox'] },
-          { type: 'page', status: 200, contentType: 'text/html; charset=utf-8', error: null },
-          { type: 'robots', outcome: 'fetched', status: 200 },
-        ]),
-      ),
-    ).toEqual([
-      ['page', 'done', '200 · text/html'],
+  it('follows the engine: one step at a time, readings as they come, robots.txt first', () => {
+    const started: ScanEvent[] = [
+      { type: 'started', engines: ['chromium', 'firefox'] },
+      { type: 'robots', outcome: 'fetched', status: 200 },
+    ]
+    expect(steps(fold(started))).toEqual([
       ['robots', 'done', 'Read'],
-      ['crux', 'active', null],
+      ['page', 'active', null],
+      ['crux', 'waiting', null],
       ['render', 'waiting', '0 / 2'],
       ['rules', 'waiting', null],
       ['score', 'waiting', null],
+    ])
+    expect(
+      steps(
+        fold([
+          ...started,
+          { type: 'page', status: 200, contentType: 'text/html; charset=utf-8', error: null },
+        ]),
+      ).slice(0, 3),
+    ).toEqual([
+      ['robots', 'done', 'Read'],
+      ['page', 'done', '200 · text/html'],
+      ['crux', 'active', null],
     ])
   })
 
@@ -111,11 +144,12 @@ describe('stepsOf', () => {
     const shown = steps(
       fold([
         { type: 'started', engines: [] },
+        { type: 'robots', outcome: 'unavailable', status: 404 },
         { type: 'page', status: 200, contentType: 'text/html', error: null },
         { type: 'rules', rules: 47 },
       ]),
     ).map(([key]) => key)
-    expect(shown).toEqual(['page', 'rules', 'score'])
+    expect(shown).toEqual(['robots', 'page', 'rules', 'score'])
   })
 
   it('shows a page that could not be fetched as failed, not done', () => {
@@ -123,7 +157,22 @@ describe('stepsOf', () => {
       steps(
         fold([
           { type: 'started', engines: ['chromium'] },
+          { type: 'robots', outcome: 'unreachable', status: null },
           { type: 'page', status: null, contentType: null, error: 'connect-failed' },
+        ]),
+      ).slice(0, 2),
+    ).toEqual([
+      ['robots', 'done', 'Could not be reached'],
+      ['page', 'failed', 'Could not be fetched'],
+    ])
+  })
+
+  it('drops robots.txt when the page came without it: a URL refused before any lookup', () => {
+    expect(
+      steps(
+        fold([
+          { type: 'started', engines: [] },
+          { type: 'page', status: null, contentType: null, error: 'blocked-host' },
         ]),
       )[0],
     ).toEqual(['page', 'failed', 'Could not be fetched'])
@@ -150,6 +199,19 @@ describe('outcomeOf', () => {
     expect(outcomeOf(refused)).toBe('blocked')
     const partial = { ...rtlLayout, scan: { ...rtlLayout.scan, status: 'partial' as const } }
     expect(outcomeOf(partial)).toBe('partial')
+  })
+
+  it('reads a site’s opt-out as that, whatever the page answered on the way', async () => {
+    const report = await optedOut()
+    expect(outcomeOf(report)).toBe('opted-out')
+    // A redirect that answered 403 before the next site's robots.txt said no.
+    const refused = {
+      ...report,
+      target: { ...report.target, http: { ...report.target.http, status: 403 } },
+    }
+    expect(outcomeOf(refused)).toBe('opted-out')
+    expect(optOutOf(report)?.message.en).toContain('“Disallow: /x” is on line 2')
+    expect(optOutOf(rtlLayout)).toBeNull()
   })
 })
 
@@ -201,6 +263,22 @@ describe('toolVerdict', () => {
   it('says there are problems when a rule failed, even in a scan that did not finish', () => {
     expect(toolVerdict(rtlCheck(['fail', 'pass']))).toBe('problems')
     expect(toolVerdict(rtlCheck(['fail', 'error'], { status: 'partial' }))).toBe('problems')
+  })
+
+  it('says the site asked not to be checked, before anything else', () => {
+    const optedOut = rtlCheck(['error', 'error'], {
+      status: 'failed',
+      notices: [
+        {
+          code: 'opted-out',
+          message: {
+            ar: 'يطلب ملف robots.txt ألّا نفحص الصفحة.',
+            en: 'robots.txt asks us not to.',
+          },
+        },
+      ],
+    })
+    expect(toolVerdict({ ...optedOut, page: null })).toBe('opted-out')
   })
 
   it('never says a scan that did not finish passes', () => {

@@ -23,27 +23,33 @@ interface Props {
    * the report's ID.
    */
   report?: boolean
+  /**
+   * A page search engines must not index, which names no canonical or alternates: the page for
+   * an address that has none (404), served at every such address.
+   */
+  noindex?: boolean
 }
-const { lang, path, title, description, jsonLd = [], report = false } = Astro.props
+const { lang, path, title, description, jsonLd = [], report = false, noindex = false } = Astro.props
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, path)
 // One source for <head>, shared with the templates the self-audit has checked since Phase 0.
 // A report is never indexed, but its link is shared: its preview has the report page's title.
-const head = report
-  ? renderHead({
-      title,
-      description,
-      robots: 'noindex, nofollow',
-      openGraph: { title, description },
-    })
-  : renderHead({
-      title,
-      description,
-      canonical: url,
-      alternates: alternates(site, path),
-      jsonLd,
-      openGraph: { title, description, url },
-    })
+const head =
+  report || noindex
+    ? renderHead({
+        title,
+        description,
+        robots: 'noindex, nofollow',
+        openGraph: { title, description },
+      })
+    : renderHead({
+        title,
+        description,
+        canonical: url,
+        alternates: alternates(site, path),
+        jsonLd,
+        openGraph: { title, description, url },
+      })
 ---
 
 <!doctype html>

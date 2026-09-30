@@ -1,0 +1,130 @@
+---
+import { PAGES_UI } from '@arablyzer/i18n'
+import { breadcrumbList } from '@arablyzer/seo/json-ld'
+import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import { BOT_FACTS } from '../../lib/bot'
+import { siteOf } from '../../lib/site'
+import Rich from '../Rich.astro'
+import Contents from './Contents.astro'
+import DocPage from './DocPage.astro'
+
+// The bot's page (BUILD-PLAN §13, M2.4b): who it is and what it does, each number the code's own,
+// and how a site opts out.
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = PAGES_UI[lang].bot
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, PATHS.bot)
+const sections = [
+  { id: 'identify', title: t.identify.title },
+  { id: 'when', title: t.when.title },
+  { id: 'fetches', title: t.fetches.title },
+  { id: 'never', title: t.never.title },
+  { id: 'opt-out', title: t.optOut.title },
+] as const
+const jsonLd = [
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.title, url },
+  ]),
+]
+const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
+const text = 'm-0 text-base leading-[1.85] text-ink-2 md:text-[17px]'
+const list =
+  'm-0 flex flex-col gap-3 ps-[22px] text-base leading-[1.85] text-ink-2 marker:text-ink-3 md:text-[17px]'
+const code =
+  'm-0 overflow-x-auto bg-panel px-5 py-4 text-start font-mono text-[13px] leading-[1.8] text-panel-soft md:text-sm'
+---
+
+<DocPage
+  lang={lang}
+  path={PATHS.bot}
+  title={t.meta.title}
+  description={t.meta.description}
+  jsonLd={jsonLd}
+  crumb="ArablyzerBot"
+  breadcrumbLabel={t.breadcrumb}
+>
+  <Fragment slot="head">
+    <h1 class="m-0 text-[32px] leading-[1.2] font-semibold text-balance md:text-[52px]">
+      <Rich text={t.title} lang={lang} />
+    </h1>
+    <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+      <Rich text={t.intro} lang={lang} />
+    </p>
+  </Fragment>
+  <Contents slot="aside" label={t.contents} sections={sections} />
+
+  <section id="identify" aria-labelledby="identify-title" class="flex scroll-mt-6 flex-col gap-4">
+    <h2 id="identify-title" class={heading}>
+      {t.identify.title}
+    </h2>
+    <p class={text}>{t.identify.lead}</p>
+    <pre dir="ltr" class={code}>{BOT_FACTS.userAgent}</pre>
+    <p class={text}>{t.identify.browsers}</p>
+    <pre dir="ltr" class={code}>… {BOT_FACTS.browserToken}</pre>
+  </section>
+
+  <section id="when" aria-labelledby="when-title" class="flex scroll-mt-6 flex-col gap-4">
+    <h2 id="when-title" class={heading}>
+      {t.when.title}
+    </h2>
+    <ul class={list}>
+      {t.when.items.map((item) => (
+        <li>
+          <Rich text={item} lang={lang} />
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section id="fetches" aria-labelledby="fetches-title" class="flex scroll-mt-6 flex-col gap-4">
+    <h2 id="fetches-title" class={heading}>
+      {t.fetches.title}
+    </h2>
+    <ol class:list={[list, 'list-decimal']}>
+      {t.fetches.items(BOT_FACTS).map((item) => (
+        <li>
+          <Rich text={item} lang={lang} />
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section id="never" aria-labelledby="never-title" class="flex scroll-mt-6 flex-col gap-4">
+    <h2 id="never-title" class={heading}>
+      {t.never.title}
+    </h2>
+    <ul class={list}>
+      {t.never.items.map((item) => (
+        <li>
+          <Rich text={item} lang={lang} />
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section id="opt-out" aria-labelledby="opt-out-title" class="flex scroll-mt-6 flex-col gap-4">
+    <h2 id="opt-out-title" class={heading}>
+      {t.optOut.title}
+    </h2>
+    <p class={text}>{t.optOut.lead}</p>
+    <pre dir="ltr" class={code}>User-agent: ArablyzerBot
+Disallow: /</pre>
+    <p class={text}>{t.optOut.paths}</p>
+    <pre dir="ltr" class={code}>User-agent: ArablyzerBot
+Disallow: /account/
+Disallow: /checkout/</pre>
+    <ul class={list}>
+      {t.optOut.notes.map((note) => (
+        <li>
+          <Rich text={note} lang={lang} />
+        </li>
+      ))}
+    </ul>
+  </section>
+</DocPage>

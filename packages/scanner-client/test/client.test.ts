@@ -81,7 +81,7 @@ describe('remoteScanner', () => {
     expect(seen).toEqual([{ type: 'started', engines: [] }])
   })
 
-  it("takes a scan's own steps, each once and the render's for every engine", async () => {
+  it("takes a scan's own steps: each once, robots.txt once a site, the render's for every engine", async () => {
     const render = (engine: string) => [
       { type: 'render-start', engine },
       {
@@ -92,10 +92,17 @@ describe('remoteScanner', () => {
         requests: { total: 1, refused: 0 },
       },
     ]
+    // robots.txt before the page, and for each other site one of its ten redirects leads to
+    // (M2.4 plan §2).
     const events = [
       { type: 'started', engines: ['chromium', 'firefox', 'webkit'] },
-      { type: 'page', status: 200, contentType: 'text/html', error: null },
       { type: 'robots', outcome: 'fetched', status: 200 },
+      ...Array.from({ length: 10 }, () => ({
+        type: 'robots',
+        outcome: 'unavailable',
+        status: 404,
+      })),
+      { type: 'page', status: 200, contentType: 'text/html', error: null },
       { type: 'crux', outcome: 'skipped' },
       ...render('chromium'),
       ...render('firefox'),

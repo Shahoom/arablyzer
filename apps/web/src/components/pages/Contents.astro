@@ -1,0 +1,32 @@
+---
+/** A document's sections, numbered as the Rule board numbers its steps, with links to each. */
+interface Props {
+  label: string
+  sections: readonly { readonly id: string; readonly title: string }[]
+}
+const { label, sections } = Astro.props
+---
+
+<nav
+  aria-labelledby="contents-title"
+  class="flex flex-col gap-1 border border-rule-strong bg-white p-[22px] text-[15px]"
+>
+  <h2 id="contents-title" class="m-0 mb-2 text-sm font-semibold text-ink-3">
+    {label}
+  </h2>
+  {sections.map((section, index) => (
+    <a
+      href={`#${section.id}`}
+      class:list={[
+        'flex items-baseline gap-3 py-2 hover:text-signal',
+        index < sections.length - 1 && 'border-b border-rule-soft',
+      ]}
+    >
+      <span dir="ltr" class="font-mono text-xs text-signal">
+        {String(index + 1).padStart(2, '0')}
+      </span>
+      {section.title}
+    </a>
+  ))}
+  <slot />
+</nav>

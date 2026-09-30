@@ -19,9 +19,10 @@ export function Progress({
   const engines = progress.planned
   const steps = stepsOf(progress, t)
   const active = steps.find((step) => step.state === 'active')
+  // In the engine's order: robots.txt before the page (M2.4 plan §2).
   const log = [
-    progress.page !== null && `GET ${summary.url}  ${progress.page.status ?? '—'}`,
     progress.robots !== null && `GET /robots.txt  ${progress.robots.status ?? '—'}`,
+    progress.page !== null && `GET ${summary.url}  ${progress.page.status ?? '—'}`,
     ...engines.map((engine) => {
       const run = progress.engines[engine]
       if (run.state === 'waiting') return false

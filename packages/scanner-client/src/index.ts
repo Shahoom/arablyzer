@@ -7,6 +7,7 @@ export {
 } from './client'
 export {
   MAX_ERROR_LENGTH,
+  MAX_REDIRECTS,
   MAX_SCANNER_EVENTS,
   SCAN_PATH,
   SCANNER_EVENT_TYPES,

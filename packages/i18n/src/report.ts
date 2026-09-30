@@ -121,6 +121,8 @@ export interface ReportStrings {
   /** When a scan does not go as it should (the approved States design). */
   readonly states: {
     readonly blocked: { readonly title: string; readonly text: (status: string) => string }
+    /** The site's robots.txt asks ArablyzerBot not to check the page (M2.4 plan §2). */
+    readonly optedOut: { readonly title: string; readonly text: string }
     readonly partial: {
       readonly title: string
       readonly text: string
@@ -269,6 +271,10 @@ export const REPORT: Copy<ReportStrings> = {
         title: 'الموقع حجب الفحص',
         text: (status) =>
           `ردّ الموقع على ArablyzerBot بـ HTTP ${status}. لا نتجاوز حماية المواقع أبداً، فلم نفحص الصفحة.`,
+      },
+      optedOut: {
+        title: 'طلب الموقع ألّا نفحصه',
+        text: 'نحترم ما يطلبه الموقع، فلم نفحص الصفحة ولم نحفظ منها شيئاً. وإن كان الموقع موقعك، فاحذف القاعدة أدناه ثم أعد الفحص: نقرأ ملف robots.txt من جديد في كل فحص.',
       },
       partial: {
         title: 'تقرير جزئي',
@@ -424,6 +430,10 @@ export const REPORT: Copy<ReportStrings> = {
         title: 'The site blocked the scan',
         text: (status) =>
           `The site answered ArablyzerBot with HTTP ${status}. We never get around a site’s protection, so the page was not scanned.`,
+      },
+      optedOut: {
+        title: 'The site asked not to be checked',
+        text: 'We respect what the site asks, so the page was not checked, and nothing of it is kept. If the site is yours, remove the rule below and check again: every check reads robots.txt afresh.',
       },
       partial: {
         title: 'Partial report',

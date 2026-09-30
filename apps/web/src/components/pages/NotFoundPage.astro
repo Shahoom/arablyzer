@@ -1,0 +1,47 @@
+---
+import { PAGES_UI } from '@arablyzer/i18n'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import Page from '../../layouts/Page.astro'
+import { scanFormHref } from '../../lib/site'
+import Forward from '../Forward.astro'
+
+// The page for an address that has none (M2.4b): Caddy serves it with the 404 status, the English
+// one under /en/. Never indexed, and naming no canonical page, since it answers every such address.
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = PAGES_UI[lang].notFound
+const links = [
+  { href: localePath(lang, PATHS.home), label: t.links.home },
+  { href: localePath(lang, PATHS.tools), label: t.links.tools },
+  { href: localePath(lang, PATHS.rules), label: t.links.rules },
+  { href: scanFormHref(lang), label: t.links.scan },
+]
+---
+
+<Page lang={lang} path={PATHS.home} title={`${t.title} — Arablyzer`} description={t.text} noindex>
+  <section class="flex flex-col gap-6 px-5 pt-12 pb-20 md:px-16 md:pt-20 md:pb-28">
+    <span dir="ltr" class="self-start bg-ink px-2.5 py-1 font-mono text-sm text-white">
+      404
+    </span>
+    <h1 class="m-0 text-[32px] leading-[1.2] font-semibold text-balance md:text-[52px]">
+      {t.title}
+    </h1>
+    <p class="m-0 max-w-[640px] text-base leading-[1.75] text-ink-2 md:text-[19px]">{t.text}</p>
+    <ul class="m-0 grid max-w-[720px] list-none gap-3 p-0 sm:grid-cols-2">
+      {links.map((link) => (
+        <li>
+          <a
+            href={link.href}
+            class="flex items-center justify-between gap-3 border border-rule-strong bg-white px-5 py-4 text-base font-semibold hover:border-ink hover:text-signal"
+          >
+            {link.label}
+            <Forward lang={lang} size={16} />
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Page>

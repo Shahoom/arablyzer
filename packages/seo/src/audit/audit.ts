@@ -368,7 +368,10 @@ export function auditRulePair(
   return problems
 }
 
-/** User reports are never indexed and claim no canonical or alternates (BUILD-PLAN §6.5). */
+/**
+ * User reports are never indexed and claim no canonical or alternates (BUILD-PLAN §6.5); nor is
+ * the 404 page, served at every address that has no page.
+ */
 export function auditReportPage(html: string, lang: Lang): AuditProblem[] {
   const tags = tagsOf(html)
   const problems: AuditProblem[] = []
@@ -379,12 +382,17 @@ export function auditReportPage(html: string, lang: Lang): AuditProblem[] {
   // A robots meta counts only in <head>: a stray element before it (a tracking pixel, say)
   // closes the head, and the meta that lands in <body> is not read (M0.3 review).
   if (!metas(tags, 'robots').some((meta) => meta.inHead && isNoindex(meta))) {
-    problem('noindex', 'report pages need <meta name="robots" content="noindex"> in <head>')
+    problem(
+      'noindex',
+      'a page kept out of search engines needs <meta name="robots" content="noindex"> in <head>',
+    )
   }
   if (tags.some((tag) => tag.name === 'link' && relOf(tag).includes('canonical'))) {
-    problem('canonical', 'report pages must not declare a canonical')
+    problem('canonical', 'a page kept out of search engines must not declare a canonical')
   }
-  if (alternateLinks(tags).length > 0) problem('hreflang', 'report pages must not declare hreflang')
+  if (alternateLinks(tags).length > 0) {
+    problem('hreflang', 'a page kept out of search engines must not declare hreflang')
+  }
   return problems
 }
 

@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 // The report page as a visitor sees it, rendered, scanned by Arablyzer in its three engines
 // (M2.1c review): its accessibility above all, which the site's own audit, reading the empty
 // shell the build writes, cannot see. The API is stood in for by fixed answers: golden report 07,
-// and a scan still running. `pnpm test:browser` builds the site first.
+// a scan still running, and a site's opt-out. `pnpm test:browser` builds the site first.
 const DIST = fileURLToPath(new URL('../../dist/', import.meta.url))
 const GOLDEN = fileURLToPath(
   new URL('../../../../fixtures/golden/reports/07-checkout-form.json', import.meta.url),
@@ -25,6 +25,8 @@ const DONE = 'DoneDoneDoneDoneDone_0'
 const RUNNING = 'RunningRunningRunnin_1'
 /** A tool page's scan (M2.2): the same report, shown as the tool's result, with no score. */
 const TOOL = 'ToolToolToolToolTool_2'
+/** A page its site asks ArablyzerBot not to check (M2.4 plan §2): the state that says so. */
+const OPTED_OUT = 'OptedOutOptedOutOpte_3'
 
 /**
  * Rules a report page fails on purpose: it is never indexed (BUILD-PLAN §6.5), and the page its
@@ -54,11 +56,20 @@ beforeAll(async () => {
   const page = await readFile(path.join(DIST, 'r', 'index.html'), 'utf8')
   const report = JSON.parse(await readFile(GOLDEN, 'utf8')) as Report
   const html = { headers: { 'content-type': 'text/html; charset=utf-8' }, body: page }
+  // The report the engine itself gives for a site whose robots.txt opts out.
+  const optOutRoot = await mkdtemp(path.join(tmpdir(), 'arablyzer-opted-out-'))
+  await writeFile(path.join(optOutRoot, 'robots.txt'), 'User-agent: ArablyzerBot\nDisallow: /\n')
+  const optOut = await serveSite(optOutRoot)
+  const optedOut = await scan(optOut.url('/checkout'), {
+    policy: createPolicy({ allowTargets: [{ address: '127.0.0.1', port: optOut.port }] }),
+  })
+  await optOut.close()
+  await rm(optOutRoot, { recursive: true, force: true })
   const events = [
     { type: 'queued', ahead: 0 },
     { type: 'started', engines: ['chromium', 'firefox'] },
-    { type: 'page', status: 200, contentType: 'text/html', error: null },
     { type: 'robots', outcome: 'fetched', status: 200 },
+    { type: 'page', status: 200, contentType: 'text/html', error: null },
     { type: 'crux', outcome: 'skipped' },
     { type: 'render-start', engine: 'chromium' },
   ]
@@ -73,6 +84,9 @@ beforeAll(async () => {
       [`/api/scans/${TOOL}`]: json(summary(TOOL, 'complete', 'rtl-check')),
       [`/api/reports/${TOOL}`]: json(report),
       [`/api/scans/${RUNNING}`]: json(summary(RUNNING, 'running')),
+      [`/r/${OPTED_OUT}`]: html,
+      [`/api/scans/${OPTED_OUT}`]: json(summary(OPTED_OUT, 'failed')),
+      [`/api/reports/${OPTED_OUT}`]: json(optedOut),
       [`/api/scans/${RUNNING}/events`]: {
         headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-store' },
         body: events
@@ -137,6 +151,11 @@ describe('the report page, rendered', () => {
 
   it(`shows a scan that runs and passes every rule in ${ENGINES.join(', ')}`, async () => {
     const report = await scanned(RUNNING)
+    expect(problems(report)).toEqual([])
+  }, 180_000)
+
+  it(`shows a site's opt-out and passes every rule in ${ENGINES.join(', ')}`, async () => {
+    const report = await scanned(OPTED_OUT)
     expect(problems(report)).toEqual([])
   }, 180_000)
 })

@@ -2,6 +2,8 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { RULES } from '@arablyzer/rules'
 import { renderMarkdown } from '@arablyzer/seo'
 import { fixHtml } from '../src/lib/fix-html'
+import { botFacts } from './bot-data'
+import { methodologyData } from './methodology'
 import { libraryData } from './rule-data'
 import { toolsData, toolTitles } from './tool-data'
 
@@ -21,3 +23,5 @@ const tools = toolsData()
 await writeFile(new URL('tools.json', out), `${JSON.stringify(tools)}\n`)
 await writeFile(new URL('tool-titles.json', out), `${JSON.stringify(toolTitles(tools))}\n`)
 await writeFile(new URL('library.json', out), `${JSON.stringify(libraryData())}\n`)
+await writeFile(new URL('methodology.json', out), `${JSON.stringify(methodologyData())}\n`)
+await writeFile(new URL('bot.json', out), `${JSON.stringify(botFacts())}\n`)

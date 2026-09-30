@@ -1,13 +1,14 @@
 # منهجية Arablyzer
 
-كيف يفحص Arablyzer صفحة، وكيف يحسب درجتها، وما حدود كل مصدر يعتمد عليه. النسخة الإنجليزية في آخر الملف.
+كيف يفحص Arablyzer صفحة، وكيف يحسب درجتها، وما حدود كل مصدر يعتمد عليه.
 
 ## ماذا يفعل الفحص
 
-1. **يجلب الصفحة** عبر بروكسي خروج واحد يرفض العناوين الخاصة وعناوين الخادم نفسه، ويتبع التحويلات حتى عشرة، ويقرأ الصفحة وملف robots.txt.
-2. **يقرأ HTML الصفحة** كما وصل، قبل أي سكربت: العنوان والوصف واللغة والاتجاه والروابط والبيانات المنظّمة والنماذج.
-3. **يعرض الصفحة في المتصفحات** إذا طُلب ذلك: Chromium وFirefox، وWebKit في الخوادم ذات الشبكة المعزولة. في كل محرّك يقيس النص العربي والاتجاه والخطوط وحقول النماذج، ويشغّل مجموعة مختارة من قواعد axe-core للوصولية، ويقرأ ملفات CSS والخطوط التي حمّلها المتصفح.
-4. **يشغّل القواعد**: كل قاعدة دالة ثابتة تقرأ ما جُمع ولا تجلب شيئاً، فالصفحة نفسها تعطي النتيجة نفسها في كل مرة.
+1. **يقرأ ملف robots.txt أولاً**، ولا يطلب أبداً صفحة تمنعها مجموعة تسمّي ArablyzerBot: يتوقف الفحص، ويقول التقرير ذلك مع القاعدة ورقم سطرها. وقبل أن يتبع تحويلاً إلى موقع آخر، يقرأ ملف robots.txt لذلك الموقع أيضاً. ومجموعة `User-agent: *` وحدها لا توقف الفحص، لأن الفحص الذي يطلبه شخص زيارة لا زحف، والملف الذي تتعذّر قراءته لا يوقفه. ويقرأ كل فحص الملف من جديد.
+2. **يجلب الصفحة** عبر بروكسي خروج واحد يرفض العناوين الخاصة وعناوين الخادم نفسه، ويتبع التحويلات حتى عشرة.
+3. **يقرأ HTML الصفحة** كما وصل، قبل أي سكربت: العنوان والوصف واللغة والاتجاه والروابط والبيانات المنظّمة والنماذج.
+4. **يعرض الصفحة في المتصفحات** إذا طُلب ذلك: Chromium وFirefox، وWebKit في الخوادم ذات الشبكة المعزولة. في كل محرّك يقيس النص العربي والاتجاه والخطوط وحقول النماذج، ويشغّل مجموعة مختارة من قواعد axe-core للوصولية، ويقرأ ملفات CSS والخطوط التي حمّلها المتصفح.
+5. **يشغّل القواعد**: كل قاعدة دالة ثابتة تقرأ ما جُمع ولا تجلب شيئاً، فالصفحة نفسها تعطي النتيجة نفسها في كل مرة.
 
 ## نتيجة كل قاعدة
 
@@ -46,11 +47,11 @@
 
 | الخطورة الفاشلة | المنطبق | الفاشل | الدرجة |
 |---|---|---|---|
-| حرِج | 10 + 5 + 10 = 25 | 10 | 100 × (1 − 10 ÷ 25) = 60 |
-| خطير | 10 + 5 + 5 = 20 | 5 | 100 × (1 − 5 ÷ 20) = 75 |
-| متوسط | 10 + 5 + 3 = 18 | 3 | 100 × (1 − 3 ÷ 18) = 83.3، أي 83 |
-| بسيط | 10 + 5 + 1 = 16 | 1 | 100 × (1 − 1 ÷ 16) = 93.75، أي 94 |
-| معلومة | 10 + 5 + 0 = 15 | 0 | 100 |
+| حرِج | `10 + 5 + 10 = 25` | `10` | `100 × (1 − 10 ÷ 25) = 60` |
+| خطير | `10 + 5 + 5 = 20` | `5` | `100 × (1 − 5 ÷ 20) = 75` |
+| متوسط | `10 + 5 + 3 = 18` | `3` | `100 × (1 − 3 ÷ 18) = 83.3`، أي `83` |
+| بسيط | `10 + 5 + 1 = 16` | `1` | `100 × (1 − 1 ÷ 16) = 93.75`، أي `94` |
+| معلومة | `10 + 5 + 0 = 15` | `0` | `100` |
 
 والأمثلة نفسها اختبارات في `packages/scoring`، فلا تختلف الصيغة المكتوبة هنا عن المحسوبة.
 
@@ -73,10 +74,11 @@ How Arablyzer scans a page, how it scores it, and the limits of each source it r
 
 ## What a scan does
 
-1. **Fetches the page** through a single egress proxy that refuses private addresses and the server's own, follows up to ten redirects, and reads the page and robots.txt.
-2. **Reads the page's HTML** as it arrived, before any script: title, description, language, direction, links, structured data and forms.
-3. **Renders the page in browsers** when asked: Chromium and Firefox, and WebKit on servers with an isolated network. In each engine it measures Arabic text, direction, fonts and form fields, runs a curated set of axe-core's accessibility rules, and reads the stylesheets and fonts the browser loaded.
-4. **Runs the rules**: each is a fixed function that reads what was collected and fetches nothing, so the same page gives the same result every time.
+1. **Reads robots.txt first**, and never asks for a page that a group naming ArablyzerBot disallows: the scan stops, and the report says so, with the rule and its line. Before it follows a redirect to another site, it reads that site's robots.txt too. A `User-agent: *` group alone does not stop a scan, since a scan someone asks for is a visit, not a crawl, and a robots.txt that cannot be read does not stop it either. Every scan reads robots.txt afresh.
+2. **Fetches the page** through a single egress proxy that refuses private addresses and the server's own, and follows up to ten redirects.
+3. **Reads the page's HTML** as it arrived, before any script: title, description, language, direction, links, structured data and forms.
+4. **Renders the page in browsers** when asked: Chromium and Firefox, and WebKit on servers with an isolated network. In each engine it measures Arabic text, direction, fonts and form fields, runs a curated set of axe-core's accessibility rules, and reads the stylesheets and fonts the browser loaded.
+5. **Runs the rules**: each is a fixed function that reads what was collected and fetches nothing, so the same page gives the same result every time.
 
 ## Each rule's result
 

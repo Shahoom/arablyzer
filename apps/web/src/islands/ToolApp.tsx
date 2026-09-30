@@ -97,8 +97,9 @@ export default function ToolApp({ lang, tool, reads }: Props) {
       }
       setRun({ phase: 'failed', id })
     }
-    // A failed scan may still have a report, which says why: it is read as any other, and a scan
-    // without one is shown as failed.
+    // A failed scan may still have a report, which says why, such as a site's opt-out, which can
+    // end a scan before this page opens its stream: it is read as any other, and a scan without
+    // one is shown as failed.
     const ended = () => {
       void showReport()
     }
@@ -244,6 +245,7 @@ function headlineOf(report: Report, lang: Lang): string {
   const t = TOOL_APP[lang].result
   return {
     blocked: t.blocked,
+    'opted-out': t.optedOut,
     problems: t.problems(problemCount(report)),
     incomplete: t.incomplete,
     review: t.review,
@@ -366,8 +368,10 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
           </ul>
         </article>
       ))}
-      {/* Nothing was checked on a page the site refused to send. */}
-      {verdict !== 'blocked' && <Checked rules={report.rules} lang={lang} />}
+      {/* Nothing was checked on a page the site refused to send, or asked us not to check. */}
+      {verdict !== 'blocked' && verdict !== 'opted-out' && (
+        <Checked rules={report.rules} lang={lang} />
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-ink-3 md:px-6">
         <span className="flex flex-wrap gap-x-2">
           {t.rules(report.rules.length)}

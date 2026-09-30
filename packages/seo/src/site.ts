@@ -31,6 +31,8 @@ export const PATHS = {
   tools: '/tools',
   tool: (slug: string) => `/tools/${slug}`,
   rules: '/rules',
+  methodology: '/methodology',
+  bot: '/bot',
   rule: (id: string) => `/rules/${id}`,
 } as const
 

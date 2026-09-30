@@ -1,7 +1,7 @@
 ---
 import { SITE } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
-import { CLOUDTOPIA, NAV, otherLang, REPOSITORY } from '../lib/site'
+import { CLOUDTOPIA, methodologyHref, NAV, otherLang, REPOSITORY } from '../lib/site'
 import Logo from './Logo.astro'
 
 interface Props {
@@ -48,6 +48,18 @@ const other = otherLang(lang)
       <h2 id="footer-project" class="mb-1 text-[13px] font-semibold text-ink-3">
         {t.footer.project}
       </h2>
+      <a
+        href={methodologyHref(lang)}
+        class="self-start underline-offset-4 hover:text-signal hover:underline"
+      >
+        {t.footer.methodology}
+      </a>
+      <a
+        href={localePath(lang, PATHS.bot)}
+        class="self-start underline-offset-4 hover:text-signal hover:underline"
+      >
+        {t.footer.bot}
+      </a>
       <a href={REPOSITORY} class="self-start underline-offset-4 hover:text-signal hover:underline">
         {t.footer.github}
       </a>

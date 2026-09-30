@@ -21,6 +21,8 @@ export interface SiteStrings {
     readonly sections: string
     readonly project: string
     readonly github: string
+    readonly methodology: string
+    readonly bot: string
     readonly license: string
     readonly builtBy: string
     readonly cloudtopia: string
@@ -43,6 +45,8 @@ export const SITE: Copy<SiteStrings> = {
       sections: 'الأقسام',
       project: 'المشروع',
       github: 'الكود على GitHub',
+      methodology: 'المنهجية',
+      bot: 'ArablyzerBot وكيف تمنعه',
       license: 'مفتوح المصدر بترخيص AGPL-3.0',
       builtBy: 'بناه',
       cloudtopia: 'كلاود توبيا',
@@ -63,6 +67,8 @@ export const SITE: Copy<SiteStrings> = {
       sections: 'Sections',
       project: 'Project',
       github: 'The code on GitHub',
+      methodology: 'Methodology',
+      bot: 'ArablyzerBot, and how to block it',
       license: 'Open source under AGPL-3.0',
       builtBy: 'Built by',
       cloudtopia: 'CloudTopia',

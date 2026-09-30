@@ -8,7 +8,7 @@ import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
 import X from '@lucide/astro/icons/x'
 import Page from '../../layouts/Page.astro'
-import { METHODOLOGY, scanFormHref, siteOf } from '../../lib/site'
+import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
 import { LIBRARY_DATA, ruleData } from '../../lib/rule-data'
 import { toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
@@ -194,7 +194,7 @@ const card = 'flex flex-col border bg-white p-[22px]'
           {rule.manual ? t.page.weight.manual : t.page.weight.scale(LIBRARY_DATA.weights)}
         </p>
         <a
-          href={METHODOLOGY}
+          href={methodologyHref(lang)}
           class="self-start text-sm font-semibold underline underline-offset-4 hover:text-signal"
         >
           {t.page.weight.methodology}
