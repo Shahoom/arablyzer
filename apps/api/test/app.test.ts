@@ -2,7 +2,7 @@ import type { ScanEvent } from '@arablyzer/api-contract'
 import { DEFAULT_POLICY, type Resolver } from '@arablyzer/egress'
 import { DEVELOPMENT_LIMITS, type ScanLimits } from '@arablyzer/plans'
 import type { Report } from '@arablyzer/report-schema'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApp, type ApiDeps } from '../src/app'
 import { clientAddress, connectionKey, networkKey } from '../src/client'
 import { RECORD_GRACE_MS } from '../src/places'
@@ -12,6 +12,7 @@ import {
   MemoryScanEvents,
   MemoryScanQueue,
   MemoryScanStore,
+  type ScanEvents,
 } from '@arablyzer/store'
 
 /** Names the tests resolve, and what to: no test asks real DNS. */
@@ -803,6 +804,125 @@ describe('GET /api/scans/:id/events', () => {
     expect((await app.request(`/api/scans/${ids[1] ?? ''}/events`)).status).toBe(429)
     first.abort()
     await open.body?.cancel().catch(() => undefined)
+  })
+
+  // Issue #30: Hono prints a stream's failure with console.error, the whole error and whatever it
+  // holds, which for a store's client can be the URL it connects with, and the password in it.
+  describe('a stream that fails', () => {
+    const SECRET = 'hunter2'
+    /** Events whose follower fails the moment it is read, with what it is given. */
+    const failingWith = (thrown: unknown, events: ScanEvents): ScanEvents => ({
+      publish: events.publish.bind(events),
+      since: events.since.bind(events),
+      follow: () => ({
+        [Symbol.asyncIterator]: () => ({
+          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+          next: () => Promise.reject(thrown),
+        }),
+      }),
+    })
+    /** What a Valkey client's error can carry besides its message. */
+    const failure = () =>
+      Object.assign(new Error('connect ECONNREFUSED 172.19.0.3:6379'), {
+        url: `redis://:${SECRET}@valkey:6379`,
+        options: { password: SECRET },
+      })
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('is told in the log by its message alone, never as the error it is', async () => {
+      const printed = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const logged: string[] = []
+      const { scanOf, deps } = setup()
+      const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+      const broken = createApp({
+        ...deps,
+        log: (message) => logged.push(message),
+        events: failingWith(failure(), deps.events),
+      })
+      const response = await broken.request(`/api/scans/${id}/events`)
+      const text = await response.text()
+      expect(logged).toEqual(['API events: connect ECONNREFUSED 172.19.0.3:6379'])
+      expect(printed).not.toHaveBeenCalled()
+      expect(logged.join('\n')).not.toContain(SECRET)
+      // The page is not told the store's own words either: a host, a port, a user name.
+      expect(text).not.toContain(SECRET)
+      expect(text).not.toContain('ECONNREFUSED')
+      expect(text).toContain('event: error\ndata: unavailable\n\n')
+    })
+
+    it('is told once in a while, as every other failure of the API is', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const logged: string[] = []
+      const { scanOf, deps } = setup()
+      const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+      const broken = createApp({
+        ...deps,
+        log: (message) => logged.push(message),
+        events: failingWith(failure(), deps.events),
+      })
+      for (let i = 0; i < 3; i++) await (await broken.request(`/api/scans/${id}/events`)).text()
+      expect(logged).toHaveLength(1)
+    })
+
+    it('is told by its message too when the scan had ended, and what it held is not printed', async () => {
+      const printed = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const logged: string[] = []
+      const { scanOf, store, deps } = setup()
+      const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+      await store.start(id, NOW)
+      await store.finish(id, { scan: { status: 'complete' } } as unknown as Report, NOW)
+      const broken = createApp({
+        ...deps,
+        log: (message) => logged.push(message),
+        events: {
+          publish: deps.events.publish.bind(deps.events),
+          // An event that cannot be written out: JSON has no BigInt.
+          since: () =>
+            Promise.resolve([{ id: '1', event: { type: 'queued', ahead: 1n } as never }]),
+          follow: deps.events.follow.bind(deps.events),
+        },
+      })
+      const text = await (await broken.request(`/api/scans/${id}/events`)).text()
+      expect(logged).toEqual(['API events: Do not know how to serialize a BigInt'])
+      expect(printed).not.toHaveBeenCalled()
+      expect(text).toContain('event: error\ndata: unavailable\n\n')
+    })
+
+    it('is told by a message even when what was thrown is not an error', async () => {
+      const printed = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const logged: string[] = []
+      const { scanOf, deps } = setup()
+      const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+      const broken = createApp({
+        ...deps,
+        log: (message) => logged.push(message),
+        events: failingWith(`redis://:${SECRET}@valkey:6379 is down`, deps.events),
+      })
+      const text = await (await broken.request(`/api/scans/${id}/events`)).text()
+      expect(printed).not.toHaveBeenCalled()
+      expect(logged.join('\n')).not.toContain(SECRET)
+      expect(text).not.toContain(SECRET)
+      expect(logged).toHaveLength(1)
+    })
+
+    it('frees the visitor’s stream and its scan’s, as any that ends does', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined)
+      const { scanOf, deps } = setup()
+      const { id } = (await (await scanOf('https://example.com/')).json()) as { id: string }
+      const broken = createApp({
+        ...deps,
+        log: () => undefined,
+        streams: { perScan: 1, perVisitor: 1, total: 1 },
+        events: failingWith(failure(), deps.events),
+      })
+      for (let i = 0; i < 3; i++) {
+        const response = await broken.request(`/api/scans/${id}/events`)
+        expect(response.status, String(i)).toBe(200)
+        await response.text()
+      }
+    })
   })
 
   it('ends every open stream when the server shuts down', async () => {

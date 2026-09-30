@@ -13,7 +13,7 @@ import { toolDefinition } from '@arablyzer/tools/registry'
 import { Hono, type Context, type MiddlewareHandler } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
-import { streamSSE } from 'hono/streaming'
+import { streamSSE, type SSEStreamingApi } from 'hono/streaming'
 import {
   quietly,
   type InFlight,
@@ -78,6 +78,8 @@ export interface StreamCaps {
 export const STREAM_CAPS: StreamCaps = { perScan: 8, perVisitor: 8, total: 1000 }
 /** When a page refused a stream may try again. */
 const STREAM_RETRY_SECONDS = 30
+/** What a page is told of a stream that failed: the word, never the store's message. */
+const STREAM_FAILURE = 'unavailable'
 
 /** A scan request is a URL and a token: 8 KB is ample, and nothing larger is read. */
 const MAX_BODY_BYTES = 8 * 1024
@@ -110,7 +112,38 @@ export function createApp(deps: ApiDeps): Hono {
   const caps = deps.streams ?? STREAM_CAPS
   const failure = quietly('API', deps.log)
   const foreign = quietly('API', deps.log)
+  const streamFailure = quietly('API events', deps.log)
   const app = new Hono()
+
+  /**
+   * An event stream. Left alone, Hono prints a stream that fails with console.error, the whole
+   * error and whatever it holds, which for a store's client can be the URL it connects with, and
+   * the password in it (security review, issue #30). Here it is told by its message alone, once
+   * in a while, as every other failure of the API is. Hono then sends the error's message to the
+   * page as an `error` event: a fixed word goes instead, never a store's own words (a host, a
+   * port, a user name). What is thrown that is not an error is made one first, since Hono
+   * prints such a thing whatever it is given.
+   */
+  const streamed = (c: Context, body: (stream: SSEStreamingApi) => Promise<void>) =>
+    streamSSE(
+      c,
+      async (stream) => {
+        try {
+          await body(stream)
+        } catch (thrown) {
+          throw thrown instanceof Error ? thrown : new Error('The event stream failed')
+        }
+      },
+      (error) => {
+        streamFailure(error)
+        try {
+          error.message = STREAM_FAILURE
+        } catch {
+          // An error that cannot be written to keeps its message: the log has already told it.
+        }
+        return Promise.resolve()
+      },
+    )
 
   // The API is not content: never indexed, never sniffed, and it sends no referrer.
   app.use('*', async (c, next) => {
@@ -281,7 +314,7 @@ export function createApp(deps: ApiDeps): Hono {
     if (isFinished(scan.state)) {
       const rest = await deps.events.since(scan.id, after)
       if (rest.length === 0 && after !== null) return c.body(null, 204)
-      return streamSSE(c, async (stream) => {
+      return streamed(c, async (stream) => {
         for (const stored of rest) {
           await stream.writeSSE({ id: stored.id, data: JSON.stringify(stored.event) })
         }
@@ -305,7 +338,7 @@ export function createApp(deps: ApiDeps): Hono {
     count(open.visitors, visitor, 1)
     // Proxies must pass the stream on as it comes.
     c.header('X-Accel-Buffering', 'no')
-    return streamSSE(c, async (stream) => {
+    return streamed(c, async (stream) => {
       const stop = new AbortController()
       const end = () => {
         stop.abort()
