@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CruxData } from './crux'
 
 const HeaderValue = z.union([z.string(), z.array(z.string()).min(1)])
 
@@ -20,6 +21,8 @@ export type RouteOverride = z.infer<typeof RouteOverride>
  * certificate from the test authority, this many days long with this many left.
  */
 export const SiteConfig = z.strictObject({
+  /** What the CrUX stand-in answers for the site (see serveCrux): the CrUX rules' fixtures. */
+  crux: CruxData.optional(),
   host: z
     .string()
     .regex(/^(?:[a-z0-9-]+\.)+example$/)

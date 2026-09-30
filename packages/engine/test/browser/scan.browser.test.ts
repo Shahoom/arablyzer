@@ -78,3 +78,24 @@ describe(`scan with rendering (${engine})`, () => {
     expect(report.rules).toEqual([expect.objectContaining({ status: 'not-applicable' })])
   })
 })
+
+describe('scan with Lighthouse (M1.3b)', () => {
+  it("adds Lighthouse's lab metrics as a fact, never as a finding or in the score", async () => {
+    site = await tempSite({
+      'index.html':
+        '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>متجر</title></head><body><h1>قهوة عربية</h1><p>نص عربي</p></body></html>',
+    })
+    const without = await scan(site.url('/'), { rules: [renderRule()], policy: policyFor(site) })
+    const report = await scan(site.url('/'), {
+      rules: [renderRule()],
+      policy: policyFor(site),
+      lab: {},
+    })
+    expect(schemaErrors(report)).toBe('')
+    expect(report.scan.status).toBe('complete')
+    expect(report.facts.lab).toMatchObject({ status: 'measured', lighthouse: '13.5.0' })
+    expect(report.facts.lab?.metrics?.fcp).toBeGreaterThan(0)
+    expect(report.score).toEqual(without.score)
+    expect(report.findings).toEqual(without.findings)
+  })
+})

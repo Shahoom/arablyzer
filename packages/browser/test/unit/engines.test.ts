@@ -4,6 +4,7 @@ import {
   BOT_TOKEN,
   NEEDS_ISOLATION,
   WORKER_GUARD,
+  browserEnvironment,
   bypassesProxyForLoopback,
   contextOptions,
   executablePathFor,
@@ -192,5 +193,22 @@ describe('the measuring script', () => {
     expect(source).toContain('"maxBlocks":200')
     // Compiled, not run: it runs against a real page in the browser suite.
     expect(() => new vm.Script(source)).not.toThrow()
+  })
+})
+
+describe('browserEnvironment', () => {
+  it('starts browsers without any variable that looks like a secret (M1.3b review)', () => {
+    expect(
+      browserEnvironment({
+        PATH: '/usr/bin',
+        HOME: '/home/scanner',
+        LANG: 'ar_OM.UTF-8',
+        ARABLYZER_CRUX_API_KEY: 'k',
+        GITHUB_TOKEN: 't',
+        AWS_SECRET_ACCESS_KEY: 's',
+        DATABASE_PASSWORD: 'p',
+        UNSET: undefined,
+      }),
+    ).toEqual({ PATH: '/usr/bin', HOME: '/home/scanner', LANG: 'ar_OM.UTF-8' })
   })
 })

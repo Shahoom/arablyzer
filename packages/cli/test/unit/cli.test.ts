@@ -16,9 +16,22 @@ describe('parseCliArgs', () => {
       timeoutMs: 30_000,
       allowPrivate: false,
       render: null,
+      cruxKey: null,
+      lab: false,
       help: false,
       version: false,
     })
+  })
+
+  it('measures with Lighthouse only when asked (--lab), as information (M1.3b)', () => {
+    expect(parseCliArgs(['x.test', '--lab'], {}).lab).toBe(true)
+  })
+
+  it('reads the CrUX key from ARABLYZER_CRUX_API_KEY alone, trimmed (M1.3b)', () => {
+    const key = (env: Record<string, string>) => parseCliArgs(['x.test'], env).cruxKey
+    expect(key({ ARABLYZER_CRUX_API_KEY: ' abc123 ' })).toBe('abc123')
+    expect(key({ ARABLYZER_CRUX_API_KEY: '  ' })).toBeNull()
+    expect(key({})).toBeNull()
   })
 
   it('renders in Chromium with --render, in the engines asked for, and --screenshots implies it', () => {
@@ -259,6 +272,25 @@ describe('formatReport', () => {
         '      html · line 2 · <html lang="en" dir="rtl">',
         '',
       ].join('\n'),
+    )
+  })
+
+  it("prints Lighthouse's lab metrics as information, in both languages (M1.3b)", () => {
+    const lab = {
+      status: 'measured' as const,
+      lighthouse: '13.5.0',
+      chromium: 'HeadlessChrome/153.0.0.0',
+      durationMs: 4_800,
+      requests: { total: 3, refused: 0 },
+      performance: 87,
+      metrics: { fcp: 1_235, lcp: 2_501, tbt: 0, si: 1_900, cls: 0.043 },
+    }
+    const withLab = report({ facts: { lab } })
+    expect(formatReport(withLab, 'en', false)).toContain(
+      'Lighthouse 13.5.0 (lab, information only) · performance 87 · FCP 1.2 s · LCP 2.5 s · TBT 0 ms · CLS 0.043 · Speed Index 1.9 s',
+    )
+    expect(formatReport(withLab, 'ar', false)).toContain(
+      'Lighthouse 13.5.0 (مختبر، للمعلومة فقط) · الأداء 87 · FCP 1.2 ث',
     )
   })
 

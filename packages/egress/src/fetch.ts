@@ -48,7 +48,44 @@ export interface SafeFetchOptions {
   readonly onTooLarge?: 'error' | 'truncate'
   readonly maxRedirects?: number
   readonly signal?: AbortSignal
+  /**
+   * A JSON body to send with POST instead of a GET, as the CrUX API takes (M1.3 plan §0); at most
+   * MAX_JSON_BODY_BYTES. A request with a body or added headers is never redirected: a redirect
+   * would carry them to another address.
+   */
+  readonly json?: unknown
+  /**
+   * Request headers to add, such as an API key: sent, and never kept in a result or an error.
+   * Names are tokens and cannot be the fetch's own (FIXED_HEADERS); values have no line breaks.
+   */
+  readonly headers?: Readonly<Record<string, string>>
 }
+
+/** A JSON body's largest size: a CrUX query is a few hundred bytes. */
+export const MAX_JSON_BODY_BYTES = 64 * 1024
+
+/** Headers the fetch sets itself, or that framing and routing depend on. */
+const FIXED_HEADERS: ReadonlySet<string> = new Set([
+  'host',
+  'user-agent',
+  'accept',
+  'accept-encoding',
+  'content-type',
+  'content-length',
+  'transfer-encoding',
+  'connection',
+  'keep-alive',
+  'upgrade',
+  'expect',
+  'te',
+  'trailer',
+  'cookie',
+  'proxy-authorization',
+  'proxy-connection',
+])
+
+/** RFC 9110 §5.6.2. */
+const TOKEN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/
 
 export interface FetchHop {
   readonly url: string
@@ -105,6 +142,8 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
   checkLimit('timeoutMs', options.timeoutMs, 1, MAX_TIMEOUT_MS)
   checkLimit('maxBytes', options.maxBytes, 1, DEFAULT_MAX_BYTES)
   checkLimit('maxRedirects', options.maxRedirects, 0, MAX_REDIRECTS)
+  const postBody = jsonBody(options.json)
+  const addedHeaders = extraHeaders(options.headers)
   const policy = options.policy ?? DEFAULT_POLICY
   const resolver = options.resolver ?? defaultResolver(policy)
   const maxRedirects = options.maxRedirects ?? DEFAULT_MAX_REDIRECTS
@@ -141,7 +180,14 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
         // the default rules on every later hop, so it cannot redirect into local services.
         hopPolicy = { ...hopPolicy, allowPrivate: false }
       }
-      const res = await sendRequest(url, endpoint.addresses, options, signal)
+      const res = await sendRequest(
+        url,
+        endpoint.addresses,
+        options,
+        signal,
+        postBody,
+        addedHeaders,
+      )
       const status = res.statusCode ?? 0
       // HTTP status codes are 100-599 (RFC 9110 §15); Node's parser also lets 600-999 through,
       // and some sites use them to refuse bots.
@@ -155,6 +201,17 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
       const location = res.headers.location
       if (REDIRECT_STATUSES.has(status) && location !== undefined) {
         res.destroy()
+        // A redirect would carry the body, or an added header such as a key, to another address.
+        if (postBody !== undefined || Object.keys(addedHeaders).length > 0) {
+          return finish(
+            null,
+            egressError(
+              'too-many-redirects',
+              url.href,
+              'A request with a body or added headers is not redirected',
+            ),
+          )
+        }
         if (redirects.length >= maxRedirects) {
           return finish(
             null,
@@ -210,15 +267,44 @@ export function validityOf(
   return { validFrom: from.toISOString(), validTo: to.toISOString() }
 }
 
+/** The JSON body as bytes; a TypeError when it cannot be sent. */
+function jsonBody(json: unknown): Buffer | undefined {
+  if (json === undefined) return undefined
+  const text = JSON.stringify(json) as string | undefined
+  if (text === undefined) throw new TypeError('json must be a JSON value')
+  const bytes = Buffer.from(text, 'utf8')
+  if (bytes.length > MAX_JSON_BODY_BYTES) {
+    throw new TypeError(`json is over the ${MAX_JSON_BODY_BYTES}-byte limit`)
+  }
+  return bytes
+}
+
+/** The added headers, names lowercased; a TypeError names one that cannot be added. */
+function extraHeaders(given: Readonly<Record<string, string>> | undefined): Record<string, string> {
+  const headers: Record<string, string> = {}
+  for (const [name, value] of Object.entries(given ?? {})) {
+    const lower = name.toLowerCase()
+    if (!TOKEN.test(name) || FIXED_HEADERS.has(lower)) {
+      throw new TypeError(`The header ${JSON.stringify(name)} cannot be added`)
+    }
+    // The value is never quoted in the error: it may be a key.
+    if (/[\r\n\0]/.test(value)) throw new TypeError(`The header ${name} has a line break`)
+    headers[lower] = value
+  }
+  return headers
+}
+
 function sendRequest(
   url: URL,
   addresses: readonly ResolvedAddress[],
   options: SafeFetchOptions,
   signal: AbortSignal,
+  body: Buffer | undefined,
+  extra: Readonly<Record<string, string>>,
 ): Promise<IncomingMessage> {
   const lookup = pinnedLookup(addresses)
   const requestOptions: https.RequestOptions = {
-    method: 'GET',
+    method: body === undefined ? 'GET' : 'POST',
     // A fresh agent: no shared sockets and no proxy settings picked up from the environment.
     agent: false,
     lookup,
@@ -228,9 +314,13 @@ function sendRequest(
     insecureHTTPParser: false,
     maxHeaderSize: 16 * 1024,
     headers: {
+      ...extra,
       'user-agent': options.userAgent,
       accept: options.accept ?? '*/*',
       'accept-encoding': 'gzip, deflate, br',
+      ...(body === undefined
+        ? {}
+        : { 'content-type': 'application/json', 'content-length': String(body.length) }),
     },
   }
   return new Promise((resolve, reject) => {
@@ -239,7 +329,7 @@ function sendRequest(
         ? https.request(url, requestOptions, resolve)
         : http.request(url, requestOptions, resolve)
     request.on('error', reject)
-    request.end()
+    request.end(body)
   })
 }
 

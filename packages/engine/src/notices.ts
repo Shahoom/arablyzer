@@ -19,6 +19,15 @@ export type NoticeCode =
   | 'engine-refused'
   | 'render-truncated'
   | 'request-limit'
+  | 'crux-no-key'
+  | 'crux-private'
+  | 'crux-not-found'
+  | 'crux-failed'
+  | 'crux-refused'
+  | 'lab-failed'
+  | 'lab-timeout'
+  | 'lab-unavailable'
+  | 'lab-skipped'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -156,6 +165,42 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'request-limit': {
     ar: 'طلبت الصفحة في {engine} أكثر من الحد (300 طلب أو 25 ميغابايت)، فلم يُحمَّل الباقي، وقد يختلف عرضها عمّا يراه الزائر.',
     en: 'In {engine}, the page asked for more than the limit (300 requests or 25 MB), so the rest was not loaded, and it may look different from what visitors see.',
+  },
+  'crux-no-key': {
+    ar: 'فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.',
+    en: "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run.",
+  },
+  'crux-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Google (CrUX) عن سرعة زوارها.',
+    en: "The page is on a local or private address, so Google (CrUX) was not asked about its visitors' speed.",
+  },
+  'crux-not-found': {
+    ar: 'ليس عند Google (CrUX) بيانات عن زوار هذه الصفحة ولا موقعها، وهذا حال كثير من المواقع قليلة الزيارات، فلا تنطبق فحوص سرعة الزوار الحقيقيين.',
+    en: "Google (CrUX) has no data on visitors to this page or its site, as for many sites with fewer visits, so the checks of real visitors' speed do not apply.",
+  },
+  'lab-failed': {
+    ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',
+    en: 'Lighthouse could not measure the page, so the report has no lab metrics.',
+  },
+  'lab-timeout': {
+    ar: 'لم ينتهِ Lighthouse من قياس الصفحة في وقته، أو لم تكتمل الصفحة حين توقف عن انتظارها، فليس في التقرير قياساته.',
+    en: 'Lighthouse did not finish measuring the page in time, or the page had not finished loading when it stopped waiting, so the report has no lab metrics.',
+  },
+  'lab-unavailable': {
+    ar: 'Lighthouse أو متصفح Chromium غير مثبّت على هذا الجهاز، فلم يعمل Lighthouse.',
+    en: 'Lighthouse or Chromium is not installed on this machine, so Lighthouse did not run.',
+  },
+  'lab-skipped': {
+    ar: 'لم يبقَ من وقت الفحص ما يكفي Lighthouse، فلم يعمل.',
+    en: 'The scan had no time left for Lighthouse, so it did not run.',
+  },
+  'crux-refused': {
+    ar: 'رفضت Google (CrUX) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Chrome UX Report API، فلم تعمل فحوص سرعة الزوار الحقيقيين.',
+    en: "Google (CrUX) refused the request, most often for an API key that is not valid or not enabled for the Chrome UX Report API, so the checks of real visitors' speed could not run.",
+  },
+  'crux-failed': {
+    ar: 'تعذّر جلب بيانات الزوار الحقيقيين من Google (CrUX)، فلم تعمل فحوصها.',
+    en: "Real visitors' data could not be fetched from Google (CrUX), so its checks could not run.",
   },
 }
 

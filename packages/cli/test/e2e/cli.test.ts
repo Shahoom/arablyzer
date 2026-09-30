@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process'
-import { existsSync, readdirSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { fixtureCaFile, serveSite, sitePath, type FixtureSite } from '@arablyzer/fixtures'
 import schema from '@arablyzer/report-schema/report.schema.json' with { type: 'json' }
@@ -174,6 +176,53 @@ describe('arablyzer (built bundle)', () => {
       )
     } finally {
       await site.close()
+    }
+  })
+})
+
+describe('arablyzer without its optional packages (M1.3b review)', () => {
+  it('scans on, with notices and install hints, when Playwright and Lighthouse are missing', async () => {
+    // The bundle alone, where no node_modules can give it Playwright, Lighthouse or puppeteer.
+    const alone = mkdtempSync(path.join(tmpdir(), 'arablyzer-alone-'))
+    cpSync(path.dirname(CLI), alone, { recursive: true })
+    const site = await serveSite(sitePath('sample'))
+    try {
+      const result = await new Promise<Result>((resolve) => {
+        execFile(
+          process.execPath,
+          [
+            path.join(alone, 'arablyzer.mjs'),
+            site.url('/'),
+            '--allow-private',
+            '--render',
+            '--lab',
+            '--json',
+          ],
+          { env: { PATH: process.env.PATH ?? '' }, maxBuffer: 16 * 1024 * 1024 },
+          (error, stdout, stderr) => {
+            const code = error === null ? 0 : typeof error.code === 'number' ? error.code : -1
+            resolve({ code, stdout, stderr })
+          },
+        )
+      })
+      const report = JSON.parse(result.stdout) as {
+        scan: { status: string; notices: { code: string }[]; render?: { status: string }[] }
+        facts: { lab?: { status: string } }
+      }
+      expect(validate(report), ajv.errorsText(validate.errors)).toBe(true)
+      expect(report.scan.render?.map((run) => run.status)).toEqual(['unavailable'])
+      expect(report.facts.lab?.status).toBe('unavailable')
+      expect(report.scan.notices.map((notice) => notice.code)).toEqual(
+        expect.arrayContaining(['engine-unavailable', 'lab-unavailable']),
+      )
+      expect(result.stderr).toContain('npx playwright-core@1.63.0 install chromium')
+      expect(result.stderr).toContain('lighthouse@13.5.0 and puppeteer-core@25.12.0')
+      // Not rendered, so partial: exit 2, and never a crash.
+      expect(result.code).toBe(2)
+      expect(result.stderr).not.toContain('unexpected error')
+    } finally {
+      await site.close()
+      rmSync(alone, { recursive: true, force: true })
     }
   })
 })

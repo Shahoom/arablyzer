@@ -60,6 +60,10 @@ export function formatReport(report: Report, lang: Lang, color: boolean): string
     const { overall, partial, rules } = report.score
     lines.push(paint(SGR.bold, t.score(overall, partial, rules.ran, rules.total)))
   }
+  const lab = report.facts.lab
+  if (lab?.status === 'measured' && lab.metrics !== null) {
+    lines.push(paint(SGR.dim, t.lab(lab.lighthouse, lab.performance, lab.metrics)))
+  }
 
   const byRule = new Map<string, Finding[]>()
   for (const finding of report.findings) {

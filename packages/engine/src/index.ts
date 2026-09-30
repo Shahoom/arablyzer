@@ -7,6 +7,7 @@ export {
   MAX_VALUE_ITEMS,
   MAX_VALUE_LENGTH,
 } from './bounds'
+export { CRUX_ENDPOINT, fetchCrux, type CruxOptions } from './crux'
 export { notice, type NoticeCode } from './notices'
 export {
   ENGINE_VERSION,

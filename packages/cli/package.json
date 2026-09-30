@@ -18,6 +18,7 @@
     "@arablyzer/browser": "workspace:*",
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/engine": "workspace:*",
+    "@arablyzer/lab": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/rules": "workspace:*",
     "axe-core": "4.13.0"
@@ -29,6 +30,8 @@
     "esbuild": "^0.28.2"
   },
   "optionalDependencies": {
-    "playwright-core": "1.63.0"
+    "lighthouse": "13.5.0",
+    "playwright-core": "1.63.0",
+    "puppeteer-core": "25.12.0"
   }
 }

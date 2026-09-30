@@ -39,6 +39,24 @@ export function bypassesProxyForLoopback(
   return LOOPBACK_BYPASS[platform]?.includes(engine) ?? false
 }
 
+/** Names of environment variables that hold a secret: API keys, tokens, passwords, sessions. */
+const SECRET_NAME = /KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH|COOKIE|SESSION/i
+
+/**
+ * The environment a browser starts with: this process's, less every variable that looks like a
+ * secret. A browser needs none of them, and its pages' code runs in it without a sandbox (M1.3b
+ * review: the CrUX key was in the environment of every Chromium process of a lab run).
+ */
+export function browserEnvironment(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): Record<string, string> {
+  const kept: Record<string, string> = {}
+  for (const [name, value] of Object.entries(env)) {
+    if (value !== undefined && !SECRET_NAME.test(name)) kept[name] = value
+  }
+  return kept
+}
+
 export function networkIsolated(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): boolean {

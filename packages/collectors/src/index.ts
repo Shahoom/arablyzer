@@ -7,6 +7,7 @@ export {
   parseUnicodeRange,
   type CodePointRange,
 } from './code-points'
+export { collectCrux, type CruxAnswer, type CruxFacts, type CruxInput } from './crux'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {
   decodeHtml,

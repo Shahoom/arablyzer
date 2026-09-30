@@ -16,6 +16,7 @@
     "@arablyzer/browser": "workspace:*",
     "@arablyzer/collectors": "workspace:*",
     "@arablyzer/egress": "workspace:*",
+    "@arablyzer/lab": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/rules": "workspace:*",
     "@arablyzer/scoring": "workspace:*"

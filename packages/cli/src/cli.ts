@@ -12,6 +12,7 @@ import { SEVERITY_ORDER, type Engine, type Report, type Severity } from '@arably
 import { parseCliArgs, UsageError } from './args'
 import { formatJson, formatReport } from './format'
 import { langFromEnv, STRINGS } from './i18n'
+import { OPTIONAL_VERSIONS } from './versions'
 
 export interface Io {
   readonly stdout: (text: string) => void
@@ -48,6 +49,8 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     policy: cliPolicy(options.allowPrivate),
     timeoutMs: options.timeoutMs,
     ...(options.ruleIds === undefined ? {} : { ruleIds: options.ruleIds }),
+    ...(options.cruxKey === null ? {} : { crux: { apiKey: options.cruxKey } }),
+    ...(options.lab ? { lab: {} } : {}),
     ...(io.signal === undefined ? {} : { signal: io.signal }),
     ...(render === null
       ? {}
@@ -67,12 +70,19 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
   }
   io.stdout(options.json ? formatJson(report) : formatReport(report, options.lang, io.color))
   const missing = (report.scan.render ?? []).filter((run) => run.status === 'unavailable')
+  const playwright = OPTIONAL_VERSIONS['playwright-core'] ?? ''
   if (missing.length > 0) {
-    // Loaded with the browser code, which rendering already loaded.
-    const { PLAYWRIGHT_VERSION } = await import('@arablyzer/browser')
     const hint = STRINGS[options.lang].installBrowsers(
       missing.map((run) => run.engine),
-      PLAYWRIGHT_VERSION,
+      playwright,
+    )
+    io.stderr(`arablyzer: ${hint}\n`)
+  }
+  if (report.facts.lab?.status === 'unavailable') {
+    const hint = STRINGS[options.lang].installLab(
+      OPTIONAL_VERSIONS.lighthouse ?? '',
+      OPTIONAL_VERSIONS['puppeteer-core'] ?? '',
+      playwright,
     )
     io.stderr(`arablyzer: ${hint}\n`)
   }
