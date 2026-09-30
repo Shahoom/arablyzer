@@ -2,12 +2,18 @@ import { escapeHtml } from './html'
 import { jsonLdScript, type JsonLd } from './json-ld'
 import type { Alternate } from './site'
 
-/** What a link preview shows. The image comes with the site build (BUILD-PLAN §6.5). */
+/** What a link preview shows, with the image the site's build draws for the page (§6.5). */
 export interface OpenGraph {
   readonly title: string
   readonly description: string
   /** None for a page that serves many links, as a report's does: the preview uses the link. */
   readonly url?: string
+  readonly image?: {
+    readonly url: string
+    readonly alt: string
+    readonly width: number
+    readonly height: number
+  }
 }
 
 export interface HeadOptions {
@@ -51,6 +57,16 @@ export function renderHead(options: HeadOptions): string {
       `<meta property="og:description" content="${escapeHtml(description)}">`,
     )
     if (url !== undefined) lines.push(`<meta property="og:url" content="${escapeHtml(url)}">`)
+    const { image } = options.openGraph
+    if (image !== undefined) {
+      lines.push(
+        `<meta property="og:image" content="${escapeHtml(image.url)}">`,
+        `<meta property="og:image:width" content="${String(image.width)}">`,
+        `<meta property="og:image:height" content="${String(image.height)}">`,
+        `<meta property="og:image:alt" content="${escapeHtml(image.alt)}">`,
+        '<meta name="twitter:card" content="summary_large_image">',
+      )
+    }
   }
   for (const data of options.jsonLd ?? []) lines.push(jsonLdScript(data))
   return lines.join('\n')

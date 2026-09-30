@@ -11,7 +11,8 @@
     "./json-ld": "./src/json-ld.ts",
     "./strings": "./src/strings.ts",
     "./audit": "./src/audit/index.ts",
-    "./markdown": "./src/markdown.ts"
+    "./markdown": "./src/markdown.ts",
+    "./sitemap": "./src/sitemap.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

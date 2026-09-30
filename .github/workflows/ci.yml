@@ -42,8 +42,6 @@ jobs:
         run: pnpm test:e2e
       - name: SEO self-audit (every tool page and the report template)
         run: pnpm seo:audit
-      - name: Site build and self-audit (every page Astro builds, M2.1)
-        run: pnpm site:build && pnpm site:audit
       - name: Report schema drift
         run: pnpm schema:check
 
@@ -77,9 +75,10 @@ jobs:
           ARABLYZER_REQUIRE_ENGINES: chromium,firefox,webkit
 
   lighthouse:
-    # M2.1a: the site's pages that stand for the rest, measured by Lighthouse on a phone and a
-    # desktop, three runs each (M2.1 plan §3); a job of its own, beside the browsers' (M2.2).
-    name: Lighthouse on the site
+    # The site's build, which draws each page's Open Graph image in Chromium (M2.4c), its
+    # self-audit, and Lighthouse on the pages that stand for the rest, on a phone and a desktop,
+    # three runs each (M2.1 plan §3): a job of its own, beside the browsers' (M2.2).
+    name: The site, its self-audit and Lighthouse
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -101,6 +100,8 @@ jobs:
         run: pnpm --filter @arablyzer/browser exec playwright-core install --with-deps chromium
       - name: Build the site
         run: pnpm site:build
+      - name: Site self-audit (every page Astro builds, its sitemaps and its images)
+        run: pnpm site:audit
       - name: Lighthouse on the site (M2.1 plan §3)
         run: |
           CHROME_PATH="$(find ~/.cache/ms-playwright -type f -name chrome -path '*/chromium-*' | head -1)"

@@ -39,22 +39,6 @@ FROM workspace AS worker
 USER arablyzer
 CMD ["node", "--import", "tsx", "apps/worker/src/main.ts"]
 
-# The site, built for the origin it will be served from.
-FROM workspace AS site
-ARG ARABLYZER_SITE=https://arablyzer.example
-ARG PUBLIC_TURNSTILE_SITE_KEY=
-RUN ARABLYZER_SITE="$ARABLYZER_SITE" PUBLIC_TURNSTILE_SITE_KEY="$PUBLIC_TURNSTILE_SITE_KEY" \
-    pnpm --filter @arablyzer/web build
-
-# The site's server: the pages, /api to the API, and the headers (infra/Caddyfile). It listens
-# above port 1024 as nobody, so the capability its binary carries, to bind lower ones, goes: a
-# container without capabilities cannot run a binary that asks for one.
-FROM caddy:2.11-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b AS web
-RUN setcap -r /usr/bin/caddy
-COPY --from=site /arablyzer/apps/web/dist /srv
-COPY infra/Caddyfile /etc/caddy/Caddyfile
-USER nobody
-
 # The browsers, with the libraries and the fonts they need. Made from the Playwright version the
 # workspace pins and nothing else, so a change to the code does not download them again.
 FROM base AS browser-base
@@ -75,6 +59,23 @@ RUN fc-list --format '%{family[0]}|%{style[0]}|%{file}\n' | sort > /arablyzer/fo
 
 FROM browser-base AS browsers
 COPY --from=workspace --chown=arablyzer:arablyzer /arablyzer /arablyzer
+
+# The site, built for the origin it will be served from, with its pages' Open Graph images, which
+# Chromium draws (M2.4c): the browsers' image, whose fonts and versions are fixed.
+FROM browsers AS site
+ARG ARABLYZER_SITE=https://arablyzer.example
+ARG PUBLIC_TURNSTILE_SITE_KEY=
+RUN ARABLYZER_SITE="$ARABLYZER_SITE" PUBLIC_TURNSTILE_SITE_KEY="$PUBLIC_TURNSTILE_SITE_KEY" \
+    pnpm --filter @arablyzer/web build
+
+# The site's server: the pages, /api to the API, and the headers (infra/Caddyfile). It listens
+# above port 1024 as nobody, so the capability its binary carries, to bind lower ones, goes: a
+# container without capabilities cannot run a binary that asks for one.
+FROM caddy:2.11-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b AS web
+RUN setcap -r /usr/bin/caddy
+COPY --from=site /arablyzer/apps/web/dist /srv
+COPY infra/Caddyfile /etc/caddy/Caddyfile
+USER nobody
 
 # The scanner: the engine and its browsers. Where its only way out is the egress proxy, Compose
 # says so (ARABLYZER_NETWORK_ISOLATED), and WebKit may run; the image claims nothing of the kind.

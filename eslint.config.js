@@ -189,6 +189,20 @@ export default defineConfig(
     },
   },
   {
+    // IndexNow's one endpoint, asked from the machine that deployed the site, after a deploy
+    // (M2.4c): not scan traffic, which leaves the scanner through the egress proxy. fetch alone.
+    files: ['apps/web/scripts/indexnow.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
     // The stack's end-to-end test asks the stack itself, on the host's port, as a visitor does
     // (M2.1 plan §5b), and runs commands in its containers.
     files: ['infra/test/**'],
@@ -207,6 +221,12 @@ export default defineConfig(
     // The site's Lighthouse run in CI, on its own pages on loopback (M2.1 plan §3).
     files: ['apps/web/scripts/lighthouse.ts'],
     rules: networkRules({ allowProcesses: true, allow: ['lighthouse', 'chrome-launcher'] }),
+  },
+  {
+    // The site's Open Graph images, drawn by Chromium at build (M2.4c): the card's own HTML,
+    // inline fonts, and every request refused.
+    files: ['apps/web/scripts/og-images.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
     // A tool page driven in the browsers as a visitor uses it (M2.2a review): the site's own
