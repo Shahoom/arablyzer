@@ -2,10 +2,14 @@ import { serve } from '@hono/node-server'
 import { createScannerApp } from './app'
 import { localScanner } from './local'
 import { scanOptionsFrom } from './options'
+import { retireAfterAnswer } from './retire'
 
 // The scanner as Compose runs it (M2.1 plan §5b): the engine and its browsers, in a container
 // whose one way out is the egress proxy, answering the worker alone. Production's checks hold
-// whatever NODE_ENV says: ARABLYZER_ALLOW_PRIVATE is refused here.
+// whatever NODE_ENV says: ARABLYZER_ALLOW_PRIVATE is refused here. It ends its process after a scan
+// that started a browser or Lighthouse (M3 of the pre-launch review): a browser here runs without a
+// sandbox of its own, in the process that holds the token and the CrUX key, and Compose starts a
+// clean one for the next scan. A scan that started none leaves the process as it is.
 const env: Readonly<Record<string, string | undefined>> = { ...process.env, NODE_ENV: 'production' }
 
 /** The worker's token: long enough that it cannot be guessed. */
@@ -29,6 +33,15 @@ const app = createScannerApp({
   // A scan that will not stop: out, and Compose starts the scanner again (restart policy).
   onStuck: () => {
     process.exit(1)
+  },
+  // A browser ran: the answer leaves, and the process ends, for Compose to start it again.
+  onBrowserUsed: () => {
+    console.error('A browser ran in this scan: the scanner ends its process, for a clean one')
+    retireAfterAnswer(server, {
+      exit: (code) => {
+        process.exit(code)
+      },
+    })
   },
 })
 const server = serve(

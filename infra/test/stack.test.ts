@@ -27,7 +27,8 @@ const NODE_SERVICES = ['api', 'worker', 'scanner'] as const
 
 interface Container {
   readonly Config: { readonly Image: string; readonly Env: readonly string[] }
-  readonly State: { readonly Health?: { readonly Status: string } }
+  readonly RestartCount: number
+  readonly State: { readonly StartedAt: string; readonly Health?: { readonly Status: string } }
   readonly HostConfig: {
     readonly NanoCpus: number
     readonly PidsLimit: number | null
@@ -183,6 +184,44 @@ function postScan(url: string): Promise<Response> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ url, turnstileToken: DUMMY_TOKEN }),
   })
+}
+
+/**
+ * Waits for a scanner that can take a scan: after a scan that started a browser the scanner ends its
+ * process and Compose starts it again (M3), so after one there is a moment with none. Asked as the
+ * worker asks it, of its health: one whose process is about to end says it is restarting, and is
+ * not there yet.
+ */
+async function scannerUp(): Promise<void> {
+  for (let tries = 0; tries < 180; tries++) {
+    try {
+      const answer = inside(
+        'worker',
+        "fetch('http://scanner:8788/health').then((r) => r.text()).then((text) => console.log(text), () => console.log('down'))",
+      )
+      if (answer === 'ok') return
+    } catch {
+      // The worker was asked in a moment when it could not answer: ask again.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1_000))
+  }
+  throw new Error('The scanner did not come back up')
+}
+
+/** A scan of the test site through the API, to its end: a tool page's for a tool, else a whole one. */
+async function scanned(tool?: string): Promise<void> {
+  const created = await fetch(`${SITE}/api/scans`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      url: FIXTURE,
+      turnstileToken: DUMMY_TOKEN,
+      ...(tool === undefined ? {} : { tool }),
+    }),
+  })
+  expect(created.status).toBe(202)
+  const { id } = (await created.json()) as { id: string }
+  expect((await scanEvents(id)).at(-1)?.type).toBe('done')
 }
 
 /** A service on the host's own network, and the host's addresses, for the networks' tests. */
@@ -398,7 +437,46 @@ describe('a scan through the whole stack', () => {
     expect(report.rules.map((rule) => rule.id).sort()).toEqual(['ar-html-lang', 'rtl-html-dir'])
   }, 120_000)
 
-  it('leaves the scanner no browser and no zombie once the scan is over', () => {
+  it('keeps the scanner’s process after a scan that starts no browser, and ends it after one that does', async () => {
+    await scannerUp()
+    const before = inspect('scanner')
+    // What a browser that a page took over could leave in the scanner's memory-backed directories
+    // (the images' one writable place) and among its processes.
+    inside(
+      'scanner',
+      `require('fs').writeFileSync('/tmp/left-by-the-last-page', 'x');
+       require('child_process').spawn('sleep', ['600'], { detached: true, stdio: 'ignore' }).unref();`,
+    )
+    const left = () =>
+      inside('scanner', "console.log(require('fs').existsSync('/tmp/left-by-the-last-page'))")
+    // A tool page's scan starts no browser: no page's code ran in the scanner, and it is the same
+    // process, and takes the next scan at once.
+    await scanned('rtl-check')
+    const kept = inspect('scanner')
+    expect(kept.RestartCount).toBe(before.RestartCount)
+    expect(kept.State.StartedAt).toBe(before.State.StartedAt)
+    expect(left()).toBe('true')
+    // A whole scan renders in three browsers: it is the last of its process, and Compose starts
+    // another, in the same container, since it ended.
+    await scanned()
+    for (
+      let tries = 0;
+      tries < 180 && inspect('scanner').RestartCount === before.RestartCount;
+      tries++
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 1_000))
+    }
+    await scannerUp()
+    const after = inspect('scanner')
+    expect(after.RestartCount).toBeGreaterThan(before.RestartCount)
+    expect(after.State.StartedAt).not.toBe(before.State.StartedAt)
+    // Nothing of the scan before is in it: not the file, not the process.
+    expect(left()).toBe('false')
+    expect(processes('scanner').filter((running) => running.name === 'sleep')).toEqual([])
+  }, 600_000)
+
+  it('leaves the scanner no browser and no zombie once the scan is over', async () => {
+    await scannerUp()
     const left = processes('scanner')
     expect(left.filter((running) => running.state === 'Z')).toEqual([])
     expect(
@@ -418,6 +496,9 @@ describe('a scan through the whole stack', () => {
 })
 
 describe('the networks', () => {
+  // A scan above ended the scanner's process: these look inside its successor.
+  beforeAll(scannerUp, 300_000)
+
   it('give the scanner the egress proxy and the worker alone: no store, no site', () => {
     expect(reachOne('scanner', 'egress', 4750)).toBe('open')
     for (const [name, port] of [
@@ -484,6 +565,8 @@ describe('the networks', () => {
 })
 
 describe('the egress proxy', () => {
+  beforeAll(scannerUp, 300_000)
+
   it('opens a public address on 80 and 443 alone', () => {
     expect(tunnel('93.184.215.50:80')).toMatch(/^HTTP\/1\.[01] 200/)
     expect(tunnel('93.184.215.50:8080')).toMatch(/^HTTP\/1\.1 500/)

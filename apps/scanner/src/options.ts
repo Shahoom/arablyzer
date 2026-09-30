@@ -11,7 +11,9 @@ const ENGINES: readonly Engine[] = ['chromium', 'firefox', 'webkit']
  * isolated (ARABLYZER_NETWORK_ISOLATED), and the CrUX key when the owner gives one
  * (ARABLYZER_CRUX_KEY). Budgets are the plan's (§11), the engine's defaults. Behind the egress
  * proxy, which resolves every name, the TXT lookups of the DNS rules are DNS over HTTPS:
- * ARABLYZER_DOH_URL names the resolver, Cloudflare's by default (M2.3c review).
+ * ARABLYZER_DOH_URL names the resolver, Cloudflare's by default (M2.3c review). A page's HTML is
+ * read in a thread with a heap of its own, and a clock that ends it wherever it is (H1 of the
+ * pre-launch review): a page too much for it is too complex, and never the end of this process.
  */
 export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>>): ScanOptions {
   const listed = (env.ARABLYZER_ENGINES ?? ENGINES.join(','))
@@ -30,6 +32,7 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
   const dohUrl = dohUrlFrom(env, policy)
   return {
     policy,
+    isolateParse: {},
     ...(dohUrl === undefined ? {} : { dohUrl }),
     render: { engines, networkIsolated: networkIsolated(env) },
     ...(cruxKey === undefined || cruxKey === '' ? {} : { crux: { apiKey: cruxKey } }),

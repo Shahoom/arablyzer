@@ -144,8 +144,8 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     en: 'The response is not an HTML page, so only its headers were checked.',
   },
   'page-too-complex': {
-    ar: 'بنية HTML في الصفحة معقّدة جداً فلم تكتمل قراءتها في الوقت المحدد، فلم تُطبَّق الفحوص التي تحتاج HTML الصفحة ونصّها.',
-    en: 'The page’s HTML is too complex to read within the time limit, so the checks that need its HTML and text did not run.',
+    ar: 'بنية HTML في الصفحة معقّدة جداً فلم تكتمل قراءتها: عدد عناصرها أو عمق تداخلها أكبر مما نقرؤه، أو تجاوزت قراءتها الوقت المحدد، فلم تُطبَّق الفحوص التي تحتاج HTML الصفحة ونصّها.',
+    en: 'The page’s HTML is too complex to read: it has more elements, or nests deeper, than a scan reads, or reading it ran past the time limit, so the checks that need its HTML and text did not run.',
   },
   'page-truncated': {
     ar: 'HTML الصفحة أكبر من 15 ميغابايت، فقرأنا أول 15 ميغابايت فقط كما يفعل Google.',

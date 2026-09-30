@@ -30,6 +30,7 @@ export {
   type TextAlternative,
 } from './html'
 export { fontCoverage, MAX_FONT_DATA } from './font-coverage'
+export { collectPageIsolated, ISOLATED_HEAP_MB, type IsolatedOptions } from './isolated'
 export { MAX_TEXT_ALTERNATIVES } from './html'
 export { parseLinkHeader, type LinkHeaderEntry } from './link-header'
 export {
@@ -48,6 +49,8 @@ export {
   collectPage,
   HTML_PARSE_LIMIT,
   headerValues,
+  MAX_HTML_DEPTH,
+  MAX_HTML_NODES,
   type CertificateFacts,
   type CollectOptions,
   type Header,

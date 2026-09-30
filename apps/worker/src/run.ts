@@ -1,6 +1,6 @@
 import type { ScanEvent } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
-import type { Scanner } from '@arablyzer/scanner-client'
+import { ScannerUnavailable, type Scanner } from '@arablyzer/scanner-client'
 import type { ScanEvents, ScanJob, ScanStore } from '@arablyzer/store'
 
 export interface WorkerDeps {
@@ -11,7 +11,23 @@ export interface WorkerDeps {
   readonly now?: () => Date
   /** Where a scan that could not run is told; the report is never where it goes. */
   readonly log?: (message: string) => void
+  /** Waits between two asks of a scanner that is not there; a timer by default. */
+  readonly sleep?: (ms: number) => Promise<void>
+  /** How long a scanner that is not there is waited for, all told; RETRY_TOTAL_MS by default. */
+  readonly retryMs?: number
 }
+
+/**
+ * How a scanner that is not there is waited for (H1 of the pre-launch review). A scanner that
+ * died, or that ended its process after a scan that started a browser (M3), is started again by
+ * Compose, and until it is, a scan that finds no scanner has not begun. A scan is tried once, and never run again
+ * behind the visitor's back; but this one has not run. It asks again after a short wait, which
+ * doubles to a longest, until a minute has gone: a scanner that is back by then never fails a
+ * scan, or the scans queued behind it, and one that is not fails that scan alone.
+ */
+export const RETRY_FIRST_MS = 500
+export const RETRY_LONGEST_MS = 5_000
+export const RETRY_TOTAL_MS = 60_000
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
@@ -57,10 +73,7 @@ export async function runScan(job: ScanJob, deps: WorkerDeps): Promise<void> {
   }
   let report: Report
   try {
-    report = await deps.scanner(
-      { url: job.url, ...(job.tool === undefined ? {} : { tool: job.tool }) },
-      publish,
-    )
+    report = await askScanner(job, deps, publish)
   } catch (error) {
     log(`Scan ${job.id} could not run: ${message(error)}`)
     await published
@@ -72,6 +85,39 @@ export async function runScan(job: ScanJob, deps: WorkerDeps): Promise<void> {
   if (await deps.store.finish(job.id, report, now())) {
     publish({ type: 'done', state: report.scan.status })
     await published
+  }
+}
+
+/**
+ * The scanner's report for the scan. A scanner that is not there (ScannerUnavailable: a refused
+ * connection, or a 503 before it sent a line) took nothing, so it is asked again after a wait,
+ * within RETRY_TOTAL_MS; any other failure is the scan's, and the scan is not asked for again.
+ */
+async function askScanner(
+  job: ScanJob,
+  deps: WorkerDeps,
+  publish: (event: ScanEvent) => void,
+): Promise<Report> {
+  const sleep =
+    deps.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
+  const room = deps.retryMs ?? RETRY_TOTAL_MS
+  let waited = 0
+  for (let wait = RETRY_FIRST_MS; ; wait = Math.min(2 * wait, RETRY_LONGEST_MS)) {
+    try {
+      return await deps.scanner(
+        { url: job.url, ...(job.tool === undefined ? {} : { tool: job.tool }) },
+        publish,
+      )
+    } catch (error) {
+      if (!(error instanceof ScannerUnavailable) || waited + wait > room) throw error
+      if (waited === 0) {
+        deps.log?.(
+          `Scan ${job.id}: ${message(error)}; asking again, for up to ${String(Math.round(room / 1000))} s`,
+        )
+      }
+      await sleep(wait)
+      waited += wait
+    }
   }
 }
 
