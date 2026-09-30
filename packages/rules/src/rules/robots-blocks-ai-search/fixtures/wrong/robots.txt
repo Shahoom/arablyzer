@@ -1,0 +1,3 @@
+# Keep ChatGPT search out
+User-agent: OAI-SearchBot
+Disallow: /

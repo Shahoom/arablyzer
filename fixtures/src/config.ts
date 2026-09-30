@@ -3,7 +3,8 @@ import { z } from 'zod'
 const HeaderValue = z.union([z.string(), z.array(z.string()).min(1)])
 
 export const RouteOverride = z.strictObject({
-  status: z.number().int().min(100).max(599).optional(),
+  /** Up to 999, as Node sends: some sites answer bots with statuses HTTP does not define. */
+  status: z.number().int().min(100).max(999).optional(),
   headers: z.record(z.string().min(1), HeaderValue).optional(),
   /** Inline body; without it the file at the same path is served (or an empty body). */
   body: z.string().optional(),

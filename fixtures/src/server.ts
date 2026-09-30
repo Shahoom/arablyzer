@@ -12,6 +12,8 @@ export interface FixtureSite {
 }
 
 const CONFIG_FILE = 'fixture.json'
+/** Test metadata that sits next to the site files but is not part of the site. */
+const HIDDEN_FILES = new Set([CONFIG_FILE, 'expect.json'])
 
 const CONTENT_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -86,9 +88,29 @@ async function respond(
     return
   }
   const pathname = new URL(req.url ?? '/', 'http://fixture.invalid').pathname
+  const { status, headers, body } = await resolveFixtureResponse(root, config, pathname)
+  res.writeHead(status, wireHeaders(headers))
+  res.end(req.method === 'HEAD' ? undefined : body)
+}
+
+export interface FixtureResponse {
+  readonly status: number
+  /** Lowercased names; a list for repeated headers. */
+  readonly headers: Record<string, string | string[]>
+  readonly body: Buffer
+}
+
+/** What the server answers for a path; rule tests use it to read fixtures without HTTP. */
+export async function resolveFixtureResponse(
+  root: string,
+  config: FixtureConfig,
+  pathname: string,
+): Promise<FixtureResponse> {
+  const siteRoot = path.resolve(root)
   const override: RouteOverride | undefined = config[pathname]
-  const file = await readSiteFile(root, pathname)
-  const status = override?.status ?? (file === null ? 404 : 200)
+  const file = await readSiteFile(siteRoot, pathname)
+  // An inline body stands in for the file, so it is a 200 unless the override says otherwise.
+  const status = override?.status ?? (file === null && override?.body === undefined ? 404 : 200)
   const body =
     override?.body !== undefined
       ? Buffer.from(override.body, 'utf8')
@@ -99,8 +121,7 @@ async function respond(
   for (const [name, value] of Object.entries(override?.headers ?? {})) {
     headers[name.toLowerCase()] = value
   }
-  res.writeHead(status, wireHeaders(headers))
-  res.end(req.method === 'HEAD' ? undefined : body)
+  return { status, headers, body }
 }
 
 /** Node only writes latin1 header text; send UTF-8 values (Arabic paths) as raw bytes, like real servers. */
@@ -136,7 +157,8 @@ async function readSiteFile(
   }
   const relative = decoded.endsWith('/') ? `${decoded}index.html` : decoded
   const filePath = path.resolve(root, `.${relative}`)
-  if (!filePath.startsWith(root + path.sep) || path.basename(filePath) === CONFIG_FILE) return null
+  if (!filePath.startsWith(root + path.sep) || HIDDEN_FILES.has(path.basename(filePath)))
+    return null
   try {
     const info = await stat(filePath)
     if (!info.isFile()) return null

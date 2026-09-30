@@ -68,6 +68,12 @@ export interface FetchResult {
   readonly error: EgressError | null
   readonly startedAt: string
   readonly durationMs: number
+  /**
+   * Whether private addresses were still open when the fetch ended: only under allowPrivate, and
+   * only for a chain that started on a private address. A follow-up fetch for the same site (its
+   * robots.txt) should use the same lockdown, so DNS cannot move it onto a private address.
+   */
+  readonly privateAccess: boolean
 }
 
 class TooLargeError extends Error {}
@@ -93,6 +99,7 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
   const startedAt = new Date().toISOString()
   const started = performance.now()
   const redirects: FetchHop[] = []
+  let hopPolicy = policy
   const finish = (response: FetchResponse | null, error: EgressError | null): FetchResult => ({
     requestedUrl: redactUrl(input),
     redirects,
@@ -100,10 +107,10 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
     error,
     startedAt,
     durationMs: Math.round(performance.now() - started),
+    privateAccess: hopPolicy.allowPrivate,
   })
 
   let current = input
-  let hopPolicy = policy
   for (;;) {
     const checked = checkUrl(current, hopPolicy)
     if (!checked.ok) return finish(null, checked.error)
@@ -121,6 +128,15 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
       }
       const res = await sendRequest(url, endpoint.addresses, options, signal)
       const status = res.statusCode ?? 0
+      // HTTP status codes are 100-599 (RFC 9110 §15); Node's parser also lets 600-999 through,
+      // and some sites use them to refuse bots.
+      if (status < 100 || status > 599) {
+        res.destroy()
+        return finish(
+          null,
+          egressError('invalid-status', url.href, `Invalid HTTP status ${status}`),
+        )
+      }
       const location = res.headers.location
       if (REDIRECT_STATUSES.has(status) && location !== undefined) {
         res.destroy()
