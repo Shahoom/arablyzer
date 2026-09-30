@@ -62,8 +62,50 @@ func TestDenyServerAddsEachRangeOnce(t *testing.T) {
 	}
 }
 
+// The server's own IPv6 address is refused as its IPv4 one is: a name that points at it would
+// reach the host's own services (ARABLYZER_DENY_CIDRS names both).
+func TestDenyServerAddsIPv6Ranges(t *testing.T) {
+	conf := loadConfig(t)
+	before := len(conf.DenyRanges)
+	if err := denyServer(conf, "203.0.113.7/32, 2a01:4f8:c17:1234::1/128, 2a01:4f8:c17:1235::/64"); err != nil {
+		t.Fatal(err)
+	}
+	added := conf.DenyRanges[before:]
+	if len(added) != 3 {
+		t.Fatalf("%d ranges added, want 3", len(added))
+	}
+	for _, c := range []struct {
+		address string
+		refused bool
+	}{
+		{"203.0.113.7", true},
+		{"203.0.113.8", false},
+		{"2a01:4f8:c17:1234::1", true},
+		{"2a01:4f8:c17:1234::2", false},
+		{"2a01:4f8:c17:1235::1", true},
+		{"2a01:4f8:c17:1235:ffff:ffff:ffff:ffff", true},
+		{"2a01:4f8:c17:1236::1", false},
+	} {
+		ip := net.ParseIP(c.address)
+		got := false
+		for _, r := range added {
+			got = got || r.Net.Contains(ip)
+		}
+		if got != c.refused {
+			t.Errorf("%s: refused %v, want %v", c.address, got, c.refused)
+		}
+	}
+}
+
+// The same spellings the egress package refuses (packages/egress denyCidr): the proxy's own
+// parser refuses them, and starting on a list it cannot read is the safe answer.
 func TestDenyServerRefusesWhatIsNotACIDR(t *testing.T) {
-	for _, value := range []string{"203.0.113.7", "203.0.113.0/33", "server.example"} {
+	for _, value := range []string{
+		"203.0.113.7", "203.0.113.0/33", "server.example",
+		"2001:db8::7", "2001:db8::7/129", "fe80::1%eth0/64", "[2001:db8::7]/128",
+		"203.0.113/24", "0x7f.1/8", "203.000.113.007/32",
+		"203.0.113.7/32, 198.51.100.9",
+	} {
 		if err := denyServer(loadConfig(t), value); err == nil {
 			t.Errorf("%q: accepted", value)
 		}

@@ -9,9 +9,9 @@ import type { Pool } from 'pg'
 import type { Deletion, NewScan, ScanRecord, ScanStore } from '../types'
 import { scans } from './schema'
 
-const MIGRATIONS = fileURLToPath(new URL('../../drizzle/', import.meta.url))
+export const MIGRATIONS = fileURLToPath(new URL('../../drizzle/', import.meta.url))
 /** The advisory lock the migration holds, so API processes that start together migrate once. */
-const MIGRATION_LOCK = 0x6172_6162 // "arab"
+export const MIGRATION_LOCK = 0x6172_6162 // "arab"
 
 /** How many scans one statement of a retention sweep deletes: each holds a report. */
 const DELETE_BATCH = 500

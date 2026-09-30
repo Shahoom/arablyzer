@@ -1,9 +1,16 @@
 import { randomBytes } from 'node:crypto'
 import { TURNSTILE_ACTION } from '@arablyzer/api-contract'
-import { defaultResolver, safeFetch, serverPolicy } from '@arablyzer/egress'
+import { checkDenyCidrs, defaultResolver, safeFetch, serverPolicy } from '@arablyzer/egress'
 import { USER_AGENT } from '@arablyzer/engine/identity'
 import { limitsFrom } from '@arablyzer/plans'
-import type { InFlight, RateLimiter, ScanEvents, ScanQueue, ScanStore } from '@arablyzer/store'
+import {
+  requireSecret,
+  type InFlight,
+  type RateLimiter,
+  type ScanEvents,
+  type ScanQueue,
+  type ScanStore,
+} from '@arablyzer/store'
 import type { ApiDeps } from './app'
 import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
 import { newScanId } from './ids'
@@ -41,8 +48,19 @@ export function apiDeps(
 ): ApiDeps {
   const production = env.NODE_ENV === 'production'
   const policy = serverPolicy(env)
+  // The server's own public address, IPv4 and IPv6, which nothing the stack runs can see behind
+  // NAT: production starts only with it named, and says what the list leaves open.
+  if (production) {
+    for (const warning of checkDenyCidrs(env.ARABLYZER_DENY_CIDRS).warnings) log(warning)
+  }
   const resolver = defaultResolver(policy)
   const trust = trustProxyFrom(env.ARABLYZER_TRUST_PROXY)
+  // X-Forwarded-For is believed only from the site's server, which proves it with this secret
+  // (infra/Caddyfile); without it, no visitor has an address, and no scan starts.
+  const proxySecret =
+    trust === 'proxy' && production
+      ? requireSecret('ARABLYZER_PROXY_SECRET', env.ARABLYZER_PROXY_SECRET)
+      : env.ARABLYZER_PROXY_SECRET?.trim()
 
   const secret = env.TURNSTILE_SECRET?.trim()
   if ((secret === undefined || secret === '') && production) {
@@ -87,6 +105,7 @@ export function apiDeps(
     if (production) throw new Error('ARABLYZER_LIMIT_SECRET must be set in production (§14)')
     key = randomBytes(32).toString('base64url')
   }
+  if (production) requireSecret('ARABLYZER_LIMIT_SECRET', key)
 
   return {
     ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
@@ -95,7 +114,7 @@ export function apiDeps(
     resolver,
     turnstile,
     ...stores,
-    address: (c) => clientAddress(c, trust),
+    address: (c) => clientAddress(c, trust, proxySecret),
     connectionKey: (address, now) => connectionKey(address, key, now),
     networkKey: (address, now) => networkKey(address, key, now),
     newId: newScanId,

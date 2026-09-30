@@ -52,6 +52,8 @@ services:
     environment:
       # Whose X-Forwarded-For the site's server believes: the host's proxy (infra/Caddyfile).
       ARABLYZER_TRUSTED_PROXIES: ${ARABLYZER_TRUSTED_PROXIES:-private_ranges}
+      # What it shows the API with every request, so that the API believes the address it forwards.
+      ARABLYZER_PROXY_SECRET: ${ARABLYZER_PROXY_SECRET:?}
     networks: [edge]
     depends_on:
       api: { condition: service_healthy }
@@ -70,8 +72,10 @@ services:
     init: true
     tmpfs: [/tmp]
     environment:
-      VALKEY_URL: redis://:${VALKEY_PASSWORD:?}@valkey:6379
-      DATABASE_URL: postgres://arablyzer:${POSTGRES_PASSWORD:?}@postgres:5432/arablyzer
+      VALKEY_URL: redis://arablyzer:${VALKEY_PASSWORD:?}@valkey:6379
+      # The role that reads, writes and deletes scans and changes nothing else (packages/store): never the
+      # bootstrap user's, whose password only `migrate` holds.
+      DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
       ARABLYZER_SITE: ${ARABLYZER_SITE:?}
       TURNSTILE_SECRET: ${TURNSTILE_SECRET:?}
       ARABLYZER_LIMIT_SECRET: ${ARABLYZER_LIMIT_SECRET:?}
@@ -85,14 +89,16 @@ services:
       ARABLYZER_LIMIT_HOST_SECONDS: ${ARABLYZER_LIMIT_HOST_SECONDS:?}
       ARABLYZER_LIMIT_QUEUE: ${ARABLYZER_LIMIT_QUEUE:?}
       ARABLYZER_LIMIT_INFLIGHT: ${ARABLYZER_LIMIT_INFLIGHT:?}
-      # The site's server puts the visitor's address last in X-Forwarded-For (infra/Caddyfile).
+      # The site's server puts the visitor's address last in X-Forwarded-For (infra/Caddyfile),
+      # and shows this secret with it: without the secret, the API believes no address.
       ARABLYZER_TRUST_PROXY: proxy
+      ARABLYZER_PROXY_SECRET: ${ARABLYZER_PROXY_SECRET:?}
       ARABLYZER_EGRESS_PROXY: http://egress:4750
       ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
     networks: [edge, data]
     depends_on:
       valkey: { condition: service_healthy }
-      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
       egress: { condition: service_healthy }
     healthcheck:
       test:
@@ -107,14 +113,36 @@ services:
     cpus: 1
     pids_limit: 256
 
+  # The database's own step, once, before the API and the worker (packages/store/src/migrate.ts):
+  # it makes the two roles and the tables, and sets the application role's password. It alone
+  # holds the bootstrap user's password (a superuser's), and it stops when it is done: the API
+  # and the worker connect as `arablyzer_app`, which can read, write and delete the scans and nothing else.
+  migrate:
+    <<: *hardened
+    restart: 'no'
+    build: { context: .., target: api }
+    init: true
+    tmpfs: [/tmp]
+    command: [node, --import, tsx, packages/store/src/migrate.ts]
+    environment:
+      DATABASE_URL: postgres://arablyzer:${POSTGRES_PASSWORD:?}@postgres:5432/arablyzer
+      ARABLYZER_APP_DATABASE_PASSWORD: ${POSTGRES_APP_PASSWORD:?}
+    networks: [data]
+    depends_on:
+      postgres: { condition: service_healthy }
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+
   worker:
     <<: *hardened
     build: { context: .., target: worker }
     init: true
     tmpfs: [/tmp]
     environment:
-      VALKEY_URL: redis://:${VALKEY_PASSWORD:?}@valkey:6379
-      DATABASE_URL: postgres://arablyzer:${POSTGRES_PASSWORD:?}@postgres:5432/arablyzer
+      VALKEY_URL: redis://arablyzer:${VALKEY_PASSWORD:?}@valkey:6379
+      DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
       ARABLYZER_SCANNER_URL: http://scanner:8788
       ARABLYZER_SCANNER_TOKEN: ${ARABLYZER_SCANNER_TOKEN:?}
       # The site a scan ends at, after its redirects, counts against the per-host limit: the API's
@@ -126,6 +154,7 @@ services:
     networks: [data, scan]
     depends_on:
       api: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
       scanner: { condition: service_healthy }
     # The scan running finishes before the worker stops: longer than the longest it waits for
     # the scanner (SCANNER_TIMEOUT_MS, 240 s).
@@ -199,23 +228,38 @@ services:
     image: valkey/valkey:8-alpine@sha256:081c2f5cb575efc901aa80ff9cdbd1ec6a301682fd35e1ebb4b0990a4a4a8507
     # Its own user from the start: dropping to it from root needs capabilities it does not have.
     user: valkey
-    # The queue, the events and the limits: nothing to keep across a restart, and nothing
-    # evicted to make room, which BullMQ needs.
+    # Its settings are written to memory as it starts, from VALKEY_PASSWORD, and the server reads
+    # them from there: a password on its command line is shown by the host's `ps` to every user
+    # of the host. The file holds a SHA-256 of it, not the password. The default user is off, so
+    # nothing connects without a name and a password; `arablyzer`, whom the API and the worker
+    # connect as, has the keys the queue, the events and the limits use, and every command but the
+    # administrative and dangerous ones (FLUSHALL, KEYS, CONFIG, DEBUG, SHUTDOWN, REPLICAOF ...),
+    # which BullMQ and the stores do not use (measured: ACL LOG stays empty through a scan).
+    # The queue, the events and the limits are all it keeps: nothing to save across a restart, and
+    # nothing evicted to make room, which BullMQ needs.
+    tmpfs: [/tmp]
     command:
-      - valkey-server
-      - --requirepass
-      - ${VALKEY_PASSWORD:?}
-      - --save
-      - ''
-      - --appendonly
-      - 'no'
-      - --maxmemory
-      - 100mb
-      - --maxmemory-policy
-      - noeviction
+      - sh
+      - -c
+      - |
+        set -eu
+        [ "$${#VALKEY_PASSWORD}" -ge 32 ] || { echo 'VALKEY_PASSWORD must be 32 characters or more' >&2; exit 1; }
+        umask 077
+        hash=$$(printf %s "$$VALKEY_PASSWORD" | sha256sum | cut -d' ' -f1)
+        cat > /tmp/valkey.conf <<EOF
+        user default off
+        user arablyzer on #$$hash ~arablyzer:* ~bull:arablyzer-scans:* &* +@all -@admin -@dangerous +info
+        save ""
+        appendonly no
+        maxmemory 100mb
+        maxmemory-policy noeviction
+        EOF
+        exec valkey-server /tmp/valkey.conf
     networks: [data]
     healthcheck:
-      test: ['CMD-SHELL', 'valkey-cli -a "$$VALKEY_PASSWORD" --no-auth-warning ping | grep -q PONG']
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH="$$VALKEY_PASSWORD" valkey-cli --user arablyzer --no-auth-warning ping | grep -q PONG
       interval: 5s
       retries: 10
     environment:
@@ -232,6 +276,8 @@ services:
     user: postgres
     tmpfs: [/tmp, /var/run/postgresql]
     environment:
+      # The bootstrap user, a superuser, which only `migrate` connects as (and the host's own
+      # psql, for the owner): the services connect as arablyzer_app.
       POSTGRES_USER: arablyzer
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       POSTGRES_DB: arablyzer

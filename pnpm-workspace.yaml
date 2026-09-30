@@ -9,3 +9,10 @@ packages:
 ignoredBuiltDependencies:
   - esbuild
   - msgpackr-extract
+
+# A version is installed only once it has been on the registry for a week (the setting is in
+# minutes). A compromised release is usually found and pulled within days, and pnpm then takes the
+# newest version that is old enough. It applies when a dependency is added or updated: an install
+# from the lockfile (`--frozen-lockfile`, as CI and the images do) takes what the lockfile names.
+# A fix that cannot wait is named in `minimumReleaseAgeExclude`, in the pull request that needs it.
+minimumReleaseAge: 10080

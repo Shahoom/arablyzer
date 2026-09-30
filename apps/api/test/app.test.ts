@@ -4,6 +4,7 @@ import { DEVELOPMENT_LIMITS, type ScanLimits } from '@arablyzer/plans'
 import type { Report } from '@arablyzer/report-schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApp, type ApiDeps } from '../src/app'
+import { PROXY_SECRET_HEADER } from '../src/proxy-secret'
 import { clientAddress, connectionKey, networkKey } from '../src/client'
 import { hashDeleteToken } from '../src/ids'
 import { RECORD_GRACE_MS } from '../src/places'
@@ -298,9 +299,11 @@ describe('POST /api/scans', () => {
 
 describe('visitors on IPv6', () => {
   const SECRET = 'a-secret-for-the-tests'
+  /** The site's server's secret, which the API needs before it believes X-Forwarded-For. */
+  const PROXY = 'a-proxy-secret-of-more-than-thirty-two-characters'
   /** The real keys, from the address the site's server puts last in X-Forwarded-For. */
   const keyed = {
-    address: (c: Parameters<ApiDeps['address']>[0]) => clientAddress(c, 'proxy'),
+    address: (c: Parameters<ApiDeps['address']>[0]) => clientAddress(c, 'proxy', PROXY),
     connectionKey: (address: string, now: Date) => connectionKey(address, SECRET, now),
     networkKey: (address: string, now: Date) => networkKey(address, SECRET, now),
   }
@@ -308,7 +311,11 @@ describe('visitors on IPv6', () => {
     post: ReturnType<typeof setup>['post'],
     address: string,
     url = 'https://example.com/',
-  ) => post({ url, turnstileToken: 'human' }, undefined, { 'x-forwarded-for': address })
+  ) =>
+    post({ url, turnstileToken: 'human' }, undefined, {
+      'x-forwarded-for': address,
+      [PROXY_SECRET_HEADER]: PROXY,
+    })
 
   // Issue #30: a routed /48 has 65,536 /64s, and each was a visitor with a limit of its own.
   it('counts a visitor by their /48: the /64s of one /48 share a limit', async () => {

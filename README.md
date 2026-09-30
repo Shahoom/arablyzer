@@ -63,11 +63,11 @@ What the API asks of a scan request, the security review's abuse checks (issue #
 
 Deleting reports (issue #33): a scan's creation answers `{ id, deleteToken }`, the token is given once and kept only as its hash, and `DELETE /api/reports/:id` with `Authorization: Bearer <token>` deletes the scan and its report. `ARABLYZER_REPORT_RETENTION_DAYS` is the owner's number of days, with no default: set, the worker deletes older scans and their reports every hour; unset, they are kept, and the worker says so in its log when it starts.
 
-`ARABLYZER_ALLOW_PRIVATE=1` lets the development API scan local pages, such as the fixture sites; production refuses it. The limits' numbers are the owner's decision: `packages/plans` holds development values, and production will not start without its own (`ARABLYZER_LIMIT_*`), `TURNSTILE_SECRET`, `ARABLYZER_SITE` and `ARABLYZER_LIMIT_SECRET`. The API's and the worker's production entrypoints (`server.ts`, `main.ts`) apply those checks whatever `NODE_ENV` says; `dev.ts` is the development one.
+`ARABLYZER_ALLOW_PRIVATE=1` lets the development API scan local pages, such as the fixture sites; production refuses it. The limits' numbers are the owner's decision: `packages/plans` holds development values, and production will not start without its own (`ARABLYZER_LIMIT_*`), `TURNSTILE_SECRET`, `ARABLYZER_SITE`, `ARABLYZER_LIMIT_SECRET` (32 characters or more), the server's own addresses (`ARABLYZER_DENY_CIDRS`) and, behind the site's server, `ARABLYZER_PROXY_SECRET` (32 characters or more). The API's and the worker's production entrypoints (`server.ts`, `main.ts`) apply those checks whatever `NODE_ENV` says; `dev.ts` is the development one.
 
 ### The stack / تشغيل كل شيء معاً
 
-`infra/compose.yaml` runs everything on one host: the site's server (Caddy), the API, the worker, the scanner with its browsers, the egress proxy (Smokescreen, with a port check and the egress package's deny list), Valkey and PostgreSQL. The scanner's browsers see the egress proxy alone, and no store; every name they ask for is resolved and vetted there. The internal networks give the host no address, so nothing on them reaches the host's own services either: that takes Docker Engine 28 or later, and since Docker ignores a network option it does not know, `pnpm test:stack` checks it on the Docker that runs it. The site's server listens on the host's loopback, for the host's own proxy, which terminates TLS in front of it. Every container runs read-only, without privileges, with caps on memory, CPU and processes.
+`infra/compose.yaml` runs everything on one host: the site's server (Caddy), the API, the worker, the scanner with its browsers, the egress proxy (Smokescreen, with a port check and the egress package's deny list), Valkey and PostgreSQL. The scanner's browsers see the egress proxy alone, and no store; every name they ask for is resolved and vetted there. The internal networks give the host no address, so nothing on them reaches the host's own services either: that takes **Docker Engine 28 or later**, and since Docker ignores a network option it does not know, `pnpm test:stack` checks it on the Docker that runs it, and `pnpm verify:deploy` on the one that was deployed. The site's server listens on the host's loopback, for the host's own proxy, which terminates TLS in front of it. Every container runs read-only, without privileges, with caps on memory, CPU and processes. The API and the worker connect to PostgreSQL as a role that can read, write and delete scans and change nothing else (a one-shot `migrate` service makes the roles and the tables), Valkey has one user and no password on its command line, and the API believes a visitor's address only from the site's server, which proves itself with a secret.
 
 ```bash
 cp infra/.env.example infra/.env        # then fill it in
@@ -76,6 +76,8 @@ docker compose -f infra/compose.yaml up --build
 docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml up --detach --build --wait
 pnpm test:stack
 ```
+
+[`infra/README.md`](infra/README.md) has what an operator needs beyond this: the requirements, the secrets (`openssl rand -hex 32`, never base64), the databases' roles, the server's own addresses (`ARABLYZER_DENY_CIDRS`, IPv4 and IPv6), the rule that the host's firewall needs (drop input from the Docker bridges but for DNS), and `pnpm verify:deploy`, which checks all of it on the stack that is running.
 
 The egress proxy's configuration is generated from `packages/egress`, its deny list and its limits: `pnpm --filter @arablyzer/egress smokescreen-config` writes `infra/egress/smokescreen.yaml`, and the egress tests check the two agree. The proxy's own tests (`infra/egress/main_test.go`) run as its image is built.
 
@@ -103,7 +105,7 @@ With `--render`, the page is also rendered in a browser, one engine after the ot
 
 With `--lab`, Lighthouse 13 measures the page on an emulated phone in the render's Chromium (Playwright's headless shell), behind its own egress proxy and the render's limits. Its metrics vary from run to run, so the report gives them as information: they are never findings, and never part of the score.
 
-Real visitors' Core Web Vitals come from Google's Chrome UX Report (CrUX), with an API key in `ARABLYZER_CRUX_API_KEY` (created in Google Cloud for the Chrome UX Report API): visits in Chrome by users who share usage statistics and sync their history; Chrome on iPhone is not counted. The page's URL is then sent to Google; a page on a private address never is. Without a key, the three rules that read CrUX do not apply, and a notice says so.
+Real visitors' Core Web Vitals come from Google's Chrome UX Report (CrUX), with an API key in `ARABLYZER_CRUX_API_KEY` for the CLI, and in `ARABLYZER_CRUX_KEY` for the hosted stack's scanner (`infra/.env.example`); the two are not the same variable, and each ignores the other (created in Google Cloud for the Chrome UX Report API): visits in Chrome by users who share usage statistics and sync their history; Chrome on iPhone is not counted. The page's URL is then sent to Google; a page on a private address never is. Without a key, the three rules that read CrUX do not apply, and a notice says so.
 
 ## Rules / القواعد
 
@@ -161,7 +163,7 @@ This one asks for the page's links to its own origin, the first 50 that robots.t
 |---|---|
 | [`link-broken`](packages/rules/src/rules/link-broken/copy.en.md) | No link to the site's own pages answers a `4xx` or `5xx` error (a `401`, `403`, `407`, `429` or `503`, by which a site refuses a bot, is not one) |
 
-These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
+These read real visits from CrUX, so they run with a key (`ARABLYZER_CRUX_API_KEY` for the CLI, `ARABLYZER_CRUX_KEY` for the hosted stack's scanner):
 
 | Rule | Checks |
 |---|---|

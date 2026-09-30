@@ -1,10 +1,14 @@
 import { hostLimitFrom } from '@arablyzer/plans'
 import { remoteScanner, SCAN_BUDGET_MS } from '@arablyzer/scanner-client'
 import {
+  POSTGRES_PROTOCOLS,
   PostgresScanStore,
+  productionUrl,
   quietly,
+  requireSecret,
   SCAN_QUEUE,
   SCAN_WORKER,
+  VALKEY_PROTOCOLS,
   ValkeyRateLimiter,
   ValkeyScanEvents,
   type ScanJob,
@@ -34,10 +38,15 @@ const SWEEP_MS = 60_000
 const log = (text: string) => {
   console.error(text)
 }
-const redis = new Redis(required('VALKEY_URL'), { maxRetriesPerRequest: null })
+// The URLs are read before a client sees them, so that one it cannot read is told by its name,
+// never by its text, whose password ioredis and pg would print; and their passwords, like the
+// scanner's token, are 32 characters or more (packages/store).
+const redis = new Redis(productionUrl('VALKEY_URL', env.VALKEY_URL, VALKEY_PROTOCOLS), {
+  maxRetriesPerRequest: null,
+})
 redis.on('error', quietly('Valkey', log))
 const pool = new pg.Pool({
-  connectionString: required('DATABASE_URL'),
+  connectionString: productionUrl('DATABASE_URL', env.DATABASE_URL, POSTGRES_PROTOCOLS),
   max: 2,
   connectionTimeoutMillis: 5_000,
 })
@@ -47,11 +56,11 @@ pool.on('error', quietly('PostgreSQL', log))
 const deps = {
   store: new PostgresScanStore(pool),
   events: new ValkeyScanEvents(redis),
-  // The site a scan ends at, after its redirects, counts against the per-host limit as the site
-  // it was asked for did in the API (security review, issue #30). Production's checks hold
-  // whatever NODE_ENV says, as the API's do: the limit's numbers must be set.
   scanner: hostLimited(
-    remoteScanner(required('ARABLYZER_SCANNER_URL'), required('ARABLYZER_SCANNER_TOKEN')),
+    remoteScanner(
+      required('ARABLYZER_SCANNER_URL'),
+      requireSecret('ARABLYZER_SCANNER_TOKEN', env.ARABLYZER_SCANNER_TOKEN),
+    ),
     {
       limiter: new ValkeyRateLimiter(redis),
       window: hostLimitFrom({ ...env, NODE_ENV: 'production' }),

@@ -9,10 +9,18 @@ import {
   trustProxyFrom,
   type TrustProxy,
 } from '../src/client'
+import { PROXY_SECRET_HEADER } from '../src/proxy-secret'
 
-async function addressFor(trust: TrustProxy, headers: Record<string, string>) {
+/** The secret the site's server holds, as the tests give it to the API. */
+const SECRET = 'a-proxy-secret-of-more-than-thirty-two-characters'
+
+async function addressFor(
+  trust: TrustProxy,
+  headers: Record<string, string>,
+  proxySecret?: string,
+) {
   const app = new Hono()
-  app.get('/', (c) => c.text(clientAddress(c, trust) ?? 'none'))
+  app.get('/', (c) => c.text(clientAddress(c, trust, proxySecret) ?? 'none'))
   const response = await app.request('/', { headers })
   return response.text()
 }
@@ -27,8 +35,39 @@ describe('clientAddress', () => {
   })
 
   it('takes the last forwarded address, the one the proxy in front appended', async () => {
-    expect(await addressFor('proxy', { 'x-forwarded-for': '198.51.100.1, 203.0.113.8' })).toBe(
-      '203.0.113.8',
+    const headers = {
+      'x-forwarded-for': '198.51.100.1, 203.0.113.8',
+      [PROXY_SECRET_HEADER]: SECRET,
+    }
+    expect(await addressFor('proxy', headers, SECRET)).toBe('203.0.113.8')
+  })
+
+  it('believes X-Forwarded-For only from the proxy that holds the secret', async () => {
+    const forwarded = { 'x-forwarded-for': '198.51.100.1, 203.0.113.8' }
+    // Anything else that reaches the API can write any address in the header.
+    expect(await addressFor('proxy', forwarded, SECRET)).toBe('none')
+    expect(await addressFor('proxy', { ...forwarded, [PROXY_SECRET_HEADER]: '' }, SECRET)).toBe(
+      'none',
+    )
+    expect(
+      await addressFor('proxy', { ...forwarded, [PROXY_SECRET_HEADER]: `${SECRET}x` }, SECRET),
+    ).toBe('none')
+    expect(
+      await addressFor('proxy', { ...forwarded, [PROXY_SECRET_HEADER]: SECRET.slice(1) }, SECRET),
+    ).toBe('none')
+    // The secret alone names no visitor.
+    expect(await addressFor('proxy', { [PROXY_SECRET_HEADER]: SECRET }, SECRET)).toBe('none')
+  })
+
+  it('has no address from a proxy when it was given no secret to check', async () => {
+    const headers = { 'x-forwarded-for': '203.0.113.8', [PROXY_SECRET_HEADER]: SECRET }
+    expect(await addressFor('proxy', headers)).toBe('none')
+    expect(await addressFor('proxy', { ...headers, [PROXY_SECRET_HEADER]: '' }, '')).toBe('none')
+  })
+
+  it("keeps Cloudflare's header as it was, whatever the secret", async () => {
+    expect(await addressFor('cloudflare', { 'cf-connecting-ip': '203.0.113.7' }, SECRET)).toBe(
+      '203.0.113.7',
     )
   })
 

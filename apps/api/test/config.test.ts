@@ -7,8 +7,10 @@ import {
 } from '@arablyzer/store'
 import { TURNSTILE_ACTION } from '@arablyzer/api-contract'
 import type { FetchResult } from '@arablyzer/egress'
+import { Hono } from 'hono'
 import { describe, expect, it } from 'vitest'
 import { apiDeps } from '../src/config'
+import { PROXY_SECRET_HEADER } from '../src/proxy-secret'
 
 const stores = () => ({
   store: new MemoryScanStore(),
@@ -23,7 +25,7 @@ const PRODUCTION = {
   NODE_ENV: 'production',
   TURNSTILE_SECRET: 'turnstile-secret',
   ARABLYZER_SITE: 'https://arablyzer.example',
-  ARABLYZER_LIMIT_SECRET: 'limit-secret',
+  ARABLYZER_LIMIT_SECRET: 'a-limit-secret-of-more-than-thirty-two-characters',
   ARABLYZER_LIMIT_CONNECTION_SCANS: '10',
   ARABLYZER_LIMIT_CONNECTION_SECONDS: '3600',
   ARABLYZER_LIMIT_NETWORK_SCANS: '100',
@@ -34,10 +36,21 @@ const PRODUCTION = {
   ARABLYZER_LIMIT_HOST_SECONDS: '3600',
   ARABLYZER_LIMIT_QUEUE: '50',
   ARABLYZER_LIMIT_INFLIGHT: '2',
+  ARABLYZER_DENY_CIDRS: '93.184.215.7/32, 2a01:4f8:c17:1234::1/128',
 } as const
 
 const without = (name: keyof typeof PRODUCTION) =>
   Object.fromEntries(Object.entries(PRODUCTION).filter(([key]) => key !== name))
+
+/** What a call throws, as its message; empty when it does not throw. */
+function failure(call: () => unknown): string {
+  try {
+    call()
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error)
+  }
+  return ''
+}
 
 describe('apiDeps', () => {
   it('starts in production with everything production needs', () => {
@@ -80,6 +93,41 @@ describe('apiDeps', () => {
     ).toBe('http://localhost:4321')
     // Development without a site: no origin to hold requests to.
     expect(apiDeps({ NODE_ENV: 'development' }, stores(), () => undefined).origin).toBeUndefined()
+  })
+
+  it('refuses a limit key shorter than 32 characters, and never says what it was', () => {
+    const short = { ...PRODUCTION, ARABLYZER_LIMIT_SECRET: 'too-short-secret' }
+    const message = failure(() => apiDeps(short, stores()))
+    expect(message).toMatch(/ARABLYZER_LIMIT_SECRET must be 32 characters or more/)
+    expect(message).not.toContain('too-short-secret')
+  })
+
+  it("refuses to start in production without the server's own address, or with one it cannot read", () => {
+    expect(() => apiDeps(without('ARABLYZER_DENY_CIDRS'), stores())).toThrow(
+      /ARABLYZER_DENY_CIDRS must name the server's own/,
+    )
+    expect(() =>
+      apiDeps({ ...PRODUCTION, ARABLYZER_DENY_CIDRS: '93.184.215.7' }, stores()),
+    ).toThrow(/Invalid deny CIDR: 93\.184\.215\.7 /)
+    expect(() => apiDeps({ ...PRODUCTION, ARABLYZER_DENY_CIDRS: '0.0.0.0/0' }, stores())).toThrow(
+      /refuses every address/,
+    )
+  })
+
+  it("says what the server's addresses leave open: no IPv6 range, or no public one", () => {
+    const logged: string[] = []
+    const log = (message: string) => logged.push(message)
+    apiDeps({ ...PRODUCTION, ARABLYZER_DENY_CIDRS: '93.184.215.7/32' }, stores(), log)
+    expect(logged).toHaveLength(1)
+    expect(logged[0]).toMatch(/names no IPv6 range/)
+    logged.length = 0
+    apiDeps({ ...PRODUCTION, ARABLYZER_DENY_CIDRS: '192.168.1.10/32' }, stores(), log)
+    expect(logged).toHaveLength(2)
+    expect(logged[0]).toMatch(/names no public address/)
+    expect(logged[1]).toMatch(/names no IPv6 range/)
+    logged.length = 0
+    apiDeps(PRODUCTION, stores(), log)
+    expect(logged).toEqual([])
   })
 
   it('never opens private addresses in production', () => {
@@ -188,5 +236,42 @@ describe('Turnstile in production', () => {
     expect(await check({ ...ours, action: TURNSTILE_ACTION })).toBe(true)
     expect(await check({ ...ours, action: 'other' })).toBe(false)
     expect(await check(ours)).toBe(false)
+  })
+})
+
+describe('the site server behind the API', () => {
+  const SECRET = 'a-proxy-secret-of-more-than-thirty-two-characters'
+  const BEHIND = { ...PRODUCTION, ARABLYZER_TRUST_PROXY: 'proxy', ARABLYZER_PROXY_SECRET: SECRET }
+
+  /** The address the API takes for a request with these headers. */
+  async function addressOf(env: Record<string, string>, headers: Record<string, string>) {
+    const deps = apiDeps(env, stores())
+    const app = new Hono()
+    app.get('/', (c) => c.text(deps.address(c) ?? 'none'))
+    return (await app.request('/', { headers })).text()
+  }
+
+  it('starts in production only with the secret it checks, 32 characters or more', () => {
+    const missing = { ...BEHIND, ARABLYZER_PROXY_SECRET: undefined }
+    expect(() => apiDeps(missing, stores())).toThrow(/ARABLYZER_PROXY_SECRET must be set/)
+    const short = { ...BEHIND, ARABLYZER_PROXY_SECRET: 'short-one' }
+    const message = failure(() => apiDeps(short, stores()))
+    expect(message).toMatch(/ARABLYZER_PROXY_SECRET must be 32 characters or more/)
+    expect(message).not.toContain('short-one')
+    expect(() => apiDeps(BEHIND, stores())).not.toThrow()
+  })
+
+  it('does not ask for it where no proxy is trusted', () => {
+    expect(() => apiDeps({ ...PRODUCTION, ARABLYZER_TRUST_PROXY: 'none' }, stores())).not.toThrow()
+    expect(() => apiDeps(PRODUCTION, stores())).not.toThrow()
+  })
+
+  it("takes the visitor's address from the forwarded header only of a request with the secret", async () => {
+    const forwarded = { 'x-forwarded-for': '203.0.113.8' }
+    expect(await addressOf(BEHIND, { ...forwarded, [PROXY_SECRET_HEADER]: SECRET })).toBe(
+      '203.0.113.8',
+    )
+    expect(await addressOf(BEHIND, forwarded)).toBe('none')
+    expect(await addressOf(BEHIND, { ...forwarded, [PROXY_SECRET_HEADER]: 'guess' })).toBe('none')
   })
 })

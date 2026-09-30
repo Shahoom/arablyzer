@@ -47,8 +47,8 @@ export default defineConfig({
   devToolbar: { enabled: false },
   // Each page carries its Content-Security-Policy, with the hash of every script and style it
   // inlines (M2.1 plan §5b): scripts from the site and Turnstile alone, requests to the site
-  // alone. Framing is refused by the site's server (infra/Caddyfile), as a page's own policy
-  // cannot say it.
+  // alone. Framing is refused by the site's server (infra/Caddyfile), in a Content-Security-Policy
+  // header of its own and in X-Frame-Options, as a page's own policy cannot say it.
   security: {
     csp: {
       directives: [

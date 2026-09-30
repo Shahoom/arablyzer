@@ -2,11 +2,13 @@ import { createHmac } from 'node:crypto'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Context } from 'hono'
 import ipaddr from 'ipaddr.js'
+import { isFromProxy, PROXY_SECRET_HEADER } from './proxy-secret'
 
 /**
  * Where the visitor's address comes from. `none`: the connection itself. `cloudflare`: the
  * CF-Connecting-IP header, trusted only when Cloudflare is the one way in. `proxy`: the last
- * address in X-Forwarded-For, which the one proxy in front of the API (Caddy) appends.
+ * address in X-Forwarded-For, which the one proxy in front of the API (Caddy) appends, and
+ * believed only on a request that carries that proxy's secret (proxy-secret.ts).
  */
 export type TrustProxy = 'none' | 'cloudflare' | 'proxy'
 
@@ -17,8 +19,15 @@ export function trustProxyFrom(value: string | undefined): TrustProxy {
   throw new Error(`ARABLYZER_TRUST_PROXY is none, cloudflare or proxy, not ${trust}`)
 }
 
-/** The visitor's address, or null when the trusted source has none that is an IP address. */
-export function clientAddress(c: Context, trust: TrustProxy): string | null {
+/**
+ * The visitor's address, or null when the trusted source has none that is an IP address. With
+ * `proxy`, a request without the proxy's secret has none: whoever else can reach the API could
+ * write any address in X-Forwarded-For.
+ */
+export function clientAddress(c: Context, trust: TrustProxy, proxySecret?: string): string | null {
+  if (trust === 'proxy' && !isFromProxy(c.req.header(PROXY_SECRET_HEADER), proxySecret)) {
+    return null
+  }
   const address =
     trust === 'cloudflare'
       ? c.req.header('cf-connecting-ip')
