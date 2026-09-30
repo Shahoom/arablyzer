@@ -137,7 +137,7 @@ async function linksOf(
   names: readonly string[],
   page: PageFacts,
 ): Promise<LinkFacts> {
-  const links = siteLinks(page)
+  const { links, more } = siteLinks(page)
   const check = async (url: string): Promise<LinkCheck> => {
     const at = new URL(url)
     const ask = async (method: 'HEAD' | 'GET'): Promise<LinkCheck> => {
@@ -154,6 +154,7 @@ async function linksOf(
   }
   return {
     total: links.length,
+    more,
     checks: await Promise.all(links.map(check)),
     skipped: { limit: 0, robots: 0 },
   }

@@ -6,7 +6,7 @@ import { rule } from './rule'
 /** A page with these links, and how each check ended. */
 const checked = (html: string, ...checks: LinkCheck[]) => ({
   page: htmlPage(html, { url: 'https://shop.example/ar/' }),
-  links: { total: checks.length, checks, skipped: { limit: 0, robots: 0 } },
+  links: { total: checks.length, more: false, checks, skipped: { limit: 0, robots: 0 } },
 })
 
 describe('link-broken', () => {
@@ -57,6 +57,40 @@ describe('link-broken', () => {
         selector: 'body > a:nth-of-type(1)',
       },
     ])
+  })
+
+  // M2.3c review: the rule re-read every anchor of the page, even when no link answered an error.
+  it('reads no anchor of the page when no link is broken', () => {
+    let read = 0
+    const html = htmlPage('<a href="/ar/ok/">أ</a>', { url: 'https://shop.example/ar/' })
+    const page = {
+      ...html,
+      html: {
+        ...html.html,
+        get anchors() {
+          read++
+          return []
+        },
+      },
+    } as unknown as typeof html
+    const ok: LinkCheck = {
+      url: 'https://shop.example/ar/ok/',
+      outcome: 'answered',
+      status: 200,
+      method: 'HEAD',
+    }
+    const busy: LinkCheck = {
+      url: 'https://shop.example/ar/busy/',
+      outcome: 'unanswered',
+      reason: 'timeout',
+    }
+    const links = { total: 2, more: false, checks: [ok, busy], skipped: { limit: 0, robots: 0 } }
+    expect(detectAll(rule, { page, links })).toEqual([])
+    expect(read).toBe(0)
+    // With a broken link it reads the anchors, and stops when it has told every broken address.
+    const broken: LinkCheck = { ...ok, status: 404, url: 'https://shop.example/ar/gone/' }
+    detectAll(rule, { page, links: { ...links, checks: [ok, broken] } })
+    expect(read).toBe(1)
   })
 
   it('does not apply to a page without links to its own site', () => {

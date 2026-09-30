@@ -20,6 +20,8 @@ export const rule = defineRule({
     for (const check of links?.checks ?? []) {
       if (check.outcome === 'answered' && check.status >= 400) broken.set(check.url, check.status)
     }
+    // Nothing answered an error: the page's anchors need not be read at all.
+    if (broken.size === 0) return
     const told = new Set<string>()
     for (const anchor of page.html?.anchors ?? []) {
       const url = linkUrl(anchor.url)?.href
@@ -34,6 +36,8 @@ export const rule = defineRule({
         ...(anchor.location === null ? {} : { location: anchor.location }),
         key: url,
       }
+      // Every broken address told: the rest of the anchors say nothing more.
+      if (told.size === broken.size) return
     }
   },
 })

@@ -50,6 +50,7 @@ import {
   crawlerAccess,
   matchRobots,
   renderMessage,
+  robotsMatcher,
   RULES,
   RULESET_VERSION,
   type DetectorFinding,
@@ -393,7 +394,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     page.html !== null
       ? checkLinks(page, {
           base: { ...base, policy: robotsPolicy },
-          optedOut: (link) => optOutRule(robotsRead.facts, bot, link) !== null,
+          optedOut: linkOptOut(robotsRead.facts, bot),
         }).catch((): LinkFacts => UNCHECKED_LINKS)
       : undefined
   // Real-user data, when a rule the scan runs reads it: the page's URL goes to Google with the
@@ -778,6 +779,20 @@ function optOutRule(robots: RobotsFacts, bot: string, url: string): RobotsRule |
   return match.group === 'specific' && !match.allowed ? match.rule : null
 }
 
+/**
+ * Whether robots.txt keeps the bot from a link's address, for many addresses (M2.3c): the
+ * crawler's groups are chosen once. The same reading as optOutRule's, and asked of the links to be
+ * checked alone.
+ */
+function linkOptOut(robots: RobotsFacts, bot: string): (url: string) => boolean {
+  if (robots.outcome !== 'fetched') return () => false
+  const match = robotsMatcher(robots.robots, bot)
+  return (url) => {
+    const found = match(url)
+    return found.group === 'specific' && !found.allowed
+  }
+}
+
 interface Outcome {
   readonly status: RuleStatus
   readonly error?: string
@@ -1023,7 +1038,12 @@ function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[]
  * links none of which answered, so the rules that read them report that they could not run,
  * rather than pass a page without links.
  */
-const UNCHECKED_LINKS: LinkFacts = { total: 1, checks: [], skipped: { limit: 0, robots: 0 } }
+const UNCHECKED_LINKS: LinkFacts = {
+  total: 1,
+  more: false,
+  checks: [],
+  skipped: { limit: 0, robots: 0 },
+}
 
 /**
  * What the report says of the page's links it did not check (M2.3c): past the limit, kept from
@@ -1035,7 +1055,8 @@ function linkNotices(links: LinkFacts | undefined, bot: string): Notice[] {
   return [
     ...(links.skipped.limit > 0
       ? [
-          notice('links-limit', {
+          // Counting stops at MAX_SITE_LINKS: past it the totals are "at least".
+          notice(links.more ? 'links-limit-more' : 'links-limit', {
             total: String(links.total),
             limit: String(MAX_LINKS),
             count: String(links.skipped.limit),

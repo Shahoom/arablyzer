@@ -1,7 +1,7 @@
-import { collectPage } from '@arablyzer/collectors'
-import type { Rule } from '@arablyzer/rules'
+import { collectPage, MAX_SITE_LINKS, parseRobotsTxt } from '@arablyzer/collectors'
+import { robotsMatcher, type Rule } from '@arablyzer/rules'
 import { afterEach, describe, expect, it } from 'vitest'
-import { MAX_LINKS } from '../src/links'
+import { checkLinks, MAX_LINKS } from '../src/links'
 import { evaluatePage, scan } from '../src/index'
 import { policyFor, schemaErrors, tempSite, testRule, type TempSite } from './helpers'
 
@@ -149,4 +149,155 @@ describe('evaluatePage: links', () => {
     })
     expect(evaluatePage(facts, { rules: [linkRule] }).results[0]?.status).toBe('not-applicable')
   })
+})
+
+// M2.3c review: a page of a hundred thousand links and a robots.txt of ten thousand rules took a
+// scan 65 seconds of synchronous work, during which no timer, abort signal or health check could
+// fire. A scan now counts a bounded number of links, tests robots.txt for those it asks for
+// alone, and gives the event loop back while it chooses.
+describe('checkLinks: hostile pages', () => {
+  let site: TempSite | undefined
+
+  afterEach(async () => {
+    await site?.close()
+    site = undefined
+  })
+
+  const anchors = (count: number) =>
+    Array.from({ length: count }, (_, index) => `<a href="/p/${String(index)}">x</a>`).join('')
+  const robotsWith = (rules: number, pattern: (index: number) => string) =>
+    parseRobotsTxt(
+      new TextEncoder().encode(
+        ['User-agent: *', ...Array.from({ length: rules }, (_, i) => pattern(i))].join('\n'),
+      ),
+    )
+
+  it('tests robots.txt for the links it asks for alone: 100,000 links, 10,000 rules', async () => {
+    site = await tempSite({ 'index.html': page('<p>نص</p>') })
+    const facts = collectPage({
+      url: site.url('/'),
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: new TextEncoder().encode(page(anchors(100_000))),
+    })
+    const match = robotsMatcher(
+      robotsWith(10_000, (index) => `Disallow: /x${String(index)}*y*z`),
+      'ArablyzerBot',
+    )
+    let tested = 0
+    const started = performance.now()
+    const checked = await checkLinks(facts, {
+      base: { userAgent: 'ArablyzerBot/1.0', policy: policyFor(site) },
+      optedOut: (url) => {
+        tested++
+        return !match(url).allowed
+      },
+    })
+    // It took 65 s before: now it tests the 50 it asks for, and counts the rest.
+    expect(performance.now() - started).toBeLessThan(10_000)
+    expect(tested).toBe(MAX_LINKS)
+    expect(checked.checks).toHaveLength(MAX_LINKS)
+    expect(checked).toMatchObject({
+      total: MAX_SITE_LINKS,
+      more: true,
+      skipped: { limit: MAX_SITE_LINKS - MAX_LINKS, robots: 0 },
+    })
+  }, 60_000)
+
+  it('leaves the event loop free while it chooses among links robots.txt keeps the bot from', async () => {
+    site = await tempSite({ 'index.html': page('<p>نص</p>') })
+    const facts = collectPage({
+      url: site.url('/'),
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: new TextEncoder().encode(page(anchors(2 * MAX_SITE_LINKS))),
+    })
+    // Every link is kept from the bot, so every counted link is tested against every rule.
+    const match = robotsMatcher(
+      robotsWith(20_000, (index) =>
+        index === 0 ? 'Disallow: /p/' : `Disallow: /x${String(index)}*y*z`,
+      ),
+      'ArablyzerBot',
+    )
+    // A timer that fires every 10 ms: the longest wait between two of its ticks is the longest
+    // stretch the event loop was held.
+    let last = performance.now()
+    let worst = 0
+    const timer = setInterval(() => {
+      const now = performance.now()
+      worst = Math.max(worst, now - last)
+      last = now
+    }, 10)
+    const started = performance.now()
+    const checked = await checkLinks(facts, {
+      base: { userAgent: 'ArablyzerBot/1.0', policy: policyFor(site) },
+      optedOut: (url) => !match(url).allowed,
+    })
+    clearInterval(timer)
+    // The stretch since the last tick counts too: a loop held to the end ticks no more.
+    worst = Math.max(worst, performance.now() - last)
+    expect(checked).toMatchObject({
+      total: MAX_SITE_LINKS,
+      more: true,
+      checks: [],
+      skipped: { limit: 0, robots: MAX_SITE_LINKS },
+    })
+    // The work is long enough to matter, and no stretch of it held the loop.
+    expect(performance.now() - started).toBeGreaterThan(200)
+    expect(worst).toBeLessThan(250)
+  }, 60_000)
+
+  it('stops choosing when the scan is cancelled', async () => {
+    site = await tempSite({ 'index.html': page('<p>نص</p>') })
+    const facts = collectPage({
+      url: site.url('/'),
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: new TextEncoder().encode(page(anchors(MAX_SITE_LINKS))),
+    })
+    const controller = new AbortController()
+    let tested = 0
+    const checked = await checkLinks(facts, {
+      base: { userAgent: 'ArablyzerBot/1.0', policy: policyFor(site), signal: controller.signal },
+      optedOut: () => {
+        tested++
+        if (tested === 10) controller.abort()
+        return true
+      },
+    })
+    expect(tested).toBeLessThan(MAX_SITE_LINKS)
+    expect(checked.checks).toEqual([])
+  })
+})
+
+describe('scan: a hostile page', () => {
+  let site: TempSite | undefined
+
+  afterEach(async () => {
+    await site?.close()
+    site = undefined
+  })
+
+  it('asks for the first links alone, whatever the page and its robots.txt hold', async () => {
+    const links = Array.from(
+      { length: 100_000 },
+      (_, index) => `<a href="/p/${String(index)}">x</a>`,
+    ).join('')
+    const rules = Array.from({ length: 10_000 }, (_, i) => `Disallow: /x${String(i)}*y*z`)
+    site = await tempSite({
+      'index.html': page(links),
+      'robots.txt': ['User-agent: *', ...rules].join('\n'),
+    })
+    const started = performance.now()
+    const report = await scan(site.url('/'), { rules: [linkRule], policy: policyFor(site) })
+    expect(performance.now() - started).toBeLessThan(20_000)
+    expect(schemaErrors(report)).toBe('')
+    expect(site.requests.filter((request) => request.startsWith('HEAD '))).toHaveLength(MAX_LINKS)
+    expect(report.scan.notices.map((notice) => [notice.code, notice.message.en])).toEqual([
+      [
+        'links-limit-more',
+        `The page links to at least ${String(MAX_SITE_LINKS)} addresses on its own site: the scan checked the first ${String(MAX_LINKS)}, and not the other ${String(MAX_SITE_LINKS - MAX_LINKS)} or more.`,
+      ],
+    ])
+  }, 60_000)
 })

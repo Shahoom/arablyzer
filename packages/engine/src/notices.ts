@@ -32,6 +32,7 @@ export type NoticeCode =
   | 'dns-unchecked'
   | 'dns-unavailable'
   | 'links-limit'
+  | 'links-limit-more'
   | 'links-robots'
   | 'links-unanswered'
 
@@ -222,6 +223,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'links-limit': {
     ar: 'في الصفحة روابط إلى موقعها عددها {total}، ففحصنا أول {limit} منها، ولم نفحص الباقي وعدده {count}.',
     en: 'The page links to {total} addresses on its own site: the scan checked the first {limit}, and not the other {count}.',
+  },
+  'links-limit-more': {
+    ar: 'في الصفحة روابط إلى موقعها عددها {total} على الأقل، ففحصنا أول {limit} منها، ولم نفحص الباقي وعدده {count} على الأقل.',
+    en: 'The page links to at least {total} addresses on its own site: the scan checked the first {limit}, and not the other {count} or more.',
   },
   'links-robots': {
     ar: 'روابط في الصفحة عددها {count} تقود إلى مسارات يطلب ملف robots.txt في الموقع ألّا يفحصها {bot}، فلم نفحصها.',

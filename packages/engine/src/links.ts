@@ -8,14 +8,20 @@ export const LINK_TIMEOUT_MS = 10_000
 /** All the checks together; a link not answered by then is not judged. */
 export const LINKS_TIMEOUT_MS = 20_000
 /** Requests to the site at once. */
-const CONCURRENCY = 4
+export const CONCURRENCY = 4
+/**
+ * Choosing the links to ask for is synchronous work, robots.txt tested for each; after this long
+ * without giving the event loop back, it does (M2.3c review), so a timer, an abort or a health
+ * check can fire while a hostile robots.txt is read.
+ */
+const SLICE_MS = 20
 
 const PAGE_ACCEPT = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
 
 export interface LinkContext {
   /** The page's own fetch options: its user agent, its lockdown policy and its resolver. */
   readonly base: SafeFetchOptions
-  /** Whether robots.txt keeps the scan's bot from an address, as it would the page (optOutRule). */
+  /** Whether robots.txt keeps the scan's bot from an address, as optOutRule reads it. */
   readonly optedOut: (url: string) => boolean
 }
 
@@ -26,21 +32,36 @@ export interface LinkContext {
  * page's own policy; none follows a redirect, whose status is the link's answer, and none reads a
  * body. At most CONCURRENCY at once, within LINKS_TIMEOUT_MS in all. The checks come back in the
  * page's order, whatever order they end in.
+ *
+ * The links counted are bounded (MAX_SITE_LINKS) and robots.txt is tested only for those that
+ * are asked for: once MAX_LINKS are taken, the rest are counted as over the limit and go
+ * untested, so a hostile page and robots.txt cost a scan no more than a plain one.
  */
 export async function checkLinks(page: PageFacts, context: LinkContext): Promise<LinkFacts> {
-  const links = siteLinks(page)
-  const asked: string[] = []
-  let robots = 0
-  let limit = 0
-  for (const url of links) {
-    if (context.optedOut(url)) robots++
-    else if (asked.length < MAX_LINKS) asked.push(url)
-    else limit++
-  }
+  const { links, more } = siteLinks(page)
   const signal = AbortSignal.any([
     AbortSignal.timeout(LINKS_TIMEOUT_MS),
     ...(context.base.signal === undefined ? [] : [context.base.signal]),
   ])
+  const asked: string[] = []
+  let robots = 0
+  let slice = performance.now()
+  let examined = 0
+  for (const url of links) {
+    if (asked.length >= MAX_LINKS) break
+    if (performance.now() - slice > SLICE_MS) {
+      await new Promise<void>((resolve) => {
+        setImmediate(resolve)
+      })
+      slice = performance.now()
+    }
+    if (signal.aborted) break
+    examined++
+    if (context.optedOut(url)) robots++
+    else asked.push(url)
+  }
+  // What was not examined is over the limit, robots.txt untested.
+  const limit = links.length - examined
   const base: SafeFetchOptions = {
     ...context.base,
     signal,
@@ -57,7 +78,7 @@ export async function checkLinks(page: PageFacts, context: LinkContext): Promise
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, asked.length) }, work))
-  return { total: links.length, checks, skipped: { limit, robots } }
+  return { total: links.length, more, checks, skipped: { limit, robots } }
 }
 
 /** HEAD, then GET where HEAD answers an error: the GET's answer is what a visitor gets. */

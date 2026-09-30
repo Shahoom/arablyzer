@@ -150,6 +150,7 @@ export {
   crawlerAccess,
   matchRobots,
   patternMatches,
+  robotsMatcher,
   robotsPath,
   type CrawlerAccess,
   type RobotsMatch,
