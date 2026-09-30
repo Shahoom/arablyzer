@@ -27,6 +27,44 @@ export function webApplication(options: {
   }
 }
 
+/**
+ * A rule's page in the library (BUILD-PLAN §6.2): a technical article about one check, with the
+ * rule's version, which changes when what it judges does.
+ */
+export function techArticle(options: {
+  readonly headline: string
+  readonly description: string
+  readonly url: string
+  readonly lang: Lang
+  readonly version: string
+}): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: options.headline,
+    description: options.description,
+    url: options.url,
+    inLanguage: options.lang,
+    version: options.version,
+  }
+}
+
+/** A directory page (the tools', the rules'): its entries in order, each with its own page. */
+export function itemList(
+  items: readonly { readonly name: string; readonly url: string }[],
+): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: item.url,
+    })),
+  }
+}
+
 export function breadcrumbList(
   items: readonly { readonly name: string; readonly url: string }[],
 ): JsonLd {

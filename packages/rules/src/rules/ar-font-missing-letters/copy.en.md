@@ -9,7 +9,7 @@ The font «{family}» lacks {characters}, which this page's text uses, so the br
 ## Why it matters
 
 - The browser draws each character with the first font in the list that has it. A character the site's font lacks is drawn with one of the visitor's own fonts, in a different shape, weight and height, inside a word set in another font.
-- It happens most with characters that subset fonts leave out: «ڤ», «گ», «چ» and «پ» in names and brands, the Arabic-Indic digits «٠١٢٣», Arabic punctuation, and diacritics.
+- It happens most with characters that subset fonts leave out: «ڤ», «گ», «چ» and «پ» in names and brands, the Arabic-Indic digits «`٠١٢٣`», Arabic punctuation, and diacritics.
 - How those characters look changes from one device to the next, and you may not notice when your own device's font resembles the site's.
 
 ## How to fix

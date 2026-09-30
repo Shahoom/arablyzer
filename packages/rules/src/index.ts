@@ -114,6 +114,13 @@ export {
   type RuleCopy,
   type RuleCopySections,
 } from './copy'
+export {
+  EXAMPLE_LANGS,
+  loadRuleExample,
+  parseRuleExample,
+  type ExampleLang,
+  type RuleExample,
+} from './example'
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
 export {
   crawlerAccess,

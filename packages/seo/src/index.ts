@@ -1,7 +1,14 @@
 export { formatDate } from './dates'
 export { renderHead, type HeadOptions } from './head'
 export { escapeHtml } from './html'
-export { breadcrumbList, jsonLdScript, webApplication, type JsonLd } from './json-ld'
+export {
+  breadcrumbList,
+  itemList,
+  jsonLdScript,
+  techArticle,
+  webApplication,
+  type JsonLd,
+} from './json-ld'
 export { renderInline, renderMarkdown } from './markdown'
 export {
   alternates,

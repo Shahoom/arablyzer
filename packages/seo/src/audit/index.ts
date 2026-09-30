@@ -3,6 +3,8 @@ export {
   auditPage,
   auditPair,
   auditReportPage,
+  auditRulePage,
+  auditRulePair,
   auditToolPage,
   isKnownGap,
   KNOWN_GAPS,

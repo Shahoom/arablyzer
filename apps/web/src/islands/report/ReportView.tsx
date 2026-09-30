@@ -2,7 +2,7 @@ import { reportPath } from '@arablyzer/api-contract/codes'
 import { CATEGORIES, REPORT } from '@arablyzer/i18n/report'
 import type { Report, RuleResult, Severity } from '@arablyzer/report-schema'
 import { STRINGS } from '@arablyzer/seo/strings'
-import { localePath, type Lang } from '@arablyzer/seo/site'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { Braces, Check, Copy, EyeOff, RotateCcw } from 'lucide-preact'
 import type { TargetedKeyboardEvent } from 'preact'
 import { useState } from 'preact/hooks'
@@ -587,9 +587,13 @@ function FindingCard({
           </span>
           <SeverityPill severity={rule.severity} lang={lang} />
           <span className="text-[13px] text-ink-3">{REPORT[lang].categories[rule.category]}</span>
-          <code dir="ltr" className="font-mono text-[13px] text-ink-2">
+          <a
+            href={localePath(lang, PATHS.rule(rule.id))}
+            dir="ltr"
+            className="font-mono text-[13px] text-ink-2 underline decoration-tick underline-offset-4 hover:text-signal"
+          >
             {rule.id}
-          </code>
+          </a>
           {rule.severity === 'info' && (
             <span className="text-xs text-ink-3">{t.findings.notDeducted}</span>
           )}
@@ -646,9 +650,12 @@ function RuleList({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang })
           key={rule.id}
           className="flex flex-wrap items-center justify-between gap-3 border-b border-rule-soft px-5 py-3 last:border-b-0"
         >
-          <span className="text-[15px]">
+          <a
+            href={localePath(lang, PATHS.rule(rule.id))}
+            className="text-[15px] underline decoration-tick underline-offset-4 hover:text-signal"
+          >
             <Bidi text={rule.title[lang]} lang={lang} />
-          </span>
+          </a>
           <code dir="ltr" className="font-mono text-xs text-ink-3">
             {rule.id}
           </code>

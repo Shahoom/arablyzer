@@ -18,14 +18,52 @@ const span = (className: string, text: string) =>
 
 /**
  * An example's code as the design draws it (the Tool-WhatsApp board): its markup muted, the
- * values in quotes, or a robots.txt rule's path, in the colour of the example, the signal for
- * the wrong one and pass for the right one; the text between tags as it is. Escaped throughout.
+ * values in quotes, a CSS declaration's value or a robots.txt rule's path in the colour of the
+ * example, the signal for the wrong one and pass for the right one; the text between tags as it
+ * is. Escaped throughout.
  */
 export function highlight(
   code: string,
-  lang: 'html' | 'robots.txt',
+  lang: 'html' | 'css' | 'json' | 'robots.txt',
   tone: keyof typeof TONE,
 ): string {
+  if (lang === 'json') {
+    // A member on its own line, its value in the example's colour; an object or an array it
+    // opens stays muted, as do braces and brackets.
+    return code
+      .split('\n')
+      .map((line) => {
+        if (line.trim() === '') return line
+        const indent = /^\s*/.exec(line)?.[0] ?? ''
+        const match = /^("(?:[^"\\]|\\.)*"\s*:\s*)(.*?)(,?)$/.exec(line.slice(indent.length))
+        if (match === null || /^[{[]/.test(match[2] ?? '')) {
+          return `${indent}${span(MUTED, line.slice(indent.length))}`
+        }
+        const [, name = '', value = '', comma = ''] = match
+        return `${indent}${span(MUTED, name)}${span(TONE[tone], value)}${comma === '' ? '' : span(MUTED, comma)}`
+      })
+      .join('\n')
+  }
+  if (lang === 'css') {
+    // A declaration on its own line, its value in the example's colour; selectors, braces and
+    // comments muted, blank lines as they are.
+    return code
+      .split('\n')
+      .map((line) => {
+        if (line.trim() === '') return line
+        // A selector (`a:hover {`, `a:focus,`) is not one: it opens a block or goes on to the next.
+        const match = /,\s*$/.test(line)
+          ? null
+          : /^(\s*)([-\w]+\s*:\s*)([^;{}]*?)(\s*;?\s*)$/.exec(line)
+        if (match === null) {
+          const indent = /^\s*/.exec(line)?.[0] ?? ''
+          return `${indent}${span(MUTED, line.slice(indent.length))}`
+        }
+        const [, indent = '', property = '', value = '', end = ''] = match
+        return `${indent}${span(MUTED, property)}${span(TONE[tone], value)}${end === '' ? '' : span(MUTED, end)}`
+      })
+      .join('\n')
+  }
   if (lang === 'robots.txt') {
     return code
       .split('\n')

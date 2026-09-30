@@ -228,6 +228,78 @@ export function auditPage(html: string, expected: ExpectedPage): AuditProblem[] 
   return problems
 }
 
+/** A rule page's sections (BUILD-PLAN §6.2), in order; a rule without code to show has no example. */
+const RULE_SECTIONS = ['why', 'example', 'fix', 'detect', 'references'] as const
+
+/**
+ * A rule's page in the library (BUILD-PLAN §6.2): every page's parts, then why it matters, a
+ * live example when the rule has one, how to fix, how we detect and the references, in that
+ * order, and JSON-LD naming the page as an article.
+ */
+export function auditRulePage(html: string, expected: ExpectedPage): AuditProblem[] {
+  const problems = auditPage(html, expected)
+  const problem = (check: AuditCheck, message: string) => {
+    problems.push({ check, message })
+  }
+  const tags = tagsOf(html)
+  checkRuleSections(tags, problem)
+  // auditPage has reported a block that is not JSON.
+  const things = jsonLdThings(tags, () => undefined)
+  const articles = ofType(things, 'TechArticle', 'Article')
+  const [article] = articles
+  if (articles.length !== 1 || article === undefined) {
+    problem('json-ld', `needs one TechArticle, found ${articles.length}`)
+  } else {
+    const { node } = article
+    if (!isSchemaOrg(article.context))
+      problem('json-ld', 'the TechArticle needs "@context": "https://schema.org"')
+    if (typeof node.headline !== 'string' || node.headline.trim() === '')
+      problem('json-ld', 'the TechArticle needs a headline')
+    if (node.url !== expected.url) problem('json-ld', `the TechArticle url must be ${expected.url}`)
+    if (typeof node.inLanguage !== 'string' || node.inLanguage.toLowerCase() !== expected.lang) {
+      problem('json-ld', `the TechArticle inLanguage must be "${expected.lang}"`)
+    }
+  }
+  checkBreadcrumb(things, expected, problem)
+  return problems
+}
+
+function checkRuleSections(tags: readonly Tag[], problem: Report): void {
+  const inside = (section: Tag, name: string) =>
+    tags.filter((tag) => tag.name === name && tag !== section && isWithin(tag.node, section.node))
+  const filled = (tag: Tag) => textOf(tag.node) !== ''
+  const found = RULE_SECTIONS.flatMap((id) => {
+    const tag = tags.find(
+      (candidate) => candidate.name === 'section' && candidate.attr('id') === id,
+    )
+    return tag === undefined ? [] : [{ id, tag }]
+  })
+  if (found.some((section, i) => i > 0 && (found[i - 1]?.tag.order ?? 0) > section.tag.order)) {
+    problem('sections', `sections must follow the §6.2 order: ${RULE_SECTIONS.join(', ')}`)
+  }
+  for (const id of RULE_SECTIONS) {
+    const tag = found.find((section) => section.id === id)?.tag
+    if (tag === undefined) {
+      if (id !== 'example') problem('sections', `missing <section id="${id}">`)
+      continue
+    }
+    if (isHidden(tag)) {
+      problem('sections', `#${id} is hidden`)
+    } else if (id === 'example') {
+      const code = inside(tag, 'pre')
+      if (code.length < 2 || !code.every(filled))
+        problem('sections', '#example needs a wrong and a right code example')
+    } else if (textBesides(tag, inside(tag, 'h2')) === '') {
+      problem('sections', `#${id} needs text under its heading`)
+    } else if (
+      id === 'references' &&
+      !inside(tag, 'a').some((a) => filled(a) && (a.attr('href') ?? '').startsWith('https://'))
+    ) {
+      problem('sections', '#references needs a link to its source')
+    }
+  }
+}
+
 /** Both languages of a page the site builds: each audited, and each naming the other the same way. */
 export function auditBuiltPair(
   ar: { readonly html: string; readonly expected: ExpectedPage },
@@ -264,6 +336,26 @@ export function auditPair(
   const problems: PageProblem[] = []
   for (const { html, expected } of [ar, en]) {
     for (const found of auditToolPage(html, expected))
+      problems.push({ page: expected.url, ...found })
+  }
+  if (!sameAlternates(ar.html, en.html)) {
+    problems.push({
+      page: `${ar.expected.url} ↔ ${en.expected.url}`,
+      check: 'reciprocal',
+      message: 'the two pages do not declare the same hreflang alternates',
+    })
+  }
+  return problems
+}
+
+/** Both languages of a rule's page: each audited, and each naming the other the same way. */
+export function auditRulePair(
+  ar: { readonly html: string; readonly expected: ExpectedPage },
+  en: { readonly html: string; readonly expected: ExpectedPage },
+): PageProblem[] {
+  const problems: PageProblem[] = []
+  for (const { html, expected } of [ar, en]) {
+    for (const found of auditRulePage(html, expected))
       problems.push({ page: expected.url, ...found })
   }
   if (!sameAlternates(ar.html, en.html)) {
@@ -482,7 +574,8 @@ interface Thing {
   readonly context: unknown
 }
 
-function checkJsonLd(tags: readonly Tag[], expected: ExpectedPage, problem: Report): void {
+/** The JSON-LD nodes of a page, each with its @context; a block that is not JSON is a problem. */
+function jsonLdThings(tags: readonly Tag[], problem: Report): Thing[] {
   const things: Thing[] = []
   for (const script of tags.filter((tag) => tag.name === 'script')) {
     if ((script.attr('type') ?? '').trim().toLowerCase() !== 'application/ld+json') continue
@@ -501,10 +594,18 @@ function checkJsonLd(tags: readonly Tag[], expected: ExpectedPage, problem: Repo
       }
     }
   }
-  const ofType = (...types: string[]) =>
-    things.filter(({ node }) => [node['@type']].flat().some((type) => types.includes(String(type))))
+  return things
+}
 
-  const apps = ofType('WebApplication', 'SoftwareApplication')
+function ofType(things: readonly Thing[], ...types: string[]): Thing[] {
+  return things.filter(({ node }) =>
+    [node['@type']].flat().some((type) => types.includes(String(type))),
+  )
+}
+
+function checkJsonLd(tags: readonly Tag[], expected: ExpectedPage, problem: Report): void {
+  const things = jsonLdThings(tags, problem)
+  const apps = ofType(things, 'WebApplication', 'SoftwareApplication')
   const [app] = apps
   if (apps.length !== 1 || app === undefined) {
     problem('json-ld', `needs one WebApplication, found ${apps.length}`)
@@ -531,7 +632,12 @@ function checkJsonLd(tags: readonly Tag[], expected: ExpectedPage, problem: Repo
     }
   }
 
-  const crumbs = ofType('BreadcrumbList')
+  checkBreadcrumb(things, expected, problem)
+}
+
+/** One BreadcrumbList, numbered from 1, on the site, ending at the page itself. */
+function checkBreadcrumb(things: readonly Thing[], expected: ExpectedPage, problem: Report): void {
+  const crumbs = ofType(things, 'BreadcrumbList')
   const [crumb] = crumbs
   if (crumbs.length !== 1 || crumb === undefined) {
     problem('json-ld', `needs one BreadcrumbList, found ${crumbs.length}`)

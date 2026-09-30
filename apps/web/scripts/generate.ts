@@ -2,10 +2,11 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { RULES } from '@arablyzer/rules'
 import { renderMarkdown } from '@arablyzer/seo'
 import { fixHtml } from '../src/lib/fix-html'
+import { libraryData } from './rule-data'
 import { toolsData, toolTitles } from './tool-data'
 
-// What the report page needs of each rule, and the tool pages of each tool, which Astro cannot
-// bundle: rules and tools read their copy from Markdown files, which Astro's build cannot follow.
+// What the report page needs of each rule, the tool pages of each tool, and the rule library of
+// each rule, which Astro cannot bundle: rules and tools read their copy from Markdown files, which Astro's build cannot follow.
 // Written before Astro runs (build, dev, typecheck), into src/generated/, which git ignores: the
 // Markdown stays the one source.
 const out = new URL('../src/generated/', import.meta.url)
@@ -19,3 +20,4 @@ for (const lang of ['ar', 'en'] as const) {
 const tools = toolsData()
 await writeFile(new URL('tools.json', out), `${JSON.stringify(tools)}\n`)
 await writeFile(new URL('tool-titles.json', out), `${JSON.stringify(toolTitles(tools))}\n`)
+await writeFile(new URL('library.json', out), `${JSON.stringify(libraryData())}\n`)

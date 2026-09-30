@@ -5,6 +5,7 @@ import {
   auditBuiltPair,
   auditPair,
   auditReportPage,
+  auditRulePair,
   type ExpectedPage,
   type PageProblem,
 } from './audit'
@@ -60,20 +61,28 @@ function isTool(page: string): boolean {
   return /^(?:\/en)?\/tools\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
 }
 
+/** A rule's page in the library, /rules/<id>: the rule page template of BUILD-PLAN §6.2. */
+function isRule(page: string): boolean {
+  return /^(?:\/en)?\/rules\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
+}
+
 /**
  * The pages that stand for the rest, for the checks too slow to run on every page (Lighthouse,
- * the site scanning itself in three engines): every page but the tool pages and the report
- * pages, and the first tool page in each language, since every tool page is the same template.
+ * the site scanning itself in three engines): every page but the report pages, and of the tool
+ * pages and the rule pages only the first in each language, since each is one template.
  */
 export function representativePages(pages: readonly BuiltPage[]): BuiltPage[] {
-  const firstTool = new Set(
-    (['ar', 'en'] as const).flatMap((lang) => {
-      const first = pages.find((page) => page.lang === lang && isTool(page.path))
-      return first === undefined ? [] : [first.path]
-    }),
+  const first = new Set(
+    [isTool, isRule].flatMap((template) =>
+      (['ar', 'en'] as const).flatMap((lang) => {
+        const page = pages.find((candidate) => candidate.lang === lang && template(candidate.path))
+        return page === undefined ? [] : [page.path]
+      }),
+    ),
   )
   return pages.filter(
-    (page) => !isReport(page.path) && (!isTool(page.path) || firstTool.has(page.path)),
+    (page) =>
+      !isReport(page.path) && ((!isTool(page.path) && !isRule(page.path)) || first.has(page.path)),
   )
 }
 
@@ -126,7 +135,7 @@ export function auditBuiltSite(dir: string, site: Site): BuiltSiteAudit {
       origin: site.origin,
       knownPaths: known,
     })
-    const pair = isTool(page.path) ? auditPair : auditBuiltPair
+    const pair = isTool(page.path) ? auditPair : isRule(page.path) ? auditRulePair : auditBuiltPair
     problems.push(
       ...pair(
         { html: html(page), expected: expected('ar') },

@@ -3,7 +3,7 @@ import { REPORT } from '@arablyzer/i18n/report'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import { TOOL_APP } from '@arablyzer/i18n/tool-app'
 import type { Report, RuleResult } from '@arablyzer/report-schema'
-import { localePath, type Lang } from '@arablyzer/seo/site'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
 import { ArrowLeft, ArrowRight, Check, Minus, X } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
@@ -372,9 +372,14 @@ function Result({ run, lang }: { run: Run; lang: Lang }) {
         <span className="flex flex-wrap gap-x-2">
           {t.rules(report.rules.length)}
           {report.rules.map((rule) => (
-            <code key={rule.id} dir="ltr" className="font-mono text-ink-2">
+            <a
+              key={rule.id}
+              href={localePath(lang, PATHS.rule(rule.id))}
+              dir="ltr"
+              className="font-mono text-ink-2 underline decoration-tick underline-offset-4 hover:text-signal"
+            >
               {rule.id}
-            </code>
+            </a>
           ))}
         </span>
         <span className="flex flex-wrap gap-x-5 gap-y-1">

@@ -34,6 +34,7 @@ export const CLOUDTOPIA = 'https://cloudtopia.net'
  */
 export const NAV: readonly { readonly key: keyof SiteStrings['nav']; readonly path: string }[] = [
   { key: 'tools', path: PATHS.tools },
+  { key: 'rules', path: PATHS.rules },
 ]
 
 /** The home page's scan form, which the header's call to action goes to. */
