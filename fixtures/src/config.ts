@@ -13,6 +13,11 @@ export const RouteOverride = z.strictObject({
   compress: z.literal('gzip').optional(),
   /** The status a HEAD request gets instead, as a server that does not take HEAD answers (405). */
   headStatus: z.number().int().min(100).max(999).optional(),
+  /**
+   * What a HEAD request gets instead of any answer: `reset`, the connection closed at once, as a
+   * server or firewall that drops HEAD does; or `silence`, no answer ever, as one that holds it.
+   */
+  headDrop: z.enum(['reset', 'silence']).optional(),
 })
 export type RouteOverride = z.infer<typeof RouteOverride>
 

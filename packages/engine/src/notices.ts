@@ -233,8 +233,8 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
     en: '{count} of the page’s links lead to paths the site’s robots.txt asks {bot} not to check, so they were not checked.',
   },
   'links-unanswered': {
-    ar: 'روابط في الصفحة إلى موقعها عددها {count} لم نستطع فحصها: لم يصل جوابها في الوقت المحدد، أو تعذّر الاتصال، أو طلب الخادم إبطاء الطلبات (429)، فلم نحكم عليها.',
-    en: '{count} of the page’s links to its own site could not be checked: no answer came in time, the connection failed, or the server asked for fewer requests (429), so they were not judged.',
+    ar: 'روابط في الصفحة إلى موقعها عددها {count} لم نستطع الحكم عليها: لم يصل جوابها في الوقت المحدد، أو تعذّر الاتصال، أو رفض الموقع الطلب بإحدى الحالات 401 و403 و407 و429 و503 التي يردّ بها الموقع على زائر يظنه بوتاً أو يطلب تسجيل الدخول أو يعجز عن الخدمة، وبعد أول 429 لا نطلب رابطاً آخر.',
+    en: '{count} of the page’s links to its own site could not be judged: no answer came in time, the connection failed, or the site refused the request with a 401, 403, 407, 429 or 503, as a site answers a visitor it takes for a bot, that must sign in, or that it cannot serve just now. After the first 429 the scan asks for no more links.',
   },
   'dns-unavailable': {
     ar: 'لا يملك هذا الفحص طريقة لسؤال DNS عن السجلات، فلم تعمل الفحوص التي تقرأ سجلات DNS للنطاق.',

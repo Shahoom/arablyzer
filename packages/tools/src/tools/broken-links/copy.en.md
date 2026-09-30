@@ -9,8 +9,8 @@ Asks for every link on your page to your own site's pages, and tells you which a
 ## What it checks
 
 - The `<a href>` and `<area href>` links in the page's HTML to its own origin, that is the same scheme, name and port: the first 50 of them, each address once.
-- What each link answers: we ask with `HEAD`, then with `GET` when it answers an error, as a visitor's browser asks. We follow no redirect, so a redirect is a sound answer for us.
-- A link counts as broken when it answers a status from `400` to `599`. A `429`, a timeout or a failed connection is not judged, and the report counts them.
+- What each link answers: we ask with `HEAD`, then with `GET` when it answers an error or the connection fails, as a visitor's browser asks. We follow no redirect, so a redirect is a sound answer for us.
+- A link counts as broken when it answers a status from `400` to `599`, except `401`, `403`, `407`, `429` and `503`, which sites also give a visitor they take for a bot. Those five, a timeout and a failed connection are not judged, and the report counts them.
 
 ## Example
 
@@ -52,7 +52,7 @@ Because it checks the links of the page you give it alone, the first 50, and cra
 
 ### Why does the check say it left some links unchecked?
 
-For one of these reasons: the page has more than 50 links to its site, your site's robots.txt asks `ArablyzerBot` not to check their path, or they did not answer in time, or answered `429` to ask for fewer requests. The report counts each, and counts none of them as broken.
+For one of these reasons: the page has more than 50 links to its site, your site's robots.txt asks `ArablyzerBot` not to check their path, they did not answer in time or the connection failed, or your site refused the request with `401`, `403`, `407`, `429` or `503`, as sites answer a visitor they take for a bot, so the check says nothing of the link. After the first `429` we ask for no more links. The report counts each, and counts none of them as broken.
 
 ### Does it see links that JavaScript adds?
 
@@ -60,4 +60,4 @@ No. It reads the links in the page's HTML as the server sends it, before JavaScr
 
 ## Methodology
 
-We fetch the page as `ArablyzerBot` and follow its redirects, having read its site's robots.txt first. We then gather the `<a href>` and `<area href>` links from the HTML as the server sends it, complete them against the page's base address, and keep those that lead to the page's own origin, without what follows `#`, and without the page itself or addresses with a user name or password. We ask for the first 50 that robots.txt does not keep from `ArablyzerBot`, four at a time, within 20 seconds at most: each with `HEAD`, then with `GET` when it answers an error, following no redirect and reading no content. Every request goes through the egress proxy, which refuses private addresses and the server's own. A link fails when it answers a status from `400` to `599`, and what got no answer is not judged. The same site, with the same answers, gives the same result every time.
+We fetch the page as `ArablyzerBot` and follow its redirects, having read its site's robots.txt first. We then gather the `<a href>` and `<area href>` links from the HTML as the server sends it, complete them against the page's base address, and keep those that lead to the page's own origin, without what follows `#`, and without the page itself or addresses with a user name or password. We ask for the first 50 that robots.txt does not keep from `ArablyzerBot`, four at a time, within 20 seconds at most: each with `HEAD`, then with `GET` when it answers an error or the connection fails, following no redirect and reading no content. Every request goes through the egress proxy, which refuses private addresses and the server's own. A link fails when it answers a status from `400` to `599`, except `401`, `403`, `407`, `429` and `503`, and what got no answer is not judged. After the first `429`, we ask for no more links. The same site, with the same answers, gives the same result every time.

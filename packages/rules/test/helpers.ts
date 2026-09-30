@@ -5,10 +5,13 @@ import {
   collectCrux,
   collectPage,
   collectRobots,
+  linkCheck,
   organizationalDomain,
+  retriesWithGet,
   siteLinks,
   type CruxFacts,
   type DnsFacts,
+  type LinkAnswer,
   type LinkCheck,
   type LinkFacts,
   type A11yNodeFact,
@@ -127,9 +130,12 @@ export async function fixtureEvidence(
 }
 
 /**
- * How the engine's checks of the page's links to its own site end on the fixture server
- * (M2.3c): HEAD's status, or GET's where HEAD answers an error, a redirect's being its own; a 429
- * is no answer. Fixtures are small, so every link is checked.
+ * How the engine's checks of the page's links to its own site end on the fixture server (M2.3c):
+ * by the classification the engine itself uses (collectors' linkCheck and retriesWithGet), HEAD's
+ * status, or GET's where HEAD answers an error or fails to connect, a redirect's being its own, and
+ * a refusal (401, 403, 407, 429, 503) no answer. A route that drops HEAD is a connection that
+ * failed (`reset`) or a timeout (`silence`). Fixtures are small, so every link is checked; the
+ * engine's own suites scan the same fixtures over HTTP.
  */
 async function linksOf(
   root: string,
@@ -140,17 +146,19 @@ async function linksOf(
   const { links, more } = siteLinks(page)
   const check = async (url: string): Promise<LinkCheck> => {
     const at = new URL(url)
-    const ask = async (method: 'HEAD' | 'GET'): Promise<LinkCheck> => {
-      const { status } = await resolveFixtureResponse(root, config, at.pathname, {
+    const ask = async (method: 'HEAD' | 'GET'): Promise<LinkAnswer> => {
+      const response = await resolveFixtureResponse(root, config, at.pathname, {
         method,
         ...(names.includes(at.hostname) ? { host: at.hostname } : {}),
       })
-      return status === 429
-        ? { url, outcome: 'unanswered', reason: 'rate-limited' }
-        : { url, outcome: 'answered', status, method }
+      if (response.drop === 'reset') return { failure: 'connect-failed' }
+      if (response.drop === 'silence') return { failure: 'timeout' }
+      return response.status
     }
     const head = await ask('HEAD')
-    return head.outcome === 'answered' && head.status >= 400 ? ask('GET') : head
+    return retriesWithGet(head)
+      ? linkCheck(url, 'GET', await ask('GET'))
+      : linkCheck(url, 'HEAD', head)
   }
   return {
     total: links.length,

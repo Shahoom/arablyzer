@@ -2,9 +2,11 @@ import type { PageFacts } from './page'
 
 /**
  * How the check of one of the page's links to its own site ended (M2.3c): the status it
- * answered, to HEAD, or to GET when HEAD answered an error; or no answer, with why: an egress
- * error code (a timeout, a refused address, a failed connection), `rate-limited` for a 429, or
- * `out-of-time` when the checks' time ran out first.
+ * answered, to HEAD, or to GET where HEAD answered an error; or no answer, with why. The reasons
+ * are `refused` for one of the statuses by which a site turns a visitor it takes for a bot away
+ * (REFUSAL_STATUSES), `rate-limited` for a link never asked for because an earlier one got a 429,
+ * `out-of-time` when the checks' time ran out first, or an egress error code (a timeout, a
+ * refused address, a failed connection).
  */
 export type LinkCheck =
   | {
@@ -14,6 +16,39 @@ export type LinkCheck =
       readonly method: 'HEAD' | 'GET'
     }
   | { readonly url: string; readonly outcome: 'unanswered'; readonly reason: string }
+
+/**
+ * The statuses by which a site refuses a visitor it takes for a bot, one that must sign in, or
+ * one it cannot serve just now: 401, 403, 407, 429 and 503. They say nothing of whether a link
+ * works, so a link that answers one is not judged (M2.3c review). The report page reads the
+ * same five as a site refusing the scan (apps/web report-model.ts, which a test ties to this).
+ */
+export const REFUSAL_STATUSES: ReadonlySet<number> = new Set([401, 403, 407, 429, 503])
+
+/** What a request to a link came to: its status, or the code of why it got none. */
+export type LinkAnswer = number | { readonly failure: string }
+
+/**
+ * How a check ends with a request's answer: a refusal is no answer about the link
+ * (REFUSAL_STATUSES), any other status is, and a request without a status is no answer, with its
+ * failure as the reason. The engine's checks and the rules' tests both end so.
+ */
+export function linkCheck(url: string, method: 'HEAD' | 'GET', answer: LinkAnswer): LinkCheck {
+  if (typeof answer !== 'number') return { url, outcome: 'unanswered', reason: answer.failure }
+  if (REFUSAL_STATUSES.has(answer)) return { url, outcome: 'unanswered', reason: 'refused' }
+  return { url, outcome: 'answered', status: answer, method }
+}
+
+/**
+ * Whether HEAD's answer leaves the link to a GET, which is what a visitor's browser asks: HEAD
+ * answered an error (some servers do, and answer GET well), or the connection failed (some drop
+ * HEAD). Not a timeout, nor an address the policy refuses, which GET would meet again; and not a
+ * 429, by which the site asks for fewer requests (RFC 6585 §4).
+ */
+export function retriesWithGet(head: LinkAnswer): boolean {
+  if (typeof head === 'number') return head >= 400 && head !== 429
+  return head.failure === 'connect-failed'
+}
 
 /**
  * The page's links to its own site (siteLinks), each address once, and how each check ended.

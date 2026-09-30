@@ -41,13 +41,27 @@ describe('link-broken', () => {
     expect(detectAll(rule, evidence)).toEqual([])
   })
 
+  // M2.3c review: a site that takes the check for a bot answers 401, 403, 407, 429 or 503, as it
+  // does a visitor it takes for one. That is no answer about the link.
+  it('passes links the site refuses to the check, and one whose server drops HEAD', async () => {
+    const evidence = await fixtureEvidence(rule.id, 'right-refused')
+    expect(evidence.links?.checks).toEqual([
+      { url: 'http://fixture.test/ar/offers/', outcome: 'answered', status: 200, method: 'HEAD' },
+      { url: 'http://fixture.test/ar/members/', outcome: 'unanswered', reason: 'refused' },
+      { url: 'http://fixture.test/ar/account/', outcome: 'unanswered', reason: 'refused' },
+      { url: 'http://fixture.test/ar/checkout/', outcome: 'unanswered', reason: 'refused' },
+      { url: 'http://fixture.test/ar/legacy/', outcome: 'answered', status: 200, method: 'GET' },
+    ])
+    expect(detectAll(rule, evidence)).toEqual([])
+  })
+
   it('reports an address once, at its first link, and judges only the answers', () => {
     const findings = detectAll(
       rule,
       checked(
         '<a href="/ar/gone/">أ</a><a href="/ar/gone/#more">ب</a><a href="/ar/busy/">ج</a><a href="/ar/slow/">د</a>',
         { url: 'https://shop.example/ar/gone/', outcome: 'answered', status: 410, method: 'GET' },
-        { url: 'https://shop.example/ar/busy/', outcome: 'unanswered', reason: 'rate-limited' },
+        { url: 'https://shop.example/ar/busy/', outcome: 'unanswered', reason: 'refused' },
         { url: 'https://shop.example/ar/slow/', outcome: 'unanswered', reason: 'timeout' },
       ),
     )

@@ -3,9 +3,11 @@ import { defineRule, type DetectorFinding } from '../../rule'
 
 /**
  * A link on the page to its own site whose address answers an error (M2.3c): 4xx or 5xx to the
- * engine's GET, which it asks when HEAD answers one, as a visitor's browser would. A redirect is
- * an answer, and not followed; a link without an answer (a timeout, a 429) is not judged. Each
- * address once, at the first link to it; the finding points at that link.
+ * engine's GET, which it asks when HEAD answers one or fails to connect, as a visitor's browser
+ * would. A redirect is an answer, and not followed. A link without an answer is not judged: a
+ * timeout, and the refusals by which a site turns away a visitor it takes for a bot (401, 403, 407,
+ * 429 and 503), which the engine does not report as answers. Each address once, at the first link
+ * to it; the finding points at that link.
  */
 export const rule = defineRule({
   id: 'link-broken',

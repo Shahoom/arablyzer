@@ -198,6 +198,12 @@ async function respond(
     method: req.method,
     ...(host === null || !own.names.includes(host) ? {} : { host }),
   })
+  // A server that drops HEAD: the connection closes, or nothing is ever said.
+  if (resolved.drop === 'reset') {
+    req.socket.destroy()
+    return
+  }
+  if (resolved.drop === 'silence') return
   const { status, body } = resolved
   const headers = withOwnPort(resolved.headers, own)
   const contentType = headers['content-type']
@@ -260,6 +266,8 @@ export interface FixtureResponse {
   /** Lowercased names; a list for repeated headers. */
   readonly headers: Record<string, string | string[]>
   readonly body: Buffer
+  /** For a HEAD request the route drops (headDrop): there is no answer, and this is how. */
+  readonly drop?: 'reset' | 'silence'
 }
 
 /**
@@ -299,7 +307,8 @@ export async function resolveFixtureResponse(
   for (const [name, value] of Object.entries(override?.headers ?? {})) {
     headers[name.toLowerCase()] = value
   }
-  return { status, headers, body }
+  const drop = method === 'HEAD' ? override?.headDrop : undefined
+  return { status, headers, body, ...(drop === undefined ? {} : { drop }) }
 }
 
 /** Node only writes latin1 header text; send UTF-8 values (Arabic paths) as raw bytes, like real servers. */

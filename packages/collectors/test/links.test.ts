@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { collectPage, MAX_SITE_LINKS, siteLinks } from '../src/index'
+import {
+  collectPage,
+  linkCheck,
+  MAX_SITE_LINKS,
+  REFUSAL_STATUSES,
+  retriesWithGet,
+  siteLinks,
+} from '../src/index'
 import { utf8 } from './helpers'
 
 const page = (html: string, url = 'https://shop.example/ar/') =>
@@ -94,5 +101,80 @@ describe('siteLinks', () => {
     const started = performance.now()
     expect(siteLinks(facts)).toEqual({ links: [], more: false })
     expect(performance.now() - started).toBeLessThan(2_000)
+  })
+})
+
+// M2.3c review: a site that takes a check for a bot answers 401, 403, 407, 429 or 503, as it does a
+// visitor it takes for one (the report page reads these five as a refusal too). That says nothing
+// of whether the link works, so the link is not judged.
+describe('linkCheck', () => {
+  const url = 'https://shop.example/ar/members/'
+
+  it('reads the five statuses of a refusal as no answer about the link', () => {
+    expect([...REFUSAL_STATUSES].sort()).toEqual([401, 403, 407, 429, 503])
+    for (const status of REFUSAL_STATUSES) {
+      expect(linkCheck(url, 'GET', status), String(status)).toEqual({
+        url,
+        outcome: 'unanswered',
+        reason: 'refused',
+      })
+    }
+  })
+
+  it.each([200, 204, 301, 302, 304, 400, 404, 405, 410, 451, 500, 501, 502, 504])(
+    'reads %s as the link’s answer, with the request that got it',
+    (status) => {
+      expect(linkCheck(url, 'HEAD', status)).toEqual({
+        url,
+        outcome: 'answered',
+        status,
+        method: 'HEAD',
+      })
+      expect(linkCheck(url, 'GET', status)).toMatchObject({ outcome: 'answered', method: 'GET' })
+    },
+  )
+
+  it('gives why a request got no status', () => {
+    expect(linkCheck(url, 'HEAD', { failure: 'timeout' })).toEqual({
+      url,
+      outcome: 'unanswered',
+      reason: 'timeout',
+    })
+  })
+})
+
+describe('retriesWithGet', () => {
+  it('asks again with GET where HEAD answered an error, as servers that refuse HEAD do', () => {
+    for (const status of [400, 403, 404, 405, 500, 501, 503]) {
+      expect(retriesWithGet(status), String(status)).toBe(true)
+    }
+    for (const status of [200, 204, 301, 302, 304]) {
+      expect(retriesWithGet(status), String(status)).toBe(false)
+    }
+  })
+
+  it('asks again where the connection failed, as a server that drops HEAD makes it', () => {
+    expect(retriesWithGet({ failure: 'connect-failed' })).toBe(true)
+  })
+
+  it('does not ask again after a timeout, a refused address, or any other failure', () => {
+    for (const failure of [
+      'timeout',
+      'out-of-time',
+      'aborted',
+      'blocked-address',
+      'blocked-host',
+      'port-not-allowed',
+      'dns-failed',
+      'tls-failed',
+      'too-large',
+      'failed',
+    ]) {
+      expect(retriesWithGet({ failure }), failure).toBe(false)
+    }
+  })
+
+  it('does not ask again after a 429: the site asked for fewer requests', () => {
+    expect(retriesWithGet(429)).toBe(false)
   })
 })

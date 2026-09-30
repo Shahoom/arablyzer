@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import type { ScanEvent } from '@arablyzer/api-contract/codes'
 import { createPolicy } from '@arablyzer/egress'
-import { scan } from '@arablyzer/engine'
+import { REFUSAL_STATUSES, scan } from '@arablyzer/engine'
 import { serveSite } from '@arablyzer/fixtures'
 import checkoutFormJson from '@arablyzer/fixtures/golden/reports/07-checkout-form.json'
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
@@ -15,6 +15,7 @@ import {
   advance,
   optOutOf,
   outcomeOf,
+  REFUSALS,
   problemCount,
   problemsOf,
   START,
@@ -199,6 +200,19 @@ describe('outcomeOf', () => {
     expect(outcomeOf(refused)).toBe('blocked')
     const partial = { ...rtlLayout, scan: { ...rtlLayout.scan, status: 'partial' as const } }
     expect(outcomeOf(partial)).toBe('partial')
+  })
+
+  // M2.3c review: the engine leaves a link unjudged for the answers by which a site refuses a bot,
+  // and the report page reads them as the site refusing the scan: the same five.
+  it('reads as a refusal the statuses by which the engine leaves a link unjudged', () => {
+    expect([...REFUSALS].sort()).toEqual([...REFUSAL_STATUSES].sort())
+    for (const status of REFUSAL_STATUSES) {
+      const refused = {
+        ...rtlLayout,
+        target: { ...rtlLayout.target, http: { ...rtlLayout.target.http, status } },
+      }
+      expect(outcomeOf(refused), String(status)).toBe('blocked')
+    }
   })
 
   it('reads a site’s opt-out as that, whatever the page answered on the way', async () => {

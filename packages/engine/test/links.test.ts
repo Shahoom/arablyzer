@@ -1,7 +1,13 @@
-import { collectPage, MAX_SITE_LINKS, parseRobotsTxt } from '@arablyzer/collectors'
+import {
+  collectPage,
+  MAX_SITE_LINKS,
+  parseRobotsTxt,
+  REFUSAL_STATUSES,
+  type LinkCheck,
+} from '@arablyzer/collectors'
 import { robotsMatcher, type Rule } from '@arablyzer/rules'
 import { afterEach, describe, expect, it } from 'vitest'
-import { checkLinks, MAX_LINKS } from '../src/links'
+import { checkLinks, CONCURRENCY, MAX_LINKS } from '../src/links'
 import { evaluatePage, scan } from '../src/index'
 import { policyFor, schemaErrors, tempSite, testRule, type TempSite } from './helpers'
 
@@ -57,7 +63,7 @@ describe('scan: the page’s links to its own site', () => {
       },
       {
         '/ar/old/': { status: 301, headers: { location: '/ar/elsewhere/' } },
-        '/ar/down/': { status: 503 },
+        '/ar/down/': { status: 500 },
         '/ar/no-head/': { headStatus: 405 },
       },
     )
@@ -67,7 +73,7 @@ describe('scan: the page’s links to its own site', () => {
     expect(report.rules.map((rule) => [rule.id, rule.status])).toEqual([['link-rule', 'fail']])
     expect(report.findings.map((finding) => finding.evidence.values?.what)).toEqual([
       `GET 404 ${site.url('/ar/missing/')}`,
-      `GET 503 ${site.url('/ar/down/')}`,
+      `GET 500 ${site.url('/ar/down/')}`,
     ])
     expect(site.requests.slice(0, 2)).toEqual(['GET /robots.txt', 'GET /'])
     expect([...site.requests.slice(2)].sort()).toEqual(
@@ -300,4 +306,146 @@ describe('scan: a hostile page', () => {
       ],
     ])
   }, 60_000)
+})
+
+// M2.3c review: a site that takes the check for a bot answers 401, 403, 407, 429 or 503, as it does
+// a visitor it takes for one. That is no answer about the link, so no link is broken for it.
+describe('checkLinks: a site that takes the check for a bot', () => {
+  let site: TempSite | undefined
+
+  afterEach(async () => {
+    await site?.close()
+    site = undefined
+  })
+
+  const pageOf = (local: TempSite, paths: readonly string[]) =>
+    collectPage({
+      url: local.url('/'),
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: new TextEncoder().encode(page(paths.map((path) => `<a href="${path}">x</a>`).join(''))),
+    })
+  const check = (local: TempSite, paths: readonly string[], timeoutMs?: number) =>
+    checkLinks(pageOf(local, paths), {
+      base: {
+        userAgent: 'ArablyzerBot/1.0',
+        policy: policyFor(local),
+        ...(timeoutMs === undefined ? {} : { timeoutMs }),
+      },
+      optedOut: () => false,
+    })
+  const outcome = (check: LinkCheck | undefined) =>
+    check?.outcome === 'answered'
+      ? `${check.method} ${String(check.status)}`
+      : `unanswered ${check?.reason ?? ''}`
+
+  it('reads 401, 403, 407 and 503 as a refusal, and any other error as the link’s own', async () => {
+    const refusing = [...REFUSAL_STATUSES].filter((status) => status !== 429)
+    expect(refusing).toEqual([401, 403, 407, 503])
+    const paths = ['/ar/a/', '/ar/b/', '/ar/c/', '/ar/d/', '/ar/e/', '/ar/f/', '/ar/g/']
+    site = await tempSite(
+      { 'index.html': page('<p>نص</p>'), 'ar/g/index.html': page('<p>صفحة</p>') },
+      {
+        '/ar/a/': { status: 401 },
+        '/ar/b/': { status: 403 },
+        '/ar/c/': { status: 407 },
+        '/ar/d/': { status: 503 },
+        '/ar/e/': { status: 404 },
+        '/ar/f/': { status: 500 },
+      },
+    )
+    const facts = await check(site, paths)
+    expect(facts.checks.map(outcome)).toEqual([
+      'unanswered refused',
+      'unanswered refused',
+      'unanswered refused',
+      'unanswered refused',
+      'GET 404',
+      'GET 500',
+      'HEAD 200',
+    ])
+    // A refusal is asked with GET too, as a visitor's browser asks: HEAD may be all that is refused.
+    expect(site.requests).toContain('GET /ar/a/')
+    expect(site.requests).toContain('GET /ar/d/')
+  })
+
+  it('takes the answer of GET where HEAD alone is refused', async () => {
+    site = await tempSite(
+      { 'index.html': page('<p>نص</p>'), 'ar/a/index.html': page('<p>صفحة</p>') },
+      { '/ar/a/': { headStatus: 403 } },
+    )
+    const facts = await check(site, ['/ar/a/'])
+    expect(facts.checks.map(outcome)).toEqual(['GET 200'])
+  })
+
+  it('stops asking after the first 429, and marks the links left as rate-limited', async () => {
+    const paths = Array.from({ length: MAX_LINKS }, (_, index) => `/p/${String(index)}`)
+    site = await tempSite(
+      { 'index.html': page('<p>نص</p>') },
+      Object.fromEntries(paths.map((path) => [path, { status: 429 }])),
+    )
+    const facts = await check(site, paths)
+    const asked = site.requests.filter((request) => request.includes('/p/'))
+    // Only the requests already on their way when the first 429 came, and never a GET after one.
+    expect(asked.length).toBeGreaterThanOrEqual(1)
+    expect(asked.length).toBeLessThanOrEqual(CONCURRENCY)
+    expect(asked.every((request) => request.startsWith('HEAD '))).toBe(true)
+    const outcomes = facts.checks.map(outcome)
+    expect(outcomes).toHaveLength(MAX_LINKS)
+    expect(outcomes.filter((each) => each === 'unanswered refused')).toHaveLength(asked.length)
+    expect(outcomes.filter((each) => each === 'unanswered rate-limited')).toHaveLength(
+      MAX_LINKS - asked.length,
+    )
+  })
+
+  it('asks GET where HEAD fails to connect, and not where it times out', async () => {
+    site = await tempSite(
+      {
+        'index.html': page('<p>نص</p>'),
+        'ar/ok/index.html': page('<p>صفحة</p>'),
+      },
+      {
+        '/ar/ok/': { headDrop: 'reset' },
+        '/ar/gone/': { headDrop: 'reset' },
+        '/ar/slow/': { headDrop: 'silence' },
+      },
+    )
+    const facts = await check(site, ['/ar/ok/', '/ar/gone/', '/ar/slow/'], 300)
+    expect(facts.checks.map(outcome)).toEqual(['GET 200', 'GET 404', 'unanswered timeout'])
+    expect(site.requests).toContain('GET /ar/gone/')
+    expect(site.requests).not.toContain('GET /ar/slow/')
+  })
+})
+
+describe('scan: refusals are not broken links', () => {
+  let site: TempSite | undefined
+
+  afterEach(async () => {
+    await site?.close()
+    site = undefined
+  })
+
+  it('leaves them unjudged, and says how many, in the notice’s words', async () => {
+    site = await tempSite(
+      {
+        'index.html': page(
+          '<a href="/ar/members/">أ</a><a href="/ar/shop/">ب</a><a href="/ar/gone/">ج</a><a href="/ar/ok/">د</a>',
+        ),
+        'ar/ok/index.html': page('<p>صفحة</p>'),
+      },
+      { '/ar/members/': { status: 401 }, '/ar/shop/': { status: 503 } },
+    )
+    const report = await scan(site.url('/'), { rules: [linkRule], policy: policyFor(site) })
+    expect(report.findings.map((finding) => finding.evidence.values?.what)).toEqual([
+      `GET 404 ${site.url('/ar/gone/')}`,
+    ])
+    expect(report.scan.notices.map((notice) => notice.code)).toEqual(['links-unanswered'])
+    const message = report.scan.notices[0]?.message.en ?? ''
+    expect(message).toContain('2 of the page’s links')
+    // The statuses the message names are those the engine reads as a refusal.
+    for (const status of REFUSAL_STATUSES) expect(message).toContain(String(status))
+    expect(report.scan.notices[0]?.message.ar).toContain('2')
+    for (const status of REFUSAL_STATUSES)
+      expect(report.scan.notices[0]?.message.ar).toContain(String(status))
+  })
 })

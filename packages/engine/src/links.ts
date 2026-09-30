@@ -1,4 +1,12 @@
-import { siteLinks, type LinkCheck, type LinkFacts, type PageFacts } from '@arablyzer/collectors'
+import {
+  linkCheck,
+  retriesWithGet,
+  siteLinks,
+  type LinkAnswer,
+  type LinkCheck,
+  type LinkFacts,
+  type PageFacts,
+} from '@arablyzer/collectors'
 import { safeFetch, type FetchResult, type SafeFetchOptions } from '@arablyzer/egress'
 
 /** The page's links to its own site a scan asks for, at most: the first ones on the page. */
@@ -69,30 +77,49 @@ export async function checkLinks(page: PageFacts, context: LinkContext): Promise
   }
   const checks: LinkCheck[] = []
   let next = 0
+  // The site asked for fewer requests (429): no other link is asked for after that one.
+  let limited = false
   const work = async () => {
     for (let index = next++; index < asked.length; index = next++) {
       const url = asked[index] ?? ''
-      checks[index] = signal.aborted
-        ? { url, outcome: 'unanswered', reason: 'out-of-time' }
-        : await checkLink(url, base)
+      if (signal.aborted) {
+        checks[index] = { url, outcome: 'unanswered', reason: 'out-of-time' }
+      } else if (limited) {
+        checks[index] = { url, outcome: 'unanswered', reason: 'rate-limited' }
+      } else {
+        const { check, rateLimited } = await checkLink(url, base)
+        checks[index] = check
+        if (rateLimited) limited = true
+      }
     }
   }
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, asked.length) }, work))
   return { total: links.length, more, checks, skipped: { limit, robots } }
 }
 
-/** HEAD, then GET where HEAD answers an error: the GET's answer is what a visitor gets. */
-async function checkLink(url: string, base: SafeFetchOptions): Promise<LinkCheck> {
+/**
+ * HEAD, then GET where HEAD answers an error or fails to connect (retriesWithGet): the GET's
+ * answer is what a visitor gets. A 429 ends the link's checks at once, and tells the caller to ask
+ * for no more links. How a request's answer becomes the link's check is the collectors' linkCheck.
+ */
+async function checkLink(
+  url: string,
+  base: SafeFetchOptions,
+): Promise<{ check: LinkCheck; rateLimited: boolean }> {
   const head = await ask(url, 'HEAD', base)
-  if (head.outcome !== 'answered' || head.status < 400) return head
-  return ask(url, 'GET', base)
+  if (head === 429 || !retriesWithGet(head)) {
+    return { check: linkCheck(url, 'HEAD', head), rateLimited: head === 429 }
+  }
+  const get = await ask(url, 'GET', base)
+  return { check: linkCheck(url, 'GET', get), rateLimited: get === 429 }
 }
 
+/** One request to a link: its status, or why it got none. */
 async function ask(
   url: string,
   method: 'HEAD' | 'GET',
   base: SafeFetchOptions,
-): Promise<LinkCheck> {
+): Promise<LinkAnswer> {
   const fetched = await safeFetch(url, {
     ...base,
     method,
@@ -103,12 +130,11 @@ async function ask(
   })
   const status = statusOf(fetched)
   if (status === null) {
-    const reason = base.signal?.aborted === true ? 'out-of-time' : (fetched.error?.code ?? 'failed')
-    return { url, outcome: 'unanswered', reason }
+    return {
+      failure: base.signal?.aborted === true ? 'out-of-time' : (fetched.error?.code ?? 'failed'),
+    }
   }
-  // 429 asks the client to slow down (RFC 6585 §4): an answer about the scan, not the link.
-  if (status === 429) return { url, outcome: 'unanswered', reason: 'rate-limited' }
-  return { url, outcome: 'answered', status, method }
+  return status
 }
 
 /** The response's status, or the redirect's that the fetch declined to follow; null without. */

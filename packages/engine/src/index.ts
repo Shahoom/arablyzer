@@ -9,6 +9,7 @@ export {
 } from './bounds'
 export { SCAN_BUDGET_MS } from './budgets'
 export { CRUX_ENDPOINT, fetchCrux, type CruxOptions } from './crux'
+export { REFUSAL_STATUSES } from '@arablyzer/collectors'
 export { notice, type NoticeCode } from './notices'
 export { type ProgressListener, type ScanProgress } from './progress'
 export {

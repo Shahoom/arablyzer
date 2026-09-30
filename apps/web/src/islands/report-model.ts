@@ -100,8 +100,12 @@ export function advance(progress: Progress, event: ScanEvent): Progress {
   }
 }
 
-/** HTTP answers by which a site refuses a visitor it takes for a bot (the States design, S-01). */
-const REFUSALS = new Set([401, 403, 407, 429, 503])
+/**
+ * HTTP answers by which a site refuses a visitor it takes for a bot (the States design, S-01).
+ * The engine leaves a link unjudged for the same five (REFUSAL_STATUSES, M2.3c review); the island
+ * cannot import the engine, so a test ties the two.
+ */
+export const REFUSALS: ReadonlySet<number> = new Set([401, 403, 407, 429, 503])
 
 /**
  * The notice of a scan that stopped because the site's robots.txt asks ArablyzerBot not to check

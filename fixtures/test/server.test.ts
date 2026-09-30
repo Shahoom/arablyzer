@@ -125,6 +125,49 @@ describe('serveSite', () => {
     }
   })
 
+  it('drops HEAD where a route says so: the connection closed, or nothing ever said', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'arablyzer-fixture-'))
+    await writeFile(path.join(dir, 'index.html'), '<p>نص</p>')
+    await writeFile(
+      path.join(dir, 'fixture.json'),
+      JSON.stringify({ '/': { headDrop: 'reset' }, '/quiet': { headDrop: 'silence' } }),
+    )
+    const dropping = await serveSite(dir)
+    try {
+      await expect(request(dropping.url('/'), 'HEAD')).rejects.toThrow(/socket hang up|ECONNRESET/)
+      // A GET is answered as ever, and a route with nothing to say keeps the connection open.
+      expect((await request(dropping.url('/'))).status).toBe(200)
+      const silent = await new Promise<string>((resolve) => {
+        const req = http.request(
+          { host: '127.0.0.1', port: dropping.port, path: '/quiet', method: 'HEAD', agent: false },
+          () => {
+            resolve('answered')
+          },
+        )
+        req.on('error', () => {
+          resolve('error')
+        })
+        setTimeout(() => {
+          resolve('silent')
+          req.destroy()
+        }, 300)
+        req.end()
+      })
+      expect(silent).toBe('silent')
+      const config = await loadFixtureConfig(dir)
+      expect(await resolveFixtureResponse(dir, config, '/', { method: 'HEAD' })).toMatchObject({
+        drop: 'reset',
+      })
+      expect(await resolveFixtureResponse(dir, config, '/quiet', { method: 'HEAD' })).toMatchObject(
+        { drop: 'silence' },
+      )
+      expect((await resolveFixtureResponse(dir, config, '/')).drop).toBeUndefined()
+    } finally {
+      await dropping.close()
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
   it('gives every site its own origin', async () => {
     const other = await serveSite(sitePath('sample'))
     expect(other.origin).not.toBe(site.origin)
