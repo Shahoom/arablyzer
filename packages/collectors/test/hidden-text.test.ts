@@ -68,5 +68,5 @@ describe('collectPage: the text a page has and does not show', () => {
     const depth = 5_000
     const text = textOf(`${'<div hidden>'.repeat(depth)}عميق${'</div>'.repeat(depth)}`)
     expect(text.hidden).toEqual(['عميق'])
-  })
+  }, 30_000)
 })

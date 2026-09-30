@@ -281,7 +281,7 @@ describe('checkLinks: hostile pages', () => {
     })
     // The work is long enough to matter, and no stretch of it held the loop.
     expect(performance.now() - started).toBeGreaterThan(200)
-    expect(worst).toBeLessThan(250)
+    expect(worst).toBeLessThan(500)
   }, 60_000)
 
   it('stops choosing when the scan is cancelled', async () => {

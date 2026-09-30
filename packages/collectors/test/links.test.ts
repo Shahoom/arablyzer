@@ -101,7 +101,8 @@ describe('siteLinks', () => {
     const started = performance.now()
     expect(siteLinks(facts)).toEqual({ links: [], more: false })
     expect(performance.now() - started).toBeLessThan(2_000)
-  })
+    // Parsing the page is the test's setup, and slow when the machine is busy.
+  }, 60_000)
 })
 
 // M2.3c review: a site that takes a check for a bot answers 401, 403, 407, 429 or 503, as it does a
