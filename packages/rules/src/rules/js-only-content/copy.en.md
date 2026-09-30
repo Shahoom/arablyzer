@@ -4,7 +4,7 @@
 
 ### scripted
 
-Of the Arabic words the browser drew on this page, {missing} of {total} ({share}%) are not in the HTML the server sends: scripts write them after loading, so only those who run JavaScript see them.
+{missing} of the {total} Arabic words the browser drew in the parts of the page it measured ({share}%) are not in the text of the HTML the scan received, before scripts ran. Scripts may write them after loading, and whoever does not run JavaScript would not see them.
 
 ## Why it matters
 
@@ -24,9 +24,11 @@ Send the page's text in the HTML from the server, and let scripts add only what 
 
 1. We render the page in browsers and read the first 200 visible elements with Arabic text in it, in the page's order, and the first 200 characters of each element's text; when that cuts the text, its last word is left out.
 2. We count their Arabic words, each run of Arabic letters, and read the same word as one whatever its marks, tatweel or presentation forms.
-3. We gather the words of the visible text in the HTML the server sends, before JavaScript runs, and count the words of the rendered page that are not among them.
-4. The rule fails when more than half of the Arabic words a browser drew are not in the HTML the server sends. Each browser is measured on its own, and the finding names those where this holds.
-5. The rule applies to a page on which a browser drew Arabic text. It does not judge other text, nor images.
+3. We gather the words of all the text in the body of the HTML the scan receives, before JavaScript runs: the text a visitor sees, and text that is hidden or in `<noscript>` or `<template>`, since it is in the HTML as sent. Text in `<script>` and `<style>` is code, and is not counted. We count the words of the rendered page that are not among them.
+4. A browser is judged only when it drew at least 20 Arabic words. With fewer, a language switch or a cookie notice that a script adds would say nothing of how the page is written. The number is our own choice for this rule, not a standard's.
+5. The rule fails when more than half of the Arabic words a browser drew are not in the HTML the scan received. Each browser is measured on its own, and the finding names those where this holds.
+6. The rule applies to a page on which a browser drew at least 20 Arabic words. It does not judge other text, nor images.
+7. The rule measures which words the HTML lacks, and not who wrote them. The scan asks for the HTML without saying which language it prefers, while the browsers ask for Arabic (`Accept-Language: ar`): a site that picks the language of its HTML on the server from that header may send the scan another language than it sends a browser, and the rule then finds the Arabic words missing. And text a script adds beside the page's own, such as a cookie notice, counts among the words the HTML lacks.
 
 ## References
 

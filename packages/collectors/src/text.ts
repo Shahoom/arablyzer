@@ -1,3 +1,4 @@
+import { defaultTreeAdapter, type DefaultTreeAdapterTypes } from 'parse5'
 import {
   attr,
   isElement,
@@ -38,8 +39,18 @@ export interface TextFacts {
   /** The script with the most letters; 'none' without letters. */
   readonly dominantScript: DominantScript
   readonly segments: readonly TextSegment[]
+  /**
+   * The text of the body that `segments` leaves out because a page does not show it as sent: in a
+   * `hidden` element or one with an inline `display: none`, in `<noscript>`, `<template>`,
+   * `<textarea>`, `<iframe>` or `<object>`. It is in the HTML all the same, and a rule that asks
+   * whether a word is there (js-only-content, M2.3c review) reads it. Only the text nodes with an
+   * Arabic letter are kept; scripts and styles are code, and are not text.
+   */
+  readonly hidden: readonly string[]
 }
 
+/** Code, not text: neither shown nor counted as hidden text. */
+const CODE_ONLY_TAGS = new Set(['script', 'style'])
 /** Never rendered as page text. */
 const HIDDEN_TAGS = new Set([
   'head',
@@ -94,18 +105,25 @@ const LETTER = /\p{L}/gu
 const ARABIC = /\p{Script=Arabic}/u
 const LATIN = /\p{Script=Latin}/u
 
+type ParentNode = DefaultTreeAdapterTypes.ParentNode
+
 interface Frame {
+  /** The element whose children are walked; a template's content is walked in its place. */
   readonly element: Element
+  readonly children: ParentNode
   next: number
   readonly code: boolean
   readonly inline: boolean
+  /** Inside something the page does not show: its text is `hidden`, not `segments`. */
+  readonly hidden: boolean
 }
 
 /**
  * Visible text of <body> in the raw HTML: no scripts, styles, templates, `hidden` elements or
  * inline `display: none`. CSS from stylesheets is not applied until the browser collectors
- * (Phase 1), so text hidden by classes still counts. Walks the tree with its own stack, so deep
- * nesting cannot exhaust the call stack.
+ * (Phase 1), so text hidden by classes still counts. What the page does not show as sent is kept
+ * apart, as `hidden`. Walks the tree with its own stack, so deep nesting cannot exhaust the call
+ * stack.
  */
 export function collectText(index: DocumentIndex): TextFacts {
   const body = findBody(index)
@@ -113,19 +131,27 @@ export function collectText(index: DocumentIndex): TextFacts {
   const counts = { arabic: 0, latin: 0, other: 0 }
   let lastChar = ''
 
+  const hidden: string[] = []
   const stack: Frame[] =
-    body === null ? [] : [{ element: body, next: 0, code: false, inline: false }]
+    body === null
+      ? []
+      : [{ element: body, children: body, next: 0, code: false, inline: false, hidden: false }]
   while (stack.length > 0) {
     const frame = stack[stack.length - 1]
     if (frame === undefined) break
-    const child = frame.element.childNodes[frame.next++]
+    const child = frame.children.childNodes[frame.next++]
     if (child === undefined) {
       stack.pop()
-      if (!frame.inline) lastChar = ''
+      // What the page does not show is not a line of text to break.
+      if (!frame.inline && !frame.hidden) lastChar = ''
       continue
     }
     if (child.nodeName === '#text' && 'value' in child) {
       const text = child.value
+      if (frame.hidden) {
+        if (ARABIC.test(text)) hidden.push(text)
+        continue
+      }
       if (text.trim() !== '') {
         segments.push({
           text,
@@ -143,14 +169,18 @@ export function collectText(index: DocumentIndex): TextFacts {
       lastChar = text.at(-1) ?? lastChar
       continue
     }
-    if (!isElement(child) || isHidden(child)) continue
+    if (!isElement(child) || CODE_ONLY_TAGS.has(child.tagName)) continue
+    const away = frame.hidden || isHidden(child)
     const inline = INLINE_TAGS.has(child.tagName)
-    if (!inline) lastChar = ''
+    if (!away && !inline) lastChar = ''
     stack.push({
       element: child,
+      // A template's children are in its content, which is a fragment of its own.
+      children: isTemplate(child) ? defaultTreeAdapter.getTemplateContent(child) : child,
       next: 0,
       code: frame.code || CODE_TAGS.has(child.tagName),
       inline,
+      hidden: away,
     })
   }
 
@@ -159,7 +189,12 @@ export function collectText(index: DocumentIndex): TextFacts {
     letters: { ...counts, total },
     dominantScript: dominant(counts, total),
     segments,
+    hidden,
   }
+}
+
+function isTemplate(element: Element): element is DefaultTreeAdapterTypes.Template {
+  return element.tagName === 'template' && 'content' in element
 }
 
 function findBody(index: DocumentIndex): Element | null {

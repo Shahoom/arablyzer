@@ -59,6 +59,7 @@ import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 import { rule as xContentTypeOptionsMissing } from './rules/x-content-type-options-missing/rule'
 
 export { RULESET_VERSION } from './version'
+export { MIN_DRAWN_WORDS } from './rules/js-only-content/rule'
 export { SERVER_RESPONSE_RULES } from './server-rules'
 
 /** Every rule, sorted by id. */

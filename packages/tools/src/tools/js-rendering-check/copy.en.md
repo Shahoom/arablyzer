@@ -9,8 +9,8 @@ Renders your page in browsers and compares its Arabic text, as visitors see it, 
 ## What it checks
 
 - The Arabic text on the page as Chromium and Firefox draw it, and WebKit where it runs: the first 200 visible elements with Arabic text, in the page's order.
-- The Arabic words of that text that are not in the HTML the server sends, before JavaScript runs, whatever their marks or tatweel.
-- The page fails when more than half of those words are written by scripts, in one browser at least.
+- The Arabic words of that text that are not in the text of the HTML the scan received, before JavaScript runs, whatever their marks or tatweel. All the text of the body is there, hidden text and `<noscript>` and `<template>` included, since it is in the HTML as sent.
+- The page fails when more than half of those words are not in the HTML, in one browser at least, and the browser drew at least 20 Arabic words. With fewer, a language switch or a cookie notice that a script adds would say nothing of how the page is written.
 
 ## Example
 
@@ -56,6 +56,10 @@ It does. Google processes JavaScript pages in three phases: crawling, rendering,
 
 Not necessarily. When the server builds the page's HTML and JavaScript then takes it over in the browser, the text is in the HTML and the page passes, even if scripts draw it again. It fails when the HTML arrives nearly empty and JavaScript writes all the text.
 
+### My server sends Arabic HTML: why does the check say scripts write the text?
+
+The check measures which words the HTML it received lacks, and not who wrote them. The scan asks for the HTML without saying which language it prefers, while the browsers ask for Arabic: a site that picks the language of its HTML on the server from that header may send the scan another language than it sends a browser. And text that a script adds beside the page's own, such as a cookie notice, counts among the words the HTML lacks.
+
 ### Why does the tool count Arabic words alone?
 
 Because it reads the Arabic text the browsers measure on the page, which is what Arablyzer is built for. Text in other languages is not counted, nor are images.
@@ -66,4 +70,4 @@ Because it renders the page in browsers and runs its scripts before it measures 
 
 ## Methodology
 
-We fetch the page as `ArablyzerBot` and read its visible text in the HTML as the server sends it, before JavaScript runs. We then render it in Chromium and Firefox, and WebKit on servers with an isolated network, with every request it makes going through a proxy that refuses private addresses. In each browser we read the first 200 visible elements with Arabic text and the first 200 characters of each element's text, and count their Arabic words, each run of Arabic letters, read as one word whatever its marks or tatweel. The page fails when more than half of those words in a browser are not in the HTML's text, and we name the browsers where this holds. The same page gives the same result every time.
+We fetch the page as `ArablyzerBot`, with no language preference, and read the text of its HTML as the server sends it, before JavaScript runs. We then render it in Chromium and Firefox, and WebKit on servers with an isolated network, with every request it makes going through a proxy that refuses private addresses. In each browser we read the first 200 visible elements with Arabic text and the first 200 characters of each element's text, and count their Arabic words, each run of Arabic letters, read as one word whatever its marks or tatweel. We gather the words of all the text in the body of that HTML, hidden text and `<noscript>` and `<template>` included, and not the text of scripts and styles. A browser is judged only when it drew at least 20 Arabic words, a number of our own for this check. The page fails when more than half of those words in a browser are not in the HTML's text, and we name the browsers where this holds. The same page gives the same result every time.

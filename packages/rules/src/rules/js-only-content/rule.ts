@@ -1,6 +1,13 @@
 import type { ArabicTextBlock, Engine } from '@arablyzer/collectors'
-import { hasRenderedArabic } from '../../lib/rendered'
 import { defineRule, type DetectorFinding } from '../../rule'
+
+/**
+ * A browser is judged only when it drew at least this many Arabic words (M2.3c review). Our own
+ * parameter, not a standard's: a language switch, a currency or a cookie notice that a script adds
+ * to a page that is not Arabic is a few words, and says nothing of how the page is written. It is
+ * small, so a short page of a few sentences is still judged.
+ */
+export const MIN_DRAWN_WORDS = 20
 
 /**
  * The characters of a block's text the engines keep (the browser package's MEASURE_LIMITS
@@ -34,11 +41,20 @@ interface Measure {
   readonly first: ArabicTextBlock | undefined
 }
 
+/** The Arabic words an engine drew, in the blocks it measured, less the words it cut. */
+function drawnWords(blocks: readonly ArabicTextBlock[]): number {
+  return blocks.reduce((sum, block) => sum + blockWords(block).length, 0)
+}
+
 /**
  * The rendered page's Arabic text is mostly not in the HTML as sent (M2.3c): of the Arabic words
- * the engine drew, in the blocks it measured, more than half are words the HTML's text never has,
- * so scripts wrote them. Google renders JavaScript, but later than it crawls, and not every bot
- * runs it. Each engine is measured on its own; the finding names those where it holds.
+ * the engine drew, in the blocks it measured, more than half are words the HTML's text never has.
+ * All the text of the body counts as sent, hidden or not, and in <noscript> or <template>: the test
+ * is whether the words are in the HTML, not whether a visitor sees them without JavaScript. Scripts
+ * may write the rest, which Google renders later than it crawls and not every bot renders at all; the
+ * rule measures which words the HTML lacks, and not who wrote them. A browser that drew fewer than
+ * MIN_DRAWN_WORDS words is not judged. Each engine is measured on its own; the finding names those
+ * where it holds.
  */
 export const rule = defineRule({
   id: 'js-only-content',
@@ -47,12 +63,17 @@ export const rule = defineRule({
   severity: 'moderate',
   needs: ['render'],
   messages: ['scripted'],
-  appliesTo: (_page, evidence) => hasRenderedArabic(evidence),
+  appliesTo: (_page, evidence) =>
+    (evidence?.rendered ?? []).some((facts) => drawnWords(facts.arabicText) >= MIN_DRAWN_WORDS),
   detect: ({ page, rendered = [] }): DetectorFinding<'scripted'>[] => {
     const sent = new Set(
-      (page.text?.segments ?? []).flatMap((segment) => arabicWords(segment.text)),
+      [
+        ...(page.text?.segments.map((segment) => segment.text) ?? []),
+        ...(page.text?.hidden ?? []),
+      ].flatMap((text) => arabicWords(text)),
     )
-    const measured: [Engine, Measure][] = rendered.map((facts) => {
+    const measured: [Engine, Measure][] = []
+    for (const facts of rendered) {
       let missing = 0
       let total = 0
       let first: ArabicTextBlock | undefined
@@ -64,8 +85,8 @@ export const rule = defineRule({
           first ??= block
         }
       }
-      return [facts.engine, { missing, total, first }]
-    })
+      if (total >= MIN_DRAWN_WORDS) measured.push([facts.engine, { missing, total, first }])
+    }
     const mostly = measured.filter(([, { missing, total }]) => missing * 2 > total)
     const [shown] = mostly
     if (shown === undefined) return []
