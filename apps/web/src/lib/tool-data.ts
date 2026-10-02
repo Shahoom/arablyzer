@@ -115,13 +115,13 @@ export const ARABIC_LAYER: ReadonlySet<ToolCategoryName> = new Set([
 export const CATEGORY_STYLE: Readonly<
   Record<ToolCategoryName, { readonly dot: string; readonly line: string; readonly chip: string }>
 > = {
-  crawl: { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-rule-soft text-ink-2' },
+  crawl: { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-surface-2 text-ink-2' },
   index: {
     dot: 'bg-cat-index',
     line: 'border-cat-index',
     chip: 'bg-cat-index-soft text-cat-index',
   },
-  onpage: { dot: 'bg-ink-2', line: 'border-ink-2', chip: 'bg-rule-soft text-ink-2' },
+  onpage: { dot: 'bg-ink-2', line: 'border-ink-2', chip: 'bg-surface-2 text-ink-2' },
   links: { dot: 'bg-cat-rtl', line: 'border-cat-rtl', chip: 'bg-cat-rtl-soft text-cat-rtl' },
   schema: {
     dot: 'bg-cat-schema',
@@ -133,7 +133,7 @@ export const CATEGORY_STYLE: Readonly<
     line: 'border-cat-fonts',
     chip: 'bg-cat-fonts-soft text-cat-fonts',
   },
-  'seo-tools': { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-rule-soft text-ink-2' },
+  'seo-tools': { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-surface-2 text-ink-2' },
   'search-data': {
     dot: 'bg-cat-rtl',
     line: 'border-cat-rtl',
@@ -174,5 +174,5 @@ export const CATEGORY_STYLE: Readonly<
     line: 'border-cat-fonts',
     chip: 'bg-cat-fonts-soft text-cat-fonts',
   },
-  general: { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-rule-soft text-ink-2' },
+  general: { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-surface-2 text-ink-2' },
 }
