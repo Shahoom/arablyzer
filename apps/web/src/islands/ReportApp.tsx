@@ -1,4 +1,4 @@
-import { SCAN_ID_PATTERN, type ScanSummary } from '@arablyzer/api-contract/codes'
+import type { ScanSummary } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import type { Report } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
@@ -11,6 +11,7 @@ import { ReportView, type Fixes } from './report/ReportView'
 import { StateCard } from './report/StateCard'
 import {
   advance,
+  idFromPath,
   outcomeOf,
   START,
   stateNotices,
@@ -31,16 +32,6 @@ type View =
       readonly tool: { readonly slug: string; readonly title: string | null } | undefined
     }
   | { readonly kind: 'failed'; readonly summary: ScanSummary }
-
-/** The scan's ID, the last part of /r/{id} or /en/r/{id}. */
-export function idFromPath(pathname: string): string | null {
-  const last =
-    pathname
-      .split('/')
-      .filter((part) => part !== '')
-      .at(-1) ?? ''
-  return SCAN_ID_PATTERN.test(last) ? last : null
-}
 
 /** The rules' "how to fix" sections in the page's language, loaded with the report. */
 async function loadFixes(lang: Lang): Promise<Fixes | null> {
