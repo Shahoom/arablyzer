@@ -5,6 +5,7 @@ import {
   ALL_COPY,
   CATEGORIES,
   codeParts,
+  HERO_TOOLS,
   HOME,
   PAGES_UI,
   REPORT,
@@ -213,6 +214,71 @@ describe('interface copy', () => {
     for (const topic of TOPICS) {
       expect(HOME.ar.topics.names[topic]).toBeTruthy()
       expect(HOME.en.topics.names[topic]).toBeTruthy()
+    }
+  })
+
+  it('names every tool of the hero’s chips, in both languages', () => {
+    for (const tool of HERO_TOOLS) {
+      expect(HOME.ar.hero.tools.names[tool]).toBeTruthy()
+      expect(HOME.en.hero.tools.names[tool]).toBeTruthy()
+    }
+    expect(Object.keys(HOME.ar.hero.tools.names).sort()).toEqual([...HERO_TOOLS].sort())
+  })
+
+  // M2.6 R2: the home page's numbers are counted from the registries, so the words that follow a
+  // number must agree with it as each language counts: «3 قواعد»، «11 قاعدة»، «قاعدتان».
+  it('agrees the nouns of the home page’s counts with their numbers, as Arabic counts', () => {
+    const { counts, hero, marquee } = HOME.ar
+    expect([1, 2, 3, 11, 44, 100].map((n) => counts.tools(n))).toEqual([
+      'أداة مجانية',
+      'أداتان مجانيتان',
+      'أدوات مجانية',
+      'أداة مجانية',
+      'أداة مجانية',
+      'أداة مجانية',
+    ])
+    expect(counts.rules(61)).toBe('قاعدة نفحص بها')
+    expect(counts.rules(2)).toBe('قاعدتان نفحص بهما')
+    expect(counts.browsers(3)).toBe('متصفحات لكل صفحة')
+    expect(counts.guides(15)).toBe('دليلاً لرسائل Search Console')
+    expect(counts.guides(5)).toBe('أدلة لرسائل Search Console')
+    expect(counts.terms(38)).toBe('مصطلحاً بالعربية')
+    expect(counts.terms(1)).toBe('مصطلح بالعربية')
+    expect(hero.pill.count(44)).toBe('44 أداة')
+    expect(hero.pill.count(5)).toBe('5 أدوات')
+    expect(hero.scope.rules(61)).toBe('61 قاعدة')
+    expect(marquee.label(44)).toBe('من أدواتنا (44 أداة)')
+    expect(HOME.ar.figure.declarations(5)).toBe('في 5 خصائص من ملف CSS واحد')
+    expect(HOME.ar.figure.declarations(2)).toBe('في خاصيتين من ملف CSS واحد')
+    expect(HOME.ar.figure.float.passed(21)).toBe('نجحت 21 قاعدة')
+    expect(HOME.ar.figure.float.skipped(37)).toBe('ولم تنطبق 37 قاعدة على الصفحة')
+  })
+
+  it('agrees the nouns of the home page’s counts with their numbers, in English', () => {
+    const { counts, hero } = HOME.en
+    expect(counts.tools(1)).toBe('free tool')
+    expect(counts.tools(44)).toBe('free tools')
+    expect(counts.browsers(3)).toBe('browsers for every page')
+    expect(hero.pill.count(44)).toBe('44 tools')
+    expect(hero.pill.count(1)).toBe('1 tool')
+    expect(hero.scope.rules(61)).toBe('61 rules')
+    expect(HOME.en.figure.declarations(1)).toBe('In 1 declaration of one CSS file')
+    expect(HOME.en.figure.float.skipped(37)).toBe('37 rules did not apply to the page')
+  })
+
+  // The paid plans have no price yet, and the page must not look as if they had one: no currency
+  // and no «per month» in the plans, in either language, and no number in a paid plan's words.
+  it('gives the plans no price', () => {
+    for (const plans of [HOME.ar.plans, HOME.en.plans]) {
+      const words = JSON.stringify(plans, (_key, value: unknown) =>
+        typeof value === 'function' ? (value as (n: number) => string)(44) : value,
+      )
+      expect(words).not.toMatch(
+        /[$€£]|\b(?:USD|SAR|OMR|AED)\b|ريال|درهم|دينار|\/ ?(?:mo|month)\b|شهرياً|monthly/i,
+      )
+      for (const paid of [plans.monitoring, plans.crawl]) {
+        expect(JSON.stringify(paid)).not.toMatch(/[0-9٠-٩]/)
+      }
     }
   })
 

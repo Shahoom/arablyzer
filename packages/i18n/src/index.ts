@@ -1,7 +1,7 @@
 export { codeParts, type Copy, type Lang } from './copy'
 export { GENERATORS_UI, type GeneratorsStrings } from './generators'
 export { GUIDES_UI, type GuidesStrings } from './guides'
-export { HOME, TOPICS, type HomeStrings, type Topic } from './home'
+export { HERO_TOOLS, HOME, TOPICS, type HeroTool, type HomeStrings, type Topic } from './home'
 export { arabicCount, englishCount, englishForm, type ArabicForms } from './plural'
 export {
   CATEGORIES,
