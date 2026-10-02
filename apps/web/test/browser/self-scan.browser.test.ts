@@ -30,8 +30,9 @@ const PAGES = builtPages(DIST)
   .map((page) => page.path)
   .filter((path) => !isNoindexPage(path))
 /**
- * The pages that stand for the rest render in the three engines; the other tool pages, one
- * template with other words, in Chromium, which keeps the run short as the tools grow (M2.2).
+ * The pages that stand for the rest render in the three engines; the other pages of a template
+ * (tools, rules, guides, glossary terms), one template with other words, in Chromium, which
+ * keeps the run short as the site grows (M2.2).
  */
 const EVERY_ENGINE = new Set(representativePages(builtPages(DIST)).map((page) => page.path))
 const enginesFor = (path: string): Engine[] =>

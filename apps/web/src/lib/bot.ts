@@ -21,6 +21,8 @@ export interface BotFacts {
   /** At most, for one page load in a browser: requests, and mebibytes to and from the network. */
   readonly requestsPerLoad: number
   readonly mibPerLoad: number
+  /** At most, for one page load in a browser: the distinct hosts it may contact. */
+  readonly hostsPerLoad: number
   readonly viewport: { readonly width: number; readonly height: number }
   /** The DNS-over-HTTPS resolver the hosted service asks unless it is configured with another. */
   readonly dohUrl: string

@@ -353,6 +353,38 @@ describe('scan: hostile pages and rules', () => {
     expect(report.page).toBeNull()
   })
 
+  // H1 of the pre-launch review: a page of 1.4 million <p> is 4 KB gzipped and 4.2 MB read, and its
+  // tree took more heap than the scanner's container has: the process died, and every scan queued
+  // behind it failed. Now such a page is too complex at a limit of its own, whatever the clock says.
+  describe.each([
+    ['1.4 million elements', `<html lang="ar"><body>${'<p>'.repeat(1_400_000)}`],
+    ['100,000 nested elements', `<html lang="ar"><body>${'<div>'.repeat(100_000)}`],
+    ['2 million comments', `<html lang="ar"><body>${'<!---->'.repeat(2_000_000)}`],
+  ])('a page of %s', (_what, html) => {
+    it('is too complex at once, and the rules that need no HTML still run', async () => {
+      const local = await site(
+        { 'index.html': html, 'robots.txt': 'User-agent: *\nAllow: /\n' },
+        { '/': { compress: 'gzip' } },
+      )
+      const started = performance.now()
+      const report = await scan(local.url('/'), {
+        rules: [flagRule(), headerRule, robotsRule],
+        policy: policyFor(local),
+      })
+      // The nested page took 30 s, the deadline's, before: this tells it on a machine that is busy.
+      expect(performance.now() - started).toBeLessThan(15_000)
+      expect(schemaErrors(report)).toBe('')
+      expect(report.scan.status).toBe('partial')
+      expect(report.scan.notices.map((item) => item.code)).toEqual(['page-too-complex'])
+      expect(report.rules.map((rule) => [rule.id, rule.status, rule.error])).toEqual([
+        ['header-rule', 'pass', undefined],
+        ['robots-rule', 'pass', undefined],
+        ['test-rule', 'error', 'page-too-complex'],
+      ])
+      expect(report.page).toBeNull()
+    })
+  })
+
   it('rejects a parse budget that is not a positive number, naming the right option', async () => {
     // A loopback URL: were the check missing, the scan would fail on the address, not throw.
     for (const parseTimeoutMs of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {

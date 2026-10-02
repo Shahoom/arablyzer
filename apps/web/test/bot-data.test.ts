@@ -1,3 +1,4 @@
+import { DEFAULT_MAX_HOSTS } from '@arablyzer/browser'
 import { DEFAULT_DOH_URL, DEFAULT_MAX_REDIRECTS, DEFAULT_MAX_REQUESTS } from '@arablyzer/egress'
 import {
   MAX_LINKS,
@@ -18,6 +19,7 @@ describe('botFacts', () => {
     expect(facts.browserToken.startsWith('ArablyzerBot/')).toBe(true)
     expect(facts.pageRedirects).toBe(DEFAULT_MAX_REDIRECTS)
     expect(facts.requestsPerLoad).toBe(DEFAULT_MAX_REQUESTS)
+    expect(facts.hostsPerLoad).toBe(DEFAULT_MAX_HOSTS)
     expect(Number.isInteger(facts.robotsKib)).toBe(true)
     expect(Number.isInteger(facts.mibPerLoad)).toBe(true)
     expect(facts.sitemaps).toBe(SITEMAP_LIMIT)
@@ -37,6 +39,17 @@ describe('botFacts', () => {
       expect(fetched, lang).toContain(facts.dohUrl)
       expect(fetched, lang).toContain('Cloudflare')
       expect(fetched, lang).toContain('_dmarc')
+    }
+  })
+
+  // M1 review (issue #29): the bot's page says its browsers reach at most this many hosts, and
+  // that they send no data a page asks them to, in both languages.
+  it('says how many hosts a browser may reach, from the code, and that no data is sent', () => {
+    const facts = botFacts()
+    for (const lang of ['ar', 'en'] as const) {
+      const bot = PAGES_UI[lang].bot
+      expect(bot.fetches.items(facts).join('\n'), lang).toContain(String(facts.hostsPerLoad))
+      expect(bot.never.items.join('\n'), lang).toContain('sendBeacon')
     }
   })
 

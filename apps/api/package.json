@@ -26,7 +26,6 @@
     "ioredis": "5.11.1",
     "ipaddr.js": "^2.5.0",
     "pg": "8.23.0",
-    "tldts": "7.4.16",
     "zod": "^4.6.5"
   },
   "devDependencies": {

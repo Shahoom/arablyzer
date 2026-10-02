@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_SCANNER_EVENTS, remoteScanner, type Fetcher } from '../src/index'
+import { MAX_SCANNER_EVENTS, remoteScanner, ScannerUnavailable, type Fetcher } from '../src/index'
 
 const TOKEN = 'a-token-long-enough-to-be-the-workers-own'
 
@@ -195,5 +195,103 @@ describe('remoteScanner', () => {
         20,
       )({ url: 'https://example.com/' }, () => undefined),
     ).rejects.toThrow('aborted')
+  })
+})
+
+// H1 of the pre-launch review: a scanner that had died, which Compose starts again (as it does after
+// a scan that started a browser, M3), was not asked again: its scans failed, and so did the whole
+// queue behind them. What says "not there" is a scan that has not started, so the worker can ask
+// again, and only that.
+describe('remoteScanner, when the scanner is not there', () => {
+  const ask = (fetcher: Fetcher) =>
+    remoteScanner(
+      'http://scanner:8788',
+      TOKEN,
+      fetcher,
+    )({ url: 'https://example.com/' }, () => {
+      return undefined
+    })
+
+  /** As undici words a failed connection: fetch failed, and the system's error as its cause. */
+  const failed = (code: string, message = `connect ${code}`) =>
+    new TypeError('fetch failed', { cause: Object.assign(new Error(message), { code }) })
+
+  it.each(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'UND_ERR_CONNECT_TIMEOUT'])(
+    'says so when the connection fails with %s',
+    async (code) => {
+      const fetcher: Fetcher = () => Promise.reject(failed(code))
+      const error = await ask(fetcher).catch((caught: unknown) => caught)
+      expect(error).toBeInstanceOf(ScannerUnavailable)
+      // The code is in the message, for the worker's log.
+      expect((error as Error).message).toContain(code)
+    },
+  )
+
+  it('says so when every address it tried refused, as a name with two addresses gives', async () => {
+    const refused = Object.assign(new AggregateError([new Error('::1'), new Error('127.0.0.1')]), {
+      code: 'ECONNREFUSED',
+    })
+    const fetcher: Fetcher = () => Promise.reject(new TypeError('fetch failed', { cause: refused }))
+    await expect(ask(fetcher)).rejects.toBeInstanceOf(ScannerUnavailable)
+  })
+
+  it('says so when the scanner answers 503 before a line, busy or restarting', async () => {
+    for (const body of ['{"error":"busy"}', '{"error":"restarting"}', '']) {
+      const { fetcher } = answering([body], 503)
+      const error = await ask(fetcher).catch((caught: unknown) => caught)
+      expect(error).toBeInstanceOf(ScannerUnavailable)
+      expect((error as Error).message).toBe('The scanner answered 503')
+    }
+  })
+
+  it('does not say so of anything that may have started the scan', async () => {
+    const other: [string, () => Promise<Response>][] = [
+      ['a reset connection', () => Promise.reject(failed('ECONNRESET'))],
+      ['a socket that closed', () => Promise.reject(failed('UND_ERR_SOCKET'))],
+      [
+        'a request that timed out',
+        () => Promise.reject(new DOMException('timeout', 'TimeoutError')),
+      ],
+      ['a failure of no known kind', () => Promise.reject(new Error('boom'))],
+      ['401', () => Promise.resolve(new Response('', { status: 401 }))],
+      ['400', () => Promise.resolve(new Response('', { status: 400 }))],
+      ['500', () => Promise.resolve(new Response('', { status: 500 }))],
+      ['502', () => Promise.resolve(new Response('', { status: 502 }))],
+    ]
+    for (const [what, run] of other) {
+      const error = await ask(run).catch((caught: unknown) => caught)
+      expect(error, what).toBeInstanceOf(Error)
+      expect(error, what).not.toBeInstanceOf(ScannerUnavailable)
+    }
+  })
+
+  it('does not say so once the scan has begun: its events were sent, and then the line was cut', async () => {
+    const encoder = new TextEncoder()
+    const started = `${JSON.stringify({ type: 'event', event: { type: 'started', engines: [] } })}\n`
+    let pulls = 0
+    const fetcher: Fetcher = () =>
+      Promise.resolve(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            // The first line, and then a connection that fails as one refused would.
+            pull(controller) {
+              if (pulls++ === 0) controller.enqueue(encoder.encode(started))
+              else controller.error(failed('ECONNREFUSED'))
+            },
+          }),
+          { status: 200 },
+        ),
+      )
+    const seen: unknown[] = []
+    const error = await remoteScanner(
+      'http://scanner:8788',
+      TOKEN,
+      fetcher,
+    )({ url: 'https://example.com/' }, (event) => seen.push(event)).catch(
+      (caught: unknown) => caught,
+    )
+    expect(seen).toHaveLength(1)
+    expect(error).toBeInstanceOf(Error)
+    expect(error).not.toBeInstanceOf(ScannerUnavailable)
   })
 })

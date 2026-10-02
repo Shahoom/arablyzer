@@ -1,16 +1,54 @@
+# A list of what the images take, and nothing else: the build copies the whole context into the
+# workspace stage (`COPY . .`), and a list of what to leave out lets in everything that its
+# author did not think of. It held `.env` alone, so a `.npmrc` with a registry token, a key file
+# or a credentials file anywhere in a checkout went into the layers of every image (found in the
+# pre-launch security review). The rules are read in order, and the last that matches a file wins.
+*
+
+# What `pnpm install --frozen-lockfile` reads, and the workspace's TypeScript settings.
+!/package.json
+!/pnpm-lock.yaml
+!/pnpm-workspace.yaml
+!/tsconfig.base.json
+!/turbo.json
+!/LICENSE
+
+# The code, and what it reads: the fixtures, the golden reports the home page's numbers come from
+# (fixtures/golden/reports), and the methodology page's text (docs/methodology.md).
+!/apps
+!/packages
+!/fixtures
+!/docs/methodology.md
+
+# The infra package is a workspace member (its package.json is part of the lockfile), and the
+# site's server image takes its Caddyfile. Nothing else of infra/ is an image's: not the compose
+# files, and never infra/.env, whose secrets the stack reads from outside.
+!/infra/package.json
+!/infra/Caddyfile
+
+# Inside what is taken: what a checkout builds or keeps, and the files that hold a secret,
+# whatever the name of the directory they are in.
 **/node_modules
 **/dist
 **/.turbo
+**/.astro
 **/.probe
 **/coverage
 **/*.log
 **/.DS_Store
-.git
-.github
-golden-actual
-# Tools' local state, such as their worktrees.
-.claude
-# Secrets stay out of the image, as they stay out of git, at any depth.
+**/.git
 **/.env
 **/.env.*
-!**/.env.example
+**/.npmrc
+**/.netrc
+**/.aws
+**/.ssh
+**/.gnupg
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.jks
+**/id_rsa*
+**/id_ecdsa*
+**/id_ed25519*

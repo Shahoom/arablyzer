@@ -19,6 +19,7 @@
     "test:browser": "turbo run test:browser",
     "test:services": "turbo run test:services",
     "test:stack": "pnpm --filter @arablyzer/infra test:stack",
+    "verify:deploy": "pnpm --filter @arablyzer/infra verify:deploy",
     "test:golden": "pnpm --filter @arablyzer/engine run test:golden",
     "schema:gen": "pnpm --filter @arablyzer/report-schema run schema:gen",
     "schema:check": "pnpm run schema:gen && git diff --exit-code -- packages/report-schema/report.schema.json",

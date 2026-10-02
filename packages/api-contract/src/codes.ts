@@ -8,9 +8,23 @@ export const MAX_URL_LENGTH = 2048
 export const SCANS_PATH = '/api/scans'
 
 /**
+ * The `action` the site's Turnstile widget sets, and the API asks Cloudflare's answer to name: a
+ * token made for another widget of the same site key is not a scan's. Cloudflare takes up to 32
+ * letters, digits, underscores and hyphens.
+ */
+export const TURNSTILE_ACTION = 'scan'
+
+/**
  * A scan's ID: 16 random bytes in base64url, so it cannot be guessed (Phase 2 design §3).
  */
 export const SCAN_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/
+
+/**
+ * A report's deletion token: 32 random bytes in base64url, given once, with the scan's ID, when
+ * the scan is created (M5, issue #33). Whoever holds it deletes the scan and its report
+ * (`DELETE /api/reports/:id` with `Authorization: Bearer <token>`); the API keeps only its hash.
+ */
+export const DELETE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
 
 /** Why a URL is not scanned: the egress package's own codes for it. */
 export const URL_ERROR_CODES = [
@@ -61,6 +75,11 @@ export const MAX_TOOL_SLUG_LENGTH = 64
 /** `202 Accepted`: the scan is queued, and its page is `/r/{id}`. */
 export interface CreateScanResponse {
   readonly id: string
+  /**
+   * What deletes the scan and its report, DELETE_TOKEN_PATTERN: given here and nowhere else, and
+   * kept by the API only as a hash, so a page that loses it cannot get it again.
+   */
+  readonly deleteToken: string
 }
 
 /** Any refusal, with its HTTP status (400, 403, 422, 429 or 503). */
@@ -106,6 +125,11 @@ export type ScanEvent =
       readonly status: number | null
       readonly contentType: string | null
       readonly error: string | null
+      /**
+       * The host the page was reached at, after its redirects: what the worker counts against
+       * the site's limit of scans. Absent where no page was reached.
+       */
+      readonly host?: string
     }
   | {
       /**

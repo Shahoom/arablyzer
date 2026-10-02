@@ -1,0 +1,77 @@
+# Dependabot's pull requests, weekly, for what the repository pins: the npm workspace, the GitHub
+# Actions (each pinned by commit, with its version in a comment, which Dependabot keeps in step),
+# and the images and modules that the Dockerfile, the compose files and the egress proxy name.
+# The npm, Actions and Go updates wait a week after a release (`cooldown`, as pnpm's
+# minimumReleaseAge does), and no image's major version arrives as a pull request: it is a decision
+# the owner takes.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      # One pull request for the patch and minor updates of the week, of the tools and the code.
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # The browsers Playwright pins are what the golden reports were made with (BUILD-PLAN §16.3):
+      # a new pin changes them, and a change to a golden report needs explicit approval.
+      - dependency-name: playwright-core
+      - dependency-name: axe-core
+      - dependency-name: lighthouse
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']
+
+  # The Dockerfile's base images, by tag and digest, and the egress proxy's own.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
+  - package-ecosystem: docker
+    directory: /infra/egress
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
+
+  # The images the compose files run: Valkey, PostgreSQL, Caddy. PostgreSQL's major version holds
+  # the data on its volume: a new one is a migration, done by hand.
+  - package-ecosystem: docker-compose
+    directory: /infra
+    schedule:
+      interval: weekly
+      day: monday
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
+
+  # Smokescreen, at the commit go.mod pins, and its dependencies.
+  - package-ecosystem: gomod
+    directory: /infra/egress
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3

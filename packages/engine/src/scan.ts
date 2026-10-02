@@ -3,6 +3,7 @@ import type { RenderOutcome } from '@arablyzer/browser'
 import type { LabRun } from '@arablyzer/lab'
 import {
   collectPage,
+  collectPageIsolated,
   collectRobots,
   ENGINES,
   headerValues,
@@ -142,10 +143,20 @@ export interface ScanOptions {
   /** Per request (BUILD-PLAN §11: 30 s). */
   readonly timeoutMs?: number
   /**
-   * Budget for parsing the page's HTML, which blocks the process while it runs; timeoutMs by
-   * default. Past it, the rules that need the HTML report an error and the scan is partial.
+   * Budget for parsing the page's HTML, which blocks the process while it runs, unless
+   * `isolateParse`; timeoutMs by default. Past it, the rules that need the HTML report an error
+   * and the scan is partial.
    */
   readonly parseTimeoutMs?: number
+  /**
+   * Reads the page's HTML in a thread of its own, with a heap of its own (H1 of the pre-launch
+   * review): a page whose tree is too much for that heap, or that takes longer than
+   * parseTimeoutMs wherever the parse has got to, is too complex, where read in this process it
+   * could end it or hold its event loop until it was done. What is read is the same, as the
+   * code is. The hosted scanner does; the CLI reads in its own process. `maxHeapMb` is the
+   * thread's heap in MB (ISOLATED_HEAP_MB by default).
+   */
+  readonly isolateParse?: { readonly maxHeapMb?: number }
   /**
    * USER_AGENT by default. robots.txt names the bot by its part before the first "/", and a
    * group naming it can keep the scan from a page.
@@ -373,6 +384,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     status: target.http.status,
     contentType: target.http.contentType,
     error: fetched.error?.code ?? null,
+    ...(response === null ? {} : { host: hostOf(response.url) }),
   })
   if (fetched.error !== null || response === null) {
     return failed(
@@ -390,19 +402,26 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
 
   let page: PageFacts
   try {
-    page = collectPage(
-      {
-        url: response.url,
-        status: response.status,
-        headers: response.headers,
-        body: response.body,
-        certificate:
-          response.certificate === null
-            ? null
-            : { ...response.certificate, checkedAt: fetched.startedAt },
-      },
-      { deadline: performance.now() + parseTimeoutMs },
-    )
+    const input = {
+      url: response.url,
+      status: response.status,
+      headers: response.headers,
+      body: response.body,
+      certificate:
+        response.certificate === null
+          ? null
+          : { ...response.certificate, checkedAt: fetched.startedAt },
+    }
+    page =
+      options.isolateParse === undefined
+        ? collectPage(input, { deadline: performance.now() + parseTimeoutMs })
+        : await collectPageIsolated(input, {
+            timeoutMs: parseTimeoutMs,
+            ...(options.isolateParse.maxHeapMb === undefined
+              ? {}
+              : { maxHeapMb: options.isolateParse.maxHeapMb }),
+            ...(options.signal === undefined ? {} : { signal: options.signal }),
+          })
   } catch {
     // A collector bug, or an input it cannot handle: the report says so instead of the scan crashing.
     return failed(target, [notice('page-unreadable')], 'page-unreadable')
@@ -742,23 +761,32 @@ async function renderAll(
     }
     if (outcome.status === 'refused') notices.push(notice('engine-refused', { engine: name }))
     if (outcome.requests.limited) notices.push(notice('request-limit', { engine: name }))
+    // Counted like the request limit: in the run's refusals, and told as a notice (M1 review).
+    if (outcome.pageRequests.sending > 0) {
+      notices.push(notice('request-refused', { engine: name }))
+    }
+    if (outcome.pageRequests.overHosts > 0) {
+      notices.push(notice('host-limit', { engine: name, hosts: String(browser.DEFAULT_MAX_HOSTS) }))
+    }
   }
   return { runs, rendered, notices, challenged }
 }
 
 /**
- * A render as the report shows it: the page's own requests, and those not let through. A render a
- * bot challenge ended is one that failed; the notice says why.
+ * A render as the report shows it: the page's own requests, and those not let through: refused by
+ * the egress proxy, past the request limit or the host limit, or for sending data (M1 review). A
+ * render a bot challenge ended is one that failed; the notice says why.
  */
 export function renderRun(outcome: RenderOutcome): RenderRun {
+  const { made, overLimit, overHosts, sending } = outcome.pageRequests
   return {
     engine: outcome.engine,
     version: outcome.version === null || outcome.version === '' ? null : outcome.version,
     status: outcome.status === 'challenged' ? 'failed' : outcome.status,
     durationMs: outcome.durationMs,
     requests: {
-      total: outcome.pageRequests.made,
-      refused: outcome.requests.refused + outcome.pageRequests.overLimit,
+      total: made,
+      refused: outcome.requests.refused + overLimit + overHosts + sending,
     },
   }
 }
@@ -926,7 +954,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
   if (needsPage && !reached) return { status: 'not-applicable', findings: [] }
-  if (needsHtml && page.htmlTimedOut) {
+  if (needsHtml && page.htmlTooComplex) {
     return { status: 'error', error: 'page-too-complex', findings: [] }
   }
   if (needsHtml && (page.html === null || page.text === null)) {
@@ -1158,7 +1186,7 @@ function pageNotices(page: PageFacts, robots: RobotsFacts | undefined): Notice[]
   } else if (!page.isHtml) {
     notices.push(notice('not-html'))
   } else {
-    if (page.htmlTimedOut) notices.push(notice('page-too-complex'))
+    if (page.htmlTooComplex) notices.push(notice('page-too-complex'))
     else if (page.text !== null && page.html !== null) {
       const loadsScripts = page.html.scripts.some(
         (script) => isJavaScript(script.type) && (script.src !== null || script.text.trim() !== ''),
@@ -1317,4 +1345,10 @@ function lastHeader(headers: readonly (readonly [string, string])[], name: strin
 
 function hash(input: string): string {
   return createHash('sha256').update(input).digest('hex').slice(0, 16)
+}
+
+/** A URL's host as the egress package writes it: lowercase, an IPv6 address without its brackets. */
+function hostOf(url: string): string {
+  const { hostname } = new URL(url)
+  return hostname.startsWith('[') ? hostname.slice(1, -1) : hostname
 }

@@ -13,6 +13,12 @@ describe('scanOptionsFrom', () => {
     expect(options.policy?.allowPrivate).toBe(false)
   })
 
+  // H1 of the pre-launch review: a page whose tree outgrew the heap ended the scanner, and every
+  // scan queued behind it failed. The scanner reads pages in a thread with a heap of its own.
+  it('reads the page in a thread of its own, with its own heap', () => {
+    expect(scanOptionsFrom({}).isolateParse).toEqual({})
+  })
+
   it('takes fewer engines, in their order, and refuses one it does not know', () => {
     expect(scanOptionsFrom({ ARABLYZER_ENGINES: 'webkit, chromium' }).render?.engines).toEqual([
       'chromium',

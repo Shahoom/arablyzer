@@ -6,21 +6,31 @@ import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core'
 import type { Pool } from 'pg'
-import type { NewScan, ScanRecord, ScanStore } from '../types'
+import type { Deletion, NewScan, ScanRecord, ScanStore } from '../types'
 import { scans } from './schema'
 
-const MIGRATIONS = fileURLToPath(new URL('../../drizzle/', import.meta.url))
+export const MIGRATIONS = fileURLToPath(new URL('../../drizzle/', import.meta.url))
 /** The advisory lock the migration holds, so API processes that start together migrate once. */
-const MIGRATION_LOCK = 0x6172_6162 // "arab"
+export const MIGRATION_LOCK = 0x6172_6162 // "arab"
+
+/** How many scans one statement of a retention sweep deletes: each holds a report. */
+const DELETE_BATCH = 500
+
+export interface PostgresScanStoreOptions {
+  /** How many scans one statement of deleteOlderThan deletes; tests make it small. */
+  readonly deleteBatch?: number
+}
 
 /** Scans in PostgreSQL through Drizzle. */
 export class PostgresScanStore implements ScanStore {
   readonly #pool: Pool
   readonly #db: NodePgDatabase<{ scans: typeof scans }>
+  readonly #deleteBatch: number
 
-  constructor(pool: Pool) {
+  constructor(pool: Pool, options: PostgresScanStoreOptions = {}) {
     this.#pool = pool
     this.#db = drizzle(pool, { schema: { scans } })
+    this.#deleteBatch = options.deleteBatch ?? DELETE_BATCH
   }
 
   /** Brings the tables up to this version's schema (packages/store/drizzle), one process at a time. */
@@ -45,6 +55,7 @@ export class PostgresScanStore implements ScanStore {
       createdAt: scan.createdAt,
       tool: scan.tool ?? null,
       state: 'queued',
+      deleteTokenHash: scan.deleteTokenHash ?? null,
     })
   }
 
@@ -87,6 +98,50 @@ export class PostgresScanStore implements ScanStore {
       { state: 'failed', finishedAt: at },
     )
     return rows.map((row) => row.id)
+  }
+
+  async delete(id: string, tokenHash: string): Promise<Deletion> {
+    // One statement decides: the row goes only where the hash is its own, and a null hash is no
+    // hash. Only when nothing went, is the scan asked for, to tell a wrong hash from no scan.
+    const deleted = await this.#db
+      .delete(scans)
+      .where(and(eq(scans.id, id), eq(scans.deleteTokenHash, tokenHash)))
+      .returning({ id: scans.id })
+    if (deleted.length > 0) return 'deleted'
+    const [row] = await this.#db
+      .select({ id: scans.id })
+      .from(scans)
+      .where(eq(scans.id, id))
+      .limit(1)
+    return row === undefined ? 'missing' : 'forbidden'
+  }
+
+  async deleteOlderThan(before: Date): Promise<number> {
+    // In batches, so no one statement holds the reports of a table's worth of scans: the first
+    // sweep after retention is set may find years of them.
+    let deleted = 0
+    for (;;) {
+      const oldest = this.#db
+        .select({ id: scans.id })
+        .from(scans)
+        .where(lt(scans.createdAt, before))
+        .limit(this.#deleteBatch)
+      const rows = await this.#db
+        .delete(scans)
+        .where(inArray(scans.id, oldest))
+        .returning({ id: scans.id })
+      deleted += rows.length
+      if (rows.length < this.#deleteBatch) return deleted
+    }
+  }
+
+  async states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>> {
+    if (ids.length === 0) return new Map()
+    const rows = await this.#db
+      .select({ id: scans.id, state: scans.state })
+      .from(scans)
+      .where(inArray(scans.id, [...ids]))
+    return new Map(rows.map((row) => [row.id, row.state]))
   }
 
   /** The change, made only when the scan is in one of the states it moves from. */

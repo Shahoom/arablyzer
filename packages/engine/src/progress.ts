@@ -14,6 +14,12 @@ export type ScanProgress =
       readonly status: number | null
       readonly contentType: string | null
       readonly error: string | null
+      /**
+       * The host the page was reached at, after the redirects the fetch followed (as a URL writes
+       * it, an IPv6 address without its brackets); absent where no page was reached. The worker
+       * counts it against the site's limit of scans (security review, issue #30).
+       */
+      readonly host?: string
     }
   | {
       /**

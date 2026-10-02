@@ -204,8 +204,9 @@ export default defineConfig(
   },
   {
     // The stack's end-to-end test asks the stack itself, on the host's port, as a visitor does
-    // (M2.1 plan §5b), and runs commands in its containers.
-    files: ['infra/test/**'],
+    // (M2.1 plan §5b), and runs commands in its containers; so do the checks it shares with the
+    // post-deploy script, and the script.
+    files: ['infra/test/**', 'infra/checks/**', 'infra/verify-deploy.ts'],
     rules: {
       ...networkRules({ allowProcesses: true }),
       'no-restricted-globals': [

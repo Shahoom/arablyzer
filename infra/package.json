@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:stack": "vitest run"
+    "test:stack": "vitest run",
+    "verify:deploy": "tsx verify-deploy.ts"
   }
 }
