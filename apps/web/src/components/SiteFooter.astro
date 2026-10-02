@@ -66,13 +66,18 @@ const columns = [
     ],
   },
 ]
-const link = 'text-ink-2 underline-offset-4 hover:text-ink hover:underline'
+// A link has room above and below it on a phone (a 28 px target for a thumb) and none on a
+// desktop, where the list's gap is the room.
+const link =
+  'inline-block py-1 text-ink-2 underline-offset-4 hover:text-ink hover:underline md:py-0'
 ---
 
-<footer class="below-fold border-t border-line [contain-intrinsic-size:auto_520px]">
-  <div class="wrap pt-12 pb-8 md:pt-16 md:pb-10">
-    <div class="grid gap-10 lg:grid-cols-[1.4fr_4fr] lg:gap-8">
-      <div class="flex flex-col gap-3.5">
+{/* Compact on a phone (M2.6 R7a): two columns of links in 13 px type, closer together, and the
+    small print in short lines; from md the footer is what R1 drew. */}
+<footer class="below-fold border-t border-line [contain-intrinsic-size:auto_360px] md:[contain-intrinsic-size:auto_520px]">
+  <div class="wrap pt-8 pb-6 md:pt-16 md:pb-10">
+    <div class="grid gap-6 md:gap-10 lg:grid-cols-[1.4fr_4fr] lg:gap-8">
+      <div class="flex flex-col gap-3 md:gap-3.5">
         <a
           href={localePath(lang, PATHS.home)}
           aria-label={t.homeLink}
@@ -83,15 +88,20 @@ const link = 'text-ink-2 underline-offset-4 hover:text-ink hover:underline'
             Arablyzer
           </span>
         </a>
-        <p class="m-0 max-w-[34ch] text-sm leading-[1.8] text-ink-2">{t.footer.about}</p>
+        <p class="m-0 max-w-[34ch] text-meta text-ink-2 md:text-small md:leading-[1.8]">
+          {t.footer.about}
+        </p>
       </div>
-      <nav aria-label={t.footer.navLabel} class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+      <nav
+        aria-label={t.footer.navLabel}
+        class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4 md:gap-x-6 md:gap-y-8"
+      >
         {columns.map((column) => (
-          <div class="flex min-w-0 flex-col gap-3.5">
-            <h2 class="m-0 text-sm font-semibold">
+          <div class="flex min-w-0 flex-col gap-1.5 md:gap-3.5">
+            <h2 class="m-0 text-meta font-semibold md:text-small">
               <Bidi text={column.title} lang={lang} />
             </h2>
-            <ul class="m-0 flex list-none flex-col gap-2.5 p-0 text-sm">
+            <ul class="m-0 flex list-none flex-col gap-0.5 p-0 text-meta md:gap-2.5 md:text-small">
               {column.links.map((item) => (
                 <li>
                   <a href={item.href} class={link}>
@@ -117,7 +127,7 @@ const link = 'text-ink-2 underline-offset-4 hover:text-ink hover:underline'
         ))}
       </nav>
     </div>
-    <div class="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pt-6 text-[13px] text-ink-3">
+    <div class="mt-6 flex flex-col items-start gap-y-1.5 border-t border-line pt-4 text-meta text-ink-3 md:mt-10 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-x-6 md:gap-y-2 md:pt-6">
       <span>
         {t.footer.designed} {t.footer.reportsPrivate}
       </span>
