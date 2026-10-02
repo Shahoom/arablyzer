@@ -1,9 +1,9 @@
 import { REPORT } from '@arablyzer/i18n/report'
 import type { Finding } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
-import { valueOf } from '../report-model'
+import { diagramOf, valueOf } from '../report-model'
 import { Revealed } from './Bidi'
-import { ENGINE_LABEL } from './ui'
+import { ENGINE_LABEL, EngineDot } from './ui'
 
 /**
  * A finding's evidence: where it is, the engines that saw it, and its code; the tool pages show it
@@ -25,49 +25,53 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
           label={t.overflow(overflow, viewport)}
         />
       )}
-      <dl className="m-0 grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-x-4 gap-y-2.5 text-[15px]">
-        {selector !== undefined && (
-          <>
-            <dt className="text-ink-3">{t.selector}</dt>
-            <dd className="m-0 min-w-0">
-              {/* A box of its own, so a selector that wraps keeps its lines to the left in Arabic. */}
-              <code
-                dir="ltr"
-                className="inline-block max-w-full bg-paper px-2 py-0.5 text-start font-mono text-sm break-all"
-              >
-                <Revealed text={selector} />
-              </code>
-              {location !== undefined && (
-                <span dir="ltr" className="ms-2 font-mono text-xs text-ink-3">
-                  :{location.line}
-                </span>
-              )}
-            </dd>
-          </>
-        )}
-        {engines !== undefined && engines.length > 0 && (
-          <>
-            <dt className="text-ink-3">{t.seenIn}</dt>
-            <dd className="m-0 flex flex-wrap gap-1.5">
-              {engines.map((engine) => (
-                <span
-                  key={engine}
+      {(selector !== undefined || (engines !== undefined && engines.length > 0)) && (
+        <dl className="m-0 flex flex-col gap-3 text-[15px]">
+          {selector !== undefined && (
+            <div className="grid items-start gap-1 sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] sm:gap-x-4">
+              <dt className="text-[13px] text-ink-3 sm:pt-1">{t.selector}</dt>
+              <dd className="m-0 min-w-0">
+                {/* A box of its own, so a selector that wraps keeps its lines to the left in Arabic. */}
+                <code
                   dir="ltr"
-                  className="bg-serious-soft px-2 py-0.5 font-mono text-xs text-serious"
+                  className="inline-block max-w-full rounded-xs bg-surface-2 px-2 py-0.5 text-start font-mono text-[13px] break-all text-ink"
                 >
-                  {ENGINE_LABEL[engine]}
-                </span>
-              ))}
-            </dd>
-          </>
-        )}
-      </dl>
+                  <Revealed text={selector} />
+                </code>
+                {location !== undefined && (
+                  <span dir="ltr" className="ms-2 font-mono text-xs text-ink-3">
+                    :{location.line}
+                  </span>
+                )}
+              </dd>
+            </div>
+          )}
+          {engines !== undefined && engines.length > 0 && (
+            <div className="grid items-start gap-1 sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] sm:gap-x-4">
+              <dt className="text-[13px] text-ink-3 sm:pt-1">{t.seenIn}</dt>
+              <dd className="m-0 flex flex-wrap gap-1.5">
+                {engines.map((engine) => (
+                  <span
+                    key={engine}
+                    dir="ltr"
+                    lang="en"
+                    className="inline-flex h-7 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-[13px] text-ink-2"
+                  >
+                    <EngineDot engine={engine} />
+                    {ENGINE_LABEL[engine]}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
       {snippet !== undefined && (
         <pre
           dir="ltr"
           // Focusable, so a keyboard can scroll a line wider than the card.
           tabIndex={0}
-          className="m-0 overflow-x-auto bg-panel px-4 py-3 font-mono text-[13px] text-panel-soft"
+          className="panel-dark m-0 overflow-x-auto rounded-lg px-4 py-3 font-mono text-[13px] leading-[1.8] text-panel-soft"
         >
           <code>
             <Revealed text={snippet} muted="text-panel-dim" />
@@ -78,7 +82,11 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
   )
 }
 
-/** The element past the phone's edge, to scale, as on the home page. */
+/**
+ * The element past the phone's edge, to scale: the screen is a rounded outline, 150 units wide
+ * for the viewport, and the element's box is drawn where it sits against it, dashed, with the
+ * distance it reaches beyond. The lines inside the screen only suggest a page; they are not data.
+ */
 function OverflowDiagram({
   x,
   width,
@@ -92,57 +100,64 @@ function OverflowDiagram({
   viewport: number
   label: string
 }) {
-  const scale = 150 / viewport
-  const screen = { x: 300, width: 150 }
-  const start = Math.max(4, screen.x + x * scale)
-  const end = Math.max(start + 4, Math.min(screen.x + (x + width) * scale, 516))
+  const { screen, start, end, from, to } = diagramOf(x, width, viewport)
   const round = (value: number) => Math.round(value * 10) / 10
   return (
-    <div className="max-w-[520px] border border-rule-soft bg-paper p-3">
+    <div className="w-fit max-w-full rounded-xl bg-serious-soft/40 p-3">
       <svg
-        width="100%"
-        viewBox="0 0 520 148"
+        width={to - from}
+        height="148"
+        viewBox={`${from} 0 ${to - from} 148`}
         fill="none"
         role="img"
         aria-label={label}
         direction="ltr"
+        className="block h-auto max-w-full"
       >
         <rect
           x={screen.x}
           y="8"
           width={screen.width}
           height="124"
-          className="stroke-ink"
-          strokeWidth="1.5"
+          rx="14"
+          className="fill-white stroke-ink-3"
+          stroke-width="1.5"
+        />
+        <path
+          d={`M${screen.x + 14} 66H${screen.x + 96}M${screen.x + 14} 80H${screen.x + 64}`}
+          className="stroke-surface-2"
+          stroke-width="6"
+          stroke-linecap="round"
         />
         <rect
           x={round(start)}
           y="26"
           width={round(end - start)}
-          height="30"
+          height="22"
+          rx="3"
           className="fill-serious-soft stroke-serious"
-          strokeWidth="1.5"
-          strokeDasharray="4 3"
+          stroke-width="1.5"
+          stroke-dasharray="4 3"
         />
         <path
           d={`M${round(start)} 96H${screen.x}M${round(start)} 90v12M${screen.x} 90v12`}
-          className="stroke-measure"
-          strokeWidth="1.2"
+          className="stroke-serious"
+          stroke-width="1.2"
         />
         <text
           x={round((start + screen.x) / 2)}
           y="120"
-          textAnchor="middle"
-          fontSize="13"
-          className="fill-measure font-mono"
+          text-anchor="middle"
+          font-size="13"
+          className="fill-serious font-mono"
         >
           {overflow}px
         </text>
         <text
           x={screen.x + screen.width / 2}
-          y="80"
-          textAnchor="middle"
-          fontSize="12"
+          y="112"
+          text-anchor="middle"
+          font-size="12"
           className="fill-ink-3 font-mono"
         >
           {viewport}px
