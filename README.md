@@ -50,7 +50,7 @@ Pages are built for `https://arablyzer.example` until the domain is chosen; `ARA
 
 ### The API and the worker / الخادم والعامل
 
-`apps/api` takes a scan (`POST /api/scans`), streams its steps (`GET /api/scans/:id/events`) and serves its report (`GET /api/reports/:id`, never indexed); `apps/worker` takes each queued scan and has `apps/scanner`, the engine and its browsers, run it. `packages/store` keeps scans in PostgreSQL and the queue, the events and the limits in Valkey, with in-memory versions for tests and development.
+`apps/api` takes a scan (`POST /api/scans`), streams its steps (`GET /api/scans/:id/events`), serves its report (`GET /api/reports/:id`, never indexed) and deletes it for the token its creation gave (`DELETE /api/reports/:id`); `apps/worker` takes each queued scan and has `apps/scanner`, the engine and its browsers, run it. `packages/store` keeps scans in PostgreSQL and the queue, the events and the limits in Valkey, with in-memory versions for tests and development. The scanner reads a page's HTML in a thread with a heap and a clock of its own, so a page too big for it is reported as too complex and never ends the scanner; and the worker waits for a scanner that is not there, so a scanner that is starting again fails no scan. The scanner ends its process after a scan that started a browser, and Compose starts a clean one, so a browser that a page took over does not outlive its scan; a scan that starts none leaves the process as it is ([`docs/design/plans/m3.1-security.md`](docs/design/plans/m3.1-security.md)).
 
 ```bash
 pnpm --filter @arablyzer/api dev   # the API and a worker in one process, on http://127.0.0.1:8787
@@ -59,11 +59,15 @@ ARABLYZER_TEST_VALKEY_URL=redis://127.0.0.1:6379 \
 ARABLYZER_TEST_DATABASE_URL=postgres://user:pass@127.0.0.1:5432/db pnpm test:services
 ```
 
-`ARABLYZER_ALLOW_PRIVATE=1` lets the development API scan local pages, such as the fixture sites; production refuses it. The limits' numbers are the owner's decision: `packages/plans` holds development values, and production will not start without its own (`ARABLYZER_LIMIT_*`), `TURNSTILE_SECRET`, `ARABLYZER_SITE` and `ARABLYZER_LIMIT_SECRET`. The API's and the worker's production entrypoints (`server.ts`, `main.ts`) apply those checks whatever `NODE_ENV` says; `dev.ts` is the development one.
+What the API asks of a scan request, the security review's abuse checks (issue #30): JSON (`Content-Type: application/json`) and, where `ARABLYZER_SITE` is set, which production requires, an `Origin` that is exactly the site's, so leave it unset for the site's dev server at `localhost:4321`. A visitor's requests are throttled before Turnstile is asked (a visitor is an IPv4 address or an IPv6 /48; an IPv6 /32 has a limit of its own), a visitor may have only so many scans queued or running, and Turnstile's answer must name the action `scan`. Cloudflare's Turnstile test keys pass every token, so the API refuses them in production, which the Compose stack always is; only `infra/compose.e2e.yaml`, for the end-to-end stack, allows them. The worker counts the site a scan ends at, after its redirects, against the per-host limit, and stops the scan there when that site has none left.
+
+Deleting reports (issue #33): a scan's creation answers `{ id, deleteToken }`, the token is given once and kept only as its hash, and `DELETE /api/reports/:id` with `Authorization: Bearer <token>` deletes the scan and its report. `ARABLYZER_REPORT_RETENTION_DAYS` is the owner's number of days, with no default: set, the worker deletes older scans and their reports every hour; unset, they are kept, and the worker says so in its log when it starts.
+
+`ARABLYZER_ALLOW_PRIVATE=1` lets the development API scan local pages, such as the fixture sites; production refuses it. The limits' numbers are the owner's decision: `packages/plans` holds development values, and production will not start without its own (`ARABLYZER_LIMIT_*`), `TURNSTILE_SECRET`, `ARABLYZER_SITE`, `ARABLYZER_LIMIT_SECRET` (32 characters or more), the server's own addresses (`ARABLYZER_DENY_CIDRS`) and, behind the site's server, `ARABLYZER_PROXY_SECRET` (32 characters or more). The API's and the worker's production entrypoints (`server.ts`, `main.ts`) apply those checks whatever `NODE_ENV` says; `dev.ts` is the development one.
 
 ### The stack / تشغيل كل شيء معاً
 
-`infra/compose.yaml` runs everything on one host: the site's server (Caddy), the API, the worker, the scanner with its browsers, the egress proxy (Smokescreen, with a port check and the egress package's deny list), Valkey and PostgreSQL. The scanner's browsers see the egress proxy alone, and no store; every name they ask for is resolved and vetted there. The internal networks give the host no address, so nothing on them reaches the host's own services either: that takes Docker Engine 28 or later, and since Docker ignores a network option it does not know, `pnpm test:stack` checks it on the Docker that runs it. The site's server listens on the host's loopback, for the host's own proxy, which terminates TLS in front of it. Every container runs read-only, without privileges, with caps on memory, CPU and processes.
+`infra/compose.yaml` runs everything on one host: the site's server (Caddy), the API, the worker, the scanner with its browsers, the egress proxy (Smokescreen, with a port check and the egress package's deny list), Valkey and PostgreSQL. The scanner's browsers see the egress proxy alone, and no store; every name they ask for is resolved and vetted there. The internal networks give the host no address, so nothing on them reaches the host's own services either: that takes **Docker Engine 28 or later**, and since Docker ignores a network option it does not know, `pnpm test:stack` checks it on the Docker that runs it, and `pnpm verify:deploy` on the one that was deployed. The site's server listens on the host's loopback, for the host's own proxy, which terminates TLS in front of it. Every container runs read-only, without privileges, with caps on memory, CPU and processes. The API and the worker connect to PostgreSQL as a role that can read, write and delete scans and change nothing else (a one-shot `migrate` service makes the roles and the tables), Valkey has one user and no password on its command line, and the API believes a visitor's address only from the site's server, which proves itself with a secret.
 
 ```bash
 cp infra/.env.example infra/.env        # then fill it in
@@ -72,6 +76,8 @@ docker compose -f infra/compose.yaml up --build
 docker compose -f infra/compose.yaml -f infra/compose.e2e.yaml up --detach --build --wait
 pnpm test:stack
 ```
+
+[`infra/README.md`](infra/README.md) has what an operator needs beyond this: the requirements, the secrets (`openssl rand -hex 32`, never base64), the databases' roles, the server's own addresses (`ARABLYZER_DENY_CIDRS`, IPv4 and IPv6), the rule that the host's firewall needs (drop input from the Docker bridges but for DNS), and `pnpm verify:deploy`, which checks all of it on the stack that is running.
 
 The egress proxy's configuration is generated from `packages/egress`, its deny list and its limits: `pnpm --filter @arablyzer/egress smokescreen-config` writes `infra/egress/smokescreen.yaml`, and the egress tests check the two agree. The proxy's own tests (`infra/egress/main_test.go`) run as its image is built.
 
@@ -97,9 +103,11 @@ Arablyzer fetches pages as `ArablyzerBot/1.0 (+https://arablyzer.com/bot)`, only
 
 With `--render`, the page is also rendered in a browser, one engine after the other, each behind its own egress proxy that vets every request the page makes by the same rules; `--screenshots <dir>` saves the first screen of each as `<dir>/<engine>.png`. WebKit sends WebRTC traffic around the proxy, so it runs only in a container whose network reaches nothing but the proxy, marked by `ARABLYZER_NETWORK_ISOLATED=1`; elsewhere `--engines webkit` is refused and `--engines all` means Chromium and Firefox. On macOS WebKit never runs, even with that variable: there it also sends redirects and navigations to local addresses around the proxy.
 
-With `--lab`, Lighthouse 13 measures the page on an emulated phone in the render's Chromium (Playwright's headless shell), behind its own egress proxy and the render's limits. Its metrics vary from run to run, so the report gives them as information: they are never findings, and never part of the score.
+The render's browsers send nothing a page asks them to send: every request that is not `GET` or `HEAD` is refused, whatever its destination, so no form, beacon or `POST` request goes out; WebSockets are closed before they open; no web worker starts, no window opens, no form is submitted and no handler runs as a page is dismissed, since a browser sends what those make outside what refuses requests, or stops loading a page over a refusal; and a page reaches only a limited number of different hosts. The report counts what was refused and says so in a notice. [`docs/methodology.md`](docs/methodology.md) has the details.
 
-Real visitors' Core Web Vitals come from Google's Chrome UX Report (CrUX), with an API key in `ARABLYZER_CRUX_API_KEY` (created in Google Cloud for the Chrome UX Report API): visits in Chrome by users who share usage statistics and sync their history; Chrome on iPhone is not counted. The page's URL is then sent to Google; a page on a private address never is. Without a key, the three rules that read CrUX do not apply, and a notice says so.
+With `--lab`, Lighthouse 13 measures the page on an emulated phone in the render's Chromium (Playwright's headless shell), behind its own egress proxy and the render's limits. Its metrics vary from run to run, so the report gives them as information: they are never findings, and never part of the score. Its browser is not yet held to the refusal of requests that send data: it runs only here, on the machine of whoever asks for it, and never in the hosted service.
+
+Real visitors' Core Web Vitals come from Google's Chrome UX Report (CrUX), with an API key in `ARABLYZER_CRUX_API_KEY` for the CLI, and in `ARABLYZER_CRUX_KEY` for the hosted stack's scanner (`infra/.env.example`); the two are not the same variable, and each ignores the other (created in Google Cloud for the Chrome UX Report API): visits in Chrome by users who share usage statistics and sync their history; Chrome on iPhone is not counted. The page's URL is then sent to Google; a page on a private address never is. Without a key, the three rules that read CrUX do not apply, and a notice says so.
 
 ## Rules / القواعد
 
@@ -157,7 +165,7 @@ This one asks for the page's links to its own origin, the first 50 that robots.t
 |---|---|
 | [`link-broken`](packages/rules/src/rules/link-broken/copy.en.md) | No link to the site's own pages answers a `4xx` or `5xx` error (a `401`, `403`, `407`, `429` or `503`, by which a site refuses a bot, is not one) |
 
-These read real visits from CrUX, so they run with `ARABLYZER_CRUX_API_KEY`:
+These read real visits from CrUX, so they run with a key (`ARABLYZER_CRUX_API_KEY` for the CLI, `ARABLYZER_CRUX_KEY` for the hosted stack's scanner):
 
 | Rule | Checks |
 |---|---|

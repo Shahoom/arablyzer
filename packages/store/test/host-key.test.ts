@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hostKey } from '../src/target'
+import { hostKey, hostLimitKey } from '../src/index'
 
 describe('hostKey', () => {
   it('counts a site by its registrable domain, whatever name or trailing dot is used', () => {
@@ -21,5 +21,23 @@ describe('hostKey', () => {
       'ip:2606:2800:21f:cb07:6820:80da:af6b:8b2c',
     )
     expect(hostKey('::ffff:93.184.215.14')).toBe('ip:93.184.215.14')
+  })
+
+  // A scan's page reports its host as a URL writes it, and the API's is written without them.
+  it('reads an IPv6 address in brackets as the address', () => {
+    expect(hostKey('[2606:2800:21f:cb07:6820:80da:af6b:8b2c]')).toBe(
+      hostKey('2606:2800:21f:cb07:6820:80da:af6b:8b2c'),
+    )
+    expect(hostKey('[::ffff:93.184.215.14]')).toBe('ip:93.184.215.14')
+  })
+})
+
+describe('hostLimitKey', () => {
+  // The API counts the site a scan is asked for, and the worker the site it ends at, in one bucket.
+  it('is one key for one site, whichever of its names and whoever counts', () => {
+    expect(hostLimitKey('shop.example.com')).toBe('host:domain:example.com')
+    expect(hostLimitKey('EXAMPLE.com.')).toBe(hostLimitKey('www.example.com'))
+    expect(hostLimitKey('93.184.215.14')).toBe('host:ip:93.184.215.14')
+    expect(hostLimitKey('example.com')).not.toBe(hostLimitKey('example.org'))
   })
 })

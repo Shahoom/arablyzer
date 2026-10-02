@@ -39,9 +39,13 @@ export {
 export { IPV4_RANGES, IPV6_RANGES, type SpecialRange } from './ranges'
 export {
   ALLOW_PRIVATE_VARIABLE,
+  checkDenyCidrs,
   DENY_CIDRS_VARIABLE,
+  denyCidr,
+  denyCidrsFrom,
   EGRESS_PROXY_VARIABLE,
   serverPolicy,
+  type DenyCidrsCheck,
 } from './server-policy'
 export {
   openTunnel,

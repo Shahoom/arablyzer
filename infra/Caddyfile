@@ -10,6 +10,17 @@
 	servers {
 		trusted_proxies static {$ARABLYZER_TRUSTED_PROXIES:private_ranges}
 		trusted_proxies_strict
+		# A connection that is slow to send its headers or its body is closed: Caddy sets no limit
+		# of its own, so a few hundred that send a byte a minute would hold every slot of a
+		# 64 MB, 128-process container. A request's headers and body are small (the API reads
+		# 8 KB at most), and ten seconds and thirty are ample for the host's proxy, which sends
+		# them at once. No write timeout: a scan's events are one response that lasts minutes,
+		# and the API pings it every 15 s. Idle keep-alive connections go after two minutes.
+		timeouts {
+			read_header 10s
+			read_body 30s
+			idle 2m
+		}
 	}
 	# An error the server answers (handle_errors) is logged at the debug level alone, which is off;
 	# one it cannot answer is logged with the request, whose addresses and headers go (§14).
@@ -35,6 +46,10 @@
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options nosniff
 		X-Frame-Options DENY
+		# The one directive a page's own <meta> policy cannot carry (browsers ignore frame-ancestors
+		# there); the pages' policies, with the hashes of their inline scripts, are in the pages.
+		# Both are enforced together, and this one says only that no site frames Arablyzer.
+		Content-Security-Policy "frame-ancestors 'none'"
 		Referrer-Policy strict-origin-when-cross-origin
 		Cross-Origin-Opener-Policy same-origin
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
@@ -50,6 +65,11 @@
 		reverse_proxy api:8787 {
 			# One address, the visitor's, which the API counts its limits by (§14).
 			header_up X-Forwarded-For {client_ip}
+			# The API believes that address only of a request that carries this secret: the API's
+			# port is reachable by whatever else is on the edge network, and by the host itself,
+			# and any of them could write any address in the header. Set here, it replaces a
+			# header of the same name that a visitor sends.
+			header_up X-Arablyzer-Proxy-Secret {$ARABLYZER_PROXY_SECRET}
 			# A scan's events go to its page as they come.
 			flush_interval -1
 		}

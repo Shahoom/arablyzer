@@ -232,7 +232,7 @@ describe('a render run in the report', () => {
           bytes: 10,
           refusals: [],
         },
-        pageRequests: { made: 61, overLimit: 51 },
+        pageRequests: { made: 61, overLimit: 51, overHosts: 0, sending: 0 },
         facts: null,
         screenshot: null,
       }),
@@ -243,5 +243,30 @@ describe('a render run in the report', () => {
       durationMs: 5,
       requests: { total: 61, refused: 52 },
     })
+  })
+
+  // M1 review (issue #29): what the browser refused for sending data, or for a host past the limit,
+  // is counted with what the request limit refused, and not in the proxy's count, which never saw it.
+  it('counts what was refused for sending data or for a host past the limit with the rest', () => {
+    const run = renderRun({
+      engine: 'firefox',
+      version: '155.0',
+      status: 'rendered',
+      error: null,
+      challenge: null,
+      durationMs: 7,
+      requests: {
+        requests: 20,
+        refused: 2,
+        unauthenticated: 0,
+        limited: false,
+        bytes: 10,
+        refusals: [],
+      },
+      pageRequests: { made: 40, overLimit: 0, overHosts: 6, sending: 12 },
+      facts: null,
+      screenshot: null,
+    })
+    expect(run.requests).toEqual({ total: 40, refused: 2 + 6 + 12 })
   })
 })

@@ -12,6 +12,7 @@ export function eventOf(progress: ScanProgress): ScannerEvent {
         status: progress.status,
         contentType: progress.contentType,
         error: progress.error,
+        ...(progress.host === undefined ? {} : { host: progress.host }),
       }
     case 'robots':
       return { type: 'robots', outcome: progress.outcome, status: progress.status }

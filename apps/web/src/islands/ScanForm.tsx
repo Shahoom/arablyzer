@@ -24,6 +24,7 @@ const TONE = {
     input: 'border-[1.5px] border-ink sm:border-0',
     button: 'bg-ink hover:bg-brand-ink',
     error: 'text-serious',
+    note: 'text-ink-3',
   },
   panel: {
     label: 'text-panel-soft',
@@ -31,6 +32,7 @@ const TONE = {
     input: 'border-0',
     button: 'bg-brand hover:bg-brand-ink',
     error: 'text-panel-signal',
+    note: 'text-panel-dim',
   },
 } as const
 
@@ -42,6 +44,7 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<FormError | null>(null)
   const errorId = `${inputId}-error`
+  const noteId = `${inputId}-note`
   const Forward = lang === 'ar' ? ArrowLeft : ArrowRight
   const box = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLInputElement>(null)
@@ -125,7 +128,7 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
             check.warm()
           }}
           aria-invalid={invalid ? true : undefined}
-          aria-describedby={error === null ? undefined : errorId}
+          aria-describedby={error === null ? noteId : `${noteId} ${errorId}`}
           className={`h-[54px] min-w-0 grow bg-white px-3.5 font-mono text-base text-ink placeholder:text-ink-3 sm:h-auto sm:px-5 sm:text-lg ${style.input}`}
         />
         <button
@@ -139,6 +142,9 @@ export default function ScanForm({ lang, inputId, tone }: Props) {
           <Forward size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
+      <p id={noteId} className={`m-0 text-sm ${style.note}`}>
+        {t.queryNote}
+      </p>
       <div ref={box} className="empty:hidden" />
       <p id={errorId} role="alert" className={`text-sm ${style.error}`}>
         {message}

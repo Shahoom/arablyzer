@@ -19,7 +19,9 @@
     "bullmq": "6.3.9",
     "drizzle-orm": "0.45.3",
     "ioredis": "5.11.1",
-    "pg": "8.23.0"
+    "ipaddr.js": "^2.5.0",
+    "pg": "8.23.0",
+    "tldts": "7.4.16"
   },
   "devDependencies": {
     "@types/pg": "8.23.1",

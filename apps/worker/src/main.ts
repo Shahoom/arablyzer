@@ -1,15 +1,23 @@
+import { hostLimitFrom } from '@arablyzer/plans'
 import { remoteScanner, SCAN_BUDGET_MS } from '@arablyzer/scanner-client'
 import {
+  POSTGRES_PROTOCOLS,
   PostgresScanStore,
+  productionUrl,
   quietly,
+  requireSecret,
   SCAN_QUEUE,
   SCAN_WORKER,
+  VALKEY_PROTOCOLS,
+  ValkeyRateLimiter,
   ValkeyScanEvents,
   type ScanJob,
 } from '@arablyzer/store'
 import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
 import pg from 'pg'
+import { hostLimited } from './hosts'
+import { startRetention } from './retention'
 import { failScan, runScan, scanJobOf } from './run'
 
 // The worker as Compose and staging run it (M2.1 plan §5b): it takes one job at a time, has the
@@ -30,10 +38,15 @@ const SWEEP_MS = 60_000
 const log = (text: string) => {
   console.error(text)
 }
-const redis = new Redis(required('VALKEY_URL'), { maxRetriesPerRequest: null })
+// The URLs are read before a client sees them, so that one it cannot read is told by its name,
+// never by its text, whose password ioredis and pg would print; and their passwords, like the
+// scanner's token, are 32 characters or more (packages/store).
+const redis = new Redis(productionUrl('VALKEY_URL', env.VALKEY_URL, VALKEY_PROTOCOLS), {
+  maxRetriesPerRequest: null,
+})
 redis.on('error', quietly('Valkey', log))
 const pool = new pg.Pool({
-  connectionString: required('DATABASE_URL'),
+  connectionString: productionUrl('DATABASE_URL', env.DATABASE_URL, POSTGRES_PROTOCOLS),
   max: 2,
   connectionTimeoutMillis: 5_000,
 })
@@ -43,7 +56,16 @@ pool.on('error', quietly('PostgreSQL', log))
 const deps = {
   store: new PostgresScanStore(pool),
   events: new ValkeyScanEvents(redis),
-  scanner: remoteScanner(required('ARABLYZER_SCANNER_URL'), required('ARABLYZER_SCANNER_TOKEN')),
+  scanner: hostLimited(
+    remoteScanner(
+      required('ARABLYZER_SCANNER_URL'),
+      requireSecret('ARABLYZER_SCANNER_TOKEN', env.ARABLYZER_SCANNER_TOKEN),
+    ),
+    {
+      limiter: new ValkeyRateLimiter(redis),
+      window: hostLimitFrom({ ...env, NODE_ENV: 'production' }),
+    },
+  ),
   log,
 }
 
@@ -87,10 +109,13 @@ const sweep = () => {
 }
 sweep()
 const sweeping = setInterval(sweep, SWEEP_MS)
+// Reports older than the owner's number of days are deleted; unset, they are kept, and it says so.
+const retention = startRetention(env, { store: deps.store, log })
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     clearInterval(sweeping)
+    retention.stop()
     // The scan running finishes first (Compose's stop_grace_period is longer than its budget);
     // the queue keeps the rest.
     void worker.close().finally(() => {

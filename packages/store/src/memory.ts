@@ -1,6 +1,8 @@
+import { timingSafeEqual } from 'node:crypto'
 import type { ScanEvent, ScanState } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
 import type {
+  Deletion,
   NewScan,
   ScanEvents,
   ScanJob,
@@ -14,6 +16,8 @@ import type {
 
 export class MemoryScanStore implements ScanStore {
   readonly #scans = new Map<string, ScanRecord>()
+  /** The deletion tokens' hashes, apart from the scans: a scan is never given with one. */
+  readonly #hashes = new Map<string, string>()
 
   create(scan: NewScan): Promise<void> {
     if (this.#scans.has(scan.id)) return Promise.reject(new Error(`Scan ${scan.id} exists`))
@@ -27,6 +31,7 @@ export class MemoryScanStore implements ScanStore {
       finishedAt: null,
       report: null,
     })
+    if (scan.deleteTokenHash !== undefined) this.#hashes.set(scan.id, scan.deleteTokenHash)
     return Promise.resolve()
   }
 
@@ -53,6 +58,40 @@ export class MemoryScanStore implements ScanStore {
     )
     for (const scan of stale) await this.fail(scan.id, at)
     return stale.map((scan) => scan.id)
+  }
+
+  delete(id: string, tokenHash: string): Promise<Deletion> {
+    if (!this.#scans.has(id)) return Promise.resolve('missing')
+    const stored = this.#hashes.get(id)
+    const given = Buffer.from(tokenHash)
+    const kept = Buffer.from(stored ?? '')
+    if (stored === undefined || given.length !== kept.length || !timingSafeEqual(given, kept)) {
+      return Promise.resolve('forbidden')
+    }
+    this.#scans.delete(id)
+    this.#hashes.delete(id)
+    return Promise.resolve('deleted')
+  }
+
+  deleteOlderThan(before: Date): Promise<number> {
+    let deleted = 0
+    for (const [id, scan] of this.#scans) {
+      if (scan.createdAt < before) {
+        this.#scans.delete(id)
+        this.#hashes.delete(id)
+        deleted++
+      }
+    }
+    return Promise.resolve(deleted)
+  }
+
+  states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>> {
+    const states = new Map<string, ScanState>()
+    for (const id of ids) {
+      const scan = this.#scans.get(id)
+      if (scan !== undefined) states.set(id, scan.state)
+    }
+    return Promise.resolve(states)
   }
 
   /** The change, when the scan is in one of the states it moves from. */

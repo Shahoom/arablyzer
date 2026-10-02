@@ -7,11 +7,13 @@ import { describe, expect, it } from 'vitest'
 import {
   CreateScanRequest,
   CreateScanResponse,
+  DELETE_TOKEN_PATTERN,
   isScanErrorCode,
   MAX_URL_LENGTH,
   reportPath,
   SCAN_ID_PATTERN,
   ScanErrorResponse,
+  TURNSTILE_ACTION,
   ScanEvent,
   scanEventsPath,
   URL_ERROR_CODES,
@@ -60,7 +62,34 @@ describe('the scan contract', () => {
     expect(SCAN_ID_PATTERN.test('AbCdEfGhIjKlMnOpQrSt_-')).toBe(true)
     expect(SCAN_ID_PATTERN.test('1')).toBe(false)
     expect(SCAN_ID_PATTERN.test('../../etc/passwd000000')).toBe(false)
-    expect(CreateScanResponse.safeParse({ id: 'AbCdEfGhIjKlMnOpQrSt_-' }).success).toBe(true)
+    const token = 'A'.repeat(43)
+    expect(
+      CreateScanResponse.safeParse({ id: 'AbCdEfGhIjKlMnOpQrSt_-', deleteToken: token }),
+    ).toMatchObject({
+      success: true,
+    })
+  })
+
+  // M5, issue #33: the scan's creation is the one time its deletion token is given.
+  it('gives the deletion token with the ID, 32 random bytes in base64url, and nothing else', () => {
+    const id = 'AbCdEfGhIjKlMnOpQrSt_-'
+    const token = 'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-abcde'
+    expect(token).toHaveLength(43)
+    expect(DELETE_TOKEN_PATTERN.test(token)).toBe(true)
+    expect(CreateScanResponse.parse({ id, deleteToken: token })).toEqual({ id, deleteToken: token })
+    expect(CreateScanResponse.safeParse({ id }).success).toBe(false)
+    expect(CreateScanResponse.safeParse({ id, deleteToken: token, extra: 1 }).success).toBe(false)
+    for (const bad of [
+      '',
+      'x',
+      token.slice(1),
+      `${token}A`,
+      `${token.slice(1)}=`,
+      `${token.slice(1)}/`,
+    ]) {
+      expect(DELETE_TOKEN_PATTERN.test(bad), bad).toBe(false)
+      expect(CreateScanResponse.safeParse({ id, deleteToken: bad }).success, bad).toBe(false)
+    }
   })
 
   it('refuses with a known code', () => {
@@ -72,6 +101,12 @@ describe('the scan contract', () => {
     expect(isScanErrorCode('blocked-address')).toBe(true)
     expect(isScanErrorCode('teapot')).toBe(false)
     expect(isScanErrorCode(1)).toBe(false)
+  })
+})
+
+describe('the Turnstile action', () => {
+  it('is one Cloudflare takes: up to 32 letters, digits, underscores and hyphens', () => {
+    expect(TURNSTILE_ACTION).toMatch(/^[A-Za-z0-9_-]{1,32}$/)
   })
 })
 
@@ -96,6 +131,16 @@ describe('scan events', () => {
     ]
     for (const step of steps) expect(ScanEvent.parse(step)).toEqual(step)
     expect(ScanEvent.safeParse({ type: 'done', state: 'complete', extra: 1 }).success).toBe(false)
+    // The page's host, after its redirects, is a name and nothing else: what the worker counts.
+    const reached = { type: 'page', status: 200, contentType: 'text/html', error: null }
+    expect(ScanEvent.parse({ ...reached, host: 'www.shop.example' })).toEqual({
+      ...reached,
+      host: 'www.shop.example',
+    })
+    expect(ScanEvent.safeParse({ ...reached, host: 'a'.repeat(254) }).success).toBe(false)
+    expect(ScanEvent.safeParse({ ...reached, host: '' }).success).toBe(false)
+    expect(ScanEvent.safeParse({ ...reached, host: 3 }).success).toBe(false)
+    expect(ScanEvent.safeParse({ ...reached, host: null }).success).toBe(false)
     expect(ScanEvent.safeParse({ type: 'render-start', engine: 'netscape' }).success).toBe(false)
     expect(
       ScanEvent.safeParse({ type: 'page', status: 42, contentType: null, error: null }).success,

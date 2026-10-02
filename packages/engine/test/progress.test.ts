@@ -1,3 +1,4 @@
+import { createPolicy } from '@arablyzer/egress'
 import { afterEach, describe, expect, it } from 'vitest'
 import { scan, type ScanProgress } from '../src/index'
 import { flagRule, policyFor, renderRule, tempSite, type TempSite } from './helpers'
@@ -38,13 +39,54 @@ describe('scan: onProgress', () => {
     expect(shown).toEqual([
       { step: 'start', engines: ['chromium', 'firefox'] },
       { step: 'robots', outcome: 'fetched', status: 200 },
-      { step: 'page', status: 200, contentType: 'text/html; charset=utf-8', error: null },
+      {
+        step: 'page',
+        status: 200,
+        contentType: 'text/html; charset=utf-8',
+        error: null,
+        host: '127.0.0.1',
+      },
       { step: 'render-start', engine: 'chromium' },
       { step: 'render', engine: 'chromium', status: 'unavailable' },
       { step: 'render-start', engine: 'firefox' },
       { step: 'render', engine: 'firefox', status: 'unavailable' },
       { step: 'rules', rules: 3 },
     ])
+  })
+
+  // Security review, issue #30: the per-host limit counted the site a scan was asked for, so a
+  // page that redirects to another site flooded it under the first one's name. The worker counts
+  // the site the page was reached at, which it learns from this step.
+  it('names the host the page was reached at, after its redirects', async () => {
+    const final = await site({
+      'site.json': JSON.stringify({ host: 'www.shop.example' }),
+      'index.html': PAGE,
+    })
+    const first = await site(
+      { 'site.json': JSON.stringify({ host: 'go.redirector.example' }) },
+      { '/': { status: 301, headers: { location: final.url('/') } } },
+    )
+    const steps: ScanProgress[] = []
+    await scan(first.url('/'), {
+      rules: [flagRule()],
+      policy: createPolicy({
+        allowTargets: [first, final].map((one) => ({ address: '127.0.0.1', port: one.port })),
+      }),
+      resolver: (host) =>
+        Promise.resolve(
+          ['go.redirector.example', 'www.shop.example'].includes(host)
+            ? [{ address: '127.0.0.1', family: 4 as const }]
+            : [],
+        ),
+      onProgress: (step) => steps.push(step),
+    })
+    expect(steps.find((step) => step.step === 'page')).toEqual({
+      step: 'page',
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      error: null,
+      host: 'www.shop.example',
+    })
   })
 
   it('reports the page it could not fetch, and nothing after', async () => {

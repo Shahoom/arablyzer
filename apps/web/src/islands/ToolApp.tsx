@@ -218,7 +218,9 @@ export default function ToolApp({ lang, tool, reads, reportsOnly }: Props) {
             spellcheck={false}
             placeholder={f.placeholder}
             aria-invalid={invalid ? true : undefined}
-            aria-describedby={error === null ? 'tool-note' : 'tool-error'}
+            aria-describedby={
+              error === null ? 'tool-note tool-query-note' : 'tool-error tool-query-note'
+            }
             onFocus={() => {
               check.warm()
             }}
@@ -237,6 +239,9 @@ export default function ToolApp({ lang, tool, reads, reportsOnly }: Props) {
         <div ref={box} />
         <p id="tool-note" className="m-0 text-sm text-ink-3">
           {t.note[reads]}
+        </p>
+        <p id="tool-query-note" className="m-0 text-sm text-ink-3">
+          {f.queryNote}
         </p>
         <p id="tool-error" role="alert" className="m-0 text-sm text-serious empty:hidden">
           {message}

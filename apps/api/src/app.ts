@@ -1,8 +1,10 @@
 import {
   CreateScanRequest,
+  DELETE_TOKEN_PATTERN,
   SCAN_ID_PATTERN,
   TERMINAL_EVENTS,
   type ScanErrorCode,
+  type CreateScanResponse,
   type ScanErrorResponse,
   type ScanEvent,
   type ScanSummary,
@@ -10,12 +12,14 @@ import {
 import type { EgressPolicy, Resolver } from '@arablyzer/egress'
 import type { ScanLimits } from '@arablyzer/plans'
 import { toolDefinition } from '@arablyzer/tools/registry'
-import { Hono, type Context } from 'hono'
+import { Hono, type Context, type MiddlewareHandler } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
-import { streamSSE } from 'hono/streaming'
+import { streamSSE, type SSEStreamingApi } from 'hono/streaming'
 import {
+  hostLimitKey,
   quietly,
+  type InFlight,
   type RateLimiter,
   type ScanEvents,
   type ScanQueue,
@@ -23,7 +27,9 @@ import {
   type ScanStore,
   type StoredEvent,
 } from '@arablyzer/store'
-import { hostKey, parseTarget, resolveTarget } from './target'
+import { hashDeleteToken, newDeleteToken } from './ids'
+import { holdPlace } from './places'
+import { parseTarget, resolveTarget } from './target'
 import type { TurnstileCheck } from './turnstile'
 
 export interface ApiDeps {
@@ -36,10 +42,17 @@ export interface ApiDeps {
   readonly store: ScanStore
   readonly queue: ScanQueue
   readonly events: ScanEvents
+  /** The scans each visitor has queued or running, so no one visitor fills the queue. */
+  readonly inFlight: InFlight
   /** The visitor's address, where the deployment trusts it from; null when it has none. */
   readonly address: (c: Context) => string | null
   /** The limiter's key for an address, which is never the address itself (§14). */
   readonly connectionKey: (address: string, now: Date) => string
+  /**
+   * The key of the network the address is in, whose visitors are counted together (an IPv6 /32);
+   * null for an address in none. Without it there is no network limit, as in tests.
+   */
+  readonly networkKey?: (address: string, now: Date) => string | null
   readonly newId: () => string
   readonly now?: () => Date
   /** How long a scan's event stream stays open before the page reconnects. */
@@ -50,6 +63,11 @@ export interface ApiDeps {
   readonly shutdown?: AbortSignal
   /** Where a failure the visitor sees as 503 is told; never with the visitor's data. */
   readonly log?: (message: string) => void
+  /**
+   * The site's origin (ARABLYZER_SITE), which a request to start a scan must come from. Without
+   * it, as in development, where the site is served from anywhere, none is asked.
+   */
+  readonly origin?: string
 }
 
 export interface StreamCaps {
@@ -64,6 +82,8 @@ export interface StreamCaps {
 export const STREAM_CAPS: StreamCaps = { perScan: 8, perVisitor: 8, total: 1000 }
 /** When a page refused a stream may try again. */
 const STREAM_RETRY_SECONDS = 30
+/** What a page is told of a stream that failed: the word, never the store's message. */
+const STREAM_FAILURE = 'unavailable'
 
 /** A scan request is a URL and a token: 8 KB is ample, and nothing larger is read. */
 const MAX_BODY_BYTES = 8 * 1024
@@ -85,12 +105,49 @@ const STATUS: Readonly<Record<ScanErrorCode, 400 | 403 | 422 | 429 | 503>> = {
   unavailable: 503,
 }
 
+/** Whether a Content-Type header names JSON: the type alone, in any case, with any parameters. */
+function isJson(contentType: string | undefined): boolean {
+  return contentType?.split(';')[0]?.trim().toLowerCase() === 'application/json'
+}
+
 /** The scan API (M2.1 plan §4): its routes on the stores it is given. */
 export function createApp(deps: ApiDeps): Hono {
   const now = deps.now ?? (() => new Date())
   const caps = deps.streams ?? STREAM_CAPS
   const failure = quietly('API', deps.log)
+  const foreign = quietly('API', deps.log)
+  const streamFailure = quietly('API events', deps.log)
   const app = new Hono()
+
+  /**
+   * An event stream. Left alone, Hono prints a stream that fails with console.error, the whole
+   * error and whatever it holds, which for a store's client can be the URL it connects with, and
+   * the password in it (security review, issue #30). Here it is told by its message alone, once
+   * in a while, as every other failure of the API is. Hono then sends the error's message to the
+   * page as an `error` event: a fixed word goes instead, never a store's own words (a host, a
+   * port, a user name). What is thrown that is not an error is made one first, since Hono
+   * prints such a thing whatever it is given.
+   */
+  const streamed = (c: Context, body: (stream: SSEStreamingApi) => Promise<void>) =>
+    streamSSE(
+      c,
+      async (stream) => {
+        try {
+          await body(stream)
+        } catch (thrown) {
+          throw thrown instanceof Error ? thrown : new Error('The event stream failed')
+        }
+      },
+      (error) => {
+        streamFailure(error)
+        try {
+          error.message = STREAM_FAILURE
+        } catch {
+          // An error that cannot be written to keeps its message: the log has already told it.
+        }
+        return Promise.resolve()
+      },
+    )
 
   // The API is not content: never indexed, never sniffed, and it sends no referrer.
   app.use('*', async (c, next) => {
@@ -108,8 +165,26 @@ export function createApp(deps: ApiDeps): Hono {
     return c.json(body, STATUS[error])
   }
 
+  /**
+   * A scan is started by the site's own form: JSON, from the site's origin. A browser sends
+   * Origin with every POST, and a page on another site can send no JSON type without a preflight,
+   * which the API never answers, so neither check lets such a page spend a visitor's limits or
+   * fill the queue from their browser (security review, issue #30). Both come before the body is
+   * read. Where the site's origin is not known (development), only the type is asked.
+   */
+  const fromTheSite: MiddlewareHandler = async (c, next) => {
+    if (deps.origin !== undefined && c.req.header('origin') !== deps.origin) {
+      // Never with the Origin it sent: that is the sender's to write.
+      foreign(new Error('A scan request did not come from the origin ARABLYZER_SITE names'))
+      return refuse(c, 'bad-request')
+    }
+    if (!isJson(c.req.header('content-type'))) return refuse(c, 'bad-request')
+    await next()
+  }
+
   app.post(
     '/api/scans',
+    fromTheSite,
     bodyLimit({ maxSize: MAX_BODY_BYTES, onError: (c) => refuse(c, 'bad-request') }),
     async (c) => {
       let raw: unknown
@@ -124,53 +199,93 @@ export function createApp(deps: ApiDeps): Hono {
       const tool = request.data.tool
       if (tool !== undefined && toolDefinition(tool) === undefined) return refuse(c, 'bad-request')
 
-      // What needs no network first; the checks that cost something come after Turnstile and
-      // the visitor's own limit, so the API cannot be used to look up names or fill the queue.
+      // What needs no network first; the checks that cost something come after the visitor's
+      // throttle, Turnstile and the visitor's own limit, so the API cannot be used to look up
+      // names, to call Cloudflare without end, or to fill the queue.
       const parsed = parseTarget(request.data.url, deps.policy)
       if (!parsed.ok) return refuse(c, parsed.code)
       // Without the visitor's address there is no limit to keep, so there is no scan.
       const address = deps.address(c)
       if (address === null) return refuse(c, 'unavailable')
+      const at = now()
+      const visitor = deps.connectionKey(address, at)
+      // Cloudflare is asked for every request that gets this far, so a visitor's requests are
+      // counted first, whatever comes of them: past their throttle, it is not asked at all.
+      const attempt = await deps.limiter.take(
+        `attempt:${visitor}`,
+        deps.limits.attempts,
+        at.getTime(),
+      )
+      if (!attempt.ok) return refuse(c, 'rate-limited', attempt.retryAfterSeconds)
       if (!(await deps.turnstile(request.data.turnstileToken))) {
         return refuse(c, 'turnstile-failed')
       }
-      const at = now()
       const own = await deps.limiter.take(
-        `connection:${deps.connectionKey(address, at)}`,
+        `connection:${visitor}`,
         deps.limits.perConnection,
         at.getTime(),
       )
       if (!own.ok) return refuse(c, 'rate-limited', own.retryAfterSeconds)
-      const resolved = await resolveTarget(parsed.value, deps.policy, deps.resolver)
-      if (!resolved.ok) return refuse(c, resolved.code)
-      const host = await deps.limiter.take(
-        `host:${hostKey(parsed.value.host)}`,
-        deps.limits.perHost,
-        at.getTime(),
-      )
-      if (!host.ok) return refuse(c, 'rate-limited', host.retryAfterSeconds)
-      const ahead = await deps.queue.waiting()
-      if (ahead >= deps.limits.queue) return refuse(c, 'unavailable')
-
-      // Stored and announced before it is queued, so the worker never starts a scan whose
-      // record or first event is not there yet.
-      const id = deps.newId()
-      await deps.store.create({
-        id,
-        url: resolved.value,
-        createdAt: at,
-        ...(tool === undefined ? {} : { tool }),
-      })
-      try {
-        await deps.events.publish(id, { type: 'queued', ahead })
-        await deps.queue.add({ id, url: resolved.value, ...(tool === undefined ? {} : { tool }) })
-      } catch (error) {
-        // Never queued, so never run: the scan fails at once, and says so to any page it has.
-        await deps.store.fail(id, at).catch(() => false)
-        await deps.events.publish(id, { type: 'error' }).catch(() => '')
-        throw error
+      // The visitor's network is asked after the visitor, so a request their own limit refuses
+      // takes nothing of the network's.
+      const network = deps.networkKey?.(address, at) ?? null
+      if (network !== null) {
+        const shared = await deps.limiter.take(
+          `network:${network}`,
+          deps.limits.perNetwork,
+          at.getTime(),
+        )
+        if (!shared.ok) return refuse(c, 'rate-limited', shared.retryAfterSeconds)
       }
-      return c.json({ id }, 202)
+      // The visitor's place comes before any name is looked up: at their cap, they cost the API
+      // nothing more. A place is given back unless the scan is queued.
+      const id = deps.newId()
+      if (!(await holdPlace(deps, visitor, id, deps.limits.inFlight, at.getTime()))) {
+        return refuse(c, 'rate-limited')
+      }
+      let queued = false
+      try {
+        const resolved = await resolveTarget(parsed.value, deps.policy, deps.resolver)
+        if (!resolved.ok) return refuse(c, resolved.code)
+        const host = await deps.limiter.take(
+          hostLimitKey(parsed.value.host),
+          deps.limits.perHost,
+          at.getTime(),
+        )
+        if (!host.ok) return refuse(c, 'rate-limited', host.retryAfterSeconds)
+        const ahead = await deps.queue.waiting()
+        if (ahead >= deps.limits.queue) return refuse(c, 'unavailable')
+
+        // Stored and announced before it is queued, so the worker never starts a scan whose
+        // record or first event is not there yet.
+        // Given once, in the answer below, and kept as its hash alone (M5, issue #33).
+        const deleteToken = newDeleteToken()
+        await deps.store.create({
+          id,
+          url: resolved.value,
+          createdAt: at,
+          deleteTokenHash: hashDeleteToken(deleteToken),
+          ...(tool === undefined ? {} : { tool }),
+        })
+        try {
+          await deps.events.publish(id, { type: 'queued', ahead })
+          await deps.queue.add({
+            id,
+            url: resolved.value,
+            ...(tool === undefined ? {} : { tool }),
+          })
+        } catch (error) {
+          // Never queued, so never run: the scan fails at once, and says so to any page it has.
+          await deps.store.fail(id, at).catch(() => false)
+          await deps.events.publish(id, { type: 'error' }).catch(() => '')
+          throw error
+        }
+        queued = true
+        const created: CreateScanResponse = { id, deleteToken }
+        return c.json(created, 202)
+      } finally {
+        if (!queued) await deps.inFlight.release(visitor, [id]).catch(() => undefined)
+      }
     },
   )
 
@@ -207,7 +322,7 @@ export function createApp(deps: ApiDeps): Hono {
     if (isFinished(scan.state)) {
       const rest = await deps.events.since(scan.id, after)
       if (rest.length === 0 && after !== null) return c.body(null, 204)
-      return streamSSE(c, async (stream) => {
+      return streamed(c, async (stream) => {
         for (const stored of rest) {
           await stream.writeSSE({ id: stored.id, data: JSON.stringify(stored.event) })
         }
@@ -231,7 +346,7 @@ export function createApp(deps: ApiDeps): Hono {
     count(open.visitors, visitor, 1)
     // Proxies must pass the stream on as it comes.
     c.header('X-Accel-Buffering', 'no')
-    return streamSSE(c, async (stream) => {
+    return streamed(c, async (stream) => {
       const stop = new AbortController()
       const end = () => {
         stop.abort()
@@ -288,6 +403,33 @@ export function createApp(deps: ApiDeps): Hono {
       return c.json({ state: scan.state }, scan.state === 'failed' ? 404 : 409)
     }
     return c.json(scan.report)
+  })
+
+  /**
+   * Deletes a scan and its report (M5, issue #33), for the token its creation gave. A page on
+   * another site cannot send one: it needs a preflight, which the API never answers. Not asking
+   * an Origin or a type is deliberate: the token is what allows it, and whoever holds it may
+   * send it from anywhere, curl included.
+   */
+  app.delete('/api/reports/:id', async (c) => {
+    const id = c.req.param('id')
+    if (!SCAN_ID_PATTERN.test(id)) return c.notFound()
+    const token = /^Bearer +([^ ]+)$/i.exec(c.req.header('authorization') ?? '')?.[1]
+    if (token === undefined || !DELETE_TOKEN_PATTERN.test(token)) {
+      c.header('WWW-Authenticate', 'Bearer')
+      return c.json({ error: 'unauthorized' }, 401)
+    }
+    const deleted = await deps.store.delete(id, hashDeleteToken(token))
+    if (deleted === 'missing') return c.notFound()
+    if (deleted === 'forbidden') return c.json({ error: 'forbidden' }, 403)
+    // The visitor who made the scan asks for its deletion, as a rule: its place is theirs to give
+    // back now, not a scan about to have a record until the API's own timeouts say it is not.
+    // Another visitor's place is left to that, and to the scan store, which knows it is gone.
+    const address = deps.address(c)
+    if (address !== null) {
+      await deps.inFlight.release(deps.connectionKey(address, now()), [id]).catch(() => undefined)
+    }
+    return c.body(null, 204)
   })
 
   app.notFound((c) => c.json({ error: 'not-found' }, 404))

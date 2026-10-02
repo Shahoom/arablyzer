@@ -76,14 +76,31 @@ function isRule(page: string): boolean {
   return /^(?:\/en)?\/rules\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
 }
 
+/** A guide's page, /fix/<slug>: one guide template, with a message of Search Console's each. */
+function isGuide(page: string): boolean {
+  return /^(?:\/en)?\/fix\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
+}
+
+/** A glossary term's page, /glossary/<slug>: one template, with a term each. */
+function isTerm(page: string): boolean {
+  return /^(?:\/en)?\/glossary\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
+}
+
+/**
+ * The pages below a directory page that are one template with other words. A directory of such
+ * pages that is missing here is measured page by page, as the guides and the glossary were until
+ * Lighthouse's CI job timed out on them: add each new one.
+ */
+const TEMPLATES = [isTool, isRule, isGuide, isTerm] as const
+
 /**
  * The pages that stand for the rest, for the checks too slow to run on every page (Lighthouse,
- * the site scanning itself in three engines): every page but the report pages, and of the tool
- * pages and the rule pages only the first in each language, since each is one template.
+ * the site scanning itself in three engines): every page but the report pages, and of the pages
+ * that share a template (TEMPLATES) only the first in each language.
  */
 export function representativePages(pages: readonly BuiltPage[]): BuiltPage[] {
   const first = new Set(
-    [isTool, isRule].flatMap((template) =>
+    TEMPLATES.flatMap((template) =>
       (['ar', 'en'] as const).flatMap((lang) => {
         const page = pages.find((candidate) => candidate.lang === lang && template(candidate.path))
         return page === undefined ? [] : [page.path]
@@ -93,7 +110,7 @@ export function representativePages(pages: readonly BuiltPage[]): BuiltPage[] {
   return pages.filter(
     (page) =>
       !isNoindexPage(page.path) &&
-      ((!isTool(page.path) && !isRule(page.path)) || first.has(page.path)),
+      (!TEMPLATES.some((template) => template(page.path)) || first.has(page.path)),
   )
 }
 

@@ -16,7 +16,8 @@
     "css-tree": "^3.2.1",
     "parse5": "^8.0.1",
     "sax": "1.6.1",
-    "tldts": "7.4.16"
+    "tldts": "7.4.16",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@types/css-tree": "^3.2.0"

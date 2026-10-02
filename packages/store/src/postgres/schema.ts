@@ -18,6 +18,11 @@ export const scans = pgTable(
     /** The overall score, for listing without reading reports: a whole scan's; null for a tool's. */
     score: integer('score'),
     report: jsonb('report').$type<Report>(),
+    /**
+     * The SHA-256 of the scan's deletion token (M5): the token is given once, at creation, and
+     * never kept. Null for a scan made before there was one, which no token deletes.
+     */
+    deleteTokenHash: text('delete_token_hash'),
   },
   // Retention deletes by age (Phase 2 design §7.3).
   (table) => [index('scans_created_at').on(table.createdAt)],

@@ -1,4 +1,5 @@
 import http from 'node:http'
+import type { Duplex } from 'node:stream'
 import { ENGINES, type Engine } from '@arablyzer/collectors'
 import { engineAvailable } from '../../src/index'
 
@@ -9,9 +10,13 @@ export interface Site {
   close(): Promise<void>
 }
 
-/** An HTTP server on 127.0.0.1 for one test. */
-export async function serve(handler: http.RequestListener): Promise<Site> {
+/** An HTTP server on 127.0.0.1 for one test; `upgrade` gets each WebSocket handshake it is sent. */
+export async function serve(
+  handler: http.RequestListener,
+  upgrade?: (req: http.IncomingMessage, socket: Duplex) => void,
+): Promise<Site> {
   const server = http.createServer(handler)
+  if (upgrade !== undefined) server.on('upgrade', upgrade)
   await new Promise<void>((resolve) => {
     server.listen(0, '127.0.0.1', resolve)
   })
@@ -30,6 +35,52 @@ export async function serve(handler: http.RequestListener): Promise<Site> {
         })
       }),
   }
+}
+
+/** What a recording server was sent: the method, the path and query, and the size of the body. */
+export interface Received {
+  readonly method: string
+  readonly url: string
+  readonly bytes: number
+}
+
+export interface Recorder extends Site {
+  /** Every request that reached it. */
+  readonly received: Received[]
+  /** The path of every WebSocket handshake that reached it. */
+  readonly upgrades: string[]
+}
+
+/**
+ * A server on 127.0.0.1 that stands in for another site: it answers everything, allows every
+ * origin, and records all that reaches it, so that a test can say that nothing did.
+ */
+export async function record(): Promise<Recorder> {
+  const received: Received[] = []
+  const upgrades: string[] = []
+  const site = await serve(
+    (req, res) => {
+      let bytes = 0
+      req.on('data', (chunk: Buffer) => {
+        bytes += chunk.length
+      })
+      req.on('end', () => {
+        received.push({ method: req.method ?? '', url: req.url ?? '', bytes })
+        res.writeHead(200, {
+          'access-control-allow-origin': '*',
+          'access-control-allow-methods': '*',
+          'access-control-allow-headers': '*',
+          'content-type': 'text/plain',
+        })
+        res.end('ok')
+      })
+    },
+    (req, socket) => {
+      upgrades.push(req.url ?? '')
+      socket.destroy()
+    },
+  )
+  return { ...site, received, upgrades }
 }
 
 /** Serves fixed pages: path → HTML, or → [status, headers, body]. */
