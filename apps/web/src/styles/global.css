@@ -747,6 +747,46 @@
   }
 }
 
+/*
+ * A row that scrolls sideways instead of wrapping on a phone (M2.6 R7a): filter chips, category
+ * chips, the marquee under reduced motion. It bleeds to the edges of the screen by the gutter, so
+ * the next chip is cut by the screen and says there is more; its end fades out, toward the end of
+ * the line whichever side that is (--grad-dir), and it has no scroll bar. Its items are its direct
+ * children, and do not shrink. From md it wraps, as a desktop has the room. Put it where the
+ * page's `wrap` is the nearest padded ancestor.
+ */
+@utility scroll-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* The chips' hover lift and focus ring are not clipped by the scrolling box. */
+  margin-block: -4px;
+  padding-block: 4px;
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline-start: var(--gutter);
+  /* Wide enough for the last item to scroll out of the fade. */
+  padding-inline-end: max(var(--gutter), 32px);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(var(--grad-dir), #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(var(--grad-dir), #000 calc(100% - 28px), transparent);
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  & > * {
+    flex: none;
+  }
+  @media (min-width: 48rem) {
+    flex-wrap: wrap;
+    margin-inline: 0;
+    padding-inline: 0;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
 /* ------------------------------------------------------------------------------------------ */
 /* Motion. Every animation below stops under prefers-reduced-motion, in its own rule (the      */
 /* base layer's catch-all cuts any other to one frame), and leaves its content readable.        */
