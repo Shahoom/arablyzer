@@ -376,6 +376,15 @@ const accordion =
     background-color: rgb(94 234 212 / 0.14);
     border-radius: 4px;
   }
+  /*
+   * A short code that must not break (code.whole, which the fix's text marks) is wider than the
+   * card it is in on the narrowest phones, where the card's padding takes its share: there it may.
+   */
+  @media (max-width: 22.5rem) {
+    :global(.prose-fix code.whole) {
+      white-space: normal;
+    }
+  }
   /* Code in a check: the quiet chip the fix's code has. */
   .checks :global(code) {
     background-color: var(--color-surface-2);
