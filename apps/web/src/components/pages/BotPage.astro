@@ -5,6 +5,7 @@ import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import { BOT_FACTS } from '../../lib/bot'
 import { siteOf } from '../../lib/site'
+import DocHeading from '../DocHeading.astro'
 import Rich from '../Rich.astro'
 import Contents from './Contents.astro'
 import DocPage from './DocPage.astro'
@@ -32,12 +33,15 @@ const jsonLd = [
     { name: t.title, url },
   ]),
 ]
-const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
+const number = (id: (typeof sections)[number]['id']) =>
+  sections.findIndex((section) => section.id === id) + 1
 const text = 'm-0 text-base leading-[1.85] text-ink-2 md:text-[17px]'
 const list =
   'm-0 flex flex-col gap-3 ps-[22px] text-base leading-[1.85] text-ink-2 marker:text-ink-3 md:text-[17px]'
+// A block of code, as the rules' pages set theirs: dark, left to right, scrolling inside itself and
+// reachable by keyboard when it must.
 const code =
-  'm-0 overflow-x-auto bg-panel px-5 py-4 text-start font-mono text-[13px] leading-[1.8] text-panel-soft md:text-sm'
+  'm-0 overflow-x-auto rounded-2xl bg-navy px-5 py-4 text-start font-mono text-[13px] leading-[1.8] text-panel-soft md:text-sm'
 ---
 
 <DocPage
@@ -48,31 +52,28 @@ const code =
   jsonLd={jsonLd}
   crumb="ArablyzerBot"
   breadcrumbLabel={t.breadcrumb}
+  asideFirst
 >
   <Fragment slot="head">
-    <h1 class="m-0 text-[32px] leading-[1.2] font-semibold text-balance md:text-[52px]">
+    <h1 class="m-0 max-w-[900px] text-[32px] leading-[1.25] font-semibold text-balance md:text-[52px]">
       <Rich text={t.title} lang={lang} />
     </h1>
-    <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+    <p class="m-0 max-w-[720px] text-base leading-[1.85] text-ink-2 md:text-[19px]">
       <Rich text={t.intro} lang={lang} />
     </p>
   </Fragment>
   <Contents slot="aside" label={t.contents} sections={sections} />
 
   <section id="identify" aria-labelledby="identify-title" class="flex scroll-mt-6 flex-col gap-4">
-    <h2 id="identify-title" class={heading}>
-      {t.identify.title}
-    </h2>
+    <DocHeading id="identify-title" number={number('identify')} title={t.identify.title} />
     <p class={text}>{t.identify.lead}</p>
-    <pre dir="ltr" class={code}>{BOT_FACTS.userAgent}</pre>
+    <pre dir="ltr" tabindex="0" class={code}>{BOT_FACTS.userAgent}</pre>
     <p class={text}>{t.identify.browsers}</p>
-    <pre dir="ltr" class={code}>… {BOT_FACTS.browserToken}</pre>
+    <pre dir="ltr" tabindex="0" class={code}>… {BOT_FACTS.browserToken}</pre>
   </section>
 
   <section id="when" aria-labelledby="when-title" class="flex scroll-mt-6 flex-col gap-4">
-    <h2 id="when-title" class={heading}>
-      {t.when.title}
-    </h2>
+    <DocHeading id="when-title" number={number('when')} title={t.when.title} />
     <ul class={list}>
       {t.when.items.map((item) => (
         <li>
@@ -83,9 +84,7 @@ const code =
   </section>
 
   <section id="fetches" aria-labelledby="fetches-title" class="flex scroll-mt-6 flex-col gap-4">
-    <h2 id="fetches-title" class={heading}>
-      {t.fetches.title}
-    </h2>
+    <DocHeading id="fetches-title" number={number('fetches')} title={t.fetches.title} />
     <ol class:list={[list, 'list-decimal']}>
       {t.fetches.items(BOT_FACTS).map((item) => (
         <li>
@@ -96,9 +95,7 @@ const code =
   </section>
 
   <section id="never" aria-labelledby="never-title" class="flex scroll-mt-6 flex-col gap-4">
-    <h2 id="never-title" class={heading}>
-      {t.never.title}
-    </h2>
+    <DocHeading id="never-title" number={number('never')} title={t.never.title} />
     <ul class={list}>
       {t.never.items.map((item) => (
         <li>
@@ -109,14 +106,12 @@ const code =
   </section>
 
   <section id="opt-out" aria-labelledby="opt-out-title" class="flex scroll-mt-6 flex-col gap-4">
-    <h2 id="opt-out-title" class={heading}>
-      {t.optOut.title}
-    </h2>
+    <DocHeading id="opt-out-title" number={number('opt-out')} title={t.optOut.title} />
     <p class={text}>{t.optOut.lead}</p>
-    <pre dir="ltr" class={code}>User-agent: ArablyzerBot
+    <pre dir="ltr" tabindex="0" class={code}>User-agent: ArablyzerBot
 Disallow: /</pre>
     <p class={text}>{t.optOut.paths}</p>
-    <pre dir="ltr" class={code}>User-agent: ArablyzerBot
+    <pre dir="ltr" tabindex="0" class={code}>User-agent: ArablyzerBot
 Disallow: /account/
 Disallow: /checkout/</pre>
     <ul class={list}>
