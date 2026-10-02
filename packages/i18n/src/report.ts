@@ -1,5 +1,6 @@
 import type { Copy } from './copy'
-import { arabicCount, englishCount, REQUESTS, RULES_NOMINATIVE } from './plural'
+import { arabicCount, englishCount, englishForm, REQUESTS, RULES_NOMINATIVE } from './plural'
+import type { ArabicForms } from './plural'
 
 /** The report's categories, as report-schema names them. */
 export const CATEGORIES = [
@@ -141,6 +142,98 @@ export interface ReportStrings {
     readonly another: string
     readonly again: string
   }
+  /**
+   * The report as a thread under the scanned address, and the dock under it (M2.6, R4): the
+   * bubble, the line that says what was read, the summary, the findings, the dock that scans
+   * another page.
+   */
+  readonly thread: {
+    /** The bubble's verb, before the address. */
+    readonly scan: string
+    /** The collapsible line: what the scan read, and how many rules ran on it. */
+    readonly read: {
+      /** The engines it rendered in, named: «Chromium وFirefox». */
+      readonly rendered: (engines: string, rules: number) => string
+      /** No browser rendered the page: it was read as the server sends it. */
+      readonly html: (rules: number) => string
+    }
+    readonly summary: {
+      /** Problems and notes, counted: «مشكلتان وملاحظة واحدة في هذه الصفحة». */
+      readonly counts: (problems: number, notes: number) => string
+      /** Only checks that need a review. */
+      readonly review: (count: number) => string
+      /** Every rule finished, and none found a problem. */
+      readonly clean: string
+      /** Some rules did not finish, and those that did found no problem. */
+      readonly incomplete: string
+      /** No rule finished. */
+      readonly unknown: string
+      /** What passed and what did not apply, in a sentence; empty when both are zero. */
+      readonly checks: (passed: number, notApplicable: number) => string
+      /** Under the score's number. */
+      readonly outOf: string
+    }
+    readonly categories: {
+      readonly title: string
+      /** Before the categories that score 100. */
+      readonly full: string
+    }
+    readonly findings: {
+      readonly title: string
+      /** A problem only one of the browsers shows. */
+      readonly only: (engine: string) => string
+      /** The link to the rule's page. */
+      readonly about: string
+    }
+    /** The dock: scanning another page from the report. */
+    readonly dock: {
+      readonly label: string
+      readonly placeholder: string
+      readonly submit: string
+    }
+    /** The dock while a scan runs: where it is of how many steps. */
+    readonly stepOf: (step: number, of: number) => string
+  }
+}
+
+/** A rule the scan ran, as the object of «شغّلنا»: «قاعدتين»، «3 قواعد». */
+const RULES_ACCUSATIVE: ArabicForms = {
+  one: 'قاعدة واحدة',
+  two: 'قاعدتين',
+  few: '{n} قواعد',
+  many: '{n} قاعدة',
+}
+const PROBLEMS: ArabicForms = {
+  one: 'مشكلة واحدة',
+  two: 'مشكلتان',
+  few: '{n} مشكلات',
+  many: '{n} مشكلة',
+}
+const NOTES: ArabicForms = {
+  one: 'ملاحظة واحدة',
+  two: 'ملاحظتان',
+  few: '{n} ملاحظات',
+  many: '{n} ملاحظة',
+}
+/** A check that needs a human eye, as the subject of its sentence. */
+const REVIEWS: ArabicForms = {
+  one: 'فحص واحد يحتاج عين إنسان',
+  two: 'فحصان يحتاجان عين إنسان',
+  few: '{n} فحوص تحتاج عين إنسان',
+  many: '{n} فحصاً يحتاج عين إنسان',
+}
+/** «نجح 21 فحصاً»: the verb agrees with the count, as in speech. */
+const PASSED: ArabicForms = {
+  one: 'نجح فحص واحد',
+  two: 'نجح فحصان',
+  few: 'نجحت {n} فحوص',
+  many: 'نجح {n} فحصاً',
+}
+const NOT_APPLICABLE: ArabicForms = {
+  one: 'ولا ينطبق فحص واحد على هذه الصفحة',
+  two: 'ولا ينطبق فحصان على هذه الصفحة',
+  few: 'ولا تنطبق {n} فحوص على هذه الصفحة',
+  many: 'ولا ينطبق {n} فحصاً على هذه الصفحة',
 }
 
 export const REPORT: Copy<ReportStrings> = {
@@ -296,6 +389,46 @@ export const REPORT: Copy<ReportStrings> = {
       },
       another: 'افحص صفحة أخرى',
       again: 'أعد الفحص',
+    },
+    thread: {
+      scan: 'افحص',
+      read: {
+        rendered: (engines, rules) =>
+          `قرأنا الصفحة في ${engines}، وشغّلنا ${arabicCount(rules, RULES_ACCUSATIVE)}`,
+        html: (rules) =>
+          `قرأنا الصفحة كما يرسلها الخادم، وشغّلنا ${arabicCount(rules, RULES_ACCUSATIVE)}`,
+      },
+      summary: {
+        counts: (problems, notes) => {
+          const parts = []
+          if (problems > 0) parts.push(arabicCount(problems, PROBLEMS))
+          if (notes > 0) parts.push(arabicCount(notes, NOTES))
+          return `${parts.join(' و')} في هذه الصفحة`
+        },
+        review: (count) => arabicCount(count, REVIEWS),
+        clean: 'لا مشاكل في هذه الصفحة',
+        incomplete: 'لم نجد مشكلة، لكن الفحص لم يكتمل',
+        unknown: 'لا نعرف إن كانت في الصفحة مشاكل',
+        checks: (passed, notApplicable) => {
+          if (passed === 0 && notApplicable === 0) return ''
+          const parts = [passed === 0 ? 'لم ينجح أي فحص' : arabicCount(passed, PASSED)]
+          if (notApplicable > 0) parts.push(arabicCount(notApplicable, NOT_APPLICABLE))
+          return `${parts.join('، ')}.`
+        },
+        outOf: 'من 100',
+      },
+      categories: { title: 'حسب الفئة', full: 'درجتها 100' },
+      findings: {
+        title: 'ما وجدناه',
+        only: (engine) => `في ${engine} وحده`,
+        about: 'عن هذه القاعدة',
+      },
+      dock: {
+        label: 'رابط صفحة أخرى',
+        placeholder: 'افحص صفحة أخرى',
+        submit: 'افحص',
+      },
+      stepOf: (step, of) => `الخطوة ${step} من ${of}`,
     },
   },
   en: {
@@ -455,6 +588,47 @@ export const REPORT: Copy<ReportStrings> = {
       },
       another: 'Check another page',
       again: 'Scan again',
+    },
+    thread: {
+      scan: 'Scan',
+      read: {
+        rendered: (engines, rules) =>
+          `We read the page in ${engines}, and ran ${englishCount(rules, 'rule', 'rules')}`,
+        html: (rules) =>
+          `We read the page as the server sends it, and ran ${englishCount(rules, 'rule', 'rules')}`,
+      },
+      summary: {
+        counts: (problems, notes) => {
+          const parts = []
+          if (problems > 0) parts.push(englishCount(problems, 'problem', 'problems'))
+          if (notes > 0) parts.push(englishCount(notes, 'note', 'notes'))
+          return `${parts.join(' and ')} on this page`
+        },
+        review: (count) =>
+          `${count} ${englishForm(count, 'check needs', 'checks need')} a human eye`,
+        clean: 'No problems on this page',
+        incomplete: 'No problems found, but the scan did not finish',
+        unknown: 'We cannot say whether this page has problems',
+        checks: (passed, notApplicable) => {
+          if (passed === 0 && notApplicable === 0) return ''
+          const parts = [`${englishCount(passed, 'check', 'checks')} passed`]
+          if (notApplicable > 0) parts.push(`${notApplicable} not applicable to this page`)
+          return `${parts.join(', ')}.`
+        },
+        outOf: 'out of 100',
+      },
+      categories: { title: 'By category', full: 'Scoring 100' },
+      findings: {
+        title: 'What we found',
+        only: (engine) => `Only in ${engine}`,
+        about: 'About this rule',
+      },
+      dock: {
+        label: 'URL of another page',
+        placeholder: 'Scan another page',
+        submit: 'Scan',
+      },
+      stepOf: (step, of) => `Step ${step} of ${of}`,
     },
   },
 }
