@@ -1223,15 +1223,18 @@ html:has(.report-dock) {
 /*
  * A Latin name inside Arabic text (`JSON-LD`, `margin-inline-start`) moves to the next line whole
  * instead of breaking at its hyphen. Put it on the element that holds the text: the isolated runs
- * of components/Bidi.astro (each a <bdi>) become inline blocks. A run wider than the line still
- * breaks, so a long one cannot push the page sideways. An inline block is not underlined by its
- * parent's decoration, so a link's own is handed down.
+ * of components/Bidi.astro (each a <bdi>) do not wrap. They stay inline, so an Arabic letter that
+ * joins one (`وWebKit`) is not parted from it. The longest run in the tools' Arabic copy is 31
+ * characters, about 280 px: it fits a line from 360 px, and below that the runs may wrap again, so
+ * that a long one cannot push the page sideways.
  */
 @utility bidi-whole {
   & bdi {
-    display: inline-block;
-    max-width: 100%;
-    overflow-wrap: anywhere;
-    text-decoration: inherit;
+    white-space: nowrap;
+  }
+  @media (max-width: 22.5rem) {
+    & bdi {
+      white-space: normal;
+    }
   }
 }

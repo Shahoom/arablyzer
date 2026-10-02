@@ -262,7 +262,7 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
                 >
                   <Bidi text={rule.title[lang]} lang={lang} />
                 </a>
-                <span class="flex shrink-0 items-center gap-2 pb-3 md:pb-0">
+                <span class="flex min-w-0 flex-wrap items-center gap-2 pb-3 md:shrink-0 md:flex-nowrap md:pb-0">
                   <SeverityPill severity={rule.severity} lang={lang} />
                   <code
                     dir="ltr"
