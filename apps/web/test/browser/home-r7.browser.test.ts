@@ -538,6 +538,33 @@ describe.each(ENGINES)('the home page in %s', (engine) => {
       await done(tab)
     })
 
+    it('keeps what its illustrations draw inside their boxes, in both languages', async () => {
+      for (const lang of LANGS) {
+        for (const width of [1280, 1440]) {
+          const tab = await open(lang, width, { flat: true, reduced: true })
+          const out = await tab.evaluate(() => {
+            const poking: string[] = []
+            // The fields of the forms tile, the rows of the lists and the engines' rows: a
+            // pill that is longer than its field's room (the English «Arabic digits rejected»
+            // was) shows past the edge.
+            for (const node of document.querySelectorAll(
+              'section[aria-labelledby="bento-title"] article span.border-field, section[aria-labelledby="bento-title"] article li, section[aria-labelledby="bento-title"] article > div > div > div',
+            )) {
+              if (!node.checkVisibility()) continue
+              if (node.scrollWidth > node.clientWidth + 1) {
+                poking.push(
+                  `${node.tagName.toLowerCase()} ${node.scrollWidth} > ${node.clientWidth}`,
+                )
+              }
+            }
+            return poking
+          })
+          expect(out, `${lang} at ${width}`).toEqual([])
+          await done(tab)
+        }
+      }
+    })
+
     it('keeps its controls to a thumb on a phone', async () => {
       for (const lang of LANGS) {
         const tab = await open(lang, 390, { flat: true })

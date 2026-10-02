@@ -73,6 +73,24 @@ describe('the tools the home page names', () => {
   })
 })
 
+// M2.6 R7: a phone's first screen holds the heading, a lead of one or two lines at 16 px, the scan
+// box and the tools. The lead is cut to about a hundred characters in Arabic and ninety in English
+// (measured at 390 px: two lines; the browser test counts the lines), and the badge over the
+// heading is a count and a few words.
+describe('the hero’s words', () => {
+  it('keep the lead to two lines on a phone', () => {
+    expect(HOME.ar.hero.lead.length).toBeLessThanOrEqual(100)
+    expect(HOME.en.hero.lead.length).toBeLessThanOrEqual(92)
+  })
+
+  it('have a short badge: the tool count and three or four words', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      expect(HOME[lang].hero.pill.text.split(/\s+/).length, lang).toBeLessThanOrEqual(5)
+      expect(HOME[lang].hero.pill.count(44), lang).toContain('44')
+    }
+  })
+})
+
 describe('the example report’s categories', () => {
   it('are each scored in the golden report the product shot reads', () => {
     for (const category of SHOWN_CATEGORIES) {
