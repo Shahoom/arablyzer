@@ -1,0 +1,48 @@
+---
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import ChevronLeft from '@lucide/astro/icons/chevron-left'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+import Bidi from './Bidi.astro'
+
+/**
+ * The trail above a page's heading: the home page, the steps between it and this page (a
+ * section's directory, say), and this page, which is not a link. The same trail as the page's
+ * BreadcrumbList in JSON-LD; the chevrons point the way the text reads.
+ */
+interface Props {
+  lang: Lang
+  /** The landmark's name. */
+  label: string
+  /** The steps between the home page and this one. */
+  steps?: readonly { readonly name: string; readonly href: string }[]
+  /** This page. */
+  current: string
+}
+const { lang, label, steps = [], current } = Astro.props
+const Next = lang === 'ar' ? ChevronLeft : ChevronRight
+// Quiet, and still 4.5:1 on the tint behind a page's head: ink-2, not the quieter ink-3.
+const link = 'text-ink-2 underline-offset-4 hover:text-brand-ink hover:underline'
+---
+
+<nav aria-label={label} class="text-sm text-ink-2">
+  <ol class="m-0 flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0">
+    <li class="flex items-center gap-2">
+      <a href={localePath(lang, PATHS.home)} class={link}>
+        {STRINGS[lang].home}
+      </a>
+      <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-3" />
+    </li>
+    {steps.map((step) => (
+      <li class="flex items-center gap-2">
+        <a href={step.href} class={link}>
+          <Bidi text={step.name} lang={lang} />
+        </a>
+        <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-3" />
+      </li>
+    ))}
+    <li aria-current="page" class="font-semibold text-ink">
+      <Bidi text={current} lang={lang} />
+    </li>
+  </ol>
+</nav>

@@ -851,3 +851,19 @@
     padding-inline: 0.25rem;
   }
 }
+
+/* R5 */
+
+/*
+ * A chevron toward the end of the line, drawn with two borders: a list of hundreds of links (the
+ * knowledge hub) cannot afford an SVG in each row. It points left in a right-to-left page and
+ * right in a left-to-right one (--reading, set on the root), and takes the text's colour.
+ */
+@utility chev-end {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-block-start: 2px solid currentColor;
+  border-inline-end: 2px solid currentColor;
+  transform: rotate(calc(var(--reading) * -45deg));
+}

@@ -11,6 +11,7 @@ import { TOOLS_DATA } from './tool-data'
 const PAGES: readonly string[] = [
   PATHS.home,
   PATHS.tools,
+  PATHS.knowledge,
   PATHS.rules,
   PATHS.fix,
   PATHS.glossary,
