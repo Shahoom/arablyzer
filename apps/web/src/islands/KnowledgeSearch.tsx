@@ -136,7 +136,7 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
                 type="button"
                 onClick={clear}
                 aria-label={t.search.clear}
-                className="grid size-10 shrink-0 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-ink-3 hover:bg-surface-2 hover:text-ink"
+                className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border-0 bg-transparent text-ink-3 hover:bg-surface-2 hover:text-ink"
               >
                 <X size={18} strokeWidth={2} aria-hidden="true" />
               </button>
