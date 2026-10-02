@@ -7,6 +7,7 @@ import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import { TOOL_APP } from '@arablyzer/i18n/tool-app'
 import type { Engine } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
+import { TOOLS } from '@arablyzer/tools'
 import { chromium, firefox, webkit, type Browser, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -542,6 +543,49 @@ describe.each(ENGINES)('a tool page in %s', (engine) => {
       await robots.context().close()
     },
     60_000,
+  )
+
+  // M2.6 R7 §8: a lead is one or two lines on a phone (the tool's question, not its long description).
+  // Four English summaries are 107 to 121 characters and take a third line: cutting them is a change
+  // of the tools' copy (packages/tools), which a page does not make; they are named here so that
+  // no other page joins them, and the list shortens as the copy does.
+  const THREE_LINES = new Set([
+    'en/hreflang-generator',
+    'en/payment-methods-detector',
+    'en/schema-generator',
+    'en/whatsapp-link-generator',
+  ])
+  it.skipIf(engine !== 'chromium')(
+    'has a lead of one or two lines on a phone, on every tool page',
+    async () => {
+      const context = await browser.newContext({ viewport: PHONE, javaScriptEnabled: false })
+      await context.route('**/*', async (route) => {
+        if (new URL(route.request().url()).origin === site.origin) await route.fallback()
+        else await route.abort('blockedbyclient')
+      })
+      const tab = await context.newPage()
+      const found: Record<string, number | null> = {}
+      for (const lang of ['ar', 'en'] as const) {
+        for (const tool of TOOLS) {
+          await tab.goto(site.url(`${prefixOf(lang)}/tools/${tool.slug}`))
+          found[`${lang}/${tool.slug}`] = await tab.evaluate(() => {
+            const lead = document.querySelector('h1 + p')
+            if (lead === null) return null
+            const style = getComputedStyle(lead)
+            return Math.round(lead.getBoundingClientRect().height / parseFloat(style.lineHeight))
+          })
+        }
+      }
+      const tooLong = Object.entries(found)
+        .filter(([page, lines]) => lines === null || lines > (THREE_LINES.has(page) ? 3 : 2))
+        .map(([page, lines]) => `${page}: ${String(lines)}`)
+      expect(tooLong).toEqual([])
+      // The Arabic pages, the language the site is written in first, all keep to two lines.
+      const arabic = Object.entries(found).filter(([page]) => page.startsWith('ar/'))
+      expect(arabic.every(([, lines]) => lines !== null && lines <= 2)).toBe(true)
+      await context.close()
+    },
+    180_000,
   )
 
   it('keeps the controls of a generator to the scale: 48 px for the button, 44 px for the secondary ones', async () => {

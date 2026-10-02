@@ -234,14 +234,14 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
         <Checked rules={report.rules} lang={lang} reportsOnly={reportsOnly} />
       )}
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 bg-surface-2 px-card py-3 text-small text-ink-2">
-        <span className="flex flex-wrap gap-x-2 gap-y-1">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-0">
           {t.rules(report.rules.length)}
           {report.rules.map((rule) => (
             <a
               key={rule.id}
               href={localePath(lang, PATHS.rule(rule.id))}
               dir="ltr"
-              className="font-mono text-ink-2 underline decoration-line-2 underline-offset-4 hover:text-brand-ink"
+              className="inline-flex min-h-7 items-center font-mono text-ink-2 underline decoration-line-2 underline-offset-4 hover:text-brand-ink"
             >
               {rule.id}
             </a>

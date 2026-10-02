@@ -99,9 +99,11 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
       <h1 class={HEAD.page}>
         <Bidi text={copy.title} lang={lang} />
       </h1>
-      {/* A Latin name with a hyphen, such as JSON-LD, is not broken at it: it is one name. */}
+      {/* The lead is the tool's question (its card's line), one or two lines on a phone; the longer
+          description is the page's meta description and its structured data. A Latin name with a
+          hyphen, such as JSON-LD, is not broken at it: it is one name. */}
       <p class:list={[HEAD.lead, 'bidi-whole']}>
-        <Bidi text={copy.description} lang={lang} />
+        <Bidi text={copy.summary} lang={lang} />
       </p>
     </div>
   </div>
