@@ -4,13 +4,15 @@ import type { Lang } from '@arablyzer/seo/site'
 import { HEAD } from '../../lib/heads'
 import Page from '../../layouts/Page.astro'
 import Breadcrumb from '../Breadcrumb.astro'
+import PageColumns from '../PageColumns.astro'
 
 /**
  * A page that is a document (the methodology, the bot's page, a fix guide, a glossary term): the
- * trail and its heading (slot "head") over the tint of a page's head, then its sections in eight
- * of the design's twelve columns beside the aside (slot "aside"), which stays in view on a wide
- * screen. On a narrow one the aside comes after the sections, as links to more do, or before
- * them (`asideFirst`), as a page's contents do.
+ * trail and its heading (slot "head") over the faint tint of a page's head, then its sections in
+ * the main column of a PageColumns (760 px at the most) beside the aside (slot "aside"), which
+ * stays in view on a wide screen. On a narrow one the aside comes after the sections, as links to
+ * more do, or before them (`asideFirst`), as a page's contents do. This is the first page kind on
+ * PageColumns (M2.6 R7a).
  */
 interface Props {
   lang: Lang
@@ -36,15 +38,12 @@ const {
   parent,
   asideFirst = false,
 } = Astro.props
-const aside = 'min-w-0 lg:sticky lg:top-24'
-// On a wide screen the sections are the first column whichever comes first in the page.
-const main = 'flex min-w-0 flex-col gap-12 md:gap-14 lg:order-first'
 ---
 
 <Page lang={lang} path={path} title={title} description={description} jsonLd={jsonLd}>
   <section class="relative isolate border-b border-line">
     <div aria-hidden="true" class="page-wash"></div>
-    <div class:list={['wrap flex flex-col gap-5 md:gap-6', HEAD.padding]}>
+    <div class:list={['wrap flex flex-col gap-4 lg:gap-5', HEAD.padding]}>
       <Breadcrumb
         lang={lang}
         label={breadcrumbLabel}
@@ -54,30 +53,12 @@ const main = 'flex min-w-0 flex-col gap-12 md:gap-14 lg:order-first'
       <slot name="head" />
     </div>
   </section>
-  <div
-    class:list={[
-      'wrap grid gap-10 pb-16 md:pb-24 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-x-14',
-      HEAD.bodyTop,
-    ]}
-  >
-    {asideFirst ? (
-      <>
-        <aside class={aside}>
-          <slot name="aside" />
-        </aside>
-        <div class={main}>
-          <slot />
-        </div>
-      </>
-    ) : (
-      <>
-        <div class={main}>
-          <slot />
-        </div>
-        <aside class={aside}>
-          <slot name="aside" />
-        </aside>
-      </>
-    )}
-  </div>
+  <PageColumns asideFirst={asideFirst} class:list={[HEAD.bodyTop, 'pb-section']}>
+    <Fragment slot="aside">
+      <slot name="aside" />
+    </Fragment>
+    <div class="flex flex-col gap-section">
+      <slot />
+    </div>
+  </PageColumns>
 </Page>
