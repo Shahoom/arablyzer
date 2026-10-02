@@ -242,14 +242,16 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
-    // The tools' directory and the tool pages' own parts driven in the browsers (M2.6 R3), and the
-    // heads of the pages and the contrast of their text as one system (R6): the site's own pages
-    // on loopback, and every request off the site refused.
+    // The tools' directory and the tool pages' own parts driven in the browsers (M2.6 R3), the
+    // heads of the pages and the contrast of their text as one system (R6), and the shared layer
+    // of R7 (the header, the scale, the two columns, the footer): the site's own pages on
+    // loopback, and every request off the site refused.
     files: [
       'apps/web/test/browser/directory.browser.test.ts',
       'apps/web/test/browser/tool-page.browser.test.ts',
       'apps/web/test/browser/heads.browser.test.ts',
       'apps/web/test/browser/contrast.browser.test.ts',
+      'apps/web/test/browser/shared-layer.browser.test.ts',
     ],
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
