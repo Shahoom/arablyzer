@@ -36,7 +36,7 @@ export function Progress({
   return (
     <div className="flex flex-col">
       <section className="flex flex-col gap-3 border-b border-ink bg-white px-5 pt-7 pb-6 md:px-16">
-        <span className="text-sm font-semibold text-signal">{t.kicker}</span>
+        <span className="text-sm font-semibold text-brand-ink">{t.kicker}</span>
         <h1 className="m-0 text-3xl leading-tight font-semibold md:text-[38px]">{t.title}</h1>
         <span dir="ltr" className="self-start font-mono text-base break-all text-ink-2 md:text-lg">
           {summary.url}
@@ -48,7 +48,7 @@ export function Progress({
       </section>
       <div className="grid gap-8 px-5 py-8 md:px-16 lg:grid-cols-12">
         <div className="flex flex-col gap-6 lg:col-span-7">
-          <section className="relative flex flex-col bg-panel-grid text-panel-text">
+          <section className="panel-dark relative flex flex-col text-panel-text">
             <Crosshairs />
             <div className="flex items-center justify-between gap-4 border-b border-panel-line px-5 py-3 text-xs text-panel-dim">
               <span>{t.engines}</span>
@@ -120,7 +120,7 @@ export function Progress({
                     step.state === 'done'
                       ? 'border-pass bg-pass-soft text-pass'
                       : step.state === 'failed'
-                        ? 'border-signal bg-signal-soft text-signal'
+                        ? 'border-serious bg-serious-soft text-serious'
                         : step.state === 'active'
                           ? 'border-ink'
                           : 'border-rule-strong'

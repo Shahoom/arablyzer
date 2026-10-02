@@ -59,7 +59,7 @@ const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
           <span
             lang="ar"
             aria-hidden="true"
-            class="text-[26px] font-semibold text-signal md:text-[34px]"
+            class="text-[26px] font-semibold text-serious md:text-[34px]"
           >
             {drawnWithLetterSpacing(s.heading.text)}
           </span>
@@ -73,7 +73,7 @@ const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
               </span>
             </span>
             {s.spacing.drawnBy.map((engine) => (
-              <span dir="ltr" class:list={[chip, 'bg-signal-soft text-signal']}>
+              <span dir="ltr" class:list={[chip, 'bg-serious-soft text-serious']}>
                 <X size={12} stroke-width={3} aria-hidden="true" />
                 {ENGINE_NAMES[engine]}
               </span>
@@ -114,7 +114,7 @@ const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
             y="26"
             width={round(element.width)}
             height="30"
-            class="fill-signal-soft stroke-signal"
+            class="fill-serious-soft stroke-serious"
             stroke-width="1.5"
             stroke-dasharray="4 3"
           ></rect>
@@ -123,7 +123,7 @@ const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
             y="46"
             text-anchor="middle"
             font-size="12"
-            class="fill-signal font-mono"
+            class="fill-serious font-mono"
           >
             {o.element}
           </text>
@@ -166,11 +166,11 @@ const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
         dir="rtl"
       >
         <span class="text-[13px] font-semibold md:text-sm">{s.name.label}</span>
-        <span class="flex h-11 items-center border-[1.5px] border-signal bg-white px-3.5 text-base md:h-12 md:text-[17px]">
+        <span class="flex h-11 items-center border-[1.5px] border-serious bg-white px-3.5 text-base md:h-12 md:text-[17px]">
           {s.name.name}
         </span>
         <span class="flex flex-wrap items-center justify-between gap-2 text-xs md:text-[13px]">
-          <span class="flex items-center gap-1.5 text-signal">
+          <span class="flex items-center gap-1.5 text-serious">
             <X size={14} stroke-width={2.5} aria-hidden="true" />
             <span lang={lang}>{t.rejected}</span>
           </span>
@@ -183,7 +183,7 @@ const chip = 'flex items-center gap-1 px-2 py-[3px] font-mono text-xs'
 
     <ExampleCard lang={lang} code="A-04" title={t.cards.price} finding={s.price.finding}>
       <div class="flex flex-wrap items-center justify-center gap-4 border border-rule-soft bg-white px-5 py-6 md:gap-7 md:py-[30px]">
-        <span lang="ar" class="text-2xl text-signal line-through decoration-2 md:text-[32px]">
+        <span lang="ar" class="text-2xl text-serious line-through decoration-2 md:text-[32px]">
           <samp class="font-sans">
             <bdi>{s.price.price}</bdi>
           </samp>

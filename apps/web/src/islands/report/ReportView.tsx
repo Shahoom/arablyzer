@@ -109,7 +109,7 @@ function ReportHeader({
       ? `${localePath(lang, '/')}?url=${again}#scan`
       : `${localePath(lang, `/tools/${tool.slug}`)}?url=${again}`
   const button =
-    'flex h-[46px] items-center gap-2 border-[1.5px] border-ink bg-white px-4 text-[15px] font-semibold hover:text-signal'
+    'flex h-[46px] items-center gap-2 border-[1.5px] border-ink bg-white px-4 text-[15px] font-semibold hover:text-brand-ink'
   return (
     <section
       aria-labelledby="report-title"
@@ -118,23 +118,23 @@ function ReportHeader({
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex min-w-0 flex-col gap-3">
           {tool === undefined ? (
-            <span className="text-sm font-semibold text-signal">{t.kicker}</span>
+            <span className="text-sm font-semibold text-brand-ink">{t.kicker}</span>
           ) : (
-            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-signal">
+            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-brand-ink">
               {t.tool}
               {/* The tool's name; its slug when the name could not be read. */}
               {tool.title === null ? (
                 <a
                   href={localePath(lang, `/tools/${tool.slug}`)}
                   dir="ltr"
-                  className="font-mono font-normal text-ink-2 underline underline-offset-4 hover:text-signal"
+                  className="font-mono font-normal text-ink-2 underline underline-offset-4 hover:text-brand-ink"
                 >
                   {tool.slug}
                 </a>
               ) : (
                 <a
                   href={localePath(lang, `/tools/${tool.slug}`)}
-                  className="font-normal text-ink-2 underline underline-offset-4 hover:text-signal"
+                  className="font-normal text-ink-2 underline underline-offset-4 hover:text-brand-ink"
                 >
                   <Bidi text={tool.title} lang={lang} />
                 </a>
@@ -193,7 +193,7 @@ function ReportHeader({
           </a>
           <a
             href={rescan}
-            className="flex h-[46px] items-center gap-2 bg-ink px-5 text-[15px] font-semibold text-white hover:bg-signal"
+            className="flex h-[46px] items-center gap-2 bg-ink px-5 text-[15px] font-semibold text-white hover:bg-brand-ink"
           >
             <RotateCcw size={16} aria-hidden="true" />
             {t.rescan}
@@ -211,7 +211,7 @@ function ScoreCard({ report, lang }: { report: Report; lang: Lang }) {
   return (
     <section
       aria-labelledby="score-title"
-      className="relative flex flex-col bg-panel-grid text-panel-text"
+      className="panel-dark relative flex flex-col text-panel-text"
     >
       <Crosshairs />
       <div className="flex items-center justify-between border-b border-panel-line px-5 py-3.5 text-xs text-panel-dim">
@@ -336,7 +336,7 @@ function Contents({
           onClick={() => {
             if (tab !== null) onOpen(tab)
           }}
-          className="flex items-center justify-between border-b border-rule-soft px-5 py-3 text-[15px] hover:text-signal"
+          className="flex items-center justify-between border-b border-rule-soft px-5 py-3 text-[15px] hover:text-brand-ink"
         >
           {label}
           <span dir="ltr" className="font-mono text-ink-3">
@@ -379,7 +379,7 @@ function Engines({ report, lang }: { report: Report; lang: Lang }) {
             <li
               key={engine}
               className={`flex flex-col gap-1.5 bg-white px-4 py-3 ${
-                flagged ? 'border-[1.5px] border-signal' : 'border border-rule-strong'
+                flagged ? 'border-[1.5px] border-serious' : 'border border-rule-strong'
               }`}
             >
               <span dir="ltr" className="self-start font-mono text-[13px] font-semibold">
@@ -387,7 +387,7 @@ function Engines({ report, lang }: { report: Report; lang: Lang }) {
               </span>
               <span
                 className={`text-[13px] ${
-                  run.status === 'rendered' && !flagged ? 'text-pass' : 'text-signal'
+                  run.status === 'rendered' && !flagged ? 'text-pass' : 'text-serious'
                 }`}
               >
                 {flagged
@@ -483,7 +483,9 @@ function Results({
               }}
               onKeyDown={move}
               className={`flex min-h-12 cursor-pointer flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[15px] leading-tight sm:flex-row sm:gap-1.5 sm:px-4 sm:text-base ${
-                tab === key ? 'bg-ink font-semibold text-white' : 'bg-transparent hover:text-signal'
+                tab === key
+                  ? 'bg-ink font-semibold text-white'
+                  : 'bg-transparent hover:text-brand-ink'
               }`}
             >
               <span>{label}</span>
@@ -577,7 +579,7 @@ function FindingCard({
     <article
       aria-labelledby={`${code}-title`}
       className={`flex flex-col bg-white ${
-        first ? 'border-[1.5px] border-ink shadow-key' : 'border border-rule-strong'
+        first ? 'border-[1.5px] border-ink shadow' : 'border border-rule-strong'
       }`}
     >
       <header className="flex flex-col gap-2.5 border-b border-rule-soft px-5 py-5 md:px-7">
@@ -590,7 +592,7 @@ function FindingCard({
           <a
             href={localePath(lang, PATHS.rule(rule.id))}
             dir="ltr"
-            className="font-mono text-[13px] text-ink-2 underline decoration-tick underline-offset-4 hover:text-signal"
+            className="font-mono text-[13px] text-ink-2 underline decoration-tick underline-offset-4 hover:text-brand-ink"
           >
             {rule.id}
           </a>
@@ -652,7 +654,7 @@ function RuleList({ rules, lang }: { rules: readonly RuleResult[]; lang: Lang })
         >
           <a
             href={localePath(lang, PATHS.rule(rule.id))}
-            className="text-[15px] underline decoration-tick underline-offset-4 hover:text-signal"
+            className="text-[15px] underline decoration-tick underline-offset-4 hover:text-brand-ink"
           >
             <Bidi text={rule.title[lang]} lang={lang} />
           </a>

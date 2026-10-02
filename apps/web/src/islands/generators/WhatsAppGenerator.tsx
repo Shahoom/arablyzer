@@ -107,13 +107,13 @@ export default function WhatsAppGenerator({ lang, tool }: { lang: Lang; tool: st
                 href={result.url}
                 target="_blank"
                 rel="noopener"
-                className="self-start text-sm font-semibold underline underline-offset-4 hover:text-signal"
+                className="self-start text-sm font-semibold underline underline-offset-4 hover:text-brand-ink"
               >
                 {t.open}
               </a>
             </>
           ) : (
-            <p role="alert" className="m-0 text-sm text-signal">
+            <p role="alert" className="m-0 text-sm text-serious">
               {t.problems[result.problem]}
             </p>
           )}

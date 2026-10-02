@@ -33,14 +33,14 @@ const Next = lang === 'ar' ? ChevronLeft : ChevronRight
       <nav aria-label={breadcrumbLabel} class="text-sm text-ink-3">
         <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
           <li class="flex items-center gap-2">
-            <a href={localePath(lang, PATHS.home)} class="text-ink-3 hover:text-signal">
+            <a href={localePath(lang, PATHS.home)} class="text-ink-3 hover:text-brand-ink">
               {STRINGS[lang].home}
             </a>
             <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
           </li>
           {parent !== undefined && (
             <li class="flex items-center gap-2">
-              <a href={parent.href} class="text-ink-3 hover:text-signal">
+              <a href={parent.href} class="text-ink-3 hover:text-brand-ink">
                 {parent.name}
               </a>
               <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />

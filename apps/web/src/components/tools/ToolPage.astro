@@ -62,13 +62,13 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
         <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
           <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
             <li class="flex items-center gap-2">
-              <a href={toolsPath} class="text-ink-3 hover:text-signal">
+              <a href={toolsPath} class="text-ink-3 hover:text-brand-ink">
                 {t.directory.title}
               </a>
               <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
             </li>
             <li>
-              <a href={`${toolsPath}#cat-${tool.category}`} class="text-ink-3 hover:text-signal">
+              <a href={`${toolsPath}#cat-${tool.category}`} class="text-ink-3 hover:text-brand-ink">
                 {category}
               </a>
             </li>
@@ -141,7 +141,7 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
               <figcaption
                 class:list={[
                   'flex items-center gap-2 border-b border-rule-soft px-4 py-2.5 text-sm font-semibold',
-                  kind === 'wrong' ? 'text-signal' : 'text-pass',
+                  kind === 'wrong' ? 'text-serious' : 'text-pass',
                 ]}
               >
                 {kind === 'wrong' ? (
@@ -208,7 +208,7 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
                 </code>
                 <a
                   href={localePath(lang, PATHS.rule(rule.id))}
-                  class="text-base leading-[1.6] font-semibold underline decoration-tick underline-offset-4 hover:text-signal"
+                  class="text-base leading-[1.6] font-semibold underline decoration-tick underline-offset-4 hover:text-brand-ink"
                 >
                   <Bidi text={rule.title[lang]} lang={lang} />
                 </a>
@@ -231,7 +231,7 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
               <a
                 href={other.href}
                 class:list={[
-                  'flex items-center justify-between gap-3 py-2.5 text-base hover:text-signal',
+                  'flex items-center justify-between gap-3 py-2.5 text-base hover:text-brand-ink',
                   index < near.length - 1 && 'border-b border-rule-soft',
                 ]}
               >
@@ -263,10 +263,10 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
             {tool.updated}
           </time>
         </span>
-        <a href={methodologyHref(lang)} class="underline underline-offset-4 hover:text-signal">
+        <a href={methodologyHref(lang)} class="underline underline-offset-4 hover:text-brand-ink">
           {t.page.methodology}
         </a>
-        <a href={scanFormHref(lang)} class="underline underline-offset-4 hover:text-signal">
+        <a href={scanFormHref(lang)} class="underline underline-offset-4 hover:text-brand-ink">
           {t.page.fullScan}
         </a>
       </p>

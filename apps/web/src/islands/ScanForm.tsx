@@ -20,16 +20,16 @@ interface Props {
 const TONE = {
   paper: {
     label: 'text-ink',
-    row: 'sm:border-2 sm:border-ink sm:bg-white sm:shadow-key',
+    row: 'sm:border-2 sm:border-ink sm:bg-white sm:shadow-lg',
     input: 'border-[1.5px] border-ink sm:border-0',
-    button: 'bg-ink hover:bg-signal',
-    error: 'text-signal',
+    button: 'bg-ink hover:bg-brand-ink',
+    error: 'text-serious',
   },
   panel: {
     label: 'text-panel-soft',
     row: 'sm:border-2 sm:border-white sm:bg-white',
     input: 'border-0',
-    button: 'bg-signal hover:bg-critical',
+    button: 'bg-brand hover:bg-brand-ink',
     error: 'text-panel-signal',
   },
 } as const

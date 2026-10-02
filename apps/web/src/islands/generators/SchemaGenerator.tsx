@@ -120,7 +120,7 @@ export default function SchemaGenerator({ lang, tool }: { lang: Lang; tool: stri
           {result.ok ? (
             <CopyBox lang={lang} label={t.html} text={result.html} />
           ) : (
-            <p role="alert" className="m-0 text-sm text-signal">
+            <p role="alert" className="m-0 text-sm text-serious">
               {t.problems[result.problem]}
             </p>
           )}

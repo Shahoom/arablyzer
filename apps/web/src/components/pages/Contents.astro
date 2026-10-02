@@ -18,11 +18,11 @@ const { label, sections } = Astro.props
     <a
       href={`#${section.id}`}
       class:list={[
-        'flex items-baseline gap-3 py-2 hover:text-signal',
+        'flex items-baseline gap-3 py-2 hover:text-brand-ink',
         index < sections.length - 1 && 'border-b border-rule-soft',
       ]}
     >
-      <span dir="ltr" class="font-mono text-xs text-signal">
+      <span dir="ltr" class="font-mono text-xs text-brand-ink">
         {String(index + 1).padStart(2, '0')}
       </span>
       {section.title}

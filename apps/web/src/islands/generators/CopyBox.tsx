@@ -72,4 +72,4 @@ export const FIELD =
   'h-12 min-w-0 border-[1.5px] border-ink bg-white px-3.5 text-base text-ink placeholder:text-ink-3'
 export const LABEL = 'text-sm font-semibold'
 export const SUBMIT =
-  'flex h-12 cursor-pointer items-center justify-center gap-2.5 self-start bg-ink px-7 text-[17px] font-semibold text-white hover:bg-signal'
+  'flex h-12 cursor-pointer items-center justify-center gap-2.5 self-start bg-ink px-7 text-[17px] font-semibold text-white hover:bg-brand-ink'

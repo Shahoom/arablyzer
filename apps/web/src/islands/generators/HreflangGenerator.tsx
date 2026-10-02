@@ -80,7 +80,7 @@ export default function HreflangGenerator({ lang, tool }: { lang: Lang; tool: st
             setRows([...rows, next])
             setNext(next + 1)
           }}
-          className="h-10 cursor-pointer self-start border border-ink px-4 text-sm font-semibold hover:text-signal"
+          className="h-10 cursor-pointer self-start border border-ink px-4 text-sm font-semibold hover:text-brand-ink"
         >
           {t.add}
         </button>
@@ -108,7 +108,7 @@ export default function HreflangGenerator({ lang, tool }: { lang: Lang; tool: st
       {result !== null && (
         <section aria-label={common.result} className="flex flex-col gap-3">
           {result.tags.problems.map((problem) => (
-            <p key={problem.row} role="alert" className="m-0 text-sm text-signal">
+            <p key={problem.row} role="alert" className="m-0 text-sm text-serious">
               {t.problem(result.rows[problem.row]?.code ?? '', problem.check.suggestion)}
             </p>
           ))}

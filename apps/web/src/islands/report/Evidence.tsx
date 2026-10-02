@@ -53,7 +53,7 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
                 <span
                   key={engine}
                   dir="ltr"
-                  className="bg-signal-soft px-2 py-0.5 font-mono text-xs text-signal"
+                  className="bg-serious-soft px-2 py-0.5 font-mono text-xs text-serious"
                 >
                   {ENGINE_LABEL[engine]}
                 </span>
@@ -120,7 +120,7 @@ function OverflowDiagram({
           y="26"
           width={round(end - start)}
           height="30"
-          className="fill-signal-soft stroke-signal"
+          className="fill-serious-soft stroke-serious"
           strokeWidth="1.5"
           strokeDasharray="4 3"
         />

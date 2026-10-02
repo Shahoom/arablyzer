@@ -70,13 +70,16 @@ const card = 'flex flex-col border bg-white p-[22px]'
         <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
           <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
             <li class="flex items-center gap-2">
-              <a href={libraryPath} class="text-ink-3 hover:text-signal">
+              <a href={libraryPath} class="text-ink-3 hover:text-brand-ink">
                 {t.library.title}
               </a>
               <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
             </li>
             <li>
-              <a href={`${libraryPath}#cat-${rule.category}`} class="text-ink-3 hover:text-signal">
+              <a
+                href={`${libraryPath}#cat-${rule.category}`}
+                class="text-ink-3 hover:text-brand-ink"
+              >
                 {category}
               </a>
             </li>
@@ -132,7 +135,7 @@ const card = 'flex flex-col border bg-white p-[22px]'
                 <figcaption
                   class:list={[
                     'flex items-center gap-2 border-b border-rule-soft px-4 py-2.5 text-sm font-semibold',
-                    kind === 'wrong' ? 'text-signal' : 'text-pass',
+                    kind === 'wrong' ? 'text-serious' : 'text-pass',
                   ]}
                 >
                   {kind === 'wrong' ? (
@@ -195,7 +198,7 @@ const card = 'flex flex-col border bg-white p-[22px]'
         </p>
         <a
           href={methodologyHref(lang)}
-          class="self-start text-sm font-semibold underline underline-offset-4 hover:text-signal"
+          class="self-start text-sm font-semibold underline underline-offset-4 hover:text-brand-ink"
         >
           {t.page.weight.methodology}
         </a>
@@ -209,7 +212,7 @@ const card = 'flex flex-col border bg-white p-[22px]'
           <a
             href={link.href}
             class:list={[
-              'flex items-center justify-between gap-3 py-2.5 text-base hover:text-signal',
+              'flex items-center justify-between gap-3 py-2.5 text-base hover:text-brand-ink',
               index < tools.length && 'border-b border-rule-soft',
             ]}
           >
@@ -228,7 +231,7 @@ const card = 'flex flex-col border bg-white p-[22px]'
             <a
               href={other.href}
               class:list={[
-                'flex flex-col gap-0.5 py-2.5 hover:text-signal',
+                'flex flex-col gap-0.5 py-2.5 hover:text-brand-ink',
                 index < near.length - 1 && 'border-b border-rule-soft',
               ]}
             >
@@ -285,7 +288,7 @@ const card = 'flex flex-col border bg-white p-[22px]'
     text-align: end;
     font-family: var(--font-mono);
     font-size: 14px;
-    color: var(--color-signal);
+    color: var(--color-brand-ink);
   }
   .rule-references :global(ul) {
     list-style: none;

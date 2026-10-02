@@ -228,7 +228,7 @@ export default function ToolApp({ lang, tool, reads, reportsOnly }: Props) {
             type="submit"
             disabled={!ready}
             aria-disabled={busy ? true : undefined}
-            className="flex h-[52px] shrink-0 cursor-pointer items-center justify-center gap-2.5 bg-ink px-7 text-[17px] font-semibold text-white hover:bg-signal disabled:cursor-wait aria-disabled:cursor-wait sm:h-auto"
+            className="flex h-[52px] shrink-0 cursor-pointer items-center justify-center gap-2.5 bg-ink px-7 text-[17px] font-semibold text-white hover:bg-brand-ink disabled:cursor-wait aria-disabled:cursor-wait sm:h-auto"
           >
             {busy ? t.submitting : t.submit}
             <Forward size={20} strokeWidth={2} aria-hidden="true" />
@@ -238,7 +238,7 @@ export default function ToolApp({ lang, tool, reads, reportsOnly }: Props) {
         <p id="tool-note" className="m-0 text-sm text-ink-3">
           {t.note[reads]}
         </p>
-        <p id="tool-error" role="alert" className="m-0 text-sm text-signal empty:hidden">
+        <p id="tool-error" role="alert" className="m-0 text-sm text-serious empty:hidden">
           {message}
         </p>
       </form>
@@ -280,7 +280,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
                 <Check size={16} strokeWidth={2.4} aria-hidden="true" className="text-pass" />
               )}
               {step.state === 'failed' && (
-                <X size={16} strokeWidth={2.4} aria-hidden="true" className="text-signal" />
+                <X size={16} strokeWidth={2.4} aria-hidden="true" className="text-serious" />
               )}
               {step.state === 'active' && (
                 <span aria-hidden="true" className="size-2 bg-ink motion-safe:animate-pulse" />
@@ -295,7 +295,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
     return (
       <section aria-labelledby="result-title" className={frame}>
         <div className="px-5 py-5 md:px-6">
-          <h2 id="result-title" className="m-0 text-lg font-semibold text-signal">
+          <h2 id="result-title" className="m-0 text-lg font-semibold text-serious">
             {run.phase === 'offline' ? t.offline : t.failed}
           </h2>
         </div>
@@ -381,7 +381,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
               key={rule.id}
               href={localePath(lang, PATHS.rule(rule.id))}
               dir="ltr"
-              className="font-mono text-ink-2 underline decoration-tick underline-offset-4 hover:text-signal"
+              className="font-mono text-ink-2 underline decoration-tick underline-offset-4 hover:text-brand-ink"
             >
               {rule.id}
             </a>
@@ -404,7 +404,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
 
 const STATUS_STYLE: Readonly<Record<RuleResult['status'], string>> = {
   pass: 'bg-pass-soft text-pass',
-  fail: 'bg-signal-soft text-signal',
+  fail: 'bg-serious-soft text-serious',
   'needs-review': 'bg-measure-soft text-measure',
   error: 'bg-moderate-soft text-moderate',
   'not-applicable': 'bg-paper text-ink-3',
@@ -461,7 +461,7 @@ function Checked({
                   size={16}
                   strokeWidth={2.4}
                   aria-hidden="true"
-                  className="mt-1 shrink-0 text-signal"
+                  className="mt-1 shrink-0 text-serious"
                 />
               ) : (
                 <Minus

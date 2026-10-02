@@ -38,7 +38,7 @@ export function StateCard({
   return (
     <section
       aria-labelledby="state-title"
-      className="mx-5 my-10 flex max-w-3xl flex-col gap-4 border-[1.5px] border-ink bg-white p-6 shadow-key md:mx-16 md:p-8"
+      className="mx-5 my-10 flex max-w-3xl flex-col gap-4 border-[1.5px] border-ink bg-white p-6 shadow md:mx-16 md:p-8"
     >
       <h1 id="state-title" className="m-0 text-2xl font-semibold md:text-3xl">
         {title}
@@ -63,14 +63,14 @@ export function StateCard({
         {url !== null && kind !== 'offline' && (
           <a
             href={`${home}?url=${encodeURIComponent(url)}#scan`}
-            className="flex h-11 items-center bg-ink px-5 font-semibold text-white hover:bg-signal"
+            className="flex h-11 items-center bg-ink px-5 font-semibold text-white hover:bg-brand-ink"
           >
             {t.again}
           </a>
         )}
         <a
           href={`${home}#scan`}
-          className="flex h-11 items-center border-[1.5px] border-ink bg-white px-5 font-semibold hover:text-signal"
+          className="flex h-11 items-center border-[1.5px] border-ink bg-white px-5 font-semibold hover:text-brand-ink"
         >
           {t.another}
         </a>

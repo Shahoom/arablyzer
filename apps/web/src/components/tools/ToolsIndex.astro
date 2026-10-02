@@ -59,7 +59,7 @@ const jsonLd = [
     <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
       <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
         <li class="flex items-center gap-2">
-          <a href={localePath(lang, PATHS.home)} class="text-ink-3 hover:text-signal">
+          <a href={localePath(lang, PATHS.home)} class="text-ink-3 hover:text-brand-ink">
             {STRINGS[lang].home}
           </a>
           <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
@@ -119,13 +119,13 @@ const jsonLd = [
       </a>
       {arabic.length > 0 && (
         <>
-          <span class="px-3 pt-3 pb-1.5 text-xs font-semibold text-signal">
+          <span class="px-3 pt-3 pb-1.5 text-xs font-semibold text-brand-ink">
             {t.directory.arabicLayer}
           </span>
           {arabic.map((group) => (
             <a
               href={`#cat-${group.category}`}
-              class="flex items-center gap-2.5 px-3 py-[9px] hover:text-signal"
+              class="flex items-center gap-2.5 px-3 py-[9px] hover:text-brand-ink"
             >
               <span
                 aria-hidden="true"
@@ -140,7 +140,7 @@ const jsonLd = [
       {general.map((group) => (
         <a
           href={`#cat-${group.category}`}
-          class="flex items-center gap-2.5 px-3 py-[9px] hover:text-signal"
+          class="flex items-center gap-2.5 px-3 py-[9px] hover:text-brand-ink"
         >
           <span
             aria-hidden="true"
@@ -206,7 +206,7 @@ const jsonLd = [
                       size={18}
                       stroke-width={2}
                       aria-hidden="true"
-                      class="mt-1 shrink-0 text-ink-3 group-hover:text-signal"
+                      class="mt-1 shrink-0 text-ink-3 group-hover:text-brand-ink"
                     />
                   </span>
                   <span class="text-[15px] leading-[1.7] text-ink-2">
@@ -277,6 +277,6 @@ const jsonLd = [
     font-weight: 400;
   }
   :global(:root:has([data-category]:target)) .all:hover {
-    color: var(--color-signal);
+    color: var(--color-brand-ink);
   }
 </style>

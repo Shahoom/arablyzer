@@ -92,17 +92,17 @@ export default function RobotsTester({ lang, tool }: { lang: Lang; tool: string 
         <p className="m-0 text-sm text-ink-3">{common.local}</p>
       </form>
       {result === 'bad-url' ? (
-        <p role="alert" className="m-0 text-sm text-signal">
+        <p role="alert" className="m-0 text-sm text-serious">
           {t.badUrl}
         </p>
       ) : (
         result !== null && (
           <section
             aria-label={common.result}
-            className={`flex flex-col gap-2 border-[1.5px] bg-white px-5 py-4 ${result.allowed ? 'border-pass' : 'border-signal'}`}
+            className={`flex flex-col gap-2 border-[1.5px] bg-white px-5 py-4 ${result.allowed ? 'border-pass' : 'border-serious'}`}
           >
             <p
-              className={`m-0 text-lg font-semibold ${result.allowed ? 'text-pass' : 'text-signal'}`}
+              className={`m-0 text-lg font-semibold ${result.allowed ? 'text-pass' : 'text-serious'}`}
             >
               {result.allowed ? t.allowed : t.blocked}
             </p>
