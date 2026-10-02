@@ -26,6 +26,9 @@ const sections = NAV.map((item) => {
   const current: 'page' | 'true' | undefined = page ? 'page' : here ? 'true' : undefined
   return { href, label: t.nav[item.key], current }
 })
+// Arabic text in the chrome is regular or semibold, the two weights of Plex Arabic the page
+// preloads (the current section is the semibold one): any other weight is another 45 KB font file,
+// fetched before the first paint, and Lighthouse's phone run counts it (M2.6 R1: three points).
 const link =
   'text-ink-2 hover:bg-ink/5 hover:text-ink aria-[current]:bg-indigo-soft aria-[current]:font-semibold aria-[current]:text-indigo-ink'
 ---
@@ -48,7 +51,7 @@ const link =
           href={section.href}
           aria-current={section.current}
           class:list={[
-            'inline-flex h-[38px] items-center rounded-[10px] px-3 text-[15px] font-medium',
+            'inline-flex h-[38px] items-center rounded-[10px] px-3 text-[15px] font-normal',
             link,
           ]}
         >
@@ -63,7 +66,7 @@ const link =
         lang={other}
         hreflang={other}
         aria-label={o.label}
-        class="btn-ghost px-2.5 text-sm sm:px-3.5 sm:text-[15px]"
+        class="btn-ghost px-2.5 text-sm font-normal sm:px-3.5 sm:text-[15px]"
       >
         <span class="sm:hidden">{o.short}</span>
         <span class="hidden sm:inline">{o.label}</span>
@@ -82,7 +85,7 @@ const link =
         href={section.href}
         aria-current={section.current}
         class:list={[
-          'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-sm font-medium focus-visible:outline-offset-1',
+          'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-sm font-normal focus-visible:outline-offset-1',
           link,
         ]}
       >

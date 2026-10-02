@@ -202,6 +202,16 @@
   summary::-webkit-details-marker {
     display: none;
   }
+  /*
+   * Emphasis is semibold. With a 700 face declared (the v2 headings are bold), a <strong> would be
+   * drawn in it, and the page would fetch another 45 KB of Arabic before its first paint, which
+   * Lighthouse's phone run counts: the two weights a page preloads are 400 and 600.
+   */
+  b,
+  strong,
+  th {
+    font-weight: 600;
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

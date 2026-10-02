@@ -55,7 +55,7 @@ export function SectionHead({ number, id, title }: { number: number; id: string;
       >
         {String(number).padStart(2, '0')}
       </span>
-      <h2 id={id} className="m-0 text-xl font-bold">
+      <h2 id={id} className="m-0 text-xl font-semibold">
         {title}
       </h2>
       <span aria-hidden="true" className="h-px grow bg-line" />
