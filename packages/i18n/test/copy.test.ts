@@ -325,13 +325,37 @@ describe('a tool page’s v2 words', () => {
     expect(TOOLS_UI.en.page.measure).toBe('How we measure')
   })
 
-  it('says what the pill’s × does and what is shown beside the tool’s button', () => {
+  // M2.6 R7: the box is a small label, the field and the button; what the tool reads is one line of
+  // meta text, and the fine print is ScanNote's: one line and a disclosure of what is kept.
+  it('says what a tool reads on one line, and where the DNS tool sends the domain', () => {
     for (const lang of ['ar', 'en'] as const) {
       const form = TOOL_APP[lang].form
-      expect(form.fullScan, lang).toBeTruthy()
-      expect(form.engines, lang).toBeTruthy()
       expect(form.reads, lang).toBeTruthy()
+      expect(form.rendersIn, lang).toBeTruthy()
+      expect(form.sentOut.dns, lang).toMatch(/Cloudflare/)
+      expect(form.sentOut.dns, lang).toMatch(/SPF/)
+      expect(form.sentOut.dns, lang).toMatch(/DMARC/)
     }
+    expect(TOOL_APP.ar.form.reads).toBe('يقرأ:')
+    expect(TOOL_APP.en.form.reads).toBe('Reads:')
+    // The resolver gets the domain's name, which the words say, and nothing else of the page.
+    expect(TOOL_APP.ar.form.sentOut.dns).toMatch(/اسم النطاق/)
+    expect(TOOL_APP.en.form.sentOut.dns).toMatch(/domain’s name/)
+  })
+
+  it('says the fine print of a scan box as a line and a question that opens what is kept', () => {
+    expect(SCAN_FORM.ar.note).toEqual({ free: 'مجاني وبلا تسجيل.', keepTitle: 'ماذا نحفظ؟' })
+    expect(SCAN_FORM.en.note).toEqual({ free: 'Free, no sign-up.', keepTitle: 'What we keep' })
+    // The line is short, and the disclosure's body is the warning about the address, in full.
+    for (const lang of ['ar', 'en'] as const) {
+      expect(SCAN_FORM[lang].note.free.length, lang).toBeLessThan(30)
+      expect(SCAN_FORM[lang].queryNote.length, lang).toBeGreaterThan(80)
+    }
+  })
+
+  it('names the list of a tool page’s sections, in the aside of a wide screen', () => {
+    expect(TOOLS_UI.ar.page.contents).toBe('في هذه الصفحة')
+    expect(TOOLS_UI.en.page.contents).toBe('On this page')
   })
 })
 

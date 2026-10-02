@@ -1,92 +1,37 @@
 ---
-import { TOOLS_UI } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
-import type { ToolKind } from '@arablyzer/tools'
-import ChevronLeft from '@lucide/astro/icons/chevron-left'
-import ChevronRight from '@lucide/astro/icons/chevron-right'
-import ClipboardCheck from '@lucide/astro/icons/clipboard-check'
-import ScanLine from '@lucide/astro/icons/scan-line'
-import WandSparkles from '@lucide/astro/icons/wand-sparkles'
 import { CATEGORY_STYLE, toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
-import CategoryIcon from './CategoryIcon.astro'
 
 /**
- * A tool as a card, the whole card a link (the directory's, and the related tools of a tool page):
- * its category's icon on its tint, its name, its question, and what it takes (a page's address,
- * a pasted text or a few fields) with what it reads. `related` leaves out the footer, which a
- * tool page's neighbours do not need.
+ * A tool as a row of a list (M2.6 R7), the whole row a link: the directory's, and the related tools
+ * of a tool page. A small dot in its category's colour, its name (16 px, semibold) and its
+ * question (14 px, quiet). The rows are the children of a `card` that clips them (`ul.card`), so
+ * the focus ring is drawn inside the row, and a hovered row follows the card's corners.
  */
 interface Props {
   lang: Lang
   slug: string
-  related?: boolean
 }
-const { lang, slug, related = false } = Astro.props
-const t = TOOLS_UI[lang]
+const { lang, slug } = Astro.props
 const tool = toolData(slug)
 const copy = tool.copy[lang]
-const style = CATEGORY_STYLE[tool.category]
-const Next = lang === 'ar' ? ChevronLeft : ChevronRight
-
-// A tool's kind: a tint and an icon each, and its name; the tint is never the only sign of it.
-const KIND: Readonly<Record<ToolKind, { tone: string; Icon: typeof ScanLine }>> = {
-  scan: { tone: 'bg-indigo-soft text-indigo-ink', Icon: ScanLine },
-  paste: { tone: 'bg-moderate-soft text-moderate', Icon: ClipboardCheck },
-  generator: { tone: 'bg-pass-soft text-pass', Icon: WandSparkles },
-}
-const { tone: kindTone, Icon: KindIcon } = KIND[tool.kind]
-// A generator reads nothing: its kind says what it is, and its tag would say it twice.
-const reads = tool.kind === 'generator' ? undefined : t.tags[tool.tag]
-const latin = tool.tag === 'html' || tool.tag === 'robots' || tool.tag === 'dns'
 ---
 
 <a
   href={localePath(lang, PATHS.tool(slug))}
-  class="card card-lift group flex h-full flex-col gap-3 p-5 text-ink hover:text-ink"
+  class="group flex items-start gap-3 px-card py-3 text-ink hover:bg-surface-2 hover:text-ink focus-visible:outline-offset-[-3px]"
 >
-  <span class="flex items-start justify-between gap-3">
-    <span
-      aria-hidden="true"
-      class:list={['grid size-11 shrink-0 place-items-center rounded-[14px]', style.chip]}
-    >
-      <CategoryIcon category={tool.category} size={22} />
+  <span
+    aria-hidden="true"
+    class:list={['mt-2.5 size-2 shrink-0 rounded-full', CATEGORY_STYLE[tool.category].dot]}
+  ></span>
+  <span class="bidi-whole flex min-w-0 flex-col">
+    <span class="text-body font-semibold group-hover:text-brand-ink">
+      <Bidi text={copy.title} lang={lang} />
     </span>
-    <Next
-      size={18}
-      stroke-width={2}
-      aria-hidden="true"
-      class="mt-1 shrink-0 text-ink-3 transition-colors group-hover:text-brand-ink"
-    />
-  </span>
-  <span class="text-lg leading-snug font-semibold text-balance">
-    <Bidi text={copy.title} lang={lang} />
-  </span>
-  <span class="text-[15px] leading-[1.75] text-ink-2">
-    <Bidi text={copy.summary} lang={lang} />
-  </span>
-  {!related && (
-    <span class="mt-auto flex flex-wrap items-center gap-2 pt-1.5">
-      <span
-        class:list={[
-          'inline-flex h-[26px] items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold',
-          kindTone,
-        ]}
-      >
-        <KindIcon size={13} stroke-width={2.2} aria-hidden="true" />
-        {t.kinds[tool.kind]}
-      </span>
-      {reads !== undefined && (
-        <span
-          dir={latin ? 'ltr' : undefined}
-          class:list={[
-            'inline-flex h-[26px] items-center rounded-full bg-surface-2 px-2.5 text-xs text-ink-2',
-            latin && 'font-mono',
-          ]}
-        >
-          {reads}
-        </span>
-      )}
+    <span class="text-small text-ink-2">
+      <Bidi text={copy.summary} lang={lang} />
     </span>
-  )}
+  </span>
 </a>

@@ -4,6 +4,7 @@ import type { Lang } from '@arablyzer/seo/site'
 import { Plus, TriangleAlert } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useState } from 'preact/hooks'
+import { ScanNote } from '../ScanNote'
 import { FIELD, LABEL, SECONDARY, SUBMIT, ToolBox } from '../ToolBox'
 import { CopyBox } from './CopyBox'
 
@@ -40,15 +41,19 @@ export default function HreflangGenerator({
     setResult({ rows: filled, tags: hreflangTags(filled, text('x-default')) })
   }
   return (
-    <div className="flex flex-col gap-5" data-tool={tool}>
-      <ToolBox lang={lang} title={title} dot={dot}>
+    <div className="flex flex-col gap-4" data-tool={tool}>
+      <ToolBox
+        title={title}
+        dot={dot}
+        note={<ScanNote lang={lang} id="generator-note" line={common.local} keep={[]} />}
+      >
         <form onSubmit={onSubmit} data-tool-kind="generator" className="flex flex-col gap-4">
           {rows.map((row, index) => (
             <fieldset
               key={row}
-              className="m-0 grid gap-3 border-0 p-0 sm:grid-cols-[minmax(0,3fr)_minmax(0,1fr)_auto] sm:items-end"
+              className="m-0 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-0 p-0 sm:grid-cols-[minmax(0,3fr)_minmax(0,1fr)_auto]"
             >
-              <div className="flex flex-col gap-2">
+              <div className="col-span-2 flex flex-col gap-2 sm:col-span-1">
                 <label htmlFor={`href-${String(row)}`} className={LABEL}>
                   {t.url}
                 </label>
@@ -61,7 +66,10 @@ export default function HreflangGenerator({
                   className={`${FIELD} font-mono`}
                 />
               </div>
-              <div className="flex flex-col gap-2">
+              {/* On a phone the code and the button share a line under the address. */}
+              <div
+                className={`flex flex-col gap-2 ${rows.length > 1 ? '' : 'col-span-2 sm:col-span-1'}`}
+              >
                 <label htmlFor={`code-${String(row)}`} className={LABEL}>
                   {t.code}
                 </label>
@@ -93,7 +101,7 @@ export default function HreflangGenerator({
               setRows([...rows, next])
               setNext(next + 1)
             }}
-            className={`${SECONDARY} h-10 self-start`}
+            className={`${SECONDARY} self-start`}
           >
             <Plus size={16} strokeWidth={2.2} aria-hidden="true" />
             {t.add}
@@ -110,7 +118,7 @@ export default function HreflangGenerator({
               aria-describedby="x-default-hint"
               className={`${FIELD} font-mono`}
             />
-            <p id="x-default-hint" className="m-0 text-sm text-ink-3">
+            <p id="x-default-hint" className="m-0 text-meta text-ink-2">
               {t.xDefaultHint}
             </p>
           </div>
@@ -119,17 +127,13 @@ export default function HreflangGenerator({
           </button>
         </form>
       </ToolBox>
-      <p className="m-0 px-1 text-start text-sm text-ink-2">{common.local}</p>
       {result !== null && (
-        <section
-          aria-label={common.result}
-          className="flex flex-col gap-3 rounded-2xl bg-linear-to-br from-pass-soft to-indigo-soft p-3 sm:p-4"
-        >
+        <section aria-label={common.result} className="flex flex-col gap-3">
           {result.tags.problems.map((problem) => (
             <p
               key={problem.row}
               role="alert"
-              className="m-0 flex items-start gap-2 rounded-xl bg-serious-soft px-3.5 py-2.5 text-sm text-serious"
+              className="m-0 flex items-start gap-2 rounded-xl bg-serious-soft px-card py-3 text-small text-serious"
             >
               <TriangleAlert
                 size={16}

@@ -1217,3 +1217,21 @@
 html:has(.report-dock) {
   scroll-padding-block-end: 9rem;
 }
+
+/* R7 tools */
+
+/*
+ * A Latin name inside Arabic text (`JSON-LD`, `margin-inline-start`) moves to the next line whole
+ * instead of breaking at its hyphen. Put it on the element that holds the text: the isolated runs
+ * of components/Bidi.astro (each a <bdi>) become inline blocks. A run wider than the line still
+ * breaks, so a long one cannot push the page sideways. An inline block is not underlined by its
+ * parent's decoration, so a link's own is handed down.
+ */
+@utility bidi-whole {
+  & bdi {
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-decoration: inherit;
+  }
+}

@@ -15,7 +15,8 @@ import { chromium, firefox, webkit, type Browser } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // A tool page's tool (M2.2) as a visitor uses it, in the browsers: an address typed, the scan
-// asked for with the tool's slug, and the result under the form. The API is stood in for, and
+// asked for with the tool's slug, and the result at the head of the main column, beside the box in
+// the aside (M2.6 R7: the two are islands of one page). The API is stood in for, and
 // the reports are real: the RTL checker's two rules, run by the engine on pages served here,
 // one that fails a rule, one that passes both, one too complex to read in the time given (a
 // partial scan), and an address nothing answers (a failed scan, with its report). The browsers
@@ -198,6 +199,17 @@ interface Shown {
   /** Each rule the result lists: its status in words, and whether it has the green check. */
   readonly rules: readonly (readonly [string, boolean])[]
   readonly notices: readonly string[]
+  /** Where the box and the result are: the box in the aside, the result in the main column. */
+  readonly where: {
+    readonly boxInAside: boolean
+    readonly resultInMain: boolean
+    /** The result is the first thing in the main column. */
+    readonly resultFirst: boolean
+    readonly resultTop: number
+    readonly boxTop: number
+    readonly boxBottom: number
+    readonly checksTop: number
+  }
 }
 
 /**
@@ -212,9 +224,16 @@ async function check(
     report,
     stream = false,
     tool = TOOL,
-  }: { state: string; report: Report | null; stream?: boolean; tool?: string },
+    viewport,
+  }: {
+    state: string
+    report: Report | null
+    stream?: boolean
+    tool?: string
+    viewport?: { width: number; height: number }
+  },
 ): Promise<Shown> {
-  const context = await browser.newContext()
+  const context = await browser.newContext(viewport === undefined ? {} : { viewport })
   // The site's pages alone; the API's answers are the test's (below), and anything else is
   // refused, Turnstile's script too, were the site built with a key.
   await context.route('**/*', async (route) => {
@@ -301,7 +320,23 @@ async function check(
     labels: [...document.querySelectorAll('article > header > span')].map(
       (label) => label.textContent,
     ),
-    fixLink: document.querySelector('a[href="#fix"]') !== null,
+    // The result's own link to the fixes (the aside's list of the page's sections has one too).
+    fixLink: document.querySelector('[aria-labelledby="result-title"] a[href="#fix"]') !== null,
+    where: (() => {
+      const top = (selector: string) =>
+        document.querySelector(selector)?.getBoundingClientRect().top ?? -1
+      return {
+        boxInAside: document.querySelector('.page-aside .scan-box') !== null,
+        resultInMain: document.querySelector('.page-main #result-title') !== null,
+        resultFirst:
+          document.querySelector('.page-main section')?.getAttribute('aria-labelledby') ===
+          'result-title',
+        resultTop: top('.page-main section[aria-labelledby="result-title"]'),
+        boxTop: top('.scan-box'),
+        boxBottom: document.querySelector('.scan-box')?.getBoundingClientRect().bottom ?? -1,
+        checksTop: top('#checks'),
+      }
+    })(),
   }))
   await context.close()
   return { asked, ...shown }
@@ -330,6 +365,31 @@ describe.each(ENGINES)('a tool page in %s', (engine) => {
       [t.status.pass, true],
       [t.status.fail, false],
     ])
+    // The box is in the aside, the result at the head of the main column, above what it checks.
+    expect(shown.where.boxInAside).toBe(true)
+    expect(shown.where.resultInMain).toBe(true)
+    expect(shown.where.resultFirst).toBe(true)
+    expect(shown.where.resultTop).toBeLessThan(shown.where.checksTop)
+  }, 60_000)
+
+  it('puts the result beside the box on a desktop, and right under it on a phone', async () => {
+    const desktop = await check(browser, 'ar', {
+      state: 'complete',
+      report: reports.problems,
+      viewport: { width: 1440, height: 900 },
+    })
+    // Side by side: the result and the box start on one line of the page.
+    expect(Math.abs(desktop.where.resultTop - desktop.where.boxTop)).toBeLessThan(12)
+    const phone = await check(browser, 'en', {
+      state: 'complete',
+      report: reports.problems,
+      viewport: { width: 390, height: 844 },
+    })
+    // One column: the result follows the box within a section's gap, before the first section.
+    const gap = phone.where.resultTop - phone.where.boxBottom
+    expect(gap).toBeGreaterThan(0)
+    expect(gap).toBeLessThan(40)
+    expect(phone.where.resultTop).toBeLessThan(phone.where.checksTop)
   }, 60_000)
 
   it('says the page passes when both rules passed', async () => {

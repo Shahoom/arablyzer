@@ -39,14 +39,14 @@ export function CopyBox({
     }, select)
   }
   return (
-    <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-white shadow">
-      <div className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-4 py-2.5">
-        <span className="text-sm font-semibold text-ink-2">{label}</span>
-        <button type="button" onClick={copy} className="btn-grad h-9! gap-1.5! px-3.5! text-sm!">
+    <div className="card flex min-w-0 flex-col overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-card py-2">
+        <span className="text-small font-semibold text-ink-2">{label}</span>
+        <button type="button" onClick={copy} className="btn-white">
           {copied ? (
-            <Check size={14} strokeWidth={2.6} aria-hidden="true" />
+            <Check size={16} strokeWidth={2.4} aria-hidden="true" />
           ) : (
-            <Copy size={14} strokeWidth={2} aria-hidden="true" />
+            <Copy size={16} strokeWidth={2} aria-hidden="true" />
           )}
           <span aria-live="polite">{copied ? t.copied : t.copy}</span>
         </button>
@@ -55,7 +55,7 @@ export function CopyBox({
         ref={box}
         dir="ltr"
         tabIndex={0}
-        className={`m-0 px-4 py-3.5 text-start text-sm leading-[1.7] whitespace-pre-wrap text-ink [overflow-wrap:anywhere] ${mono ? 'font-mono' : ''}`}
+        className={`m-0 px-card py-3 text-start text-small leading-[1.7] whitespace-pre-wrap text-ink [overflow-wrap:anywhere] ${mono ? 'font-mono' : ''}`}
       >
         {text}
       </pre>
