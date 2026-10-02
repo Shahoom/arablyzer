@@ -73,7 +73,9 @@ const jsonLd = [
           class="group flex h-full flex-col gap-2.5 border border-rule-strong bg-white p-[22px] hover:border-ink hover:text-ink"
         >
           <span class="flex items-start justify-between gap-3 text-lg leading-snug font-semibold">
-            <Bidi text={term.copy[lang].title} lang={lang} />
+            <span class="min-w-0">
+              <Bidi text={term.copy[lang].title} lang={lang} />
+            </span>
             <Next
               size={18}
               stroke-width={2}
