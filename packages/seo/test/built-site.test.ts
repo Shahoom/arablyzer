@@ -100,7 +100,7 @@ describe('builtPages', () => {
 })
 
 describe('representativePages', () => {
-  it('keeps every page but the tool and rule pages past the first in each language, the reports and the 404 page', () => {
+  it('keeps every page but those past the first of a template in each language, the reports and the 404 page', () => {
     const dir = build({
       'index.html': home('ar'),
       'en/index.html': home('en'),
@@ -123,6 +123,41 @@ describe('representativePages', () => {
       '/rules/a-rule',
       '/tools',
       '/tools/a-check',
+    ])
+  })
+
+  // M2.4d added the guides and the glossary, and Lighthouse's job, which measured each of their
+  // pages six times, ran past its time limit: a directory of one template is one page to measure.
+  it('keeps the first guide and the first glossary term in each language, and the directory pages', () => {
+    const files: Record<string, string> = {
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      'fix.html': page('ar', '/fix'),
+      'en/fix.html': page('en', '/fix'),
+      'glossary.html': page('ar', '/glossary'),
+      'en/glossary.html': page('en', '/glossary'),
+      'methodology.html': page('ar', '/methodology'),
+    }
+    for (const slug of ['a-guide', 'b-guide', 'c-guide-404']) {
+      files[`fix/${slug}.html`] = page('ar', `/fix/${slug}`)
+      files[`en/fix/${slug}.html`] = page('en', `/fix/${slug}`)
+    }
+    for (const slug of ['a-term', 'b-term', 'c-term']) {
+      files[`glossary/${slug}.html`] = page('ar', `/glossary/${slug}`)
+      files[`en/glossary/${slug}.html`] = page('en', `/glossary/${slug}`)
+    }
+    expect(representativePages(builtPages(build(files))).map((built) => built.path)).toEqual([
+      '/',
+      '/en/',
+      '/en/fix',
+      '/en/fix/a-guide',
+      '/en/glossary',
+      '/en/glossary/a-term',
+      '/fix',
+      '/fix/a-guide',
+      '/glossary',
+      '/glossary/a-term',
+      '/methodology',
     ])
   })
 })
