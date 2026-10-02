@@ -142,17 +142,18 @@
   --shadow-btn-hover: 0 14px 30px -10px rgb(79 70 229 / 0.7);
 
   /*
-   * The type scale (M2.6 R7a), mobile first: body 16 px, secondary text 14 px, meta 13 px. Their
+   * The type scale (M2.6 R7a), mobile first: body 16 px, secondary text 14 px, meta 13 px, in rem,
+   * so that a reader's own font size still scales them (the root keeps its default size). Their
    * line heights are variables because an Arabic paragraph needs more room than a Latin one
    * (--lh-* below, set on the root and raised for lang="ar"). `text-body`, `text-small` and
    * `text-meta` set the size and the leading together. Tailwind's own text-sm and text-base keep
    * their meaning for the pages that still use them. The headings are the heading-1/2/3 utilities.
    */
-  --text-body: 16px;
+  --text-body: 1rem;
   --text-body--line-height: var(--lh-body);
-  --text-small: 14px;
+  --text-small: 0.875rem;
   --text-small--line-height: var(--lh-small);
-  --text-meta: 13px;
+  --text-meta: 0.8125rem;
   --text-meta--line-height: var(--lh-meta);
 }
 
@@ -199,8 +200,7 @@
     --lh-meta: 1.5;
     color: var(--color-ink);
     font-family: var(--font-sans);
-    /* Body text is 16 px; anything else sets its own size and leading (text-small, text-meta). */
-    font-size: 16px;
+    /* Body text is 1rem, 16 px; anything else sets its own size and leading (text-small, text-meta). */
     line-height: var(--lh-body);
     /* The sticky header covers the top of the page: a link to #id stops below it. */
     scroll-padding-top: calc(var(--header-h) + 16px);
@@ -297,7 +297,7 @@
   background-image: var(--gradient-btn);
   background-size: 180% 100%;
   color: var(--color-white);
-  font-size: var(--btn-fs, 16px);
+  font-size: var(--btn-fs, 1rem);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -339,7 +339,7 @@
   border-radius: var(--btn-r, var(--radius-md));
   background-color: var(--color-white);
   color: var(--color-ink);
-  font-size: var(--btn-fs, 15px);
+  font-size: var(--btn-fs, 0.9375rem);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -362,7 +362,7 @@
   padding-inline: var(--btn-px, 14px);
   border-radius: var(--btn-r, var(--radius-md));
   color: var(--color-ink);
-  font-size: var(--btn-fs, 15px);
+  font-size: var(--btn-fs, 0.9375rem);
   font-weight: 400;
   line-height: 1.2;
   text-decoration: none;
@@ -385,7 +385,7 @@
   border-radius: var(--btn-r, var(--radius-md));
   background-color: var(--color-white);
   color: var(--color-navy);
-  font-size: var(--btn-fs, 15px);
+  font-size: var(--btn-fs, 0.9375rem);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -409,7 +409,7 @@
   border: 1px solid rgb(255 255 255 / 0.25);
   border-radius: var(--btn-r, var(--radius-md));
   color: var(--color-white);
-  font-size: var(--btn-fs, 15px);
+  font-size: var(--btn-fs, 0.9375rem);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -426,7 +426,7 @@
   --btn-h: 48px;
   --btn-px: 24px;
   --btn-r: 14px;
-  --btn-fs: 16px;
+  --btn-fs: 1rem;
 }
 /*
  * The small button: 40 px, and for the gradient one a short glow in place of the long one. The
@@ -435,7 +435,7 @@
 @utility btn-sm {
   --btn-h: 40px;
   --btn-px: 14px;
-  --btn-fs: 14px;
+  --btn-fs: 0.875rem;
   --btn-shadow: 0 4px 12px -6px rgb(79 70 229 / 0.5);
   --btn-shadow-hover: 0 6px 14px -6px rgb(79 70 229 / 0.55);
 }
@@ -458,7 +458,7 @@
   border-radius: 999px;
   background-color: rgb(255 255 255 / 0.8);
   color: var(--color-ink-2);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.2;
   text-decoration: none;
@@ -627,29 +627,29 @@
  * Preflight has taken the margin away, and the leading is Arabic's: tighter would clip the marks.
  */
 @utility heading-1 {
-  font-size: 28px;
+  font-size: 1.75rem;
   line-height: 1.3;
   font-weight: 600;
   text-wrap: balance;
   @media (min-width: 64rem) {
-    font-size: 40px;
+    font-size: 2.5rem;
     line-height: 1.25;
   }
 }
 /* A section's h2: 22 px on a phone, 28 px from lg. */
 @utility heading-2 {
-  font-size: 22px;
+  font-size: 1.375rem;
   line-height: 1.35;
   font-weight: 600;
   text-wrap: balance;
   @media (min-width: 64rem) {
-    font-size: 28px;
+    font-size: 1.75rem;
     line-height: 1.3;
   }
 }
 /* An h3: the title of an item in a section, 17 px. */
 @utility heading-3 {
-  font-size: 17px;
+  font-size: 1.0625rem;
   line-height: 1.45;
   font-weight: 600;
 }
@@ -660,11 +660,11 @@
  */
 @utility lead {
   max-width: 720px;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: var(--lh-body);
   color: var(--color-ink-2);
   @media (min-width: 64rem) {
-    font-size: 18px;
+    font-size: 1.125rem;
   }
 }
 
