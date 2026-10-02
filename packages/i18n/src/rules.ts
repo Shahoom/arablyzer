@@ -47,6 +47,11 @@ export interface RulesStrings {
     readonly inTools: string
     readonly fullScan: string
     readonly near: string
+    /** The list of the page's sections, beside it on a desktop and under its heading on a phone. */
+    readonly contents: string
+    /** The fix guides and the glossary terms that name the rule, in the page's links to more. */
+    readonly guides: string
+    readonly terms: string
   }
 }
 
@@ -101,6 +106,9 @@ export const RULES_UI: Copy<RulesStrings> = {
       inTools: 'تجدها في',
       fullScan: 'الفحص الكامل',
       near: 'قواعد قريبة',
+      contents: 'في هذه الصفحة',
+      guides: 'أدلة إصلاح ذات صلة',
+      terms: 'مصطلحات ذات صلة',
     },
   },
   en: {
@@ -146,6 +154,9 @@ export const RULES_UI: Copy<RulesStrings> = {
       inTools: 'Find it in',
       fullScan: 'The full scan',
       near: 'Related rules',
+      contents: 'On this page',
+      guides: 'Related fix guides',
+      terms: 'Related terms',
     },
   },
 }
