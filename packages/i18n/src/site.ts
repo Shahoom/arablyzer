@@ -10,6 +10,12 @@ export interface SiteStrings {
   /** The site's promise in one line: the home page's social card (apps/web/scripts/og-images.ts). */
   readonly statusBar: string
   readonly navLabel: string
+  /**
+   * The phone header's menu button, which opens the sheet of sections: its accessible name. The
+   * button has an icon and no text, and its name is the same open and shut (the disclosure says
+   * which, to a screen reader).
+   */
+  readonly menu: string
   /** The header's sections, each named as its page is built (apps/web, NAV). */
   readonly nav: {
     readonly tools: string
@@ -54,6 +60,7 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'انتقل إلى المحتوى',
     statusBar: 'أدوات مجانية وبلا تسجيل · الكود مفتوح المصدر',
     navLabel: 'أقسام الموقع',
+    menu: 'القائمة',
     nav: { tools: 'الأدوات', knowledge: 'المعرفة', rules: 'مكتبة القواعد', fix: 'أدلة الإصلاح' },
     scanCta: 'افحص مجاناً',
     otherLang: { label: 'English', short: 'EN' },
@@ -82,6 +89,7 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'Skip to content',
     statusBar: 'Free tools, no sign-up · Open source',
     navLabel: 'Site sections',
+    menu: 'Menu',
     nav: { tools: 'Tools', knowledge: 'Knowledge', rules: 'Rule library', fix: 'Fix guides' },
     scanCta: 'Scan free',
     otherLang: { label: 'العربية', short: 'العربية' },

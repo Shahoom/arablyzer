@@ -1,9 +1,21 @@
 ---
 import { SITE } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import Menu from '@lucide/astro/icons/menu'
+import X from '@lucide/astro/icons/x'
 import { NAV, otherLang, scanFormHref } from '../lib/site'
 import Logo from './Logo.astro'
 
+/**
+ * The site's header, sticky and translucent, one row at every width (M2.6 R7a). Its height is
+ * `--header-h` (56 px below lg, 64 px from it), which what sticks under it reads.
+ *
+ * - Below lg: the mark (28 px) and the wordmark, the language link, and a menu button, 44 × 44.
+ *   The button is the <summary> of a <details>: it opens a sheet as wide as the screen under the
+ *   bar, with the sections (the current one marked) and the gradient scan button, and it needs no
+ *   script. There is no scan button in the bar.
+ * - From lg: the sections beside the logo, the language link, and a small scan button (40 px).
+ */
 interface Props {
   lang: Lang
   /** The page's path, as PATHS gives it, for the link to the same page in the other language. */
@@ -16,9 +28,7 @@ const t = SITE[lang]
 const other = otherLang(lang)
 const o = SITE[lang].otherLang
 // The site's sections, each marked when the page is its own (the current page) or under it, as
-// a tool's page is (the current section): both are shaded, by their aria-current. Beside the
-// logo on a desktop; on a row of their own below it on a smaller screen, which scrolls sideways
-// if they outgrow it.
+// a tool's page is (the current section): both are shaded, by their aria-current.
 const sections = NAV.map((item) => {
   const href = localePath(lang, item.path)
   const page = localePath(lang, path) === href
@@ -26,22 +36,28 @@ const sections = NAV.map((item) => {
   const current: 'page' | 'true' | undefined = page ? 'page' : here ? 'true' : undefined
   return { href, label: t.nav[item.key], current }
 })
+// On the home page the scan box is the first thing on the screen, and the button would only jump
+// to it within the page: with no script to shut it, the sheet would stay open over the box. The
+// sheet there lists the sections alone.
+const scanInSheet = path !== PATHS.home
 // Arabic text in the chrome is regular or semibold, the two weights of Plex Arabic the page
 // preloads (the current section is the semibold one): any other weight is another 45 KB font file,
 // fetched before the first paint, and Lighthouse's phone run counts it (M2.6 R1: three points).
-const link =
-  'text-ink-2 hover:bg-ink/5 hover:text-ink aria-[current]:bg-indigo-soft aria-[current]:font-semibold aria-[current]:text-indigo-ink'
+const marked =
+  'aria-[current]:bg-indigo-soft aria-[current]:font-semibold aria-[current]:text-indigo-ink'
+const bar = `text-ink-2 hover:bg-ink/5 hover:text-ink ${marked}`
+const row = `text-ink hover:bg-surface-2 hover:text-ink ${marked}`
 ---
 
-<header class="sticky top-0 z-30 border-b border-line/80 bg-bg/80 backdrop-blur-lg backdrop-saturate-150">
-  <div class="wrap flex h-14 items-center gap-2 md:h-[68px] md:gap-3 lg:gap-5">
+<header class="sticky top-0 z-30 h-(--header-h) border-b border-line/80 bg-bg/80 backdrop-blur-lg backdrop-saturate-150">
+  <div class="wrap flex h-full items-center gap-2 lg:gap-5">
     <a
       href={localePath(lang, PATHS.home)}
       aria-label={t.homeLink}
       class="inline-flex shrink-0 items-center gap-2.5 text-ink hover:text-ink"
     >
-      <Logo size={32} />
-      <span lang="en" dir="ltr" class="text-lg font-bold md:text-xl">
+      <Logo size={28} class="lg:size-8" />
+      <span lang="en" dir="ltr" class="text-lg font-bold lg:text-xl">
         Arablyzer
       </span>
     </a>
@@ -51,46 +67,62 @@ const link =
           href={section.href}
           aria-current={section.current}
           class:list={[
-            'inline-flex h-[38px] items-center rounded-[10px] px-3 text-[15px] font-normal',
-            link,
+            'inline-flex h-9 items-center rounded-[10px] px-3 text-[15px] font-normal',
+            bar,
           ]}
         >
           {section.label}
         </a>
       ))}
     </nav>
-    <div class="ms-auto flex items-center gap-1 sm:gap-2">
+    <div class="ms-auto flex items-center gap-1 lg:gap-2">
       <a
         href={localePath(other, path)}
         data-keep-id={keepId ? '' : undefined}
         lang={other}
         hreflang={other}
         aria-label={o.label}
-        class="btn-ghost px-2.5 text-sm sm:px-3.5 sm:text-[15px]"
+        class="btn-ghost [--btn-fs:14px] [--btn-px:10px] sm:[--btn-fs:15px] sm:[--btn-px:14px]"
       >
         <span class="sm:hidden">{o.short}</span>
         <span class="hidden sm:inline">{o.label}</span>
       </a>
-      <a href={scanFormHref(lang)} class="btn-grad px-3.5 sm:px-[18px]">
+      <a href={scanFormHref(lang)} class="btn-grad btn-sm hidden lg:inline-flex">
         {t.scanCta}
       </a>
+      <details class="group lg:hidden">
+        <summary class="block size-11 cursor-pointer list-none rounded-md border border-line bg-surface text-ink hover:bg-surface-2 group-open:bg-surface-2 [&::-webkit-details-marker]:hidden">
+          <span class="sr-only">{t.menu}</span>
+          <span aria-hidden="true" class="grid size-full place-items-center">
+            <Menu size={22} stroke-width={2} class="group-open:hidden" />
+            <X size={22} stroke-width={2} class="hidden group-open:block" />
+          </span>
+        </summary>
+        {/* The sheet: the width of the screen, under the bar, opaque (the bar is translucent), and
+            scrolling inside itself on a short screen. */}
+        <div class="absolute inset-x-0 top-[calc(100%+1px)] max-h-[calc(100dvh-var(--header-h)-1px)] overflow-y-auto border-b border-line bg-surface px-gutter pt-2 pb-5 shadow-lg">
+          <nav aria-label={t.navLabel}>
+            <ul class="m-0 flex list-none flex-col p-0">
+              {sections.map((section) => (
+                <li>
+                  <a
+                    href={section.href}
+                    aria-current={section.current}
+                    class:list={['flex h-12 items-center rounded-lg px-3 text-body', row]}
+                  >
+                    {section.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          {scanInSheet && (
+            <a href={scanFormHref(lang)} class="btn-grad btn-lg mt-3 w-full">
+              {t.scanCta}
+            </a>
+          )}
+        </div>
+      </details>
     </div>
   </div>
-  <nav
-    aria-label={t.navLabel}
-    class="wrap flex h-10 items-center gap-1 overflow-x-auto whitespace-nowrap lg:hidden"
-  >
-    {sections.map((section) => (
-      <a
-        href={section.href}
-        aria-current={section.current}
-        class:list={[
-          'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-sm font-normal focus-visible:outline-offset-1',
-          link,
-        ]}
-      >
-        {section.label}
-      </a>
-    ))}
-  </nav>
 </header>
