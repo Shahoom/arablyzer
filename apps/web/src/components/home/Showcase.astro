@@ -21,6 +21,11 @@ import SeverityPill from '../SeverityPill.astro'
  * repeat what the window says, so they are hidden from a screen reader. The bars and the ring are
  * SVG, whose sizes are attributes: the page's Content-Security-Policy allows no style attribute.
  * Motion is CSS and stops under reduced motion.
+ *
+ * On a phone (M2.6 R7) it is the short version: the score beside its tally and the severity
+ * pills, and the three findings as compact rows. The category bars, the overflow drawing and the
+ * floating cards are a larger screen's (md and xl): they are decoration for the numbers already
+ * above them, and a phone's whole shot is about 400 px, not a desktop report squeezed down.
  */
 interface Props {
   lang: Lang
@@ -118,7 +123,7 @@ const icons = [Smartphone, Type, CodeXml] as const
 const spacingEngine = onlyEngine === undefined ? '' : ENGINE_NAMES[onlyEngine]
 ---
 
-<div class="relative mx-auto mt-10 w-full max-w-[1080px] text-start">
+<div class="relative mx-auto mt-2 w-full max-w-[1080px] text-start md:mt-6">
   <div aria-hidden="true" class="float -start-[34px] -top-[22px] hidden xl:flex" data-float="1">
     <span class="grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-critical text-white">
       <X size={16} stroke-width={2.2} aria-hidden="true" />
@@ -151,15 +156,15 @@ const spacingEngine = onlyEngine === undefined ? '' : ENGINE_NAMES[onlyEngine]
 
   <figure
     aria-label={t.label}
-    class="relative z-10 m-0 overflow-hidden rounded-[22px] border border-white/90 bg-white/80 shadow-lg backdrop-blur-[14px]"
+    class="relative z-10 m-0 overflow-hidden rounded-card border border-white/90 bg-white shadow-lg md:bg-white/80 md:backdrop-blur-[14px]"
   >
-    <div class="flex h-[46px] items-center gap-3.5 border-b border-line bg-[rgb(248_250_252/0.9)] px-4">
-      <span class="flex gap-1.5" aria-hidden="true">
+    <div class="flex h-10 items-center gap-3 border-b border-line bg-[rgb(248_250_252/0.9)] px-3 md:h-[46px] md:gap-3.5 md:px-4">
+      <span class="hidden gap-1.5 sm:flex" aria-hidden="true">
         <i class="size-2.5 rounded-full bg-line"></i>
         <i class="size-2.5 rounded-full bg-line"></i>
         <i class="size-2.5 rounded-full bg-line"></i>
       </span>
-      <span class="mx-auto inline-flex h-[30px] min-w-0 items-center gap-2 rounded-lg border border-line bg-white px-3 text-[12px] whitespace-nowrap text-ink-2 sm:px-3.5 sm:text-[13px]">
+      <span class="mx-auto inline-flex h-7 min-w-0 items-center gap-2 rounded-lg border border-line bg-white px-3 text-meta whitespace-nowrap text-ink-2 md:h-[30px] md:px-3.5">
         <Lock size={14} stroke-width={2} aria-hidden="true" class="shrink-0" />
         {t.source}
         <bdi dir="ltr" class="font-semibold text-ink">
@@ -169,44 +174,58 @@ const spacingEngine = onlyEngine === undefined ? '' : ENGINE_NAMES[onlyEngine]
     </div>
 
     <div class="grid md:grid-cols-[320px_minmax(0,1fr)]">
-      <div class="flex flex-col gap-[18px] border-b border-line p-6 md:border-e md:border-b-0">
-        <div class="relative size-[132px] self-center">
-          <svg viewBox="0 0 120 120" aria-hidden="true" class="block size-[132px]">
-            <defs>
-              <linearGradient id="home-ring" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#007d88"></stop>
-                <stop offset="1" stop-color="#4f46e5"></stop>
-              </linearGradient>
-            </defs>
-            <circle cx="60" cy="60" r="52" fill="none" stroke="#eef2f6" stroke-width="11"></circle>
-            <circle
-              class="ring-val"
-              cx="60"
-              cy="60"
-              r="52"
-              fill="none"
-              stroke="url(#home-ring)"
-              stroke-width="11"
-              stroke-linecap="round"
-              pathLength="100"
-              stroke-dasharray={ringDash(s.score)}
-              transform="rotate(-90 60 60)"
-            ></circle>
-          </svg>
-          <div class="absolute inset-0 flex flex-col items-center justify-center leading-[1.1]">
-            <b class="text-[40px] font-semibold tabular-nums">{s.score}</b>
-            <span class="text-xs text-ink-2">{t.outOf}</span>
+      <div class="flex flex-col gap-[18px] border-b border-line p-card md:border-e md:border-b-0">
+        <div class="flex items-center gap-4 md:flex-col md:gap-[18px]">
+          <div class="relative size-[88px] shrink-0 md:size-[132px] md:self-center">
+            <svg viewBox="0 0 120 120" aria-hidden="true" class="block size-full">
+              <defs>
+                <linearGradient id="home-ring" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#007d88"></stop>
+                  <stop offset="1" stop-color="#4f46e5"></stop>
+                </linearGradient>
+              </defs>
+              <circle
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="#eef2f6"
+                stroke-width="11"
+              ></circle>
+              <circle
+                class="ring-val"
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="url(#home-ring)"
+                stroke-width="11"
+                stroke-linecap="round"
+                pathLength="100"
+                stroke-dasharray={ringDash(s.score)}
+                transform="rotate(-90 60 60)"
+              ></circle>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center leading-[1.1]">
+              <b class="text-[1.75rem] font-semibold tabular-nums md:text-[2.5rem]">{s.score}</b>
+              <span class="text-xs text-ink-2">{t.outOf}</span>
+            </div>
+          </div>
+          <div class="flex min-w-0 flex-1 flex-col gap-2.5 md:flex-none md:items-center md:gap-[18px]">
+            <p class="text-body m-0 font-semibold md:text-center">{t.tally(s.failed, s.passed)}</p>
+            <div class="flex flex-wrap gap-1.5 md:justify-center">
+              {severities.map((item) => (
+                <span class:list={['sev', severityTone[item.severity]]}>
+                  {item.label} <span class="tabular-nums">{item.count}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
-        <p class="m-0 text-center text-base font-semibold">{t.tally(s.failed, s.passed)}</p>
-        <div class="flex flex-wrap justify-center gap-1.5">
-          {severities.map((item) => (
-            <span class:list={['sev', severityTone[item.severity]]}>
-              {item.label} <span class="tabular-nums">{item.count}</span>
-            </span>
-          ))}
-        </div>
-        <ul aria-label={t.categories} class="m-0 flex list-none flex-col gap-3 p-0 text-[13px]">
+        <ul
+          aria-label={t.categories}
+          class="text-meta m-0 hidden list-none flex-col gap-3 p-0 md:flex"
+        >
           {categories.map((category) => (
             <li class="grid grid-cols-[96px_minmax(0,1fr)_28px] items-center gap-2.5">
               <span>{category.name}</span>
@@ -249,16 +268,16 @@ const spacingEngine = onlyEngine === undefined ? '' : ENGINE_NAMES[onlyEngine]
         </ul>
       </div>
 
-      <div class="flex min-w-0 flex-col gap-3 p-6">
-        <p class="m-0 mb-1 text-[15px] font-semibold">{t.found}</p>
-        <ul class="m-0 flex list-none flex-col gap-3 p-0">
+      <div class="flex min-w-0 flex-col gap-2.5 p-card md:gap-3">
+        <p class="text-small m-0 font-semibold md:mb-1 md:text-[0.9375rem]">{t.found}</p>
+        <ul class="m-0 flex list-none flex-col gap-2 p-0 md:gap-3">
           {findings.map((finding, index) => {
             const Icon = icons[index] ?? Smartphone
             return (
               <li class="flex flex-col gap-3">
                 <div
                   class:list={[
-                    'flex items-center gap-3.5 rounded-[14px] border bg-white px-4 py-3.5',
+                    'flex items-center gap-3 rounded-xl border bg-white px-3 py-2.5 md:gap-3.5 md:px-4 md:py-3.5',
                     finding.open
                       ? 'border-[#fdba8c] shadow-[0_10px_24px_-16px_rgb(194_65_12/0.45)]'
                       : 'border-line',
@@ -266,22 +285,22 @@ const spacingEngine = onlyEngine === undefined ? '' : ENGINE_NAMES[onlyEngine]
                 >
                   <span
                     class:list={[
-                      'grid size-9 shrink-0 place-items-center rounded-[10px]',
+                      'hidden size-9 shrink-0 place-items-center rounded-[10px] md:grid',
                       finding.tone,
                     ]}
                   >
                     <Icon size={18} stroke-width={1.8} aria-hidden="true" />
                   </span>
-                  <span class="min-w-0 flex-1 text-sm leading-[1.55] font-semibold">
+                  <span class="text-small min-w-0 flex-1 font-semibold text-balance">
                     {finding.title}
-                    <span class="block text-xs font-normal text-ink-2">
+                    <span class="text-meta block font-normal text-ink-2">
                       <Bidi text={finding.where} lang={lang} />
                     </span>
                   </span>
                   <SeverityPill severity={finding.severity} lang={lang} />
                 </div>
                 {finding.open && (
-                  <div class="-mt-1 grid items-center gap-4 rounded-[14px] bg-[#fff7f2] px-4 py-3.5 md:grid-cols-[200px_minmax(0,1fr)] md:gap-[18px]">
+                  <div class="-mt-1 hidden items-center gap-4 rounded-xl bg-[#fff7f2] px-4 py-3.5 md:grid md:grid-cols-[200px_minmax(0,1fr)] md:gap-[18px]">
                     <svg
                       viewBox="0 0 200 150"
                       aria-hidden="true"
@@ -328,7 +347,7 @@ const spacingEngine = onlyEngine === undefined ? '' : ENGINE_NAMES[onlyEngine]
                         {t.offscreen(s.overflow.overflow)}
                       </text>
                     </svg>
-                    <div class="flex min-w-0 flex-col gap-1.5 text-[13px] text-ink-2">
+                    <div class="text-meta flex min-w-0 flex-col gap-1.5 text-ink-2">
                       <span>{t.element}</span>
                       <code
                         dir="ltr"
