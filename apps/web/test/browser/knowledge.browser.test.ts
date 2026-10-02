@@ -302,23 +302,28 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
 
   // The redesign gave each of these pages a new body. The bot's page had overflowed by 8 px at
   // 360 px, for a code chip that could not wrap: no page of the hub, the libraries, the guides,
-  // the glossary or the site's own documents may scroll sideways on the narrowest phones.
+  // the glossary or the site's own documents may scroll sideways on the narrowest phones. At 320
+  // px a list item's column is 260, and a short code that must not break (`code.whole`) was wider:
+  // a rule's page with one, and a term's, scrolled by 3 to 5 px (M2.6 R6).
   it.each([
     ['/knowledge'],
     ['/rules'],
     ['/rules/rtl-html-dir'],
+    ['/rules/a11y-valid-lang'],
+    ['/rules/whatsapp-link-format'],
     ['/fix'],
     ['/fix/soft-404'],
     ['/glossary'],
     ['/glossary/robots-txt'],
+    ['/glossary/json-ld'],
     ['/bot'],
     ['/methodology'],
     ['/404'],
   ])(
-    'does not scroll sideways at 360 and 390 px: %s, in both languages',
+    'does not scroll sideways at 320, 360 and 390 px: %s, in both languages',
     async (path) => {
       for (const lang of ['ar', 'en'] as const) {
-        for (const width of [360, 390]) {
+        for (const width of [320, 360, 390]) {
           const tab = await open(browser, `${lang === 'en' ? '/en' : ''}${path}`, { width })
           const [scroll, client] = await tab.evaluate(
             () =>

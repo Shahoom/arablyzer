@@ -788,6 +788,15 @@
   .prose-fix code.whole {
     white-space: nowrap;
   }
+  /*
+   * On the narrowest phones (320 px: a list item's column is 260) a short code is wider than the
+   * column it moved to whole, and the page scrolled sideways by 3 to 5 px: there it may break.
+   */
+  @media (max-width: 22.5rem) {
+    .prose-fix code.whole {
+      white-space: normal;
+    }
+  }
   .prose-fix pre {
     margin: 0;
     overflow-x: auto;
