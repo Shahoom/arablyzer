@@ -3,6 +3,7 @@ import { KNOWLEDGE_UI, PAGES_UI } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import Search from '@lucide/astro/icons/search'
 import Page from '../../layouts/Page.astro'
+import { HEAD } from '../../lib/heads'
 import { scanFormHref } from '../../lib/site'
 import Forward from '../Forward.astro'
 
@@ -40,9 +41,7 @@ const links = [
       >
         404
       </span>
-      <h1 class="m-0 max-w-[780px] text-[32px] leading-[1.25] font-semibold text-balance md:text-[52px]">
-        {t.title}
-      </h1>
+      <h1 class={HEAD.page}>{t.title}</h1>
       <p class="m-0 max-w-[640px] text-base leading-[1.85] text-ink-2 md:text-[19px]">{t.text}</p>
       <ul class="m-0 grid w-full max-w-[720px] list-none gap-3 p-0 text-start sm:grid-cols-2">
         {links.map((link) => (

@@ -1,5 +1,5 @@
 ---
-import { TOOLS_UI } from '@arablyzer/i18n'
+import { KNOWLEDGE_UI, TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
@@ -7,9 +7,12 @@ import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
 import Search from '@lucide/astro/icons/search'
 import Page from '../../layouts/Page.astro'
+import { HEAD } from '../../lib/heads'
 import { searchable } from '../../lib/search'
 import { siteOf } from '../../lib/site'
 import { ARABIC_LAYER, CATEGORY_STYLE, toolsByCategory } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
+import PageHead from '../PageHead.astro'
 import CategoryIcon from './CategoryIcon.astro'
 import ToolCard from './ToolCard.astro'
 
@@ -48,9 +51,8 @@ const jsonLd = [
       })),
   },
 ]
-// A category's chip: a button that is pressed or not (the filter below the search). `chip` is the
-// design system's; the directory draws it in regular weight, the one a page already loads.
-const chip = 'chip font-normal!'
+// A category's chip: a button that is pressed or not (the filter below the search).
+const chip = 'chip'
 ---
 
 <Page
@@ -60,63 +62,52 @@ const chip = 'chip font-normal!'
   description={t.directory.meta.description}
   jsonLd={jsonLd}
 >
-  <div class="tools-hero relative isolate overflow-x-clip">
-    <div class="wrap flex flex-col items-center gap-5 pt-7 pb-8 text-center md:gap-6 md:pt-10 md:pb-10">
-      <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-2">
-        <ol class="m-0 flex list-none flex-wrap items-center justify-center gap-2 p-0">
-          <li class="flex items-center gap-2">
-            <a href={localePath(lang, PATHS.home)} class="text-ink-2 hover:text-brand-ink">
-              {STRINGS[lang].home}
-            </a>
-            <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-3" />
-          </li>
-          <li aria-current="page">{t.directory.title}</li>
-        </ol>
-      </nav>
-      <h1 class="m-0 text-[40px] leading-[1.25] font-semibold md:text-[64px] md:leading-[1.2]">
-        <span class="gradient-text">{t.directory.title}</span>
-      </h1>
-      <p class="m-0 max-w-[680px] text-base leading-[1.8] text-ink-2 md:text-[19px] md:leading-[1.85]">
-        {t.directory.intro}
-      </p>
-      <div role="search" class="mt-2 w-full max-w-[640px]">
-        <div class="flex h-14 items-center gap-3 rounded-2xl border border-field bg-white px-4 shadow focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo">
-          <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
-          <label for="tools-search" class="sr-only">
-            {t.directory.search}
-          </label>
-          <input
-            id="tools-search"
-            type="search"
-            autocomplete="off"
-            placeholder={t.directory.searchPlaceholder}
-            class="h-full min-w-0 grow border-0 bg-transparent text-base text-ellipsis text-ink outline-none placeholder:text-ink-3 md:text-[17px]"
-          />
-        </div>
-      </div>
-      <p
-        class="m-0 text-sm text-ink-3"
-        id="tools-count"
-        aria-live="polite"
-        data-shown={JSON.stringify(shown)}
+  <PageHead
+    lang={lang}
+    breadcrumb={{ label: t.page.breadcrumb, current: t.directory.title }}
+    title={t.directory.title}
+  >
+    <Bidi slot="lead" text={t.directory.intro} lang={lang} />
+    <div slot="end" class="flex w-full shrink-0 flex-col gap-3 lg:w-[480px]">
+      <div
+        role="search"
+        class="flex h-14 items-center gap-3 rounded-2xl border border-field bg-white px-4 shadow focus-within:border-indigo focus-within:ring-4 focus-within:ring-indigo/15"
       >
-        {t.directory.count(count)}
+        <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
+        <label for="tools-search" class="sr-only">
+          {t.directory.search}
+        </label>
+        <input
+          id="tools-search"
+          type="search"
+          autocomplete="off"
+          placeholder={t.directory.searchPlaceholder}
+          class="h-full min-w-0 grow border-0 bg-transparent text-base text-ellipsis text-ink outline-none placeholder:text-ink-3 md:text-[17px] [&::-webkit-search-cancel-button]:hidden"
+        />
+      </div>
+      <p class="m-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-ink-2">
+        <span id="tools-count" aria-live="polite" data-shown={JSON.stringify(shown)}>
+          {t.directory.count(count)}
+        </span>
+        <a
+          href={localePath(lang, PATHS.knowledge)}
+          class="inline-flex h-9 items-center gap-1.5 font-semibold text-brand-ink underline-offset-4 hover:text-ink hover:underline"
+        >
+          {KNOWLEDGE_UI[lang].searchAll}
+          <Next size={16} stroke-width={2} aria-hidden="true" />
+        </a>
       </p>
     </div>
-  </div>
+  </PageHead>
 
-  <div class="wrap pb-16 md:pb-24">
-    <div
-      role="group"
-      aria-labelledby="categories-title"
-      class="flex flex-col items-center gap-3 pb-8 md:pb-10"
-    >
+  <div class:list={['wrap pb-16 md:pb-24', HEAD.bodyTop]}>
+    <div role="group" aria-labelledby="categories-title" class="flex flex-col gap-3 pb-8 md:pb-10">
       <h2 id="categories-title" class="sr-only">
         {t.directory.categories}
       </h2>
       {/* One row that scrolls sideways on a phone, so fifteen chips are not six lines of them. */}
       <div class="-mx-5 w-[calc(100%+2.5rem)] overflow-x-auto px-5 pb-1 [scrollbar-width:none] md:mx-0 md:w-full md:overflow-visible md:px-0">
-        <div class="flex w-max items-center gap-2.5 md:w-full md:flex-wrap md:justify-center">
+        <div class="flex w-max items-center gap-2.5 md:w-full md:flex-wrap">
           <button type="button" class={chip} aria-pressed="true" data-filter="all">
             {t.directory.all}
           </button>
@@ -286,17 +277,3 @@ const chip = 'chip font-normal!'
     document.querySelector(`#cat-${category}`)?.scrollIntoView()
   }
 </script>
-
-<style>
-  /* A soft wash behind the first screen: still, so it costs nothing to paint or to the phone. */
-  .tools-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background:
-      radial-gradient(46% 80% at 14% 0%, rgb(0 125 136 / 0.12), transparent 70%),
-      radial-gradient(44% 74% at 88% 4%, rgb(99 102 241 / 0.12), transparent 70%);
-    pointer-events: none;
-  }
-</style>

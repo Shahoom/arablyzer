@@ -3,6 +3,7 @@ import { GUIDES_UI } from '@arablyzer/i18n'
 import { breadcrumbList, techArticle } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
+import { HEAD } from '../../lib/heads'
 import { fixGuideData } from '../../lib/guide-data'
 import { ruleData } from '../../lib/rule-data'
 import { siteOf } from '../../lib/site'
@@ -64,10 +65,10 @@ const related = guide.related.map((other) => ({
     <span class="kick self-start">
       <Bidi text={t.source} lang={lang} />
     </span>
-    <h1 class="m-0 max-w-[900px] text-[30px] leading-[1.25] font-semibold text-balance md:text-[44px]">
+    <h1 class={HEAD.page}>
       <Bidi text={copy.title} lang={lang} />
     </h1>
-    <p class="m-0 max-w-[720px] text-base leading-[1.85] text-ink-2 md:text-[19px]">
+    <p class={HEAD.lead}>
       <Bidi text={copy.description} lang={lang} />
     </p>
     <p class="m-0 flex flex-wrap items-baseline gap-x-2 text-sm text-ink-2">

@@ -242,11 +242,13 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
-    // The tools' directory and the tool pages' own parts driven in the browsers (M2.6 R3): the
-    // site's own pages on loopback, and every request off the site refused.
+    // The tools' directory and the tool pages' own parts driven in the browsers (M2.6 R3), and the
+    // heads of the pages as one system (R6): the site's own pages on loopback, and every request
+    // off the site refused.
     files: [
       'apps/web/test/browser/directory.browser.test.ts',
       'apps/web/test/browser/tool-page.browser.test.ts',
+      'apps/web/test/browser/heads.browser.test.ts',
     ],
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },

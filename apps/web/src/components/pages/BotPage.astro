@@ -3,6 +3,7 @@ import { PAGES_UI } from '@arablyzer/i18n'
 import { breadcrumbList } from '@arablyzer/seo/json-ld'
 import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
+import { HEAD } from '../../lib/heads'
 import { BOT_FACTS } from '../../lib/bot'
 import { siteOf } from '../../lib/site'
 import DocHeading from '../DocHeading.astro'
@@ -55,10 +56,10 @@ const code =
   asideFirst
 >
   <Fragment slot="head">
-    <h1 class="m-0 max-w-[900px] text-[32px] leading-[1.25] font-semibold text-balance md:text-[52px]">
+    <h1 class={HEAD.page}>
       <Rich text={t.title} lang={lang} />
     </h1>
-    <p class="m-0 max-w-[720px] text-base leading-[1.85] text-ink-2 md:text-[19px]">
+    <p class={HEAD.lead}>
       <Rich text={t.intro} lang={lang} />
     </p>
   </Fragment>

@@ -4,8 +4,6 @@ import { breadcrumbList, webApplication } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
-import ChevronLeft from '@lucide/astro/icons/chevron-left'
-import ChevronRight from '@lucide/astro/icons/chevron-right'
 import CircleQuestionMark from '@lucide/astro/icons/circle-question-mark'
 import FileCode from '@lucide/astro/icons/file-code'
 import FlaskConical from '@lucide/astro/icons/flask-conical'
@@ -20,9 +18,11 @@ import SchemaGenerator from '../../islands/generators/SchemaGenerator'
 import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
 import ToolApp from '../../islands/ToolApp'
 import Page from '../../layouts/Page.astro'
+import { HEAD } from '../../lib/heads'
 import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
 import { CATEGORY_STYLE, TOOLS_DATA, toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
+import Breadcrumb from '../Breadcrumb.astro'
 import SeverityPill from '../SeverityPill.astro'
 import ToolCard from './ToolCard.astro'
 import ToolSection from './ToolSection.astro'
@@ -42,7 +42,6 @@ const url = pageUrl(site, lang, path)
 const toolsPath = localePath(lang, PATHS.tools)
 const category = t.categories[tool.category].name
 const dot = CATEGORY_STYLE[tool.category].dot
-const Next = lang === 'ar' ? ChevronLeft : ChevronRight
 const jsonLd = [
   webApplication({ name: copy.title, description: copy.description, url, lang }),
   // From the home page, as the directory's: a search result shows this trail.
@@ -72,74 +71,78 @@ const accordion =
   description={copy.description}
   jsonLd={jsonLd}
 >
-  <div class="tool-hero relative isolate overflow-x-clip">
-    <div class="wrap flex flex-col items-center gap-5 pt-7 pb-12 text-center md:gap-6 md:pt-10 md:pb-16">
-      <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-2">
-        <ol class="m-0 flex list-none flex-wrap items-center justify-center gap-2 p-0">
-          <li class="flex items-center gap-2">
-            <a href={toolsPath} class="text-ink-2 hover:text-brand-ink">
-              {t.directory.title}
-            </a>
-            <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-3" />
-          </li>
-          <li>
-            <a
-              href={`${toolsPath}#cat-${tool.category}`}
-              class="inline-flex items-center gap-2 text-ink-2 hover:text-brand-ink"
-            >
-              <span aria-hidden="true" class:list={['size-2 rounded-full', dot]}></span>
-              {category}
-            </a>
-          </li>
-        </ol>
-      </nav>
-      <h1 class="m-0 max-w-[900px] text-[34px] leading-[1.3] font-semibold text-balance md:text-[52px] md:leading-[1.25]">
-        <span class="gradient-text">
-          <Bidi text={copy.title} lang={lang} />
-        </span>
-      </h1>
-      <p class="m-0 max-w-[720px] text-base leading-[1.8] text-ink-2 md:text-[19px] md:leading-[1.85]">
-        <Bidi text={copy.description} lang={lang} />
-      </p>
-      {/* One island per tool, started when the browser is idle or after half a second at most: a
+  <div class="relative isolate overflow-x-clip border-b border-line">
+    {/* The head's tint, with its height capped and its foot faded: the hero grows with the result
+        of a scan, and the tint must not follow it down to the notes under the box, whose grey is
+        held to 4.5:1 on the plain ground. */}
+    <div
+      aria-hidden="true"
+      class="page-wash max-h-[34rem] [mask-image:linear-gradient(to_bottom,#000_calc(100%-6rem),transparent)]"
+    ></div>
+    <div class="wrap">
+      <div
+        class:list={[
+          'mx-auto flex w-full max-w-[880px] flex-col gap-5 pb-12 md:gap-6 md:pb-16',
+          HEAD.top,
+        ]}
+      >
+        <Breadcrumb
+          lang={lang}
+          label={t.page.breadcrumb}
+          steps={[
+            { name: t.directory.title, href: toolsPath },
+            { name: category, href: `${toolsPath}#cat-${tool.category}`, dot },
+          ]}
+          current={copy.title}
+        />
+        <h1 class={HEAD.page}>
+          <span class="gradient-text">
+            <Bidi text={copy.title} lang={lang} />
+          </span>
+        </h1>
+        <p class={HEAD.lead}>
+          <Bidi text={copy.description} lang={lang} />
+        </p>
+        {/* One island per tool, started when the browser is idle or after half a second at most: a
           busy page, such as CI's Chromium, may never be idle, and the tool waits for its island.
           Astro hydrates only islands it can name. */}
-      <div class="mt-2 w-full max-w-[820px] text-start">
-        {tool.kind === 'scan' && (
-          <ToolApp
-            client:idle={{ timeout: 500 }}
-            {...boxed}
-            reportsOnly={tool.reportsOnly}
-            reads={
-              tool.renders
-                ? 'render'
-                : tool.tag === 'robots' ||
-                    tool.tag === 'dns' ||
-                    tool.tag === 'links' ||
-                    tool.tag === 'sitemap' ||
-                    tool.tag === 'crux'
-                  ? tool.tag
-                  : 'html'
-            }
-            readsLabel={t.tags[tool.tag]}
-            fullScanHref={scanFormHref(lang)}
-          />
-        )}
-        {slug === 'whatsapp-link-generator' && (
-          <WhatsAppGenerator client:idle={{ timeout: 500 }} {...boxed} />
-        )}
-        {slug === 'hreflang-generator' && (
-          <HreflangGenerator client:idle={{ timeout: 500 }} {...boxed} />
-        )}
-        {slug === 'schema-generator' && (
-          <SchemaGenerator client:idle={{ timeout: 500 }} {...boxed} />
-        )}
-        {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
+        <div class="mt-2 w-full">
+          {tool.kind === 'scan' && (
+            <ToolApp
+              client:idle={{ timeout: 500 }}
+              {...boxed}
+              reportsOnly={tool.reportsOnly}
+              reads={
+                tool.renders
+                  ? 'render'
+                  : tool.tag === 'robots' ||
+                      tool.tag === 'dns' ||
+                      tool.tag === 'links' ||
+                      tool.tag === 'sitemap' ||
+                      tool.tag === 'crux'
+                    ? tool.tag
+                    : 'html'
+              }
+              readsLabel={t.tags[tool.tag]}
+              fullScanHref={scanFormHref(lang)}
+            />
+          )}
+          {slug === 'whatsapp-link-generator' && (
+            <WhatsAppGenerator client:idle={{ timeout: 500 }} {...boxed} />
+          )}
+          {slug === 'hreflang-generator' && (
+            <HreflangGenerator client:idle={{ timeout: 500 }} {...boxed} />
+          )}
+          {slug === 'schema-generator' && (
+            <SchemaGenerator client:idle={{ timeout: 500 }} {...boxed} />
+          )}
+          {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="wrap pb-20 md:pb-28">
+  <div class:list={['wrap pb-20 md:pb-28', HEAD.bodyTop]}>
     <div class="mx-auto flex w-full max-w-[880px] flex-col gap-14 md:gap-[72px]">
       <ToolSection id="checks" title={headings.checks}>
         <ListChecks slot="icon" size={22} stroke-width={1.9} />
@@ -346,23 +349,6 @@ const accordion =
 </script>
 
 <style>
-  /*
-   * A soft wash behind the first screen: still, so it costs nothing to paint or to the phone. Its
-   * height is capped: the hero grows with the result of a scan, and the wash must not follow it
-   * down to the notes under the box, whose grey is held to 4.5:1 on the plain ground.
-   */
-  .tool-hero::before {
-    content: '';
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline: 0;
-    height: min(100%, 34rem);
-    z-index: -1;
-    background:
-      radial-gradient(46% 78% at 12% 0%, rgb(99 102 241 / 0.11), transparent 70%),
-      radial-gradient(44% 72% at 90% 6%, rgb(0 125 136 / 0.12), transparent 70%);
-    pointer-events: none;
-  }
   /*
    * The example's code is on the dark panel, where the highlighter's colours (made for a light
    * ground, and pinned by test/code.test.ts) do not read: muted text, the wrong example's values

@@ -1,6 +1,7 @@
 ---
 import type { JsonLd } from '@arablyzer/seo/json-ld'
 import type { Lang } from '@arablyzer/seo/site'
+import { HEAD } from '../../lib/heads'
 import Page from '../../layouts/Page.astro'
 import Breadcrumb from '../Breadcrumb.astro'
 
@@ -43,7 +44,7 @@ const main = 'flex min-w-0 flex-col gap-12 md:gap-14 lg:order-first'
 <Page lang={lang} path={path} title={title} description={description} jsonLd={jsonLd} latinPreload>
   <section class="relative isolate border-b border-line">
     <div aria-hidden="true" class="page-wash"></div>
-    <div class="wrap flex flex-col gap-5 pt-7 pb-9 md:gap-6 md:pt-10 md:pb-12">
+    <div class:list={['wrap flex flex-col gap-5 md:gap-6', HEAD.padding]}>
       <Breadcrumb
         lang={lang}
         label={breadcrumbLabel}
@@ -53,7 +54,12 @@ const main = 'flex min-w-0 flex-col gap-12 md:gap-14 lg:order-first'
       <slot name="head" />
     </div>
   </section>
-  <div class="wrap grid gap-10 pt-9 pb-16 md:pt-12 md:pb-24 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-x-14">
+  <div
+    class:list={[
+      'wrap grid gap-10 pb-16 md:pb-24 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:items-start lg:gap-x-14',
+      HEAD.bodyTop,
+    ]}
+  >
     {asideFirst ? (
       <>
         <aside class={aside}>

@@ -14,8 +14,11 @@ interface Props {
   lang: Lang
   /** The landmark's name. */
   label: string
-  /** The steps between the home page and this one. */
-  steps?: readonly { readonly name: string; readonly href: string }[]
+  /**
+   * The steps between the home page and this one. A step may carry the class of a dot drawn before
+   * its name (a tool's category, in its colour).
+   */
+  steps?: readonly { readonly name: string; readonly href: string; readonly dot?: string }[]
   /** This page. */
   current: string
 }
@@ -35,7 +38,13 @@ const link = 'text-ink-2 underline-offset-4 hover:text-brand-ink hover:underline
     </li>
     {steps.map((step) => (
       <li class="flex items-center gap-2">
-        <a href={step.href} class={link}>
+        <a
+          href={step.href}
+          class:list={[link, step.dot !== undefined && 'inline-flex items-center gap-2']}
+        >
+          {step.dot !== undefined && (
+            <span aria-hidden="true" class:list={['size-2 shrink-0 rounded-full', step.dot]} />
+          )}
           <Bidi text={step.name} lang={lang} />
         </a>
         <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-3" />
