@@ -346,11 +346,17 @@ const accordion =
 </script>
 
 <style>
-  /* A soft wash behind the first screen: still, so it costs nothing to paint or to the phone. */
+  /*
+   * A soft wash behind the first screen: still, so it costs nothing to paint or to the phone. Its
+   * height is capped: the hero grows with the result of a scan, and the wash must not follow it
+   * down to the notes under the box, whose grey is held to 4.5:1 on the plain ground.
+   */
   .tool-hero::before {
     content: '';
     position: absolute;
-    inset: 0;
+    inset-block-start: 0;
+    inset-inline: 0;
+    height: min(100%, 34rem);
     z-index: -1;
     background:
       radial-gradient(46% 78% at 12% 0%, rgb(99 102 241 / 0.11), transparent 70%),
