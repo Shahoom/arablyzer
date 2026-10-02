@@ -11,7 +11,12 @@ export interface SiteStrings {
   readonly statusBar: string
   readonly navLabel: string
   /** The header's sections, each named as its page is built (apps/web, NAV). */
-  readonly nav: { readonly tools: string; readonly rules: string; readonly fix: string }
+  readonly nav: {
+    readonly tools: string
+    readonly knowledge: string
+    readonly rules: string
+    readonly fix: string
+  }
   /** The header's call to action, to the scan form: free, and said so. */
   readonly scanCta: string
   /** The link to the same page in the other language, written in that language. */
@@ -23,6 +28,7 @@ export interface SiteStrings {
     /** The footer's columns: the product, its tools, its library, and the project. */
     readonly product: string
     readonly popularTools: string
+    /** The library's heading: «تعلّم» / "Learn", as its first link is the hub, «المعرفة». */
     readonly knowledge: string
     readonly aboutHeading: string
     /** The product column's link to the home page's scan form. */
@@ -48,7 +54,7 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'انتقل إلى المحتوى',
     statusBar: 'أدوات مجانية وبلا تسجيل · الكود مفتوح المصدر',
     navLabel: 'أقسام الموقع',
-    nav: { tools: 'الأدوات', rules: 'مكتبة القواعد', fix: 'أدلة الإصلاح' },
+    nav: { tools: 'الأدوات', knowledge: 'المعرفة', rules: 'مكتبة القواعد', fix: 'أدلة الإصلاح' },
     scanCta: 'افحص مجاناً',
     otherLang: { label: 'English', short: 'EN' },
     footer: {
@@ -56,7 +62,7 @@ export const SITE: Copy<SiteStrings> = {
       navLabel: 'روابط أسفل الصفحة',
       product: 'المنتج',
       popularTools: 'أدوات شائعة',
-      knowledge: 'المعرفة',
+      knowledge: 'تعلّم',
       aboutHeading: 'عن Arablyzer',
       scan: 'الفحص',
       github: 'الكود على GitHub',
@@ -76,7 +82,7 @@ export const SITE: Copy<SiteStrings> = {
     skipToContent: 'Skip to content',
     statusBar: 'Free tools, no sign-up · Open source',
     navLabel: 'Site sections',
-    nav: { tools: 'Tools', rules: 'Rule library', fix: 'Fix guides' },
+    nav: { tools: 'Tools', knowledge: 'Knowledge', rules: 'Rule library', fix: 'Fix guides' },
     scanCta: 'Scan free',
     otherLang: { label: 'العربية', short: 'العربية' },
     footer: {
@@ -85,7 +91,7 @@ export const SITE: Copy<SiteStrings> = {
       navLabel: 'Footer links',
       product: 'Product',
       popularTools: 'Popular tools',
-      knowledge: 'Knowledge',
+      knowledge: 'Learn',
       aboutHeading: 'About Arablyzer',
       scan: 'Scan',
       github: 'The code on GitHub',
