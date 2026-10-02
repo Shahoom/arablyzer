@@ -1,12 +1,14 @@
 ---
-import { PAGES_UI } from '@arablyzer/i18n'
+import { PAGES_UI, RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList } from '@arablyzer/seo/json-ld'
-import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import { HEAD } from '../../lib/heads'
 import { BOT_FACTS } from '../../lib/bot'
+import { METHODOLOGY_DATA } from '../../lib/methodology'
 import { siteOf } from '../../lib/site'
 import DocHeading from '../DocHeading.astro'
+import Related from '../guides/Related.astro'
 import Rich from '../Rich.astro'
 import Contents from './Contents.astro'
 import DocPage from './DocPage.astro'
@@ -34,6 +36,21 @@ const jsonLd = [
     { name: t.title, url },
   ]),
 ]
+// The pages that say what the bot reads for, and what it is asked to do.
+const related = [
+  {
+    id: 'related-title',
+    title: t.related,
+    links: [
+      {
+        href: localePath(lang, PATHS.methodology),
+        title: METHODOLOGY_DATA[lang].title,
+      },
+      { href: localePath(lang, PATHS.rules), title: RULES_UI[lang].library.title },
+      { href: localePath(lang, PATHS.tools), title: TOOLS_UI[lang].directory.title },
+    ],
+  },
+]
 const text = 'm-0 text-body text-ink-2'
 const list = 'm-0 flex flex-col gap-3 ps-5 text-body text-ink-2 marker:text-ink-3'
 // A block of code, as the rules' pages set theirs: dark, left to right, scrolling inside itself and
@@ -60,7 +77,10 @@ const code =
     </p>
     <Contents variant="inline" label={t.contents} sections={sections} />
   </Fragment>
-  <Contents slot="aside" label={t.contents} sections={sections} />
+  <div slot="aside" class="flex flex-col gap-3">
+    <Contents label={t.contents} sections={sections} />
+    <Related lang={lang} groups={related} />
+  </div>
 
   <section id="identify" aria-labelledby="identify-title" class="flex scroll-mt-6 flex-col gap-4">
     <DocHeading id="identify-title" title={t.identify.title} />

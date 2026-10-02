@@ -57,6 +57,8 @@ export interface PagesStrings {
     readonly contents: string
     /** The document's source, in the repository. */
     readonly source: string
+    /** The heading of the pages the aside points to (M2.6 R7). */
+    readonly related: string
   }
   readonly bot: {
     readonly meta: { readonly title: string; readonly description: string }
@@ -64,6 +66,8 @@ export interface PagesStrings {
     readonly title: string
     readonly intro: string
     readonly contents: string
+    /** The heading of the pages the aside points to (M2.6 R7). */
+    readonly related: string
     readonly identify: {
       readonly title: string
       readonly lead: string
@@ -101,6 +105,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
       breadcrumb: 'مسار الصفحة',
       contents: 'في هذه الصفحة',
       source: 'مصدر هذه الصفحة في المستودع',
+      related: 'ذات صلة',
     },
     bot: {
       meta: {
@@ -113,6 +118,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
       intro:
         'البرنامج الذي يجلب صفحتك حين يطلب أحد فحصها: ما يفعله، وما لا يفعله أبداً، وكيف تمنعه.',
       contents: 'في هذه الصفحة',
+      related: 'ذات صلة',
       identify: {
         title: 'كيف تعرفه',
         lead: 'كل طلب يرسله خارج المتصفح يحمل هذا الـ User-Agent:',
@@ -191,6 +197,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
       breadcrumb: 'Breadcrumb',
       contents: 'On this page',
       source: 'The source of this page, in the repository',
+      related: 'Related',
     },
     bot: {
       meta: {
@@ -203,6 +210,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
       intro:
         'The bot that fetches your page for a check: what it does, what it never does, how to block it.',
       contents: 'On this page',
+      related: 'Related',
       identify: {
         title: 'How to recognise it',
         lead: 'Every request it sends outside a browser has this user agent:',
