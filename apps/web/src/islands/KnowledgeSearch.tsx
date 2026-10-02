@@ -112,12 +112,13 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
 
   return (
     <div className="flex flex-col gap-8 md:gap-10">
-      <div className="flex flex-col gap-3 rounded-3xl border border-line bg-white/85 p-3 shadow-lg backdrop-blur-xl md:sticky md:top-[116px] md:z-20 md:gap-4 md:p-4 lg:top-[76px]">
+      {/* Under the header while the results scroll: on a screen wide and tall enough that it leaves room for them. */}
+      <div className="flex flex-col gap-3 rounded-3xl border border-line bg-white/85 p-3 shadow-lg backdrop-blur-xl md:gap-3.5 md:p-3.5 lg:top-[76px] lg:z-20 [@media(min-width:64rem)_and_(min-height:47.5rem)]:sticky">
         <div role="search">
           <label htmlFor="knowledge-search" className="sr-only">
             {t.search.label}
           </label>
-          <div className="flex h-14 items-center gap-3 rounded-2xl border border-field bg-white ps-4 pe-2 focus-within:border-indigo focus-within:ring-4 focus-within:ring-indigo/15 md:h-16 md:ps-5">
+          <div className="flex h-14 items-center gap-3 rounded-2xl border border-field bg-white ps-4 pe-2 focus-within:border-indigo focus-within:ring-4 focus-within:ring-indigo/15 md:h-[60px] md:ps-5">
             <Search size={22} strokeWidth={2} aria-hidden="true" className="shrink-0 text-ink-3" />
             <input
               ref={field}
@@ -153,7 +154,7 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
               onClick={() => {
                 setFilter(choice)
               }}
-              className="chip h-10 px-3.5 font-normal! whitespace-nowrap md:h-[42px] md:px-4"
+              className="chip h-10 px-3.5 font-normal! whitespace-nowrap md:h-9 md:px-4"
             >
               <span>
                 <Bidi text={t.types[choice]} lang={lang} />

@@ -78,7 +78,8 @@ const ICON = { tool: Wrench, rule: ListChecks, fix: LifeBuoy, term: BookOpen } a
         <h1 class="gradient-text m-0 text-[44px] leading-[1.2] font-semibold md:text-[68px]">
           {t.title}
         </h1>
-        <p class="m-0 max-w-[62ch] text-lg leading-[1.85] text-balance text-ink-2 md:text-xl">
+        {/* Ink, not ink-2: the aurora's blobs sit right behind the lead on a phone (4.1:1 measured). */}
+        <p class="m-0 max-w-[62ch] text-lg leading-[1.85] text-balance text-ink md:text-xl">
           <Bidi text={t.lead} lang={lang} />
         </p>
       </div>
