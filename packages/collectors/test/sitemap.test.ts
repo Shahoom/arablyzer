@@ -8,9 +8,17 @@ import {
   sitemapTargets,
   sitemapUrl,
 } from '../src/sitemap'
-import { concat, utf8 } from './helpers'
+import { concat, cpuTimed, utf8 } from './helpers'
 
 const read = (text: string, truncated = false) => readSitemap(utf8(text), truncated)
+
+/**
+ * Room for the clock, which these tests do not bound: the large reads below bound their CPU time
+ * (cpuTimed), and a synchronous test cannot be cut short, so vitest's five seconds only failed
+ * tests that a busy machine ran slowly. On CI's two CPUs, shared by every package's suites, the
+ * slowest took 24 seconds.
+ */
+const ROOM = { timeout: 120_000 }
 
 const URLSET = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="${SITEMAP_NAMESPACE}">
@@ -167,12 +175,13 @@ describe('readSitemap', () => {
     expect(read(' \n\t')).toEqual({ kind: 'sitemap', format: 'text', entries: 0 })
   })
 
-  it('reads the protocol’s largest sitemap in well under a second', () => {
+  it('reads the protocol’s largest sitemap in well under a second', ROOM, () => {
     const entry = '<url><loc>https://shop.example/ar/products/item?size=large&amp;x=1</loc></url>\n'
     const big = `<urlset xmlns="${SITEMAP_NAMESPACE}">\n${entry.repeat(50_000)}</urlset>`
-    const started = performance.now()
-    expect(read(big)).toEqual({ kind: 'sitemap', format: 'urlset', entries: 50_000 })
-    expect(performance.now() - started).toBeLessThan(1_000)
+    // CPU time: what the read costs, not how busy the machine running the suites is.
+    const { result, ms } = cpuTimed(() => read(big))
+    expect(result).toEqual({ kind: 'sitemap', format: 'urlset', entries: 50_000 })
+    expect(ms).toBeLessThan(1_000)
   })
 })
 
@@ -221,24 +230,24 @@ describe('readSitemap: namespaces, resolved without sax', () => {
 // M2.3c review: sax checks its buffers once per write and slows quadratically with the attributes
 // and namespaces of the elements it reads, so a small gzipped file held the scanner's event loop
 // for seconds to hours, or its memory for gigabytes, while the watchdog timers could not fire.
-describe('readSitemap: input built to be slow or large', () => {
+describe('readSitemap: input built to be slow or large', ROOM, () => {
   const NS = SITEMAP_NAMESPACE
   /** The most a scan reads of one file (BUILD-PLAN §11). */
   const READ_LIMIT = 25 * 1024 * 1024
   /** As large as the files the review built: a scan reads them whole, or cut at READ_LIMIT. */
   const LARGE = 25_000_000
   /**
-   * A generous bound: the reader takes well under a second on each, and a busy machine running
-   * every suite at once took over two; before the fix these inputs took seconds to hours.
+   * A generous bound on CPU time: the reader takes well under a second on each, and before the fix
+   * these inputs took seconds to hours. The clock was no measure of that: on CI, which shares two
+   * CPUs among every suite, the read of 400,000 URLs took up to 24 seconds by it.
    */
   const QUICK_MS = 10_000
 
-  /** Reads text of this size, and says how long it took. */
+  /** Reads text of this size, and says how much CPU time it took. */
   function timed(text: string, truncated = false) {
     const body = utf8(text)
-    const started = performance.now()
-    const content = readSitemap(body, truncated)
-    return { content, ms: performance.now() - started, bytes: body.length }
+    const { result: content, ms } = cpuTimed(() => readSitemap(body, truncated))
+    return { content, ms, bytes: body.length }
   }
 
   it('reads a root with 160,000 attributes without slowing down', () => {
