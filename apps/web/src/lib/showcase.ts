@@ -1,4 +1,3 @@
-import { formatReport } from '@arablyzer/cli/format'
 import checkoutFormJson from '@arablyzer/fixtures/golden/reports/07-checkout-form.json'
 import productOffersJson from '@arablyzer/fixtures/golden/reports/03-product-offers.json'
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
@@ -12,7 +11,6 @@ import {
   type Localized,
   type Severity,
 } from '@arablyzer/report-schema'
-import type { Lang } from '@arablyzer/seo/site'
 import { ENGINE_NAMES } from './engines'
 
 /**
@@ -144,21 +142,6 @@ function buildShowcase(): Showcase {
     },
     price: { finding: price, price: stringOf(price, 'price'), fixed: stringOf(price, 'fixed') },
   }
-}
-
-/**
- * What the CLI prints for the instrument panel's page, as `formatReport()` writes it, without the
- * lines that time the scan (the golden reports keep no durations) and without its notices.
- */
-export function terminalLines(lang: Lang): string[] {
-  const lines = formatReport(rtlLayout, lang, false).split('\n')
-  lines.pop() // after the last newline
-  // The HTTP line and one line per engine follow the first; the notices, a blank line, a heading
-  // and one line each, come last.
-  const timed = 1 + (rtlLayout.scan.render?.length ?? 0)
-  const notices = rtlLayout.scan.notices.length
-  const end = notices > 0 ? lines.length - (2 + notices) : lines.length
-  return [lines[0] ?? '', ...lines.slice(1 + timed, end)]
 }
 
 function findingOf(report: Report, ruleId: string): Finding {

@@ -18,7 +18,6 @@
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
     "@arablyzer/browser": "workspace:*",
-    "@arablyzer/cli": "workspace:*",
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/engine": "workspace:*",
     "@arablyzer/fixtures": "workspace:*",

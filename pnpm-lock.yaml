@@ -151,9 +151,6 @@ importers:
       '@arablyzer/browser':
         specifier: workspace:*
         version: link:../../packages/browser
-      '@arablyzer/cli':
-        specifier: workspace:*
-        version: link:../../packages/cli
       '@arablyzer/egress':
         specifier: workspace:*
         version: link:../../packages/egress
