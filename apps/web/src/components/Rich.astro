@@ -13,7 +13,10 @@ const { text, lang } = Astro.props
 
 {codeParts(text).map((part) =>
   part.code ? (
-    <code dir="ltr" class="bg-paper px-1.5 py-px font-mono text-[0.875em] whitespace-nowrap">
+    <code
+      dir="ltr"
+      class="rounded-xs bg-surface-2 px-1.5 py-px font-mono text-[0.875em] whitespace-nowrap"
+    >
       {part.text}
     </code>
   ) : (

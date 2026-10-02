@@ -2,20 +2,18 @@ import type { Severity } from '@arablyzer/report-schema'
 import { STRINGS } from '@arablyzer/seo/strings'
 import type { Lang } from '@arablyzer/seo/site'
 
-const SEVERITY_STYLE: Readonly<Record<Severity, string>> = {
-  critical: 'bg-critical text-white border-critical',
-  serious: 'bg-signal text-white border-signal',
-  moderate: 'bg-moderate-soft text-moderate border-moderate-line',
-  minor: 'bg-white text-ink-2 border-tick',
-  info: 'bg-measure-soft text-measure border-measure-soft',
+const SEVERITY_TONE: Readonly<Record<Severity, string>> = {
+  critical: 'sev-critical',
+  serious: 'sev-serious',
+  moderate: 'sev-moderate',
+  minor: 'sev-minor',
+  info: 'sev-info',
 }
 
-/** A severity in the report's own words, as on the home page. */
+/** A severity in the report's own words, as the pill of global.css (SeverityPill.astro's twin). */
 export function SeverityPill({ severity, lang }: { severity: Severity; lang: Lang }) {
   return (
-    <span
-      className={`border px-2 py-px text-xs font-semibold whitespace-nowrap ${SEVERITY_STYLE[severity]}`}
-    >
+    <span className={`sev ${SEVERITY_TONE[severity]}`}>
       {STRINGS[lang].report.severity[severity]}
     </span>
   )
@@ -47,17 +45,20 @@ export function Crosshairs() {
   )
 }
 
-/** A section's number and heading, with a ruler to the end of the line. */
+/** A section's number and heading, with a hairline to the end of the line. */
 export function SectionHead({ number, id, title }: { number: number; id: string; title: string }) {
   return (
     <div className="flex items-center gap-3.5">
-      <span dir="ltr" className="font-mono text-xs tracking-[0.06em] text-signal">
-        § {String(number).padStart(2, '0')}
+      <span
+        dir="ltr"
+        className="grid h-[22px] min-w-[22px] shrink-0 place-items-center rounded-full bg-indigo px-1.5 text-[11px] leading-none font-bold text-white tabular-nums"
+      >
+        {String(number).padStart(2, '0')}
       </span>
-      <h2 id={id} className="m-0 text-xl font-semibold">
+      <h2 id={id} className="m-0 text-xl font-bold">
         {title}
       </h2>
-      <span aria-hidden="true" className="bg-ruler h-[7px] grow" />
+      <span aria-hidden="true" className="h-px grow bg-line" />
     </div>
   )
 }
