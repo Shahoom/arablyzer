@@ -18,9 +18,6 @@ export interface SiteStrings {
   readonly otherLang: { readonly label: string; readonly short: string }
   readonly footer: {
     readonly about: string
-    /** Over the site's sections (NAV), as the header lists them. */
-    readonly sections: string
-    readonly project: string
     /** The footer's links, one landmark. */
     readonly navLabel: string
     /** The footer's columns: the product, its tools, its library, and the project. */
@@ -56,8 +53,6 @@ export const SITE: Copy<SiteStrings> = {
     otherLang: { label: 'English', short: 'EN' },
     footer: {
       about: 'محلّل المواقع العربية: أدوات مجانية تفحص ما يراه الزبون العربي فعلاً.',
-      sections: 'الأقسام',
-      project: 'المشروع',
       navLabel: 'روابط أسفل الصفحة',
       product: 'المنتج',
       popularTools: 'أدوات شائعة',
@@ -87,8 +82,6 @@ export const SITE: Copy<SiteStrings> = {
     footer: {
       about:
         'The Arabic website analyzer: free tools that check what Arabic-speaking customers actually see.',
-      sections: 'Sections',
-      project: 'Project',
       navLabel: 'Footer links',
       product: 'Product',
       popularTools: 'Popular tools',
