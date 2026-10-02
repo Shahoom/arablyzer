@@ -10,6 +10,11 @@ export interface ToolAppStrings {
     readonly urlLabel: string
     readonly submit: string
     readonly submitting: string
+    /** The × of the tool's pill (R3): it leaves the tool for the home page's full check. */
+    readonly fullScan: string
+    /** Over the browsers the page is rendered in, for a tool that renders, and over what the others read. */
+    readonly engines: string
+    readonly reads: string
     /**
      * Under the form: free, and what the tool reads: the page, robots.txt, the page drawn, the
      * domain's DNS records, the page and its links, robots.txt and the sitemaps, or real visitors'
@@ -64,6 +69,9 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       urlLabel: 'رابط الصفحة',
       submit: 'افحص الصفحة',
       submitting: 'نفحص…',
+      fullScan: 'افحص كل شيء بدل هذه الأداة',
+      engines: 'المتصفحات التي نعرض فيها الصفحة',
+      reads: 'ما تقرؤه الأداة',
       note: {
         html: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم.',
         robots: 'مجاني وبلا تسجيل. نقرأ ملف robots.txt كما يرسله الخادم.',
@@ -124,6 +132,9 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       urlLabel: 'Page URL',
       submit: 'Check the page',
       submitting: 'Checking…',
+      fullScan: 'Run the full check instead of this tool',
+      engines: 'The browsers we render the page in',
+      reads: 'What the tool reads',
       note: {
         html: 'Free, no sign-up. We read the page as the server sends it.',
         robots: 'Free, no sign-up. We read robots.txt as the server sends it.',

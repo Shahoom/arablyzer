@@ -257,6 +257,26 @@ describe('a tool’s copy', () => {
   })
 })
 
+describe('a tool page’s v2 words', () => {
+  it('names each kind of tool its card can show, and the fold of its methodology', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      expect(Object.keys(TOOLS_UI[lang].kinds).sort(), lang).toEqual(['generator', 'paste', 'scan'])
+      expect(TOOLS_UI[lang].page.measure, lang).toBeTruthy()
+    }
+    expect(TOOLS_UI.ar.page.measure).toBe('كيف نقيس')
+    expect(TOOLS_UI.en.page.measure).toBe('How we measure')
+  })
+
+  it('says what the pill’s × does and what is shown beside the tool’s button', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      const form = TOOL_APP[lang].form
+      expect(form.fullScan, lang).toBeTruthy()
+      expect(form.engines, lang).toBeTruthy()
+      expect(form.reads, lang).toBeTruthy()
+    }
+  })
+})
+
 describe('report copy', () => {
   it('names every category the report schema has', async () => {
     const { Category } = await import('@arablyzer/report-schema')
