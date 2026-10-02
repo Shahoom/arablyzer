@@ -33,11 +33,12 @@ if (chromePath === undefined || chromePath === '') {
 const DIST = fileURLToPath(new URL('../dist/', import.meta.url))
 /**
  * The pages that stand for the rest (packages/seo): every page but the report pages and the
- * tool pages past the first in each language, which share its template.
+ * pages past the first of their template in each language (tools, rules, guides, glossary terms).
  */
 const PAGES = representativePages(builtPages(DIST)).map((page) => page.path)
 const CATEGORIES = ['performance', 'accessibility', 'best-practices', 'seo'] as const
 const FORMS = ['mobile', 'desktop'] as const
+const TOTAL_RUNS = PAGES.length * FORMS.length * runs
 
 interface Measured {
   readonly page: string
@@ -55,6 +56,10 @@ const METRICS = [
   'cumulative-layout-shift',
   'speed-index',
 ]
+
+// What is to be measured, said first and as it goes: the scores come at the end, and a run that
+// CI's time limit ends would otherwise say nothing of how much work it was.
+console.log(`Lighthouse: ${PAGES.length} pages, ${FORMS.length} forms, ${runs} runs: ${TOTAL_RUNS}`)
 
 const site = await serveSite(DIST, { compressText: true, cleanUrls: true })
 const chrome = await chromeLauncher.launch({
@@ -122,6 +127,7 @@ try {
           misses,
         })
       }
+      console.log(`measured ${page} (${form}): ${measured.length} of ${TOTAL_RUNS} runs`)
     }
   }
 } finally {
