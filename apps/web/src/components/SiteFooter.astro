@@ -66,10 +66,10 @@ const columns = [
     ],
   },
 ]
-// A link has room above and below it on a phone (a 28 px target for a thumb) and none on a
-// desktop, where the list's gap is the room.
+// A link has a little room above and below it on a phone (a 26 px target, over the 24 px WCAG 2.2
+// asks for) and none on a desktop, where the list's gap is the room.
 const link =
-  'inline-block py-1 text-ink-2 underline-offset-4 hover:text-ink hover:underline md:py-0'
+  'inline-block py-0.5 text-ink-2 underline-offset-4 hover:text-ink hover:underline md:py-0'
 ---
 
 {/* Compact on a phone (M2.6 R7a): two columns of links in 13 px type, closer together, and the
@@ -88,20 +88,20 @@ const link =
             Arablyzer
           </span>
         </a>
-        <p class="m-0 max-w-[34ch] text-meta text-ink-2 md:text-small md:leading-[1.8]">
+        <p class="m-0 max-w-[34ch] text-meta text-ink-2 md:text-sm md:leading-[1.8]">
           {t.footer.about}
         </p>
       </div>
       <nav
         aria-label={t.footer.navLabel}
-        class="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4 md:gap-x-6 md:gap-y-8"
+        class="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 md:gap-x-6 md:gap-y-8"
       >
         {columns.map((column) => (
           <div class="flex min-w-0 flex-col gap-1.5 md:gap-3.5">
-            <h2 class="m-0 text-meta font-semibold md:text-small">
+            <h2 class="m-0 text-meta font-semibold md:text-sm">
               <Bidi text={column.title} lang={lang} />
             </h2>
-            <ul class="m-0 flex list-none flex-col gap-0.5 p-0 text-meta md:gap-2.5 md:text-small">
+            <ul class="m-0 flex list-none flex-col p-0 text-meta md:gap-2.5 md:text-sm">
               {column.links.map((item) => (
                 <li>
                   <a href={item.href} class={link}>
