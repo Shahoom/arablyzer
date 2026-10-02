@@ -14,7 +14,7 @@ import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
 import ToolApp from '../../islands/ToolApp'
 import Page from '../../layouts/Page.astro'
 import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
-import { TOOLS_DATA, toolData } from '../../lib/tool-data'
+import { CATEGORY_STYLE, TOOLS_DATA, toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
 import SeverityPill from '../SeverityPill.astro'
 
@@ -46,6 +46,8 @@ const jsonLd = [
     { name: copy.title, url },
   ]),
 ]
+// What the tool's island is given: its name for the pill of its box, and its category's colour.
+const boxed = { lang, tool: slug, title: copy.title, dot: CATEGORY_STYLE[tool.category].dot }
 const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
 ---
 
@@ -86,8 +88,7 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
         {tool.kind === 'scan' && (
           <ToolApp
             client:idle={{ timeout: 500 }}
-            lang={lang}
-            tool={slug}
+            {...boxed}
             reportsOnly={tool.reportsOnly}
             reads={
               tool.renders
@@ -100,20 +101,20 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
                   ? tool.tag
                   : 'html'
             }
+            readsLabel={t.tags[tool.tag]}
+            fullScanHref={scanFormHref(lang)}
           />
         )}
         {slug === 'whatsapp-link-generator' && (
-          <WhatsAppGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
+          <WhatsAppGenerator client:idle={{ timeout: 500 }} {...boxed} />
         )}
         {slug === 'hreflang-generator' && (
-          <HreflangGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
+          <HreflangGenerator client:idle={{ timeout: 500 }} {...boxed} />
         )}
         {slug === 'schema-generator' && (
-          <SchemaGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
+          <SchemaGenerator client:idle={{ timeout: 500 }} {...boxed} />
         )}
-        {slug === 'robots-tester' && (
-          <RobotsTester client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
-        )}
+        {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
       </div>
 
       <section id="checks" aria-labelledby="checks-title" class="flex flex-col gap-4 md:gap-[18px]">

@@ -5,8 +5,8 @@ import { TOOL_APP } from '@arablyzer/i18n/tool-app'
 import type { Report, RuleResult } from '@arablyzer/report-schema'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client'
-import { ArrowLeft, ArrowRight, Check, Info, Minus, X } from 'lucide-preact'
-import type { TargetedSubmitEvent } from 'preact'
+import { ArrowLeft, ArrowRight, Check, Info, Link2, Minus, TriangleAlert, X } from 'lucide-preact'
+import type { ComponentChildren, TargetedSubmitEvent } from 'preact'
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { fetchReport, startScan } from './api'
 import { followScan } from './events'
@@ -24,8 +24,10 @@ import {
   toolVerdict,
   worstProblem,
   type Progress as ProgressState,
+  type ToolVerdict,
 } from './report-model'
 import { askedUrl, precheck, type FormError } from './scan-request'
+import { ToolBox } from './ToolBox'
 import { challenge } from './turnstile'
 
 interface Props {
@@ -42,7 +44,24 @@ interface Props {
    * records, the page and its links, robots.txt and the sitemaps, or Chrome's data on real visitors.
    */
   reads: 'html' | 'robots' | 'render' | 'dns' | 'links' | 'sitemap' | 'crux'
+  /** The tool's name, for the pill of its box, and the colour of its category's dot. */
+  title: string
+  dot: string
+  /** What the tool reads, in a word, for the chip that stands where the browsers stand. */
+  readsLabel: string
+  /** The × of the pill goes here: the home page's full check. */
+  fullScanHref: string
 }
+
+/** The browsers a tool that renders the page opens it in, each with its dot. */
+const ENGINES = [
+  { name: 'Chromium', dot: 'bg-blue' },
+  { name: 'Firefox', dot: 'bg-cat-prices' },
+  { name: 'WebKit', dot: 'bg-cat-fonts' },
+] as const
+
+const CHIP =
+  'inline-flex h-[34px] items-center gap-1.5 rounded-[10px] border border-line px-2.5 text-[13px] text-ink-2'
 
 type Run =
   | { readonly phase: 'running'; readonly id: string; readonly progress: ProgressState }
@@ -63,7 +82,16 @@ const wait = (ms: number) =>
  * alone, and its result under the form as the scan runs: each problem with its evidence, or the
  * page passing. The result has its own link, the scan's report page.
  */
-export default function ToolApp({ lang, tool, reads, reportsOnly }: Props) {
+export default function ToolApp({
+  lang,
+  tool,
+  reads,
+  reportsOnly,
+  title,
+  dot,
+  readsLabel,
+  fullScanHref,
+}: Props) {
   const t = TOOL_APP[lang].form
   const f = SCAN_FORM[lang]
   const [ready, setReady] = useState(false)
@@ -200,53 +228,83 @@ export default function ToolApp({ lang, tool, reads, reportsOnly }: Props) {
             : r.failed
 
   return (
-    <div className="flex flex-col gap-8">
-      <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-2.5">
-        <label htmlFor="tool-url" className="text-sm font-semibold">
-          {t.urlLabel}
-        </label>
-        <div className="flex flex-col gap-2 sm:h-[60px] sm:flex-row sm:gap-0 sm:border-[1.5px] sm:border-ink sm:bg-white">
-          <input
-            ref={field}
-            id="tool-url"
-            name="url"
-            type="url"
-            dir="ltr"
-            inputMode="url"
-            autoComplete="url"
-            autoCapitalize="none"
-            spellcheck={false}
-            placeholder={f.placeholder}
-            aria-invalid={invalid ? true : undefined}
-            aria-describedby={
-              error === null ? 'tool-note tool-query-note' : 'tool-error tool-query-note'
-            }
-            onFocus={() => {
-              check.warm()
-            }}
-            className="h-[52px] min-w-0 grow border-[1.5px] border-ink bg-white px-3.5 font-mono text-base text-ink placeholder:text-ink-3 sm:h-auto sm:border-0 sm:px-[18px] sm:text-[17px]"
-          />
-          <button
-            type="submit"
-            disabled={!ready}
-            aria-disabled={busy ? true : undefined}
-            className="flex h-[52px] shrink-0 cursor-pointer items-center justify-center gap-2.5 bg-ink px-7 text-[17px] font-semibold text-white hover:bg-brand-ink disabled:cursor-wait aria-disabled:cursor-wait sm:h-auto"
-          >
-            {busy ? t.submitting : t.submit}
-            <Forward size={20} strokeWidth={2} aria-hidden="true" />
-          </button>
-        </div>
-        <div ref={box} />
-        <p id="tool-note" className="m-0 text-sm text-ink-3">
+    <div className="flex flex-col gap-5">
+      <ToolBox lang={lang} title={title} dot={dot} fullScanHref={fullScanHref} busy={busy}>
+        <form
+          noValidate
+          onSubmit={(event) => void onSubmit(event)}
+          className="flex flex-col gap-3.5"
+        >
+          {/* The address, large, with its link icon: the focus ring is the row's, inside the box. */}
+          <div className="flex items-center gap-3 rounded-xl px-2 text-ink-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo">
+            <Link2 size={22} strokeWidth={1.9} aria-hidden="true" className="shrink-0" />
+            <label htmlFor="tool-url" className="sr-only">
+              {t.urlLabel}
+            </label>
+            <input
+              ref={field}
+              id="tool-url"
+              name="url"
+              type="url"
+              dir="ltr"
+              inputMode="url"
+              autoComplete="url"
+              autoCapitalize="none"
+              spellcheck={false}
+              placeholder={f.placeholder}
+              aria-invalid={invalid ? true : undefined}
+              aria-describedby={
+                error === null ? 'tool-note tool-query-note' : 'tool-error tool-query-note'
+              }
+              onFocus={() => {
+                check.warm()
+              }}
+              className={`h-12 min-w-0 grow border-0 bg-transparent font-mono text-base text-ink outline-none placeholder:text-ink-3 sm:text-lg ${lang === 'ar' ? 'text-end' : 'text-start'}`}
+            />
+          </div>
+          <div ref={box} className="empty:hidden" />
+          <p id="tool-error" role="alert" className="m-0 px-2 text-sm text-serious empty:hidden">
+            {message}
+          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {reads === 'render' ? (
+              <div
+                role="group"
+                aria-label={t.engines}
+                className="flex flex-wrap items-center gap-2"
+              >
+                {ENGINES.map((engine) => (
+                  <span key={engine.name} lang="en" dir="ltr" className={CHIP}>
+                    <span aria-hidden="true" className={`size-2 rounded-full ${engine.dot}`} />
+                    {engine.name}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div role="group" aria-label={t.reads} className="flex flex-wrap items-center gap-2">
+                <span className={CHIP}>{readsLabel}</span>
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={!ready}
+              aria-disabled={busy ? true : undefined}
+              className="btn-grad btn-lg w-full disabled:cursor-wait aria-disabled:cursor-wait sm:w-auto"
+            >
+              {busy ? t.submitting : t.submit}
+              <Forward size={20} strokeWidth={2} aria-hidden="true" />
+            </button>
+          </div>
+        </form>
+      </ToolBox>
+      <div className="flex flex-col gap-1 px-1 text-center text-sm text-ink-3">
+        <p id="tool-note" className="m-0">
           {t.note[reads]}
         </p>
-        <p id="tool-query-note" className="m-0 text-sm text-ink-3">
+        <p id="tool-query-note" className="m-0">
           {f.queryNote}
         </p>
-        <p id="tool-error" role="alert" className="m-0 text-sm text-serious empty:hidden">
-          {message}
-        </p>
-      </form>
+      </div>
       {run !== null && <Result run={run} lang={lang} reportsOnly={reportsOnly} />}
       <p role="status" className="sr-only">
         {said}
@@ -255,12 +313,57 @@ export default function ToolApp({ lang, tool, reads, reportsOnly }: Props) {
   )
 }
 
+/** A round tile for a small icon: its tint and the icon's colour, a mark that says a state. */
+function Mark({ tone, children }: { tone: string; children: ComponentChildren }) {
+  return (
+    <span className={`grid size-6 shrink-0 place-items-center rounded-full ${tone}`}>
+      {children}
+    </span>
+  )
+}
+
+/** The mark before a result's headline: what the result is, where no severity says it. */
+function VerdictMark({ verdict }: { verdict: ToolVerdict }) {
+  switch (verdict) {
+    case 'passed':
+      return (
+        <Mark tone="bg-pass-soft">
+          <Check size={14} strokeWidth={2.6} aria-hidden="true" className="text-pass" />
+        </Mark>
+      )
+    case 'none-found':
+    case 'noted':
+      return (
+        <Mark tone="bg-surface-2">
+          <Info size={14} strokeWidth={2.4} aria-hidden="true" className="text-ink-2" />
+        </Mark>
+      )
+    case 'review':
+    case 'incomplete':
+    case 'blocked':
+    case 'opted-out':
+      return (
+        <Mark tone="bg-moderate-soft">
+          <TriangleAlert size={14} strokeWidth={2.4} aria-hidden="true" className="text-moderate" />
+        </Mark>
+      )
+    case 'not-applicable':
+      return (
+        <Mark tone="bg-surface-2">
+          <Minus size={14} strokeWidth={2.4} aria-hidden="true" className="text-ink-2" />
+        </Mark>
+      )
+    case 'problems':
+      return null
+  }
+}
+
 function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly: boolean }) {
   const t = TOOL_APP[lang].result
   const r = REPORT[lang]
-  const frame = 'flex flex-col border border-ink bg-white'
+  const frame = 'card overflow-hidden'
   const head =
-    'flex flex-wrap items-center justify-between gap-4 border-b border-rule-soft px-5 py-4 md:px-6'
+    'flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-5 py-4 md:px-6'
 
   if (run.phase === 'running') {
     const steps = stepsOf(run.progress, r.progress).filter((step) => step.key !== 'score')
@@ -275,21 +378,37 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
           {steps.map((step) => (
             <li
               key={step.key}
-              className="flex items-center justify-between gap-4 border-b border-rule-soft px-5 py-3 last:border-b-0 md:px-6"
+              className="flex items-center gap-3 border-b border-line px-5 py-3 last:border-b-0 md:px-6"
             >
+              <Mark
+                tone={
+                  step.state === 'done'
+                    ? 'bg-pass-soft'
+                    : step.state === 'failed'
+                      ? 'bg-serious-soft'
+                      : 'bg-surface-2'
+                }
+              >
+                {step.state === 'done' && (
+                  <Check size={14} strokeWidth={2.6} aria-hidden="true" className="text-pass" />
+                )}
+                {step.state === 'failed' && (
+                  <X size={14} strokeWidth={2.6} aria-hidden="true" className="text-serious" />
+                )}
+                {step.state === 'active' && (
+                  <span
+                    aria-hidden="true"
+                    className="size-2 rounded-full bg-indigo motion-safe:animate-pulse"
+                  />
+                )}
+                {step.state === 'waiting' && (
+                  <span aria-hidden="true" className="size-2 rounded-full bg-line-2" />
+                )}
+              </Mark>
               <span className={step.state === 'waiting' ? 'text-ink-3' : 'font-semibold'}>
                 {step.label}
                 <span className="sr-only"> ({r.progress.state[step.state]})</span>
               </span>
-              {step.state === 'done' && (
-                <Check size={16} strokeWidth={2.4} aria-hidden="true" className="text-pass" />
-              )}
-              {step.state === 'failed' && (
-                <X size={16} strokeWidth={2.4} aria-hidden="true" className="text-serious" />
-              )}
-              {step.state === 'active' && (
-                <span aria-hidden="true" className="size-2 bg-ink motion-safe:animate-pulse" />
-              )}
             </li>
           ))}
         </ol>
@@ -299,7 +418,15 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
   if (run.phase !== 'done') {
     return (
       <section aria-labelledby="result-title" className={frame}>
-        <div className="px-5 py-5 md:px-6">
+        <div className="flex items-center gap-3 px-5 py-5 md:px-6">
+          <Mark tone="bg-serious-soft">
+            <TriangleAlert
+              size={14}
+              strokeWidth={2.4}
+              aria-hidden="true"
+              className="text-serious"
+            />
+          </Mark>
           <h2 id="result-title" className="m-0 text-lg font-semibold text-serious">
             {run.phase === 'offline' ? t.offline : t.failed}
           </h2>
@@ -321,6 +448,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
     <section aria-labelledby="result-title" className={frame}>
       <div className={head}>
         <div className="flex flex-wrap items-center gap-3">
+          <VerdictMark verdict={verdict} />
           {worst !== undefined && <SeverityPill severity={worst} lang={lang} />}
           <h2 id="result-title" className="m-0 text-xl font-semibold">
             {toolHeadline(report, t, reportsOnly)}
@@ -331,7 +459,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
         </span>
       </div>
       {report.scan.notices.length > 0 && (
-        <div className="border-b border-rule-soft px-5 py-4 md:px-6">
+        <div className="border-b border-line px-5 py-4 md:px-6">
           <Notices notices={report.scan.notices} lang={lang} id="result-notices" level={3} />
         </div>
       )}
@@ -339,17 +467,19 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
         <article
           key={entry.rule.id}
           aria-labelledby={`result-${entry.rule.id}`}
-          className="flex flex-col border-b border-rule-soft"
+          className="flex flex-col border-b border-line"
         >
           <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-5 pt-5 md:px-6">
             <h3 id={`result-${entry.rule.id}`} className="m-0 text-lg leading-snug font-semibold">
               <Bidi text={entry.rule.title[lang]} lang={lang} />
             </h3>
             {isNote(entry.rule) && (
-              <span className="text-xs text-ink-3">{r.findings.notDeducted}</span>
+              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs text-ink-2">
+                {r.findings.notDeducted}
+              </span>
             )}
             {entry.rule.status === 'needs-review' && (
-              <span className="bg-measure-soft px-2 py-px text-xs text-measure">
+              <span className="rounded-full bg-blue-soft px-2.5 py-0.5 text-xs text-blue">
                 {r.findings.review}
               </span>
             )}
@@ -358,7 +488,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
             {entry.findings.map((finding) => (
               <li
                 key={finding.fingerprint}
-                className="flex flex-col gap-3 border-b border-rule-soft px-5 py-5 last:border-b-0 md:px-6"
+                className="flex flex-col gap-3 border-b border-line px-5 py-5 last:border-b-0 md:px-6"
               >
                 <p className="m-0 text-base leading-[1.8]">
                   <Bidi text={finding.message[lang]} lang={lang} />
@@ -378,27 +508,30 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
       {verdict !== 'blocked' && verdict !== 'opted-out' && (
         <Checked rules={report.rules} lang={lang} reportsOnly={reportsOnly} />
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-ink-3 md:px-6">
-        <span className="flex flex-wrap gap-x-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-2 px-5 py-4 text-sm text-ink-2 md:px-6">
+        <span className="flex flex-wrap gap-x-2 gap-y-1">
           {t.rules(report.rules.length)}
           {report.rules.map((rule) => (
             <a
               key={rule.id}
               href={localePath(lang, PATHS.rule(rule.id))}
               dir="ltr"
-              className="font-mono text-ink-2 underline decoration-tick underline-offset-4 hover:text-brand-ink"
+              className="font-mono text-ink-2 underline decoration-line-2 underline-offset-4 hover:text-brand-ink"
             >
               {rule.id}
             </a>
           ))}
         </span>
-        <span className="flex flex-wrap gap-x-5 gap-y-1">
+        <span className="flex flex-wrap items-center gap-x-5 gap-y-2">
           {worst !== undefined && (
-            <a href="#fix" className="underline underline-offset-4">
+            <a
+              href="#fix"
+              className="inline-flex h-9 items-center rounded-lg bg-indigo-soft px-3 font-semibold text-indigo-ink hover:text-ink"
+            >
               {t.howToFix}
             </a>
           )}
-          <a href={shareHref} className="underline underline-offset-4">
+          <a href={shareHref} className="underline underline-offset-4 hover:text-brand-ink">
             {t.share}
           </a>
         </span>
@@ -410,9 +543,9 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
 const STATUS_STYLE: Readonly<Record<RuleResult['status'], string>> = {
   pass: 'bg-pass-soft text-pass',
   fail: 'bg-serious-soft text-serious',
-  'needs-review': 'bg-measure-soft text-measure',
+  'needs-review': 'bg-blue-soft text-blue',
   error: 'bg-moderate-soft text-moderate',
-  'not-applicable': 'bg-paper text-ink-3',
+  'not-applicable': 'bg-surface-2 text-ink-3',
 }
 
 /**
@@ -431,7 +564,7 @@ function Checked({
 }) {
   const t = TOOL_APP[lang].result
   return (
-    <section aria-labelledby="result-checked" className="flex flex-col border-b border-rule-soft">
+    <section aria-labelledby="result-checked" className="flex flex-col border-b border-line">
       <h3
         id="result-checked"
         className="m-0 px-5 pt-4 pb-2 text-sm font-semibold text-ink-3 md:px-6"
@@ -445,43 +578,31 @@ function Checked({
           return (
             <li
               key={rule.id}
-              className="flex items-start gap-3 border-t border-rule-soft px-5 py-3 md:px-6"
+              className="flex items-start gap-3 border-t border-line px-5 py-3 md:px-6"
             >
               {noted ? (
-                <Info
-                  size={16}
-                  strokeWidth={2.4}
-                  aria-hidden="true"
-                  className="mt-1 shrink-0 text-ink-3"
-                />
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-surface-2">
+                  <Info size={14} strokeWidth={2.4} aria-hidden="true" className="text-ink-2" />
+                </span>
               ) : rule.status === 'pass' && !none ? (
-                <Check
-                  size={16}
-                  strokeWidth={2.4}
-                  aria-hidden="true"
-                  className="mt-1 shrink-0 text-pass"
-                />
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-pass-soft">
+                  <Check size={14} strokeWidth={2.6} aria-hidden="true" className="text-pass" />
+                </span>
               ) : rule.status === 'fail' ? (
-                <X
-                  size={16}
-                  strokeWidth={2.4}
-                  aria-hidden="true"
-                  className="mt-1 shrink-0 text-serious"
-                />
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-serious-soft">
+                  <X size={14} strokeWidth={2.6} aria-hidden="true" className="text-serious" />
+                </span>
               ) : (
-                <Minus
-                  size={16}
-                  strokeWidth={2.4}
-                  aria-hidden="true"
-                  className="mt-1 shrink-0 text-ink-3"
-                />
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-surface-2">
+                  <Minus size={14} strokeWidth={2.4} aria-hidden="true" className="text-ink-2" />
+                </span>
               )}
               <span className="grow leading-[1.6]">
                 <Bidi text={rule.title[lang]} lang={lang} />
               </span>
               <span
-                className={`shrink-0 px-2 py-px text-xs ${
-                  noted || none ? 'bg-paper text-ink-2' : STATUS_STYLE[rule.status]
+                className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs ${
+                  noted || none ? 'bg-surface-2 text-ink-2' : STATUS_STYLE[rule.status]
                 }`}
               >
                 {noted ? t.information.found : none ? t.information.none : t.status[rule.status]}
