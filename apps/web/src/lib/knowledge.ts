@@ -1,7 +1,7 @@
 import { GUIDES_UI, KNOWLEDGE_UI, TOOLS_UI } from '@arablyzer/i18n'
 import type { KnowledgeType } from '@arablyzer/i18n/knowledge'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
-import { GUIDES_DATA } from './guide-data'
+import { GUIDE_STATUS_DOT, GUIDES_DATA } from './guide-data'
 import type { KnowledgeItem } from './knowledge-search'
 import { rulesByCategory } from './rule-data'
 import { ARABIC_LAYER, CATEGORY_STYLE, toolsByCategory } from './tool-data'
@@ -10,9 +10,6 @@ import { ARABIC_LAYER, CATEGORY_STYLE, toolsByCategory } from './tool-data'
 // fix guide and glossary term, in the page's language, each with the other language's title for
 // a search to read. It is read by the hub's page, which renders the lists from it and hands it to
 // the search island; the island holds none of the registries (lib/knowledge-search.ts).
-
-/** A guide's tag is dotted by whether its page is indexed at all (Search Console's own split). */
-const GUIDE_DOT = { 'not-indexed': 'bg-serious', warning: 'bg-moderate' } as const
 
 export interface KnowledgeIndex {
   readonly items: readonly KnowledgeItem[]
@@ -74,7 +71,7 @@ export function knowledgeIndex(lang: Lang): KnowledgeIndex {
     title: guide.message[lang],
     text: guide.copy[lang].description,
     tag: groups[guide.status],
-    tone: toneOf(GUIDE_DOT[guide.status]),
+    tone: toneOf(GUIDE_STATUS_DOT[guide.status]),
     alt: guide.message[other],
     id: guide.slug,
   }))

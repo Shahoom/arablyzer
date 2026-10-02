@@ -6,7 +6,7 @@ import { STRINGS } from '@arablyzer/seo/strings'
 import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
 import Page from '../../layouts/Page.astro'
-import { GUIDES_DATA } from '../../lib/guide-data'
+import { GUIDE_STATUS_DOT, GUIDES_DATA } from '../../lib/guide-data'
 import { siteOf } from '../../lib/site'
 import Bidi from '../Bidi.astro'
 import PageHead from '../PageHead.astro'
@@ -26,8 +26,6 @@ const Next = lang === 'ar' ? ChevronLeft : ChevronRight
 const groups = (['not-indexed', 'warning'] as const)
   .map((status) => ({ status, guides: GUIDES_DATA.fix.filter((guide) => guide.status === status) }))
   .filter((group) => group.guides.length > 0)
-// Search Console's own split, in the severities' colours: not indexed is a problem, a warning is less.
-const DOT = { 'not-indexed': 'bg-serious', warning: 'bg-moderate' } as const
 const jsonLd = [
   breadcrumbList([
     { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
@@ -74,7 +72,7 @@ const jsonLd = [
         >
           <span
             aria-hidden="true"
-            class:list={['size-2.5 shrink-0 rounded-full', DOT[group.status]]}
+            class:list={['size-2.5 shrink-0 rounded-full', GUIDE_STATUS_DOT[group.status]]}
           />
           {t.groups[group.status]}
           <span

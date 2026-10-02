@@ -60,3 +60,13 @@ export function termData(slug: string): TermData {
   if (term === undefined) throw new Error(`There is no term ${slug}`)
   return term
 }
+
+/**
+ * A guide's group by the severity it is dotted in, as Search Console splits its pages: one that
+ * is not indexed is a problem, one that is indexed with a warning is less. Written out in full,
+ * for Tailwind to find: the fix guides' index and the knowledge hub's rows use it.
+ */
+export const GUIDE_STATUS_DOT: Readonly<Record<FixGuideData['status'], string>> = {
+  'not-indexed': 'bg-serious',
+  warning: 'bg-moderate',
+}
