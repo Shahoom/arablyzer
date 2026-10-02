@@ -224,6 +224,12 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['lighthouse', 'chrome-launcher'] }),
   },
   {
+    // The knowledge hub and the content pages driven in the browsers (M2.6 R5): the site's own
+    // pages on loopback, and every request off the site refused.
+    files: ['apps/web/test/browser/knowledge.browser.test.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
     // The site's Open Graph images, drawn by Chromium at build (M2.4c): the card's own HTML,
     // inline fonts, and every request refused.
     files: ['apps/web/scripts/og-images.ts'],
