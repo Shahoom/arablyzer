@@ -38,10 +38,10 @@ export function ReadLine({ report, lang }: { report: Report; lang: Lang }) {
         onClick={() => {
           setOpen(!open)
         }}
-        className="-mx-2 flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-start text-small text-ink-2 hover:bg-surface-2 hover:text-ink"
+        className="-ms-2 flex min-h-11 max-w-full cursor-pointer items-center gap-2.5 self-start rounded-lg px-2 py-1 text-start text-small text-ink-2 hover:bg-surface-2 hover:text-ink"
       >
         <CircleCheck aria-hidden="true" size={18} className="shrink-0 text-brand" />
-        <span className="min-w-0 flex-1">
+        <span className="min-w-0">
           <Bidi text={line} lang={lang} />
         </span>
         <ChevronDown

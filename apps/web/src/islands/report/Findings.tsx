@@ -178,7 +178,7 @@ function Finding({
             key={finding.fingerprint}
             className="flex flex-col gap-4 border-b border-line pb-5 last:border-b-0 last:pb-0"
           >
-            <p className="m-0 text-body text-ink">
+            <p className="m-0 max-w-[68ch] text-body text-ink">
               <Bidi text={finding.message[lang]} lang={lang} />
             </p>
             <Evidence finding={finding} lang={lang} />
@@ -194,7 +194,7 @@ function Finding({
               {t.findings.fix}
             </h4>
             <div
-              className="prose-fix text-small text-ink-2"
+              className="prose-fix max-w-[76ch] text-small text-ink-2"
               // Our own copy, rendered by packages/seo's strict Markdown, which escapes all text.
               dangerouslySetInnerHTML={{ __html: fix }}
             />

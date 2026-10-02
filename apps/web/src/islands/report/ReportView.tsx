@@ -105,7 +105,7 @@ function Meta({ report, lang, tool }: { report: Report; lang: Lang; tool: ToolRe
   const parts = [
     tool !== undefined && (
       <Fragment key="tool">
-        {t.tool} {/* The tool's name; its slug when the name could not be read. */}
+        {t.tool}: {/* The tool's name; its slug when the name could not be read. */}
         <a
           href={localePath(lang, `/tools/${tool.slug}`)}
           dir={tool.title === null ? 'ltr' : undefined}
