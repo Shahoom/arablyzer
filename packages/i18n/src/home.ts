@@ -201,7 +201,7 @@ export const HOME: Copy<HomeStrings> = {
       pill: { count: (tools) => arabicCount(tools, TOOLS), text: 'كلها مجانية، وبلا تسجيل' },
       title: 'افحص موقعك كما يراه Google',
       titleMark: 'والزبون العربي على جواله',
-      lead: 'يفتح Arablyzer صفحتك في ثلاثة متصفحات ويقيس ما لا تقيسه الأدوات الأجنبية: اتصال الحروف، واتجاه الصفحة، والخطوط العربية، ونماذج تقبل اسم «محمد» والأرقام العربية.',
+      lead: 'نفتح صفحتك في ثلاثة متصفحات ونقيس ما لا تقيسه الأدوات الأجنبية: الحروف والاتجاه والخطوط والنماذج.',
       scope: { label: 'كل الفحوص', rules: (rules) => arabicCount(rules, RULES_NOMINATIVE) },
       engines: 'تُفتح الصفحة في هذه المتصفحات',
       tools: {
@@ -427,7 +427,7 @@ export const HOME: Copy<HomeStrings> = {
       },
       title: 'Check your site as Google sees it,',
       titleMark: 'and as Arabic readers see it on their phones',
-      lead: 'Arablyzer opens your page in three browsers and measures what other tools miss: whether Arabic letters join, the page’s direction, Arabic fonts, and forms that accept a name like «محمد» and Arabic digits.',
+      lead: 'We open your page in three browsers and check Arabic letters, direction, fonts and forms.',
       scope: { label: 'All checks', rules: (rules) => englishCount(rules, 'rule', 'rules') },
       engines: 'The page is opened in these browsers',
       tools: {
