@@ -111,7 +111,8 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
 
   return (
     <div className={`wrap page-columns ${HEAD.bodyTop}`}>
-      <div className="page-main flex flex-col gap-5 lg:gap-6">
+      {/* The search, the chips and what a screen reader hears: the top of the main column. */}
+      <div className="page-main flex flex-col gap-5">
         <div role="search">
           <label htmlFor="knowledge-search" className="sr-only">
             {t.search.label}
@@ -166,7 +167,49 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
         <p role="status" className="sr-only">
           {asking ? t.status(counts[filter]) : ''}
         </p>
+      </div>
 
+      {/*
+        The filter comes in the HTML before the results, so that the Tab key and a screen reader
+        meet it after the search and not after the hundred links of the results; from lg the grid
+        puts it beside both, at the end of the line, spanning the two rows of the main column.
+      */}
+      <aside
+        aria-labelledby="knowledge-filter-title"
+        className="page-aside-sticky hidden min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:block"
+      >
+        <div className="kb-box flex flex-col gap-0.5 p-3">
+          <h2
+            id="knowledge-filter-title"
+            className="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2"
+          >
+            {t.typesLabel}
+          </h2>
+          <div
+            role="group"
+            aria-labelledby="knowledge-filter-title"
+            className="flex flex-col gap-0.5"
+          >
+            {CHOICES.map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                aria-pressed={filter === choice}
+                onClick={choose(choice)}
+                className="kb-filter"
+              >
+                <span>{label(choice)}</span>
+                <span dir="ltr" className="tabular-nums">
+                  {counts[choice]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      {/* The results: the main column's second row from lg, under the search. */}
+      <div className="-mt-5 min-w-0 lg:col-start-1 lg:row-start-2 lg:mt-6">
         {groups.length === 0 ? (
           <div className="flex flex-col gap-2 rounded-card border border-dashed border-line-2 bg-white/70 p-card">
             <p className="heading-3 m-0">
@@ -279,41 +322,6 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
           </div>
         )}
       </div>
-
-      {/* From lg: the filter is a list with its counts, under the header while the results scroll. */}
-      <aside
-        aria-labelledby="knowledge-filter-title"
-        className="page-aside page-aside-sticky hidden lg:block"
-      >
-        <div className="kb-box flex flex-col gap-0.5 p-3">
-          <h2
-            id="knowledge-filter-title"
-            className="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2"
-          >
-            {t.typesLabel}
-          </h2>
-          <div
-            role="group"
-            aria-labelledby="knowledge-filter-title"
-            className="flex flex-col gap-0.5"
-          >
-            {CHOICES.map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                aria-pressed={filter === choice}
-                onClick={choose(choice)}
-                className="kb-filter"
-              >
-                <span>{label(choice)}</span>
-                <span dir="ltr" className="tabular-nums">
-                  {counts[choice]}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </aside>
     </div>
   )
 }

@@ -315,7 +315,7 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
       const found = await tab.evaluate(() => {
         const rtl = getComputedStyle(document.documentElement).direction === 'rtl'
         const main = document.querySelector('.page-main')
-        const aside = document.querySelector('.page-aside')
+        const aside = document.querySelector('main aside')
         const row = document.querySelector('.scroll-row')
         if (main === null || aside === null || row === null) return null
         const a = main.getBoundingClientRect()
@@ -416,6 +416,62 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
       },
       90_000,
     )
+
+    it('keeps the filter 24 px under the header while the results scroll past it', async () => {
+      const tab = await open(browser, HUB.ar, { width: 1440 })
+      // Open every group: the page is then long enough to scroll well past the filter's first place.
+      await tab.getByRole('button', { name: new RegExp(`^${KNOWLEDGE_UI.ar.types.rule}`) }).click()
+      await tab.evaluate(() => {
+        window.scrollTo(0, 1400)
+      })
+      await tab.waitForTimeout(150)
+      const top = await tab.evaluate(
+        () => document.querySelector('main aside')?.getBoundingClientRect().top ?? null,
+      )
+      // The header is 64 px; the aside's own 4 px of padding is pulled back by its margin.
+      expect(top).not.toBeNull()
+      expect(top ?? 0).toBeGreaterThanOrEqual(84 - 1)
+      expect(top ?? 0).toBeLessThanOrEqual(88 + 1)
+      await tab.context().close()
+    }, 60_000)
+
+    it('puts the filter after the search and before the results, for the Tab key and a screen reader', async () => {
+      for (const width of [390, 1440]) {
+        const tab = await open(browser, HUB.ar, { width })
+        const order = await tab.evaluate(() => {
+          const field = document.querySelector('#knowledge-search')
+          const aside = document.querySelector('main aside')
+          const chips = document.querySelector('.scroll-row')
+          const row = document.querySelector('section[aria-labelledby^="knowledge-"] li a')
+          if (field === null || aside === null || chips === null || row === null) return null
+          const before = (a: Element, b: Element) =>
+            Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+          return {
+            searchThenFilter: before(field, aside),
+            filterThenResults: before(aside, row),
+            chipsThenResults: before(chips, row),
+          }
+        })
+        const where = `at ${String(width)}`
+        expect(order, where).toEqual({
+          searchThenFilter: true,
+          filterThenResults: true,
+          chipsThenResults: true,
+        })
+        // From lg the Tab key goes from the search to the filter's rows, not to a result. (WebKit
+        // on macOS leaves buttons out of the Tab order by default: the order above is its proof.)
+        if (width >= 1024 && engine !== 'webkit') {
+          await tab.locator('#knowledge-search').focus()
+          await tab.keyboard.press('Tab')
+          const focused = await tab.evaluate(() => {
+            const node = document.activeElement
+            return [node?.tagName, node?.closest('aside') !== null]
+          })
+          expect(focused, where).toEqual(['BUTTON', true])
+        }
+        await tab.context().close()
+      }
+    }, 60_000)
 
     it('presses the same kind from the chips below lg and from the list from lg', async () => {
       for (const width of [390, 1440]) {
