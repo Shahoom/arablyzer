@@ -47,7 +47,7 @@ export default function WhatsAppGenerator({
         note={<ScanNote lang={lang} id="generator-note" line={common.local} keep={[]} />}
       >
         <form onSubmit={onSubmit} data-tool-kind="generator" className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <div className="flex flex-col gap-2">
               <label htmlFor="wa-country" className={LABEL}>
                 {t.country}

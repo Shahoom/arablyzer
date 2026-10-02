@@ -65,11 +65,18 @@ async function open(
     script = true,
     phone = false,
     desktop = false,
-  }: { script?: boolean; phone?: boolean; desktop?: boolean } = {},
+    width,
+  }: { script?: boolean; phone?: boolean; desktop?: boolean; width?: number } = {},
 ): Promise<Page> {
   const context = await browser.newContext({
     javaScriptEnabled: script,
-    ...(phone ? { viewport: PHONE } : desktop ? { viewport: DESKTOP } : {}),
+    ...(width !== undefined
+      ? { viewport: { width, height: PHONE.height } }
+      : phone
+        ? { viewport: PHONE }
+        : desktop
+          ? { viewport: DESKTOP }
+          : {}),
   })
   await context.route('**/*', async (route) => {
     if (new URL(route.request().url()).origin === site.origin) await route.fallback()
@@ -508,30 +515,34 @@ describe.each(ENGINES)('a tool page in %s', (engine) => {
     60_000,
   )
 
-  it('does not scroll sideways on a phone once the generators and the paste tool answer', async () => {
-    const whatsapp = await open(browser, '/tools/whatsapp-link-generator', { phone: true })
-    await whatsapp.locator('astro-island:not([ssr]) form[data-tool-kind]').waitFor()
-    await whatsapp.selectOption('#wa-country', '966')
-    await whatsapp.fill('#wa-number', '٠٥٠ ١٢٣ ٤٥٦٧')
-    await whatsapp.fill('#wa-text', 'مرحباً، أريد الاستفسار عن طلبي رقم ١٢٣٤٥٦٧٨٩٠١٢٣٤٥٦٧٨٩٠')
-    await whatsapp.click('form[data-tool-kind] button[type="submit"]')
-    await whatsapp.locator('section[aria-label] pre').first().waitFor()
-    expect(await overflowOf(whatsapp)).toBeLessThanOrEqual(0)
-    await whatsapp.context().close()
+  it.each([320, 390])(
+    'does not scroll sideways at %i px once the generators and the paste tool answer',
+    async (width) => {
+      const whatsapp = await open(browser, '/tools/whatsapp-link-generator', { width })
+      await whatsapp.locator('astro-island:not([ssr]) form[data-tool-kind]').waitFor()
+      await whatsapp.selectOption('#wa-country', '966')
+      await whatsapp.fill('#wa-number', '٠٥٠ ١٢٣ ٤٥٦٧')
+      await whatsapp.fill('#wa-text', 'مرحباً، أريد الاستفسار عن طلبي رقم ١٢٣٤٥٦٧٨٩٠١٢٣٤٥٦٧٨٩٠')
+      await whatsapp.click('form[data-tool-kind] button[type="submit"]')
+      await whatsapp.locator('section[aria-label] pre').first().waitFor()
+      expect(await overflowOf(whatsapp)).toBeLessThanOrEqual(0)
+      await whatsapp.context().close()
 
-    const robots = await open(browser, '/en/tools/robots-tester', { phone: true })
-    await robots.locator('astro-island:not([ssr]) form[data-tool-kind]').waitFor()
-    const rule = 'User-agent: *\nDisallow: /a-very-long-path-that-goes-on-and-on-and-on-and-on/'
-    await robots.fill('#robots-file', [rule, rule, rule].join('\n'))
-    await robots.fill(
-      '#robots-url',
-      'https://example.com/a-very-long-path-that-goes-on-and-on-and-on-and-on/and-on/',
-    )
-    await robots.click('form[data-tool-kind] button[type="submit"]')
-    await robots.locator('section[aria-label]').waitFor()
-    expect(await overflowOf(robots)).toBeLessThanOrEqual(0)
-    await robots.context().close()
-  }, 60_000)
+      const robots = await open(browser, '/en/tools/robots-tester', { width })
+      await robots.locator('astro-island:not([ssr]) form[data-tool-kind]').waitFor()
+      const rule = 'User-agent: *\nDisallow: /a-very-long-path-that-goes-on-and-on-and-on-and-on/'
+      await robots.fill('#robots-file', [rule, rule, rule].join('\n'))
+      await robots.fill(
+        '#robots-url',
+        'https://example.com/a-very-long-path-that-goes-on-and-on-and-on-and-on/and-on/',
+      )
+      await robots.click('form[data-tool-kind] button[type="submit"]')
+      await robots.locator('section[aria-label]').waitFor()
+      expect(await overflowOf(robots)).toBeLessThanOrEqual(0)
+      await robots.context().close()
+    },
+    60_000,
+  )
 
   it('keeps the controls of a generator to the scale: 48 px for the button, 44 px for the secondary ones', async () => {
     const tab = await open(browser, '/tools/hreflang-generator', { phone: true })

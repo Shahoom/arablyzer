@@ -75,7 +75,7 @@ export default function RobotsTester({
               className={`${AREA} font-mono text-small`}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
             <div className="flex flex-col gap-2">
               <label htmlFor="robots-url" className={LABEL}>
                 {t.url}
