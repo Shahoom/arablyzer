@@ -5,12 +5,14 @@ import type { Engine } from '@arablyzer/report-schema'
 import { chromium, firefox, webkit, type Browser } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-// The heads of the site's pages as one system (M2.6 R6). The approved artboards centre the home
-// page's hero and nothing else: every other page opens with its trail, its heading and its lead at
-// the start of the line, and there are two sizes of heading, an index's (the gradient, large) and
-// a page's own. Each milestone had drawn its pages' heads alone, and the tool pages and the tools'
-// directory were centred where the knowledge pages were not. The site's own pages on loopback, and
-// every request off the site refused (eslint.config.js). `pnpm test:browser` builds the site first.
+// The heads of the site's pages as one system (M2.6 R6, scaled in R7a). The approved artboards
+// centre the home page's hero and nothing else: every other page opens with its trail, its heading
+// and its lead at the start of the line. Each milestone had drawn its pages' heads alone, and the
+// tool pages and the tools' directory were centred where the knowledge pages were not. After the
+// owner's review (R7) there is one scale for every h1 but the home page's hero: 28 px on a phone,
+// 40 px from lg, in solid ink (a gradient phrase is the home page's alone). The site's own pages on
+// loopback, and every request off the site refused (eslint.config.js). `pnpm test:browser` builds
+// the site first.
 const DIST = fileURLToPath(new URL('../../dist/', import.meta.url))
 const TYPES = { chromium, firefox, webkit } as const
 
@@ -47,9 +49,9 @@ afterAll(async () => {
   await site.close()
 })
 
-/** An index: the gradient heading, 56 px on a desktop. */
+/** An index: the tools, the hub, the rule library, the fix guides, the glossary. */
 const INDEXES = ['/tools', '/knowledge', '/rules', '/fix', '/glossary']
-/** A page that is one thing: its name, 44 px. */
+/** A page that is one thing: its name. */
 const PAGES = [
   '/tools/rtl-check',
   '/tools/whatsapp-link-generator',
@@ -90,12 +92,18 @@ describe.each(ENGINES)('the heads of the pages in %s', (engine) => {
       const style = getComputedStyle(heading)
       // The edge each starts from: the right one in a right-to-left page.
       const edge = (rect: DOMRect) => (rtl ? rect.right : rect.left)
+      // Gradient text is clipped to the letters, with a transparent fill: any such element.
+      const gradient = [heading, ...heading.querySelectorAll('*')].some(
+        (node) => getComputedStyle(node).webkitTextFillColor === 'rgba(0, 0, 0, 0)',
+      )
       return {
         align: style.textAlign,
         size: Number.parseFloat(style.fontSize),
+        weight: Number(style.fontWeight),
         headingEdge: edge(box),
         trailEdge: trail === undefined ? null : edge(trail),
         wide: box.width,
+        gradient,
       }
     })
     await context.close()
@@ -154,15 +162,27 @@ describe.each(ENGINES)('the heads of the pages in %s', (engine) => {
     60_000,
   )
 
-  it.each(INDEXES)('draws the heading of the index %s at 56 px', async (path) => {
-    for (const prefix of ['', '/en']) {
-      expect((await head(`${prefix}${path}`))?.size, `${prefix}${path}`).toBe(56)
-    }
-  })
+  // One scale for every h1 but the home page's: an index and a page that is one thing alike.
+  it.each([...INDEXES, ...PAGES])(
+    'draws the heading of %s at 40 px on a desktop and 28 px on a phone, in solid ink',
+    async (path) => {
+      for (const prefix of ['', '/en']) {
+        const desktop = await head(`${prefix}${path}`)
+        expect(desktop?.size, `${prefix}${path} at 1440`).toBe(40)
+        expect(desktop?.weight, `${prefix}${path} weight`).toBe(600)
+        expect(desktop?.gradient, `${prefix}${path} has no gradient`).toBe(false)
+        const phone = await head(`${prefix}${path}`, 390)
+        expect(phone?.size, `${prefix}${path} at 390`).toBe(28)
+        expect(phone?.gradient, `${prefix}${path} at 390 has no gradient`).toBe(false)
+      }
+    },
+    60_000,
+  )
 
-  it.each(PAGES)('draws the heading of the page %s at 44 px', async (path) => {
-    for (const prefix of ['', '/en']) {
-      expect((await head(`${prefix}${path}`))?.size, `${prefix}${path}`).toBe(44)
-    }
-  })
+  it.each(['', '/en'])(
+    'keeps the one gradient phrase in the home page’s heading (%s)',
+    async (prefix) => {
+      expect((await head(`${prefix}/`))?.gradient).toBe(true)
+    },
+  )
 })

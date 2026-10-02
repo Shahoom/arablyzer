@@ -96,9 +96,7 @@ const accordion =
           current={copy.title}
         />
         <h1 class={HEAD.page}>
-          <span class="gradient-text">
-            <Bidi text={copy.title} lang={lang} />
-          </span>
+          <Bidi text={copy.title} lang={lang} />
         </h1>
         <p class={HEAD.lead}>
           <Bidi text={copy.description} lang={lang} />

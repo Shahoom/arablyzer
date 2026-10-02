@@ -76,9 +76,7 @@ const ICON = { tool: Wrench, rule: ListChecks, fix: LifeBuoy, term: BookOpen } a
     <div class="wrap flex flex-col gap-10 md:gap-12">
       <div class="flex max-w-[780px] flex-col gap-4 md:gap-5">
         <Breadcrumb lang={lang} label={t.breadcrumb} current={t.title} />
-        <h1 class={HEAD.index}>
-          <span class="gradient-text">{t.title}</span>
-        </h1>
+        <h1 class={HEAD.index}>{t.title}</h1>
         {/* Ink, not ink-2: the aurora's blobs sit right behind the lead on a phone (4.1:1 measured). */}
         <p class="m-0 max-w-[62ch] text-lg leading-[1.85] text-balance text-ink md:text-xl">
           <Bidi text={t.lead} lang={lang} />

@@ -140,6 +140,33 @@
   --shadow-lg: 0 2px 4px rgb(16 24 40 / 0.05), 0 36px 70px -28px rgb(16 24 40 / 0.32);
   --shadow-btn: 0 10px 24px -10px rgb(79 70 229 / 0.6);
   --shadow-btn-hover: 0 14px 30px -10px rgb(79 70 229 / 0.7);
+
+  /*
+   * The type scale (M2.6 R7a), mobile first: body 16 px, secondary text 14 px, meta 13 px. Their
+   * line heights are variables because an Arabic paragraph needs more room than a Latin one
+   * (--lh-* below, set on the root and raised for lang="ar"). `text-body`, `text-small` and
+   * `text-meta` set the size and the leading together. Tailwind's own text-sm and text-base keep
+   * their meaning for the pages that still use them. The headings are the heading-1/2/3 utilities.
+   */
+  --text-body: 16px;
+  --text-body--line-height: var(--lh-body);
+  --text-small: 14px;
+  --text-small--line-height: var(--lh-small);
+  --text-meta: 13px;
+  --text-meta--line-height: var(--lh-meta);
+}
+
+/*
+ * The spacing a page is built from, by breakpoint (M2.6 R7a): the gutter, the space between the
+ * sections of a page, a card's padding and radius. Each is a variable on the root that steps up at
+ * md and lg (the base layer, below), and a spacing or radius key, so that `px-gutter`, `gap-section`,
+ * `py-section`, `p-card` and `rounded-card` follow the screen without a breakpoint prefix.
+ */
+@theme inline {
+  --spacing-gutter: var(--gutter);
+  --spacing-section: var(--section-gap);
+  --spacing-card: var(--card-pad);
+  --radius-card: var(--card-radius);
 }
 
 @layer base {
@@ -153,22 +180,56 @@
     --grad-dir: to left;
     /* A focus ring: indigo on the light ground, a lighter one on the dark panels. */
     --focus-ring: var(--color-indigo);
+    /*
+     * The scale of M2.6 R7a, phone first. The page's side padding, the space between its
+     * sections, a card's padding and radius, and the header's height step up at md (768 px) and lg
+     * (1024 px); the header, the footer and every page body read them (utilities `wrap`,
+     * `px-gutter`, `gap-section`, `p-card`, `rounded-card`, and `--header-h` for what sticks).
+     */
+    --gutter: 16px;
+    --section-gap: 40px;
+    --card-pad: 16px;
+    --card-radius: 16px;
+    --header-h: 56px;
+    /* The width of a page's content, without its side padding. */
+    --content: 1200px;
+    /* The leading of body, secondary and meta text: Latin first, Arabic below. */
+    --lh-body: 1.6;
+    --lh-small: 1.55;
+    --lh-meta: 1.5;
     color: var(--color-ink);
     font-family: var(--font-sans);
-    /* Arabic needs the height. Anything tighter sets its own leading. */
-    line-height: 1.7;
+    /* Body text is 16 px; anything else sets its own size and leading (text-small, text-meta). */
+    font-size: 16px;
+    line-height: var(--lh-body);
     /* The sticky header covers the top of the page: a link to #id stops below it. */
-    scroll-padding-top: 7rem;
+    scroll-padding-top: calc(var(--header-h) + 16px);
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+  }
+  /* Arabic needs the height: 1.75 for a paragraph, a little less for the smaller sizes. */
+  html[lang='ar'] {
+    --lh-body: 1.75;
+    --lh-small: 1.7;
+    --lh-meta: 1.65;
   }
   html[dir='ltr'] {
     --reading: -1;
     --grad-dir: to right;
   }
+  @media (min-width: 48rem) {
+    html {
+      --gutter: 24px;
+      --section-gap: 56px;
+      --card-pad: 24px;
+      --card-radius: 20px;
+    }
+  }
   @media (min-width: 64rem) {
     html {
-      scroll-padding-top: 5.5rem;
+      --gutter: 32px;
+      --section-gap: 72px;
+      --header-h: 64px;
     }
   }
   body {
@@ -214,29 +275,34 @@
 /* ------------------------------------------------------------------------------------------ */
 
 /*
- * Buttons, 42 px high; `btn-lg` makes one 48 px. The gradient one is the page's action: white
- * text on a teal-to-indigo gradient (5.68:1 at the teal end, 6.29:1 at the indigo one) that slides
- * on hover. A disabled one dims and loses its glow.
+ * Buttons by role (M2.6 R7a): the primary one, `btn-grad`, is 48 px high on every screen, so that
+ * a thumb finds it; the secondary ones (`btn-white`, `btn-ghost`, `btn-light`, `btn-outline-light`)
+ * are 44 px. `btn-sm` makes either 40 px with a quiet glow (the header's scan button on a
+ * desktop), and `btn-lg` makes either 48 px with more room (the scan box's). The modifiers set
+ * variables (--btn-h, --btn-px, --btn-r, --btn-fs, --btn-shadow) that the buttons read, so a
+ * modifier wins whichever utility the stylesheet puts first. The gradient button is white text on
+ * a teal-to-indigo gradient (5.68:1 at the teal end, 6.29:1 at the indigo one) that slides on
+ * hover. A disabled one dims and loses its glow.
  */
 @utility btn-grad {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 42px;
-  padding-inline: 18px;
+  height: var(--btn-h, 48px);
+  padding-inline: var(--btn-px, 20px);
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--btn-r, var(--radius-md));
   background-color: #00727c;
   background-image: var(--gradient-btn);
   background-size: 180% 100%;
   color: var(--color-white);
-  font-size: 15px;
+  font-size: var(--btn-fs, 16px);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
   white-space: nowrap;
-  box-shadow: var(--shadow-btn);
+  box-shadow: var(--btn-shadow, var(--shadow-btn));
   cursor: pointer;
   transition:
     background-position 0.4s ease,
@@ -245,7 +311,7 @@
   &:hover {
     background-position: 100% 0;
     color: var(--color-white);
-    box-shadow: var(--shadow-btn-hover);
+    box-shadow: var(--btn-shadow-hover, var(--shadow-btn-hover));
   }
   &:active {
     transform: scale(0.97);
@@ -267,13 +333,13 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 42px;
-  padding-inline: 18px;
+  height: var(--btn-h, 44px);
+  padding-inline: var(--btn-px, 18px);
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-md);
+  border-radius: var(--btn-r, var(--radius-md));
   background-color: var(--color-white);
   color: var(--color-ink);
-  font-size: 15px;
+  font-size: var(--btn-fs, 15px);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -292,11 +358,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 42px;
-  padding-inline: 14px;
-  border-radius: var(--radius-md);
+  height: var(--btn-h, 44px);
+  padding-inline: var(--btn-px, 14px);
+  border-radius: var(--btn-r, var(--radius-md));
   color: var(--color-ink);
-  font-size: 15px;
+  font-size: var(--btn-fs, 15px);
   font-weight: 400;
   line-height: 1.2;
   text-decoration: none;
@@ -314,12 +380,12 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 42px;
-  padding-inline: 18px;
-  border-radius: var(--radius-md);
+  height: var(--btn-h, 44px);
+  padding-inline: var(--btn-px, 18px);
+  border-radius: var(--btn-r, var(--radius-md));
   background-color: var(--color-white);
   color: var(--color-navy);
-  font-size: 15px;
+  font-size: var(--btn-fs, 15px);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -338,12 +404,12 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  height: 42px;
-  padding-inline: 18px;
+  height: var(--btn-h, 44px);
+  padding-inline: var(--btn-px, 18px);
   border: 1px solid rgb(255 255 255 / 0.25);
-  border-radius: var(--radius-md);
+  border-radius: var(--btn-r, var(--radius-md));
   color: var(--color-white);
-  font-size: 15px;
+  font-size: var(--btn-fs, 15px);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -355,12 +421,23 @@
   }
 }
 
-/* The large button: the scan box's, and a band's. */
+/* The large button: the scan box's, and a band's. 48 px, whichever role the button has. */
 @utility btn-lg {
-  height: 48px;
-  padding-inline: 24px;
-  border-radius: 14px;
-  font-size: 16px;
+  --btn-h: 48px;
+  --btn-px: 24px;
+  --btn-r: 14px;
+  --btn-fs: 16px;
+}
+/*
+ * The small button: 40 px, and for the gradient one a short glow in place of the long one. The
+ * header's scan button on a desktop.
+ */
+@utility btn-sm {
+  --btn-h: 40px;
+  --btn-px: 14px;
+  --btn-fs: 14px;
+  --btn-shadow: 0 4px 12px -6px rgb(79 70 229 / 0.5);
+  --btn-shadow-hover: 0 6px 14px -6px rgb(79 70 229 / 0.55);
 }
 
 /*
@@ -374,8 +451,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  height: 42px;
-  padding-inline: 16px;
+  /* 40 px for a thumb, 36 px for a pointer. */
+  height: 40px;
+  padding-inline: 14px;
   border: 1px solid rgb(205 213 223 / 0.9);
   border-radius: 999px;
   background-color: rgb(255 255 255 / 0.8);
@@ -390,6 +468,9 @@
     transform 0.15s ease,
     border-color 0.15s ease,
     background-color 0.15s ease;
+  @media (min-width: 48rem) {
+    height: 36px;
+  }
   &:hover {
     transform: translateY(-1px);
     border-color: var(--color-line-2);
@@ -464,10 +545,13 @@
   color: var(--color-pass);
 }
 
-/* A card: the surface, a hairline, 20 px of radius and the soft shadow. */
+/*
+ * A card: the surface, a hairline, the soft shadow, and a radius of 16 px on a phone and 20 px
+ * from md (`rounded-card`). Its padding is `p-card`: 16 px, then 24. A card is never inside a card.
+ */
 @utility card {
   border: 1px solid var(--color-line);
-  border-radius: var(--radius-xl);
+  border-radius: var(--card-radius);
   background-color: var(--color-surface);
   box-shadow: var(--shadow);
 }
@@ -483,17 +567,14 @@
 }
 
 /*
- * The page's width, 1240 px, and its side padding. The header and the footer sit on it; a page
- * body adopts it when its milestone rebuilds it.
+ * The page's width: 1200 px of content between gutters of 16 px on a phone, 24 on a tablet and 32
+ * on a desktop (--gutter, --content). The header, the footer and every page body sit on it.
  */
 @utility wrap {
   width: 100%;
-  max-width: 1240px;
+  max-width: calc(var(--content) + 2 * var(--gutter));
   margin-inline: auto;
-  padding-inline: 20px;
-  @media (min-width: 48rem) {
-    padding-inline: 24px;
-  }
+  padding-inline: var(--gutter);
 }
 
 /*
@@ -533,6 +614,137 @@
 @utility panel-dark {
   background-color: var(--color-navy);
   --focus-ring: var(--color-panel-measure);
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Type (M2.6 R7a). Body, secondary and meta text are `text-body` (16 px), `text-small` (14 px) */
+/* and `text-meta` (13 px), declared in @theme with Arabic's leading; the headings and the lead  */
+/* are below. All of them are semibold or regular: the two weights a page loads.                */
+/* ------------------------------------------------------------------------------------------ */
+
+/*
+ * The h1 of every page but the home page's hero: solid ink, 28 px on a phone and 40 px from lg.
+ * Preflight has taken the margin away, and the leading is Arabic's: tighter would clip the marks.
+ */
+@utility heading-1 {
+  font-size: 28px;
+  line-height: 1.3;
+  font-weight: 600;
+  text-wrap: balance;
+  @media (min-width: 64rem) {
+    font-size: 40px;
+    line-height: 1.25;
+  }
+}
+/* A section's h2: 22 px on a phone, 28 px from lg. */
+@utility heading-2 {
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 600;
+  text-wrap: balance;
+  @media (min-width: 64rem) {
+    font-size: 28px;
+    line-height: 1.3;
+  }
+}
+/* An h3: the title of an item in a section, 17 px. */
+@utility heading-3 {
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+/*
+ * The lead under an h1: body size on a phone, 18 px from lg, in the quiet ink, one or two lines
+ * (the copy is cut to fit, the type is not shrunk). 4.5:1 on the ground and on the faint tint of
+ * a page's head.
+ */
+@utility lead {
+  max-width: 720px;
+  font-size: 16px;
+  line-height: var(--lh-body);
+  color: var(--color-ink-2);
+  @media (min-width: 64rem) {
+    font-size: 18px;
+  }
+}
+
+/*
+ * The scan box of every page but the home page's: white, a 1 px `line` border, the soft shadow
+ * and, while a control inside it has focus, an indigo edge and a ring (the home page's box has
+ * the turning ring, `scan-ring`, and nothing else does). Radius and padding follow the screen:
+ * `rounded-card` is built in, the padding is `p-card`.
+ */
+@utility scan-box {
+  border: 1px solid var(--color-line);
+  border-radius: var(--card-radius);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  &:focus-within {
+    border-color: var(--focus-ring);
+    box-shadow:
+      var(--shadow),
+      0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Page layout (M2.6 R7a): the two columns of an inner page, PageColumns.astro's utilities.     */
+/* ------------------------------------------------------------------------------------------ */
+
+/*
+ * Below lg one column, its parts a section's gap apart. From lg two: the main column, at most
+ * 760 px, and the aside, 320 to 360 px (30 % of the content, between them); a gap of 40 px or
+ * more, as the content (1200 px at the widest) allows. Put on the element that also has `wrap`.
+ * The grid places its children by class (`page-main`, `page-aside`), so the DOM order is free: the
+ * page decides which comes first on a phone, and the main column is the start of the line on a
+ * desktop either way, whichever side that is.
+ */
+@utility page-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--section-gap);
+  align-items: start;
+  @media (min-width: 64rem) {
+    grid-template-columns: minmax(0, 760px) clamp(320px, 30%, 360px);
+    justify-content: space-between;
+    column-gap: 40px;
+    row-gap: 0;
+  }
+}
+@utility page-main {
+  min-width: 0;
+  @media (min-width: 64rem) {
+    grid-column: 1;
+    grid-row: 1;
+  }
+}
+@utility page-aside {
+  min-width: 0;
+  @media (min-width: 64rem) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+/*
+ * The aside that stays in view: from lg it sticks 24 px under the header (--header-h) while the
+ * main column scrolls, and, if it is taller than the room it has, scrolls inside itself, so that
+ * its foot is never out of reach. Its edge is padded and pulled back so that a focus ring is not
+ * clipped by the scrolling box.
+ */
+@utility page-aside-sticky {
+  @media (min-width: 64rem) {
+    position: sticky;
+    top: calc(var(--header-h) + 24px);
+    max-height: calc(100dvh - var(--header-h) - 48px);
+    margin: -4px;
+    padding: 4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
 }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -865,26 +1077,23 @@
 }
 
 /*
- * The tint behind a page's head: two soft lights in the corners, the home page's aurora without
- * its motion, its blur or its grid, which a page of text has no use for. The first stands in the
- * corner where the line starts (--reading). Small text on it is ink-2, never the quieter ink-3.
+ * The tint behind an inner page's head (M2.6 R7a): one faint light at the top, in the corner where
+ * the line starts (--reading), and nothing else: the aurora belongs to the home page's hero. It
+ * is 240 px tall whatever the page's head does, so a long head or a result under it never
+ * stretches it. Small text on it is ink-2, never the quieter ink-3.
  */
 @utility page-wash {
   position: absolute;
-  inset: 0;
+  inset-inline: 0;
+  inset-block-start: 0;
+  height: 240px;
   z-index: -1;
   pointer-events: none;
-  background-image:
-    radial-gradient(
-      520px 340px at calc(50% + var(--reading) * 50%) 0%,
-      rgb(94 234 212 / 0.28),
-      transparent 70%
-    ),
-    radial-gradient(
-      560px 380px at calc(50% - var(--reading) * 50%) 100%,
-      rgb(165 180 252 / 0.32),
-      transparent 70%
-    );
+  background-image: radial-gradient(
+    640px 200px at calc(50% + var(--reading) * 40%) 0%,
+    rgb(94 234 212 / 0.16),
+    transparent 72%
+  );
 }
 
 /*
