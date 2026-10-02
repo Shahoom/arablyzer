@@ -58,7 +58,6 @@ export interface ReportStrings {
   }
   readonly header: {
     readonly kicker: string
-    readonly title: string
     readonly scannedOn: string
     readonly rules: string
     readonly noindex: string
@@ -70,17 +69,13 @@ export interface ReportStrings {
     readonly tool: string
   }
   readonly score: {
-    readonly title: string
-    readonly categories: string
+    /** The categories no rule applied to. */
     readonly none: string
     readonly methodology: string
   }
   readonly contents: {
-    readonly title: string
-    readonly findings: string
+    /** The browsers' list, when none rendered the page. */
     readonly engines: string
-    readonly passed: string
-    readonly json: string
   }
   readonly engines: {
     /** The engines the scan rendered in: one to three. */
@@ -90,7 +85,6 @@ export interface ReportStrings {
     readonly alone: string
   }
   readonly findings: {
-    readonly title: string
     readonly none: string
     /** Some rules could not run: those that did found nothing, which is not a clean page. */
     readonly noneIncomplete: string
@@ -105,18 +99,9 @@ export interface ReportStrings {
     readonly overflow: (overflow: number, viewport: number) => string
   }
   readonly passed: { readonly title: string; readonly notApplicable: string }
-  /** The results' tabs, and the severity filter beside them. */
-  readonly tabs: {
-    readonly problems: string
-    readonly pass: string
-    readonly notApplicable: string
-    readonly filter: string
-  }
+  /** The severity filter over the findings. */
+  readonly tabs: { readonly filter: string }
   readonly notices: string
-  /** The results' section: the problems, the passed and the not-applicable rules. */
-  readonly results: string
-  /** A tab with no rule in it. */
-  readonly noRules: string
   /** Said to a screen reader when the report replaces the progress. */
   readonly ready: string
   /** When a scan does not go as it should (the approved States design). */
@@ -305,7 +290,6 @@ export const REPORT: Copy<ReportStrings> = {
     },
     header: {
       kicker: 'التقرير',
-      title: 'تقرير الصفحة',
       scannedOn: 'فُحصت في',
       rules: 'القواعد',
       noindex: 'لا يظهر في محركات البحث',
@@ -316,18 +300,10 @@ export const REPORT: Copy<ReportStrings> = {
       tool: 'نتيجة أداة',
     },
     score: {
-      title: 'الدرجة',
-      categories: 'الفئات',
       none: 'لا قواعد تنطبق',
       methodology: 'كيف حُسبت الدرجة؟ المنهجية',
     },
-    contents: {
-      title: 'في هذا التقرير',
-      findings: 'المخالفات',
-      engines: 'المتصفحات',
-      passed: 'فحوص نجحت',
-      json: 'التفاصيل التقنية',
-    },
+    contents: { engines: 'المتصفحات' },
     engines: {
       title: (count) =>
         count === 1
@@ -339,7 +315,6 @@ export const REPORT: Copy<ReportStrings> = {
       alone: 'فيها مخالفة لا تظهر في غيرها',
     },
     findings: {
-      title: 'المخالفات',
       none: 'لم تجد القواعد أي مشكلة.',
       noneIncomplete:
         'لم تجد القواعد التي اكتملت أي مشكلة، لكن بعضها لم يكتمل، فلا نقول إن الصفحة بلا مشاكل.',
@@ -354,10 +329,8 @@ export const REPORT: Copy<ReportStrings> = {
         `يتجاوز حافة شاشة عرضها ${viewport} بكسل بمقدار ${overflow} بكسل`,
     },
     passed: { title: 'فحوص نجحت', notApplicable: 'لا تنطبق على هذه الصفحة' },
-    tabs: { problems: 'المخالفات', pass: 'نجحت', notApplicable: 'لا تنطبق', filter: 'حسب الخطورة' },
+    tabs: { filter: 'حسب الخطورة' },
     notices: 'تنبيهات',
-    results: 'النتائج',
-    noRules: 'لا قواعد هنا.',
     ready: 'التقرير جاهز.',
     states: {
       blocked: {
@@ -499,7 +472,6 @@ export const REPORT: Copy<ReportStrings> = {
     },
     header: {
       kicker: 'Report',
-      title: 'Page report',
       scannedOn: 'Scanned on',
       rules: 'Rules',
       noindex: 'Not in search engines',
@@ -510,18 +482,10 @@ export const REPORT: Copy<ReportStrings> = {
       tool: 'A tool’s result',
     },
     score: {
-      title: 'Score',
-      categories: 'Categories',
       none: 'No rule applies',
       methodology: 'How is the score computed? The methodology',
     },
-    contents: {
-      title: 'In this report',
-      findings: 'Problems',
-      engines: 'Browsers',
-      passed: 'Checks passed',
-      json: 'Technical details',
-    },
+    contents: { engines: 'Browsers' },
     engines: {
       title: (count) =>
         count === 1
@@ -533,7 +497,6 @@ export const REPORT: Copy<ReportStrings> = {
       alone: 'Shows a problem the others do not',
     },
     findings: {
-      title: 'Problems',
       none: 'The rules found no problems.',
       noneIncomplete:
         'The rules that finished found no problems, but some did not finish, so we do not say the page has none.',
@@ -548,15 +511,8 @@ export const REPORT: Copy<ReportStrings> = {
         `Reaches ${overflow} pixels past the edge of a ${viewport}-pixel screen`,
     },
     passed: { title: 'Checks passed', notApplicable: 'Not applicable to this page' },
-    tabs: {
-      problems: 'Problems',
-      pass: 'Passed',
-      notApplicable: 'Not applicable',
-      filter: 'By severity',
-    },
+    tabs: { filter: 'By severity' },
     notices: 'Notices',
-    results: 'Results',
-    noRules: 'No rules here.',
     ready: 'The report is ready.',
     states: {
       blocked: {
