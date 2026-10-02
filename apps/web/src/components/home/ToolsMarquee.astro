@@ -1,0 +1,48 @@
+---
+import { HOME } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+import { homeCounts, MARQUEE_TOOL_SLUGS } from '../../lib/home'
+import { CATEGORY_STYLE, toolData } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
+
+/**
+ * The tools, as their names in a row that slides toward the start of the line and loops (the
+ * `marquee` utility, M2.6 R1): the registry's names, each with its category's dot. The names are
+ * said once to a screen reader: the second copy that makes the loop seamless is aria-hidden. It
+ * has no links, so nothing moves under a keyboard; the tools are the links of the chips above and
+ * of the tools page. With reduced motion it is a row that wraps, once.
+ */
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const counts = homeCounts()
+const tools = MARQUEE_TOOL_SLUGS.map((slug) => {
+  const tool = toolData(slug)
+  return { slug, title: tool.copy[lang].title, dot: CATEGORY_STYLE[tool.category].dot }
+})
+const item =
+  'inline-flex h-[42px] items-center gap-2 rounded-xl border border-line bg-white px-4 text-sm whitespace-nowrap text-ink-2'
+---
+
+<section aria-labelledby="marquee-label" class="below-fold pt-11 pb-5">
+  <p id="marquee-label" class="m-0 mb-4 text-center text-sm text-ink-3">
+    {HOME[lang].marquee.label(counts.tools)}
+  </p>
+  <div class="marquee">
+    <ul class="marquee-track m-0 list-none p-0 pe-3" role="list">
+      {tools.map((tool) => (
+        <li class={item}>
+          <span aria-hidden="true" class:list={['size-2 shrink-0 rounded-full', tool.dot]} />
+          <Bidi text={tool.title} lang={lang} />
+        </li>
+      ))}
+      {tools.map((tool) => (
+        <li class={item} aria-hidden="true">
+          <span class:list={['size-2 shrink-0 rounded-full', tool.dot]} />
+          <Bidi text={tool.title} lang={lang} />
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>

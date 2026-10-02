@@ -1,0 +1,73 @@
+---
+import type { Lang } from '@arablyzer/seo/site'
+import Bidi from '../Bidi.astro'
+
+/**
+ * One tile of the bento: an icon on its gradient, a heading that is the link to the tool's page
+ * (stretched over the whole tile, so the tile is one link and nothing is nested), what the tile
+ * shows in the slot, and `example` when the tile's data is made up, which it must say. Hovering
+ * lifts the tile; the focus ring is drawn around the tile, not around its heading.
+ */
+interface Props {
+  lang: Lang
+  title: string
+  href: string
+  /** The tool's name, which a screen reader hears after the heading. */
+  tool: string
+  tone: 'teal' | 'pink' | 'green' | 'indigo' | 'amber' | 'emerald' | 'blue'
+  /** The word that marks made-up data («مثال»); left out when the tile shows real data. */
+  example?: string | undefined
+  class?: string | undefined
+}
+const { lang, title, href, tool, tone, example, class: className } = Astro.props
+---
+
+<article
+  class:list={[
+    'card-lift relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-line bg-surface p-6 shadow has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-3 has-[a:focus-visible]:outline-indigo',
+    className,
+  ]}
+>
+  {example !== undefined && (
+    <span class="absolute end-5 top-5 inline-flex h-[22px] items-center rounded-full border border-dashed border-field px-2 text-[11px] text-ink-2">
+      {example}
+    </span>
+  )}
+  <span class:list={['grid size-11 place-items-center rounded-[14px] text-white', `tone-${tone}`]}>
+    <slot name="icon" />
+  </span>
+  <h3 class="m-0 text-xl leading-[1.45] font-semibold">
+    <a
+      href={href}
+      class="text-ink after:absolute after:inset-0 hover:text-ink focus-visible:outline-none"
+    >
+      <Bidi text={title} lang={lang} />
+      <span class="sr-only"> — {tool}</span>
+    </a>
+  </h3>
+  <slot />
+</article>
+
+<style>
+  .tone-teal {
+    background-image: linear-gradient(135deg, #0f766e, #14b8a6);
+  }
+  .tone-pink {
+    background-image: linear-gradient(135deg, #be185d, #ec4899);
+  }
+  .tone-green {
+    background-image: linear-gradient(135deg, #047857, #10b981);
+  }
+  .tone-indigo {
+    background-image: linear-gradient(135deg, #4338ca, #818cf8);
+  }
+  .tone-amber {
+    background-image: linear-gradient(135deg, #b45309, #f59e0b);
+  }
+  .tone-emerald {
+    background-image: linear-gradient(135deg, #065f46, #34d399);
+  }
+  .tone-blue {
+    background-image: linear-gradient(135deg, #1d4ed8, #60a5fa);
+  }
+</style>

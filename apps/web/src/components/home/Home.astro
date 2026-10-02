@@ -4,14 +4,14 @@ import { webApplication } from '@arablyzer/seo/json-ld'
 import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import Page from '../../layouts/Page.astro'
 import { CLOUDTOPIA, siteOf } from '../../lib/site'
-import ArabicLayer from './ArabicLayer.astro'
+import Bento from './Bento.astro'
+import Counts from './Counts.astro'
 import Faq from './Faq.astro'
 import FinalCta from './FinalCta.astro'
 import Hero from './Hero.astro'
 import Honest from './Honest.astro'
-import HomeTools from './HomeTools.astro'
 import HowItWorks from './HowItWorks.astro'
-import TopicStrip from './TopicStrip.astro'
+import ToolsMarquee from './ToolsMarquee.astro'
 
 interface Props {
   lang: Lang
@@ -41,10 +41,10 @@ const jsonLd = [
   jsonLd={jsonLd}
 >
   <Hero lang={lang} />
-  <TopicStrip lang={lang} />
+  <ToolsMarquee lang={lang} />
+  <Counts lang={lang} />
   <HowItWorks lang={lang} number={2} />
-  <ArabicLayer lang={lang} number={3} />
-  <HomeTools lang={lang} number={4} />
+  <Bento lang={lang} />
   <Honest lang={lang} number={5} />
   <Faq lang={lang} number={6} />
   <FinalCta lang={lang} />
