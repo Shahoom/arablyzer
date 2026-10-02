@@ -903,3 +903,72 @@
     color: var(--color-ink);
   }
 }
+
+/* R4 */
+/*
+ * The report as a thread (M2.6, R4): the score ring that draws itself, the category bars that grow
+ * from the start of the line and take their colour from the score's band, and the room a sticky
+ * dock needs. Each animation stops under prefers-reduced-motion, in its own rule, and leaves its
+ * end state on the page: the ring and the bars are drawn, only not drawn in.
+ */
+@keyframes ring-draw {
+  /* The ring's circle has r = 52 in a 120-unit box: 2 * pi * 52 = 326.73 round. */
+  from {
+    stroke-dasharray: 0 326.73;
+  }
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@utility ring-draw {
+  animation: ring-draw 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@utility bar-grow {
+  /* From the start of the line, which side that is: --reading is 1 in a right-to-left page. */
+  transform-origin: calc(50% + 50% * var(--reading)) 50%;
+  animation: bar-grow 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/*
+ * A category's bar by the band of its score (apps/web/src/islands/report-model.ts, bandOf): the
+ * brand's gradient from 90, amber to orange from 50, the critical red below. The colour where the
+ * bar ends, against its track (surface-2), is 4.29:1 or better in each, above the 3:1 a graphic
+ * needs; the number beside the bar says the score as text.
+ */
+@utility bar-good {
+  background-color: var(--color-brand);
+  background-image: linear-gradient(var(--grad-dir), var(--color-brand), var(--color-indigo));
+  /* Forced colours replace the band's colour with the system's, and the bar keeps to its length. */
+  @media (forced-colors: active) {
+    background-image: none;
+    background-color: Highlight;
+  }
+}
+@utility bar-mid {
+  background-color: var(--color-cat-prices);
+  background-image: linear-gradient(var(--grad-dir), #d97706, var(--color-cat-prices));
+  @media (forced-colors: active) {
+    background-image: none;
+    background-color: Highlight;
+  }
+}
+@utility bar-low {
+  background-color: var(--color-critical);
+  @media (forced-colors: active) {
+    background-color: Highlight;
+  }
+}
+
+/* The report's dock is sticky at the foot of the page: a control focused behind it scrolls clear. */
+html:has(.report-dock) {
+  scroll-padding-block-end: 9rem;
+}

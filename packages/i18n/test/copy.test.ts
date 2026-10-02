@@ -356,6 +356,65 @@ describe('report copy', () => {
     ])
   })
 
+  // M2.6 R4: the report's headline counts problems and notes, and its line says what ran.
+  it('counts the problems and notes of the summary as each language counts', () => {
+    const ar = REPORT.ar.thread.summary
+    expect(ar.counts(2, 1)).toBe('مشكلتان وملاحظة واحدة في هذه الصفحة')
+    expect(ar.counts(1, 0)).toBe('مشكلة واحدة في هذه الصفحة')
+    expect(ar.counts(0, 2)).toBe('ملاحظتان في هذه الصفحة')
+    expect(ar.counts(3, 12)).toBe('3 مشكلات و12 ملاحظة في هذه الصفحة')
+    expect(ar.counts(11, 100)).toBe('11 مشكلة و100 ملاحظة في هذه الصفحة')
+    const en = REPORT.en.thread.summary
+    expect(en.counts(2, 1)).toBe('2 problems and 1 note on this page')
+    expect(en.counts(1, 0)).toBe('1 problem on this page')
+    expect(en.counts(0, 3)).toBe('3 notes on this page')
+  })
+
+  it('says how many checks passed and did not apply, and nothing when neither did', () => {
+    const ar = REPORT.ar.thread.summary.checks
+    expect(ar(21, 37)).toBe('نجح 21 فحصاً، ولا ينطبق 37 فحصاً على هذه الصفحة.')
+    expect(ar(1, 2)).toBe('نجح فحص واحد، ولا ينطبق فحصان على هذه الصفحة.')
+    expect(ar(5, 0)).toBe('نجحت 5 فحوص.')
+    expect(ar(0, 4)).toBe('لم ينجح أي فحص، ولا تنطبق 4 فحوص على هذه الصفحة.')
+    expect(ar(0, 0)).toBe('')
+    const en = REPORT.en.thread.summary.checks
+    expect(en(21, 37)).toBe('21 checks passed, 37 not applicable to this page.')
+    expect(en(1, 0)).toBe('1 check passed.')
+    expect(en(0, 0)).toBe('')
+  })
+
+  it('counts the checks that need a review, with the verb that agrees', () => {
+    const ar = REPORT.ar.thread.summary.review
+    expect([1, 2, 3, 12].map(ar)).toEqual([
+      'فحص واحد يحتاج عين إنسان',
+      'فحصان يحتاجان عين إنسان',
+      '3 فحوص تحتاج عين إنسان',
+      '12 فحصاً يحتاج عين إنسان',
+    ])
+    expect(REPORT.en.thread.summary.review(1)).toBe('1 check needs a human eye')
+    expect(REPORT.en.thread.summary.review(4)).toBe('4 checks need a human eye')
+  })
+
+  it('says what was read and how many rules ran, the object of «شغّلنا» in the accusative', () => {
+    const ar = REPORT.ar.thread.read
+    expect(ar.rendered('Chromium وFirefox وWebKit', 61)).toBe(
+      'قرأنا الصفحة في Chromium وFirefox وWebKit، وشغّلنا 61 قاعدة',
+    )
+    expect(ar.rendered('Chromium', 2)).toBe('قرأنا الصفحة في Chromium، وشغّلنا قاعدتين')
+    expect(ar.html(3)).toBe('قرأنا الصفحة كما يرسلها الخادم، وشغّلنا 3 قواعد')
+    expect(REPORT.en.thread.read.rendered('Chromium, Firefox, and WebKit', 1)).toBe(
+      'We read the page in Chromium, Firefox, and WebKit, and ran 1 rule',
+    )
+    expect(REPORT.en.thread.read.html(12)).toBe(
+      'We read the page as the server sends it, and ran 12 rules',
+    )
+  })
+
+  it('counts the steps of a scan', () => {
+    expect(REPORT.ar.thread.stepOf(3, 5)).toBe('الخطوة 3 من 5')
+    expect(REPORT.en.thread.stepOf(3, 5)).toBe('Step 3 of 5')
+  })
+
   it('names as many browsers as the scan rendered in', () => {
     expect([1, 2, 3].map((n) => REPORT.ar.engines.title(n))).toEqual([
       'الصفحة في متصفح واحد',

@@ -18,6 +18,8 @@ const t = REPORT[lang].meta
 <Page lang={lang} path="/r/" title={t.title} description={t.description} report>
   <ReportApp client:load lang={lang} />
   <noscript>
-    <p class="mx-5 my-10 text-base md:mx-16">{REPORT[lang].noscript}</p>
+    <div class="mx-auto w-full max-w-[860px] px-5 py-10 md:px-6">
+      <p class="card m-0 p-6 text-base leading-[1.8] text-ink-2">{REPORT[lang].noscript}</p>
+    </div>
   </noscript>
 </Page>
