@@ -1,7 +1,5 @@
 ---
 import type { Lang } from '@arablyzer/seo/site'
-import ChevronLeft from '@lucide/astro/icons/chevron-left'
-import ChevronRight from '@lucide/astro/icons/chevron-right'
 import Bidi from '../Bidi.astro'
 
 /** A box of links beside a document: its tools, rules, guides or terms, as the tool page's are. */
@@ -12,33 +10,29 @@ interface Props {
   links: readonly { readonly href: string; readonly title: string; readonly code?: string }[]
 }
 const { lang, id, title, links } = Astro.props
-const Next = lang === 'ar' ? ChevronLeft : ChevronRight
 ---
 
 {links.length > 0 && (
-  <nav aria-labelledby={id} class="flex flex-col gap-1 border border-rule-strong bg-white p-[22px]">
-    <h2 id={id} class="m-0 mb-2 text-sm font-semibold text-ink-3">
+  <nav aria-labelledby={id} class="card flex flex-col gap-0.5 p-3">
+    <h2 id={id} class="m-0 px-3 pt-1 pb-1 text-sm font-semibold text-ink-2">
       {title}
     </h2>
-    {links.map((link, index) => (
+    {links.map((link) => (
       <a
         href={link.href}
-        class:list={[
-          'flex items-center justify-between gap-3 py-2.5 hover:text-brand-ink',
-          index < links.length - 1 && 'border-b border-rule-soft',
-        ]}
+        class="group flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-ink hover:bg-surface-2 hover:text-ink"
       >
-        <span class="flex flex-col gap-0.5">
+        <span class="flex min-w-0 flex-col gap-0.5">
           <span class="text-[15px] leading-[1.6]">
             <Bidi text={link.title} lang={lang} />
           </span>
           {link.code !== undefined && (
-            <span dir="ltr" class="self-start font-mono text-xs text-ink-3">
+            <span dir="ltr" class="self-start font-mono text-xs text-ink-2">
               {link.code}
             </span>
           )}
         </span>
-        <Next size={16} stroke-width={2} aria-hidden="true" class="shrink-0" />
+        <span aria-hidden="true" class="chev-end text-ink-3 group-hover:text-brand-ink" />
       </a>
     ))}
   </nav>
