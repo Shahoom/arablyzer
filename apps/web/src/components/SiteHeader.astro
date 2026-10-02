@@ -2,7 +2,6 @@
 import { SITE } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { NAV, otherLang, scanFormHref } from '../lib/site'
-import Forward from './Forward.astro'
 import Logo from './Logo.astro'
 
 interface Props {
@@ -17,8 +16,9 @@ const t = SITE[lang]
 const other = otherLang(lang)
 const o = SITE[lang].otherLang
 // The site's sections, each marked when the page is its own (the current page) or under it, as
-// a tool's page is (the current section): both are underlined. Beside the logo on a desktop;
-// below it on a smaller screen, on a row of their own that scrolls sideways if they outgrow it.
+// a tool's page is (the current section): both are shaded, by their aria-current. Beside the
+// logo on a desktop; on a row of their own below it on a smaller screen, which scrolls sideways
+// if they outgrow it.
 const sections = NAV.map((item) => {
   const href = localePath(lang, item.path)
   const page = localePath(lang, path) === href
@@ -26,80 +26,68 @@ const sections = NAV.map((item) => {
   const current: 'page' | 'true' | undefined = page ? 'page' : here ? 'true' : undefined
   return { href, label: t.nav[item.key], current }
 })
-const underline = 'font-semibold shadow-[inset_0_-2px_0_var(--color-signal)]'
+const link =
+  'text-ink-2 hover:bg-ink/5 hover:text-ink aria-[current]:bg-indigo-soft aria-[current]:font-semibold aria-[current]:text-indigo-ink'
 ---
 
-<header class="border-b border-ink bg-paper">
-  <div class="flex h-[60px] items-center justify-between gap-4 px-5 md:h-[76px] md:px-16">
-    <div class="flex items-center gap-12">
-      <a
-        href={localePath(lang, PATHS.home)}
-        aria-label={t.homeLink}
-        class="flex items-center gap-3 text-ink hover:text-ink"
-      >
-        <Logo size={28} />
-        <span class="flex flex-col gap-px">
-          <span dir="ltr" class="font-mono text-[17px] leading-[1.15] font-semibold md:text-xl">
-            Arablyzer
-          </span>
-          <span class="hidden text-xs leading-[1.3] text-ink-3 md:block">{t.tagline}</span>
-        </span>
-      </a>
-      {sections.length > 0 && (
-        <nav aria-label={t.navLabel} class="hidden items-center gap-8 text-[15px] lg:flex">
-          {sections.map((section) => (
-            <a
-              href={section.href}
-              aria-current={section.current}
-              class:list={['py-1.5 hover:text-signal', section.current !== undefined && underline]}
-            >
-              {section.label}
-            </a>
-          ))}
-        </nav>
-      )}
-    </div>
-    <div class="flex items-center gap-3.5">
-      <a
-        href={localePath(other, path)}
-        data-keep-id={keepId ? '' : undefined}
-        lang={other}
-        hreflang={other}
-        aria-label={o.label}
-        class:list={[
-          'border border-rule-strong px-2.5 py-1.5 text-[13px] hover:border-ink hover:text-signal',
-          // IBM Plex Mono has no Arabic letters: the Arabic label is set in the Arabic face.
-          other === 'en' ? 'font-mono' : 'font-sans',
-        ]}
-      >
-        {o.short}
-      </a>
-      <a
-        href={scanFormHref(lang)}
-        class="hidden h-11 items-center gap-2 bg-ink px-5 text-[15px] font-semibold text-white hover:bg-signal sm:flex"
-      >
-        {t.scanCta}
-        <Forward lang={lang} size={16} />
-      </a>
-    </div>
-  </div>
-  {sections.length > 0 && (
-    <nav
-      aria-label={t.navLabel}
-      class="flex h-11 items-stretch gap-7 overflow-x-auto border-t border-rule px-5 text-[15px] whitespace-nowrap md:px-16 lg:hidden"
+<header class="sticky top-0 z-30 border-b border-line/80 bg-bg/80 backdrop-blur-lg backdrop-saturate-150">
+  <div class="wrap flex h-14 items-center gap-2 md:h-[68px] md:gap-3 lg:gap-5">
+    <a
+      href={localePath(lang, PATHS.home)}
+      aria-label={t.homeLink}
+      class="inline-flex shrink-0 items-center gap-2.5 text-ink hover:text-ink"
     >
+      <Logo size={32} />
+      <span lang="en" dir="ltr" class="text-lg font-bold md:text-xl">
+        Arablyzer
+      </span>
+    </a>
+    <nav aria-label={t.navLabel} class="ms-4 hidden items-center gap-0.5 lg:flex">
       {sections.map((section) => (
         <a
           href={section.href}
           aria-current={section.current}
           class:list={[
-            'flex items-center hover:text-signal',
-            section.current !== undefined && underline,
+            'inline-flex h-[38px] items-center rounded-[10px] px-3 text-[15px] font-medium',
+            link,
           ]}
         >
           {section.label}
         </a>
       ))}
     </nav>
-  )}
+    <div class="ms-auto flex items-center gap-1 sm:gap-2">
+      <a
+        href={localePath(other, path)}
+        data-keep-id={keepId ? '' : undefined}
+        lang={other}
+        hreflang={other}
+        aria-label={o.label}
+        class="btn-ghost px-2.5 text-sm sm:px-3.5 sm:text-[15px]"
+      >
+        <span class="sm:hidden">{o.short}</span>
+        <span class="hidden sm:inline">{o.label}</span>
+      </a>
+      <a href={scanFormHref(lang)} class="btn-grad px-3.5 sm:px-[18px]">
+        {t.scanCta}
+      </a>
+    </div>
+  </div>
+  <nav
+    aria-label={t.navLabel}
+    class="wrap flex h-10 items-center gap-1 overflow-x-auto whitespace-nowrap lg:hidden"
+  >
+    {sections.map((section) => (
+      <a
+        href={section.href}
+        aria-current={section.current}
+        class:list={[
+          'inline-flex h-8 shrink-0 items-center rounded-full px-3 text-sm font-medium focus-visible:outline-offset-1',
+          link,
+        ]}
+      >
+        {section.label}
+      </a>
+    ))}
+  </nav>
 </header>
