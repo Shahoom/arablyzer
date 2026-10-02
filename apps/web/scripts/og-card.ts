@@ -8,25 +8,27 @@ import { OG_HEIGHT, OG_WIDTH } from '../src/lib/og'
 
 /** The site's colours, from global.css's @theme: a redesign there redraws the cards too. */
 export interface CardTokens {
-  readonly paper: string
+  /** The ground, the page's own (`bg`). */
+  readonly bg: string
   readonly ink: string
   readonly ink2: string
   readonly ink3: string
   readonly signal: string
-  readonly rule: string
+  /** The hairline over the card's foot (`line-2`). */
+  readonly line: string
   /** The tint and the ink of the kicker's pill. */
   readonly soft: string
   readonly softInk: string
 }
 
 const TOKEN_NAMES: Readonly<Record<keyof CardTokens, string>> = {
-  paper: 'paper',
+  bg: 'bg',
   ink: 'ink',
   ink2: 'ink-2',
   ink3: 'ink-3',
   // The card's accent is the brand's teal (the v2 system has no "signal" colour).
   signal: 'brand-ink',
-  rule: 'rule-strong',
+  line: 'line-2',
   soft: 'indigo-soft',
   softInk: 'indigo-ink',
 }
@@ -99,7 +101,7 @@ html, body { margin: 0; }
 body {
   width: ${String(OG_WIDTH)}px; height: ${String(OG_HEIGHT)}px; overflow: hidden;
   font-family: 'Plex', sans-serif; color: ${tokens.ink};
-  background-color: ${tokens.paper};
+  background-color: ${tokens.bg};
   /* Two soft lights in the corners, where the home page's aurora has them. */
   background-image:
     radial-gradient(540px 420px at 100% 0%, rgb(94 234 212 / 0.38), transparent 70%),
@@ -129,7 +131,7 @@ p {
 }
 .foot {
   display: flex; justify-content: space-between; align-items: center;
-  border-top: 2px solid ${tokens.rule}; padding-top: 18px;
+  border-top: 2px solid ${tokens.line}; padding-top: 18px;
   font-family: 'Plex Mono', monospace; font-weight: 600; font-size: 22px; color: ${tokens.signal}; direction: ltr;
 }
 </style>

@@ -18,7 +18,7 @@ describe('tokensFrom', () => {
   it("reads the card's colours from the site's tokens, so a redesign redraws the cards", () => {
     expect(TOKENS.ink).toMatch(/^#[0-9a-f]{6}$/i)
     expect(TOKENS.signal).toMatch(/^#[0-9a-f]{6}$/i)
-    expect(() => tokensFrom(':root{}')).toThrow(/--color-paper/)
+    expect(() => tokensFrom(':root{}')).toThrow(/--color-bg/)
   })
 })
 

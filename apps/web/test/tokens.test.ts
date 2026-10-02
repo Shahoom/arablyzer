@@ -85,9 +85,6 @@ const TEXT: readonly (readonly [string, string])[] = [
   ['panel-measure', 'panel'],
   ['panel-moderate', 'panel'],
   ['white', 'panel'],
-  // Legacy names, which pages written before v2 still use.
-  ['measure', 'measure-soft'],
-  ['moderate', 'moderate-soft'],
 ]
 
 const CATEGORIES = [
@@ -159,31 +156,43 @@ describe('the design tokens', () => {
     }
   })
 
-  it('give each legacy name the value of the v2 token it stands for', () => {
-    const SAME: readonly (readonly [string, string])[] = [
-      ['paper', 'bg'],
-      ['sheet', 'surface'],
-      ['rule', 'line-2'],
-      ['rule-strong', 'line-2'],
-      ['rule-soft', 'line'],
-      ['tick', 'field'],
-      ['ink-4', 'field'],
-      ['measure', 'blue'],
-      ['measure-soft', 'blue-soft'],
-      ['panel', 'navy'],
-    ]
-    for (const [legacy, current] of SAME) expect(token(legacy), legacy).toBe(token(current))
+  it('give the dark panel the navy of the dark band', () => {
+    expect(token('panel')).toBe(token('navy'))
   })
 
   it('leave the colours the Open Graph cards read as literal hex values', () => {
     // scripts/og-card.ts reads these by name from the file, not from the compiled CSS.
-    for (const name of ['paper', 'ink', 'ink-2', 'ink-3', 'brand-ink', 'rule-strong']) {
+    for (const name of [
+      'bg',
+      'ink',
+      'ink-2',
+      'ink-3',
+      'line-2',
+      'brand-ink',
+      'indigo-soft',
+      'indigo-ink',
+    ]) {
       expect(TOKENS.has(name), name).toBe(true)
     }
   })
 
-  it('have no colour of the Lab system left', () => {
-    for (const gone of ['signal', 'signal-soft']) expect(TOKENS.has(gone), gone).toBe(false)
+  it('have no colour of the Lab system left, nor an alias for one (R6 removed them)', () => {
+    for (const gone of [
+      'signal',
+      'signal-soft',
+      'paper',
+      'sheet',
+      'ink-4',
+      'rule',
+      'rule-strong',
+      'rule-soft',
+      'tick',
+      'moderate-line',
+      'measure',
+      'measure-soft',
+    ]) {
+      expect(TOKENS.has(gone), gone).toBe(false)
+    }
     for (const gone of ['bg-lab-grid', 'shadow-key', 'bg-ruler', 'mark-signal', 'bg-panel-grid']) {
       expect(CSS, gone).not.toContain(`@utility ${gone}`)
     }

@@ -11,8 +11,8 @@
  * Contrast is part of the system: every pair of text on a ground below is checked at 4.5:1 by
  * test/tokens.test.ts, and a pair added there is checked from then on.
  *
- * scripts/og-card.ts reads paper, ink, ink-2, ink-3, rule-strong, brand-ink, indigo-soft and
- * indigo-ink by name from this file, to draw the Open Graph cards: they stay literal hex values.
+ * scripts/og-card.ts reads bg, ink, ink-2, ink-3, line-2, brand-ink, indigo-soft and indigo-ink
+ * by name from this file, to draw the Open Graph cards: they stay literal hex values.
  */
 @theme {
   --color-*: initial;
@@ -125,22 +125,6 @@
   --color-panel-pass: #5eead4;
   --color-panel-measure: #a5b4fc;
   --color-panel-moderate: #fcd34d;
-
-  /*
-   * Legacy names, from the Lab system, each with its v2 value: pages written before v2 keep
-   * working. Each milestone moves its pages to the names above, and R6 deletes this block.
-   * paper = bg, sheet = surface, rule* = line / line-2, tick and ink-4 = field, measure = blue.
-   */
-  --color-paper: #f6f8fb;
-  --color-sheet: #ffffff;
-  --color-ink-4: #8491a3;
-  --color-rule: #cdd5df;
-  --color-rule-strong: #cdd5df;
-  --color-rule-soft: #e3e8ef;
-  --color-tick: #8491a3;
-  --color-moderate-line: #f3d9a0;
-  --color-measure: #2563eb;
-  --color-measure-soft: #eff6ff;
 
   /* Radius by role: chips are rounded-full, controls md, cards lg to xl, the scan box and tiles 2xl. */
   --radius-xs: 6px;
