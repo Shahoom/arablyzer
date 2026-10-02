@@ -302,7 +302,7 @@
   }
 }
 
-/* A button with no box until it is hovered: the header's language link. */
+/* A button with no box until it is hovered: the header's language link. Regular weight (see chip). */
 @utility btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -313,7 +313,7 @@
   border-radius: var(--radius-md);
   color: var(--color-ink);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.2;
   text-decoration: none;
   white-space: nowrap;
@@ -382,6 +382,9 @@
 /*
  * A chip: a pill that is a link, or a button that is pressed or not (aria-pressed). Pressed, it is
  * indigo on its tint (8.77:1). Its dot, when it has one, is a `size-2 rounded-full bg-cat-*`.
+ * Regular weight, like every other control but the primary buttons: the artboards' 500 is a face
+ * of 45 KB that no page loads (a page asks for 400 and 600 alone), so it would be fetched by the
+ * first chip on a page, before its first paint.
  */
 @utility chip {
   display: inline-flex;
@@ -394,7 +397,7 @@
   background-color: rgb(255 255 255 / 0.8);
   color: var(--color-ink-2);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.2;
   text-decoration: none;
   backdrop-filter: blur(6px);

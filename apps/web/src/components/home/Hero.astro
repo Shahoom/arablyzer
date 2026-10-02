@@ -83,14 +83,14 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
     >
       {chips.map((chip) => (
         <li>
-          <a href={chip.href} class="chip font-normal">
+          <a href={chip.href} class="chip">
             <span aria-hidden="true" class:list={['size-2 rounded-full', chip.dot]} />
             {chip.label}
           </a>
         </li>
       ))}
       <li>
-        <a href={localePath(lang, PATHS.tools)} class="chip font-normal">
+        <a href={localePath(lang, PATHS.tools)} class="chip">
           {t.tools.all}
           <Chevron size={16} stroke-width={2} aria-hidden="true" />
         </a>

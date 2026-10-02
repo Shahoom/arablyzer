@@ -154,7 +154,7 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
               onClick={() => {
                 setFilter(choice)
               }}
-              className="chip h-10 px-3.5 font-normal! whitespace-nowrap md:h-9 md:px-4"
+              className="chip h-10 px-3.5 whitespace-nowrap md:h-9 md:px-4"
             >
               <span>
                 <Bidi text={t.types[choice]} lang={lang} />
