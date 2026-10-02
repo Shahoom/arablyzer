@@ -1,9 +1,12 @@
 ---
-import { HOME, SCAN_FORM } from '@arablyzer/i18n'
+import { HOME } from '@arablyzer/i18n'
 import type { Lang } from '@arablyzer/seo/site'
-import Crosshairs from '../Crosshairs.astro'
-import ScanForm from '../../islands/ScanForm'
+import { scanFormHref } from '../../lib/site'
 
+/**
+ * The closing call to action: a band in the brand's gradient with a field of dots, and a button
+ * that goes back up to the scan box (there is one form on the page, and it is that one).
+ */
 interface Props {
   lang: Lang
 }
@@ -11,21 +14,28 @@ const { lang } = Astro.props
 const t = HOME[lang].cta
 ---
 
-<section
-  aria-labelledby="cta-title"
-  class="below-fold panel-dark relative mx-5 mt-10 mb-10 grid items-center gap-6 p-6 text-white md:mx-16 md:mb-[88px] md:p-14 lg:grid-cols-12 lg:gap-x-12"
->
-  <Crosshairs />
-  <div class="flex flex-col gap-2.5 lg:col-span-5">
-    <h2 id="cta-title" class="m-0 text-[26px] leading-[1.2] font-semibold md:text-[44px]">
+<section aria-labelledby="cta-title" class="wrap below-fold pb-6">
+  <div class="final relative isolate flex flex-col items-center gap-[18px] overflow-hidden rounded-[32px] bg-[#00727c] bg-(image:--gradient-band) px-6 py-16 text-center text-white md:py-[72px]">
+    <h2 id="cta-title" class="m-0 text-[30px] leading-[1.3] font-semibold md:text-[44px]">
       {t.title}
     </h2>
-    <p class="m-0 text-base text-panel-dim md:text-[17px]">{t.text}</p>
-  </div>
-  <div class="lg:col-span-7">
-    <ScanForm client:visible lang={lang} inputId="cta-url" tone="panel" />
-    <noscript>
-      <p class="text-sm text-panel-signal">{SCAN_FORM[lang].noscript}</p>
-    </noscript>
+    <p class="m-0 text-lg text-white/90">{t.text}</p>
+    <a href={scanFormHref(lang)} class="btn-light btn-lg">
+      {t.button}
+    </a>
   </div>
 </section>
+
+<style>
+  /* A field of dots behind the words, faded out toward the edges. */
+  .final::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: radial-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000, transparent 75%);
+  }
+</style>
