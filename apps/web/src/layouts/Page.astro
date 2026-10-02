@@ -29,26 +29,8 @@ interface Props {
    * an address that has none (404), served at every such address.
    */
   noindex?: boolean
-  /**
-   * An Arabic page whose first screen has Latin letters in large text (a heading with a term in
-   * it, a lead with the names of crawlers) preloads DM Sans too. It draws those letters, and on an
-   * Arabic page it is not preloaded: the heading is drawn at once in the letters of whatever font
-   * the system has, DM Sans arrives after the first paint, and the heading re-wraps and moves the
-   * page under it (a glossary term's page, 0.08 to 0.10 of layout shift, M2.6 R5). English pages
-   * preload it already.
-   */
-  latinPreload?: boolean
 }
-const {
-  lang,
-  path,
-  title,
-  description,
-  jsonLd = [],
-  report = false,
-  noindex = false,
-  latinPreload = false,
-} = Astro.props
+const { lang, path, title, description, jsonLd = [], report = false, noindex = false } = Astro.props
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, path)
 // One source for <head>, shared with the templates the self-audit has checked since Phase 0.
@@ -84,17 +66,17 @@ const head =
     <Fragment set:html={head} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#007D88" />
-    {/* Arabic pages preload the two weights of Plex Arabic they open with; English ones DM Sans'. */}
+    {/* Every page preloads the two weights of DM Sans it opens with, and an Arabic page the two of
+        Plex Arabic too. An Arabic page draws the Latin letters of a heading, a lead or a tag in DM
+        Sans, which, not preloaded, arrives after the first paint: the text re-wraps and moves the
+        page under it (a glossary term 0.08 to 0.10 of layout shift, a guide 0.16, M2.6 R5; the home
+        page and the tools 0.0004 to 0.005, R6). Two small files (14 KB each) against that. */}
     <Font
       cssVariable="--font-dm-sans"
-      preload={
-        lang === 'ar' && !latinPreload
-          ? false
-          : [
-              { subset: 'latin', weight: 600 },
-              { subset: 'latin', weight: 400 },
-            ]
-      }
+      preload={[
+        { subset: 'latin', weight: 600 },
+        { subset: 'latin', weight: 400 },
+      ]}
     />
     <Font
       cssVariable="--font-plex-arabic"

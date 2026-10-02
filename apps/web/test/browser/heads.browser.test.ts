@@ -126,6 +126,34 @@ describe.each(ENGINES)('the heads of the pages in %s', (engine) => {
     60_000,
   )
 
+  // The fonts a page opens with are preloaded on every page: DM Sans' two weights, which draw the
+  // Latin letters of its first screen, and on an Arabic page Plex Arabic's two. R5 had asked for
+  // it on its own pages; with the fonts held back 600 ms, as a slow network holds them, the other
+  // Arabic pages moved by 0.0004 to 0.005, and by 0.0001 with the preload (M2.6 R6).
+  it.each(['/', '/tools', '/tools/rtl-check', '/knowledge', '/rules/ar-letter-spacing', '/r/'])(
+    'preloads the fonts the first screen of %s needs, in both languages',
+    async (path) => {
+      for (const [prefix, count] of [
+        ['', 4],
+        ['/en', 2],
+      ] as const) {
+        const context = await browser.newContext()
+        const tab = await context.newPage()
+        await tab.route('**/*', async (route) => {
+          if (new URL(route.request().url()).origin === site.origin) await route.fallback()
+          else await route.abort('blockedbyclient')
+        })
+        await tab.goto(site.url(`${prefix}${path}`))
+        expect(
+          await tab.locator('link[rel="preload"][as="font"]').count(),
+          `${prefix}${path}`,
+        ).toBe(count)
+        await context.close()
+      }
+    },
+    60_000,
+  )
+
   it.each(INDEXES)('draws the heading of the index %s at 56 px', async (path) => {
     for (const prefix of ['', '/en']) {
       expect((await head(`${prefix}${path}`))?.size, `${prefix}${path}`).toBe(56)

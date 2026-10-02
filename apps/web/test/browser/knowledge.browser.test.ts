@@ -236,10 +236,10 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
     await tab.context().close()
   }, 60_000)
 
-  // A page of Arabic draws the Latin letters of a heading, a lead or a tag in DM Sans, which is
-  // not preloaded on Arabic pages unless they ask: it arrives after the first paint, and the swap
-  // re-wrapped a heading and moved the page under it (a glossary term's page measured 0.08 to
-  // 0.10 of layout shift, a guide's 0.16 in the same test). The pages of R5 ask for it.
+  // A page of Arabic draws the Latin letters of a heading, a lead or a tag in DM Sans. Not
+  // preloaded, it arrives after the first paint, and the swap re-wrapped a heading and moved the
+  // page under it (a glossary term's page measured 0.08 to 0.10 of layout shift, a guide's 0.16 in
+  // the same test). R5 preloaded it on its pages; R6 on every page (heads.browser.test.ts).
   it.each([
     ['/knowledge'],
     ['/rules'],
