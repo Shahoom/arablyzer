@@ -21,7 +21,8 @@ const TOKEN_NAMES: Readonly<Record<keyof CardTokens, string>> = {
   ink: 'ink',
   ink2: 'ink-2',
   ink3: 'ink-3',
-  signal: 'signal',
+  // The card's accent is the brand's teal (the v2 system has no "signal" colour).
+  signal: 'brand-ink',
   rule: 'rule-strong',
 }
 

@@ -1,9 +1,18 @@
 @import 'tailwindcss';
 
 /*
- * The Lab design system the owner approved (Phase 2 design, 2026-09-28): an engineering sheet of
- * paper with a grid, ink, one signal colour, and dark instrument panels. Only these tokens exist,
- * so a colour outside the system cannot creep in.
+ * The v2 design system the owner approved (M2.6, 2026-10-02): a lively SaaS look on a cool white
+ * ground, with a teal-to-indigo gradient for the actions and the one headline phrase, soft cards,
+ * and motion that stops under prefers-reduced-motion. docs/design/plans/m2.6-redesign.md has the
+ * table; docs/design/v2/ the artboards. Only these tokens exist (`--color-*: initial`), so a
+ * colour outside the system cannot creep in. They stay CSS variables on :root, so a dark theme is
+ * a matter of redeclaring them.
+ *
+ * Contrast is part of the system: every pair of text on a ground below is checked at 4.5:1 by
+ * test/tokens.test.ts, and a pair added there is checked from then on.
+ *
+ * scripts/og-card.ts reads paper, ink, ink-2, ink-3, rule-strong, brand-ink, indigo-soft and
+ * indigo-ink by name from this file, to draw the Open Graph cards: they stay literal hex values.
  */
 @theme {
   --color-*: initial;
@@ -11,91 +20,183 @@
   --radius-*: initial;
   --font-*: initial;
 
-  --font-sans: var(--font-plex-arabic), 'Segoe UI', Tahoma, sans-serif;
+  /*
+   * One stack for both scripts: DM Sans draws Latin, and since it has no Arabic letters the
+   * browser falls through, letter by letter and by unicode-range, to IBM Plex Sans Arabic. Neither
+   * variable may carry a catch-all fallback face before the other (astro.config.ts, fonts).
+   */
+  --font-sans: var(--font-dm-sans), var(--font-plex-arabic), 'Segoe UI', Tahoma, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
+  /* The ground and its surfaces. */
   --color-white: #ffffff;
-  --color-paper: #f3f5f7;
-  --color-sheet: #f8f9fb;
-  --color-ink: #14171c;
-  --color-ink-2: #3f4751;
-  --color-ink-3: #56606c;
-  --color-ink-4: #8a94a0;
-  --color-rule: #d3dae2;
-  --color-rule-strong: #c9d1da;
-  --color-rule-soft: #e1e6ec;
-  --color-tick: #9aa4af;
+  --color-bg: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f5f9;
+  /* Borders: `line` for cards and dividers, `line-2` where one must read as an edge. */
+  --color-line: #e3e8ef;
+  --color-line-2: #cdd5df;
+  /*
+   * An input's border. The plan's #8a97a8 measured 2.97:1 on white and 2.79:1 on the ground, short
+   * of the 3:1 an input's edge needs; this is six steps darker, 3.20:1 and 3.01:1.
+   */
+  --color-field: #8491a3;
 
-  /* A shade darker than the design's #b53a17, which fell to 4.43:1 where two grid lines cross. */
-  --color-signal: #b03815;
-  --color-signal-soft: #fbede8;
-  --color-critical: #8e1b0e;
-  --color-moderate: #8a5300;
-  --color-moderate-soft: #fff4de;
-  --color-moderate-line: #e8c27a;
-  --color-pass: #0f6b52;
-  --color-pass-soft: #e6f4ef;
-  --color-measure: #255fc7;
-  --color-measure-soft: #eaf1fc;
+  /* Text. ink-3 is the quietest: 4.68:1 on the ground, and it is not used on a tint. */
+  --color-ink: #0b1b2b;
+  --color-ink-2: #475467;
+  --color-ink-3: #667085;
 
-  /* The instrument panel: dark, with its own lighter signal, pass and measure colours. */
-  --color-panel: #111418;
-  --color-panel-line: #2a3038;
-  --color-panel-text: #e8ecf1;
-  --color-panel-soft: #c5cdd6;
-  --color-panel-dim: #9aa6b2;
-  --color-panel-tick: #5b6672;
-  --color-panel-signal: #ff7a4d;
-  --color-panel-pass: #4fd39f;
-  --color-panel-measure: #7aa7ff;
-  --color-panel-moderate: #f2b544;
+  /* The brand: teal for marks and links, indigo as its second colour, navy for the dark bands. */
+  --color-brand: #007d88;
+  --color-brand-ink: #005f68;
+  --color-brand-soft: #e0f2f3;
+  --color-blue: #2563eb;
+  --color-blue-soft: #eff6ff;
+  --color-indigo: #4f46e5;
+  --color-indigo-soft: #eef0ff;
+  --color-indigo-ink: #3730a3;
+  --color-violet: #7c3aed;
+  --color-navy: #0a1628;
 
-  /* The categories: a colour and its tint each. Arabic rendering's violet is a shade darker than
-     the design's #6d4aff, whose 4.48:1 on its tint our own contrast rule failed. */
-  --color-cat-render: #6844f5;
-  --color-cat-render-soft: #f0edff;
-  --color-cat-rtl: #255fc7;
-  --color-cat-rtl-soft: #eaf1fc;
-  --color-cat-fonts: #4338ca;
-  --color-cat-fonts-soft: #eef0fc;
-  --color-cat-forms: #0f7a56;
-  --color-cat-forms-soft: #e6f4ef;
-  --color-cat-whatsapp: #127a45;
-  --color-cat-whatsapp-soft: #e4f5ea;
-  --color-cat-prices: #8a5a00;
-  --color-cat-prices-soft: #fff4de;
-  --color-cat-index: #00707a;
-  --color-cat-index-soft: #e3f2f3;
-  --color-cat-speed: #b4410f;
-  --color-cat-speed-soft: #fff0e6;
-  --color-cat-schema: #b0175a;
-  --color-cat-schema-soft: #fdeaf2;
-  --color-cat-ai: #475569;
-  --color-cat-ai-soft: #eef2f6;
+  /*
+   * Severities, and a passed check. `critical` is a fill with white text on it, 4.70:1; as text it
+   * falls to 4.41:1 on the ground, so text uses `critical-ink`.
+   */
+  --color-critical: #e11d48;
+  --color-critical-soft: #ffe4e8;
+  --color-critical-ink: #be123c;
+  --color-serious: #c2410c;
+  --color-serious-soft: #ffede5;
+  --color-moderate: #b45309;
+  --color-moderate-soft: #fef3dd;
+  --color-pass: #047857;
+  --color-pass-soft: #e7f6ef;
+
+  /* The aurora's blobs, behind the hero: light, never under text that matters. */
+  --color-aurora-teal: #5eead4;
+  --color-aurora-indigo: #a5b4fc;
+  --color-aurora-pink: #f0abfc;
+  --color-aurora-sky: #7dd3fc;
+
+  /* The gradients: the actions and step numbers; the one headline phrase; the logo mark; a band. */
+  --gradient-btn: linear-gradient(120deg, #00727c 0%, #4f46e5 100%);
+  --gradient-text: linear-gradient(var(--grad-dir, to left), #007d88, #2563eb 55%, #7c3aed);
+  --gradient-mark: linear-gradient(135deg, #007d88, #4f46e5);
+  --gradient-band: linear-gradient(120deg, #00727c 0%, #3b48d6 55%, #7c3aed 100%);
+
+  /*
+   * The categories: a colour and its tint each, for chips, dots and tile icons. The colours are the
+   * v2 artboards' (rtl violet, rendering teal, forms pink, indexing blue, speed amber, AI indigo,
+   * commerce orange, international cyan), each darkened where text on its tint fell under 4.5:1.
+   */
+  --color-cat-render: #0f766e;
+  --color-cat-render-soft: #e1f4f1;
+  --color-cat-rtl: #7c3aed;
+  --color-cat-rtl-soft: #f2edfe;
+  --color-cat-fonts: #0e7490;
+  --color-cat-fonts-soft: #e0f4f8;
+  --color-cat-forms: #be185d;
+  --color-cat-forms-soft: #fdeaf2;
+  --color-cat-whatsapp: #15803d;
+  --color-cat-whatsapp-soft: #ecfdf3;
+  --color-cat-prices: #c2410c;
+  --color-cat-prices-soft: #ffede5;
+  --color-cat-index: #2563eb;
+  --color-cat-index-soft: #eff6ff;
+  --color-cat-speed: #b45309;
+  --color-cat-speed-soft: #fef3dd;
+  --color-cat-schema: #a21cad;
+  --color-cat-schema-soft: #faeafb;
+  --color-cat-ai: #4f46e5;
+  --color-cat-ai-soft: #eef0ff;
+
+  /*
+   * The dark panel (a navy band, the report's summary): its own lighter text, signal, pass and
+   * measure colours, since the severities above are too dark on it.
+   */
+  --color-panel: #0a1628;
+  --color-panel-line: #22304a;
+  --color-panel-text: #e6edf6;
+  --color-panel-soft: #d5deea;
+  --color-panel-dim: #a9b6c8;
+  --color-panel-tick: #5b6b84;
+  --color-panel-signal: #fb923c;
+  --color-panel-pass: #5eead4;
+  --color-panel-measure: #a5b4fc;
+  --color-panel-moderate: #fcd34d;
+
+  /*
+   * Legacy names, from the Lab system, each with its v2 value: pages written before v2 keep
+   * working. Each milestone moves its pages to the names above, and R6 deletes this block.
+   * paper = bg, sheet = surface, rule* = line / line-2, tick and ink-4 = field, measure = blue.
+   */
+  --color-paper: #f6f8fb;
+  --color-sheet: #ffffff;
+  --color-ink-4: #8491a3;
+  --color-rule: #cdd5df;
+  --color-rule-strong: #cdd5df;
+  --color-rule-soft: #e3e8ef;
+  --color-tick: #8491a3;
+  --color-moderate-line: #f3d9a0;
+  --color-measure: #2563eb;
+  --color-measure-soft: #eff6ff;
+
+  /* Radius by role: chips are rounded-full, controls md, cards lg to xl, the scan box and tiles 2xl. */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+
+  /* One soft shadow scale, and the glow under a gradient button. */
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.05), 0 12px 32px -12px rgb(16 24 40 / 0.16);
+  --shadow-lg: 0 2px 4px rgb(16 24 40 / 0.05), 0 36px 70px -28px rgb(16 24 40 / 0.32);
+  --shadow-btn: 0 10px 24px -10px rgb(79 70 229 / 0.6);
+  --shadow-btn-hover: 0 14px 30px -10px rgb(79 70 229 / 0.7);
 }
 
 @layer base {
   html {
-    /* The key element's offset shadow falls toward the end of the line, whichever way it runs. */
+    /*
+     * Which way the text runs: 1 in a right-to-left page, -1 in a left-to-right one. What moves
+     * toward the end of the line (the reading beam, the marquee) multiplies by it, and the
+     * gradient of the headline phrase reads from the start of the line, whichever side that is.
+     */
     --reading: 1;
+    --grad-dir: to left;
+    /* A focus ring: indigo on the light ground, a lighter one on the dark panels. */
+    --focus-ring: var(--color-indigo);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    /* Arabic needs the height. Anything tighter sets its own leading. */
+    line-height: 1.7;
+    /* The sticky header covers the top of the page: a link to #id stops below it. */
+    scroll-padding-top: 7rem;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
   html[dir='ltr'] {
     --reading: -1;
+    --grad-dir: to right;
+  }
+  @media (min-width: 64rem) {
+    html {
+      scroll-padding-top: 5.5rem;
+    }
   }
   body {
     min-height: 100dvh;
-    background-color: var(--color-paper);
+    background-color: var(--color-bg);
   }
   :focus-visible {
-    outline: 2px solid var(--color-signal);
-    outline-offset: 2px;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
   }
   ::selection {
-    background: var(--color-signal);
+    background: var(--color-brand);
     color: var(--color-white);
   }
   summary::-webkit-details-marker {
@@ -113,50 +214,522 @@
   }
 }
 
-/* The paper: a 120 px grid over a 24 px one. */
-@utility bg-lab-grid {
-  background-color: var(--color-paper);
+/* ------------------------------------------------------------------------------------------ */
+/* Components. Each is a utility, so it takes variants (md:, hover:) and is dropped from a      */
+/* page's inlined CSS when the page does not use it.                                            */
+/* ------------------------------------------------------------------------------------------ */
+
+/*
+ * Buttons, 42 px high; `btn-lg` makes one 48 px. The gradient one is the page's action: white
+ * text on a teal-to-indigo gradient (5.68:1 at the teal end, 6.29:1 at the indigo one) that slides
+ * on hover. A disabled one dims and loses its glow.
+ */
+@utility btn-grad {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding-inline: 18px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: #00727c;
+  background-image: var(--gradient-btn);
+  background-size: 180% 100%;
+  color: var(--color-white);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow-btn);
+  cursor: pointer;
+  transition:
+    background-position 0.4s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+  &:hover {
+    background-position: 100% 0;
+    color: var(--color-white);
+    box-shadow: var(--shadow-btn-hover);
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 0.65;
+    box-shadow: none;
+  }
+  /* Forced colours drop the gradient and the shadow: the button keeps its edge. */
+  @media (forced-colors: active) {
+    border: 1px solid ButtonText;
+  }
+}
+
+/* A white button with a hairline border, beside a gradient one. */
+@utility btn-white {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding-inline: 18px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  &:hover {
+    border-color: var(--color-line-2);
+    color: var(--color-ink);
+  }
+}
+
+/* A button with no box until it is hovered: the header's language link. */
+@utility btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding-inline: 14px;
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  &:hover {
+    background-color: rgb(15 23 42 / 0.05);
+    color: var(--color-ink);
+  }
+}
+
+/* The two buttons for a dark band or the gradient one: a white one, and an outlined one. */
+@utility btn-light {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding-inline: 18px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  color: var(--color-navy);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  &:hover {
+    background-color: var(--color-panel-text);
+    color: var(--color-navy);
+  }
+  @media (forced-colors: active) {
+    border: 1px solid ButtonText;
+  }
+}
+@utility btn-outline-light {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding-inline: 18px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: var(--radius-md);
+  color: var(--color-white);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  &:hover {
+    background-color: rgb(255 255 255 / 0.08);
+    color: var(--color-white);
+  }
+}
+
+/* The large button: the scan box's, and a band's. */
+@utility btn-lg {
+  height: 48px;
+  padding-inline: 24px;
+  border-radius: 14px;
+  font-size: 16px;
+}
+
+/*
+ * A chip: a pill that is a link, or a button that is pressed or not (aria-pressed). Pressed, it is
+ * indigo on its tint (8.77:1). Its dot, when it has one, is a `size-2 rounded-full bg-cat-*`.
+ */
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding-inline: 16px;
+  border: 1px solid rgb(205 213 223 / 0.9);
+  border-radius: 999px;
+  background-color: rgb(255 255 255 / 0.8);
+  color: var(--color-ink-2);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-line-2);
+    color: var(--color-ink);
+  }
+  &[aria-pressed='true'] {
+    border-color: #a5b4fc;
+    background-color: var(--color-indigo-soft);
+    color: var(--color-indigo-ink);
+    /* Forced colours drop the tint: a pressed chip is told by its heavier edge. */
+    @media (forced-colors: active) {
+      border: 2px solid Highlight;
+    }
+  }
+}
+
+/* A kicker: the small pill over a section's heading. */
+@utility kick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 30px;
+  padding-inline: 12px;
+  border-radius: 999px;
+  background-color: var(--color-indigo-soft);
+  color: var(--color-indigo-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/*
+ * Severity pills: `sev` and one of its tones. critical is white on its fill (4.70:1); the others
+ * are the severity's colour on its tint (4.56:1 and up). Minor is outlined, info a quiet fill, and
+ * pass the green of a passed check.
+ */
+@utility sev {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 26px;
+  padding-inline: 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+@utility sev-critical {
+  background-color: var(--color-critical);
+  color: var(--color-white);
+}
+@utility sev-serious {
+  background-color: var(--color-serious-soft);
+  color: var(--color-serious);
+}
+@utility sev-moderate {
+  background-color: var(--color-moderate-soft);
+  color: var(--color-moderate);
+}
+@utility sev-minor {
+  background-color: var(--color-white);
+  color: var(--color-ink-2);
+  box-shadow: inset 0 0 0 1px var(--color-line-2);
+}
+@utility sev-info {
+  background-color: var(--color-surface-2);
+  color: var(--color-ink-2);
+}
+@utility sev-pass {
+  background-color: var(--color-pass-soft);
+  color: var(--color-pass);
+}
+
+/* A card: the surface, a hairline, 20 px of radius and the soft shadow. */
+@utility card {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+/* A card that rises when it is hovered: the bento tiles. */
+@utility card-lift {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/*
+ * The page's width, 1240 px, and its side padding. The header and the footer sit on it; a page
+ * body adopts it when its milestone rebuilds it.
+ */
+@utility wrap {
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+  padding-inline: 20px;
+  @media (min-width: 48rem) {
+    padding-inline: 24px;
+  }
+}
+
+/*
+ * The one headline phrase, and the big numbers: the gradient, clipped to the letters. Large bold
+ * type only. The solid `color` is what a browser without the clip shows and what a contrast check
+ * reads (every stop of the gradient is above 4.5:1 on the ground); in forced colours the text goes
+ * back to the system's.
+ */
+@utility gradient-text {
+  color: var(--color-brand-ink);
+  background-image: var(--gradient-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  @media (forced-colors: active) {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+/* The mark of the logo: the gradient, rounded to a third of its side, however large it is. */
+@utility logo-mark {
+  display: inline-block;
+  flex: none;
+  border-radius: 31.25%;
+  background-color: var(--color-brand);
+  background-image: var(--gradient-mark);
+  forced-color-adjust: none;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+/*
+ * The dark panel: navy, with the focus ring and the text of a dark ground. (The home page's
+ * figure, the closing call to action, and the report's summary.)
+ */
+@utility panel-dark {
+  background-color: var(--color-navy);
+  --focus-ring: var(--color-panel-measure);
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Motion. Every animation below stops under prefers-reduced-motion, in its own rule (the      */
+/* base layer's catch-all cuts any other to one frame), and leaves its content readable.        */
+/* ------------------------------------------------------------------------------------------ */
+
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(40px, -30px, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-30px, 24px, 0) scale(0.95);
+  }
+}
+@keyframes ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* A band of light from the start of the line to its end, the way the text is read. */
+@keyframes reading-beam {
+  from {
+    transform: translateX(calc(var(--reading) * 30%));
+  }
+  to {
+    transform: translateX(calc(var(--reading) * -360%));
+  }
+}
+/* The row moves half its length, toward the start of the line; its copy takes its place. */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(var(--reading) * 50%));
+  }
+}
+
+/*
+ * The aurora behind the hero: a container that clips its blobs, so the page never scrolls
+ * sideways, and the blobs, blurred and slowly drifting (components/Aurora.astro). The grid is a
+ * faint 56 px one, faded out toward the edges.
+ */
+@utility aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+@utility aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  animation: aurora-drift 18s ease-in-out infinite alternate;
+  will-change: transform;
+  @media (max-width: 40rem) {
+    filter: blur(48px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@utility aurora-grid {
+  position: absolute;
+  inset: 0;
   background-image:
-    linear-gradient(to right, rgb(20 23 28 / 0.065) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(20 23 28 / 0.065) 1px, transparent 1px),
-    linear-gradient(to right, rgb(20 23 28 / 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(20 23 28 / 0.03) 1px, transparent 1px);
-  background-size:
-    120px 120px,
-    120px 120px,
-    24px 24px,
-    24px 24px;
+    linear-gradient(rgb(15 23 42 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(15 23 42 / 0.06) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 55% at 50% 22%, #000 25%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 22%, #000 25%, transparent 72%);
 }
 
-/* The instrument panel: dark, with a 16 px grid. */
-@utility bg-panel-grid {
-  background-color: var(--color-panel);
-  background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
-  background-size: 16px 16px;
+/*
+ * The scan box's ring: a wrapper with 2 px of padding and a conic gradient turning behind its
+ * child, which must paint its own white ground and a radius 2 px smaller than the ring's. The
+ * wrapper clips the gradient (an oversized, rotating pseudo-element), so nothing overflows.
+ */
+@utility scan-ring {
+  position: relative;
+  z-index: 1;
+  padding: 2px;
+  border-radius: 26px;
+  overflow: hidden;
+  box-shadow:
+    0 30px 60px -30px rgb(79 70 229 / 0.5),
+    0 14px 30px -18px rgb(0 125 136 / 0.4);
+  & > * {
+    position: relative;
+  }
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -160%;
+    background: conic-gradient(
+      from 0deg,
+      #007d88,
+      #22d3ee,
+      #6366f1,
+      #a855f7,
+      #f472b6,
+      #f59e0b,
+      #007d88
+    );
+    animation: ring-spin 7s linear infinite;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+}
+/* The glow under the scan box. */
+@utility scan-glow {
+  position: absolute;
+  inset: -40px -60px;
+  z-index: 0;
+  background: radial-gradient(
+    55% 60% at 50% 55%,
+    rgb(99 102 241 / 0.28),
+    rgb(0 125 136 / 0.12) 45%,
+    transparent 72%
+  );
+  filter: blur(14px);
+  pointer-events: none;
 }
 
-/* The one offset shadow, on the key element only. */
-@utility shadow-key {
-  box-shadow: calc(var(--reading) * -6px) 6px 0 var(--color-ink);
+/*
+ * The reading beam, while a scan runs: put the class on a box and a band of light sweeps across
+ * it from the start of the line to its end. Reduced motion shows no band: the scan's own words
+ * say it is running.
+ */
+@utility reading-beam {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 30%;
+    background: linear-gradient(
+      var(--grad-dir),
+      transparent,
+      rgb(79 70 229 / 0.16),
+      rgb(0 125 136 / 0.22),
+      transparent
+    );
+    pointer-events: none;
+    animation: reading-beam 2.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+      display: none;
+    }
+  }
 }
 
-/* A ruler under a section number: a line with a tick every 12 px. */
-@utility bg-ruler {
-  background-image:
-    linear-gradient(var(--color-tick), var(--color-tick)),
-    repeating-linear-gradient(to right, var(--color-tick) 0 1px, transparent 1px 12px);
-  background-size:
-    100% 1px,
-    100% 6px;
-  background-position: bottom, bottom;
-  background-repeat: no-repeat;
+/*
+ * A marquee: `marquee` clips and fades the ends, and its one child, `marquee-track`, holds the
+ * items twice (the copy aria-hidden) and slides half its length, so the loop has no seam. It
+ * pauses under the pointer and under focus. With reduced motion it stops being a marquee: the
+ * items wrap, once.
+ */
+@utility marquee {
+  position: relative;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  &:hover > *,
+  &:focus-within > * {
+    animation-play-state: paused;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
 }
-
-/* The marked end of the main heading. */
-@utility mark-signal {
-  box-shadow: inset 0 -0.2em 0 rgb(181 58 23 / 0.14);
+@utility marquee-track {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  animation: marquee 60s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    width: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    & > [aria-hidden='true'] {
+      display: none;
+    }
+  }
 }
 
 /*
@@ -210,7 +783,8 @@
     overflow-wrap: anywhere;
     font-family: var(--font-mono);
     font-size: 0.875em;
-    background: var(--color-paper);
+    background: var(--color-surface-2);
+    border-radius: var(--radius-xs);
     padding: 0.05rem 0.35rem;
   }
   /* Short code, marked by scripts/generate.ts: it moves to the next line whole. */
@@ -220,8 +794,9 @@
   .prose-fix pre {
     margin: 0;
     overflow-x: auto;
-    background: var(--color-panel);
+    background: var(--color-navy);
     color: var(--color-panel-soft);
+    border-radius: var(--radius-md);
     padding: 0.85rem 1rem;
     font-size: 0.8125rem;
     line-height: 1.7;
@@ -251,13 +826,13 @@
     color: var(--color-ink);
     padding-block: 0 0.5rem;
     padding-inline: 0 0.75rem;
-    border-bottom: 1.5px solid var(--color-ink);
+    border-bottom: 1.5px solid var(--color-line-2);
   }
   .prose-fix td {
     vertical-align: top;
     padding-block: 0.6rem;
     padding-inline: 0 0.75rem;
-    border-bottom: 1px solid var(--color-rule-soft);
+    border-bottom: 1px solid var(--color-line);
   }
   .prose-fix :is(th, td):last-child {
     padding-inline-end: 0;
