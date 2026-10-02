@@ -1212,3 +1212,18 @@
     background-color: Highlight;
   }
 }
+
+/* R7 report */
+
+/*
+ * While the report page loads, the island draws a blank placeholder until the API answers, and the
+ * footer under it is on the screen: when the report lands, the footer is thrown to the foot of it,
+ * a layout shift of 0.33 (Lighthouse's phone score fell to 78 for it) and a flash. So the footer
+ * waits, where it is but unseen, and is drawn with the first state, in its place. Not where
+ * scripting is off: there the placeholder never goes, and the footer is all there is.
+ */
+@media (scripting: enabled) {
+  body:has([data-report-loading]) > footer {
+    visibility: hidden;
+  }
+}

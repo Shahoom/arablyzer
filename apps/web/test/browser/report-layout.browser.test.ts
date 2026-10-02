@@ -175,7 +175,13 @@ describe.each(ENGINES)('the report page in %s', (engine) => {
     scanId: string,
     lang: 'ar' | 'en',
     ready: string,
-    options: { width?: number; height?: number; reducedMotion?: 'reduce' | 'no-preference' } = {},
+    options: {
+      width?: number
+      height?: number
+      reducedMotion?: 'reduce' | 'no-preference'
+      /** How long the API takes to answer, in ms: the page is on its placeholder until it does. */
+      delay?: number
+    } = {},
   ) {
     const context = await browser.newContext({
       viewport: { width: options.width ?? 390, height: options.height ?? 844 },
@@ -194,10 +200,22 @@ describe.each(ENGINES)('the report page in %s', (engine) => {
       if (new URL(route.request().url()).origin === site.origin) await route.fallback()
       else await route.abort('blockedbyclient')
     })
+    if (options.delay !== undefined) {
+      const delay = options.delay
+      await context.route('**/api/**', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, delay))
+        await route.fallback()
+      })
+    }
     const tab = await context.newPage()
+    // The paths asked for, in the order they were.
+    const requests: string[] = []
+    tab.on('request', (request) => {
+      requests.push(new URL(request.url()).pathname)
+    })
     await tab.goto(site.url(`${lang === 'ar' ? '' : '/en'}/r/${scanId}`))
     await tab.waitForSelector(ready, { timeout: 20_000 })
-    return { tab, close: () => context.close() }
+    return { tab, close: () => context.close(), requests }
   }
 
   const sideways = (tab: Awaited<ReturnType<typeof open>>['tab']) =>
@@ -616,6 +634,110 @@ describe.each(ENGINES)('the report page in %s', (engine) => {
         }
       }
     })
+  })
+
+  describe('while the report loads', () => {
+    it('asks for the report while it reads the scan, once, and for the scan once', async () => {
+      const { close, requests } = await open(DONE, 'ar', '#summary-title')
+      try {
+        const report = requests.filter((path) => path === `/api/reports/${DONE}`)
+        const scan = requests.filter((path) => path === `/api/scans/${DONE}`)
+        expect(report).toHaveLength(1)
+        expect(scan).toHaveLength(1)
+        // Asked for first: a finished scan's page does not wait for the scan to say it is finished.
+        expect(requests.indexOf(`/api/reports/${DONE}`)).toBeLessThan(
+          requests.indexOf(`/api/scans/${DONE}`),
+        )
+      } finally {
+        await close()
+      }
+    })
+
+    it('does not ask twice for a report that is not there', async () => {
+      const { close, requests } = await open(FAILED, 'ar', '#state-title')
+      try {
+        expect(requests.filter((path) => path === `/api/reports/${FAILED}`)).toHaveLength(1)
+      } finally {
+        await close()
+      }
+    })
+
+    it('keeps the footer unseen under the placeholder, then draws it with the report', async () => {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 } })
+      await context.route('**/*', async (route) => {
+        if (new URL(route.request().url()).origin !== site.origin)
+          await route.abort('blockedbyclient')
+        else if (new URL(route.request().url()).pathname.startsWith('/api/')) {
+          await new Promise((resolve) => setTimeout(resolve, 1200))
+          await route.fallback()
+        } else await route.fallback()
+      })
+      const tab = await context.newPage()
+      try {
+        await tab.goto(site.url(`/r/${DONE}`))
+        await tab.waitForSelector('[data-report-loading]')
+        expect(
+          await tab.locator('body > footer').evaluate((node) => getComputedStyle(node).visibility),
+        ).toBe('hidden')
+        await tab.waitForSelector('#summary-title', { timeout: 20_000 })
+        expect(
+          await tab.locator('body > footer').evaluate((node) => getComputedStyle(node).visibility),
+        ).toBe('visible')
+      } finally {
+        await context.close()
+      }
+    })
+
+    // The layout-shift entries are Chromium's alone. The footer under the placeholder was thrown to
+    // the foot of the report when it landed: 0.33, and Lighthouse's phone score fell to 78 for it.
+    it.skipIf(engine !== 'chromium')(
+      'draws the report with no layout shift, on a phone and on a desktop',
+      async () => {
+        for (const [width, height] of [
+          [390, 844],
+          [1440, 900],
+        ] as const) {
+          for (const lang of ['ar', 'en'] as const) {
+            const context = await browser.newContext({ viewport: { width, height } })
+            await context.addInitScript(() => {
+              const shifts: number[] = []
+              ;(window as unknown as { shifts: number[] }).shifts = shifts
+              new PerformanceObserver((list) => {
+                for (const entry of list.getEntries()) {
+                  const shift = entry as PerformanceEntry & {
+                    value: number
+                    hadRecentInput: boolean
+                  }
+                  if (!shift.hadRecentInput) shifts.push(shift.value)
+                }
+              }).observe({ type: 'layout-shift', buffered: true })
+            })
+            await context.route('**/*', async (route) => {
+              const url = new URL(route.request().url())
+              if (url.origin !== site.origin) await route.abort('blockedbyclient')
+              else if (url.pathname.startsWith('/api/')) {
+                // A service that takes its time: the placeholder is on the screen meanwhile.
+                await new Promise((resolve) => setTimeout(resolve, 600))
+                await route.fallback()
+              } else await route.fallback()
+            })
+            const tab = await context.newPage()
+            try {
+              await tab.goto(site.url(`${lang === 'ar' ? '' : '/en'}/r/${DONE}`))
+              await tab.waitForSelector('#summary-title', { timeout: 20_000 })
+              await tab.evaluate(() => document.fonts.ready)
+              await tab.waitForTimeout(1200)
+              const total = await tab.evaluate(() =>
+                (window as unknown as { shifts: number[] }).shifts.reduce((a, b) => a + b, 0),
+              )
+              expect(total, `${lang} at ${width}`).toBeLessThan(0.01)
+            } finally {
+              await context.close()
+            }
+          }
+        }
+      },
+    )
   })
 
   describe.each(['ar', 'en'] as const)('a tool’s result in %s', (lang) => {
