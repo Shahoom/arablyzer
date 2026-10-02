@@ -18,6 +18,29 @@ describe('the showcase', () => {
     expect(SHOWCASE.spacing.drawnBy).toEqual(['webkit'])
   })
 
+  // M2.6 R2: the home page's product shot is this report as a visitor's report shows it, so every
+  // number on it is one of these.
+  it('reads the rest of the report the product shot draws: severities, categories, third finding', () => {
+    expect(SHOWCASE.notApplicable).toBe(37)
+    expect(SHOWCASE.bySeverity).toEqual({ critical: 0, serious: 1, moderate: 1, minor: 0, info: 1 })
+    expect(SHOWCASE.categories).toMatchObject({
+      rtl: 67,
+      'ar-render': 0,
+      'ar-content': 100,
+      index: 100,
+    })
+    // A category with no score (no rule of it had weight and applied) is not a score of 0.
+    expect(SHOWCASE.categories).not.toHaveProperty('forms')
+    expect(SHOWCASE.categories).not.toHaveProperty('commerce')
+    expect(SHOWCASE.overflow.engines).toEqual(['chromium', 'firefox', 'webkit'])
+    expect(SHOWCASE.physical.count).toBe(5)
+    expect(SHOWCASE.physical.title).toEqual({
+      ar: 'CSS يحدد الجهات باليمين واليسار',
+      en: 'CSS that sets sides by left and right',
+    })
+    expect(SHOWCASE.physical.finding.severity).toBe('info')
+  })
+
   it('reads the four Arabic-layer findings with their evidence', () => {
     const { overflow, name, price } = SHOWCASE
     expect([overflow.overflow, overflow.viewport, overflow.x, overflow.width]).toEqual([
