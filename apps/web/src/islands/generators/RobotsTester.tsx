@@ -1,9 +1,10 @@
 import { robotsTest, type RobotsTestResult } from '@arablyzer/generators'
 import { GENERATORS_UI } from '@arablyzer/i18n/generators'
 import type { Lang } from '@arablyzer/seo/site'
+import { Check, TriangleAlert, X } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useState } from 'preact/hooks'
-import { FIELD, LABEL, SUBMIT } from './CopyBox'
+import { AREA, FIELD, LABEL, SUBMIT, ToolBox } from '../ToolBox'
 
 /**
  * Crawlers people ask about, by the product token their robots.txt groups name: the search
@@ -21,7 +22,17 @@ const CRAWLERS = [
 ]
 
 /** The robots.txt tester (M2.3b): a pasted file, judged by the robots rules' own code. */
-export default function RobotsTester({ lang, tool }: { lang: Lang; tool: string }) {
+export default function RobotsTester({
+  lang,
+  tool,
+  title,
+  dot,
+}: {
+  lang: Lang
+  tool: string
+  title: string
+  dot: string
+}) {
   const t = GENERATORS_UI[lang].robots
   const common = GENERATORS_UI[lang].common
   const [result, setResult] = useState<RobotsTestResult | 'bad-url' | null>(null)
@@ -41,69 +52,89 @@ export default function RobotsTester({ lang, tool }: { lang: Lang; tool: string 
     }
   }
   return (
-    <div className="flex flex-col gap-6" data-tool={tool}>
-      <form onSubmit={onSubmit} data-tool-kind="paste" className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="robots-file" className={LABEL}>
-            {t.file}
-          </label>
-          <textarea
-            id="robots-file"
-            name="robots"
-            rows={8}
-            dir="ltr"
-            spellcheck={false}
-            required
-            placeholder={'User-agent: *\nDisallow: /admin/'}
-            className={`${FIELD} h-auto py-2.5 font-mono text-sm`}
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
+    <div className="flex flex-col gap-5" data-tool={tool}>
+      <ToolBox lang={lang} title={title} dot={dot}>
+        <form onSubmit={onSubmit} data-tool-kind="paste" className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label htmlFor="robots-url" className={LABEL}>
-              {t.url}
+            <label htmlFor="robots-file" className={LABEL}>
+              {t.file}
             </label>
-            <input
-              id="robots-url"
-              name="url"
-              type="url"
+            <textarea
+              id="robots-file"
+              name="robots"
+              rows={8}
               dir="ltr"
+              spellcheck={false}
               required
-              placeholder="https://example.com/products/"
-              className={`${FIELD} font-mono`}
+              placeholder={'User-agent: *\nDisallow: /admin/'}
+              className={`${AREA} font-mono text-sm`}
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="robots-crawler" className={LABEL}>
-              {t.crawler}
-            </label>
-            <select id="robots-crawler" name="crawler" dir="ltr" className={`${FIELD} font-mono`}>
-              {CRAWLERS.map((crawler) => (
-                <option key={crawler} value={crawler}>
-                  {crawler}
-                </option>
-              ))}
-            </select>
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="robots-url" className={LABEL}>
+                {t.url}
+              </label>
+              <input
+                id="robots-url"
+                name="url"
+                type="url"
+                dir="ltr"
+                required
+                placeholder="https://example.com/products/"
+                className={`${FIELD} font-mono`}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="robots-crawler" className={LABEL}>
+                {t.crawler}
+              </label>
+              <select id="robots-crawler" name="crawler" dir="ltr" className={`${FIELD} font-mono`}>
+                {CRAWLERS.map((crawler) => (
+                  <option key={crawler} value={crawler}>
+                    {crawler}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-        <button type="submit" className={SUBMIT}>
-          {t.submit}
-        </button>
-        <p className="m-0 text-sm text-ink-3">{common.local}</p>
-      </form>
+          <button type="submit" className={SUBMIT}>
+            {t.submit}
+          </button>
+        </form>
+      </ToolBox>
+      <p className="m-0 px-1 text-center text-sm text-ink-3">{common.local}</p>
       {result === 'bad-url' ? (
-        <p role="alert" className="m-0 text-sm text-serious">
+        <p
+          role="alert"
+          className="m-0 flex items-start gap-2 rounded-2xl bg-serious-soft px-4 py-3 text-sm text-serious"
+        >
+          <TriangleAlert
+            size={16}
+            strokeWidth={2.2}
+            aria-hidden="true"
+            className="mt-0.5 shrink-0"
+          />
           {t.badUrl}
         </p>
       ) : (
         result !== null && (
           <section
             aria-label={common.result}
-            className={`flex flex-col gap-2 border-[1.5px] bg-white px-5 py-4 ${result.allowed ? 'border-pass' : 'border-serious'}`}
+            className={`card flex flex-col gap-2 border-2 px-5 py-4 ${result.allowed ? 'border-pass' : 'border-serious'}`}
           >
             <p
-              className={`m-0 text-lg font-semibold ${result.allowed ? 'text-pass' : 'text-serious'}`}
+              className={`m-0 flex items-center gap-2.5 text-lg font-semibold ${result.allowed ? 'text-pass' : 'text-serious'}`}
             >
+              <span
+                className={`grid size-7 shrink-0 place-items-center rounded-full ${result.allowed ? 'bg-pass-soft' : 'bg-serious-soft'}`}
+              >
+                {result.allowed ? (
+                  <Check size={16} strokeWidth={2.6} aria-hidden="true" />
+                ) : (
+                  <X size={16} strokeWidth={2.6} aria-hidden="true" />
+                )}
+              </span>
               {result.allowed ? t.allowed : t.blocked}
             </p>
             <p className="m-0 text-sm text-ink-2">
@@ -112,7 +143,7 @@ export default function RobotsTester({ lang, tool }: { lang: Lang; tool: string 
               ) : (
                 <>
                   {t.rule}{' '}
-                  <code dir="ltr" className="bg-paper px-1.5 font-mono">
+                  <code dir="ltr" className="rounded-md bg-surface-2 px-1.5 font-mono">
                     {result.rule.text}
                   </code>{' '}
                   {t.line(result.rule.line)}

@@ -236,6 +236,15 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
+    // The tools' directory and the tool pages' own parts driven in the browsers (M2.6 R3): the
+    // site's own pages on loopback, and every request off the site refused.
+    files: [
+      'apps/web/test/browser/directory.browser.test.ts',
+      'apps/web/test/browser/tool-page.browser.test.ts',
+    ],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
     // The generators and the paste tool driven in the browsers (M2.3b): the site's own pages on
     // loopback, and every request off the site refused.
     files: ['apps/web/test/browser/generators.browser.test.ts'],
