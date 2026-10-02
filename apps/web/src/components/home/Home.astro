@@ -9,8 +9,9 @@ import Counts from './Counts.astro'
 import Faq from './Faq.astro'
 import FinalCta from './FinalCta.astro'
 import Hero from './Hero.astro'
-import Honest from './Honest.astro'
 import HowItWorks from './HowItWorks.astro'
+import Monitoring from './Monitoring.astro'
+import Plans from './Plans.astro'
 import ToolsMarquee from './ToolsMarquee.astro'
 
 interface Props {
@@ -43,9 +44,10 @@ const jsonLd = [
   <Hero lang={lang} />
   <ToolsMarquee lang={lang} />
   <Counts lang={lang} />
-  <HowItWorks lang={lang} number={2} />
   <Bento lang={lang} />
-  <Honest lang={lang} number={5} />
-  <Faq lang={lang} number={6} />
+  <HowItWorks lang={lang} />
+  <Monitoring lang={lang} />
+  <Plans lang={lang} />
+  <Faq lang={lang} />
   <FinalCta lang={lang} />
 </Page>

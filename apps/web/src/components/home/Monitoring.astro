@@ -1,0 +1,188 @@
+---
+import { HOME } from '@arablyzer/i18n'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import Check from '@lucide/astro/icons/check'
+import TriangleAlert from '@lucide/astro/icons/triangle-alert'
+import { previewPoints } from '../../lib/home'
+import { scanFormHref } from '../../lib/site'
+import Bidi from '../Bidi.astro'
+
+/**
+ * The monitoring band: a dark navy panel with two glows, on what the dashboard will do. Its quiet
+ * text is panel-soft, not panel-dim: axe reads a glow as the solid colour it is under the blur, and
+ * on the indigo one (#42458c) panel-dim is 4.14:1, short of 4.5. The
+ * dashboard is Phase 4 and does not exist yet, so the band says so («قريباً») and has no link to
+ * it; its glass preview is made-up data and says that too. The line of the chart is drawn from a
+ * list of numbers, newest at the start of the line whichever way the page reads.
+ */
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = HOME[lang].monitoring
+const rtl = lang === 'ar'
+const points = previewPoints(rtl)
+const line = points.map((point) => `${point.x},${point.y}`).join(' ')
+const first = points[0]
+const last = points[points.length - 1]
+const area =
+  first === undefined || last === undefined
+    ? ''
+    : `M${first.x} 200 ${points.map((point) => `L${point.x} ${point.y}`).join(' ')} L${last.x} 200 Z`
+// The preview's numbers are an example: a score, how it moved, problems, pages.
+const KPIS = [
+  { key: 'score', value: '91', change: '+6' },
+  { key: 'problems', value: '2', change: null },
+  { key: 'pages', value: '24', change: null },
+] as const
+---
+
+<section aria-labelledby="monitoring-title" class="below-fold py-6">
+  <div class="wrap">
+    <div class="panel-dark relative overflow-hidden rounded-[32px] text-panel-text">
+      <span aria-hidden="true" class="glow glow-teal"></span>
+      <span aria-hidden="true" class="glow glow-indigo"></span>
+      <div class="relative grid items-center gap-10 p-6 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:p-16">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="kick bg-[rgb(94_234_212/0.14)] text-panel-pass">{t.kicker}</span>
+            <span class="inline-flex h-[30px] items-center rounded-full border border-dashed border-panel-tick px-3 text-[13px] font-semibold text-panel-text">
+              {t.soon}
+            </span>
+          </div>
+          <h2
+            id="monitoring-title"
+            class="m-0 mt-3.5 text-[30px] leading-[1.3] font-semibold text-balance lg:text-[40px]"
+          >
+            {t.title}
+          </h2>
+          <p class="m-0 mt-3.5 text-[17px] leading-[1.85] text-panel-soft">{t.text}</p>
+          <ul class="m-0 mt-6 mb-7 flex list-none flex-col gap-3 p-0 text-base text-panel-text">
+            {t.points.map((point) => (
+              <li class="flex items-center gap-2.5">
+                <Check
+                  size={20}
+                  stroke-width={1.8}
+                  aria-hidden="true"
+                  class="shrink-0 text-panel-pass"
+                />
+                {point}
+              </li>
+            ))}
+          </ul>
+          <div class="flex flex-wrap gap-3">
+            <a href={scanFormHref(lang)} class="btn-light btn-lg">
+              {t.scan}
+            </a>
+            <a href={`${localePath(lang, PATHS.home)}#plans`} class="btn-outline-light btn-lg">
+              {t.plans}
+            </a>
+          </div>
+        </div>
+
+        <figure
+          aria-label={t.preview.label}
+          class="relative m-0 flex flex-col gap-4 rounded-[22px] border border-white/12 bg-white/6 p-5 backdrop-blur-[10px]"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <span class="inline-flex items-center gap-2.5 font-semibold">
+              <span
+                aria-hidden="true"
+                class="grid size-[30px] place-items-center rounded-[9px] bg-[linear-gradient(135deg,#14b8a6,#6366f1)] text-[13px]"
+                lang="en"
+              >
+                M
+              </span>
+              <bdi dir="ltr">matjar.example</bdi>
+            </span>
+            <span class="inline-flex h-[26px] shrink-0 items-center gap-2 rounded-full bg-[rgb(94_234_212/0.14)] px-2.5 text-xs font-semibold whitespace-nowrap text-panel-pass">
+              <i aria-hidden="true" class="live size-[7px] rounded-full bg-panel-pass"></i>
+              {t.preview.live}
+            </span>
+          </div>
+          <dl class="m-0 grid grid-cols-3 gap-2.5">
+            {KPIS.map((kpi) => (
+              <div class="rounded-[14px] bg-white/6 p-3">
+                <dt class="text-xs text-panel-soft">{t.preview[kpi.key]}</dt>
+                <dd class="m-0">
+                  <b class="text-[26px] font-semibold tabular-nums">{kpi.value}</b>
+                  {kpi.change !== null && (
+                    <small class="ms-1 text-xs text-panel-pass">
+                      <bdi dir="ltr">{kpi.change}</bdi>
+                    </small>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <svg viewBox="0 0 640 200" aria-hidden="true" class="block h-auto w-full">
+            <defs>
+              <linearGradient id="home-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.45"></stop>
+                <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"></stop>
+              </linearGradient>
+            </defs>
+            <path d="M0 40H640M0 100H640M0 160H640" fill="none" stroke="rgb(255 255 255 / 0.08)" />
+            <path d={area} fill="url(#home-area)"></path>
+            <polyline
+              points={line}
+              fill="none"
+              stroke="#5eead4"
+              stroke-width="2.5"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            ></polyline>
+          </svg>
+          <p class="m-0 flex items-center gap-2.5 rounded-xl bg-[rgb(244_63_94/0.12)] px-3 py-2.5 text-[13px] text-[#fecdd3]">
+            <TriangleAlert size={16} stroke-width={1.8} aria-hidden="true" class="shrink-0" />
+            <Bidi text={t.preview.alert} lang={lang} />
+          </p>
+          <span class="absolute end-5 -top-3 inline-flex h-[22px] items-center rounded-full border border-dashed border-panel-tick bg-panel px-2.5 text-[11px] text-panel-soft">
+            {t.preview.example}
+          </span>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+  }
+  .glow-teal {
+    inset-block-start: -160px;
+    inset-inline-start: -80px;
+    width: 520px;
+    height: 520px;
+    background: #0d9488;
+    opacity: 0.45;
+  }
+  .glow-indigo {
+    inset-block-end: -200px;
+    inset-inline-end: -60px;
+    width: 560px;
+    height: 560px;
+    background: #4f46e5;
+    opacity: 0.45;
+  }
+  .live {
+    animation: home-pulse 2s ease-out infinite;
+  }
+  @keyframes home-pulse {
+    from {
+      box-shadow: 0 0 0 0 rgb(94 234 212 / 0.6);
+    }
+    to {
+      box-shadow: 0 0 0 10px rgb(94 234 212 / 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live {
+      animation: none;
+    }
+  }
+</style>
