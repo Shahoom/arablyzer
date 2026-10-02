@@ -45,8 +45,14 @@ const t = HOME[lang].faq
 </section>
 
 <style>
-  /* The browser's placeholder until the section is laid out: four closed questions. */
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
   .strip {
-    contain-intrinsic-size: auto 330px;
+    contain-intrinsic-size: auto 356px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 402px;
+    }
   }
 </style>

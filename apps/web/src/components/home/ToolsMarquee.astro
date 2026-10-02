@@ -56,9 +56,10 @@ const tools = MARQUEE_TOOL_SLUGS.map((slug) => {
 </section>
 
 <style>
-  /* A strip of about 100 px: the browser's placeholder until it is laid out. */
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
   .strip {
-    contain-intrinsic-size: auto 100px;
+    contain-intrinsic-size: auto 76px;
   }
   /* The chips of the row are names, not links: they do not lift, and they keep the page's ground. */
   .item {

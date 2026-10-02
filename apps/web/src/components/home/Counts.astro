@@ -57,13 +57,19 @@ const stats = [
 </section>
 
 <style>
-  /* A strip of about 220 px on a phone, 120 on a desktop: the browser's placeholder until it is laid out. */
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
   .strip {
-    contain-intrinsic-size: auto 220px;
+    contain-intrinsic-size: auto 216px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 152px;
+    }
   }
   @media (min-width: 64rem) {
     .strip {
-      contain-intrinsic-size: auto 120px;
+      contain-intrinsic-size: auto 116px;
     }
   }
 </style>

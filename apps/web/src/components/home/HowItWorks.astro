@@ -49,13 +49,19 @@ const t = HOME[lang].how
 </section>
 
 <style>
-  /* The browser's placeholder until the section is laid out. */
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
   .strip {
-    contain-intrinsic-size: auto 400px;
+    contain-intrinsic-size: auto 355px;
   }
   @media (min-width: 48rem) {
     .strip {
-      contain-intrinsic-size: auto 340px;
+      contain-intrinsic-size: auto 262px;
+    }
+  }
+  @media (min-width: 64rem) {
+    .strip {
+      contain-intrinsic-size: auto 245px;
     }
   }
   /* A phone's line from one number to the next: 2 px, in the middle of the 40 px number. */

@@ -360,14 +360,19 @@ const row =
 </section>
 
 <style>
-  /* The browser's placeholder until the section is laid out: a phone's list is about 800 px, a
-     desktop's grid about 900. */
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
   .strip {
-    contain-intrinsic-size: auto 800px;
+    contain-intrinsic-size: auto 1000px;
   }
   @media (min-width: 48rem) {
     .strip {
-      contain-intrinsic-size: auto 900px;
+      contain-intrinsic-size: auto 1860px;
+    }
+  }
+  @media (min-width: 80rem) {
+    .strip {
+      contain-intrinsic-size: auto 1120px;
     }
   }
   /* The gap between the letters of the heading in WebKit's row: it opens and closes. */
