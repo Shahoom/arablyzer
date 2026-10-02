@@ -12,8 +12,8 @@ import { searchable } from '../../lib/search'
 import { siteOf } from '../../lib/site'
 import { ARABIC_LAYER, CATEGORY_STYLE, toolsByCategory } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
+import PageColumns from '../PageColumns.astro'
 import PageHead from '../PageHead.astro'
-import CategoryIcon from './CategoryIcon.astro'
 import ToolCard from './ToolCard.astro'
 
 interface Props {
@@ -24,7 +24,7 @@ const t = TOOLS_UI[lang]
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, PATHS.tools)
 const groups = toolsByCategory()
-// The Arabic layer first, in the chips as in the list.
+// The Arabic layer first, in the filter as in the list.
 const general = groups.filter((group) => !ARABIC_LAYER.has(group.category))
 const arabic = groups.filter((group) => ARABIC_LAYER.has(group.category))
 const count = groups.reduce((sum, group) => sum + group.tools.length, 0)
@@ -51,8 +51,9 @@ const jsonLd = [
       })),
   },
 ]
-// A category's chip: a button that is pressed or not (the filter below the search).
-const chip = 'chip'
+// A category's button in the vertical list of a wide screen: a row that is pressed or not.
+const row =
+  'flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 text-start text-small text-ink-2 hover:bg-surface-2 hover:text-ink aria-pressed:bg-indigo-soft aria-pressed:text-indigo-ink'
 ---
 
 <Page
@@ -68,10 +69,10 @@ const chip = 'chip'
     title={t.directory.title}
   >
     <Bidi slot="lead" text={t.directory.intro} lang={lang} />
-    <div slot="end" class="flex w-full shrink-0 flex-col gap-3 lg:w-[480px]">
+    <div slot="end" class="flex w-full shrink-0 flex-col gap-2 lg:w-[480px]">
       <div
         role="search"
-        class="flex h-14 items-center gap-3 rounded-2xl border border-field bg-white px-4 shadow focus-within:border-indigo focus-within:ring-4 focus-within:ring-indigo/15"
+        class="flex h-12 items-center gap-2.5 rounded-xl border border-field bg-white px-3.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo"
       >
         <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
         <label for="tools-search" class="sr-only">
@@ -82,16 +83,16 @@ const chip = 'chip'
           type="search"
           autocomplete="off"
           placeholder={t.directory.searchPlaceholder}
-          class="h-full min-w-0 grow border-0 bg-transparent text-base text-ellipsis text-ink outline-none placeholder:text-ink-3 md:text-[17px] [&::-webkit-search-cancel-button]:hidden"
+          class="h-full min-w-0 grow border-0 bg-transparent text-body text-ellipsis text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
         />
       </div>
-      <p class="m-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-ink-2">
+      <p class="m-0 flex flex-wrap items-center justify-between gap-x-4 text-small text-ink-2">
         <span id="tools-count" aria-live="polite" data-shown={JSON.stringify(shown)}>
           {t.directory.count(count)}
         </span>
         <a
           href={localePath(lang, PATHS.knowledge)}
-          class="inline-flex h-9 items-center gap-1.5 font-semibold text-brand-ink underline-offset-4 hover:text-ink hover:underline"
+          class="inline-flex min-h-11 items-center gap-1.5 font-semibold text-brand-ink underline-offset-4 hover:text-ink hover:underline"
         >
           {KNOWLEDGE_UI[lang].searchAll}
           <Next size={16} stroke-width={2} aria-hidden="true" />
@@ -100,48 +101,24 @@ const chip = 'chip'
     </div>
   </PageHead>
 
-  <div class:list={['wrap pb-16 md:pb-24', HEAD.bodyTop]}>
-    <div role="group" aria-labelledby="categories-title" class="flex flex-col gap-3 pb-8 md:pb-10">
-      <h2 id="categories-title" class="sr-only">
-        {t.directory.categories}
-      </h2>
-      {/* One row that scrolls sideways on a phone, so fifteen chips are not six lines of them. It bleeds
-          to the screen's edges by exactly the page's gutter, whatever the gutter is. */}
-      <div class="-mx-gutter w-[calc(100%+2*var(--gutter))] overflow-x-auto px-gutter pb-1 [scrollbar-width:none] md:mx-0 md:w-full md:overflow-visible md:px-0">
-        <div class="flex w-max items-center gap-2.5 md:w-full md:flex-wrap">
-          <button type="button" class={chip} aria-pressed="true" data-filter="all">
+  {/* The categories come before the list on a phone and stick beside it on a wide screen. The same
+      buttons are drawn twice, each for its screen (the other is hidden): below lg a row of chips that
+      scrolls sideways, from lg a vertical list with the Arabic layer named. */}
+  <PageColumns asideFirst asideAs="div" class:list={[HEAD.bodyTop, 'pb-section']}>
+    <Fragment slot="aside">
+      <div role="group" aria-labelledby="categories-title" class="flex flex-col gap-3">
+        <h2
+          id="categories-title"
+          class="sr-only lg:not-sr-only lg:m-0 lg:px-3 lg:text-meta lg:font-semibold lg:text-ink-3"
+        >
+          {t.directory.categories}
+        </h2>
+        <div class="scroll-row lg:hidden">
+          <button type="button" class="chip" aria-pressed="true" data-filter="all">
             {t.directory.all}
           </button>
-          {arabic.length > 0 && (
-            <>
-              <span aria-hidden="true" class="mx-1 h-6 w-px shrink-0 bg-line-2" />
-              <span class="shrink-0 text-xs font-semibold text-brand-ink">
-                {t.directory.arabicLayer}
-              </span>
-              {arabic.map((group) => (
-                <button
-                  type="button"
-                  class={chip}
-                  aria-pressed="false"
-                  data-filter={group.category}
-                >
-                  <span
-                    aria-hidden="true"
-                    class:list={[
-                      'size-2 shrink-0 rounded-full',
-                      CATEGORY_STYLE[group.category].dot,
-                    ]}
-                  />
-                  {t.categories[group.category].name}
-                </button>
-              ))}
-              {general.length > 0 && (
-                <span aria-hidden="true" class="mx-1 h-6 w-px shrink-0 bg-line-2" />
-              )}
-            </>
-          )}
-          {general.map((group) => (
-            <button type="button" class={chip} aria-pressed="false" data-filter={group.category}>
+          {[...arabic, ...general].map((group) => (
+            <button type="button" class="chip" aria-pressed="false" data-filter={group.category}>
               <span
                 aria-hidden="true"
                 class:list={['size-2 shrink-0 rounded-full', CATEGORY_STYLE[group.category].dot]}
@@ -150,40 +127,66 @@ const chip = 'chip'
             </button>
           ))}
         </div>
+        <div class="hidden flex-col gap-0.5 lg:flex">
+          <button type="button" class={row} aria-pressed="true" data-filter="all">
+            <span class="min-w-0 grow">{t.directory.all}</span>
+            <span aria-hidden="true" class="text-meta text-ink-2 tabular-nums">
+              {count}
+            </span>
+          </button>
+          {arabic.length > 0 && (
+            <p class="m-0 px-3 pt-4 pb-1 text-meta font-semibold text-brand-ink">
+              {t.directory.arabicLayer}
+            </p>
+          )}
+          {arabic.map((group) => (
+            <button type="button" class={row} aria-pressed="false" data-filter={group.category}>
+              <span
+                aria-hidden="true"
+                class:list={['size-2 shrink-0 rounded-full', CATEGORY_STYLE[group.category].dot]}
+              />
+              <span class="min-w-0 grow">{t.categories[group.category].name}</span>
+              <span aria-hidden="true" class="text-meta text-ink-2 tabular-nums">
+                {group.tools.length}
+              </span>
+            </button>
+          ))}
+          {arabic.length > 0 && general.length > 0 && (
+            <div aria-hidden="true" class="my-2 h-px bg-line" />
+          )}
+          {general.map((group) => (
+            <button type="button" class={row} aria-pressed="false" data-filter={group.category}>
+              <span
+                aria-hidden="true"
+                class:list={['size-2 shrink-0 rounded-full', CATEGORY_STYLE[group.category].dot]}
+              />
+              <span class="min-w-0 grow">{t.categories[group.category].name}</span>
+              <span aria-hidden="true" class="text-meta text-ink-2 tabular-nums">
+                {group.tools.length}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+    </Fragment>
 
-    <div id="tools-list" class="flex min-w-0 flex-col gap-12 md:gap-14">
+    <div id="tools-list" class="flex min-w-0 flex-col gap-8 lg:gap-10">
       {[...arabic, ...general].map((group) => (
         <section
           id={`cat-${group.category}`}
           aria-labelledby={`cat-${group.category}-title`}
           data-category={group.category}
-          class="flex flex-col gap-5"
+          class="flex flex-col gap-3"
         >
-          <div class="flex items-start gap-3.5">
-            <span
-              aria-hidden="true"
-              class:list={[
-                'grid size-11 shrink-0 place-items-center rounded-[14px]',
-                CATEGORY_STYLE[group.category].chip,
-              ]}
-            >
-              <CategoryIcon category={group.category} size={22} />
-            </span>
-            <div class="flex min-w-0 flex-col gap-1">
-              <h2
-                id={`cat-${group.category}-title`}
-                class="m-0 text-2xl leading-[1.35] font-semibold md:text-[28px]"
-              >
-                {t.categories[group.category].name}
-              </h2>
-              <p class="m-0 max-w-[68ch] text-[15px] leading-[1.7] text-ink-2 md:text-base">
-                {t.categories[group.category].blurb}
-              </p>
-            </div>
+          <div class="flex flex-col gap-1">
+            <h2 id={`cat-${group.category}-title`} class="heading-2">
+              {t.categories[group.category].name}
+            </h2>
+            <p class="m-0 max-w-[68ch] text-small text-ink-2 max-md:hidden">
+              {t.categories[group.category].blurb}
+            </p>
           </div>
-          <ul class="m-0 grid list-none gap-4 p-0 md:grid-cols-2 lg:grid-cols-3">
+          <ul class="tool-rows card m-0 flex list-none flex-col overflow-hidden p-0">
             {group.tools.map((tool) => (
               <li
                 data-tool
@@ -202,21 +205,33 @@ const chip = 'chip'
       <p
         id="tools-none"
         hidden
-        class="m-0 rounded-2xl border border-dashed border-field p-6 text-center text-base text-ink-2"
+        class="m-0 rounded-card border border-dashed border-field p-card text-center text-body text-ink-2"
       >
         {t.directory.none}
       </p>
     </div>
-  </div>
+  </PageColumns>
 </Page>
+
+<style>
+  /*
+   * A hairline between the rows that are shown. The search hides the rows it does not match, so a
+   * border on every row but the last would leave one under the last row left, beside the card's own.
+   */
+  .tool-rows > li:not([hidden]) ~ li:not([hidden]) {
+    border-top: 1px solid var(--color-line);
+  }
+</style>
 
 <script>
   import { matchesAll, searchWords } from '../../lib/search'
 
-  // The directory's search and its category chips: cards whose name or line holds every word typed,
+  // The directory's search and its category buttons: rows whose name or line holds every word typed,
   // read as people type Arabic (lib/search.ts), within the category chosen, and the sections they
-  // are in. The page works without any of it, every tool listed. A chip pressed again lets go of
-  // its category; the address keeps the category (#cat-…), as a tool page's breadcrumb names it.
+  // are in. The page works without any of it, every tool listed. A button pressed again lets go of
+  // its category; the address keeps the category (#cat-…), as a tool page's breadcrumb names it. The
+  // category buttons are drawn twice (a row of chips and a vertical list, one of them hidden by the
+  // screen's width), and both are pressed together.
   const input = document.querySelector<HTMLInputElement>('#tools-search')
   const count = document.querySelector<HTMLElement>('#tools-count')
   const none = document.querySelector<HTMLElement>('#tools-none')
