@@ -1,5 +1,7 @@
 ---
 import type { Lang } from '@arablyzer/seo/site'
+import ChevronLeft from '@lucide/astro/icons/chevron-left'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
 import Bidi from '../Bidi.astro'
 
 /**
@@ -7,6 +9,11 @@ import Bidi from '../Bidi.astro'
  * (stretched over the whole tile, so the tile is one link and nothing is nested), what the tile
  * shows in the slot, and `example` when the tile's data is made up, which it must say. Hovering
  * lifts the tile; the focus ring is drawn around the tile, not around its heading.
+ *
+ * On a phone (M2.6 R7) a tile is a row of the list: the icon, the heading and a chevron, 68 px
+ * tall, and what it shows (an illustration made of example data) is for md and up. The tile that
+ * is `featured` keeps its content on a phone too: it is the one that shows real data. The
+ * «مثال» mark goes with the illustration it marks.
  */
 interface Props {
   lang: Lang
@@ -17,26 +24,34 @@ interface Props {
   tone: 'teal' | 'pink' | 'green' | 'indigo' | 'amber' | 'emerald' | 'blue'
   /** The word that marks made-up data («مثال»); left out when the tile shows real data. */
   example?: string | undefined
+  /** Whether a phone shows the tile's content under its heading. */
+  featured?: boolean
   class?: string | undefined
 }
-const { lang, title, href, tool, tone, example, class: className } = Astro.props
+const { lang, title, href, tool, tone, example, featured = false, class: className } = Astro.props
+const Chevron = lang === 'ar' ? ChevronLeft : ChevronRight
 ---
 
 <article
   class:list={[
-    'card-lift relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-line bg-surface p-6 shadow has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-3 has-[a:focus-visible]:outline-indigo',
+    'card card-lift relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 overflow-hidden p-card has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-3 has-[a:focus-visible]:outline-indigo md:flex md:flex-col md:items-stretch md:gap-3',
     className,
   ]}
 >
   {example !== undefined && (
-    <span class="absolute end-5 top-5 inline-flex h-[22px] items-center rounded-full border border-dashed border-field px-2 text-[11px] text-ink-2">
+    <span class="absolute end-4 top-4 hidden h-[22px] items-center rounded-full border border-dashed border-field px-2 text-xs text-ink-2 md:inline-flex">
       {example}
     </span>
   )}
-  <span class:list={['grid size-11 place-items-center rounded-[14px] text-white', `tone-${tone}`]}>
+  <span
+    class:list={[
+      'tile-icon grid size-9 place-items-center rounded-[11px] text-white md:size-11 md:rounded-[14px]',
+      `tone-${tone}`,
+    ]}
+  >
     <slot name="icon" />
   </span>
-  <h3 class="m-0 text-xl leading-[1.45] font-semibold">
+  <h3 class="heading-3 m-0">
     <a
       href={href}
       class="text-ink after:absolute after:inset-0 hover:text-ink focus-visible:outline-none"
@@ -45,7 +60,15 @@ const { lang, title, href, tool, tone, example, class: className } = Astro.props
       <span class="sr-only"> — {tool}</span>
     </a>
   </h3>
-  <slot />
+  <Chevron size={18} stroke-width={2} aria-hidden="true" class="text-ink-3 md:hidden" />
+  <div
+    class:list={[
+      'min-w-0 flex-col gap-3 md:flex md:flex-1',
+      featured ? 'col-span-3 flex' : 'hidden',
+    ]}
+  >
+    <slot />
+  </div>
 </article>
 
 <style>
@@ -69,5 +92,16 @@ const { lang, title, href, tool, tone, example, class: className } = Astro.props
   }
   .tone-blue {
     background-image: linear-gradient(135deg, #1d4ed8, #60a5fa);
+  }
+  /* The icon is drawn smaller in the phone's row (a 36 px square) than in a tile (44 px). */
+  .tile-icon :global(svg) {
+    width: 20px;
+    height: 20px;
+  }
+  @media (min-width: 48rem) {
+    .tile-icon :global(svg) {
+      width: 22px;
+      height: 22px;
+    }
   }
 </style>
