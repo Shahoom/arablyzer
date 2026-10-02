@@ -134,7 +134,7 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
         'Search every Arablyzer rule and tool, the fix guides for Search Console messages, and the meaning of every SEO and web term, in Arabic and English.',
     },
     title: 'Knowledge',
-    lead: 'Every rule we check with, every tool, the fix guides for Search Console messages, and the meaning of every term, in one search.',
+    lead: 'Every rule we check with, every tool, every fix guide and every term, in one search.',
     breadcrumb: 'Breadcrumb',
     search: {
       label: 'Search the knowledge',

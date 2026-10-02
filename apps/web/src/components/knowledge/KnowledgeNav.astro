@@ -1,0 +1,44 @@
+---
+import { GUIDES_UI, KNOWLEDGE_UI, RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
+import type { KnowledgeType } from '@arablyzer/i18n/knowledge'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import { knowledgeTotals } from '../../lib/knowledge'
+
+/**
+ * The knowledge section's four directories as a list with their counts (M2.6 R7), for the aside
+ * of each: the one the visitor is in is marked (`aria-current`). It is how the glossary, which
+ * the header does not list, is reached from its neighbours, and how the directories lead to one
+ * another. The counts are the registries' own (lib/knowledge.ts), as the hub's tiles are.
+ */
+interface Props {
+  lang: Lang
+  /** The directory this page is. */
+  current: KnowledgeType
+}
+const { lang, current } = Astro.props
+const totals = knowledgeTotals()
+const rows: { type: KnowledgeType; name: string; href: string }[] = [
+  { type: 'tool', name: TOOLS_UI[lang].directory.title, href: localePath(lang, PATHS.tools) },
+  { type: 'rule', name: RULES_UI[lang].library.title, href: localePath(lang, PATHS.rules) },
+  { type: 'fix', name: GUIDES_UI[lang].fix.title, href: localePath(lang, PATHS.fix) },
+  { type: 'term', name: GUIDES_UI[lang].glossary.title, href: localePath(lang, PATHS.glossary) },
+]
+---
+
+<nav aria-labelledby="knowledge-nav-title" class="kb-box flex flex-col gap-0.5 p-3">
+  <h2 id="knowledge-nav-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+    {KNOWLEDGE_UI[lang].browse.label}
+  </h2>
+  {rows.map((row) => (
+    <a
+      href={row.href}
+      aria-current={row.type === current ? 'page' : undefined}
+      class="group kb-link text-ink aria-[current=page]:bg-indigo-soft aria-[current=page]:text-indigo-ink"
+    >
+      <span>{row.name}</span>
+      <span dir="ltr" class="text-ink-2 tabular-nums group-aria-[current=page]:text-indigo-ink">
+        {totals[row.type]}
+      </span>
+    </a>
+  ))}
+</nav>

@@ -111,7 +111,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
       breadcrumb: 'مسار الصفحة',
       title: 'ArablyzerBot، بوت Arablyzer',
       intro:
-        'البرنامج الذي يجلب صفحة من موقعك حين يطلب أحد فحصها في Arablyzer. هنا ما يفعله بالضبط، وما لا يفعله أبداً، وكيف تمنعه.',
+        'البرنامج الذي يجلب صفحتك حين يطلب أحد فحصها: ما يفعله، وما لا يفعله أبداً، وكيف تمنعه.',
       contents: 'في هذه الصفحة',
       identify: {
         title: 'كيف تعرفه',
@@ -177,7 +177,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
     },
     notFound: {
       title: 'لا صفحة بهذا الرابط',
-      text: 'ربما تغيّر الرابط أو كُتب خطأً. هذه صفحات تجد منها ما تبحث عنه:',
+      text: 'ربما تغيّر الرابط أو كُتب خطأً. ابحث عمّا تريد، أو اختر صفحة:',
       links: {
         home: 'الصفحة الرئيسية',
         tools: 'كل الأدوات',
@@ -201,7 +201,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
       breadcrumb: 'Breadcrumb',
       title: 'ArablyzerBot, Arablyzer’s bot',
       intro:
-        'The program that fetches a page of your site when someone asks Arablyzer to check it. Here is exactly what it does, what it never does, and how to block it.',
+        'The bot that fetches your page for a check: what it does, what it never does, how to block it.',
       contents: 'On this page',
       identify: {
         title: 'How to recognise it',
@@ -267,7 +267,7 @@ export const PAGES_UI: Copy<PagesStrings> = {
     },
     notFound: {
       title: 'No page at this address',
-      text: 'The address may have changed, or been mistyped. These pages lead to what you are looking for:',
+      text: 'The address may have changed, or been mistyped. Search for what you need, or pick a page:',
       links: {
         home: 'Home',
         tools: 'All tools',

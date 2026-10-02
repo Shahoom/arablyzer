@@ -1,13 +1,16 @@
 import { KNOWLEDGE_UI } from '@arablyzer/i18n'
 import { STRINGS } from '@arablyzer/seo/strings'
 import { describe, expect, it } from 'vitest'
-import { knowledgeIndex } from '../src/lib/knowledge'
+import { knowledgeIndex, knowledgeTotals } from '../src/lib/knowledge'
 import {
   countByType,
+  dotOf,
   groupsOf,
+  GROUP_LIMIT,
   indexItems,
   KNOWLEDGE_TYPES,
   search,
+  splitGroup,
   typeFilterOf,
   type KnowledgeItem,
 } from '../src/lib/knowledge-search'
@@ -15,7 +18,8 @@ import { GUIDES_DATA } from '../src/lib/guide-data'
 import { LIBRARY_DATA } from '../src/lib/rule-data'
 import { TOOLS_DATA } from '../src/lib/tool-data'
 
-// The knowledge hub (M2.6 R5): its index, built from the registries, and its search.
+// The knowledge hub (M2.6 R5, R7): its index, built from the registries, its search, and how a group
+// of results is split between the rows shown and «show all».
 
 const item = (fields: Partial<KnowledgeItem> & Pick<KnowledgeItem, 'title'>): KnowledgeItem => ({
   type: 'tool',
@@ -195,5 +199,53 @@ describe('the hub’s search', () => {
     expect(found('Soft 404').length).toBeGreaterThan(0)
     // «ال» is read with or without.
     expect(found('الاتجاه').length).toBe(found('اتجاه').length)
+  })
+})
+
+describe('the hub’s groups (M2.6 R7)', () => {
+  const rows = (count: number) => Array.from({ length: count }, (_, position) => position)
+
+  it('shows the first rows of a long group and keeps the rest, in order, behind «show all»', () => {
+    const long = splitGroup(rows(44))
+    expect(long.shown).toEqual(rows(GROUP_LIMIT))
+    expect(long.rest).toEqual(rows(44).slice(GROUP_LIMIT))
+    expect([...long.shown, ...long.rest]).toEqual(rows(44))
+    expect(splitGroup(rows(10), 3)).toEqual({ shown: [0, 1, 2], rest: [3, 4, 5, 6, 7, 8, 9] })
+  })
+
+  it('shows whole a group that is a row or two over the limit, and one that is under it', () => {
+    // A control that reveals one more row costs more than the row.
+    for (const count of [0, 1, GROUP_LIMIT, GROUP_LIMIT + 1, GROUP_LIMIT + 2]) {
+      expect(splitGroup(rows(count)), String(count)).toEqual({ shown: rows(count), rest: [] })
+    }
+    expect(splitGroup(rows(GROUP_LIMIT + 3)).rest).toHaveLength(3)
+  })
+
+  it('holds the registries’ groups to the limit: each of the hub’s four is long enough to split', () => {
+    const totals = knowledgeTotals()
+    for (const type of KNOWLEDGE_TYPES) {
+      expect(totals[type], type).toBeGreaterThan(GROUP_LIMIT + 2)
+    }
+  })
+
+  it('totals what the registries hold, the same as the index counts', () => {
+    expect(knowledgeTotals()).toEqual({
+      tool: TOOLS_DATA.tools.length,
+      rule: LIBRARY_DATA.rules.length,
+      fix: GUIDES_DATA.fix.length,
+      term: GUIDES_DATA.glossary.length,
+    })
+    for (const lang of ['ar', 'en'] as const) {
+      expect(knowledgeIndex(lang).totals).toEqual(knowledgeTotals())
+    }
+  })
+
+  it('draws a row’s dot in its category’s colour, and a quiet one for a term', () => {
+    const tones = ['bg-cat-render', 'bg-serious']
+    expect(dotOf(0, tones)).toBe('bg-cat-render')
+    expect(dotOf(1, tones)).toBe('bg-serious')
+    // A term has no category (tone -1), and a tone with no colour never leaves a row bare.
+    expect(dotOf(-1, tones)).toBe('bg-field')
+    expect(dotOf(7, tones)).toBe('bg-field')
   })
 })

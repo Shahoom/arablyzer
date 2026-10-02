@@ -3,8 +3,8 @@ import type { KnowledgeType } from '@arablyzer/i18n/knowledge'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { GUIDE_STATUS_DOT, GUIDES_DATA } from './guide-data'
 import type { KnowledgeItem } from './knowledge-search'
-import { rulesByCategory } from './rule-data'
-import { ARABIC_LAYER, CATEGORY_STYLE, toolsByCategory } from './tool-data'
+import { LIBRARY_DATA, rulesByCategory } from './rule-data'
+import { ARABIC_LAYER, CATEGORY_STYLE, TOOLS_DATA, toolsByCategory } from './tool-data'
 
 // The knowledge hub's index (M2.6 R5), built from the registries at build time: every tool, rule,
 // fix guide and glossary term, in the page's language, each with the other language's title for
@@ -17,6 +17,19 @@ export interface KnowledgeIndex {
   readonly tones: readonly string[]
   /** How many pages of each kind, which the tiles and the chips show. */
   readonly totals: Readonly<Record<KnowledgeType, number>>
+}
+
+/**
+ * How many pages of each kind the registries hold: what the hub's tiles and the directories' side
+ * lists say. Read from the registries, so a directory's own count cannot drift from the hub's.
+ */
+export function knowledgeTotals(): Readonly<Record<KnowledgeType, number>> {
+  return {
+    tool: TOOLS_DATA.tools.length,
+    rule: LIBRARY_DATA.rules.length,
+    fix: GUIDES_DATA.fix.length,
+    term: GUIDES_DATA.glossary.length,
+  }
 }
 
 export function knowledgeIndex(lang: Lang): KnowledgeIndex {

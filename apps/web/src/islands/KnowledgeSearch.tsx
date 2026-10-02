@@ -195,7 +195,10 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
                     <span aria-hidden="true" className={`kb-dot ${dotOf(item.tone, tones)}`} />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="flex items-start justify-between gap-3">
-                        <span className="min-w-0 text-body font-semibold [overflow-wrap:anywhere] group-hover:text-brand-ink">
+                        <span
+                          data-part="title"
+                          className="min-w-0 text-body font-semibold [overflow-wrap:anywhere] group-hover:text-brand-ink"
+                        >
                           <Bidi text={item.title} lang={lang} />
                         </span>
                         {item.severity !== undefined && (
@@ -204,7 +207,10 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
                           </span>
                         )}
                       </span>
-                      <span className="line-clamp-2 text-small text-ink-2 [overflow-wrap:anywhere] max-md:line-clamp-1">
+                      <span
+                        data-part="summary"
+                        className="line-clamp-2 text-small text-ink-2 [overflow-wrap:anywhere] max-md:line-clamp-1"
+                      >
                         <Rich text={item.text} lang={lang} />
                       </span>
                     </span>
@@ -279,7 +285,7 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
         aria-labelledby="knowledge-filter-title"
         className="page-aside page-aside-sticky hidden lg:block"
       >
-        <div className="card flex flex-col gap-0.5 p-3">
+        <div className="kb-box flex flex-col gap-0.5 p-3">
           <h2
             id="knowledge-filter-title"
             className="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2"

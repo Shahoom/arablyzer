@@ -1257,6 +1257,17 @@ html:has(.report-dock) {
 }
 
 /*
+ * A box in an aside: a card without its shadow. A sticky aside scrolls inside itself when it is
+ * taller than the room under the header, and the box that scrolls clips a shadow with a hard edge;
+ * a hairline does not show it. The same box under the page on a phone, so that the two agree.
+ */
+@utility kb-box {
+  border: 1px solid var(--color-line);
+  border-radius: var(--card-radius);
+  background-color: var(--color-surface);
+}
+
+/*
  * A list of links as one card: a hairline between the rows instead of a card for each, so that
  * sixty rules are a list and not sixty boxes. It clips its rows, so a row's focus outline is drawn
  * inside it (`kb-row`).
@@ -1267,7 +1278,8 @@ html:has(.report-dock) {
   border-radius: var(--card-radius);
   background-color: var(--color-surface);
   box-shadow: var(--shadow);
-  & li + li {
+  /* Between two rows that are shown: a search that hides a row leaves no stray hairline. */
+  & li:not([hidden]) ~ li:not([hidden]) {
     border-top: 1px solid var(--color-line);
   }
 }
@@ -1305,15 +1317,16 @@ html:has(.report-dock) {
 
 /*
  * A link in an aside (the contents, the related pages, the categories, the other sections): 44 px
- * on a phone, where the aside is under the page, and 38 px from lg, where a pointer needs less and
- * the sticky aside holds more. Its colour is the page's to set (`text-ink`, `text-ink-2`).
+ * on a phone, where the aside is under the page, and 34 px from lg, where a pointer needs less and
+ * the sticky aside holds more (a page may set `--kb-link-h` and `--kb-link-h-lg` for a denser
+ * list). Its colour is the page's to set (`text-ink`, `text-ink-2`).
  */
 @utility kb-link {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 44px;
+  min-height: var(--kb-link-h, 44px);
   padding: 6px 12px;
   border-radius: var(--radius-md);
   font-size: 0.875rem;
@@ -1323,7 +1336,8 @@ html:has(.report-dock) {
     background-color: var(--color-surface-2);
   }
   @media (min-width: 64rem) {
-    min-height: 38px;
+    min-height: var(--kb-link-h-lg, 34px);
+    padding-block: 4px;
   }
 }
 

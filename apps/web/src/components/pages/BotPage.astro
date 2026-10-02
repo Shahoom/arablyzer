@@ -34,15 +34,12 @@ const jsonLd = [
     { name: t.title, url },
   ]),
 ]
-const number = (id: (typeof sections)[number]['id']) =>
-  sections.findIndex((section) => section.id === id) + 1
-const text = 'm-0 text-base leading-[1.85] text-ink-2 md:text-[17px]'
-const list =
-  'm-0 flex flex-col gap-3 ps-[22px] text-base leading-[1.85] text-ink-2 marker:text-ink-3 md:text-[17px]'
+const text = 'm-0 text-body text-ink-2'
+const list = 'm-0 flex flex-col gap-3 ps-5 text-body text-ink-2 marker:text-ink-3'
 // A block of code, as the rules' pages set theirs: dark, left to right, scrolling inside itself and
 // reachable by keyboard when it must.
 const code =
-  'm-0 overflow-x-auto rounded-2xl bg-navy px-5 py-4 text-start font-mono text-[13px] leading-[1.8] text-panel-soft md:text-sm'
+  'm-0 overflow-x-auto rounded-card bg-navy px-4 py-3 text-start font-mono text-meta text-panel-soft md:text-small'
 ---
 
 <DocPage
@@ -53,7 +50,6 @@ const code =
   jsonLd={jsonLd}
   crumb="ArablyzerBot"
   breadcrumbLabel={t.breadcrumb}
-  asideFirst
 >
   <Fragment slot="head">
     <h1 class={HEAD.page}>
@@ -62,11 +58,12 @@ const code =
     <p class={HEAD.lead}>
       <Rich text={t.intro} lang={lang} />
     </p>
+    <Contents variant="inline" label={t.contents} sections={sections} />
   </Fragment>
   <Contents slot="aside" label={t.contents} sections={sections} />
 
   <section id="identify" aria-labelledby="identify-title" class="flex scroll-mt-6 flex-col gap-4">
-    <DocHeading id="identify-title" number={number('identify')} title={t.identify.title} />
+    <DocHeading id="identify-title" title={t.identify.title} />
     <p class={text}>{t.identify.lead}</p>
     <pre dir="ltr" tabindex="0" class={code}>{BOT_FACTS.userAgent}</pre>
     <p class={text}>{t.identify.browsers}</p>
@@ -74,7 +71,7 @@ const code =
   </section>
 
   <section id="when" aria-labelledby="when-title" class="flex scroll-mt-6 flex-col gap-4">
-    <DocHeading id="when-title" number={number('when')} title={t.when.title} />
+    <DocHeading id="when-title" title={t.when.title} />
     <ul class={list}>
       {t.when.items.map((item) => (
         <li>
@@ -85,7 +82,7 @@ const code =
   </section>
 
   <section id="fetches" aria-labelledby="fetches-title" class="flex scroll-mt-6 flex-col gap-4">
-    <DocHeading id="fetches-title" number={number('fetches')} title={t.fetches.title} />
+    <DocHeading id="fetches-title" title={t.fetches.title} />
     <ol class:list={[list, 'list-decimal']}>
       {t.fetches.items(BOT_FACTS).map((item) => (
         <li>
@@ -96,7 +93,7 @@ const code =
   </section>
 
   <section id="never" aria-labelledby="never-title" class="flex scroll-mt-6 flex-col gap-4">
-    <DocHeading id="never-title" number={number('never')} title={t.never.title} />
+    <DocHeading id="never-title" title={t.never.title} />
     <ul class={list}>
       {t.never.items.map((item) => (
         <li>
@@ -107,7 +104,7 @@ const code =
   </section>
 
   <section id="opt-out" aria-labelledby="opt-out-title" class="flex scroll-mt-6 flex-col gap-4">
-    <DocHeading id="opt-out-title" number={number('opt-out')} title={t.optOut.title} />
+    <DocHeading id="opt-out-title" title={t.optOut.title} />
     <p class={text}>{t.optOut.lead}</p>
     <pre dir="ltr" tabindex="0" class={code}>User-agent: ArablyzerBot
 Disallow: /</pre>

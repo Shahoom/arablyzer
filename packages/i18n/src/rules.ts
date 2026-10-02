@@ -65,8 +65,7 @@ export const RULES_UI: Copy<RulesStrings> = {
           'كل قاعدة يفحصها Arablyzer في صفحة: لماذا تهم، ومثال خطأ وصحيح، وكيف تُصلح، وكيف نكشفها، ووزنها في الدرجة.',
       },
       title: 'مكتبة القواعد',
-      intro:
-        'كل ما يفحصه Arablyzer قاعدة لها صفحة: لماذا تهم، وكيف تُصلح، وكيف نكشفها بالضبط. كل مخالفة في تقاريرنا تقود إلى قاعدتها هنا.',
+      intro: 'كل ما يفحصه Arablyzer قاعدة لها صفحة: لماذا تهم، وكيف تُصلح، وكيف نكشفها.',
       search: 'ابحث في القواعد',
       searchPlaceholder: 'ابحث: خط، اتجاه، robots، hreflang…',
       categories: 'الفئات',
@@ -120,7 +119,7 @@ export const RULES_UI: Copy<RulesStrings> = {
       },
       title: 'Rule library',
       intro:
-        'Everything Arablyzer checks is a rule with its own page: why it matters, how to fix it, and exactly how we detect it. Every finding in our reports leads to its rule here.',
+        'Every rule Arablyzer checks has its own page: why it matters, how to fix it, how we detect it.',
       search: 'Search the rules',
       searchPlaceholder: 'Search: font, direction, robots, hreflang…',
       categories: 'Categories',
