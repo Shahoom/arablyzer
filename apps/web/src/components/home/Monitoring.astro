@@ -37,12 +37,12 @@ const KPIS = [
 ] as const
 ---
 
-<section aria-labelledby="monitoring-title" class="below-fold py-6">
+<section aria-labelledby="monitoring-title" class="below-fold strip">
   <div class="wrap">
-    <div class="panel-dark relative overflow-hidden rounded-[32px] text-panel-text">
+    <div class="panel-dark relative overflow-hidden rounded-[24px] text-panel-text md:rounded-[32px]">
       <span aria-hidden="true" class="glow glow-teal"></span>
       <span aria-hidden="true" class="glow glow-indigo"></span>
-      <div class="relative grid items-center gap-10 p-6 sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:p-16">
+      <div class="relative grid items-center gap-7 p-5 md:gap-9 md:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:p-14">
         <div>
           <div class="flex flex-wrap items-center gap-2">
             <span class="kick bg-[rgb(94_234_212/0.14)] text-panel-pass">{t.kicker}</span>
@@ -50,18 +50,15 @@ const KPIS = [
               {t.soon}
             </span>
           </div>
-          <h2
-            id="monitoring-title"
-            class="m-0 mt-3.5 text-[30px] leading-[1.3] font-semibold text-balance lg:text-[40px]"
-          >
+          <h2 id="monitoring-title" class="heading-2 m-0 mt-3">
             {t.title}
           </h2>
-          <p class="m-0 mt-3.5 text-[17px] leading-[1.85] text-panel-soft">{t.text}</p>
-          <ul class="m-0 mt-6 mb-7 flex list-none flex-col gap-3 p-0 text-base text-panel-text">
+          <p class="text-body m-0 mt-3 text-panel-soft">{t.text}</p>
+          <ul class="text-small m-0 mt-4 mb-5 flex list-none flex-col gap-2 p-0 text-panel-text md:mt-5 md:mb-6 md:gap-2.5 md:text-[1rem]">
             {t.points.map((point) => (
               <li class="flex items-center gap-2.5">
                 <Check
-                  size={20}
+                  size={18}
                   stroke-width={1.8}
                   aria-hidden="true"
                   class="shrink-0 text-panel-pass"
@@ -82,32 +79,34 @@ const KPIS = [
 
         <figure
           aria-label={t.preview.label}
-          class="relative m-0 flex flex-col gap-4 rounded-[22px] border border-white/12 bg-white/6 p-5 backdrop-blur-[10px]"
+          class="relative m-0 flex flex-col gap-3 rounded-2xl border border-white/12 bg-white/6 p-4 backdrop-blur-[10px] md:gap-4 md:rounded-[20px] md:p-5"
         >
           <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
             <span class="inline-flex items-center gap-2.5 font-semibold">
               <span
                 aria-hidden="true"
-                class="grid size-[30px] place-items-center rounded-[9px] bg-[linear-gradient(135deg,#14b8a6,#6366f1)] text-[13px]"
+                class="grid size-7 place-items-center rounded-lg bg-[linear-gradient(135deg,#14b8a6,#6366f1)] text-[13px]"
                 lang="en"
               >
                 M
               </span>
               <bdi dir="ltr">matjar.example</bdi>
             </span>
-            <span class="inline-flex h-[26px] shrink-0 items-center gap-2 rounded-full bg-[rgb(94_234_212/0.14)] px-2.5 text-xs font-semibold whitespace-nowrap text-panel-pass">
+            <span class="text-meta inline-flex h-[26px] shrink-0 items-center gap-2 rounded-full bg-[rgb(94_234_212/0.14)] px-2.5 font-semibold whitespace-nowrap text-panel-pass">
               <i aria-hidden="true" class="live size-[7px] rounded-full bg-panel-pass"></i>
               {t.preview.live}
             </span>
           </div>
-          <dl class="m-0 grid grid-cols-3 gap-2.5">
+          <dl class="m-0 grid grid-cols-3 gap-2 md:gap-2.5">
             {KPIS.map((kpi) => (
-              <div class="rounded-[14px] bg-white/6 p-3">
-                <dt class="text-xs text-panel-soft">{t.preview[kpi.key]}</dt>
+              <div class="rounded-xl bg-white/6 p-2.5 md:p-3">
+                <dt class="text-meta text-panel-soft">{t.preview[kpi.key]}</dt>
                 <dd class="m-0">
-                  <b class="text-[26px] font-semibold tabular-nums">{kpi.value}</b>
+                  <b class="text-[1.375rem] font-semibold tabular-nums md:text-[1.625rem]">
+                    {kpi.value}
+                  </b>
                   {kpi.change !== null && (
-                    <small class="ms-1 text-xs text-panel-pass">
+                    <small class="text-meta ms-1 text-panel-pass">
                       <bdi dir="ltr">{kpi.change}</bdi>
                     </small>
                   )}
@@ -133,11 +132,11 @@ const KPIS = [
               stroke-linecap="round"
             ></polyline>
           </svg>
-          <p class="m-0 flex items-center gap-2.5 rounded-xl bg-[rgb(244_63_94/0.12)] px-3 py-2.5 text-[13px] text-[#fecdd3]">
+          <p class="text-meta m-0 flex items-center gap-2.5 rounded-xl bg-[rgb(244_63_94/0.12)] px-3 py-2 text-[#fecdd3] md:py-2.5">
             <TriangleAlert size={16} stroke-width={1.8} aria-hidden="true" class="shrink-0" />
             <Bidi text={t.preview.alert} lang={lang} />
           </p>
-          <span class="absolute end-5 -top-3 inline-flex h-[22px] items-center rounded-full border border-dashed border-panel-tick bg-panel px-2.5 text-[11px] text-panel-soft">
+          <span class="absolute end-5 -top-3 inline-flex h-[22px] items-center rounded-full border border-dashed border-panel-tick bg-panel px-2.5 text-xs text-panel-soft">
             {t.preview.example}
           </span>
         </figure>
@@ -147,6 +146,15 @@ const KPIS = [
 </section>
 
 <style>
+  /* The browser's placeholder until the section is laid out. */
+  .strip {
+    contain-intrinsic-size: auto 760px;
+  }
+  @media (min-width: 64rem) {
+    .strip {
+      contain-intrinsic-size: auto 560px;
+    }
+  }
   .glow {
     position: absolute;
     border-radius: 50%;
