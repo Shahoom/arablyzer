@@ -115,23 +115,24 @@ function Meta({ report, lang, tool }: { report: Report; lang: Lang; tool: ToolRe
         </a>
       </Fragment>
     ),
-    <Fragment key="date">
+    // Each fact is kept whole: the line breaks between them, never inside «HTTP 200».
+    <span key="date" className="whitespace-nowrap">
       {t.scannedOn}{' '}
       <span dir="ltr" className="tabular-nums">
         {report.target.fetchedAt.slice(0, 10)}
       </span>
-    </Fragment>,
+    </span>,
     report.target.http.status !== null && (
-      <span key="http" dir="ltr" className="tabular-nums">
+      <span key="http" dir="ltr" className="whitespace-nowrap tabular-nums">
         HTTP {report.target.http.status}
       </span>
     ),
-    <Fragment key="rules">
+    <span key="rules" className="whitespace-nowrap">
       {t.rules}{' '}
       <span dir="ltr" className="tabular-nums">
         {report.generator.rulesetVersion}
       </span>
-    </Fragment>,
+    </span>,
   ].filter((part) => part !== false)
   return (
     <p className="m-0 text-meta text-ink-2">

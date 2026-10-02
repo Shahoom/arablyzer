@@ -760,6 +760,32 @@ describe.each(ENGINES)('the report page in %s', (engine) => {
     })
   })
 
+  describe.each(['ar', 'en'] as const)('a tool’s result on a phone in %s', (lang) => {
+    it('breaks the line under the address between its facts, never inside one', async () => {
+      const { tab, close } = await open(TOOL, lang, '#summary-title')
+      try {
+        // The tool's name makes this line longer than the golden report's: it wraps, and each of
+        // «scanned on», «HTTP 200» and «rules» stays whole on one of its lines.
+        const lines = await tab.evaluate(() => {
+          const meta = document.querySelector('main header p')
+          if (meta === null) return null
+          return [...meta.querySelectorAll('span')]
+            .filter((node) => node.className.includes('whitespace-nowrap'))
+            .map((node) => ({
+              text: node.textContent.trim(),
+              // The lines it is drawn on: its boxes' tops (a bidi isolate inside makes several boxes).
+              lines: new Set([...node.getClientRects()].map((rect) => Math.round(rect.top))).size,
+            }))
+        })
+        expect(lines).not.toBeNull()
+        expect(lines?.length).toBe(3)
+        expect(lines?.filter((fact) => fact.lines !== 1)).toEqual([])
+      } finally {
+        await close()
+      }
+    })
+  })
+
   describe.each(['ar', 'en'] as const)('the scan under way in %s', (lang) => {
     it('is the scan box in the aside, under the beam, with no turning ring and no dock', async () => {
       for (const width of [390, 1440]) {
