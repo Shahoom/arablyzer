@@ -23,7 +23,14 @@ const links = [
 ]
 ---
 
-<Page lang={lang} path={PATHS.home} title={`${t.title} — Arablyzer`} description={t.text} noindex>
+<Page
+  lang={lang}
+  path={PATHS.home}
+  title={`${t.title} — Arablyzer`}
+  description={t.text}
+  noindex
+  latinPreload
+>
   <section class="relative isolate">
     <div aria-hidden="true" class="page-wash"></div>
     <div class="wrap flex flex-col items-center gap-6 pt-14 pb-20 text-center md:pt-24 md:pb-32">

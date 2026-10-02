@@ -236,6 +236,70 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
     await tab.context().close()
   }, 60_000)
 
+  // A page of Arabic draws the Latin letters of a heading, a lead or a tag in DM Sans, which is
+  // not preloaded on Arabic pages unless they ask: it arrives after the first paint, and the swap
+  // re-wrapped a heading and moved the page under it (a glossary term's page measured 0.08 to
+  // 0.10 of layout shift, a guide's 0.16 in the same test). The pages of R5 ask for it.
+  it.each([
+    ['/knowledge'],
+    ['/rules'],
+    ['/rules/rtl-html-dir'],
+    ['/fix'],
+    ['/fix/soft-404'],
+    ['/glossary'],
+    ['/glossary/ai-crawlers'],
+    ['/bot'],
+    ['/methodology'],
+  ])(
+    'preloads Plex Arabic’s and DM Sans’ two weights for its first screen: %s',
+    async (path) => {
+      const tab = await open(browser, path)
+      expect(await tab.locator('link[rel="preload"][as="font"]').count()).toBe(4)
+      await tab.context().close()
+    },
+    60_000,
+  )
+
+  // The same page, with the fonts that are not preloaded held back for a while, as a slow network
+  // holds them: nothing may move. Chromium alone reports layout shifts.
+  it.runIf(engine === 'chromium').each([['/fix/soft-404'], ['/glossary/ai-crawlers']])(
+    'does not move when a font arrives late: %s',
+    async (path) => {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+      const preloaded = new Set<string>()
+      await context.route('**/*', async (route) => {
+        const url = new URL(route.request().url())
+        if (url.origin !== site.origin) await route.abort('blockedbyclient')
+        else if (url.pathname.endsWith('.woff2') && !preloaded.has(url.pathname)) {
+          await new Promise((resolve) => setTimeout(resolve, 600))
+          await route.fallback()
+        } else await route.fallback()
+      })
+      const tab = await context.newPage()
+      await tab.addInitScript(() => {
+        const w = window as unknown as { shift: number }
+        w.shift = 0
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            const shift = entry as PerformanceEntry & { value: number; hadRecentInput: boolean }
+            if (!shift.hadRecentInput) w.shift += shift.value
+          }
+        }).observe({ type: 'layout-shift', buffered: true })
+      })
+      // The fonts the page preloads are answered at once, as the browser asks for them first.
+      const html = await (await tab.request.get(site.url(path))).text()
+      for (const match of html.matchAll(/<link rel="preload" href="([^"]+\.woff2)"/g)) {
+        preloaded.add(match[1] ?? '')
+      }
+      await tab.goto(site.url(path), { waitUntil: 'load' })
+      await tab.waitForTimeout(1600)
+      const shift = await tab.evaluate(() => (window as unknown as { shift: number }).shift)
+      expect(shift).toBeLessThan(0.01)
+      await context.close()
+    },
+    60_000,
+  )
+
   // The redesign gave each of these pages a new body. The bot's page had overflowed by 8 px at
   // 360 px, for a code chip that could not wrap: no page of the hub, the libraries, the guides,
   // the glossary or the site's own documents may scroll sideways on the narrowest phones.

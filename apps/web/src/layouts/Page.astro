@@ -29,8 +29,26 @@ interface Props {
    * an address that has none (404), served at every such address.
    */
   noindex?: boolean
+  /**
+   * An Arabic page whose first screen has Latin letters in large text (a heading with a term in
+   * it, a lead with the names of crawlers) preloads DM Sans too. It draws those letters, and on an
+   * Arabic page it is not preloaded: the heading is drawn at once in the letters of whatever font
+   * the system has, DM Sans arrives after the first paint, and the heading re-wraps and moves the
+   * page under it (a glossary term's page, 0.08 to 0.10 of layout shift, M2.6 R5). English pages
+   * preload it already.
+   */
+  latinPreload?: boolean
 }
-const { lang, path, title, description, jsonLd = [], report = false, noindex = false } = Astro.props
+const {
+  lang,
+  path,
+  title,
+  description,
+  jsonLd = [],
+  report = false,
+  noindex = false,
+  latinPreload = false,
+} = Astro.props
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, path)
 // One source for <head>, shared with the templates the self-audit has checked since Phase 0.
@@ -70,7 +88,7 @@ const head =
     <Font
       cssVariable="--font-dm-sans"
       preload={
-        lang === 'ar'
+        lang === 'ar' && !latinPreload
           ? false
           : [
               { subset: 'latin', weight: 600 },
