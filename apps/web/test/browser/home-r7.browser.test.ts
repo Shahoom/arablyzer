@@ -362,7 +362,9 @@ describe.each(ENGINES)('the home page in %s', (engine) => {
         const tab = await open(lang, 390, { flat: true })
         const counts = await read(tab, HOME[lang].counts.label)
         expect(counts?.count, lang).toBe(5)
-        expect(counts?.columns, `${lang}: two columns`).toBe(2)
+        // Two tiles in the first row (the distinct left edges would not do: a tile that spans an
+        // implicit column of a one-column grid starts a gap to the side of the others).
+        expect(counts?.firstRow, `${lang}: two columns`).toBe(2)
         // 64 px tiles, 72 where a noun takes two lines; the whole strip under 250 px.
         expect(counts?.shortest, lang).toBeGreaterThanOrEqual(60)
         expect(counts?.tallest, lang).toBeLessThanOrEqual(100)

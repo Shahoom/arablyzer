@@ -24,7 +24,7 @@ const t = HOME[lang].faq
     <div class="mx-auto flex max-w-[800px] flex-col gap-2.5 md:gap-3">
       {t.items.map((item) => (
         <details class="group card has-[summary:focus-visible]:outline-2 has-[summary:focus-visible]:outline-offset-3 has-[summary:focus-visible]:outline-indigo">
-          <summary class="text-body flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 font-semibold focus-visible:outline-none md:min-h-16 md:px-5">
+          <summary class="text-body flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-card py-2 font-semibold focus-visible:outline-none md:min-h-16">
             <span>
               <Bidi text={item.question} lang={lang} />
             </span>
@@ -35,7 +35,7 @@ const t = HOME[lang].faq
               <Plus size={16} stroke-width={1.8} />
             </span>
           </summary>
-          <p class="text-body m-0 max-w-[70ch] px-4 pb-4 text-ink-2 md:px-5 md:pb-5">
+          <p class="text-body m-0 max-w-[70ch] px-card pb-card text-ink-2">
             <Bidi text={item.answer} lang={lang} />
           </p>
         </details>

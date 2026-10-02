@@ -35,7 +35,7 @@ const stats = [
     {stats.map((stat, index) => (
       <li
         class:list={[
-          'card flex min-h-16 items-center justify-center gap-2.5 px-3 py-2 lg:min-h-0 lg:flex-col lg:gap-1 lg:px-4 lg:py-5 lg:text-center',
+          'card flex min-h-16 items-center justify-center gap-2.5 p-card lg:min-h-0 lg:flex-col lg:gap-1 lg:text-center',
           // Two columns on a phone with the last tile across both, three tiles over two on a
           // tablet, five in a row on a desktop.
           index === stats.length - 1 && 'col-span-2',
