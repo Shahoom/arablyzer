@@ -185,6 +185,39 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
     await tab.context().close()
   }, 60_000)
 
+  it('keeps the words typed before its script has loaded', async () => {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+    let release: () => void = () => undefined
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await context.route('**/*', async (route) => {
+      const url = new URL(route.request().url())
+      if (url.origin !== site.origin) await route.abort('blockedbyclient')
+      else if (/\/KnowledgeSearch\.[\w-]+\.js$/.test(url.pathname)) {
+        await held
+        await route.fallback()
+      } else await route.fallback()
+    })
+    const tab = await context.newPage()
+    const found: string[] = []
+    tab.on('pageerror', (error) => found.push(error.message))
+    await tab.goto(site.url(HUB.ar), { waitUntil: 'domcontentloaded' })
+    const field = tab.locator('#knowledge-search')
+    const all = await tab.locator(ROWS).count()
+    // The island has not run: its field is the page's own, and takes what is typed.
+    expect(await tab.locator('astro-island[ssr]').count()).toBeGreaterThan(0)
+    await field.fill('robots')
+    expect(await tab.locator(ROWS).count()).toBe(all)
+    release()
+    await tab.locator('astro-island:not([ssr]) #knowledge-search').waitFor()
+    // Once it has, the words are still there, and the pages are narrowed by them.
+    await expect.poll(() => tab.locator(ROWS).count()).toBeLessThan(all)
+    expect(await field.inputValue()).toBe('robots')
+    expect(found).toEqual([])
+    await context.close()
+  }, 60_000)
+
   it('is shared by its address: ?q and ?type fill the search, and typing writes them back', async () => {
     const tab = await open(browser, `${HUB.ar}?q=robots&type=rule`)
     await expect.poll(async () => tab.locator('#knowledge-search').inputValue()).toBe('robots')
