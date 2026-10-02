@@ -105,8 +105,9 @@ const chip = 'chip'
       <h2 id="categories-title" class="sr-only">
         {t.directory.categories}
       </h2>
-      {/* One row that scrolls sideways on a phone, so fifteen chips are not six lines of them. */}
-      <div class="-mx-5 w-[calc(100%+2.5rem)] overflow-x-auto px-5 pb-1 [scrollbar-width:none] md:mx-0 md:w-full md:overflow-visible md:px-0">
+      {/* One row that scrolls sideways on a phone, so fifteen chips are not six lines of them. It bleeds
+          to the screen's edges by exactly the page's gutter, whatever the gutter is. */}
+      <div class="-mx-gutter w-[calc(100%+2*var(--gutter))] overflow-x-auto px-gutter pb-1 [scrollbar-width:none] md:mx-0 md:w-full md:overflow-visible md:px-0">
         <div class="flex w-max items-center gap-2.5 md:w-full md:flex-wrap">
           <button type="button" class={chip} aria-pressed="true" data-filter="all">
             {t.directory.all}
