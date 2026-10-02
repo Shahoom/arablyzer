@@ -119,7 +119,7 @@ export default function HreflangGenerator({
           </button>
         </form>
       </ToolBox>
-      <p className="m-0 px-1 text-center text-sm text-ink-3">{common.local}</p>
+      <p className="m-0 px-1 text-start text-sm text-ink-2">{common.local}</p>
       {result !== null && (
         <section
           aria-label={common.result}

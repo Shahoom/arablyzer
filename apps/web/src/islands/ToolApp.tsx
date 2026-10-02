@@ -297,7 +297,7 @@ export default function ToolApp({
           </div>
         </form>
       </ToolBox>
-      <div className="flex flex-col gap-1 px-1 text-center text-sm text-ink-3">
+      <div className="flex flex-col gap-1 px-1 text-start text-sm text-ink-2">
         <p id="tool-note" className="m-0">
           {t.note[reads]}
         </p>
