@@ -4,13 +4,8 @@ import { breadcrumbList, webApplication } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
-import CircleQuestionMark from '@lucide/astro/icons/circle-question-mark'
-import FileCode from '@lucide/astro/icons/file-code'
 import FlaskConical from '@lucide/astro/icons/flask-conical'
-import ListChecks from '@lucide/astro/icons/list-checks'
-import Network from '@lucide/astro/icons/network'
 import Plus from '@lucide/astro/icons/plus'
-import Wrench from '@lucide/astro/icons/wrench'
 import X from '@lucide/astro/icons/x'
 import HreflangGenerator from '../../islands/generators/HreflangGenerator'
 import RobotsTester from '../../islands/generators/RobotsTester'
@@ -143,7 +138,6 @@ const accordion =
   <div class:list={['wrap pb-20 md:pb-28', HEAD.bodyTop]}>
     <div class="mx-auto flex w-full max-w-[880px] flex-col gap-14 md:gap-[72px]">
       <ToolSection id="checks" title={headings.checks}>
-        <ListChecks slot="icon" size={22} stroke-width={1.9} />
         <div class="card p-5 md:p-7">
           <ul class="checks m-0 flex list-none flex-col gap-4 p-0">
             {copy.checks.map((item) => (
@@ -165,7 +159,6 @@ const accordion =
       </ToolSection>
 
       <ToolSection id="example" title={headings.example}>
-        <FileCode slot="icon" size={22} stroke-width={1.9} />
         <div class="grid gap-4 md:grid-cols-2">
           {(['wrong', 'right'] as const).map((kind) => (
             <figure class="m-0 flex min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-white shadow">
@@ -194,7 +187,6 @@ const accordion =
       </ToolSection>
 
       <ToolSection id="fix" title={headings.fix}>
-        <Wrench slot="icon" size={22} stroke-width={1.9} />
         <div class="card p-5 md:p-7">
           <div
             class="prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]"
@@ -204,7 +196,6 @@ const accordion =
       </ToolSection>
 
       <ToolSection id="faq" title={headings.faq}>
-        <CircleQuestionMark slot="icon" size={22} stroke-width={1.9} />
         <div class="flex flex-col gap-3">
           {copy.faq.map((entry, index) => (
             <div class={accordion} data-accordion>
@@ -233,7 +224,6 @@ const accordion =
       </ToolSection>
 
       <ToolSection id="links" title={t.page.runs}>
-        <Network slot="icon" size={22} stroke-width={1.9} />
         <div class="card overflow-hidden">
           <ul class="m-0 flex list-none flex-col p-0">
             {tool.rules.map((rule) => (
