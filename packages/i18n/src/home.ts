@@ -499,7 +499,7 @@ export const HOME: Copy<HomeStrings> = {
         text: 'In the browser, we type values such as «محمد العبري» into the fields and ask whether it accepts them. We never submit the form.',
         phone: 'Phone number',
         nameAccepted: 'Name accepted',
-        digitsRejected: 'Arabic digits rejected',
+        digitsRejected: 'Digits rejected',
       },
       whatsapp: { title: 'A WhatsApp link that really opens' },
       ai: {
