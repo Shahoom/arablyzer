@@ -51,9 +51,10 @@ const jsonLd = [
       })),
   },
 ]
-// A category's button in the vertical list of a wide screen: a row that is pressed or not.
+// A category's button in the vertical list of a wide screen: a row that is pressed or not. Forced
+// colours drop the tint, so a pressed row is told by an edge, as a pressed chip is.
 const row =
-  'flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 text-start text-small text-ink-2 hover:bg-surface-2 hover:text-ink aria-pressed:bg-indigo-soft aria-pressed:text-indigo-ink'
+  'flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 text-start text-small text-ink-2 hover:bg-surface-2 hover:text-ink aria-pressed:bg-indigo-soft aria-pressed:text-indigo-ink forced-colors:aria-pressed:border-2 forced-colors:aria-pressed:border-[Highlight]'
 ---
 
 <Page
