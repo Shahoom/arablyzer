@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { executablePathFor } from '@arablyzer/browser/engines'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
-import { HOME } from '@arablyzer/i18n'
+import { HOME, SCAN_FORM } from '@arablyzer/i18n'
 import type { Engine } from '@arablyzer/report-schema'
 import { chromium, firefox, webkit, type Browser, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -216,6 +216,27 @@ describe.each(ENGINES)('the home page in %s', (engine) => {
         const desktop = await open(lang, 1440)
         expect((await read(desktop))?.rows, `${lang} at 1440`).toBe(1)
         await done(desktop)
+      }
+    })
+
+    it('still tells an empty address what is wrong, in the box, and marks the field', async () => {
+      for (const lang of LANGS) {
+        const tab = await open(lang, 390)
+        // The island starts when the browser is idle, half a second at most.
+        await tab.waitForSelector('#scan button[type="submit"]:not([disabled])')
+        await tab.click('#scan button[type="submit"]')
+        const message = SCAN_FORM[lang].errors.empty
+        await tab.waitForFunction(
+          (text) => document.querySelector('#scan [role="alert"]')?.textContent.trim() === text,
+          message,
+        )
+        expect(await tab.getAttribute('#home-url', 'aria-invalid'), lang).toBe('true')
+        const widths = await tab.evaluate(() => [
+          document.documentElement.scrollWidth,
+          document.documentElement.clientWidth,
+        ])
+        expect(widths[0], `${lang}: the message does not scroll the page`).toBe(widths[1])
+        await done(tab)
       }
     })
 
