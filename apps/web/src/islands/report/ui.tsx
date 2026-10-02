@@ -54,22 +54,3 @@ export function EngineDot({ engine }: { engine: EngineName }) {
     <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${ENGINE_DOT[engine]}`} />
   )
 }
-
-/**
- * Arablyzer's mark, the avatar of its answers: the logo's rounded square in the gradient, and the
- * three lines of Arabic text. A box with a CSS gradient, so it shares no SVG id with another mark.
- */
-export function Mark() {
-  return (
-    <span aria-hidden="true" className="logo-mark size-9 text-white">
-      <svg viewBox="0 0 32 32" fill="none" className="block size-full">
-        <path
-          d="M24 10.5H8.5M24 16H12.5M24 21.5H16.5"
-          stroke="currentColor"
-          stroke-width="2.4"
-          stroke-linecap="round"
-        />
-      </svg>
-    </span>
-  )
-}

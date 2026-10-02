@@ -1151,10 +1151,10 @@
 
 /* R4 */
 /*
- * The report as a thread (M2.6, R4): the score ring that draws itself, the category bars that grow
- * from the start of the line and take their colour from the score's band, and the room a sticky
- * dock needs. Each animation stops under prefers-reduced-motion, in its own rule, and leaves its
- * end state on the page: the ring and the bars are drawn, only not drawn in.
+ * The report (M2.6, R4): the score ring that draws itself and the category bars that grow from the
+ * start of the line and take their colour from the score's band. Each animation stops under
+ * prefers-reduced-motion, in its own rule, and leaves its end state on the page: the ring and the
+ * bars are drawn, only not drawn in.
  */
 @keyframes ring-draw {
   /* The ring's circle has r = 52 in a 120-unit box: 2 * pi * 52 = 326.73 round. */
@@ -1211,9 +1211,4 @@
   @media (forced-colors: active) {
     background-color: Highlight;
   }
-}
-
-/* The report's dock is sticky at the foot of the page: a control focused behind it scrolls clear. */
-html:has(.report-dock) {
-  scroll-padding-block-end: 9rem;
 }

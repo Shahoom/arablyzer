@@ -10,9 +10,9 @@ import { Steps } from './Steps'
 import { ENGINE_LABEL } from './ui'
 
 /**
- * The line that opens the answer (the approved Report design): what the scan read, and how many
- * rules ran on it. It opens on the steps the scan took, and, under the one that rendered, the
- * browsers, with their versions, and the one that shows a problem the others do not.
+ * The line that opens the answer: what the scan read, and how many rules ran on it. It opens on
+ * the steps the scan took, and, under the one that rendered, the browsers, with their versions,
+ * and the one that shows a problem the others do not. A quiet line, with no box of its own.
  */
 export function ReadLine({ report, lang }: { report: Report; lang: Lang }) {
   const t = REPORT[lang]
@@ -38,22 +38,22 @@ export function ReadLine({ report, lang }: { report: Report; lang: Lang }) {
         onClick={() => {
           setOpen(!open)
         }}
-        className="-ms-2 flex min-h-11 cursor-pointer items-center gap-2.5 self-start rounded-full px-3 py-1.5 text-start text-[15px] leading-[1.6] text-ink-2 hover:bg-surface-2 hover:text-ink"
+        className="-mx-2 flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-start text-small text-ink-2 hover:bg-surface-2 hover:text-ink"
       >
-        <CircleCheck aria-hidden="true" size={20} className="shrink-0 text-brand" />
-        <span>
+        <CircleCheck aria-hidden="true" size={18} className="shrink-0 text-brand" />
+        <span className="min-w-0 flex-1">
           <Bidi text={line} lang={lang} />
         </span>
         <ChevronDown
           aria-hidden="true"
-          size={16}
+          size={18}
           className={`shrink-0 text-ink-3 transition-transform duration-200 ${
             open ? 'rotate-180' : ''
           }`}
         />
       </button>
       <div id="read-steps" hidden={!open}>
-        <div className="card flex flex-col gap-4 p-5">
+        <div className="card p-card">
           <Steps
             steps={checklistOf(report, t.progress)}
             lang={lang}

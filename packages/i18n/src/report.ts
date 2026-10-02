@@ -128,13 +128,10 @@ export interface ReportStrings {
     readonly again: string
   }
   /**
-   * The report as a thread under the scanned address, and the dock under it (M2.6, R4): the
-   * bubble, the line that says what was read, the summary, the findings, the dock that scans
-   * another page.
+   * The report under the scanned address (M2.6, R4 and R7): the line that says what was read, the
+   * summary, the findings, the form that scans another page.
    */
   readonly thread: {
-    /** The bubble's verb, before the address. */
-    readonly scan: string
     /** The collapsible line: what the scan read, and how many rules ran on it. */
     readonly read: {
       /** The engines it rendered in, named: «Chromium وFirefox». */
@@ -170,13 +167,14 @@ export interface ReportStrings {
       /** The link to the rule's page. */
       readonly about: string
     }
-    /** The dock: scanning another page from the report. */
+    /** The form at the end of the report: scanning another page. */
     readonly dock: {
+      /** Its heading. */
+      readonly title: string
       readonly label: string
-      readonly placeholder: string
       readonly submit: string
     }
-    /** The dock while a scan runs: where it is of how many steps. */
+    /** The scan box while a scan runs: where it is of how many steps. */
     readonly stepOf: (step: number, of: number) => string
   }
 }
@@ -364,7 +362,6 @@ export const REPORT: Copy<ReportStrings> = {
       again: 'أعد الفحص',
     },
     thread: {
-      scan: 'افحص',
       read: {
         rendered: (engines, rules) =>
           `قرأنا الصفحة في ${engines}، وشغّلنا ${arabicCount(rules, RULES_ACCUSATIVE)}`,
@@ -397,8 +394,8 @@ export const REPORT: Copy<ReportStrings> = {
         about: 'عن هذه القاعدة',
       },
       dock: {
+        title: 'افحص صفحة أخرى',
         label: 'رابط صفحة أخرى',
-        placeholder: 'افحص صفحة أخرى',
         submit: 'افحص',
       },
       stepOf: (step, of) => `الخطوة ${step} من ${of}`,
@@ -546,7 +543,6 @@ export const REPORT: Copy<ReportStrings> = {
       again: 'Scan again',
     },
     thread: {
-      scan: 'Scan',
       read: {
         rendered: (engines, rules) =>
           `We read the page in ${engines}, and ran ${englishCount(rules, 'rule', 'rules')}`,
@@ -580,8 +576,8 @@ export const REPORT: Copy<ReportStrings> = {
         about: 'About this rule',
       },
       dock: {
+        title: 'Scan another page',
         label: 'URL of another page',
-        placeholder: 'Scan another page',
         submit: 'Scan',
       },
       stepOf: (step, of) => `Step ${step} of ${of}`,

@@ -30,9 +30,9 @@ export function Notices({
         <p
           key={notice.code}
           role="note"
-          className="m-0 flex items-start gap-3 rounded-lg bg-moderate-soft px-4 py-3.5 text-[15px] leading-[1.7] text-ink-2 forced-colors:border"
+          className="m-0 flex items-start gap-3 rounded-xl bg-moderate-soft p-3 text-small text-ink-2 forced-colors:border md:px-4"
         >
-          <Info aria-hidden="true" size={18} className="mt-1 shrink-0 text-moderate" />
+          <Info aria-hidden="true" size={16} className="mt-1 shrink-0 text-moderate" />
           <span className="min-w-0">
             <Bidi text={notice.message[lang]} lang={lang} />
           </span>

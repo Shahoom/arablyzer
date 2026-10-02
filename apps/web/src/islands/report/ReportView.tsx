@@ -3,14 +3,15 @@ import { REPORT } from '@arablyzer/i18n/report'
 import type { Report } from '@arablyzer/report-schema'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { Braces, Check, Copy, EyeOff, RotateCcw, TriangleAlert } from 'lucide-preact'
+import { Fragment } from 'preact'
 import { useState } from 'preact/hooks'
 import { Bidi } from './Bidi'
 import { ScanDock } from './Dock'
 import { Checks, Findings, type Fixes } from './Findings'
+import { Frame } from './Frame'
 import { Notices } from './Notices'
 import { ReadLine } from './ReadLine'
-import { Categories, Summary } from './Summary'
-import { Thread } from './Thread'
+import { Categories, Headline, Summary } from './Summary'
 
 export type { Fixes } from './Findings'
 
@@ -21,10 +22,16 @@ export interface ToolRef {
 }
 
 /**
- * The finished report, as a thread under the address that was scanned (the approved Report
- * design, in the v2 look): what was read, the notices, the summary with its score, the categories,
- * the findings as accordions, the checks that did not fail, how to share it, and the dock that
- * scans another page.
+ * The finished report (M2.6 R7). A head: the address that was scanned, a line of when and what the
+ * page answered, and the heading. Then two columns from lg: the aside is the summary (the score,
+ * the severities), the categories and what to do with the report, and sticks under the header;
+ * the main column is the thread of what was found: what was read, the notices, the findings as
+ * accordions, the checks that did not fail, and, last, the form that scans another page.
+ *
+ * On a phone only the summary comes before the findings: the categories and the actions follow
+ * the checks, as the second part of the aside (`more`) is drawn in the main column there. Each
+ * place has its own copy and the other is not displayed (so not read, and not reached by the Tab
+ * key): the reading order is the order on the screen at every width.
  */
 export function ReportView({
   id,
@@ -42,24 +49,38 @@ export function ReportView({
 }) {
   const t = REPORT[lang]
   const url = report.target.finalUrl ?? report.target.url
+  const more = (place: 'aside' | 'main') => (
+    <div className={`flex-col gap-card ${place === 'aside' ? 'hidden lg:flex' : 'flex lg:hidden'}`}>
+      {tool === undefined && (
+        <Categories report={report} lang={lang} id={`categories-title-${place}`} />
+      )}
+      <Actions id={id} report={report} lang={lang} tool={tool} />
+    </div>
+  )
   return (
-    <div className="flex flex-1 flex-col">
-      <Thread
-        lang={lang}
-        url={url}
-        href={url}
-        meta={<Meta report={report} lang={lang} tool={tool} />}
-      >
+    <Frame
+      url={url}
+      href={url}
+      meta={<Meta report={report} lang={lang} tool={tool} />}
+      head={<Headline report={report} lang={lang} />}
+      aside={
+        <>
+          <Summary report={report} lang={lang} tool={tool !== undefined} />
+          {more('aside')}
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
         <ReadLine report={report} lang={lang} />
         {report.scan.status === 'partial' && (
           <div
             role="note"
-            className="flex items-start gap-3 rounded-lg bg-moderate-soft px-4 py-3.5 forced-colors:border"
+            className="flex items-start gap-3 rounded-xl bg-moderate-soft p-3 forced-colors:border md:px-4"
           >
-            <TriangleAlert aria-hidden="true" size={18} className="mt-1 shrink-0 text-moderate" />
-            <div className="flex min-w-0 flex-col gap-1">
+            <TriangleAlert aria-hidden="true" size={16} className="mt-1 shrink-0 text-moderate" />
+            <div className="flex min-w-0 flex-col gap-0.5 text-small">
               <strong className="text-ink">{t.states.partial.title}</strong>
-              <span className="text-[15px] leading-[1.7] text-ink-2">
+              <span className="text-ink-2">
                 {/* A tool's result has no score to speak of, nor has a scan that missed the page. */}
                 {tool === undefined && report.score.overall !== null
                   ? t.states.partial.text
@@ -69,67 +90,65 @@ export function ReportView({
           </div>
         )}
         <Notices notices={report.scan.notices} lang={lang} id="notices-title" />
-        <Summary report={report} lang={lang} tool={tool !== undefined} />
-        {tool === undefined && <Categories report={report} lang={lang} />}
-        <Findings report={report} fixes={fixes} lang={lang} />
-        <Checks report={report} lang={lang} />
-        <Actions id={id} report={report} lang={lang} tool={tool} />
-      </Thread>
+      </div>
+      <Findings report={report} fixes={fixes} lang={lang} />
+      <Checks report={report} lang={lang} />
+      {more('main')}
       <ScanDock lang={lang} tool={tool?.slug} />
-    </div>
+    </Frame>
   )
 }
 
-/** Under the bubble: which tool, when, what the page answered and the rules' version. */
+/** The line under the address: which tool, when, what the page answered and the rules' version. */
 function Meta({ report, lang, tool }: { report: Report; lang: Lang; tool: ToolRef | undefined }) {
   const t = REPORT[lang].header
-  const chip = 'inline-flex h-[26px] items-center gap-1.5 rounded-full bg-surface-2 px-2.5 text-xs'
+  const parts = [
+    tool !== undefined && (
+      <Fragment key="tool">
+        {t.tool} {/* The tool's name; its slug when the name could not be read. */}
+        <a
+          href={localePath(lang, `/tools/${tool.slug}`)}
+          dir={tool.title === null ? 'ltr' : undefined}
+          className="text-ink underline underline-offset-4 hover:text-brand-ink"
+        >
+          {tool.title === null ? tool.slug : <Bidi text={tool.title} lang={lang} />}
+        </a>
+      </Fragment>
+    ),
+    <Fragment key="date">
+      {t.scannedOn}{' '}
+      <span dir="ltr" className="tabular-nums">
+        {report.target.fetchedAt.slice(0, 10)}
+      </span>
+    </Fragment>,
+    report.target.http.status !== null && (
+      <span key="http" dir="ltr" className="tabular-nums">
+        HTTP {report.target.http.status}
+      </span>
+    ),
+    <Fragment key="rules">
+      {t.rules}{' '}
+      <span dir="ltr" className="tabular-nums">
+        {report.generator.rulesetVersion}
+      </span>
+    </Fragment>,
+  ].filter((part) => part !== false)
   return (
-    <>
-      {tool !== undefined && (
-        <span className="me-1 flex flex-wrap items-center gap-x-2 text-[13px]">
-          {t.tool}
-          {/* The tool's name; its slug when the name could not be read. */}
-          {tool.title === null ? (
-            <a
-              href={localePath(lang, `/tools/${tool.slug}`)}
-              dir="ltr"
-              className="font-mono text-ink-2 underline underline-offset-4 hover:text-brand-ink"
-            >
-              {tool.slug}
-            </a>
-          ) : (
-            <a
-              href={localePath(lang, `/tools/${tool.slug}`)}
-              className="text-ink-2 underline underline-offset-4 hover:text-brand-ink"
-            >
-              <Bidi text={tool.title} lang={lang} />
-            </a>
-          )}
-        </span>
-      )}
-      <span className={`${chip} text-ink-2`}>
-        {t.scannedOn}
-        <span dir="ltr" className="font-mono">
-          {report.target.fetchedAt.slice(0, 10)}
-        </span>
-      </span>
-      {report.target.http.status !== null && (
-        <span dir="ltr" className={`${chip} font-mono text-ink-2`}>
-          HTTP {report.target.http.status}
-        </span>
-      )}
-      <span className={`${chip} text-ink-2`}>
-        {t.rules}
-        <span dir="ltr" className="font-mono">
-          {report.generator.rulesetVersion}
-        </span>
-      </span>
-    </>
+    <p className="m-0 text-meta text-ink-2">
+      {parts.map((part, index) => (
+        <Fragment key={index}>
+          {index > 0 && ' · '}
+          {part}
+        </Fragment>
+      ))}
+    </p>
   )
 }
 
-/** The report's link, and what to do with it: scan again, copy it, read it as JSON. */
+/**
+ * What to do with the report, in the aside under the summary: scan the page again, copy the
+ * report's link, read it as JSON, and the line that says it is not in search engines.
+ */
 function Actions({
   id,
   report,
@@ -159,8 +178,8 @@ function Actions({
       : `${localePath(lang, `/tools/${tool.slug}`)}?url=${again}`
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <a href={rescan} className="btn-grad">
+      <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap lg:grid">
+        <a href={rescan} className="btn-grad col-span-2">
           <RotateCcw size={16} aria-hidden="true" />
           {t.rescan}
         </a>
@@ -170,12 +189,10 @@ function Actions({
         </button>
         <a href={reportPath(id)} className="btn-white">
           <Braces size={16} aria-hidden="true" />
-          <span dir="ltr" className="font-mono">
-            {t.json}
-          </span>
+          <span dir="ltr">{t.json}</span>
         </a>
       </div>
-      <p className="m-0 flex items-center gap-2 text-sm text-ink-3">
+      <p className="m-0 flex items-center gap-2 text-meta text-ink-2">
         <EyeOff size={16} aria-hidden="true" className="shrink-0" />
         {t.noindex}
       </p>

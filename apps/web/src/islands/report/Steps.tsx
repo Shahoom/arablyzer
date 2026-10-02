@@ -4,17 +4,14 @@ import { Check, X } from 'lucide-preact'
 import type { ComponentChildren } from 'preact'
 import type { Step, StepState } from '../report-model'
 
-/** A step's mark: a gradient disc with a check once done, a ring that turns while it is under way. */
+/** A step's mark: a teal disc with a check once done, a ring that turns while it is under way. */
 function Dot({ state }: { state: StepState }) {
-  const base = 'relative z-[1] grid size-7 shrink-0 place-items-center rounded-full border-2'
+  const base = 'relative z-[1] grid size-6 shrink-0 place-items-center rounded-full border-2'
   switch (state) {
     case 'done':
       return (
-        <span
-          aria-hidden="true"
-          className={`${base} border-transparent bg-brand bg-(image:--gradient-btn) text-white`}
-        >
-          <Check size={14} strokeWidth={3} />
+        <span aria-hidden="true" className={`${base} border-transparent bg-brand text-white`}>
+          <Check size={12} strokeWidth={3} />
         </span>
       )
     case 'failed':
@@ -23,7 +20,7 @@ function Dot({ state }: { state: StepState }) {
           aria-hidden="true"
           className={`${base} border-transparent bg-serious-soft text-serious`}
         >
-          <X size={14} strokeWidth={3} />
+          <X size={12} strokeWidth={3} />
         </span>
       )
     case 'active':
@@ -48,9 +45,10 @@ const LABEL: Readonly<Record<StepState, string>> = {
 }
 
 /**
- * The steps of a scan, one under the other, each joined to the next by a line (the approved Scan
- * design): the same list for a scan under way and for a finished scan's report. `extra` holds what
- * a step shows under its label, such as the engines under the one that renders.
+ * The steps of a scan, one under the other, each joined to the next by a line: the same list for a
+ * scan under way and for a finished scan's report. What each read is said beside its name, in
+ * plain text. `extra` holds what a step shows under its label, such as the engines under the one
+ * that renders.
  */
 export function Steps({
   steps,
@@ -65,27 +63,24 @@ export function Steps({
   return (
     <ol className="m-0 flex list-none flex-col p-0">
       {steps.map((step, index) => (
-        <li key={step.key} className="relative flex items-start gap-3.5 pb-5 last:pb-0">
+        <li key={step.key} className="relative flex items-start gap-3 pb-4 last:pb-0">
           {index < steps.length - 1 && (
             <span
               aria-hidden="true"
-              className={`absolute start-[13px] top-8 -bottom-0.5 w-0.5 rounded-full ${
+              className={`absolute start-[11px] top-7 -bottom-0.5 w-0.5 rounded-full ${
                 step.state === 'done' ? 'bg-brand/35' : 'bg-line'
               }`}
             />
           )}
           <Dot state={step.state} />
-          <div className="flex min-w-0 flex-1 flex-col gap-2.5 pt-0.5">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className={LABEL[step.state]}>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              <span className={`text-body ${LABEL[step.state]}`}>
                 {step.label}
                 <span className="sr-only"> ({t.state[step.state]})</span>
               </span>
               {step.detail !== null && step.state !== 'waiting' && (
-                <span
-                  dir={step.ltr ? 'ltr' : undefined}
-                  className="rounded-lg bg-surface-2 px-2.5 py-px text-[13px] leading-[1.7] text-ink-2"
-                >
+                <span dir={step.ltr ? 'ltr' : undefined} className="text-small text-ink-2">
                   {step.detail}
                 </span>
               )}

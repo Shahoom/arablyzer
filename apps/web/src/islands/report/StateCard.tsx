@@ -3,7 +3,7 @@ import type { Notice } from '@arablyzer/report-schema'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { Ban, SearchX, ShieldAlert, TriangleAlert, WifiOff, type LucideIcon } from 'lucide-preact'
 import { Bidi } from './Bidi'
-import { Thread } from './Thread'
+import { Frame } from './Frame'
 
 export type StateKind = 'blocked' | 'opted-out' | 'failed' | 'missing' | 'offline'
 
@@ -20,7 +20,7 @@ const ICON: Readonly<Record<StateKind, { readonly Icon: LucideIcon; readonly ton
  * When a scan does not go as it should (the approved States design): what happened, in plain
  * words, and what the visitor can do. Never a vague error, never a report of what was not scanned.
  * A site that asked not to be checked (M2.4 plan §2) is told with its rule, from the notice. The
- * answer sits in the thread, under the address that was asked for, when there is one.
+ * card is one column, under the address that was asked for when there is one.
  */
 export function StateCard({
   kind,
@@ -49,44 +49,39 @@ export function StateCard({
   const home = localePath(lang, '/')
   const { Icon, tone } = ICON[kind]
   return (
-    <div className="flex flex-1 flex-col">
-      <Thread lang={lang} url={url}>
-        <section aria-labelledby="state-title" className="card flex flex-col gap-4 p-6 md:p-8">
-          <span
-            aria-hidden="true"
-            className={`grid size-12 place-items-center rounded-2xl forced-colors:border ${tone}`}
-          >
-            <Icon size={24} />
-          </span>
-          <h1 id="state-title" className="m-0 text-2xl font-semibold text-balance md:text-[28px]">
-            {title}
-          </h1>
-          <p className="m-0 text-base leading-[1.8] text-ink-2">
-            <Bidi text={text} lang={lang} />
+    <Frame url={url}>
+      <section aria-labelledby="state-title" className="card flex flex-col gap-4 p-card md:gap-5">
+        <span
+          aria-hidden="true"
+          className={`grid size-10 place-items-center rounded-xl forced-colors:border ${tone}`}
+        >
+          <Icon size={22} />
+        </span>
+        <h1 id="state-title" className="heading-1 m-0">
+          {title}
+        </h1>
+        <p className="m-0 text-body text-ink-2">
+          <Bidi text={text} lang={lang} />
+        </p>
+        {notices.map((notice) => (
+          <p key={notice.code} className="m-0 rounded-xl bg-surface-2 p-3 text-small text-ink-2">
+            <Bidi text={notice.message[lang]} lang={lang} />
           </p>
-          {notices.map((notice) => (
-            <p
-              key={notice.code}
-              className="m-0 rounded-lg bg-surface-2 px-4 py-3 text-[15px] leading-[1.8] text-ink-2"
-            >
-              <Bidi text={notice.message[lang]} lang={lang} />
-            </p>
-          ))}
-          <div className="flex flex-wrap gap-3 pt-2">
-            {url !== null && kind !== 'offline' && (
-              <a href={`${home}?url=${encodeURIComponent(url)}#scan`} className="btn-grad">
-                {t.again}
-              </a>
-            )}
-            <a
-              href={`${home}#scan`}
-              className={url !== null && kind !== 'offline' ? 'btn-white' : 'btn-grad'}
-            >
-              {t.another}
+        ))}
+        <div className="flex flex-wrap gap-3 pt-1">
+          {url !== null && kind !== 'offline' && (
+            <a href={`${home}?url=${encodeURIComponent(url)}#scan`} className="btn-grad">
+              {t.again}
             </a>
-          </div>
-        </section>
-      </Thread>
-    </div>
+          )}
+          <a
+            href={`${home}#scan`}
+            className={url !== null && kind !== 'offline' ? 'btn-white' : 'btn-grad'}
+          >
+            {t.another}
+          </a>
+        </div>
+      </section>
+    </Frame>
   )
 }
