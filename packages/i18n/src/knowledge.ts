@@ -17,6 +17,8 @@ export interface KnowledgeStrings {
     readonly label: string
     readonly placeholder: string
     readonly clear: string
+    /** The button of a search that goes to this page (the 404 page's). */
+    readonly submit: string
   }
   /** The chips' group: what they sort the results by. */
   readonly typesLabel: string
@@ -24,6 +26,8 @@ export interface KnowledgeStrings {
   readonly types: Readonly<Record<'all' | KnowledgeType, string>>
   /** A glossary term's tag in a row of results: a term has no category. */
   readonly termTag: string
+  /** The link from a directory (the rules, the fix guides, the glossary) to this page. */
+  readonly searchAll: string
   /** The link at the end of a group's heading, to the page of all of them. */
   readonly viewAll: Readonly<Record<KnowledgeType, string>>
   /** What a screen reader is told when the results change: «19 نتيجة». */
@@ -82,6 +86,7 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       label: 'ابحث في المعرفة',
       placeholder: 'ابحث عن قاعدة أو أداة أو مصطلح',
       clear: 'امسح البحث',
+      submit: 'ابحث',
     },
     typesLabel: 'نوع النتائج',
     types: {
@@ -92,6 +97,7 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       term: 'المصطلحات',
     },
     termTag: 'مصطلح',
+    searchAll: 'ابحث في المعرفة كلها',
     viewAll: {
       tool: 'كل الأدوات',
       rule: 'مكتبة القواعد',
@@ -126,6 +132,7 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       label: 'Search the knowledge',
       placeholder: 'Search for a rule, a tool or a term',
       clear: 'Clear the search',
+      submit: 'Search',
     },
     typesLabel: 'Type of result',
     types: {
@@ -136,6 +143,7 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       term: 'Glossary',
     },
     termTag: 'Term',
+    searchAll: 'Search all the knowledge',
     viewAll: {
       tool: 'All tools',
       rule: 'The rule library',
