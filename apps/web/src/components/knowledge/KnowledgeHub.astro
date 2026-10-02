@@ -13,7 +13,6 @@ import { HEAD } from '../../lib/heads'
 import { knowledgeIndex } from '../../lib/knowledge'
 import { KNOWLEDGE_TYPES, TYPE_TILE } from '../../lib/knowledge-search'
 import { siteOf } from '../../lib/site'
-import Aurora from '../Aurora.astro'
 import Bidi from '../Bidi.astro'
 import Breadcrumb from '../Breadcrumb.astro'
 
@@ -66,19 +65,13 @@ const ICON = { tool: Wrench, rule: ListChecks, fix: LifeBuoy, term: BookOpen } a
   jsonLd={jsonLd}
 >
   <section class:list={['relative isolate pb-16 md:pb-24', HEAD.top]}>
-    {/* The aurora of the home page's hero, over the head and the search only, fading out below. */}
-    <div
-      aria-hidden="true"
-      class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[640px] [mask-image:linear-gradient(to_bottom,#000_55%,transparent)] md:h-[720px]"
-    >
-      <Aurora />
-    </div>
+    {/* The faint tint of an inner page's head: the aurora is the home page's alone (M2.6 R7). */}
+    <div aria-hidden="true" class="page-wash"></div>
     <div class="wrap flex flex-col gap-10 md:gap-12">
       <div class="flex max-w-[780px] flex-col gap-4 md:gap-5">
         <Breadcrumb lang={lang} label={t.breadcrumb} current={t.title} />
         <h1 class={HEAD.index}>{t.title}</h1>
-        {/* Ink, not ink-2: the aurora's blobs sit right behind the lead on a phone (4.1:1 measured). */}
-        <p class="m-0 max-w-[62ch] text-lg leading-[1.85] text-balance text-ink md:text-xl">
+        <p class={HEAD.lead}>
           <Bidi text={t.lead} lang={lang} />
         </p>
       </div>

@@ -4,11 +4,12 @@ import { X } from 'lucide-preact'
 import type { ComponentChildren } from 'preact'
 
 /**
- * A tool's box, the home page's scan box with the tool in its pill (M2.6 R3): the white box with
- * the colour ring turning around it and the glow under it, which a check in progress sweeps with
- * the reading beam. The pill names the tool, in its category's colour; a tool that checks a page
- * has a × in it, which leaves for the home page's full check. Every tool's island wears it: the
- * scan tools' address field, the generators' fields and the paste tool's.
+ * A tool's box, with the tool in its pill (M2.6 R3): a plain white box (`scan-box`: a 1 px border,
+ * the soft shadow, an indigo ring while a control inside has focus), which a check in progress
+ * sweeps with the reading beam. The turning ring and the glow are the home page's scan box alone
+ * (M2.6 R7). The pill names the tool, in its category's colour; a tool that checks a page has a ×
+ * in it, which leaves for the home page's full check. Every tool's island wears it: the scan
+ * tools' address field, the generators' fields and the paste tool's.
  */
 export function ToolBox({
   lang,
@@ -31,30 +32,25 @@ export function ToolBox({
 }) {
   const t = TOOL_APP[lang].form
   return (
-    <div className="relative">
-      <div aria-hidden="true" className="scan-glow" />
-      <div className="scan-ring">
-        <div
-          className={`flex flex-col gap-3.5 rounded-[24px] bg-white p-3.5 text-start sm:p-4 ${busy ? 'reading-beam' : ''}`}
-        >
-          <div
-            className={`inline-flex min-h-[34px] max-w-full items-center gap-2 self-start rounded-[10px] bg-indigo-soft py-1 text-sm font-semibold text-indigo-ink ${fullScanHref === undefined ? 'px-3' : 'ps-3 pe-1'}`}
+    <div
+      className={`scan-box flex flex-col gap-3.5 p-card text-start ${busy ? 'reading-beam' : ''}`}
+    >
+      <div
+        className={`inline-flex min-h-[34px] max-w-full items-center gap-2 self-start rounded-[10px] bg-indigo-soft py-1 text-sm font-semibold text-indigo-ink ${fullScanHref === undefined ? 'px-3' : 'ps-3 pe-1'}`}
+      >
+        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${dot}`} />
+        <span className="min-w-0 leading-snug">{title}</span>
+        {fullScanHref !== undefined && (
+          <a
+            href={fullScanHref}
+            aria-label={t.fullScan}
+            className="grid size-7 shrink-0 place-items-center rounded-lg text-indigo-ink hover:bg-indigo-ink/10"
           >
-            <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${dot}`} />
-            <span className="min-w-0 leading-snug">{title}</span>
-            {fullScanHref !== undefined && (
-              <a
-                href={fullScanHref}
-                aria-label={t.fullScan}
-                className="grid size-7 shrink-0 place-items-center rounded-lg text-indigo-ink hover:bg-indigo-ink/10"
-              >
-                <X size={16} strokeWidth={2.2} aria-hidden="true" />
-              </a>
-            )}
-          </div>
-          {children}
-        </div>
+            <X size={16} strokeWidth={2.2} aria-hidden="true" />
+          </a>
+        )}
       </div>
+      {children}
     </div>
   )
 }
