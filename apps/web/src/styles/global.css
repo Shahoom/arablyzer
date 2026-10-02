@@ -817,15 +817,6 @@
     transform: translateX(calc(var(--reading) * -360%));
   }
 }
-/* The row moves half its length, toward the start of the line; its copy takes its place. */
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(calc(var(--reading) * 50%));
-  }
-}
 
 /*
  * The aurora behind the hero: a container that clips its blobs, so the page never scrolls
@@ -940,42 +931,6 @@
     animation: reading-beam 2.8s cubic-bezier(0.45, 0, 0.2, 1) infinite;
     @media (prefers-reduced-motion: reduce) {
       animation: none;
-      display: none;
-    }
-  }
-}
-
-/*
- * A marquee: `marquee` clips and fades the ends, and its one child, `marquee-track`, holds the
- * items twice (the copy aria-hidden) and slides half its length, so the loop has no seam. It
- * pauses under the pointer and under focus. With reduced motion it stops being a marquee: the
- * items wrap, once.
- */
-@utility marquee {
-  position: relative;
-  overflow: hidden;
-  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
-  &:hover > *,
-  &:focus-within > * {
-    animation-play-state: paused;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    mask-image: none;
-    -webkit-mask-image: none;
-  }
-}
-@utility marquee-track {
-  display: flex;
-  gap: 12px;
-  width: max-content;
-  animation: marquee 60s linear infinite;
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    width: auto;
-    flex-wrap: wrap;
-    justify-content: center;
-    & > [aria-hidden='true'] {
       display: none;
     }
   }
