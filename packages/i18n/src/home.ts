@@ -20,25 +20,9 @@ export const HERO_TOOLS = [
 ] as const
 export type HeroTool = (typeof HERO_TOOLS)[number]
 
-/** What the home page's strip says Arablyzer checks; each has a rule family behind it. */
-export const TOPICS = [
-  'ar-render',
-  'rtl',
-  'fonts',
-  'forms',
-  'whatsapp',
-  'gulf-prices',
-  'index',
-  'speed',
-  'schema',
-  'ai',
-] as const
-export type Topic = (typeof TOPICS)[number]
-
 export interface HomeStrings {
   readonly meta: { readonly title: string; readonly description: string }
   readonly hero: {
-    readonly kicker: string
     /** The pill over the heading: how many tools there are, and that they cost nothing. */
     readonly pill: { readonly count: (tools: number) => string; readonly text: string }
     /** The heading, then its marked ending. */
@@ -63,10 +47,6 @@ export interface HomeStrings {
    * number on it comes from that report; the words around the numbers are these.
    */
   readonly figure: {
-    readonly joined: string
-    readonly broken: string
-    readonly score: string
-    readonly scale: (score: number) => string
     readonly label: string
     readonly source: string
     readonly outOf: string
@@ -88,36 +68,6 @@ export interface HomeStrings {
       readonly overflow: (pixels: number) => string
       readonly passed: (rules: number) => string
       readonly skipped: (rules: number) => string
-    }
-  }
-  readonly topics: { readonly label: string; readonly names: Readonly<Record<Topic, string>> }
-  readonly arabic: {
-    readonly kicker: string
-    readonly title: string
-    readonly intro: string
-    /** The cards' headings; each card quotes the finding's own message under it. */
-    readonly cards: {
-      readonly spacing: string
-      readonly overflow: string
-      readonly name: string
-      readonly price: string
-    }
-    readonly drawnBy: (engine: string) => string
-    readonly rejected: string
-    readonly overflowDiagram: (overflow: number, width: number, viewport: number) => string
-  }
-  readonly honest: {
-    readonly kicker: string
-    readonly title: string
-    readonly points: readonly [Titled, Titled, Titled]
-    /** The link under the methodology point, to the document it names. */
-    readonly methodology: string
-    readonly terminal: {
-      readonly title: string
-      /** A comment line above the output: which page it is. */
-      readonly caption: (page: string) => string
-      /** With `code` in backticks. */
-      readonly footer: string
     }
   }
   /** The tools marquee: its caption, over the names. */
@@ -248,7 +198,6 @@ export const HOME: Copy<HomeStrings> = {
         'أدوات مجانية بلا تسجيل تفتح صفحتك في ثلاثة متصفحات وتقيس اتصال الحروف العربية، واتجاه الصفحة، والخطوط، والنماذج، وأسعار الخليج، وأرشفة Google.',
     },
     hero: {
-      kicker: 'محلّل المواقع العربية، من مختبر كلاود توبيا',
       pill: { count: (tools) => arabicCount(tools, TOOLS), text: 'كلها مجانية، وبلا تسجيل' },
       title: 'افحص موقعك كما يراه Google',
       titleMark: 'والزبون العربي على جواله',
@@ -273,10 +222,6 @@ export const HOME: Copy<HomeStrings> = {
       ],
     },
     figure: {
-      joined: 'الحروف متصلة',
-      broken: 'فراغات بين الحروف',
-      score: 'درجة الصفحة',
-      scale: (score) => `مقياس من 0 إلى 100، والمؤشر عند ${score}`,
       label: 'مثال: تقرير فحص لإحدى صفحات اختبارنا',
       source: 'مثال من صفحة اختبار',
       outOf: 'من 100',
@@ -301,61 +246,6 @@ export const HOME: Copy<HomeStrings> = {
         overflow: (pixels) => `عنصر يتجاوزها بمقدار ${pixels} بكسل`,
         passed: (rules) => `نجحت ${arabicCount(rules, RULES_NOMINATIVE)}`,
         skipped: (rules) => `ولم تنطبق ${arabicCount(rules, RULES_NOMINATIVE)} على الصفحة`,
-      },
-    },
-    topics: {
-      label: 'نفحص',
-      names: {
-        'ar-render': 'العرض العربي',
-        rtl: 'الاتجاه RTL',
-        fonts: 'الخطوط العربية',
-        forms: 'النماذج',
-        whatsapp: 'واتساب',
-        'gulf-prices': 'أسعار الخليج',
-        index: 'الأرشفة',
-        speed: 'السرعة',
-        schema: 'البيانات المنظّمة',
-        ai: 'زواحف الذكاء الاصطناعي',
-      },
-    },
-    arabic: {
-      kicker: 'الطبقة العربية',
-      title: 'ما لا تراه الأدوات الأجنبية',
-      intro: 'أمثلة من صفحات اختبارنا: ما وجده Arablyzer، بكلماته نفسها، ومعه الدليل والقياس.',
-      cards: {
-        spacing: 'تباعد يقطع الحروف',
-        overflow: 'صفحة أعرض من الشاشة',
-        name: 'نموذج يرفض «محمد»',
-        price: 'أسعار الخليج بثلاث منازل',
-      },
-      drawnBy: (engine) => `كما رسمه ${engine}`,
-      rejected: 'المتصفح يرفض القيمة',
-      overflowDiagram: (overflow, width, viewport) =>
-        `عنصر عرضه ${width} بكسل خارج حافة شاشة عرضها ${viewport} بكسل، بمقدار ${overflow} بكسل`,
-    },
-    honest: {
-      kicker: 'مفتوح وصادق',
-      title: 'نقيس، ولا نخمّن',
-      points: [
-        {
-          title: 'الكود مفتوح',
-          text: 'كل سطر على GitHub بترخيص AGPL-3.0، وتقدر تشغّله على خادمك مجاناً.',
-        },
-        {
-          title: 'المنهجية منشورة',
-          text: 'كيف نحسب الدرجة، ووزن كل خطورة، مع مثال محسوب لكل وزن.',
-        },
-        {
-          title: 'لا نخمّن',
-          text: 'نفصل ما يفشل آلياً عمّا يحتاج عين إنسان. والذكاء الاصطناعي لا يضيف مخالفة ولا يغيّر درجة.',
-        },
-      ],
-      methodology: 'اقرأ المنهجية',
-      terminal: {
-        title: 'للمطوّرين: سطر الأوامر',
-        caption: (page) => `# صفحة الاختبار ${page}، في المتصفحات الثلاثة`,
-        footer:
-          'المحرّك نفسه في الموقع وفي سطر الأوامر: `--render` للعرض في المتصفحات، و`--json` للتقرير كاملاً، و`--fail-on serious` ليتوقف البناء عند مشكلة خطيرة.',
       },
     },
     marquee: { label: (tools) => `من أدواتنا (${arabicCount(tools, TOOLS)})` },
@@ -531,7 +421,6 @@ export const HOME: Copy<HomeStrings> = {
         'Free tools, no sign-up: your page opened in three browsers, with Arabic letter joining, page direction, fonts, forms, Gulf prices and Google indexing measured.',
     },
     hero: {
-      kicker: 'An Arabic website analyzer from CloudTopia Labs',
       pill: {
         count: (tools) => englishCount(tools, 'tool', 'tools'),
         text: 'all free, with no sign-up',
@@ -559,10 +448,6 @@ export const HOME: Copy<HomeStrings> = {
       ],
     },
     figure: {
-      joined: 'Letters join',
-      broken: 'Gaps between letters',
-      score: 'Page score',
-      scale: (score) => `Scale from 0 to 100, marked at ${score}`,
       label: 'Example: the report of one of our test pages',
       source: 'From one of our test pages',
       outOf: 'out of 100',
@@ -582,62 +467,6 @@ export const HOME: Copy<HomeStrings> = {
         overflow: (pixels) => `An element runs ${pixels} px past it`,
         passed: (rules) => `${englishCount(rules, 'rule', 'rules')} passed`,
         skipped: (rules) => `${englishCount(rules, 'rule', 'rules')} did not apply to the page`,
-      },
-    },
-    topics: {
-      label: 'We check',
-      names: {
-        'ar-render': 'Arabic rendering',
-        rtl: 'RTL direction',
-        fonts: 'Arabic fonts',
-        forms: 'Forms',
-        whatsapp: 'WhatsApp',
-        'gulf-prices': 'Gulf prices',
-        index: 'Indexing',
-        speed: 'Speed',
-        schema: 'Structured data',
-        ai: 'AI crawlers',
-      },
-    },
-    arabic: {
-      kicker: 'The Arabic layer',
-      title: 'What other tools don’t see',
-      intro:
-        'Examples from our test pages: what Arablyzer found, in its own words, with the evidence and the measurement.',
-      cards: {
-        spacing: 'Spacing that breaks letters apart',
-        overflow: 'A page wider than the screen',
-        name: 'A form that rejects «محمد»',
-        price: 'Gulf prices with three decimals',
-      },
-      drawnBy: (engine) => `As ${engine} drew it`,
-      rejected: 'The browser rejects the value',
-      overflowDiagram: (overflow, width, viewport) =>
-        `An element ${width} pixels wide past the edge of a ${viewport}-pixel screen, by ${overflow} pixels`,
-    },
-    honest: {
-      kicker: 'Open and honest',
-      title: 'We measure. We don’t guess.',
-      points: [
-        {
-          title: 'Open code',
-          text: 'Every line is on GitHub under AGPL-3.0, and you can run it on your own server for free.',
-        },
-        {
-          title: 'Published methodology',
-          text: 'How the score is computed and what each severity weighs, with a worked example for each weight.',
-        },
-        {
-          title: 'No guessing',
-          text: 'We keep what fails automatically apart from what needs a human eye. AI never adds a finding or changes a score.',
-        },
-      ],
-      methodology: 'Read the methodology',
-      terminal: {
-        title: 'For developers: the command line',
-        caption: (page) => `# test page ${page}, in all three browsers`,
-        footer:
-          'The same engine runs the site and the command line: `--render` to render in browsers, `--json` for the whole report, and `--fail-on serious` to stop a build on a serious problem.',
       },
     },
     marquee: { label: (tools) => `From our ${tools} tools` },

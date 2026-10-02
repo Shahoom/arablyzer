@@ -13,7 +13,6 @@ import {
   SITE,
   TOOL_APP,
   TOOLS_UI,
-  TOPICS,
 } from '../src/index'
 
 /** What copy that takes an object of numbers is called with: the score's weights, the bot's limits. */
@@ -208,13 +207,6 @@ describe('interface copy', () => {
     expect(SCAN_FORM.ar.retryAfter(3600)).toBe('جرّب بعد 60 دقيقة.')
     expect(SCAN_FORM.en.retryAfter(61)).toBe('Try again in 2 minutes.')
     expect(SCAN_FORM.en.retryAfter(1)).toBe('Try again in 1 minute.')
-  })
-
-  it('names every topic of the strip', () => {
-    for (const topic of TOPICS) {
-      expect(HOME.ar.topics.names[topic]).toBeTruthy()
-      expect(HOME.en.topics.names[topic]).toBeTruthy()
-    }
   })
 
   it('names every tool of the hero’s chips, in both languages', () => {
