@@ -100,18 +100,40 @@ async function measure(path: string, width: number): Promise<Measured[]> {
         const style = getComputedStyle(element)
         if (style.visibility === 'hidden' || style.display === 'none') continue
         if (Number(style.opacity) === 0) continue
+        // Text in a closed disclosure (the header's menu sheet) has no box on the page.
+        if (!element.checkVisibility()) continue
         // Gradient text: clipped to the letters, its stops held above 4.5:1 by test/tokens.test.ts.
         if (style.webkitTextFillColor === 'rgba(0, 0, 0, 0)') continue
         const range = document.createRange()
         range.selectNodeContents(node)
         for (const box of range.getClientRects()) {
-          if (box.width <= 1 || box.height <= 1 || box.bottom < 0 || box.top > height) continue
+          // Only what is drawn: a line of code in a block that scrolls sideways (the bot's page,
+          // since its first screen holds one on a phone) runs on past the block's edge, where the
+          // page's own ground shows, and a box that clips its content shows no more than itself.
+          let left = box.left
+          let top = box.top
+          let right = box.right
+          let bottom = box.bottom
+          for (
+            let clip: Element | null = element;
+            clip !== null && clip !== document.documentElement;
+            clip = clip.parentElement
+          ) {
+            const kind = getComputedStyle(clip)
+            if (kind.overflowX === 'visible' && kind.overflowY === 'visible') continue
+            const edge = clip.getBoundingClientRect()
+            left = Math.max(left, edge.left)
+            top = Math.max(top, edge.top)
+            right = Math.min(right, edge.right)
+            bottom = Math.min(bottom, edge.bottom)
+          }
+          if (right - left <= 1 || bottom - top <= 1 || bottom < 0 || top > height) continue
           found.push({
             text: text.slice(0, 40),
-            x: box.left,
-            y: box.top,
-            w: box.width,
-            h: box.height,
+            x: left,
+            y: top,
+            w: right - left,
+            h: bottom - top,
             color: style.color,
             size: parseFloat(style.fontSize),
             weight: Number(style.fontWeight),
