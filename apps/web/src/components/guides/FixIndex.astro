@@ -11,7 +11,6 @@ import { HEAD } from '../../lib/heads'
 import { siteOf } from '../../lib/site'
 import Bidi from '../Bidi.astro'
 import KnowledgeNav from '../knowledge/KnowledgeNav.astro'
-import PageColumns from '../PageColumns.astro'
 import PageHead from '../PageHead.astro'
 
 // The /fix guides' index (M2.4d; compact rows on two columns in M2.6 R7): the Page indexing
@@ -66,11 +65,12 @@ const jsonLd = [
     </a>
   </PageHead>
 
-  <PageColumns asideAs="div" class:list={[HEAD.bodyTop, 'pb-section']}>
-    <div slot="aside" class="flex flex-col gap-3">
+  {/* The aside is before the list in the HTML and drawn beside it from lg; below lg it is not drawn. */}
+  <div class:list={['wrap page-columns', HEAD.bodyTop, 'pb-section']}>
+    <div class="page-aside page-aside-sticky hidden flex-col gap-3 lg:flex">
       {/* Two groups are two things to jump between; one is the page. */}
       {groups.length > 1 && (
-        <nav aria-labelledby="groups-title" class="kb-box hidden flex-col gap-0.5 p-3 lg:flex">
+        <nav aria-labelledby="groups-title" class="kb-box flex flex-col gap-0.5 p-3">
           <h2 id="groups-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
             {t.contents}
           </h2>
@@ -93,7 +93,7 @@ const jsonLd = [
       <KnowledgeNav lang={lang} current="fix" />
     </div>
 
-    <div class="flex flex-col gap-8 lg:gap-10">
+    <div class="page-main flex flex-col gap-8 lg:gap-10">
       {groups.map((group) => (
         <section
           id={`group-${group.status}`}
@@ -137,5 +137,5 @@ const jsonLd = [
         </section>
       ))}
     </div>
-  </PageColumns>
+  </div>
 </Page>

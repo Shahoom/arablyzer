@@ -14,7 +14,6 @@ import { siteOf } from '../../lib/site'
 import { ARABIC_LAYER, CATEGORY_STYLE } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
 import KnowledgeNav from '../knowledge/KnowledgeNav.astro'
-import PageColumns from '../PageColumns.astro'
 import PageHead from '../PageHead.astro'
 import SeverityPill from '../SeverityPill.astro'
 
@@ -95,9 +94,15 @@ const jsonLd = [
     </div>
   </PageHead>
 
-  <PageColumns asideAs="div" class:list={[HEAD.bodyTop, 'pb-section']}>
-    <div slot="aside" class="flex flex-col gap-3">
-      <nav aria-labelledby="categories-title" class="kb-box hidden flex-col gap-0.5 p-3 lg:flex">
+  {/*
+    The aside is before the list in the HTML and drawn beside it from lg (PageColumns' own order is
+    the other way): the categories are links to jump with, and a keyboard should reach them before
+    the sixty rules they jump over. Below lg it is not drawn: the chips above the list do its work,
+    and the footer has the section's other pages.
+  */}
+  <div class:list={['wrap page-columns', HEAD.bodyTop, 'pb-section']}>
+    <div class="page-aside page-aside-sticky hidden flex-col gap-3 lg:flex">
+      <nav aria-labelledby="categories-title" class="kb-box flex flex-col gap-0.5 p-3">
         <h2 id="categories-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
           {t.library.categories}
         </h2>
@@ -124,7 +129,7 @@ const jsonLd = [
       <KnowledgeNav lang={lang} current="rule" />
     </div>
 
-    <div id="rules-list" class="flex min-w-0 flex-col gap-8 lg:gap-10">
+    <div id="rules-list" class="page-main flex flex-col gap-8 lg:gap-10">
       {/* Below lg the categories are a row of chips that jump to them: sixty rules need one. */}
       <nav aria-label={t.library.categories} class="scroll-row lg:hidden">
         {groups.map((group) => (
@@ -207,7 +212,7 @@ const jsonLd = [
         {t.library.none}
       </p>
     </div>
-  </PageColumns>
+  </div>
 </Page>
 
 <script>

@@ -11,7 +11,6 @@ import { HEAD } from '../../lib/heads'
 import { siteOf } from '../../lib/site'
 import Bidi from '../Bidi.astro'
 import KnowledgeNav from '../knowledge/KnowledgeNav.astro'
-import PageColumns from '../PageColumns.astro'
 import PageHead from '../PageHead.astro'
 
 // The glossary's index (M2.4d; compact rows on two columns in M2.6 R7): every term, in the order
@@ -61,12 +60,13 @@ const jsonLd = [
     </a>
   </PageHead>
 
-  <PageColumns asideAs="div" class:list={[HEAD.bodyTop, 'pb-section']}>
-    <div slot="aside">
+  {/* The aside is before the list in the HTML and drawn beside it from lg; below lg it is not drawn. */}
+  <div class:list={['wrap page-columns', HEAD.bodyTop, 'pb-section']}>
+    <div class="page-aside page-aside-sticky hidden lg:block">
       <KnowledgeNav lang={lang} current="term" />
     </div>
 
-    <ul class="kb-list m-0 list-none p-0">
+    <ul class="page-main kb-list m-0 list-none p-0">
       {terms.map((term) => (
         <li>
           <a href={localePath(lang, PATHS.term(term.slug))} class="kb-row group">
@@ -93,5 +93,5 @@ const jsonLd = [
         </li>
       ))}
     </ul>
-  </PageColumns>
+  </div>
 </Page>

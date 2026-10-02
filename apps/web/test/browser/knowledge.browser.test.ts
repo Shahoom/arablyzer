@@ -966,6 +966,10 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
           sectionIds: [...document.querySelectorAll('main section[id]')].map(
             (section) => section.id,
           ),
+          asideFirst:
+            aside === null || rows[0] === undefined
+              ? null
+              : Boolean(aside.compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING),
           scrollW: document.documentElement.scrollWidth,
           clientW: document.documentElement.clientWidth,
         }
@@ -995,17 +999,19 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
                 expect(heading, where).toEqual([width < 1024 ? '22px' : '28px', true, true])
               }
             }
-            // The other sections of the knowledge pages are a list in the aside (the page's own
-            // is marked), and on a phone it follows the list.
-            expect(found.nav?.shown, `${where}: the sections list`).toBe(true)
+            // The other sections of the knowledge pages are a list in the aside (the page's own is
+            // marked), drawn from lg: below it the footer has them, and the aside is not drawn.
+            expect(found.nav?.shown, `${where}: the sections list`).toBe(width >= 1024)
+            expect(found.aside?.shown, `${where}: the aside`).toBe(width >= 1024)
             expect(found.nav?.current, where).toEqual([`${prefixOf(lang)}${path}`])
             expect(found.nav?.links, where).toHaveLength(4)
             if (width >= 1024) {
-              expect(found.aside?.shown, where).toBe(true)
               expect(found.aside?.sticky, `${where}: the aside sticks`).toBe('sticky')
               expect(found.aside?.width, where).toBeGreaterThanOrEqual(319.5)
               expect(found.aside?.width, where).toBeLessThanOrEqual(368.5)
             }
+            // The aside comes before the list in the HTML: a keyboard meets it before the rows.
+            expect(found.asideFirst, `${where}: the aside before the list`).toBe(true)
             expect(found.scrollW, `${where}: no sideways scroll`).toBe(found.clientW)
           }
         }
