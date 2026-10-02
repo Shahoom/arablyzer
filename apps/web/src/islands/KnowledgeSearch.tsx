@@ -123,7 +123,6 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
               ref={field}
               id="knowledge-search"
               type="search"
-              dir="auto"
               autoComplete="off"
               autoCapitalize="none"
               spellcheck={false}
