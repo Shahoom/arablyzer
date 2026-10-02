@@ -8,7 +8,8 @@ import SectionIntro from './SectionIntro.astro'
 /**
  * The questions, each an accordion (<details>), as the home page has always had them; the answers
  * are in the HTML whether a question is open or not. Each is a card (M2.6 R7) whose summary is the
- * whole of its first row: 56 px on a phone, so that a thumb finds it.
+ * whole of its first row: 56 px on a phone, so that a thumb finds it. The focus ring is the card's
+ * (its own radius, drawn outside it: a card that clips its content would cut the ring off).
  */
 interface Props {
   lang: Lang
@@ -22,8 +23,8 @@ const t = HOME[lang].faq
     <SectionIntro kicker={t.kicker} id="faq-title" title={t.title} />
     <div class="mx-auto flex max-w-[800px] flex-col gap-2.5 md:gap-3">
       {t.items.map((item) => (
-        <details class="group card overflow-hidden">
-          <summary class="text-body flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 font-semibold md:min-h-16 md:px-5">
+        <details class="group card has-[summary:focus-visible]:outline-2 has-[summary:focus-visible]:outline-offset-3 has-[summary:focus-visible]:outline-indigo">
+          <summary class="text-body flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 font-semibold focus-visible:outline-none md:min-h-16 md:px-5">
             <span>
               <Bidi text={item.question} lang={lang} />
             </span>

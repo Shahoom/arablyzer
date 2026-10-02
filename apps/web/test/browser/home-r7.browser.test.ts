@@ -591,6 +591,35 @@ describe.each(ENGINES)('the home page in %s', (engine) => {
       }
     })
 
+    it.skipIf(engine === 'webkit')(
+      'shows a question’s focus ring around its card, which does not clip it',
+      async () => {
+        const tab = await open('ar', 390, { flat: true })
+        // Tab to the first question: whatever comes before it on the page is not this test's.
+        for (let step = 0; step < 120; step++) {
+          await tab.keyboard.press('Tab')
+          const onQuestion = await tab.evaluate(
+            () =>
+              document.activeElement?.closest('section[aria-labelledby="faq-title"] summary') !==
+              null,
+          )
+          if (onQuestion) break
+        }
+        const ring = await tab.evaluate(() => {
+          const card = document.activeElement?.closest('details')
+          if (card === null || card === undefined) return null
+          const style = getComputedStyle(card)
+          return {
+            outline: style.outlineStyle,
+            width: style.outlineWidth,
+            overflow: style.overflow,
+          }
+        })
+        expect(ring).toEqual({ outline: 'solid', width: '2px', overflow: 'visible' })
+        await done(tab)
+      },
+    )
+
     it('opens the questions from a 56 px row, with the answers in the page', async () => {
       const tab = await open('ar', 390, { flat: true })
       const faq = await tab.evaluate(() =>
