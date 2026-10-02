@@ -77,13 +77,30 @@ export default defineConfig({
   },
   fonts: [
     {
+      // Latin letters, in the v2 type (M2.6). DM Sans has no Arabic letters: global.css puts it
+      // first in the stack and IBM Plex Sans Arabic second, and the browser draws each letter in
+      // the first of them whose unicode-range has it.
+      provider: fontsource(),
+      name: 'DM Sans',
+      cssVariable: '--font-dm-sans',
+      weights: [400, 500, 600, 700],
+      styles: ['normal'],
+      subsets: ['latin'],
+      // None, on purpose. Astro's metric-matched fallback is a face of a local Arial with no
+      // unicode-range: placed before IBM Plex Sans Arabic in the stack, it would draw the Arabic
+      // letters itself (Arial has them) and the page would never use Plex for them.
+      fallbacks: [],
+    },
+    {
       provider: fontsource(),
       name: 'IBM Plex Sans Arabic',
       cssVariable: '--font-plex-arabic',
-      // Two weights, regular and semibold: each is another file on the page's first paint.
-      weights: [400, 600],
+      // Regular, medium, semibold and bold, as the v2 type uses them; the page preloads two.
+      // Only the Arabic subset: DM Sans draws the Latin, and a Latin face here would be fetched
+      // for the moments before DM Sans arrives.
+      weights: [400, 500, 600, 700],
       styles: ['normal'],
-      subsets: ['arabic', 'latin'],
+      subsets: ['arabic'],
       fallbacks: ['Segoe UI', 'Tahoma', 'sans-serif'],
     },
     {
