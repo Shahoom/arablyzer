@@ -9,8 +9,13 @@ import Bidi from '../Bidi.astro'
 
 /**
  * The monitoring band: a dark navy panel with two glows, on what the dashboard will do. Its quiet
- * text is panel-soft, not panel-dim: axe reads a glow as the solid colour it is under the blur, and
- * on the indigo one (#42458c) panel-dim is 4.14:1, short of 4.5. The
+ * text is panel-soft, not panel-dim: on the indigo glow (#292c7d at its brightest) panel-dim is
+ * under 4.5:1. The glows are two radial gradients on the panel itself (M2.6 R7), not two blurred
+ * elements as they were: axe reads a blurred box as a solid colour and counts it behind any text
+ * whose box it overlaps, even text outside the panel that the panel clips, so the how-it-works
+ * step above the band measured on the teal glow (4.2:1) and the live pill on both glows at once
+ * (3.7:1). A gradient on the panel is a background axe sends to review, as it does for every
+ * other gradient of the page, and the pixels are what the contrast test measures. The
  * dashboard is Phase 4 and does not exist yet, so the band says so («قريباً») and has no link to
  * it; its glass preview is made-up data and says that too. The line of the chart is drawn from a
  * list of numbers, newest at the start of the line whichever way the page reads.
@@ -39,9 +44,7 @@ const KPIS = [
 
 <section aria-labelledby="monitoring-title" class="below-fold strip">
   <div class="wrap">
-    <div class="panel-dark relative overflow-hidden rounded-[24px] text-panel-text md:rounded-[32px]">
-      <span aria-hidden="true" class="glow glow-teal"></span>
-      <span aria-hidden="true" class="glow glow-indigo"></span>
+    <div class="panel-dark band relative overflow-hidden rounded-[24px] text-panel-text md:rounded-[32px]">
       <div class="relative grid items-center gap-7 p-5 md:gap-9 md:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:p-14">
         <div>
           <div class="flex flex-wrap items-center gap-2">
@@ -53,8 +56,8 @@ const KPIS = [
           <h2 id="monitoring-title" class="heading-2 m-0 mt-3">
             {t.title}
           </h2>
-          <p class="text-body m-0 mt-3 text-panel-soft">{t.text}</p>
-          <ul class="text-small m-0 mt-4 mb-5 flex list-none flex-col gap-2 p-0 text-panel-text md:mt-5 md:mb-6 md:gap-2.5 md:text-[1rem]">
+          <p class="text-body m-0 mt-3 mb-5 text-panel-soft md:mb-0">{t.text}</p>
+          <ul class="text-small m-0 mt-5 mb-6 hidden list-none flex-col gap-2.5 p-0 text-panel-text md:flex md:text-[1rem]">
             {t.points.map((point) => (
               <li class="flex items-center gap-2.5">
                 <Check
@@ -155,27 +158,23 @@ const KPIS = [
       contain-intrinsic-size: auto 560px;
     }
   }
-  .glow {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(90px);
-    pointer-events: none;
-  }
-  .glow-teal {
-    inset-block-start: -160px;
-    inset-inline-start: -80px;
-    width: 520px;
-    height: 520px;
-    background: #0d9488;
-    opacity: 0.45;
-  }
-  .glow-indigo {
-    inset-block-end: -200px;
-    inset-inline-end: -60px;
-    width: 560px;
-    height: 560px;
-    background: #4f46e5;
-    opacity: 0.45;
+  /* The two glows: teal in the corner where the line starts, indigo in the one where it ends
+     (--reading is 1 in a right-to-left page and -1 in a left-to-right one, so the same centre
+     serves both). Each is flat at its core and fades out, as the blurred discs it replaces did. */
+  .band {
+    background-image:
+      radial-gradient(
+        circle 380px at calc(50% + var(--reading) * (50% - 170px)) 90px,
+        rgb(13 148 136 / 0.45) 0,
+        rgb(13 148 136 / 0.4) 35%,
+        transparent 100%
+      ),
+      radial-gradient(
+        circle 400px at calc(50% - var(--reading) * (50% - 200px)) calc(100% - 70px),
+        rgb(79 70 229 / 0.45) 0,
+        rgb(79 70 229 / 0.4) 35%,
+        transparent 100%
+      );
   }
   .live {
     animation: home-pulse 2s ease-out infinite;
