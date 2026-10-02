@@ -494,9 +494,13 @@ const row =
     .nudge,
     .gauge-val,
     .typed-text,
-    .caret,
     .typed-ok {
       animation: none;
+    }
+    /* A caret that does not blink and rides no edge says nothing, and it sits on the end of the
+       name: the text is all there. */
+    .caret {
+      display: none;
     }
     /* The heading stays drawn apart: it is what the tile is about. */
     .gap {
