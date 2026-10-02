@@ -236,6 +236,12 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
+    // The home page after the owner's review (M2.6 R7), driven in the browsers: the site's own
+    // pages on loopback, and every request off the site refused.
+    files: ['apps/web/test/browser/home-r7.browser.test.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
     // A tool page driven in the browsers as a visitor uses it (M2.2a review): the site's own
     // pages on loopback, the API's answers the test's, and every request off the site refused.
     files: ['apps/web/test/browser/tool.browser.test.ts'],
