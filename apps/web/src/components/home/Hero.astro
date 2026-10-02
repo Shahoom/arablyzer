@@ -38,13 +38,13 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
   aria-labelledby="home-title"
   class="relative overflow-hidden pt-5 pb-5 md:pt-10 md:pb-8 lg:pt-14"
 >
-  <div class="aurora-fade absolute inset-0">
+  <div class="aurora-fade absolute inset-0 opacity-70 md:opacity-100">
     <Aurora />
   </div>
   <div class="wrap relative z-10 flex flex-col items-center gap-4 text-center md:gap-5">
     <a
       href={localePath(lang, PATHS.tools)}
-      class="relative inline-flex h-8 items-center gap-2 rounded-full border border-white/95 bg-white/70 ps-1 pe-3 text-meta text-ink-2 shadow backdrop-blur-[8px] after:absolute after:inset-x-0 after:-inset-y-1.5 hover:text-ink md:h-[34px]"
+      class="relative inline-flex h-8 items-center gap-2 rounded-full border border-white/95 bg-white/70 ps-1 pe-3 text-meta text-ink-2 shadow backdrop-blur-[8px] after:absolute after:inset-x-0 after:-inset-y-2 hover:text-ink md:h-[34px]"
     >
       <b class="inline-flex h-6 items-center gap-1.5 rounded-full bg-[#00727c] bg-(image:--gradient-btn) px-2.5 text-meta font-semibold text-white md:h-[26px]">
         <Sparkles size={14} stroke-width={2} aria-hidden="true" />
@@ -86,18 +86,18 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
 
     <ul
       aria-label={t.tools.label}
-      class="scroll-row self-stretch md:max-w-[520px] md:justify-center md:self-center lg:max-w-[960px]"
+      class="scroll-row self-stretch md:grid md:w-full md:max-w-[720px] md:grid-cols-3 md:self-center lg:max-w-[900px] xl:flex xl:max-w-[1100px] xl:justify-center"
     >
       {chips.map((chip) => (
         <li>
-          <a href={chip.href} class="chip">
+          <a href={chip.href} class="chip md:w-full md:justify-center xl:w-auto">
             <span aria-hidden="true" class:list={['size-2 rounded-full', chip.dot]} />
             {chip.label}
           </a>
         </li>
       ))}
       <li>
-        <a href={localePath(lang, PATHS.tools)} class="chip">
+        <a href={localePath(lang, PATHS.tools)} class="chip md:w-full md:justify-center xl:w-auto">
           {t.tools.all}
           <Chevron size={16} stroke-width={2} aria-hidden="true" />
         </a>
