@@ -1,9 +1,15 @@
 ---
 import { codeParts } from '@arablyzer/i18n'
 import type { Lang } from '@arablyzer/seo/site'
+import { WHOLE } from '../lib/fix-html'
 import Bidi from './Bidi.astro'
 
-/** Interface copy with `code` in backticks: the code left to right, the rest as Bidi sets it. */
+/**
+ * Interface copy with `code` in backticks: the code left to right, the rest as Bidi sets it. Short
+ * code stays whole, moving to the next line in one piece; code longer than a phone's line (an
+ * address, the DoH resolver's) breaks where it must, as the code in the rules' pages does: a chip
+ * that cannot wrap is wider than a 360 px screen and the page scrolls sideways.
+ */
 interface Props {
   text: string
   lang: Lang
@@ -15,7 +21,10 @@ const { text, lang } = Astro.props
   part.code ? (
     <code
       dir="ltr"
-      class="rounded-xs bg-surface-2 px-1.5 py-px font-mono text-[0.875em] whitespace-nowrap"
+      class:list={[
+        'rounded-xs bg-surface-2 px-1.5 py-px font-mono text-[0.875em]',
+        part.text.length > WHOLE ? '[overflow-wrap:anywhere]' : 'whitespace-nowrap',
+      ]}
     >
       {part.text}
     </code>

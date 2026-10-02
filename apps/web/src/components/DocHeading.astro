@@ -1,0 +1,25 @@
+---
+/**
+ * A document section's heading with its number in the indigo badge the report's sections have:
+ * the same <h2> as ever, and its id for the links to it.
+ */
+interface Props {
+  id: string
+  title: string
+  number: number
+}
+const { id, title, number } = Astro.props
+---
+
+<div class="flex items-center gap-3.5">
+  <span
+    aria-hidden="true"
+    dir="ltr"
+    class="grid h-[26px] min-w-[26px] shrink-0 place-items-center rounded-full bg-indigo px-1.5 text-xs leading-none font-semibold text-white tabular-nums"
+  >
+    {String(number).padStart(2, '0')}
+  </span>
+  <h2 id={id} class="m-0 text-[26px] leading-[1.3] font-semibold text-balance md:text-[30px]">
+    {title}
+  </h2>
+</div>

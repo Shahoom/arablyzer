@@ -851,3 +851,55 @@
     padding-inline: 0.25rem;
   }
 }
+
+/* R5 */
+
+/*
+ * A chevron toward the end of the line, drawn with two borders: a list of hundreds of links (the
+ * knowledge hub) cannot afford an SVG in each row. It points left in a right-to-left page and
+ * right in a left-to-right one (--reading, set on the root), and takes the text's colour.
+ */
+@utility chev-end {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-block-start: 2px solid currentColor;
+  border-inline-end: 2px solid currentColor;
+  transform: rotate(calc(var(--reading) * -45deg));
+}
+
+/*
+ * The tint behind a page's head: two soft lights in the corners, the home page's aurora without
+ * its motion, its blur or its grid, which a page of text has no use for. The first stands in the
+ * corner where the line starts (--reading). Small text on it is ink-2, never the quieter ink-3.
+ */
+@utility page-wash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      520px 340px at calc(50% + var(--reading) * 50%) 0%,
+      rgb(94 234 212 / 0.28),
+      transparent 70%
+    ),
+    radial-gradient(
+      560px 380px at calc(50% - var(--reading) * 50%) 100%,
+      rgb(165 180 252 / 0.32),
+      transparent 70%
+    );
+}
+
+/*
+ * Links inside a document's prose (the rules', guides', glossary's and methodology's text) are the
+ * brand's teal, underlined as the prose utilities underline them, and ink when hovered.
+ */
+@utility doc-links {
+  & a {
+    color: var(--color-brand-ink);
+  }
+  & a:hover {
+    color: var(--color-ink);
+  }
+}

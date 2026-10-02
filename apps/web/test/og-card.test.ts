@@ -64,6 +64,9 @@ describe('pageText and kickerOf', () => {
       kickerCode: true,
     })
     expect(kickerOf({ path: '/en/tools', file: '', lang: 'en' }).kicker).toBe('Tools')
+    // The knowledge hub's card says what the section is called in the header.
+    expect(kickerOf({ path: '/knowledge', file: '', lang: 'ar' }).kicker).toBe('المعرفة')
+    expect(kickerOf({ path: '/en/knowledge', file: '', lang: 'en' }).kicker).toBe('Knowledge')
     expect(() => kickerOf({ path: '/somewhere', file: '', lang: 'ar' })).toThrow(/add one/)
   })
 })

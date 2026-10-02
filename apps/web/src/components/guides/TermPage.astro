@@ -72,16 +72,16 @@ const related = term.related.map((other) => ({
   parent={{ name: t.title, href: localePath(lang, PATHS.glossary) }}
 >
   <Fragment slot="head">
-    <h1 class="m-0 text-[32px] leading-[1.2] font-semibold text-balance md:text-[52px]">
+    <h1 class="m-0 max-w-[900px] text-[32px] leading-[1.25] font-semibold text-balance md:text-[52px]">
       <Bidi text={copy.title} lang={lang} />
     </h1>
-    <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+    <p class="m-0 max-w-[720px] text-base leading-[1.85] text-ink-2 md:text-[19px]">
       <Bidi text={copy.description} lang={lang} />
     </p>
     {lang === 'ar' && (
-      <p class="m-0 flex flex-wrap items-baseline gap-x-2 text-sm text-ink-3">
+      <p class="m-0 flex flex-wrap items-baseline gap-x-2 text-sm text-ink-2">
         {t.term}:
-        <span lang="en" dir="ltr" class="font-mono text-ink-2">
+        <span lang="en" dir="ltr" class="font-mono text-ink">
           {term.term}
         </span>
       </p>
@@ -92,7 +92,7 @@ const related = term.related.map((other) => ({
     <LinkBox lang={lang} id="rules-title" title={t.rules} links={rules} />
     <LinkBox lang={lang} id="guides-title" title={t.guides} links={guides} />
     <LinkBox lang={lang} id="related-title" title={t.related} links={related} />
-    <p class="m-0 text-sm text-ink-3">
+    <p class="m-0 px-1 text-sm text-ink-2">
       {t.updated}{' '}
       <time datetime={term.updated} dir="ltr" class="font-mono">
         {term.updated}

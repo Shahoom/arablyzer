@@ -1,5 +1,5 @@
 ---
-import { RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
+import { KNOWLEDGE_UI, RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList, itemList } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
@@ -7,10 +7,12 @@ import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
 import Search from '@lucide/astro/icons/search'
 import Page from '../../layouts/Page.astro'
+import { searchable } from '../../lib/search'
 import { rulesByCategory } from '../../lib/rule-data'
 import { siteOf } from '../../lib/site'
 import { ARABIC_LAYER, CATEGORY_STYLE, categoryNumber } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
+import PageHead from '../PageHead.astro'
 import SeverityPill from '../SeverityPill.astro'
 
 interface Props {
@@ -23,6 +25,8 @@ const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, PATHS.rules)
 const groups = rulesByCategory()
 const count = groups.reduce((sum, group) => sum + group.rules.length, 0)
+// What the search says it shows, for each number of rules it can: the script has no plural rules.
+const shown = Array.from({ length: count + 1 }, (_, n) => t.library.count(n))
 const Next = lang === 'ar' ? ChevronLeft : ChevronRight
 const jsonLd = [
   breadcrumbList([
@@ -46,31 +50,18 @@ const jsonLd = [
   title={t.library.meta.title}
   description={t.library.meta.description}
   jsonLd={jsonLd}
+  latinPreload
 >
-  <section class="flex flex-col gap-5 border-b border-rule px-5 pt-8 pb-8 md:gap-[22px] md:px-16 md:pt-12 md:pb-10">
-    <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
-      <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
-        <li class="flex items-center gap-2">
-          <a href={localePath(lang, PATHS.home)} class="text-ink-3 hover:text-brand-ink">
-            {STRINGS[lang].home}
-          </a>
-          <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
-        </li>
-        <li aria-current="page">{t.library.title}</li>
-      </ol>
-    </nav>
-    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
-      <div class="flex max-w-[760px] flex-col gap-3.5">
-        <h1 class="m-0 text-[36px] leading-[1.15] font-semibold md:text-[56px]">
-          {t.library.title}
-        </h1>
-        <p class="m-0 text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
-          {t.library.intro}
-        </p>
-      </div>
+  <PageHead
+    lang={lang}
+    breadcrumb={{ label: t.page.breadcrumb, current: t.library.title }}
+    title={t.library.title}
+  >
+    <Bidi slot="lead" text={t.library.intro} lang={lang} />
+    <div slot="end" class="flex w-full shrink-0 flex-col gap-3 lg:w-[480px]">
       <div
         role="search"
-        class="flex h-14 w-full shrink-0 items-center gap-3 border-[1.5px] border-ink bg-white px-[18px] lg:w-[480px]"
+        class="flex h-14 items-center gap-3 rounded-2xl border border-field bg-white px-4 shadow focus-within:border-indigo focus-within:ring-4 focus-within:ring-indigo/15"
       >
         <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
         <label for="rules-search" class="sr-only">
@@ -81,21 +72,30 @@ const jsonLd = [
           type="search"
           autocomplete="off"
           placeholder={t.library.searchPlaceholder}
-          class="h-full min-w-0 grow border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-3 md:text-[17px]"
+          class="h-full min-w-0 grow border-0 bg-transparent text-base text-ink outline-none placeholder:text-ink-3 md:text-[17px] [&::-webkit-search-cancel-button]:hidden"
         />
       </div>
+      <p class="m-0 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-ink-2">
+        <span id="rules-count" aria-live="polite" data-shown={JSON.stringify(shown)}>
+          {t.library.count(count)}
+        </span>
+        <a
+          href={localePath(lang, PATHS.knowledge)}
+          class="inline-flex h-9 items-center gap-1.5 font-semibold text-brand-ink underline-offset-4 hover:text-ink hover:underline"
+        >
+          {KNOWLEDGE_UI[lang].searchAll}
+          <Next size={16} stroke-width={2} aria-hidden="true" />
+        </a>
+      </p>
     </div>
-    <p class="m-0 text-sm text-ink-3" id="rules-count" aria-live="polite">
-      {t.library.count(count)}
-    </p>
-  </section>
+  </PageHead>
 
-  <div class="grid gap-10 px-5 pt-8 pb-16 md:px-16 md:pt-10 md:pb-20 lg:grid-cols-[272px_minmax(0,1fr)] lg:gap-x-14">
+  <div class="wrap grid gap-10 pt-8 pb-16 md:pt-10 md:pb-24 lg:grid-cols-[272px_minmax(0,1fr)] lg:gap-x-12">
     <nav
       aria-labelledby="categories-title"
-      class="hidden flex-col gap-0.5 self-start text-[15px] lg:sticky lg:top-6 lg:flex"
+      class="card hidden flex-col gap-0.5 self-start p-3 text-[15px] lg:sticky lg:top-24 lg:flex"
     >
-      <h2 id="categories-title" class="m-0 pb-3 text-[13px] font-semibold text-ink-3">
+      <h2 id="categories-title" class="m-0 px-3 pt-1 pb-2 text-[13px] font-semibold text-ink-2">
         {t.library.categories}
       </h2>
       {groups.map((group, index) => (
@@ -103,20 +103,20 @@ const jsonLd = [
           {index > 0 &&
             ARABIC_LAYER.has(groups[index - 1]?.category ?? group.category) &&
             !ARABIC_LAYER.has(group.category) && (
-              <span aria-hidden="true" class="my-2.5 h-px bg-rule" />
+              <span aria-hidden="true" class="mx-3 my-2 h-px bg-line" />
             )}
           <a
             href={`#cat-${group.category}`}
-            class="flex items-center justify-between gap-2.5 px-3 py-[9px] hover:text-brand-ink"
+            class="flex items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-ink-2 hover:bg-surface-2 hover:text-ink"
           >
             <span class="flex items-center gap-2.5">
               <span
                 aria-hidden="true"
-                class:list={['size-2 shrink-0', CATEGORY_STYLE[group.category].dot]}
+                class:list={['size-2 shrink-0 rounded-full', CATEGORY_STYLE[group.category].dot]}
               />
               {categories[group.category].name}
             </span>
-            <span dir="ltr" class="font-mono text-xs text-ink-3">
+            <span dir="ltr" class="font-mono text-xs text-ink-3 tabular-nums">
               {group.rules.length}
             </span>
           </a>
@@ -132,17 +132,12 @@ const jsonLd = [
           data-category
           class="flex scroll-mt-6 flex-col gap-5"
         >
-          <div
-            class:list={[
-              'flex flex-col gap-2 border-b-2 pb-4',
-              CATEGORY_STYLE[group.category].line,
-            ]}
-          >
-            <div class="flex items-baseline gap-3.5">
+          <div class="flex flex-col gap-2">
+            <div class="flex flex-wrap items-center gap-3">
               <span
                 dir="ltr"
                 class:list={[
-                  'px-2 py-0.5 font-mono text-[13px] font-semibold',
+                  'grid h-7 min-w-9 place-items-center rounded-full px-2 font-mono text-[13px] font-semibold tabular-nums',
                   CATEGORY_STYLE[group.category].chip,
                 ]}
               >
@@ -150,12 +145,12 @@ const jsonLd = [
               </span>
               <h2
                 id={`cat-${group.category}-title`}
-                class="m-0 text-2xl font-semibold md:text-[28px]"
+                class="m-0 text-2xl leading-snug font-semibold md:text-[28px]"
               >
                 {categories[group.category].name}
               </h2>
             </div>
-            <p class="m-0 text-[15px] leading-[1.7] text-ink-2 md:text-base">
+            <p class="m-0 max-w-[70ch] text-[15px] leading-[1.7] text-ink-2 md:text-base">
               {categories[group.category].blurb}
             </p>
           </div>
@@ -163,27 +158,28 @@ const jsonLd = [
             {group.rules.map((rule) => (
               <li
                 data-rule
-                data-search={[rule.id, rule.copy.ar.title, rule.copy.en.title]
-                  .join(' ')
-                  .toLowerCase()}
+                data-search={searchable(
+                  [rule.id, rule.copy.ar.title, rule.copy.en.title].join(' '),
+                )}
               >
                 <a
                   href={localePath(lang, PATHS.rule(rule.id))}
-                  class="group flex h-full flex-col gap-3 border border-rule-strong bg-white p-[22px] hover:border-ink hover:text-ink"
+                  class="card card-lift group flex h-full flex-col gap-3 p-5 text-ink hover:text-ink"
                 >
-                  <span class="flex items-start justify-between gap-3 text-lg leading-snug font-semibold">
-                    <span class="min-w-0">
+                  <span class="flex items-start justify-between gap-3 text-[17px] leading-snug font-semibold">
+                    <span class="min-w-0 group-hover:text-brand-ink">
                       <Bidi text={rule.copy[lang].title} lang={lang} />
                     </span>
-                    <Next
-                      size={18}
-                      stroke-width={2}
+                    <span
                       aria-hidden="true"
-                      class="mt-1 shrink-0 text-ink-3 group-hover:text-brand-ink"
-                    />
+                      class="chev-end mt-2 text-ink-3 group-hover:text-brand-ink"
+                    ></span>
                   </span>
                   <span class="mt-auto flex flex-wrap items-center justify-between gap-2">
-                    <span dir="ltr" class="font-mono text-xs text-ink-3">
+                    <span
+                      dir="ltr"
+                      class="inline-flex h-[26px] items-center rounded-full bg-surface-2 px-2.5 font-mono text-xs text-ink-2"
+                    >
                       {rule.id}
                     </span>
                     <SeverityPill severity={rule.severity} lang={lang} />
@@ -197,7 +193,7 @@ const jsonLd = [
       <p
         id="rules-none"
         hidden
-        class="m-0 border border-dashed border-tick p-6 text-base text-ink-2"
+        class="m-0 rounded-2xl border border-dashed border-line-2 bg-white/70 p-6 text-base text-ink-2"
       >
         {t.library.none}
       </p>
@@ -206,24 +202,25 @@ const jsonLd = [
 </Page>
 
 <script>
-  // The library's search: rules whose name or id holds every word typed, and the sections they
-  // are in; the page works without it, every rule listed.
+  import { matchesAll, searchWords } from '../../lib/search'
+
+  // The library's search: rules whose name or id holds every word typed, read as people type
+  // Arabic (lib/search.ts), and the sections they are in; the page works without it, every rule
+  // listed.
   const input = document.querySelector<HTMLInputElement>('#rules-search')
   const count = document.querySelector<HTMLElement>('#rules-count')
   const none = document.querySelector<HTMLElement>('#rules-none')
   const sections = [...document.querySelectorAll<HTMLElement>('[data-category]')]
   const all = count?.textContent ?? ''
+  // What to say for each number of rules shown, in the page's language (RULES_UI).
+  const said = JSON.parse(count?.dataset.shown ?? '[]') as string[]
   input?.addEventListener('input', () => {
-    const words = input.value
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((word) => word !== '')
+    const words = searchWords(input.value)
     let shown = 0
     for (const section of sections) {
       let inSection = 0
       for (const card of section.querySelectorAll<HTMLElement>('[data-rule]')) {
-        const text = card.dataset.search ?? ''
-        const match = words.every((word) => text.includes(word))
+        const match = matchesAll(card.dataset.search ?? '', words)
         card.hidden = !match
         if (match) inSection++
       }
@@ -231,6 +228,6 @@ const jsonLd = [
       shown += inSection
     }
     if (none !== null) none.hidden = shown > 0
-    if (count !== null) count.textContent = words.length === 0 ? all : `${String(shown)} / ${all}`
+    if (count !== null) count.textContent = words.length === 0 ? all : (said[shown] ?? all)
   })
 </script>

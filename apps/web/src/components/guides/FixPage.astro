@@ -61,18 +61,18 @@ const related = guide.related.map((other) => ({
   parent={{ name: t.title, href: localePath(lang, PATHS.fix) }}
 >
   <Fragment slot="head">
-    <span class="self-start border border-brand-ink px-2.5 py-0.5 text-sm font-semibold text-brand-ink">
+    <span class="kick self-start">
       <Bidi text={t.source} lang={lang} />
     </span>
-    <h1 class="m-0 text-[30px] leading-[1.25] font-semibold text-balance md:text-[44px]">
+    <h1 class="m-0 max-w-[900px] text-[30px] leading-[1.25] font-semibold text-balance md:text-[44px]">
       <Bidi text={copy.title} lang={lang} />
     </h1>
-    <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+    <p class="m-0 max-w-[720px] text-base leading-[1.85] text-ink-2 md:text-[19px]">
       <Bidi text={copy.description} lang={lang} />
     </p>
-    <p class="m-0 flex flex-wrap items-baseline gap-x-2 text-sm text-ink-3">
+    <p class="m-0 flex flex-wrap items-baseline gap-x-2 text-sm text-ink-2">
       {t.otherMessage}:
-      <span lang={other} dir={other === 'ar' ? 'rtl' : 'ltr'} class="font-semibold text-ink-2">
+      <span lang={other} dir={other === 'ar' ? 'rtl' : 'ltr'} class="font-semibold text-ink">
         {guide.message[other]}
       </span>
     </p>
@@ -81,7 +81,7 @@ const related = guide.related.map((other) => ({
     <LinkBox lang={lang} id="tools-title" title={t.tools} links={tools} />
     <LinkBox lang={lang} id="rules-title" title={t.rules} links={rules} />
     <LinkBox lang={lang} id="related-title" title={t.related} links={related} />
-    <p class="m-0 text-sm text-ink-3">
+    <p class="m-0 px-1 text-sm text-ink-2">
       {t.updated}{' '}
       <time datetime={guide.updated} dir="ltr" class="font-mono">
         {guide.updated}

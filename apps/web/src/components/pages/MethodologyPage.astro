@@ -5,6 +5,7 @@ import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import { METHODOLOGY_DATA } from '../../lib/methodology'
 import { METHODOLOGY_SOURCE, siteOf } from '../../lib/site'
+import DocHeading from '../DocHeading.astro'
 import Contents from './Contents.astro'
 import DocPage from './DocPage.astro'
 
@@ -25,7 +26,7 @@ const jsonLd = [
     { name: doc.title, url },
   ]),
 ]
-const prose = 'prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]'
+const prose = 'prose-fix prose-tool doc-links text-base leading-[1.85] text-ink-2 md:text-[17px]'
 ---
 
 <DocPage
@@ -36,35 +37,31 @@ const prose = 'prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-
   jsonLd={jsonLd}
   crumb={doc.title}
   breadcrumbLabel={t.breadcrumb}
+  asideFirst
 >
   <Fragment slot="head">
-    <h1 class="m-0 text-[32px] leading-[1.2] font-semibold text-balance md:text-[52px]">
+    <h1 class="m-0 max-w-[900px] text-[32px] leading-[1.25] font-semibold text-balance md:text-[52px]">
       {doc.title}
     </h1>
-    <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+    <p class="m-0 max-w-[720px] text-base leading-[1.85] text-ink-2 md:text-[19px]">
       {doc.description}
     </p>
   </Fragment>
   <Contents slot="aside" label={t.contents} sections={doc.sections}>
     <a
       href={METHODOLOGY_SOURCE}
-      class="mt-3 border-t border-dashed border-tick pt-3 text-sm text-ink-2 underline underline-offset-4 hover:text-brand-ink"
+      class="mx-3 mt-2 mb-1 border-t border-dashed border-line-2 pt-3 text-sm text-brand-ink underline underline-offset-4 hover:text-ink"
     >
       {t.source}
     </a>
   </Contents>
-  {doc.sections.map((section) => (
+  {doc.sections.map((section, index) => (
     <section
       id={section.id}
       aria-labelledby={`${section.id}-title`}
       class="flex scroll-mt-6 flex-col gap-4"
     >
-      <h2
-        id={`${section.id}-title`}
-        class="m-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]"
-      >
-        {section.title}
-      </h2>
+      <DocHeading id={`${section.id}-title`} number={index + 1} title={section.title} />
       <div class={prose} set:html={section.html} />
       {section.parts.map((part) => (
         <div class="flex flex-col gap-3 pt-2">

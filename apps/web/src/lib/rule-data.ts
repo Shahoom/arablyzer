@@ -20,6 +20,11 @@ export interface RuleCopyData {
   readonly title: string
   /** Plain text: the first point of why it matters, for the meta description and the cards. */
   readonly description: string
+  /**
+   * The same first point with its code in backticks (`like this`), for the knowledge hub's rows:
+   * a rule that quotes the example it judges has it as code, which the site's own rules skip.
+   */
+  readonly summary: string
   readonly why: string
   readonly fix: string
   readonly detect: string

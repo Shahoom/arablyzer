@@ -1,0 +1,40 @@
+---
+import type { Lang } from '@arablyzer/seo/site'
+import Breadcrumb from './Breadcrumb.astro'
+
+/**
+ * The head of a directory page (the rule library, the fix guides, the glossary): the trail, a
+ * kicker if the page has one, the heading and its lead over the soft tint of a page's head, and
+ * a slot for what sits beside the heading on a wide screen (a search) or under it.
+ */
+interface Props {
+  lang: Lang
+  breadcrumb: {
+    readonly label: string
+    readonly current: string
+    readonly steps?: readonly { readonly name: string; readonly href: string }[]
+  }
+  title: string
+}
+const { lang, breadcrumb, title } = Astro.props
+---
+
+<section class="relative isolate border-b border-line">
+  <div aria-hidden="true" class="page-wash"></div>
+  <div class="wrap flex flex-col gap-6 pt-8 pb-10 md:gap-7 md:pt-12 md:pb-12">
+    <Breadcrumb lang={lang} {...breadcrumb} />
+    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+      <div class="flex max-w-[760px] flex-col gap-3.5">
+        <slot name="kicker" />
+        <h1 class="m-0 text-[36px] leading-[1.2] font-semibold text-balance md:text-[56px]">
+          {title}
+        </h1>
+        <p class="m-0 text-base leading-[1.85] text-ink-2 md:text-[19px]">
+          <slot name="lead" />
+        </p>
+      </div>
+      <slot name="end" />
+    </div>
+    <slot />
+  </div>
+</section>

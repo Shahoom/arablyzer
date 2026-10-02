@@ -1,14 +1,15 @@
 ---
-import { GUIDES_UI } from '@arablyzer/i18n'
+import { GUIDES_UI, KNOWLEDGE_UI } from '@arablyzer/i18n'
 import { breadcrumbList, itemList } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import ChevronLeft from '@lucide/astro/icons/chevron-left'
 import ChevronRight from '@lucide/astro/icons/chevron-right'
 import Page from '../../layouts/Page.astro'
-import { GUIDES_DATA } from '../../lib/guide-data'
+import { GUIDE_STATUS_DOT, GUIDES_DATA } from '../../lib/guide-data'
 import { siteOf } from '../../lib/site'
 import Bidi from '../Bidi.astro'
+import PageHead from '../PageHead.astro'
 
 // The /fix guides' index (M2.4d): the Page indexing report's messages, in the report's order,
 // each with the message in the other language, since a site's Search Console may be in either.
@@ -45,62 +46,63 @@ const jsonLd = [
   title={t.meta.title}
   description={t.meta.description}
   jsonLd={jsonLd}
+  latinPreload
 >
-  <section class="flex flex-col gap-5 border-b border-rule px-5 pt-8 pb-8 md:gap-[22px] md:px-16 md:pt-12 md:pb-10">
-    <nav aria-label={t.breadcrumb} class="text-sm text-ink-3">
-      <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
-        <li class="flex items-center gap-2">
-          <a href={localePath(lang, PATHS.home)} class="text-ink-3 hover:text-brand-ink">
-            {STRINGS[lang].home}
-          </a>
-          <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
-        </li>
-        <li aria-current="page">{t.title}</li>
-      </ol>
-    </nav>
-    <div class="flex max-w-[760px] flex-col gap-3.5">
-      <span class="self-start border border-brand-ink px-2.5 py-0.5 text-sm font-semibold text-brand-ink">
-        <Bidi text={t.source} lang={lang} />
-      </span>
-      <h1 class="m-0 text-[36px] leading-[1.15] font-semibold md:text-[56px]">{t.title}</h1>
-      <p class="m-0 text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
-        <Bidi text={t.intro} lang={lang} />
-      </p>
-    </div>
-  </section>
+  <PageHead lang={lang} breadcrumb={{ label: t.breadcrumb, current: t.title }} title={t.title}>
+    <span slot="kicker" class="kick self-start">
+      <Bidi text={t.source} lang={lang} />
+    </span>
+    <Bidi slot="lead" text={t.intro} lang={lang} />
+    <a
+      slot="end"
+      href={localePath(lang, PATHS.knowledge)}
+      class="inline-flex h-10 shrink-0 items-center gap-1.5 text-sm font-semibold text-brand-ink underline-offset-4 hover:text-ink hover:underline"
+    >
+      {KNOWLEDGE_UI[lang].searchAll}
+      <Next size={16} stroke-width={2} aria-hidden="true" />
+    </a>
+  </PageHead>
 
-  <div class="flex flex-col gap-12 px-5 pt-8 pb-16 md:px-16 md:pt-10 md:pb-20">
+  <div class="wrap flex flex-col gap-12 pt-8 pb-16 md:pt-10 md:pb-24">
     {groups.map((group) => (
       <section aria-labelledby={`group-${group.status}`} class="flex flex-col gap-5">
         <h2
           id={`group-${group.status}`}
-          class="m-0 border-b-2 border-ink pb-4 text-2xl font-semibold md:text-[28px]"
+          class="m-0 flex items-center gap-3 text-2xl leading-snug font-semibold md:text-[28px]"
         >
+          <span
+            aria-hidden="true"
+            class:list={['size-2.5 shrink-0 rounded-full', GUIDE_STATUS_DOT[group.status]]}
+          />
           {t.groups[group.status]}
+          <span
+            dir="ltr"
+            class="rounded-full bg-surface-2 px-2.5 py-0.5 text-sm font-normal text-ink-2 tabular-nums"
+          >
+            {group.guides.length}
+          </span>
         </h2>
         <ul class="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3">
           {group.guides.map((guide) => (
             <li>
               <a
                 href={localePath(lang, PATHS.fixGuide(guide.slug))}
-                class="group flex h-full flex-col gap-3 border border-rule-strong bg-white p-[22px] hover:border-ink hover:text-ink"
+                class="card card-lift group flex h-full flex-col gap-3 p-5 text-ink hover:text-ink"
               >
-                <span class="flex items-start justify-between gap-3 text-lg leading-snug font-semibold">
-                  <span class="min-w-0">
+                <span class="flex items-start justify-between gap-3 text-[17px] leading-snug font-semibold">
+                  <span class="min-w-0 group-hover:text-brand-ink">
                     <Bidi text={guide.message[lang]} lang={lang} />
                   </span>
-                  <Next
-                    size={18}
-                    stroke-width={2}
+                  <span
                     aria-hidden="true"
-                    class="mt-1 shrink-0 text-ink-3 group-hover:text-brand-ink"
+                    class="chev-end mt-2 text-ink-3 group-hover:text-brand-ink"
                   />
                 </span>
                 <span
                   lang={other}
                   dir={other === 'ar' ? 'rtl' : 'ltr'}
                   class:list={[
-                    'mt-auto text-sm text-ink-3',
+                    'mt-auto text-sm text-ink-2',
                     other === 'en' && 'self-start font-mono',
                   ]}
                 >
