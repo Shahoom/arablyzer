@@ -49,7 +49,7 @@ const KPIS = [
         <div>
           <div class="flex flex-wrap items-center gap-2">
             <span class="kick bg-[rgb(94_234_212/0.14)] text-panel-pass">{t.kicker}</span>
-            <span class="inline-flex h-[30px] items-center rounded-full border border-dashed border-panel-tick px-3 text-[13px] font-semibold text-panel-text">
+            <span class="inline-flex h-[30px] items-center rounded-full border border-dashed border-panel-tick px-3 text-meta font-semibold text-panel-text">
               {t.soon}
             </span>
           </div>
@@ -57,7 +57,7 @@ const KPIS = [
             {t.title}
           </h2>
           <p class="text-body m-0 mt-3 mb-5 text-panel-soft md:mb-0">{t.text}</p>
-          <ul class="text-small m-0 mt-5 mb-6 hidden list-none flex-col gap-2.5 p-0 text-panel-text md:flex md:text-[1rem]">
+          <ul class="text-small m-0 mt-5 mb-6 hidden list-none flex-col gap-2.5 p-0 text-panel-text md:flex md:text-body">
             {t.points.map((point) => (
               <li class="flex items-center gap-2.5">
                 <Check

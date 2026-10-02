@@ -168,7 +168,7 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
       <p
         id={errorId}
         role="alert"
-        className={`m-0 px-1 text-sm text-serious ${message === '' ? '' : 'mt-2'}`}
+        className={`text-small m-0 px-1 text-serious ${message === '' ? '' : 'mt-2'}`}
       >
         {message}
       </p>
