@@ -61,7 +61,7 @@ const tick = 'mt-[5px] shrink-0 text-brand'
           <h3 class="heading-3 m-0">{t.monitoring.name}</h3>
           <span class="sev bg-indigo-soft text-indigo-ink">{t.soon}</span>
         </div>
-        <p class="text-body m-0 text-ink-2">{t.monitoring.text}</p>
+        <p class="text-body m-0 hidden text-ink-2 md:block">{t.monitoring.text}</p>
         <ul class="text-small m-0 flex list-none flex-col gap-2 p-0 text-ink-2">
           {[...t.monitoring.points, t.includesFree].map((item) => (
             <li class={point}>
@@ -80,7 +80,7 @@ const tick = 'mt-[5px] shrink-0 text-brand'
           <h3 class="heading-3 m-0">{t.crawl.name}</h3>
           <span class="sev bg-indigo-soft text-indigo-ink">{t.soon}</span>
         </div>
-        <p class="text-body m-0 text-ink-2">{t.crawl.text}</p>
+        <p class="text-body m-0 hidden text-ink-2 md:block">{t.crawl.text}</p>
         <ul class="text-small m-0 flex list-none flex-col gap-2 p-0 text-ink-2">
           {[...t.crawl.points, t.includesFree].map((item) => (
             <li class={point}>

@@ -98,7 +98,7 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
     <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col">
       <label
         htmlFor={inputId}
-        className="flex items-center gap-3 rounded-xl px-2 pt-1 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo md:pt-1.5"
+        className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-0.5 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo md:bg-transparent md:px-2 md:pt-1.5 md:pb-0"
       >
         <Link size={20} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
         <span className="sr-only">{t.label}</span>

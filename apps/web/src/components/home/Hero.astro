@@ -38,7 +38,9 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
   aria-labelledby="home-title"
   class="relative overflow-hidden pt-5 pb-5 md:pt-10 md:pb-8 lg:pt-14"
 >
-  <Aurora />
+  <div class="aurora-fade absolute inset-0">
+    <Aurora />
+  </div>
   <div class="wrap relative z-10 flex flex-col items-center gap-4 text-center md:gap-5">
     <a
       href={localePath(lang, PATHS.tools)}
@@ -84,7 +86,7 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
 
     <ul
       aria-label={t.tools.label}
-      class="scroll-row self-stretch md:max-w-[960px] md:flex-wrap md:justify-center md:self-center"
+      class="scroll-row self-stretch md:max-w-[520px] md:justify-center md:self-center lg:max-w-[960px]"
     >
       {chips.map((chip) => (
         <li>
@@ -114,3 +116,12 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
     <Showcase lang={lang} />
   </div>
 </section>
+
+<style>
+  /* The aurora fades out over the last 140 px of the section, so that its clipped foot is not a
+     line across the page under the product shot. */
+  .aurora-fade {
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 140px), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 140px), transparent);
+  }
+</style>
