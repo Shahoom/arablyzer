@@ -30,6 +30,12 @@ export interface KnowledgeStrings {
   readonly searchAll: string
   /** The link at the end of a group's heading, to the page of all of them. */
   readonly viewAll: Readonly<Record<KnowledgeType, string>>
+  /**
+   * The control under a group's first rows (M2.6 R7): the rest of the group is behind it, in a
+   * disclosure that works without script. `showAll` opens it, `showFewer` shuts it again.
+   */
+  readonly showAll: string
+  readonly showFewer: string
   /** What a screen reader is told when the results change: «19 نتيجة». */
   readonly status: (count: number) => string
   /** When nothing matches; `{query}` stands for the words typed. */
@@ -93,7 +99,7 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       all: 'الكل',
       tool: 'الأدوات',
       rule: 'القواعد',
-      fix: 'إصلاح Search Console',
+      fix: 'أدلة الإصلاح',
       term: 'المصطلحات',
     },
     termTag: 'مصطلح',
@@ -104,6 +110,8 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       fix: 'كل أدلة الإصلاح',
       term: 'المسرد كاملاً',
     },
+    showAll: 'عرض الكل',
+    showFewer: 'عرض أقل',
     status: (count) => (count === 0 ? 'لا نتائج' : arabicCount(count, RESULTS)),
     none: {
       title: 'لا نتائج لـ«{query}»',
@@ -126,7 +134,7 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
         'Search every Arablyzer rule and tool, the fix guides for Search Console messages, and the meaning of every SEO and web term, in Arabic and English.',
     },
     title: 'Knowledge',
-    lead: 'Every rule we check with, every tool, the fix guides for Search Console messages, and the meaning of every term, in one search.',
+    lead: 'Every rule we check with, every tool, every fix guide and every term, in one search.',
     breadcrumb: 'Breadcrumb',
     search: {
       label: 'Search the knowledge',
@@ -139,7 +147,7 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       all: 'All',
       tool: 'Tools',
       rule: 'Rules',
-      fix: 'Search Console fixes',
+      fix: 'Fix guides',
       term: 'Glossary',
     },
     termTag: 'Term',
@@ -150,6 +158,8 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       fix: 'All fix guides',
       term: 'The whole glossary',
     },
+    showAll: 'Show all',
+    showFewer: 'Show fewer',
     status: (count) => (count === 0 ? 'No results' : englishCount(count, 'result', 'results')),
     none: {
       title: 'No results for “{query}”',

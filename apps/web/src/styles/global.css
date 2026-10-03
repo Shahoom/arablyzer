@@ -1203,3 +1203,160 @@
     }
   }
 }
+
+/* R7 knowledge */
+
+/*
+ * The parts the knowledge pages share (M2.6 R7: the hub, the three directories, the 404 page and
+ * the documents' asides). Written once here because several files draw each: a search field, a
+ * list of links that is one card with hairlines between its rows, the row itself, the dot at its
+ * start, a link in an aside, and a row of the hub's type filter. Every colour is a token, so a
+ * dark theme redeclares them and these follow.
+ */
+
+/*
+ * A search field: the wrapper of an icon, an input and, when there is text, a clear button. 48 px
+ * on a phone and 52 from lg; the border is `field` (3:1 against the ground, as an input's edge
+ * must be), and while the input has focus the border and a ring turn indigo, as `scan-box` does.
+ * The input inside has no outline of its own: the wrapper is what shows focus.
+ */
+@utility search-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding-inline: 14px 6px;
+  border: 1px solid var(--color-field);
+  border-radius: var(--radius-md);
+  background-color: var(--color-white);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  &:focus-within {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+  }
+  @media (min-width: 64rem) {
+    height: 52px;
+    padding-inline-start: 16px;
+  }
+}
+
+/*
+ * A box in an aside: a card without its shadow. A sticky aside scrolls inside itself when it is
+ * taller than the room under the header, and the box that scrolls clips a shadow with a hard edge;
+ * a hairline does not show it. The same box under the page on a phone, so that the two agree.
+ */
+@utility kb-box {
+  border: 1px solid var(--color-line);
+  border-radius: var(--card-radius);
+  background-color: var(--color-surface);
+}
+
+/*
+ * A list of links as one card: a hairline between the rows instead of a card for each, so that
+ * sixty rules are a list and not sixty boxes. It clips its rows, so a row's focus outline is drawn
+ * inside it (`kb-row`).
+ */
+@utility kb-list {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--card-radius);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow);
+  /* Between two rows that are shown: a search that hides a row leaves no stray hairline. */
+  & li:not([hidden]) ~ li:not([hidden]) {
+    border-top: 1px solid var(--color-line);
+  }
+}
+/*
+ * A row of a `kb-list`: the whole row is the link. The dot, the text and what follows it start at
+ * the top of the row, so that a title that wraps keeps its dot beside its first line.
+ */
+@utility kb-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  color: var(--color-ink);
+  text-decoration: none;
+  &:hover {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+  }
+  &:focus-visible {
+    outline-offset: -3px;
+  }
+  @media (min-width: 48rem) {
+    gap: 16px;
+    padding: 12px 20px;
+  }
+}
+/* The small dot at a row's start, centred on the first line of a body-size title. */
+@utility kb-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-top: calc(var(--lh-body) * 0.5rem - 4px);
+}
+
+/*
+ * A link in an aside (the contents, the related pages, the categories, the other sections): 44 px
+ * on a phone, where the aside is under the page, and 34 px from lg, where a pointer needs less and
+ * the sticky aside holds more (a page may set `--kb-link-h` and `--kb-link-h-lg` for a denser
+ * list). Its colour is the page's to set (`text-ink`, `text-ink-2`).
+ */
+@utility kb-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--kb-link-h, 44px);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  line-height: var(--lh-small);
+  text-decoration: none;
+  &:hover {
+    background-color: var(--color-surface-2);
+  }
+  @media (min-width: 64rem) {
+    min-height: var(--kb-link-h-lg, 34px);
+    padding-block: 4px;
+  }
+}
+
+/*
+ * A row of the hub's type filter (the vertical list in its aside, from lg): the name and its
+ * count, indigo on its tint while it is pressed, as a pressed `chip` is.
+ */
+@utility kb-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-ink-2);
+  font-size: 0.9375rem;
+  line-height: var(--lh-small);
+  text-align: start;
+  cursor: pointer;
+  &:hover {
+    background-color: var(--color-surface-2);
+    color: var(--color-ink);
+  }
+  &[aria-pressed='true'] {
+    background-color: var(--color-indigo-soft);
+    color: var(--color-indigo-ink);
+    /* Forced colours drop the tint: a pressed row is told by its edge. */
+    @media (forced-colors: active) {
+      outline: 2px solid Highlight;
+    }
+  }
+}

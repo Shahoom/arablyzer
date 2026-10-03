@@ -176,8 +176,11 @@ async function measure(path: string, width: number): Promise<Measured[]> {
           const text = luminance(Number(color[1]), Number(color[2]), Number(color[3]))
           const x0 = Math.max(0, Math.floor(box.x))
           const y0 = Math.max(0, Math.floor(box.y))
-          const x1 = Math.min(image.width - 1, Math.ceil(box.x + box.w))
-          const y1 = Math.min(image.height - 1, Math.ceil(box.y + box.h))
+          // The last pixel of a box is the one before its far edge: a line clipped to a block of
+          // code that scrolls ends at the block's edge, and the pixel past it is the page's own
+          // ground (M2.6 R7: a rounded block 358 px wide put every third column on that edge).
+          const x1 = Math.min(image.width - 1, Math.ceil(box.x + box.w) - 1)
+          const y1 = Math.min(image.height - 1, Math.ceil(box.y + box.h) - 1)
           if (x1 <= x0 || y1 <= y0) continue
           const data = draw.getImageData(x0, y0, x1 - x0 + 1, y1 - y0 + 1).data
           let worst = 99

@@ -45,7 +45,7 @@ export const GUIDES_UI: Copy<GuidesStrings> = {
       },
       title: 'أدلة الإصلاح',
       intro:
-        'أدلة لرسائل تقرير فهرسة الصفحات في Search Console، رسالةً رسالة: ماذا تعني، ولماذا تظهر، وكيف تُصلحها، وكيف تتحقق من أن الإصلاح نجح.',
+        'أدلة لرسائل تقرير فهرسة الصفحات في Search Console: ماذا تعني، ولماذا تظهر، وكيف تُصلحها.',
       breadcrumb: 'مسار الصفحة',
       source: 'تقرير فهرسة الصفحات في Search Console',
       groups: { 'not-indexed': 'صفحات لم تتم فهرستها', warning: 'صفحات مفهرسة مع تحذير' },
@@ -63,8 +63,7 @@ export const GUIDES_UI: Copy<GuidesStrings> = {
           'مصطلحات تحسين محركات البحث والويب والنص العربي، بالعربية: كل مصطلح في صفحة، بتعريفه، ولماذا يهم، ومثال، والأخطاء الشائعة.',
       },
       title: 'المسرد',
-      intro:
-        'مصطلحات تحسين محركات البحث والويب والنص العربي، كل مصطلح في صفحة: تعريفه، ولماذا يهم موقعك، ومثال عليه.',
+      intro: 'مصطلحات SEO والويب والنص العربي: تعريف كل مصطلح، ولماذا يهم موقعك، ومثال عليه.',
       breadcrumb: 'مسار الصفحة',
       term: 'بالإنجليزية',
       contents: 'في هذه الصفحة',
@@ -84,7 +83,7 @@ export const GUIDES_UI: Copy<GuidesStrings> = {
       },
       title: 'Fix guides',
       intro:
-        "Guides to the messages of Search Console's Page indexing report, one per message: what it means, why it shows, how to fix it, and how to check that the fix worked.",
+        'A guide for each Search Console indexing message: what it means, why it shows, how to fix it.',
       breadcrumb: 'Breadcrumb',
       source: "Search Console's Page indexing report",
       groups: { 'not-indexed': 'Pages not indexed', warning: 'Indexed, with a warning' },
@@ -103,7 +102,7 @@ export const GUIDES_UI: Copy<GuidesStrings> = {
       },
       title: 'Glossary',
       intro:
-        'Terms of SEO, the web and Arabic text, each on a page: what it is, why it matters for your site, and an example.',
+        'SEO, web and Arabic-text terms: what each is, why it matters for your site, and an example.',
       breadcrumb: 'Breadcrumb',
       term: 'In Arabic',
       contents: 'On this page',

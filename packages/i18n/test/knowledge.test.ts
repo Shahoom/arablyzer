@@ -67,6 +67,20 @@ describe('the knowledge hub’s copy', () => {
     ])
   })
 
+  it('names the control under a group’s first rows, and what it says once it is open', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      const { showAll, showFewer } = KNOWLEDGE_UI[lang]
+      expect(showAll.trim(), lang).not.toBe('')
+      expect(showFewer.trim(), lang).not.toBe('')
+      expect(showAll, lang).not.toBe(showFewer)
+    }
+  })
+
+  it('names the fix guides’ kind as the header names the section, in the chips and the group', () => {
+    expect(KNOWLEDGE_UI.ar.types.fix).toBe(SITE.ar.nav.fix)
+    expect(KNOWLEDGE_UI.en.types.fix).toBe(SITE.en.nav.fix)
+  })
+
   it('has the query where the empty state puts it, and the header’s section where the site has it', () => {
     for (const lang of ['ar', 'en'] as const) {
       expect(KNOWLEDGE_UI[lang].none.title.split('{query}')).toHaveLength(2)

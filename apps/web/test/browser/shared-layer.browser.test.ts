@@ -403,10 +403,11 @@ describe.each(ENGINES)('the shared layer in %s', (engine) => {
   })
 
   describe('the two columns of an inner page', () => {
-    // The pages on PageColumns (DocPage): the bot's page and the methodology put the contents
-    // before the text on a phone; a fix guide and a glossary term put their links after it.
-    const FIRST = ['/bot', '/methodology']
-    const AFTER = ['/fix/soft-404', '/glossary/robots-txt']
+    // The pages on PageColumns (DocPage): the bot's page, the methodology, a fix guide and a
+    // glossary term. On a phone each has its contents as a disclosure under its head (M2.6 R7), and
+    // its aside, the contents list and the links to more, comes after the text.
+    const STICKY = ['/bot', '/methodology']
+    const AFTER = ['/bot', '/methodology', '/fix/soft-404', '/glossary/robots-txt']
 
     /** The main column and the aside of the page: where each is. */
     async function columns(tab: Page) {
@@ -428,7 +429,7 @@ describe.each(ENGINES)('the shared layer in %s', (engine) => {
       })
     }
 
-    it.each([...FIRST, ...AFTER])(
+    it.each(AFTER)(
       'is a main column of 760 px at the most beside an aside of 320 to 360 px from lg (%s)',
       async (path) => {
         for (const lang of LANGS) {
@@ -456,7 +457,7 @@ describe.each(ENGINES)('the shared layer in %s', (engine) => {
       60_000,
     )
 
-    it.each(FIRST)('sticks 24 px under the header while the text scrolls (%s)', async (path) => {
+    it.each(STICKY)('sticks 24 px under the header while the text scrolls (%s)', async (path) => {
       const tab = await open(path, 1440)
       await tab.evaluate(() => {
         window.scrollTo(0, 900)
@@ -472,7 +473,7 @@ describe.each(ENGINES)('the shared layer in %s', (engine) => {
       await done(tab)
     })
 
-    it.each([...FIRST, ...AFTER])(
+    it.each(AFTER)(
       'is one column below lg (%s)',
       async (path) => {
         for (const lang of LANGS) {
@@ -490,9 +491,8 @@ describe.each(ENGINES)('the shared layer in %s', (engine) => {
               Math.abs(found.main.width - found.aside.width),
               `${where}: same width`,
             ).toBeLessThan(1)
-            // The page chooses: a contents list comes first, links to more come after the text.
-            if (FIRST.includes(path)) expect(found.aside.top, where).toBeLessThan(found.main.top)
-            else expect(found.aside.top, where).toBeGreaterThan(found.main.top)
+            // Links to more come after the text.
+            expect(found.aside.top, where).toBeGreaterThan(found.main.top)
             expect(found.position, `${where}: not sticky`).toBe('static')
             expect(found.scrollW, where).toBe(found.clientW)
             await done(tab)

@@ -47,6 +47,11 @@ export interface RulesStrings {
     readonly inTools: string
     readonly fullScan: string
     readonly near: string
+    /** The list of the page's sections, beside it on a desktop and under its heading on a phone. */
+    readonly contents: string
+    /** The fix guides and the glossary terms that name the rule, in the page's links to more. */
+    readonly guides: string
+    readonly terms: string
   }
 }
 
@@ -60,8 +65,7 @@ export const RULES_UI: Copy<RulesStrings> = {
           'كل قاعدة يفحصها Arablyzer في صفحة: لماذا تهم، ومثال خطأ وصحيح، وكيف تُصلح، وكيف نكشفها، ووزنها في الدرجة.',
       },
       title: 'مكتبة القواعد',
-      intro:
-        'كل ما يفحصه Arablyzer قاعدة لها صفحة: لماذا تهم، وكيف تُصلح، وكيف نكشفها بالضبط. كل مخالفة في تقاريرنا تقود إلى قاعدتها هنا.',
+      intro: 'كل ما يفحصه Arablyzer قاعدة لها صفحة: لماذا تهم، وكيف تُصلح، وكيف نكشفها.',
       search: 'ابحث في القواعد',
       searchPlaceholder: 'ابحث: خط، اتجاه، robots، hreflang…',
       categories: 'الفئات',
@@ -101,6 +105,9 @@ export const RULES_UI: Copy<RulesStrings> = {
       inTools: 'تجدها في',
       fullScan: 'الفحص الكامل',
       near: 'قواعد قريبة',
+      contents: 'في هذه الصفحة',
+      guides: 'أدلة إصلاح ذات صلة',
+      terms: 'مصطلحات ذات صلة',
     },
   },
   en: {
@@ -112,7 +119,7 @@ export const RULES_UI: Copy<RulesStrings> = {
       },
       title: 'Rule library',
       intro:
-        'Everything Arablyzer checks is a rule with its own page: why it matters, how to fix it, and exactly how we detect it. Every finding in our reports leads to its rule here.',
+        'Every rule Arablyzer checks has its own page: why it matters, how to fix it, how we detect it.',
       search: 'Search the rules',
       searchPlaceholder: 'Search: font, direction, robots, hreflang…',
       categories: 'Categories',
@@ -146,6 +153,9 @@ export const RULES_UI: Copy<RulesStrings> = {
       inTools: 'Find it in',
       fullScan: 'The full scan',
       near: 'Related rules',
+      contents: 'On this page',
+      guides: 'Related fix guides',
+      terms: 'Related terms',
     },
   },
 }

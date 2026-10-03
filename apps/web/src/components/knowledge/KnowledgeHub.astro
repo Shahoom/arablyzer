@@ -3,22 +3,17 @@ import { GUIDES_UI, KNOWLEDGE_UI, RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList, itemList } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
-import BookOpen from '@lucide/astro/icons/book-open'
-import LifeBuoy from '@lucide/astro/icons/life-buoy'
-import ListChecks from '@lucide/astro/icons/list-checks'
-import Wrench from '@lucide/astro/icons/wrench'
 import KnowledgeSearch from '../../islands/KnowledgeSearch'
 import Page from '../../layouts/Page.astro'
-import { HEAD } from '../../lib/heads'
 import { knowledgeIndex } from '../../lib/knowledge'
-import { KNOWLEDGE_TYPES, TYPE_TILE } from '../../lib/knowledge-search'
+import { KNOWLEDGE_TYPES } from '../../lib/knowledge-search'
 import { siteOf } from '../../lib/site'
 import Bidi from '../Bidi.astro'
-import Breadcrumb from '../Breadcrumb.astro'
+import PageHead from '../PageHead.astro'
 
-// The knowledge hub (M2.6 R5): one search over the tools, the rules, the fix guides and the
-// glossary. Every page is a link in the HTML (the island renders the groups at build time, and
-// narrows them in the browser), and the tiles at the foot lead to the four directories.
+// The knowledge hub (M2.6 R5, rebuilt in R7): one search over the tools, the rules, the fix guides
+// and the glossary. Every page is a link in the HTML (the island renders the groups at build time,
+// and narrows them in the browser), and the four tiles at the foot lead to the directories.
 
 interface Props {
   lang: Lang
@@ -54,7 +49,6 @@ const jsonLd = [
     })),
   ),
 ]
-const ICON = { tool: Wrench, rule: ListChecks, fix: LifeBuoy, term: BookOpen } as const
 ---
 
 <Page
@@ -64,60 +58,32 @@ const ICON = { tool: Wrench, rule: ListChecks, fix: LifeBuoy, term: BookOpen } a
   description={t.meta.description}
   jsonLd={jsonLd}
 >
-  <section class:list={['relative isolate pb-16 md:pb-24', HEAD.top]}>
-    {/* The faint tint of an inner page's head: the aurora is the home page's alone (M2.6 R7). */}
-    <div aria-hidden="true" class="page-wash"></div>
-    <div class="wrap flex flex-col gap-10 md:gap-12">
-      <div class="flex max-w-[780px] flex-col gap-4 md:gap-5">
-        <Breadcrumb lang={lang} label={t.breadcrumb} current={t.title} />
-        <h1 class={HEAD.index}>{t.title}</h1>
-        <p class={HEAD.lead}>
-          <Bidi text={t.lead} lang={lang} />
-        </p>
-      </div>
+  <PageHead lang={lang} breadcrumb={{ label: t.breadcrumb, current: t.title }} title={t.title}>
+    <Bidi slot="lead" text={t.lead} lang={lang} />
+  </PageHead>
 
-      <KnowledgeSearch
-        client:load
-        lang={lang}
-        items={items}
-        tones={tones}
-        directories={directories}
-      />
+  <KnowledgeSearch client:load lang={lang} items={items} tones={tones} directories={directories} />
 
-      <section aria-labelledby="browse-title" class="flex flex-col gap-5">
-        <h2 id="browse-title" class="m-0 text-xl font-semibold md:text-2xl">
-          {t.browse.label}
-        </h2>
-        <ul class="m-0 grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-4 md:gap-4">
-          {KNOWLEDGE_TYPES.map((type) => {
-            const Icon = ICON[type]
-            return (
-              <li>
-                <a
-                  href={directories[type]}
-                  class="card card-lift group flex h-full flex-col gap-3 p-5 text-ink hover:text-ink md:p-6"
-                >
-                  <span
-                    aria-hidden="true"
-                    class:list={['grid size-11 place-items-center rounded-2xl', TYPE_TILE[type]]}
-                  >
-                    <Icon size={22} stroke-width={2} />
-                  </span>
-                  <span
-                    dir="ltr"
-                    class="gradient-text self-start text-[40px] leading-none font-semibold tabular-nums md:text-[48px]"
-                  >
-                    {totals[type]}
-                  </span>
-                  <span class="text-sm leading-[1.7] text-ink-2 md:text-[15px]">
-                    <Bidi text={t.browse.tiles[type](totals[type])} lang={lang} />
-                  </span>
-                </a>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-    </div>
+  <section aria-labelledby="browse-title" class="wrap flex flex-col gap-4 py-section lg:gap-5">
+    <h2 id="browse-title" class="heading-2 m-0">
+      {t.browse.label}
+    </h2>
+    <ul class="m-0 grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-4 md:gap-4">
+      {KNOWLEDGE_TYPES.map((type) => (
+        <li>
+          <a
+            href={directories[type]}
+            class="card card-lift group flex h-full flex-col gap-1.5 p-card text-ink hover:text-ink"
+          >
+            <span dir="ltr" class="heading-2 self-start text-ink tabular-nums">
+              {totals[type]}
+            </span>
+            <span class="text-small text-ink-2">
+              <Bidi text={t.browse.tiles[type](totals[type])} lang={lang} />
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
   </section>
 </Page>

@@ -104,13 +104,25 @@ export function typeFilterOf(value: string | null): TypeFilter {
 }
 
 /**
- * Each kind's tile, in the colours of the categories it is nearest to (global.css): the icon box
- * of its group's heading in the results, and of its tile among the browse tiles. Written out in
- * full, for Tailwind to find.
+ * How many rows of a group show before «show all» (M2.6 R7): on a phone, 158 rows were 24,000 px
+ * of page. The rest of the group is in the HTML all the same, in a disclosure that opens without
+ * script, so every page stays a link for a crawler and for a visitor who reads no script.
  */
-export const TYPE_TILE: Readonly<Record<KnowledgeType, string>> = {
-  tool: 'bg-cat-render-soft text-cat-render',
-  rule: 'bg-indigo-soft text-indigo-ink',
-  fix: 'bg-serious-soft text-serious',
-  term: 'bg-cat-rtl-soft text-cat-rtl',
+export const GROUP_LIMIT = 5
+
+/**
+ * A group's rows split where «show all» goes. A group that is only a row or two over the limit
+ * is shown whole: a control that reveals one more row costs more than the row.
+ */
+export function splitGroup<T>(
+  items: readonly T[],
+  limit: number = GROUP_LIMIT,
+): { readonly shown: readonly T[]; readonly rest: readonly T[] } {
+  if (items.length <= limit + 2) return { shown: items, rest: [] }
+  return { shown: items.slice(0, limit), rest: items.slice(limit) }
+}
+
+/** The dot at a row's start: its category's colour, or a quiet one for a term, which has none. */
+export function dotOf(tone: number, tones: readonly string[]): string {
+  return tone === -1 ? 'bg-field' : (tones[tone] ?? 'bg-field')
 }
