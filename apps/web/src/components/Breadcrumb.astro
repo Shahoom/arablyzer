@@ -41,7 +41,7 @@ const link = 'text-ink-2 underline-offset-4 hover:text-brand-ink hover:underline
       </a>
       <Next size={14} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
     </li>
-    {steps.map((step) => (
+    {steps.map((step, index) => (
       <li class="flex min-w-0 items-center gap-2">
         <a href={step.href} class:list={[link, 'flex min-w-0 items-center gap-2']}>
           {step.dot !== undefined && (
@@ -51,7 +51,13 @@ const link = 'text-ink-2 underline-offset-4 hover:text-brand-ink hover:underline
             <Bidi text={step.name} lang={lang} />
           </span>
         </a>
-        <Next size={14} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
+        {/* Below md the current page is left out, and the last step's arrow with it. */}
+        <Next
+          size={14}
+          stroke-width={2}
+          aria-hidden="true"
+          class:list={['shrink-0 text-ink-3', index === steps.length - 1 && 'max-md:hidden']}
+        />
       </li>
     ))}
     <li

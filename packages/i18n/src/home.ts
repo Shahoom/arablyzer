@@ -40,7 +40,7 @@ export interface HomeStrings {
       readonly all: string
     }
     /** The trust line: three things that are true today. */
-    readonly promises: readonly [string, string, string]
+    readonly promises: readonly [string, string]
   }
   /**
    * The product shot under the hero: golden report 04 as a visitor's report shows it. Every
@@ -215,11 +215,7 @@ export const HOME: Copy<HomeStrings> = {
         },
         all: 'كل الأدوات',
       },
-      promises: [
-        'مجاني وبلا تسجيل',
-        'لا نرسل أي نموذج',
-        'الصفحة نفسها تعطي النتيجة نفسها في كل فحص',
-      ],
+      promises: ['لا نرسل أي نموذج', 'الصفحة نفسها تعطي النتيجة نفسها في كل فحص'],
     },
     figure: {
       label: 'مثال: تقرير فحص لإحدى صفحات اختبارنا',
@@ -441,11 +437,7 @@ export const HOME: Copy<HomeStrings> = {
         },
         all: 'All tools',
       },
-      promises: [
-        'Free, no sign-up',
-        'We never submit a form',
-        'The same page gives the same result, every scan',
-      ],
+      promises: ['We never submit a form', 'The same page gives the same result, every scan'],
     },
     figure: {
       label: 'Example: the report of one of our test pages',
