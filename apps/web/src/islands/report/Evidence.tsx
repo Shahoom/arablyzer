@@ -26,20 +26,20 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
         />
       )}
       {(selector !== undefined || (engines !== undefined && engines.length > 0)) && (
-        <dl className="m-0 flex flex-col gap-3 text-[15px]">
+        <dl className="m-0 flex flex-col gap-3 text-small">
           {selector !== undefined && (
             <div className="grid items-start gap-1 sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] sm:gap-x-4">
-              <dt className="text-[13px] text-ink-3 sm:pt-1">{t.selector}</dt>
+              <dt className="text-meta text-ink-2 sm:pt-1">{t.selector}</dt>
               <dd className="m-0 min-w-0">
                 {/* A box of its own, so a selector that wraps keeps its lines to the left in Arabic. */}
                 <code
                   dir="ltr"
-                  className="inline-block max-w-full rounded-xs bg-surface-2 px-2 py-0.5 text-start font-mono text-[13px] break-all text-ink"
+                  className="inline-block max-w-full rounded-xs bg-surface-2 px-2 py-0.5 text-start font-mono text-meta break-all text-ink"
                 >
                   <Revealed text={selector} />
                 </code>
                 {location !== undefined && (
-                  <span dir="ltr" className="ms-2 font-mono text-xs text-ink-3">
+                  <span dir="ltr" className="ms-2 font-mono text-meta text-ink-2">
                     :{location.line}
                   </span>
                 )}
@@ -48,14 +48,14 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
           )}
           {engines !== undefined && engines.length > 0 && (
             <div className="grid items-start gap-1 sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] sm:gap-x-4">
-              <dt className="text-[13px] text-ink-3 sm:pt-1">{t.seenIn}</dt>
+              <dt className="text-meta text-ink-2 sm:pt-1">{t.seenIn}</dt>
               <dd className="m-0 flex flex-wrap gap-1.5">
                 {engines.map((engine) => (
                   <span
                     key={engine}
                     dir="ltr"
                     lang="en"
-                    className="inline-flex h-7 items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 text-[13px] text-ink-2"
+                    className="inline-flex h-7 items-center gap-1.5 rounded-full bg-surface-2 px-2.5 text-meta text-ink-2"
                   >
                     <EngineDot engine={engine} />
                     {ENGINE_LABEL[engine]}
@@ -71,7 +71,7 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
           dir="ltr"
           // Focusable, so a keyboard can scroll a line wider than the card.
           tabIndex={0}
-          className="panel-dark m-0 overflow-x-auto rounded-lg px-4 py-3 font-mono text-[13px] leading-[1.8] text-panel-soft"
+          className="panel-dark m-0 overflow-x-auto rounded-lg px-4 py-3 font-mono text-meta leading-[1.7] text-panel-soft"
         >
           <code>
             <Revealed text={snippet} muted="text-panel-dim" />

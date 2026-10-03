@@ -1106,10 +1106,10 @@
 
 /* R4 */
 /*
- * The report as a thread (M2.6, R4): the score ring that draws itself, the category bars that grow
- * from the start of the line and take their colour from the score's band, and the room a sticky
- * dock needs. Each animation stops under prefers-reduced-motion, in its own rule, and leaves its
- * end state on the page: the ring and the bars are drawn, only not drawn in.
+ * The report (M2.6, R4): the score ring that draws itself and the category bars that grow from the
+ * start of the line and take their colour from the score's band. Each animation stops under
+ * prefers-reduced-motion, in its own rule, and leaves its end state on the page: the ring and the
+ * bars are drawn, only not drawn in.
  */
 @keyframes ring-draw {
   /* The ring's circle has r = 52 in a 120-unit box: 2 * pi * 52 = 326.73 round. */
@@ -1168,9 +1168,19 @@
   }
 }
 
-/* The report's dock is sticky at the foot of the page: a control focused behind it scrolls clear. */
-html:has(.report-dock) {
-  scroll-padding-block-end: 9rem;
+/* R7 report */
+
+/*
+ * While the report page loads, the island draws a blank placeholder until the API answers, and the
+ * footer under it is on the screen: when the report lands, the footer is thrown to the foot of it,
+ * a layout shift of 0.33 (Lighthouse's phone score fell to 78 for it) and a flash. So the footer
+ * waits, where it is but unseen, and is drawn with the first state, in its place. Not where
+ * scripting is off: there the placeholder never goes, and the footer is all there is.
+ */
+@media (scripting: enabled) {
+  body:has([data-report-loading]) > footer {
+    visibility: hidden;
+  }
 }
 
 /* R7 tools */

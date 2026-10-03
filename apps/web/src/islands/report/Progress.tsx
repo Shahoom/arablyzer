@@ -1,17 +1,17 @@
 import type { ScanSummary } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import type { Lang } from '@arablyzer/seo/site'
-import { stepsOf, type Progress as ProgressState } from '../report-model'
-import { ProgressDock } from './Dock'
+import { stepsOf, type Progress as ProgressState, type Step, type StepState } from '../report-model'
 import { EngineChips } from './Engines'
+import { Frame } from './Frame'
 import { Steps } from './Steps'
-import { Thread } from './Thread'
 
 /**
- * The scan while it runs (the approved Scan design, in the v2 look): the address in its bubble,
- * Arablyzer's answer under it with the steps it takes, the browsers rendering the page and, at the
- * end of the line, the scan box with the reading beam. Under the steps, the log of what it has
- * asked for, and the shape of the report that comes.
+ * The scan while it runs (M2.6 R7): the address in its bubble and the heading over two columns.
+ * The aside, first on a phone, is the scan box with the reading beam sweeping across it; the main
+ * column is the steps the scan takes, the browsers rendering the page and the log of what it has
+ * asked for. The box is the aside, in view from the first screen, instead of a bar stuck to the
+ * foot of the page, where it covered the steps.
  */
 export function Progress({
   summary,
@@ -41,19 +41,25 @@ export function Progress({
   ].filter((line): line is string => typeof line === 'string')
 
   return (
-    <div className="flex flex-1 flex-col">
-      <Thread lang={lang} url={summary.url}>
-        <div className="flex flex-col gap-1.5">
-          <h1 className="m-0 text-[22px] leading-[1.5] font-semibold md:text-[26px]">{t.title}</h1>
-          <p className="m-0 text-ink-2">{t.engines}</p>
-          {/* Rendered empty from the start, so a screen reader hears the queue when it is told. */}
-          <p className="m-0 text-sm text-ink-3 empty:hidden" role="status">
-            {progress.queued !== null && !progress.started ? t.queued(progress.queued) : ''}
-          </p>
-          {!progress.started && progress.queued === null && (
-            <p className="m-0 text-sm text-ink-3">{t.waitingStart}</p>
-          )}
-        </div>
+    <Frame
+      url={summary.url}
+      head={
+        <>
+          <h1 id="progress-title" className="heading-1 m-0">
+            {t.title}
+          </h1>
+          <p className="lead m-0">{t.engines}</p>
+        </>
+      }
+      aside={
+        <ProgressBox
+          lang={lang}
+          steps={steps}
+          queued={progress.queued !== null && !progress.started ? t.queued(progress.queued) : ''}
+        />
+      }
+    >
+      <div className="card p-card">
         <Steps
           steps={steps}
           lang={lang}
@@ -61,43 +67,76 @@ export function Progress({
             render: <EngineChips engines={engines} progress={progress.engines} lang={lang} />,
           }}
         />
-        {/* For a screen reader: the step under way, said as it changes. */}
-        <p className="sr-only" role="status">
-          {active?.label ?? ''}
-        </p>
-        {log.length > 0 && (
-          <pre
-            dir="ltr"
-            lang="en"
-            // Focusable, so a keyboard can scroll a line wider than the panel.
-            tabIndex={0}
-            className="panel-dark m-0 overflow-x-auto rounded-lg px-5 py-4 font-mono text-xs leading-[1.9] text-panel-soft"
-          >
-            {log.join('\n')}
-          </pre>
-        )}
-        <ReportSkeleton />
-        <p className="m-0 text-sm leading-[1.8] text-ink-3">{t.note}</p>
-      </Thread>
-      <ProgressDock lang={lang} url={summary.url} steps={steps} />
-    </div>
+      </div>
+      {/* For a screen reader: the step under way, said as it changes. */}
+      <p className="sr-only" role="status">
+        {active?.label ?? ''}
+      </p>
+      {log.length > 0 && (
+        <pre
+          dir="ltr"
+          lang="en"
+          // Focusable, so a keyboard can scroll a line wider than the panel.
+          tabIndex={0}
+          className="panel-dark m-0 overflow-x-auto rounded-card p-card font-mono text-meta leading-[1.9] text-panel-soft"
+        >
+          {log.join('\n')}
+        </pre>
+      )}
+      <p className="m-0 text-small text-ink-2">{t.note}</p>
+    </Frame>
   )
 }
 
-/** The shape of the report to come, in quiet blocks: the score's ring, its headline, two findings. */
-function ReportSkeleton() {
+/** A step's piece of the track: filled once done, half drawn while under way. */
+const SEGMENT: Readonly<Record<StepState, string>> = {
+  done: 'bg-brand forced-colors:bg-[Highlight]',
+  active: 'bg-brand/45 forced-colors:bg-[Highlight] motion-safe:animate-pulse',
+  waiting: 'bg-surface-2 forced-colors:bg-[GrayText]',
+  failed: 'bg-serious forced-colors:bg-[Highlight]',
+}
+
+/**
+ * The scan box while a scan runs: which step it is on, of how many, and the track of them, under
+ * the reading beam sweeping across it from the start of the line to its end, the way the page is
+ * read. A plain box (`scan-box`): the turning ring is the home page's. The beam stops under
+ * reduced motion; the words, the step count and the track stay.
+ */
+function ProgressBox({
+  lang,
+  steps,
+  queued,
+}: {
+  lang: Lang
+  steps: readonly Step[]
+  /** Where the scan is in the queue, said once it is queued and not yet started; else empty. */
+  queued: string
+}) {
+  const t = REPORT[lang]
+  const active = steps.findIndex((step) => step.state === 'active')
+  const done = steps.filter((step) => step.state === 'done').length
+  const at = active >= 0 ? active + 1 : Math.max(1, done)
   return (
-    <div aria-hidden="true" className="flex flex-col gap-3 motion-safe:animate-pulse">
-      <div className="card flex flex-col items-start gap-5 p-6 sm:flex-row sm:items-center sm:gap-8">
-        <span className="size-[120px] shrink-0 rounded-full border-[10px] border-surface-2" />
-        <span className="flex w-full flex-col gap-3.5">
-          <span className="h-3 w-3/5 rounded-full bg-surface-2" />
-          <span className="h-3 w-5/6 rounded-full bg-surface-2" />
-          <span className="h-3 w-2/5 rounded-full bg-surface-2" />
-        </span>
+    <div aria-busy="true" className="scan-box reading-beam p-card">
+      <div className="relative z-[1] flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-body font-semibold text-brand-ink">
+            {active >= 0 ? steps[active]?.label : t.progress.waitingStart}
+          </span>
+          <span className="shrink-0 text-small text-ink-2 tabular-nums">
+            {t.thread.stepOf(at, steps.length)}
+          </span>
+        </div>
+        <ol aria-hidden="true" className="m-0 flex list-none gap-1.5 p-0">
+          {steps.map((step) => (
+            <li key={step.key} className={`h-1.5 flex-1 rounded-full ${SEGMENT[step.state]}`} />
+          ))}
+        </ol>
+        {/* Rendered empty from the start, so a screen reader hears the queue when it is told. */}
+        <p className="m-0 text-small text-ink-2 empty:hidden" role="status">
+          {queued}
+        </p>
       </div>
-      <span className="card block h-14" />
-      <span className="card block h-14" />
     </div>
   )
 }

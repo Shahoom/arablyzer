@@ -30,7 +30,7 @@ export function EngineChips({
         return (
           <li
             key={engine}
-            className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-[13px] ${
+            className={`inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-meta ${
               run.state === 'rendered'
                 ? 'border-pass/30 bg-pass-soft text-pass'
                 : bad
@@ -79,7 +79,7 @@ export function EngineCards({ report, lang }: { report: Report; lang: Lang }) {
   return (
     <ul
       aria-label={rendered === 0 ? t.contents.engines : t.engines.title(rendered)}
-      className="m-0 grid list-none gap-3 p-0 sm:grid-cols-3"
+      className="m-0 grid list-none gap-2 p-0 sm:grid-cols-3"
     >
       {ENGINES.map((engine) => {
         const run = runs.find((candidate) => candidate.engine === engine)
@@ -89,18 +89,18 @@ export function EngineCards({ report, lang }: { report: Report; lang: Lang }) {
         return (
           <li
             key={engine}
-            className={`flex min-w-0 flex-col gap-1.5 rounded-lg border px-4 py-3 ${
-              flagged ? 'border-serious/40 bg-serious-soft/50' : 'border-line bg-surface'
+            className={`flex min-w-0 flex-col gap-1 rounded-lg px-3 py-2 ${
+              flagged ? 'bg-serious-soft' : 'bg-surface-2'
             }`}
           >
-            <span dir="ltr" lang="en" className="flex items-center gap-2 text-[13px] font-semibold">
+            <span dir="ltr" lang="en" className="flex items-center gap-2 text-small font-semibold">
               <EngineDot engine={engine} />
               <span className="min-w-0 break-all">
                 {ENGINE_LABEL[engine]} {run.version ?? ''}
               </span>
             </span>
             <span
-              className={`text-[13px] ${state === 'rendered' && !flagged ? 'text-pass' : 'text-serious'}`}
+              className={`text-meta ${state === 'rendered' && !flagged ? 'text-pass' : 'text-serious'}`}
             >
               {flagged
                 ? t.engines.alone
