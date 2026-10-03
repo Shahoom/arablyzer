@@ -3,6 +3,7 @@ import { GENERATORS_UI } from '@arablyzer/i18n/generators'
 import type { Lang } from '@arablyzer/seo/site'
 import type { TargetedSubmitEvent } from 'preact'
 import { useState } from 'preact/hooks'
+import { ScanNote } from '../ScanNote'
 import { FIELD, LABEL, SUBMIT, ToolBox } from '../ToolBox'
 import { CopyBox } from './CopyBox'
 
@@ -45,8 +46,15 @@ export default function SchemaGenerator({
       }),
     )
   }
-  const optional = (id: string, label: string, type: 'url' | 'text', ltr: boolean) => (
-    <div className="flex flex-col gap-2">
+  // `wide`: a long address takes the whole line on a phone, where the short fields share one.
+  const optional = (
+    id: string,
+    label: string,
+    type: 'url' | 'text',
+    ltr: boolean,
+    wide = false,
+  ) => (
+    <div className={`flex flex-col gap-2 ${wide ? 'col-span-2 sm:col-span-1' : ''}`}>
       <label htmlFor={`product-${id}`} className={LABEL}>
         {label} <span className="font-normal text-ink-3">({t.optional})</span>
       </label>
@@ -60,8 +68,12 @@ export default function SchemaGenerator({
     </div>
   )
   return (
-    <div className="flex flex-col gap-5" data-tool={tool}>
-      <ToolBox lang={lang} title={title} dot={dot}>
+    <div className="flex flex-col gap-4" data-tool={tool}>
+      <ToolBox
+        title={title}
+        dot={dot}
+        note={<ScanNote lang={lang} id="generator-note" line={common.local} keep={[]} />}
+      >
         <form onSubmit={onSubmit} data-tool-kind="generator" className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label htmlFor="product-name" className={LABEL}>
@@ -76,7 +88,7 @@ export default function SchemaGenerator({
               className={FIELD}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-2">
               <label htmlFor="product-price" className={LABEL}>
                 {t.price}
@@ -109,7 +121,7 @@ export default function SchemaGenerator({
                 ))}
               </select>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="col-span-2 flex flex-col gap-2 sm:col-span-1">
               <label htmlFor="product-availability" className={LABEL}>
                 {t.availability}
               </label>
@@ -122,9 +134,9 @@ export default function SchemaGenerator({
               </select>
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {optional('url', t.url, 'url', true)}
-            {optional('image', t.image, 'url', true)}
+          <div className="grid grid-cols-2 gap-4">
+            {optional('url', t.url, 'url', true, true)}
+            {optional('image', t.image, 'url', true, true)}
             {optional('sku', t.sku, 'text', true)}
             {optional('brand', t.brand, 'text', false)}
           </div>
@@ -134,16 +146,15 @@ export default function SchemaGenerator({
           </button>
         </form>
       </ToolBox>
-      <p className="m-0 px-1 text-start text-sm text-ink-2">{common.local}</p>
       {result !== null && (
-        <section
-          aria-label={common.result}
-          className={`flex flex-col gap-3 rounded-2xl p-3 sm:p-4 ${result.ok ? 'bg-linear-to-br from-pass-soft to-indigo-soft' : 'bg-serious-soft'}`}
-        >
+        <section aria-label={common.result} className="flex flex-col gap-3">
           {result.ok ? (
             <CopyBox lang={lang} label={t.html} text={result.html} />
           ) : (
-            <p role="alert" className="m-0 px-1 text-sm text-serious">
+            <p
+              role="alert"
+              className="m-0 rounded-xl bg-serious-soft px-card py-3 text-small text-serious"
+            >
               {t.problems[result.problem]}
             </p>
           )}

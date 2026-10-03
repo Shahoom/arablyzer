@@ -20,9 +20,11 @@ import WandSparkles from '@lucide/astro/icons/wand-sparkles'
 import Wrench from '@lucide/astro/icons/wrench'
 
 /**
- * A category's icon, the one its tile wears on the directory's cards and sections and on a tool's
- * related cards. A tile is the category's colour on its tint (CATEGORY_STYLE.chip), so the icon is
- * drawn in the current colour. Decorative: the category's name is always written beside it.
+ * A category's icon, the one its tile wears. A tile is the category's colour on its tint
+ * (CATEGORY_STYLE.chip), so the icon is drawn in the current colour. Decorative: the category's
+ * name is always written beside it. Since R7 the tools' pages draw no tile (the directory's rows
+ * and a tool's neighbours have a dot of the category's colour, and a section's heading has no
+ * icon): no page of the tools uses it, and it stays for a page that wants a category's mark.
  */
 interface Props {
   category: ToolCategoryName

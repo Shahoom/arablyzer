@@ -4,6 +4,7 @@ import type { Lang } from '@arablyzer/seo/site'
 import type { TargetedSubmitEvent } from 'preact'
 import { Info } from 'lucide-preact'
 import { useState } from 'preact/hooks'
+import { ScanNote } from '../ScanNote'
 import { AREA, FIELD, LABEL, SUBMIT, ToolBox } from '../ToolBox'
 import { CopyBox } from './CopyBox'
 
@@ -39,10 +40,14 @@ export default function WhatsAppGenerator({
     )
   }
   return (
-    <div className="flex flex-col gap-5" data-tool={tool}>
-      <ToolBox lang={lang} title={title} dot={dot}>
+    <div className="flex flex-col gap-4" data-tool={tool}>
+      <ToolBox
+        title={title}
+        dot={dot}
+        note={<ScanNote lang={lang} id="generator-note" line={common.local} keep={[]} />}
+      >
         <form onSubmit={onSubmit} data-tool-kind="generator" className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <div className="flex flex-col gap-2">
               <label htmlFor="wa-country" className={LABEL}>
                 {t.country}
@@ -84,7 +89,7 @@ export default function WhatsAppGenerator({
               aria-describedby="wa-text-hint"
               className={AREA}
             />
-            <p id="wa-text-hint" className="m-0 text-sm text-ink-3">
+            <p id="wa-text-hint" className="m-0 text-meta text-ink-2">
               {t.textHint}
             </p>
           </div>
@@ -107,16 +112,12 @@ export default function WhatsAppGenerator({
           </button>
         </form>
       </ToolBox>
-      <p className="m-0 px-1 text-start text-sm text-ink-2">{common.local}</p>
       {result !== null && (
-        <section
-          aria-label={common.result}
-          className={`flex flex-col gap-3 rounded-2xl p-3 sm:p-4 ${result.ok ? 'bg-linear-to-br from-pass-soft to-indigo-soft' : 'bg-serious-soft'}`}
-        >
+        <section aria-label={common.result} className="flex flex-col gap-3">
           {result.ok ? (
             <>
               {result.fixed !== null && (
-                <p className="m-0 flex items-start gap-2 px-1 text-sm text-ink-2">
+                <p className="m-0 flex items-start gap-2 text-small text-ink-2">
                   <Info
                     size={16}
                     strokeWidth={2.2}
@@ -128,17 +129,15 @@ export default function WhatsAppGenerator({
               )}
               <CopyBox lang={lang} label={t.link} text={result.url} />
               <CopyBox lang={lang} label={t.html} text={result.html} />
-              <a
-                href={result.url}
-                target="_blank"
-                rel="noopener"
-                className="btn-white self-start text-sm"
-              >
+              <a href={result.url} target="_blank" rel="noopener" className="btn-white self-start">
                 {t.open}
               </a>
             </>
           ) : (
-            <p role="alert" className="m-0 px-1 text-sm text-serious">
+            <p
+              role="alert"
+              className="m-0 rounded-xl bg-serious-soft px-card py-3 text-small text-serious"
+            >
               {t.problems[result.problem]}
             </p>
           )}

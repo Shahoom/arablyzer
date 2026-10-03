@@ -18,6 +18,16 @@ export interface ScanFormStrings {
    * how long a report is kept is the owner's decision, and the words must match the code.
    */
   readonly queryNote: string
+  /**
+   * The fine print under a scan box (M2.6 R7, ScanNote): one short line, and the title of the
+   * disclosure that holds `queryNote`, what the service keeps of a scan.
+   */
+  readonly note: {
+    /** The one line: free, and no account. */
+    readonly free: string
+    /** The disclosure's title, a question: its body says what is kept. */
+    readonly keepTitle: string
+  }
   readonly errors: Readonly<Record<ScanErrorCode | FormProblem, string>>
   /** After rate-limited: when the visitor may scan again. */
   readonly retryAfter: (seconds: number) => string
@@ -35,6 +45,7 @@ export const SCAN_FORM: Copy<ScanFormStrings> = {
     noscript: 'الفحص يحتاج JavaScript: فعّله في متصفحك ثم أعد المحاولة.',
     queryNote:
       'نحفظ العنوان كما ترسله، بما فيه ما بعد علامة الاستفهام، ويظهر في تقريره. يفتح التقرير كل من يملك رابطه، فلا تضع في العنوان مفاتيح أو رموز دخول أو بيانات شخصية.',
+    note: { free: 'مجاني وبلا تسجيل.', keepTitle: 'ماذا نحفظ؟' },
     errors: {
       empty: 'اكتب رابط الصفحة أولاً.',
       network: 'لم نصل إلى خدمة الفحص. تأكد من اتصالك وأعد المحاولة.',
@@ -61,6 +72,7 @@ export const SCAN_FORM: Copy<ScanFormStrings> = {
     noscript: 'The scan needs JavaScript: turn it on in your browser and try again.',
     queryNote:
       'We keep the address exactly as you send it, including anything after a “?”, and its report shows it. Anyone who has the report’s link can open it, so leave out tokens, keys and personal data.',
+    note: { free: 'Free, no sign-up.', keepTitle: 'What we keep' },
     errors: {
       empty: 'Enter the page URL first.',
       network: 'We could not reach the scan service. Check your connection and try again.',

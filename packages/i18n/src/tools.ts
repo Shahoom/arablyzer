@@ -79,6 +79,8 @@ export interface ToolsStrings {
     readonly fullScan: string
     /** The methodology's title on a tool page: a question, folded, as the FAQ's are (R3). */
     readonly measure: string
+    /** The name of the list of the page's sections, in the aside of a wide screen (R7). */
+    readonly contents: string
   }
 }
 
@@ -219,6 +221,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       methodology: 'المنهجية وحساب الدرجة',
       fullScan: 'الفحص الكامل لصفحتك',
       measure: 'كيف نقيس',
+      contents: 'في هذه الصفحة',
     },
   },
   en: {
@@ -348,6 +351,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       methodology: 'Methodology and scoring',
       fullScan: 'A full check of your page',
       measure: 'How we measure',
+      contents: 'On this page',
     },
   },
 }

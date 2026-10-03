@@ -1172,3 +1172,24 @@
 html:has(.report-dock) {
   scroll-padding-block-end: 9rem;
 }
+
+/* R7 tools */
+
+/*
+ * A Latin name inside Arabic text (`JSON-LD`, `margin-inline-start`) moves to the next line whole
+ * instead of breaking at its hyphen. Put it on the element that holds the text: the isolated runs
+ * of components/Bidi.astro (each a <bdi>) do not wrap. They stay inline, so an Arabic letter that
+ * joins one (`وWebKit`) is not parted from it. The longest run in the tools' Arabic copy is 31
+ * characters, about 280 px: it fits a line from 360 px, and below that the runs may wrap again, so
+ * that a long one cannot push the page sideways.
+ */
+@utility bidi-whole {
+  & bdi {
+    white-space: nowrap;
+  }
+  @media (max-width: 22.5rem) {
+    & bdi {
+      white-space: normal;
+    }
+  }
+}

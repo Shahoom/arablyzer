@@ -4,6 +4,7 @@ import type { Lang } from '@arablyzer/seo/site'
 import { Check, TriangleAlert, X } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useState } from 'preact/hooks'
+import { ScanNote } from '../ScanNote'
 import { AREA, FIELD, LABEL, SUBMIT, ToolBox } from '../ToolBox'
 
 /**
@@ -52,8 +53,12 @@ export default function RobotsTester({
     }
   }
   return (
-    <div className="flex flex-col gap-5" data-tool={tool}>
-      <ToolBox lang={lang} title={title} dot={dot}>
+    <div className="flex flex-col gap-4" data-tool={tool}>
+      <ToolBox
+        title={title}
+        dot={dot}
+        note={<ScanNote lang={lang} id="generator-note" line={common.local} keep={[]} />}
+      >
         <form onSubmit={onSubmit} data-tool-kind="paste" className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label htmlFor="robots-file" className={LABEL}>
@@ -67,10 +72,10 @@ export default function RobotsTester({
               spellcheck={false}
               required
               placeholder={'User-agent: *\nDisallow: /admin/'}
-              className={`${AREA} font-mono text-sm`}
+              className={`${AREA} font-mono text-small`}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,3fr)_minmax(0,1fr)]">
             <div className="flex flex-col gap-2">
               <label htmlFor="robots-url" className={LABEL}>
                 {t.url}
@@ -103,11 +108,10 @@ export default function RobotsTester({
           </button>
         </form>
       </ToolBox>
-      <p className="m-0 px-1 text-start text-sm text-ink-2">{common.local}</p>
       {result === 'bad-url' ? (
         <p
           role="alert"
-          className="m-0 flex items-start gap-2 rounded-2xl bg-serious-soft px-4 py-3 text-sm text-serious"
+          className="m-0 flex items-start gap-2 rounded-xl bg-serious-soft px-card py-3 text-small text-serious"
         >
           <TriangleAlert
             size={16}
@@ -121,10 +125,10 @@ export default function RobotsTester({
         result !== null && (
           <section
             aria-label={common.result}
-            className={`card flex flex-col gap-2 border-2 px-5 py-4 ${result.allowed ? 'border-pass' : 'border-serious'}`}
+            className={`card flex flex-col gap-2 border-2 p-card ${result.allowed ? 'border-pass' : 'border-serious'}`}
           >
             <p
-              className={`m-0 flex items-center gap-2.5 text-lg font-semibold ${result.allowed ? 'text-pass' : 'text-serious'}`}
+              className={`heading-3 m-0 flex items-center gap-2.5 ${result.allowed ? 'text-pass' : 'text-serious'}`}
             >
               <span
                 className={`grid size-7 shrink-0 place-items-center rounded-full ${result.allowed ? 'bg-pass-soft' : 'bg-serious-soft'}`}
@@ -137,7 +141,7 @@ export default function RobotsTester({
               </span>
               {result.allowed ? t.allowed : t.blocked}
             </p>
-            <p className="m-0 text-sm text-ink-2">
+            <p className="m-0 text-small text-ink-2">
               {result.rule === null ? (
                 t.noRule
               ) : (
@@ -150,7 +154,7 @@ export default function RobotsTester({
                 </>
               )}
             </p>
-            <p className="m-0 text-sm text-ink-3">{t.group[result.group]}</p>
+            <p className="m-0 text-small text-ink-2">{t.group[result.group]}</p>
           </section>
         )
       )}

@@ -4,7 +4,6 @@ import { breadcrumbList, webApplication } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
-import FlaskConical from '@lucide/astro/icons/flask-conical'
 import Plus from '@lucide/astro/icons/plus'
 import X from '@lucide/astro/icons/x'
 import HreflangGenerator from '../../islands/generators/HreflangGenerator'
@@ -12,12 +11,14 @@ import RobotsTester from '../../islands/generators/RobotsTester'
 import SchemaGenerator from '../../islands/generators/SchemaGenerator'
 import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
 import ToolApp from '../../islands/ToolApp'
+import ToolResult from '../../islands/ToolResult'
 import Page from '../../layouts/Page.astro'
 import { HEAD } from '../../lib/heads'
 import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
 import { CATEGORY_STYLE, TOOLS_DATA, toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
 import Breadcrumb from '../Breadcrumb.astro'
+import PageColumns from '../PageColumns.astro'
 import SeverityPill from '../SeverityPill.astro'
 import ToolCard from './ToolCard.astro'
 import ToolSection from './ToolSection.astro'
@@ -46,17 +47,32 @@ const jsonLd = [
     { name: copy.title, url },
   ]),
 ]
-// What the tool's island is given: its name for the pill of its box, and its category's colour.
+// What the tool's island is given: its name for the label of its box, and its category's colour.
 const boxed = { lang, tool: slug, title: copy.title, dot }
+// A tool that checks a page is a small box (the address and its button) that sits in the aside of
+// the page, sticking beside the text, with its result at the head of the main column. A generator
+// or the paste tool has fields and an output that want the main column's width, so it is the
+// first thing in that column, and the aside holds the page's contents alone.
+const scan = tool.kind === 'scan'
+// The sections the aside lists, in the page's order.
+const contents = [
+  { id: 'checks', title: headings.checks },
+  { id: 'example', title: headings.example },
+  { id: 'fix', title: headings.fix },
+  { id: 'faq', title: headings.faq },
+  { id: 'links', title: t.page.runs },
+  { id: 'about', title: t.page.measure },
+]
 // A question's answer opens and closes (the script below): the heading is a button, the answer
 // the panel after it, as the ARIA authoring practices have it. The methodology is the same.
 // Its focus ring is drawn inside the button: the card clips whatever is drawn outside it.
 const toggle =
-  'group flex min-h-[64px] w-full cursor-pointer items-center justify-between gap-4 px-5 py-3 text-start text-[17px] leading-snug font-semibold text-ink focus-visible:outline-offset-[-3px] rounded-[17px] md:px-6'
+  'group heading-3 flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 px-card py-3 text-start text-ink focus-visible:outline-offset-[-3px]'
 const plus =
-  'grid size-8 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-ink-2 transition-[transform,background-color] duration-200 group-aria-expanded:rotate-45 group-aria-expanded:bg-indigo-soft group-aria-expanded:text-indigo-ink'
-const accordion =
-  'overflow-hidden rounded-[18px] border border-line bg-white shadow-[0_1px_2px_rgb(16_24_40/0.04)]'
+  'grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-2 transition-[transform,background-color] duration-200 group-aria-expanded:rotate-45 group-aria-expanded:bg-indigo-soft group-aria-expanded:text-indigo-ink'
+const accordion = 'card overflow-hidden'
+// The links of a row of the page's small print: a 44 px target.
+const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 hover:text-brand-ink'
 ---
 
 <Page
@@ -66,92 +82,109 @@ const accordion =
   description={copy.description}
   jsonLd={jsonLd}
 >
-  <div class="relative isolate overflow-x-clip border-b border-line">
-    {/* The head's tint, with its height capped and its foot faded: the hero grows with the result
-        of a scan, and the tint must not follow it down to the notes under the box, whose grey is
-        held to 4.5:1 on the plain ground. */}
-    <div
-      aria-hidden="true"
-      class="page-wash max-h-[34rem] [mask-image:linear-gradient(to_bottom,#000_calc(100%-6rem),transparent)]"
-    ></div>
-    <div class="wrap">
-      <div
-        class:list={[
-          'mx-auto flex w-full max-w-[880px] flex-col gap-5 pb-12 md:gap-6 md:pb-16',
-          HEAD.top,
+  {/* The head is a div, not a section: the site audit wants no section and no h2 before the tool's
+      form, and the h1 followed by its description. */}
+  <div class="relative isolate border-b border-line">
+    <div aria-hidden="true" class="page-wash"></div>
+    <div class:list={['wrap flex flex-col gap-4 lg:gap-5', HEAD.padding]}>
+      <Breadcrumb
+        lang={lang}
+        label={t.page.breadcrumb}
+        steps={[
+          { name: t.directory.title, href: toolsPath },
+          { name: category, href: `${toolsPath}#cat-${tool.category}`, dot },
         ]}
-      >
-        <Breadcrumb
-          lang={lang}
-          label={t.page.breadcrumb}
-          steps={[
-            { name: t.directory.title, href: toolsPath },
-            { name: category, href: `${toolsPath}#cat-${tool.category}`, dot },
-          ]}
-          current={copy.title}
-        />
-        <h1 class={HEAD.page}>
-          <Bidi text={copy.title} lang={lang} />
-        </h1>
-        <p class={HEAD.lead}>
-          <Bidi text={copy.description} lang={lang} />
-        </p>
-        {/* One island per tool, started when the browser is idle or after half a second at most: a
-          busy page, such as CI's Chromium, may never be idle, and the tool waits for its island.
-          Astro hydrates only islands it can name. */}
-        <div class="mt-2 w-full">
-          {tool.kind === 'scan' && (
-            <ToolApp
-              client:idle={{ timeout: 500 }}
-              {...boxed}
-              reportsOnly={tool.reportsOnly}
-              reads={
-                tool.renders
-                  ? 'render'
-                  : tool.tag === 'robots' ||
-                      tool.tag === 'dns' ||
-                      tool.tag === 'links' ||
-                      tool.tag === 'sitemap' ||
-                      tool.tag === 'crux'
-                    ? tool.tag
-                    : 'html'
-              }
-              readsLabel={t.tags[tool.tag]}
-              fullScanHref={scanFormHref(lang)}
-            />
-          )}
-          {slug === 'whatsapp-link-generator' && (
-            <WhatsAppGenerator client:idle={{ timeout: 500 }} {...boxed} />
-          )}
-          {slug === 'hreflang-generator' && (
-            <HreflangGenerator client:idle={{ timeout: 500 }} {...boxed} />
-          )}
-          {slug === 'schema-generator' && (
-            <SchemaGenerator client:idle={{ timeout: 500 }} {...boxed} />
-          )}
-          {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
-        </div>
-      </div>
+        current={copy.title}
+      />
+      <h1 class={HEAD.page}>
+        <Bidi text={copy.title} lang={lang} />
+      </h1>
+      {/* The lead is the tool's question (its card's line), one or two lines on a phone; the longer
+          description is the page's meta description and its structured data. A Latin name with a
+          hyphen, such as JSON-LD, is not broken at it: it is one name. */}
+      <p class:list={[HEAD.lead, 'bidi-whole']}>
+        <Bidi text={copy.summary} lang={lang} />
+      </p>
     </div>
   </div>
 
-  <div class:list={['wrap pb-20 md:pb-28', HEAD.bodyTop]}>
-    <div class="mx-auto flex w-full max-w-[880px] flex-col gap-14 md:gap-[72px]">
+  {/* The document's order is the audit's (BUILD-PLAN §6.1): the tool before every section, then the
+      sections, the rules and the nearby tools, and the methodology last. A scan tool's aside is
+      first in it, and a phone shows it first: the box is right under the lead. */}
+  <PageColumns
+    asideFirst={scan}
+    asideAs="div"
+    class:list={[HEAD.bodyTop, 'pb-section', !scan && 'max-lg:[&>.page-aside]:hidden']}
+  >
+    <Fragment slot="aside">
+      <div class="flex flex-col gap-6">
+        {/* One island per tool, started when the browser is idle or after half a second at most: a
+            busy page, such as CI's Chromium, may never be idle, and the tool waits for its island.
+            Astro hydrates only islands it can name. */}
+        {scan && (
+          <ToolApp
+            client:idle={{ timeout: 500 }}
+            {...boxed}
+            reportsOnly={tool.reportsOnly}
+            reads={
+              tool.renders
+                ? 'render'
+                : tool.tag === 'robots' ||
+                    tool.tag === 'dns' ||
+                    tool.tag === 'links' ||
+                    tool.tag === 'sitemap' ||
+                    tool.tag === 'crux'
+                  ? tool.tag
+                  : 'html'
+            }
+            readsLabel={t.tags[tool.tag]}
+          />
+        )}
+        <nav aria-label={t.page.contents} class="hidden lg:block">
+          <p aria-hidden="true" class="m-0 pb-2 text-meta font-semibold text-ink-3">
+            {t.page.contents}
+          </p>
+          <ul class="m-0 flex list-none flex-col border-s border-line p-0">
+            {contents.map((item) => (
+              <li>
+                <a
+                  href={`#${item.id}`}
+                  class="-ms-px block border-s-2 border-transparent py-1.5 ps-3 text-small text-ink-2 hover:border-brand hover:text-ink"
+                >
+                  {item.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </Fragment>
+
+    <div class="flex flex-col gap-section">
+      {scan && (
+        <ToolResult client:idle={{ timeout: 500 }} lang={lang} reportsOnly={tool.reportsOnly} />
+      )}
+      {slug === 'whatsapp-link-generator' && (
+        <WhatsAppGenerator client:idle={{ timeout: 500 }} {...boxed} />
+      )}
+      {slug === 'hreflang-generator' && (
+        <HreflangGenerator client:idle={{ timeout: 500 }} {...boxed} />
+      )}
+      {slug === 'schema-generator' && <SchemaGenerator client:idle={{ timeout: 500 }} {...boxed} />}
+      {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
+
       <ToolSection id="checks" title={headings.checks}>
-        <div class="card p-5 md:p-7">
-          <ul class="checks m-0 flex list-none flex-col gap-4 p-0">
+        <div class="card p-card">
+          <ul class="checks m-0 flex list-none flex-col gap-3 p-0">
             {copy.checks.map((item) => (
-              <li class="flex items-start gap-3.5">
+              <li class="flex items-start gap-3">
                 <span
                   aria-hidden="true"
-                  class="mt-1 grid size-7 shrink-0 place-items-center rounded-full bg-pass-soft text-pass"
+                  class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-pass-soft text-pass"
                 >
-                  <Check size={15} stroke-width={2.6} />
+                  <Check size={14} stroke-width={2.6} />
                 </span>
-                <span
-                  class="prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]"
-                  set:html={item}
-                />
+                <span class="prose-tool text-body text-ink-2" set:html={item} />
               </li>
             ))}
           </ul>
@@ -159,10 +192,10 @@ const accordion =
       </ToolSection>
 
       <ToolSection id="example" title={headings.example}>
-        <div class="grid gap-4 md:grid-cols-2">
+        <div class="grid gap-3 md:grid-cols-2">
           {(['wrong', 'right'] as const).map((kind) => (
-            <figure class="m-0 flex min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-white shadow">
-              <figcaption class="flex items-center px-4 py-3">
+            <figure class="card m-0 flex min-w-0 flex-col overflow-hidden">
+              <figcaption class="flex items-center px-card py-2.5">
                 <span class:list={['sev gap-1.5', kind === 'wrong' ? 'sev-serious' : 'sev-pass']}>
                   {kind === 'wrong' ? (
                     <X size={13} stroke-width={2.6} aria-hidden="true" />
@@ -176,7 +209,7 @@ const accordion =
                 dir="ltr"
                 tabindex="0"
                 class:list={[
-                  'ex-code panel-dark m-0 grow overflow-x-auto px-4 py-[18px] text-start font-mono text-[13px] leading-[1.75] text-panel-soft md:text-sm',
+                  'ex-code panel-dark m-0 grow overflow-x-auto p-card text-start font-mono text-meta leading-[1.7] text-panel-soft md:text-small',
                   kind === 'wrong' ? 'ex-wrong' : 'ex-right',
                 ]}
                 set:html={copy.example[kind].html}
@@ -187,11 +220,8 @@ const accordion =
       </ToolSection>
 
       <ToolSection id="fix" title={headings.fix}>
-        <div class="card p-5 md:p-7">
-          <div
-            class="prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]"
-            set:html={copy.fix}
-          />
+        <div class="card p-card">
+          <div class="prose-fix prose-tool text-body text-ink-2" set:html={copy.fix} />
         </div>
       </ToolSection>
 
@@ -215,7 +245,7 @@ const accordion =
               </h3>
               <div
                 id={`faq-a-${index}`}
-                class="prose-fix prose-tool px-5 pb-5 text-base leading-[1.85] text-ink-2 md:px-6"
+                class="prose-fix prose-tool px-card pb-4 text-body text-ink-2"
                 set:html={entry.answer}
               />
             </div>
@@ -227,33 +257,35 @@ const accordion =
         <div class="card overflow-hidden">
           <ul class="m-0 flex list-none flex-col p-0">
             {tool.rules.map((rule) => (
-              <li class="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-5 py-4 first:border-t-0 md:px-6">
-                <code
-                  dir="ltr"
-                  class="rounded-lg bg-surface-2 px-2 py-0.5 font-mono text-[13px] text-ink-2"
-                >
-                  {rule.id}
-                </code>
+              <li class="flex flex-col border-t border-line px-card first:border-t-0 md:flex-row md:items-center md:gap-3">
                 <a
                   href={localePath(lang, PATHS.rule(rule.id))}
-                  class="min-w-0 grow text-base leading-[1.6] font-semibold underline decoration-line-2 underline-offset-4 hover:text-brand-ink"
+                  class="bidi-whole block min-w-0 grow py-2 text-body font-semibold underline decoration-line-2 underline-offset-4 hover:text-brand-ink md:py-3"
                 >
                   <Bidi text={rule.title[lang]} lang={lang} />
                 </a>
-                <SeverityPill severity={rule.severity} lang={lang} />
+                <span class="flex min-w-0 flex-wrap items-center gap-2 pb-3 md:shrink-0 md:flex-nowrap md:pb-0">
+                  <SeverityPill severity={rule.severity} lang={lang} />
+                  <code
+                    dir="ltr"
+                    class="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-meta text-ink-2"
+                  >
+                    {rule.id}
+                  </code>
+                </span>
               </li>
             ))}
           </ul>
         </div>
         {tool.related.length > 0 && (
-          <nav aria-labelledby="near-title" class="flex flex-col gap-4 pt-3">
-            <h2 id="near-title" class="m-0 text-xl leading-[1.4] font-semibold">
+          <nav aria-labelledby="near-title" class="flex flex-col gap-3 pt-2">
+            <h3 id="near-title" class="heading-3 m-0">
               {t.page.near}
-            </h2>
-            <ul class="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+            </h3>
+            <ul class="card m-0 flex list-none flex-col divide-y divide-line overflow-hidden p-0">
               {tool.related.map((other) => (
                 <li>
-                  <ToolCard lang={lang} slug={other} related />
+                  <ToolCard lang={lang} slug={other} />
                 </li>
               ))}
             </ul>
@@ -271,42 +303,25 @@ const accordion =
               aria-controls="about-panel"
               class={toggle}
             >
-              <span class="flex items-center gap-3.5">
-                <span
-                  aria-hidden="true"
-                  class="grid size-9 shrink-0 place-items-center rounded-xl bg-indigo-soft text-indigo-ink"
-                >
-                  <FlaskConical size={19} stroke-width={1.9} />
-                </span>
-                {t.page.measure}
-              </span>
+              <span>{t.page.measure}</span>
               <span aria-hidden="true" class={plus}>
                 <Plus size={16} stroke-width={2.2} />
               </span>
             </button>
           </h2>
-          <div id="about-panel" class="flex flex-col gap-4 px-5 pb-5 md:px-6 md:pb-6">
-            <div
-              class="prose-fix prose-tool text-[15px] leading-[1.9] text-ink-2"
-              set:html={copy.methodology}
-            />
-            <p class="m-0 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-dashed border-line-2 pt-4 text-sm text-ink-2">
+          <div id="about-panel" class="flex flex-col gap-3 px-card pb-4">
+            <div class="prose-fix prose-tool text-small text-ink-2" set:html={copy.methodology} />
+            <p class="m-0 flex flex-wrap items-center gap-x-6 gap-y-0 border-t border-dashed border-line-2 pt-2 text-small text-ink-2">
               <span>
                 {t.page.updated}{' '}
                 <time datetime={tool.updated} dir="ltr" class="font-mono">
                   {tool.updated}
                 </time>
               </span>
-              <a
-                href={methodologyHref(lang)}
-                class="underline underline-offset-4 hover:text-brand-ink"
-              >
+              <a href={methodologyHref(lang)} class={quiet}>
                 {t.page.methodology}
               </a>
-              <a
-                href={scanFormHref(lang)}
-                class="underline underline-offset-4 hover:text-brand-ink"
-              >
+              <a href={scanFormHref(lang)} class={quiet}>
                 {t.page.fullScan}
               </a>
             </p>
@@ -314,7 +329,7 @@ const accordion =
         </div>
       </section>
     </div>
-  </div>
+  </PageColumns>
 </Page>
 
 <script>
