@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { ENGINE_DOT, ENGINE_NAMES, ENGINE_ORDER } from '../lib/engines'
 import { startScan } from './api'
 import { askedUrl, precheck, type FormError } from './scan-request'
+import { ScanNote } from './ScanNote'
 import { challenge } from './turnstile'
 
 interface Props {
@@ -117,7 +118,7 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
             check.warm()
           }}
           aria-invalid={invalid ? true : undefined}
-          aria-describedby={error === null ? noteId : `${noteId} ${errorId}`}
+          aria-describedby={error === null ? `${noteId}-keep` : `${errorId} ${noteId}-keep`}
           // The field is typed left to right (an address) and sits against the icon, which is
           // on the start side of the line: against the right edge in Arabic. 18 px on a phone: a
           // field under 16 px makes iOS zoom the page.
@@ -161,9 +162,9 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
           <Forward size={20} strokeWidth={2} aria-hidden="true" />
         </button>
       </div>
-      <p id={noteId} className="m-0 mt-3 px-1 text-[13px] leading-[1.7] text-ink-2">
-        {t.queryNote}
-      </p>
+      <div className="mt-3 px-1">
+        <ScanNote lang={lang} id={noteId} />
+      </div>
       <div ref={box} className="mt-2 empty:hidden" />
       <p
         id={errorId}
