@@ -88,7 +88,10 @@ export function Frame({
     <div className="wrap flex flex-1 flex-col gap-6 pt-6 pb-section lg:gap-8 lg:pt-8">
       {top}
       <div className="page-columns gap-y-6">
-        <div className="page-aside page-aside-sticky flex flex-col gap-card">{aside}</div>
+        {/* A focus ring at 2 px from the edge (not 3) fits in the 4 px the sticky aside keeps. */}
+        <div className="page-aside page-aside-sticky flex flex-col gap-card [&_:focus-visible]:outline-offset-2">
+          {aside}
+        </div>
         <div className="page-main flex flex-col gap-8 lg:gap-10">{children}</div>
       </div>
     </div>
