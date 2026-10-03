@@ -98,7 +98,7 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
     <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col">
       <label
         htmlFor={inputId}
-        className="flex items-center gap-3 rounded-xl px-2 pt-1.5 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo"
+        className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-0.5 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo md:bg-transparent md:px-2 md:pt-1.5 md:pb-0"
       >
         <Link size={20} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
         <span className="sr-only">{t.label}</span>
@@ -119,26 +119,30 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
           aria-invalid={invalid ? true : undefined}
           aria-describedby={error === null ? noteId : `${noteId} ${errorId}`}
           // The field is typed left to right (an address) and sits against the icon, which is
-          // on the start side of the line: against the right edge in Arabic.
-          className="min-w-0 flex-1 bg-transparent py-2 text-lg leading-normal text-ink outline-none placeholder:text-ink-3 sm:text-[21px] rtl:text-end"
+          // on the start side of the line: against the right edge in Arabic. 18 px on a phone: a
+          // field under 16 px makes iOS zoom the page.
+          className="min-w-0 flex-1 bg-transparent py-2 text-lg leading-normal text-ink outline-none placeholder:text-ink-3 md:text-[21px] rtl:text-end"
         />
       </label>
-      <div className="mt-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <span className="inline-flex h-[34px] items-center gap-2 rounded-[10px] bg-surface-2 px-3 text-[13px] whitespace-nowrap text-ink-2">
-            <b className="font-semibold text-ink">{scope.label}</b>
+      {/* On a phone the button comes right after the field and what a scan runs is one line of
+          small print under it; from sm, the chips are on the start side of the row and the button
+          on the end side (the DOM keeps the chips first, the button's `order` moves it). */}
+      <div className="mt-2.5 flex flex-col gap-2.5 sm:mt-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="order-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 px-1 text-meta text-ink-2 sm:order-none sm:gap-2 sm:px-0">
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap sm:h-[34px] sm:gap-2 sm:rounded-[10px] sm:bg-surface-2 sm:px-3">
+            <b className="hidden font-semibold text-ink sm:inline">{scope.label}</b>
             <span>{scope.detail}</span>
           </span>
           <ul
             aria-label={enginesLabel}
-            className="m-0 flex min-w-0 list-none flex-wrap items-center gap-2 p-0"
+            className="m-0 flex min-w-0 list-none flex-wrap items-center gap-x-3 gap-y-0.5 p-0 sm:gap-2"
           >
             {ENGINE_ORDER.map((engine) => (
               <li
                 key={engine}
                 lang="en"
                 dir="ltr"
-                className="inline-flex h-[34px] items-center gap-1.5 rounded-[10px] border border-line px-2.5 text-[13px] text-ink-2"
+                className="inline-flex items-center gap-1.5 sm:h-[34px] sm:rounded-[10px] sm:border sm:border-line sm:px-2.5"
               >
                 <i aria-hidden="true" className={`size-2 rounded-full ${ENGINE_DOT[engine]}`} />
                 {ENGINE_NAMES[engine]}
@@ -151,7 +155,7 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
           // Disabled only before the form works; while it sends, it keeps focus and ignores clicks.
           disabled={!ready}
           aria-disabled={busy ? true : undefined}
-          className="btn-grad btn-lg w-full shrink-0 disabled:cursor-wait aria-disabled:cursor-wait sm:w-auto"
+          className="btn-grad btn-lg order-1 w-full shrink-0 disabled:cursor-wait aria-disabled:cursor-wait sm:order-none sm:w-auto"
         >
           {busy ? t.submitting : t.submit}
           <Forward size={20} strokeWidth={2} aria-hidden="true" />
@@ -164,7 +168,7 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
       <p
         id={errorId}
         role="alert"
-        className={`m-0 px-1 text-sm text-serious ${message === '' ? '' : 'mt-2'}`}
+        className={`text-small m-0 px-1 text-serious ${message === '' ? '' : 'mt-2'}`}
       >
         {message}
       </p>

@@ -6,9 +6,14 @@ import Bidi from '../Bidi.astro'
 
 /**
  * Five numbers, each counted from its registry when the site is built (lib/home.ts): the tools,
- * the rules a scan runs, the browsers a page opens in, the fix guides and the glossary's terms.
+ * the rules a scan runs, the browsers a page opens in, the glossary's terms and the fix guides.
  * The number is in the HTML as it stands; with script and without reduced motion, it counts up
  * once when it comes into view.
+ *
+ * On a phone (M2.6 R7) it is a compact grid of two columns of 64 px tiles, the number beside its
+ * noun, the last tile (the longest noun) across both columns; on a tablet three tiles over two;
+ * from lg the five are one row, each with its number over its noun. The number's box is two digits
+ * wide, so counting up does not move its noun.
  */
 interface Props {
   lang: Lang
@@ -20,33 +25,54 @@ const stats = [
   { count: counts.tools, label: t.tools(counts.tools) },
   { count: counts.rules, label: t.rules(counts.rules) },
   { count: counts.engines, label: t.browsers(counts.engines) },
-  { count: counts.guides, label: t.guides(counts.guides) },
   { count: counts.terms, label: t.terms(counts.terms) },
+  { count: counts.guides, label: t.guides(counts.guides) },
 ]
 ---
 
-<section aria-label={t.label} class="wrap below-fold pt-7 pb-16 md:pb-[72px]">
-  <ul class="m-0 grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-5">
+<section aria-label={t.label} class="wrap below-fold strip">
+  <ul class="m-0 grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-6 md:gap-card lg:grid-cols-5">
     {stats.map((stat, index) => (
       <li
         class:list={[
-          'flex flex-col items-center gap-0.5 rounded-xl border border-line bg-white px-3 py-5 text-center',
-          index === stats.length - 1 && 'col-span-2 md:col-span-1',
+          'card flex min-h-16 items-center justify-center gap-2.5 p-card lg:min-h-0 lg:flex-col lg:gap-1 lg:text-center',
+          // Two columns on a phone with the last tile across both, three tiles over two on a
+          // tablet, five in a row on a desktop.
+          index === stats.length - 1 && 'col-span-2',
+          index < 3 ? 'md:col-span-2 lg:col-span-1' : 'md:col-span-3 lg:col-span-1',
         ]}
       >
         <b
-          class="gradient-text text-[44px] leading-[1.15] font-semibold tabular-nums"
+          class="gradient-text min-w-[2ch] text-[1.625rem] leading-[1.15] font-semibold tabular-nums lg:min-w-0 lg:text-[2.5rem]"
           data-count={stat.count}
         >
           {stat.count}
         </b>
-        <span class="text-sm text-ink-2">
+        <span class="text-meta text-ink-2 lg:text-small">
           <Bidi text={stat.label} lang={lang} />
         </span>
       </li>
     ))}
   </ul>
 </section>
+
+<style>
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
+  .strip {
+    contain-intrinsic-size: auto 216px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 152px;
+    }
+  }
+  @media (min-width: 64rem) {
+    .strip {
+      contain-intrinsic-size: auto 116px;
+    }
+  }
+</style>
 
 <script>
   // Counts each number up from 0 once, when it scrolls into view. The number is in the HTML as it

@@ -27,6 +27,11 @@ import SectionIntro from './SectionIntro.astro'
  * by a gap that opens and closes between them, with joiners keeping every letter's shape: the
  * effect is CSS alone, and with reduced motion the gaps stay open. The typed name, the arrow and
  * the gauges are CSS too.
+ *
+ * On a phone (M2.6 R7) the bento is a short list: the first tile, with its three browsers, as a
+ * card, and the six others as rows of an icon, a heading and a chevron, each still the link to its
+ * tool. The illustrations made of example data (and the «مثال» that marks them) are for md and up:
+ * they decorate a title that already says what the tool checks.
  */
 interface Props {
   lang: Lang
@@ -86,40 +91,48 @@ const gauges = VITAL_ORDER.map((vital) => {
 
 const okChip = 'sev sev-pass'
 const badChip = 'sev bg-critical-soft text-critical-ink'
-const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 px-3 py-2.5 text-sm'
+const row =
+  'text-small flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 px-3 py-2.5'
 ---
 
-<section aria-labelledby="bento-title" class="below-fold pt-6 pb-16 md:pb-[88px]">
+<section aria-labelledby="bento-title" class="below-fold strip">
   <div class="wrap">
-    <SectionIntro kicker={t.kicker} id="bento-title" title={t.title} lead={t.lead} />
+    <SectionIntro
+      kicker={t.kicker}
+      id="bento-title"
+      title={t.title}
+      lead={t.lead}
+      phoneLead={false}
+    />
 
-    <div class="grid auto-rows-[minmax(290px,auto)] gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-2.5 md:auto-rows-[minmax(250px,auto)] md:grid-cols-2 md:gap-card xl:grid-cols-4">
       <BentoTile
         lang={lang}
         title={t.engines.title}
         href={links.engines.href}
         tool={links.engines.title}
         tone="teal"
-        class="bg-[linear-gradient(160deg,#ffffff_40%,#f0fdfa)] sm:col-span-2 xl:row-span-2"
+        featured
+        class="mb-1 bg-[linear-gradient(160deg,#ffffff_40%,#f0fdfa)] md:col-span-2 md:mb-0 xl:row-span-2"
       >
         <Type slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
-        <p class="m-0 text-[15px] leading-[1.8] text-ink-2">
+        <p class="text-small m-0 text-ink-2">
           <Bidi text={t.engines.text} lang={lang} />
         </p>
-        <div class="mt-auto flex flex-col gap-2.5">
+        <div class="my-auto flex flex-col gap-2 md:gap-2.5 xl:gap-3">
           {rows.map((item) => (
             <div
               class:list={[
                 // On a phone the engine and its verdict share a line and the word has the one under
                 // it, whole; from sm up the three are one row.
-                'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-lg border px-3.5 py-3 sm:grid-cols-[118px_minmax(0,1fr)_auto] sm:px-4 sm:py-3.5',
+                'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border px-3 py-2 sm:grid-cols-[118px_minmax(0,1fr)_auto] sm:px-4 sm:py-3.5',
                 item.joined ? 'border-line bg-white' : 'border-[#fecdd3] bg-[#fff5f6]',
               ]}
             >
               <span
                 lang="en"
                 dir="ltr"
-                class="order-1 inline-flex items-center gap-2 justify-self-start text-[13px] font-semibold sm:order-none"
+                class="text-meta order-1 inline-flex items-center gap-2 justify-self-start font-semibold sm:order-none"
               >
                 <i
                   aria-hidden="true"
@@ -131,12 +144,12 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
                 <p
                   lang="ar"
                   dir="rtl"
-                  class="order-3 col-span-2 m-0 text-center text-[28px] leading-normal font-semibold whitespace-nowrap sm:order-none sm:col-span-1 sm:text-[30px]"
+                  class="order-3 col-span-2 m-0 text-center text-[1.5rem] leading-normal font-semibold whitespace-nowrap sm:order-none sm:col-span-1 sm:text-[1.875rem] xl:text-[2.25rem]"
                 >
                   {s.heading.text}
                 </p>
               ) : (
-                <p class="order-3 col-span-2 m-0 text-center text-[28px] leading-normal font-semibold whitespace-nowrap sm:order-none sm:col-span-1 sm:text-[30px]">
+                <p class="order-3 col-span-2 m-0 text-center text-[1.5rem] leading-normal font-semibold whitespace-nowrap sm:order-none sm:col-span-1 sm:text-[1.875rem] xl:text-[2.25rem]">
                   <span lang="ar" dir="rtl" aria-hidden="true">
                     {lettersApart(s.heading.text).map((piece) =>
                       piece === null ? <span class="gap" /> : piece,
@@ -170,16 +183,16 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
         tool={links.forms.title}
         tone="pink"
         example={t.example}
-        class="sm:col-span-2"
+        class="md:col-span-2"
       >
         <TextCursorInput slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
-        <p class="m-0 text-[15px] leading-[1.8] text-ink-2">
+        <p class="text-small m-0 text-ink-2">
           <Bidi text={t.forms.text} lang={lang} />
         </p>
-        <div class="mt-auto grid gap-2.5 sm:grid-cols-2">
-          <div class="flex flex-col gap-1.5 rounded-[14px] border border-line bg-[#fcfcfd] px-3.5 py-3">
-            <span class="text-xs text-ink-2">{s.name.label}</span>
-            <span class="flex min-h-10 items-center justify-between gap-2 rounded-[10px] border border-field bg-white px-3 text-base">
+        <div class="mt-auto grid gap-2.5 md:grid-cols-2">
+          <div class="flex flex-col gap-1.5 rounded-xl border border-line bg-[#fcfcfd] px-3.5 py-3">
+            <span class="text-meta text-ink-2">{s.name.label}</span>
+            <span class="text-body flex min-h-10 items-center justify-between gap-2 rounded-[10px] border border-field bg-white px-3">
               <span class="typed" lang="ar" dir="rtl">
                 <span class="typed-text">{s.name.name}</span>
                 <span class="caret" aria-hidden="true"></span>
@@ -187,9 +200,9 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
               <span class:list={[okChip, 'typed-ok']}>{t.forms.nameAccepted}</span>
             </span>
           </div>
-          <div class="flex flex-col gap-1.5 rounded-[14px] border border-line bg-[#fcfcfd] px-3.5 py-3">
-            <span class="text-xs text-ink-2">{t.forms.phone}</span>
-            <span class="flex min-h-10 items-center justify-between gap-2 rounded-[10px] border border-field bg-white px-3 text-base">
+          <div class="flex flex-col gap-1.5 rounded-xl border border-line bg-[#fcfcfd] px-3.5 py-3">
+            <span class="text-meta text-ink-2">{t.forms.phone}</span>
+            <span class="text-body flex min-h-10 items-center justify-between gap-2 rounded-[10px] border border-field bg-white px-3">
               <samp dir="ltr" class="font-sans">
                 {ARABIC_DIGITS}
               </samp>
@@ -211,7 +224,7 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
         <div class="mt-auto flex flex-col items-stretch gap-2">
           <span
             dir="ltr"
-            class="rounded-xl bg-surface-2 px-3 py-2.5 font-mono text-sm text-ink-2 line-through"
+            class="text-small rounded-xl bg-surface-2 px-3 py-2.5 font-mono text-ink-2 line-through"
           >
             wa.me/0501234567
           </span>
@@ -221,7 +234,10 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
             aria-hidden="true"
             class="nudge self-center text-ink-3"
           />
-          <span dir="ltr" class="rounded-xl bg-pass-soft px-3 py-2.5 font-mono text-sm text-pass">
+          <span
+            dir="ltr"
+            class="text-small rounded-xl bg-pass-soft px-3 py-2.5 font-mono text-pass"
+          >
             wa.me/966501234567
           </span>
         </div>
@@ -257,15 +273,15 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
         tool={links.speed.title}
         tone="amber"
         example={t.example}
-        class="sm:col-span-2"
+        class="md:col-span-2"
       >
         <Gauge slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
-        <p class="m-0 text-[15px] leading-[1.8] text-ink-2">
+        <p class="text-small m-0 text-ink-2">
           <Bidi text={t.speed.text} lang={lang} />
         </p>
-        <div class="mt-auto grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="mt-auto grid grid-cols-3 gap-3">
           {gauges.map((item) => (
-            <div class="flex flex-col items-center gap-0.5 rounded-lg bg-surface-2 px-2 pt-3 pb-3.5">
+            <div class="flex flex-col items-center gap-0.5 rounded-xl bg-surface-2 px-2 pt-3 pb-3">
               <svg viewBox="0 0 120 70" aria-hidden="true" class="block h-[70px] w-[120px]">
                 <path
                   d="M10 62 A50 50 0 0 1 110 62"
@@ -285,10 +301,10 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
                   stroke-dasharray={`${item.fill} 100`}
                 />
               </svg>
-              <b class="text-xl font-semibold tabular-nums">
+              <b class="text-[1.25rem] font-semibold tabular-nums">
                 {item.value} {item.unit}
               </b>
-              <span lang="en" dir="ltr" class="text-xs text-ink-2">
+              <span lang="en" dir="ltr" class="text-meta text-ink-2">
                 {item.vital.toUpperCase()}
               </span>
             </div>
@@ -331,7 +347,7 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
         <div class="mt-auto flex flex-col gap-2.5">
           <pre
             dir="ltr"
-            class="m-0 overflow-x-auto rounded-[14px] bg-ink px-4 py-3.5 font-mono text-[13px] leading-[1.8] text-panel-soft"
+            class="m-0 overflow-x-auto rounded-xl bg-ink px-4 py-3.5 font-mono text-[13px] leading-[1.8] text-panel-soft"
           ><code>User-agent: Googlebot
 <span class="hl">Disallow: /</span></code></pre>
           <span class:list={[badChip, 'self-start']}>
@@ -344,6 +360,21 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
 </section>
 
 <style>
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
+  .strip {
+    contain-intrinsic-size: auto 1000px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 1860px;
+    }
+  }
+  @media (min-width: 80rem) {
+    .strip {
+      contain-intrinsic-size: auto 1120px;
+    }
+  }
   /* The gap between the letters of the heading in WebKit's row: it opens and closes. */
   .gap {
     display: inline-block;
@@ -468,9 +499,13 @@ const row = 'flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 p
     .nudge,
     .gauge-val,
     .typed-text,
-    .caret,
     .typed-ok {
       animation: none;
+    }
+    /* A caret that does not blink and rides no edge says nothing, and it sits on the end of the
+       name: the text is all there. */
+    .caret {
+      display: none;
     }
     /* The heading stays drawn apart: it is what the tile is about. */
     .gap {

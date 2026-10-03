@@ -11,6 +11,10 @@ import SectionIntro from './SectionIntro.astro'
  * the FAQ already says they are for (monitoring many sites every day, crawling whole sites). There
  * is no price anywhere: the owner has not set one (M2.6 plan §4). The free plan is the one with the
  * gradient edge, because it is the one that can be used.
+ *
+ * On a phone (M2.6 R7) the three are compact cards one after the other, and the section's lead,
+ * which says what the note under the cards says, is for md and up; the paid cards' dashed
+ * «قريباً» foot, which repeats their tag, comes with the three columns from lg.
  */
 interface Props {
   lang: Lang
@@ -18,90 +22,98 @@ interface Props {
 const { lang } = Astro.props
 const t = HOME[lang].plans
 const counts = homeCounts()
-const card = 'flex flex-col gap-[18px] rounded-2xl border border-line bg-white p-7 shadow'
+const card = 'card p-card flex flex-col gap-3 md:gap-4'
+const point = 'flex items-start gap-2.5'
+const tick = 'mt-[5px] shrink-0 text-brand'
 ---
 
-<section id="plans" aria-labelledby="plans-title" class="below-fold pt-6 pb-16 md:pb-[88px]">
+<section id="plans" aria-labelledby="plans-title" class="below-fold strip">
   <div class="wrap">
-    <SectionIntro kicker={t.kicker} id="plans-title" title={t.title} lead={t.lead} />
-    <div class="grid items-stretch gap-4 lg:grid-cols-3">
+    <SectionIntro
+      kicker={t.kicker}
+      id="plans-title"
+      title={t.title}
+      lead={t.lead}
+      phoneLead={false}
+    />
+    <div class="grid items-stretch gap-3 lg:grid-cols-3 lg:gap-card">
       <article class:list={[card, 'free']}>
         <div class="flex items-center justify-between gap-2">
-          <h3 class="m-0 text-lg font-semibold">{t.free.name}</h3>
+          <h3 class="heading-3 m-0">{t.free.name}</h3>
           <span class="sev sev-pass">{t.free.tag}</span>
         </div>
-        <p class="m-0 text-base leading-[1.7] text-ink-2">{t.free.text}</p>
-        <ul class="m-0 flex list-none flex-col gap-2.5 p-0 text-[15px] text-ink-2">
-          {[t.free.allTools(counts.tools), ...t.free.points].map((point) => (
-            <li class="flex items-start gap-2.5">
-              <Check
-                size={16}
-                stroke-width={2}
-                aria-hidden="true"
-                class="mt-1 shrink-0 text-brand"
-              />
-              {point}
+        <p class="text-body m-0 text-ink-2">{t.free.text}</p>
+        <ul class="text-small m-0 flex list-none flex-col gap-2 p-0 text-ink-2">
+          {[t.free.allTools(counts.tools), ...t.free.points].map((item) => (
+            <li class={point}>
+              <Check size={16} stroke-width={2} aria-hidden="true" class={tick} />
+              {item}
             </li>
           ))}
         </ul>
-        <a href={scanFormHref(lang)} class="btn-grad btn-lg mt-auto w-full">
+        <a href={scanFormHref(lang)} class="btn-grad btn-lg mt-1 w-full lg:mt-auto">
           {t.free.cta}
         </a>
       </article>
 
       <article class={card}>
         <div class="flex items-center justify-between gap-2">
-          <h3 class="m-0 text-lg font-semibold">{t.monitoring.name}</h3>
+          <h3 class="heading-3 m-0">{t.monitoring.name}</h3>
           <span class="sev bg-indigo-soft text-indigo-ink">{t.soon}</span>
         </div>
-        <p class="m-0 text-base leading-[1.7] text-ink-2">{t.monitoring.text}</p>
-        <ul class="m-0 flex list-none flex-col gap-2.5 p-0 text-[15px] text-ink-2">
-          {[...t.monitoring.points, t.includesFree].map((point) => (
-            <li class="flex items-start gap-2.5">
-              <Check
-                size={16}
-                stroke-width={2}
-                aria-hidden="true"
-                class="mt-1 shrink-0 text-brand"
-              />
-              {point}
+        <p class="text-body m-0 hidden text-ink-2 md:block">{t.monitoring.text}</p>
+        <ul class="text-small m-0 flex list-none flex-col gap-2 p-0 text-ink-2">
+          {[...t.monitoring.points, t.includesFree].map((item) => (
+            <li class={point}>
+              <Check size={16} stroke-width={2} aria-hidden="true" class={tick} />
+              {item}
             </li>
           ))}
         </ul>
-        <p class="m-0 mt-auto rounded-[14px] border border-dashed border-line-2 py-3 text-center text-[15px] font-semibold text-ink-2">
+        <p class="text-small m-0 mt-auto hidden rounded-xl border border-dashed border-line-2 py-3 text-center font-semibold text-ink-2 lg:block">
           {t.soon}
         </p>
       </article>
 
       <article class={card}>
         <div class="flex items-center justify-between gap-2">
-          <h3 class="m-0 text-lg font-semibold">{t.crawl.name}</h3>
+          <h3 class="heading-3 m-0">{t.crawl.name}</h3>
           <span class="sev bg-indigo-soft text-indigo-ink">{t.soon}</span>
         </div>
-        <p class="m-0 text-base leading-[1.7] text-ink-2">{t.crawl.text}</p>
-        <ul class="m-0 flex list-none flex-col gap-2.5 p-0 text-[15px] text-ink-2">
-          {[...t.crawl.points, t.includesFree].map((point) => (
-            <li class="flex items-start gap-2.5">
-              <Check
-                size={16}
-                stroke-width={2}
-                aria-hidden="true"
-                class="mt-1 shrink-0 text-brand"
-              />
-              {point}
+        <p class="text-body m-0 hidden text-ink-2 md:block">{t.crawl.text}</p>
+        <ul class="text-small m-0 flex list-none flex-col gap-2 p-0 text-ink-2">
+          {[...t.crawl.points, t.includesFree].map((item) => (
+            <li class={point}>
+              <Check size={16} stroke-width={2} aria-hidden="true" class={tick} />
+              {item}
             </li>
           ))}
         </ul>
-        <p class="m-0 mt-auto rounded-[14px] border border-dashed border-line-2 py-3 text-center text-[15px] font-semibold text-ink-2">
+        <p class="text-small m-0 mt-auto hidden rounded-xl border border-dashed border-line-2 py-3 text-center font-semibold text-ink-2 lg:block">
           {t.soon}
         </p>
       </article>
     </div>
-    <p class="m-0 mt-5 text-center text-sm text-ink-2">{t.note}</p>
+    <p class="text-small m-0 mt-4 text-center text-ink-2 md:mt-5">{t.note}</p>
   </div>
 </section>
 
 <style>
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
+  .strip {
+    contain-intrinsic-size: auto 735px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 916px;
+    }
+  }
+  @media (min-width: 64rem) {
+    .strip {
+      contain-intrinsic-size: auto 481px;
+    }
+  }
   /* The free plan's edge: a gradient border drawn with two backgrounds, a white padding box over
      the gradient's border box. */
   .free {

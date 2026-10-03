@@ -1,21 +1,31 @@
 ---
 /**
  * The head of a section of the home page, centred: a kicker pill, the heading, and a lead under
- * it when there is one. The heading is semibold, one of the two weights a page loads (M2.6 R1).
+ * it when there is one (M2.6 R7). The heading is the scale's `heading-2` (22 px on a phone, 28 from
+ * lg), solid ink and semibold, with nothing drawn before it. A lead that only repeats what the
+ * section shows is for a larger screen (`phoneLead={false}`): a phone has the heading alone.
  */
 interface Props {
   kicker: string
   id: string
   title: string
   lead?: string | undefined
+  /** Whether a phone shows the lead too; it always shows from md. */
+  phoneLead?: boolean
 }
-const { kicker, id, title, lead } = Astro.props
+const { kicker, id, title, lead, phoneLead = true } = Astro.props
 ---
 
-<div class="mx-auto mb-10 flex max-w-[760px] flex-col items-center gap-3 text-center md:mb-12">
+<div class="mx-auto mb-6 flex max-w-[720px] flex-col items-center gap-2.5 text-center md:mb-8">
   <span class="kick">{kicker}</span>
-  <h2 id={id} class="m-0 text-[30px] leading-[1.3] font-semibold text-balance md:text-[44px]">
+  <h2 id={id} class="heading-2 m-0">
     {title}
   </h2>
-  {lead !== undefined && <p class="m-0 text-base leading-[1.85] text-ink-2 md:text-lg">{lead}</p>}
+  {lead !== undefined && (
+    <p
+      class:list={['text-body m-0 text-ink-2 lg:text-[1.0625rem]', !phoneLead && 'hidden md:block']}
+    >
+      {lead}
+    </p>
+  )}
 </div>
