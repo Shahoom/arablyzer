@@ -230,6 +230,12 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
+    // The monthly benchmark: the owner's `bq` command line asked for two BigQuery queries; it opens
+    // no connection of its own and fetches no page.
+    files: ['apps/web/scripts/httparchive-benchmark.ts'],
+    rules: networkRules({ allowProcesses: true }),
+  },
+  {
     // The site's Open Graph images, drawn by Chromium at build (M2.4c): the card's own HTML,
     // inline fonts, and every request refused.
     files: ['apps/web/scripts/og-images.ts'],

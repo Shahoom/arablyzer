@@ -50,6 +50,12 @@ Reads a page and tells you what it runs on: the CMS or store (WordPress, Salla, 
 
 There is nothing to fix: the check lists what it finds and judges nothing. Use the platform it names to choose the fix for your other findings, in its own settings or plugins, and keep its core and plugins up to date.
 
+To see what the check sees in a page's headers, ask for them yourself:
+
+```sh
+curl -sI https://example.com/ | grep -iE "x-powered-by|set-cookie|server"
+```
+
 - WordPress: a missing description is set in an SEO plugin such as Yoast SEO or Rank Math, in the page's own fields.
 - Salla: SEO settings are in the store's dashboard, and each product and page has its own title and description fields.
 

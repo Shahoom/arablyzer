@@ -8,6 +8,7 @@ import { useState } from 'preact/hooks'
 import { Bidi } from './Bidi'
 import { ScanDock } from './Dock'
 import { Checks, Findings, type Fixes } from './Findings'
+import { BenchmarkSection } from './Benchmark'
 import { Frame } from './Frame'
 import { GscSection } from './Gsc'
 import { Notices } from './Notices'
@@ -94,6 +95,7 @@ export function ReportView({
       </div>
       <Findings report={report} fixes={fixes} lang={lang} />
       <Checks report={report} lang={lang} />
+      {tool === undefined && <BenchmarkSection report={report} lang={lang} />}
       {/* Search Console: a whole scan's, not a tool's; hidden unless the site has it on. */}
       {tool === undefined && <GscSection id={id} lang={lang} />}
       {more('main')}

@@ -114,6 +114,30 @@ export interface ReportStrings {
       }
     }
   }
+  /**
+   * "Your page against Arabic sites" (HTTP Archive and CrUX percentiles, made monthly by the owner):
+   * a card on the report page, with its words in both languages.
+   */
+  readonly benchmark: {
+    readonly title: string
+    /** No benchmark has been made yet. */
+    readonly none: string
+    /** None of the metrics it compares is in this report. */
+    readonly nothingToCompare: string
+    readonly source: (crawl: string, pages: string) => string
+    readonly metrics: {
+      readonly requests: string
+      readonly lcp: string
+      readonly cls: string
+    }
+    readonly bands: {
+      readonly best: string
+      readonly better: string
+      readonly worse: string
+      readonly worst: string
+    }
+    readonly median: (value: string) => string
+  }
   readonly header: {
     readonly kicker: string
     readonly scannedOn: string
@@ -354,6 +378,26 @@ export const REPORT: Copy<ReportStrings> = {
       state: { done: 'اكتملت', active: 'جارية الآن', waiting: 'لم تبدأ', failed: 'تعذّرت' },
       waitingStart: 'بانتظار بدء الفحص',
       pageFailed: 'تعذّر جلبها',
+    },
+    benchmark: {
+      title: 'صفحتك مقابل المواقع العربية',
+      none: 'لا مقارنة بعد: لم تُنتج بعدُ أرقام HTTP Archive للمواقع العربية.',
+      nothingToCompare:
+        'ليس في هذا التقرير ما نقارنه بهذه الأرقام: لا بيانات زوار ولا عرض للصفحة في متصفح.',
+      source: (crawl, pages) =>
+        `من زحف HTTP Archive في ${crawl}، على ${pages} صفحة في نطاقات الدول العربية (جوال).`,
+      metrics: {
+        requests: 'عدد الطلبات',
+        lcp: 'ظهور أكبر محتوى (LCP، زوار حقيقيون)',
+        cls: 'ثبات التخطيط (CLS، زوار حقيقيون)',
+      },
+      bands: {
+        best: 'من أفضل ربع المواقع',
+        better: 'أفضل من وسيط المواقع',
+        worse: 'أسوأ من وسيط المواقع',
+        worst: 'من أسوأ ربع المواقع',
+      },
+      median: (value) => `الوسيط ${value}`,
     },
     header: {
       kicker: 'التقرير',
@@ -596,6 +640,26 @@ export const REPORT: Copy<ReportStrings> = {
       state: { done: 'done', active: 'in progress', waiting: 'not started', failed: 'failed' },
       waitingStart: 'Waiting for the scan to start',
       pageFailed: 'Could not be fetched',
+    },
+    benchmark: {
+      title: 'Your page against Arabic sites',
+      none: 'No benchmark yet: the HTTP Archive numbers for Arabic sites have not been made.',
+      nothingToCompare:
+        'This report has nothing to compare with these numbers: no visitor data, and no render in a browser.',
+      source: (crawl, pages) =>
+        `From the HTTP Archive crawl of ${crawl}, over ${pages} pages on Arab countries' domains (mobile).`,
+      metrics: {
+        requests: 'Requests',
+        lcp: 'Largest Contentful Paint (LCP, real visitors)',
+        cls: 'Layout stability (CLS, real visitors)',
+      },
+      bands: {
+        best: 'In the best quarter of sites',
+        better: 'Better than the median site',
+        worse: 'Worse than the median site',
+        worst: 'In the worst quarter of sites',
+      },
+      median: (value) => `Median ${value}`,
     },
     header: {
       kicker: 'Report',
