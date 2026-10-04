@@ -38,6 +38,10 @@ describe('scanOptionsFrom', () => {
       apiKey: 'sb',
     })
     expect(sb({ ARABLYZER_CRUX_KEY: 'crux' })).toEqual({ apiKey: 'crux' })
+    // Compose passes an empty variable when it is not set: the CrUX key is used then.
+    expect(sb({ ARABLYZER_SAFE_BROWSING_KEY: '', ARABLYZER_CRUX_KEY: 'crux' })).toEqual({
+      apiKey: 'crux',
+    })
     expect(sb({ ARABLYZER_SAFE_BROWSING_KEY: ' ' })).toBeUndefined()
     expect(sb({})).toBeUndefined()
   })

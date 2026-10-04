@@ -56,6 +56,64 @@ export interface ReportStrings {
     /** The page could not be fetched. */
     readonly pageFailed: string
   }
+  /**
+   * Google Search Console, connected from a finished report (account-free, nothing stored): the
+   * card's words, in both languages. Google's own words (coverage state) are shown as they come.
+   */
+  readonly gsc: {
+    readonly title: string
+    readonly intro: string
+    readonly connect: string
+    readonly privacy: string
+    readonly loading: string
+    readonly denied: string
+    readonly failed: string
+    readonly retry: string
+    readonly noProperty: string
+    readonly tryAnother: string
+    readonly partial: string
+    readonly clear: string
+    readonly shownOnce: string
+    readonly property: string
+    readonly period: (start: string, end: string) => string
+    readonly totals: {
+      readonly clicks: string
+      readonly impressions: string
+      readonly ctr: string
+      readonly position: string
+      readonly none: string
+    }
+    readonly lists: {
+      readonly queries: string
+      readonly pages: string
+      readonly countries: string
+      readonly none: string
+    }
+    readonly rowDetail: (clicks: string, impressions: string) => string
+    readonly inspection: {
+      readonly title: string
+      readonly none: string
+      readonly verdict: string
+      readonly verdicts: {
+        readonly pass: string
+        readonly partial: string
+        readonly fail: string
+        readonly neutral: string
+        readonly unknown: string
+      }
+      readonly coverage: string
+      readonly lastCrawl: string
+      readonly googleCanonical: string
+      readonly userCanonical: string
+      readonly canonicalDiffers: string
+      readonly mobile: string
+      readonly mobileVerdicts: {
+        readonly pass: string
+        readonly fail: string
+        readonly unknown: string
+      }
+    }
+  }
   readonly header: {
     readonly kicker: string
     readonly scannedOn: string
@@ -297,6 +355,63 @@ export const REPORT: Copy<ReportStrings> = {
       rescan: 'أعد الفحص',
       tool: 'نتيجة أداة',
     },
+    gsc: {
+      title: 'ما يعرفه Google عن موقعك',
+      intro:
+        'اربط حسابك في Google Search Console ليظهر هنا ما يعرفه Google عن موقعك: النقرات والظهور وأهم عبارات البحث والصفحات، وحال فهرسة هذه الصفحة.',
+      connect: 'اربط Search Console',
+      privacy:
+        'قراءة فقط. نقرأ البيانات مرة واحدة ونعرضها هنا، ولا نحفظ منها شيئاً، ولا نحتفظ برمز الدخول.',
+      loading: 'نقرأ بياناتك من Search Console…',
+      denied: 'لم تسمح بالوصول، فلم نقرأ شيئاً. يمكنك المحاولة مرة أخرى متى شئت.',
+      failed: 'تعذّرت قراءة Search Console. جرّب مرة أخرى بعد قليل.',
+      retry: 'حاول مرة أخرى',
+      noProperty:
+        'ليس في هذا الحساب موقع في Search Console يطابق هذه الصفحة. أضف الموقع إلى Search Console وأثبت ملكيته، أو اربط حساباً آخر يملكه.',
+      tryAnother: 'اربط حساباً آخر',
+      partial: 'لم يعطِنا Google بعض البيانات، فنعرض ما وصلنا منها.',
+      clear: 'أخفِ هذه البيانات',
+      shownOnce: 'تُعرض هذه البيانات مرة واحدة في هذه الصفحة؛ وإعادة تحميلها تمحوها.',
+      property: 'الموقع في Search Console',
+      period: (start, end) => `آخر 28 يوماً، من ${start} إلى ${end}`,
+      totals: {
+        clicks: 'النقرات',
+        impressions: 'مرات الظهور',
+        ctr: 'نسبة النقر',
+        position: 'متوسط الترتيب',
+        none: 'لا بيانات بحث لهذا الموقع في هذه المدة.',
+      },
+      lists: {
+        queries: 'أهم عبارات البحث',
+        pages: 'أهم الصفحات',
+        countries: 'النقرات حسب البلد',
+        none: 'لا بيانات.',
+      },
+      rowDetail: (clicks, impressions) => `${clicks} نقرة من ${impressions} ظهور`,
+      inspection: {
+        title: 'حال هذه الصفحة عند Google',
+        none: 'لم يعطِنا Google فحص هذه الصفحة.',
+        verdict: 'الفهرسة',
+        verdicts: {
+          pass: 'الصفحة على Google',
+          partial: 'مفهرسة جزئياً',
+          fail: 'الصفحة ليست على Google',
+          neutral: 'مستثناة من الفهرسة',
+          unknown: 'غير معروف',
+        },
+        coverage: 'حالة التغطية',
+        lastCrawl: 'آخر زحف',
+        googleCanonical: 'الرابط الأساسي الذي اختاره Google',
+        userCanonical: 'الرابط الأساسي الذي أعلنته الصفحة',
+        canonicalDiffers: 'اختار Google رابطاً أساسياً غير الذي أعلنته الصفحة',
+        mobile: 'سهولة الاستعمال على الجوال',
+        mobileVerdicts: {
+          pass: 'مناسبة للجوال',
+          fail: 'فيها مشكلات على الجوال',
+          unknown: 'غير معروف',
+        },
+      },
+    },
     score: {
       none: 'لا قواعد تنطبق',
       methodology: 'كيف حُسبت الدرجة؟ المنهجية',
@@ -477,6 +592,63 @@ export const REPORT: Copy<ReportStrings> = {
       json: 'JSON',
       rescan: 'Scan again',
       tool: 'A tool’s result',
+    },
+    gsc: {
+      title: 'What Google knows about your site',
+      intro:
+        'Connect your Google Search Console account to see here what Google knows about your site: clicks, impressions, top queries and pages, and how Google indexed this page.',
+      connect: 'Connect Search Console',
+      privacy:
+        'Read-only. We read the data once and show it here. We store none of it, and we do not keep the access token.',
+      loading: 'Reading your Search Console data…',
+      denied: 'You did not allow access, so nothing was read. You can try again whenever you like.',
+      failed: 'We could not read Search Console. Try again in a moment.',
+      retry: 'Try again',
+      noProperty:
+        'This account has no Search Console property that matches this page. Add the site to Search Console and verify it, or connect an account that owns it.',
+      tryAnother: 'Connect another account',
+      partial: 'Google did not give us some of the data, so this shows what arrived.',
+      clear: 'Hide this data',
+      shownOnce: 'This data is shown once on this page; reloading the page clears it.',
+      property: 'Search Console property',
+      period: (start, end) => `Last 28 days, ${start} to ${end}`,
+      totals: {
+        clicks: 'Clicks',
+        impressions: 'Impressions',
+        ctr: 'Click-through rate',
+        position: 'Average position',
+        none: 'No search data for this site in this period.',
+      },
+      lists: {
+        queries: 'Top queries',
+        pages: 'Top pages',
+        countries: 'Clicks by country',
+        none: 'No data.',
+      },
+      rowDetail: (clicks, impressions) => `${clicks} clicks from ${impressions} impressions`,
+      inspection: {
+        title: 'This page at Google',
+        none: 'Google did not give us an inspection of this page.',
+        verdict: 'Indexing',
+        verdicts: {
+          pass: 'The page is on Google',
+          partial: 'Partly indexed',
+          fail: 'The page is not on Google',
+          neutral: 'Excluded from indexing',
+          unknown: 'Unknown',
+        },
+        coverage: 'Coverage state',
+        lastCrawl: 'Last crawl',
+        googleCanonical: 'Canonical Google chose',
+        userCanonical: 'Canonical the page declares',
+        canonicalDiffers: 'Google chose a different canonical from the one the page declares',
+        mobile: 'Mobile usability',
+        mobileVerdicts: {
+          pass: 'Usable on mobile',
+          fail: 'Has problems on mobile',
+          unknown: 'Unknown',
+        },
+      },
     },
     score: {
       none: 'No rule applies',

@@ -55,8 +55,7 @@ export interface GscContext {
   readonly log: (error: Error) => void
 }
 
-const LANGS = ['ar', 'en'] as const
-type Lang = (typeof LANGS)[number]
+type Lang = 'ar' | 'en'
 
 /** A flow's verifier, and what the callback needs to send the visitor back. */
 interface Pending {
@@ -108,7 +107,7 @@ export function registerGscRoutes(app: Hono, context: GscContext): void {
     if (refused === 'unknown') return c.json({ error: 'unavailable' }, 503)
     if (refused === 'limited') return c.json({ error: 'rate-limited' }, 429)
     const scan = await context.store.get(report)
-    if (scan === null || scan.report === null) return c.notFound()
+    if (scan?.report == null) return c.notFound()
     const url = scan.report.target.finalUrl ?? scan.report.target.url
     const nonce = randomToken(32)
     const pkce = newPkce()
@@ -145,7 +144,7 @@ export function registerGscRoutes(app: Hono, context: GscContext): void {
     // The verifier is read once: a callback sent again finds nothing.
     const held = await gsc.handoff.take(pendingKey(flow.n))
     const pending = readPending(held)
-    if (pending === null || pending.report !== flow.r) return c.json({ error: 'bad-request' }, 400)
+    if (pending?.report !== flow.r) return c.json({ error: 'bad-request' }, 400)
     const fail = (outcome: GscFailure) => back(c, pending.report, pending.lang, outcome)
 
     if (c.req.query('error') !== undefined) return fail('denied')

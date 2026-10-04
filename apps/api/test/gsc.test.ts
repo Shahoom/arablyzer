@@ -470,7 +470,7 @@ describe('googleApi', () => {
   it('is a failure, never a throw, when the fetch itself fails', async () => {
     const api = googleApi({
       policy: DEFAULT_POLICY,
-      fetcher: (() => Promise.reject(new Error('boom'))) as unknown as typeof safeFetch,
+      fetcher: () => Promise.reject(new Error('boom')),
     })
     expect(await api.sites('t')).toEqual({ status: null, body: null })
     expect(

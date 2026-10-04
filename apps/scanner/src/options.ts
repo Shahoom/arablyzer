@@ -29,7 +29,9 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
   }
   const engines = ENGINES.filter((engine) => listed.includes(engine))
   const cruxKey = env.ARABLYZER_CRUX_KEY?.trim()
-  const safeBrowsingKey = env.ARABLYZER_SAFE_BROWSING_KEY?.trim() || cruxKey
+  const ownSafeBrowsingKey = env.ARABLYZER_SAFE_BROWSING_KEY?.trim()
+  const safeBrowsingKey =
+    ownSafeBrowsingKey === undefined || ownSafeBrowsingKey === '' ? cruxKey : ownSafeBrowsingKey
   const policy = serverPolicy(env)
   const dohUrl = dohUrlFrom(env, policy)
   return {
