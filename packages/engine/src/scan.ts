@@ -60,11 +60,14 @@ import {
   crawlerAccess,
   detectPlatforms,
   dialectOfPage,
+  FINEWEB2,
   fitOf,
   fitsCountry,
   inferCountry,
   isMostlyArabic,
   readPage,
+  readTraining,
+  trainingText,
   xrayFamilies,
   isPublicUrl,
   matchRobots,
@@ -718,6 +721,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...searchFacts(search),
       ...countryFitFacts(page, rules),
       ...dialectFacts(page, rules),
+      ...aiTrainingFacts(page, rules),
       ...xrayFacts(rendering),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
@@ -1589,6 +1593,28 @@ function dialectFacts(page: PageFacts, rules: readonly Rule[]): Facts {
         country === null || whole.label === null || whole.label === 'msa'
           ? null
           : fitsCountry(whole.label, country),
+    },
+  }
+}
+
+/** The page's text against the FineWeb-2 filters for Arabic; nothing without the rule or Arabic text. */
+function aiTrainingFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (
+    page.html === null ||
+    page.text === null ||
+    !isMostlyArabic(page) ||
+    !rules.some((rule) => rule.id === 'ai-training-filters')
+  ) {
+    return {}
+  }
+  const reading = readTraining(trainingText(page))
+  return {
+    aiTraining: {
+      outcome: reading.words < FINEWEB2.minDocWords ? 'too-little' : 'tested',
+      words: reading.words,
+      lines: reading.lines,
+      passes: reading.passes,
+      checks: reading.checks.map((item) => ({ ...item })),
     },
   }
 }

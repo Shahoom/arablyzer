@@ -47,7 +47,13 @@ const fold = (text: string) => text.replace(/\s+/g, ' ').trim()
 export function fromFixtures(tool: Tool): boolean {
   return tool.rules.some((id) => {
     const needs = ruleById(id)?.needs ?? []
-    return needs.includes('render') || needs.includes('links') || needs.includes('search')
+    return (
+      needs.includes('render') ||
+      needs.includes('links') ||
+      needs.includes('search') ||
+      // A text of 50 words or more is judged, longer than an excerpt of a page.
+      id === 'ai-training-filters'
+    )
   })
 }
 

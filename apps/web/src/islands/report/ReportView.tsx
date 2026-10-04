@@ -11,6 +11,7 @@ import { Checks, Findings, type Fixes } from './Findings'
 import { ArabicXray } from './ArabicXray'
 import { BenchmarkSection } from './Benchmark'
 import { CountryFit } from './CountryFit'
+import { AiTraining } from './AiTraining'
 import { Dialect } from './Dialect'
 import { Frame } from './Frame'
 import { GscSection } from './Gsc'
@@ -102,6 +103,7 @@ export function ReportView({
       {tool === undefined && (
         <div className="card rounded-card">
           <Dialect report={report} lang={lang} />
+          <AiTraining report={report} lang={lang} />
         </div>
       )}
       {tool === undefined && <ArabicXray report={report} lang={lang} standalone />}

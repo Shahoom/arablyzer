@@ -2,6 +2,7 @@ import type { ToolDefinition } from './tool'
 import { definition as accessibilityCheck } from './tools/accessibility-check/tool'
 import { definition as aiAccess } from './tools/ai-access/tool'
 import { definition as aiCrawlerCheck } from './tools/ai-crawler-check/tool'
+import { definition as aiTrainingFilter } from './tools/ai-training-filter/tool'
 import { definition as arabicFontCheck } from './tools/arabic-font-check/tool'
 import { definition as arabicFontSlimmer } from './tools/arabic-font-slimmer/tool'
 import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
@@ -56,6 +57,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   accessibilityCheck,
   aiAccess,
   aiCrawlerCheck,
+  aiTrainingFilter,
   arabicFontCheck,
   arabicFontSlimmer,
   arabicFormTest,

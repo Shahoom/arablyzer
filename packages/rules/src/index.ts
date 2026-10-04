@@ -5,6 +5,7 @@ import { rule as a11yColorContrastReview } from './rules/a11y-color-contrast-rev
 import { rule as a11yImageAlt } from './rules/a11y-image-alt/rule'
 import { rule as a11yLinkName } from './rules/a11y-link-name/rule'
 import { rule as a11yValidLang } from './rules/a11y-valid-lang/rule'
+import { rule as aiTrainingFilters } from './rules/ai-training-filters/rule'
 import { rule as arAiReadability } from './rules/ar-ai-readability/rule'
 import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
@@ -88,6 +89,7 @@ export const RULES: readonly Rule[] = [
   a11yImageAlt,
   a11yLinkName,
   a11yValidLang,
+  aiTrainingFilters,
   arAiReadability,
   arDigitsMixed,
   arFontFallback,
@@ -190,6 +192,7 @@ export {
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
 export { brandName, type Brand } from './lib/brand'
 export { xrayFamilies } from './lib/missing-letters'
+export { FINEWEB2, readTraining, trainingText, type FilterCheck } from './lib/ai-training'
 export { dialectOfPage, fitsCountry, readDialect, type Dialect, type Variety } from './lib/dialect'
 export { isMostlyArabic } from './lib/arabic'
 export { inferCountry, readPage } from './lib/country'

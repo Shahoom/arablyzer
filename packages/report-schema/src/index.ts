@@ -501,6 +501,43 @@ export const DialectFact = z
 export type DialectFact = z.infer<typeof DialectFact>
 
 /**
+ * The page's text against the quality filters of the FineWeb-2 pipeline for Arabic (rule
+ * ai-training-filters): each check with the value measured, the threshold and whether it passed.
+ * `applied` is false for the language estimate (a proxy for GlotLID) and the C4 reference, which
+ * the pipeline does not use as a verdict. `outcome` is `too-little` for a text under 50 words.
+ */
+export const AiTrainingFact = z
+  .strictObject({
+    outcome: z.enum(['tested', 'too-little']),
+    words: count(),
+    lines: count(),
+    /** Every applied check passed. */
+    passes: z.boolean(),
+    checks: z
+      .array(
+        z.strictObject({
+          group: z.enum([
+            'language',
+            'gopher-repetition',
+            'fineweb-quality',
+            'gopher-quality',
+            'c4',
+          ]),
+          id: z.string().min(1).max(60),
+          measured: z.number().min(0),
+          threshold: z.number().min(0),
+          limit: z.enum(['max', 'min']),
+          pass: z.boolean(),
+          applied: z.boolean(),
+          proxy: z.boolean(),
+        }),
+      )
+      .max(60),
+  })
+  .meta({ id: 'AiTrainingFact' })
+export type AiTrainingFact = z.infer<typeof AiTrainingFact>
+
+/**
  * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
  * counted and the ones drawn wrongly (a letter no font in their list draws, or a replacement
  * character), where the broken ones stand in the first screen, and a small JPEG of that screen to
@@ -573,6 +610,8 @@ export const Facts = z.strictObject({
   countryFit: CountryFitFact.optional(),
   /** Present when the dialect rule ran on an Arabic page. */
   dialect: DialectFact.optional(),
+  /** Present when the AI training filter rule ran on an Arabic page. */
+  aiTraining: AiTrainingFact.optional(),
   /** Present when a scan asked for the Arabic X-ray and an engine counted Arabic words. */
   xray: XrayFact.optional(),
 })

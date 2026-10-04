@@ -520,6 +520,9 @@
         "dialect": {
           "$ref": "#/$defs/DialectFact"
         },
+        "aiTraining": {
+          "$ref": "#/$defs/AiTrainingFact"
+        },
         "xray": {
           "$ref": "#/$defs/XrayFact"
         }
@@ -1945,6 +1948,98 @@
         "markers",
         "country",
         "fits"
+      ],
+      "additionalProperties": false
+    },
+    "AiTrainingFact": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "tested",
+            "too-little"
+          ]
+        },
+        "words": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lines": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "passes": {
+          "type": "boolean"
+        },
+        "checks": {
+          "maxItems": 60,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "group": {
+                "type": "string",
+                "enum": [
+                  "language",
+                  "gopher-repetition",
+                  "fineweb-quality",
+                  "gopher-quality",
+                  "c4"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "measured": {
+                "type": "number",
+                "minimum": 0
+              },
+              "threshold": {
+                "type": "number",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "string",
+                "enum": [
+                  "max",
+                  "min"
+                ]
+              },
+              "pass": {
+                "type": "boolean"
+              },
+              "applied": {
+                "type": "boolean"
+              },
+              "proxy": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "group",
+              "id",
+              "measured",
+              "threshold",
+              "limit",
+              "pass",
+              "applied",
+              "proxy"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "outcome",
+        "words",
+        "lines",
+        "passes",
+        "checks"
       ],
       "additionalProperties": false
     },
