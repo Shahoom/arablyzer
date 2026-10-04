@@ -22,13 +22,14 @@ describe('brand-name-consistency', () => {
     expect(kinds).toContain('disagree')
     expect(kinds).toContain('alternate-missing')
     expect(findings.find((f) => f.message === 'disagree')?.values).toMatchObject({
-      firstSource: 'og:site_name',
+      firstSource: 'WebSite.name',
       second: 'متجر النخلة',
-      secondSource: 'copyright',
+      secondSource: 'logo alt',
     })
     expect(findings.find((f) => f.message === 'alternate-missing')?.values).toMatchObject({
       latin: 'Al Waha Store',
       latinSource: 'Organization.name',
+      arabicSource: 'WebSite.name',
     })
   })
 
@@ -43,16 +44,25 @@ describe('brand-name-consistency', () => {
     expect(nameKey('Al-Waha & Co.')).toBe(nameKey('al waha and co'))
   })
 
-  it('treats a store and its brand as one name, and different brands as two', () => {
+  it('treats a store and its brand as one name, and two brands of the site as two', () => {
     expect(
       found(
-        '<meta property="og:site_name" content="Waha Store"><script type="application/ld+json">{"@type":"Organization","name":"Waha"}</script>',
+        '<meta property="og:site_name" content="Waha Store"><script type="application/ld+json">{"@type":"WebSite","name":"Waha"}</script>',
       ),
     ).toEqual([])
     const [finding] = found(
-      '<meta property="og:site_name" content="Waha"><script type="application/ld+json">{"@type":"Organization","name":"Oasis"}</script>',
+      '<meta property="og:site_name" content="Waha"><script type="application/ld+json">{"@type":"WebSite","name":"Oasis"}</script>',
     )
     expect(finding?.message).toBe('disagree')
+  })
+
+  it('does not hold a company’s name against its site’s, which may differ', () => {
+    expect(
+      found(
+        '<meta property="og:site_name" content="Arablyzer"><script type="application/ld+json">{"@graph":[{"@type":"Organization","name":"CloudTopia"},{"@type":"WebSite","name":"Arablyzer"}]}</script>',
+        '<footer>© 2026 CloudTopia</footer>',
+      ),
+    ).toEqual([])
   })
 
   it('does not compare an Arabic name with a Latin one, and asks for the pairing', () => {

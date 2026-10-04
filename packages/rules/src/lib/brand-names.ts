@@ -14,9 +14,17 @@ export type NameSource =
   | 'copyright'
   | 'h1'
 
+/**
+ * `owner`: the company (Organization.name, the copyright line); `site`: the site or product
+ * (WebSite.name, og:site_name, the logo). A company's name may differ from its product's, so the two
+ * kinds are not held against each other.
+ */
+export type NameKind = 'owner' | 'site'
+
 export interface NameCandidate {
   readonly name: string
   readonly source: NameSource
+  readonly kind: NameKind
   readonly script: NameScript
   readonly key: string
 }
@@ -59,10 +67,25 @@ const clean = (value: unknown): string | null => {
   return name
 }
 
-const candidate = (name: string | null, source: NameSource): NameCandidate[] => {
+const KIND_OF: Readonly<Record<NameSource, NameKind>> = {
+  'Organization.name': 'owner',
+  copyright: 'owner',
+  'WebSite.name': 'site',
+  'og:site_name': 'site',
+  'logo alt': 'site',
+  title: 'site',
+  h1: 'site',
+  alternateName: 'site',
+}
+
+const candidate = (
+  name: string | null,
+  source: NameSource,
+  kind: NameKind = KIND_OF[source],
+): NameCandidate[] => {
   if (name === null) return []
   const key = nameKey(name)
-  return key.length < 2 ? [] : [{ name, source, script: scriptOf(name), key }]
+  return key.length < 2 ? [] : [{ name, source, kind, script: scriptOf(name), key }]
 }
 
 /** The brand named in a footer line: after the year, a © or the "all rights reserved" lead. */
@@ -135,7 +158,9 @@ export function collectBrandNames(page: PageFacts): BrandNames {
         const text = clean(value)
         return text === null ? [] : [text]
       })
-      for (const text of alternate) found.push(...candidate(text, 'alternateName'))
+      for (const text of alternate) {
+        found.push(...candidate(text, 'alternateName', organization ? 'owner' : 'site'))
+      }
       structured.push({ names: name === null ? [] : [name], alternate })
     }
   }
@@ -186,12 +211,13 @@ function writtenIn(text: string, name: string): boolean {
 }
 
 /**
- * The disagreements of a page's brand names. Within one script, every naming source is held
- * against the most trusted one: not agreeing is a disagreement, agreeing with a different Arabic
- * spelling is a spelling difference. The headings and the title only mention the brand, so they
- * can show a spelling difference and never a disagreement. Across scripts nothing is compared
- * (that would need a transliteration); the page is asked instead to pair its Arabic and Latin
- * forms in `alternateName`.
+ * The disagreements of a page's brand names. Within one script and one kind (the company's names,
+ * or the site's), every naming source is held against the most trusted one: not agreeing is a
+ * disagreement. Equal once folded and written differently in Arabic is a spelling difference,
+ * whichever sources they are. The headings and the title only mention the brand, so they can show
+ * a spelling difference and never a disagreement. A company's name is not held against its site's
+ * (they may differ), and across scripts nothing is compared (that would need a transliteration):
+ * the page is asked instead to pair its Arabic and Latin forms in `alternateName`.
  */
 export function brandIssues(names: BrandNames): BrandIssue[] {
   const issues: BrandIssue[] = []
@@ -202,49 +228,53 @@ export function brandIssues(names: BrandNames): BrandIssue[] {
     issues.push(issue)
   }
   for (const script of ['ar', 'latin'] as const) {
+    for (const kind of ['site', 'owner'] as const) {
+      const group = names.candidates.filter(
+        (item) => item.script === script && item.kind === kind && NAMING.has(item.source),
+      )
+      const reference = group[0]
+      if (reference === undefined) continue
+      for (const other of group.slice(1)) {
+        if (!agree(reference, other)) {
+          add(
+            { kind: 'disagree', first: reference, second: other },
+            `d:${reference.key}:${other.key}`,
+          )
+        }
+      }
+    }
     const ofScript = names.candidates.filter(
       (item) => item.script === script && NAMING.has(item.source),
     )
     const reference = ofScript[0]
-    if (reference === undefined) continue
+    if (reference === undefined || script !== 'ar') continue
     for (const other of ofScript.slice(1)) {
-      if (!agree(reference, other)) {
-        add(
-          { kind: 'disagree', first: reference, second: other },
-          `d:${reference.key}:${other.key}`,
-        )
-      } else if (
-        script === 'ar' &&
-        reference.key === other.key &&
-        collapse(reference.name) !== collapse(other.name)
-      ) {
+      if (reference.key === other.key && collapse(reference.name) !== collapse(other.name)) {
         add(
           { kind: 'spelling', first: reference, second: other },
           `s:${reference.key}:${other.name}`,
         )
       }
     }
-    if (script === 'ar') {
-      for (const text of [names.title, names.h1]) {
-        if (text === null) continue
-        const source: NameSource = text === names.title ? 'title' : 'h1'
-        if (!nameKey(text).includes(reference.key) || writtenIn(text, reference.name)) continue
-        // The text holds the name in other letters: find the words of it that fold to the key.
-        const words = text.split(/[\s|–—·•:,-]+/)
-        const widths = reference.name.split(/\s+/).length
-        for (let start = 0; start + widths <= words.length; start++) {
-          const phrase = words.slice(start, start + widths).join(' ')
-          if (nameKey(phrase) === reference.key && collapse(phrase) !== collapse(reference.name)) {
-            add(
-              {
-                kind: 'spelling',
-                first: reference,
-                second: { name: phrase, source, script: 'ar', key: reference.key },
-              },
-              `s:${reference.key}:${phrase}`,
-            )
-            break
-          }
+    for (const text of [names.title, names.h1]) {
+      if (text === null) continue
+      const source: NameSource = text === names.title ? 'title' : 'h1'
+      if (!nameKey(text).includes(reference.key) || writtenIn(text, reference.name)) continue
+      // The text holds the name in other letters: find the words of it that fold to the key.
+      const words = text.split(/[\s|–—·•:,-]+/)
+      const widths = reference.name.split(/\s+/).length
+      for (let start = 0; start + widths <= words.length; start++) {
+        const phrase = words.slice(start, start + widths).join(' ')
+        if (nameKey(phrase) === reference.key && collapse(phrase) !== collapse(reference.name)) {
+          add(
+            {
+              kind: 'spelling',
+              first: reference,
+              second: { name: phrase, source, kind: 'site', script: 'ar', key: reference.key },
+            },
+            `s:${reference.key}:${phrase}`,
+          )
+          break
         }
       }
     }

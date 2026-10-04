@@ -26,10 +26,7 @@ Runs the quality filters published in the FineWeb-2 pipeline for Arabic on your 
 ### Right
 
 ```html
-<p>
-  الماء عنصر لا يقل أهمية عن الحبوب نفسها، فالماء الثقيل بالأملاح يخفي النكهات الرقيقة. يُفضَّل أن
-  تكون حرارته قريبة من الخامسة والتسعين مئوية، وأن يُسكب ببطء حتى تتشبع الحبوب بالتساوي.
-</p>
+<p>الماء عنصر لا يقل أهمية عن الحبوب نفسها، فالماء الثقيل بالأملاح يخفي النكهات الرقيقة. يُفضَّل أن تكون حرارته قريبة من الخامسة والتسعين مئوية، وأن يُسكب ببطء حتى تتشبع الحبوب بالتساوي.</p>
 ```
 
 ## How to fix
@@ -38,6 +35,13 @@ Runs the quality filters published in the FineWeb-2 pipeline for Arabic on your 
 - Do not repeat the same paragraph on a page or on every page of the site.
 - Have at least 50 words of connected Arabic on the page.
 - Keep numbers and symbols next to text that explains them.
+
+```html
+<article>
+  <h1>كيف نحمّص القهوة؟</h1>
+  <p>نبدأ بحبوب خضراء، ثم نحمّصها على حرارة محسوبة. بعدها نتركها لتبرد قبل التعبئة.</p>
+</article>
+```
 
 ## FAQ
 

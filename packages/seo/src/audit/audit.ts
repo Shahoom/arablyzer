@@ -50,13 +50,23 @@ export interface ExpectedPage {
 }
 
 /**
+ * Rules that judge a page's prose as a training corpus would, which the site's own pages are not:
+ * its rule pages, glossary entries and indexes are lists, code and short lines, which the FineWeb-2
+ * filters would drop, rightly. `ai-training-filters` is for the text a visitor's own site publishes.
+ */
+const NOT_FOR_SITE_PAGES: ReadonlySet<string> = new Set(['ai-training-filters'])
+
+/**
  * Rules that judge the server's response rather than the page (SERVER_RESPONSE_RULES), which the
  * site's server sets (infra/Caddyfile), not the template, are left out: the audit reads the HTML
  * alone, and the deployment is checked with the live site. robots.txt rules are left out too: a
  * rendered page has none to read.
  */
 const PAGE_RULES = RULES.filter(
-  (rule) => !rule.needs.includes('robots') && !SERVER_RESPONSE_RULES.has(rule.id),
+  (rule) =>
+    !rule.needs.includes('robots') &&
+    !SERVER_RESPONSE_RULES.has(rule.id) &&
+    !NOT_FOR_SITE_PAGES.has(rule.id),
 )
 
 /**

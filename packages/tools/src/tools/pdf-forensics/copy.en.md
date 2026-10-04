@@ -37,6 +37,10 @@ Fetches up to 3 PDFs from the page and reads their text as search engines and AI
 - Write the document's title and its language (Arabic) in the file's properties.
 - Test the result: copy a paragraph from the file into a text file; if it comes out right, the file is sound.
 
+```bash
+ocrmypdf -l ara input.pdf output.pdf
+```
+
 ## FAQ
 
 ### Why does the file look fine to me and fail the check?

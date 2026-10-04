@@ -88,6 +88,9 @@ const EMPTY: Readonly<Record<Variety, number>> = {
   maghrebi: 0,
 }
 
+/** Text in guillemets or curly quotes. */
+const QUOTED = /«[^»]*»|“[^”]*”/gu
+
 /** Counts the markers of a text. `minWords` is the length below which it gives no label. */
 export function readDialect(
   text: string,
@@ -95,7 +98,8 @@ export function readDialect(
 ): DialectReading {
   const minWords = options.minWords ?? MIN_WORDS
   const minHits = options.minHits ?? MIN_HITS
-  const words = arabicWords(text)
+  // A word quoted in «» is mentioned, not written in: a page about dialects quotes them.
+  const words = arabicWords(text.replace(QUOTED, ' '))
   const hits: Record<Variety, number> = { ...EMPTY }
   const counts = new Map<string, number>()
   for (const word of words) {
@@ -166,8 +170,10 @@ export function dialectOfPage(
   const rest: string[] = []
   for (const segment of segments) {
     if (segment.code) continue
+    // A word quoted in «» is mentioned, not written in: a page about dialects quotes them.
+    const text = segment.text.replace(QUOTED, ' ')
     const last = segment.selector.split('>').pop() ?? ''
-    ;(HEADING_SELECTOR.test(last) ? heading : rest).push(segment.text)
+    ;(HEADING_SELECTOR.test(last) ? heading : rest).push(text)
   }
   const headings = readDialect(heading.join('\n'), { minWords: MIN_HEADING_WORDS, minHits: 1 })
   return {

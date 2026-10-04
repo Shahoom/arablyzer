@@ -36,6 +36,14 @@ Puts Arabic questions about your page's field to AI assistants and records wheth
 - Earn mentions in the sources assistants cite.
 - Check again in a few weeks.
 
+```txt
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+```
+
 ## FAQ
 
 ### What goes from my site to the assistants?

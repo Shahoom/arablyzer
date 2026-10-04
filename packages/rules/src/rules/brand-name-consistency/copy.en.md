@@ -40,7 +40,7 @@ The page names its brand in Arabic, «{arabic}» (in {arabicSource}), and in Lat
 
 1. We read the names from: og:site_name, name and alternateName of the Organization and WebSite JSON-LD, the alt text of logo images and the page's copyright line; the title and the h1 are read for mentions of the name.
 2. Arabic is folded: hamza forms of alef, ta marbuta and ha, alef maqsura and ya, tatweel and diacritics are made one. Latin ignores case, punctuation and spaces.
-3. Each name is held against the most trusted name of its script: Organization, then WebSite, then og:site_name. A name that differs from it, and is not part of it, is a disagreement; a name that equals it once folded but is written differently is a different spelling. The title and the h1 can show a different spelling only, since they may describe the page rather than name it.
+3. Each name is held against the most trusted name of its script and kind: the company's names together (Organization and the copyright line) and the site's together (WebSite, og:site_name and the logo); a company's name is not held against its site's, since they may differ rightly. A name that differs from it, and is not part of it, is a disagreement; a name that equals it once folded but is written differently is a different spelling. The title and the h1 can show a different spelling only, since they may describe the page rather than name it.
 4. We do not compare an Arabic name with a Latin one (that would need transliteration); we ask only that the structured data pairs them when the page names its brand in both.
 5. It is a minor finding.
 

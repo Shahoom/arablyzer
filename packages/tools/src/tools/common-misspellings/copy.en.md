@@ -34,6 +34,10 @@ Takes your page's main words, makes their common misspellings, asks Google's sug
 - Add the common forms in one natural place: an image's alt text, an FAQ, or the synonyms of your own site search.
 - Do not repeat the misspellings or stuff the page with them.
 
+```html
+<img src="beans.jpg" alt="قهوة مختصة محمصة (يكتبها بعضهم قهوه)" />
+```
+
 ## FAQ
 
 ### Should I write misspellings on my page to show up in search?

@@ -35,6 +35,10 @@ summary: ما الدومينات الشبيهة باسم موقعك التي س�
 - فعّل SPF وDKIM وDMARC على دومينك كي تُرفض الرسائل المنتحلة.
 - إن استُعمل دومين للاحتيال فاشكُ إلى مسجِّله وإلى Google Safe Browsing.
 
+```txt
+_dmarc.example.com.  TXT  "v=DMARC1; p=reject; rua=mailto:dmarc@example.com"
+```
+
 ## أسئلة شائعة
 
 ### هل كل دومين في القائمة مقلِّد؟

@@ -35,6 +35,10 @@ Reads the real Chrome visitors' data for your site in nine Arab countries, and s
 - Cut the size of images, fonts and scripts, and fix the dimensions of images and ads.
 - See the «Core Web Vitals» check for the detail of each metric.
 
+```html
+<img src="hero.jpg" width="800" height="450" alt="منتجاتنا" fetchpriority="high" />
+```
+
 ## FAQ
 
 ### Why is the usual CrUX API not enough?

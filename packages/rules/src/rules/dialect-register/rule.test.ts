@@ -41,6 +41,10 @@ describe('dialect-register', () => {
     expect(rule.appliesTo(page('<p>ازاي كده دلوقتي عايز</p>'))).toBe(false)
   })
 
+  it('does not count a word quoted in guillemets: it is mentioned, not written in', () => {
+    expect(readDialect('قال «ازاي» و«دلوقتي» و«عايز» ثلاثاً ' + filler).hits.egyptian).toBe(0)
+  })
+
   it('keeps words two dialects share out of every list', () => {
     for (const word of ['مش', 'شوي', 'وين', 'عشان', 'ليش', 'ماشي', 'دول', 'خالص']) {
       expect(readDialect(word).hits).toEqual({

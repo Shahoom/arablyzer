@@ -37,6 +37,14 @@ summary: هل يذكر ChatGPT وGemini وPerplexity وClaude موقعك ويس�
 - حصّل ذكراً في المصادر التي يستشهد بها المساعدون.
 - أعد الفحص بعد أسابيع.
 
+```txt
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+```
+
 ## أسئلة شائعة
 
 ### ما الذي يخرج من موقعي إلى المساعدين؟

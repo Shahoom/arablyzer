@@ -34,6 +34,10 @@ Makes up names close to your site's domain, asks which are registered with a sit
 - Turn on SPF, DKIM and DMARC for your domain so that spoofed messages are rejected.
 - If a domain is used for fraud, report it to its registrar and to Google Safe Browsing.
 
+```txt
+_dmarc.example.com.  TXT  "v=DMARC1; p=reject; rua=mailto:dmarc@example.com"
+```
+
 ## FAQ
 
 ### Is every domain in the list an imitator?
