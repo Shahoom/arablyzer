@@ -24,7 +24,7 @@ interface Props {
  * The fine print of a scan box (M2.6 R7), one component for every box that scans or runs a tool:
  * a line of meta text, and under it a native `<details>` whose summary, «ماذا نحفظ؟» / "What we
  * keep", opens what the service keeps of a scan. It needs no script to open, so it works before
- * its island has started. The summary is a 28 px target with the page's focus ring.
+ * its island has started. The summary is a 44 px target with the page's focus ring.
  */
 export function ScanNote({ lang, id = 'scan-note', line, keep }: Props) {
   const t = SCAN_FORM[lang]
@@ -36,7 +36,7 @@ export function ScanNote({ lang, id = 'scan-note', line, keep }: Props) {
       </p>
       {body.length > 0 && (
         <details className="group w-full">
-          <summary className="inline-flex min-h-7 cursor-pointer list-none items-center gap-1 rounded-sm text-meta text-brand-ink hover:text-ink">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-sm text-meta text-brand-ink hover:text-ink">
             {t.note.keepTitle}
             <ChevronDown
               size={14}

@@ -16,3 +16,10 @@ ignoredBuiltDependencies:
 # from the lockfile (`--frozen-lockfile`, as CI and the images do) takes what the lockfile names.
 # A fix that cannot wait is named in `minimumReleaseAgeExclude`, in the pull request that needs it.
 minimumReleaseAge: 10080
+
+auditConfig:
+  ignoreGhsas:
+    # http-cache-semantics (through astro): max-stale handling in a shared HTTP cache. The site is
+    # static, and astro uses it only at build time for its own image cache: no response is ever
+    # cached for one visitor and served to another. No patched version exists yet (2026-10-04).
+    - GHSA-ch52-4w7c-c8xp
