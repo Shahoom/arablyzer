@@ -32,6 +32,7 @@ export function toolTag(tool: Tool): ToolTag {
   if (needs.includes('render')) return 'render'
   if (needs.includes('crux')) return 'crux'
   if (needs.includes('dns')) return 'dns'
+  if (needs.includes('search')) return 'search'
   if (needs.includes('links')) return 'links'
   if (needs.includes('sitemap')) return 'sitemap'
   const readsRobots = (rule: Rule) => rule.needs.every((need) => need === 'robots')

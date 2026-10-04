@@ -28,7 +28,16 @@ export type ToolCategoryName =
  * is, a generator.
  */
 export type ToolTag =
-  'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links' | 'sitemap' | 'generator'
+  | 'html'
+  | 'robots'
+  | 'render'
+  | 'crux'
+  | 'http'
+  | 'dns'
+  | 'links'
+  | 'sitemap'
+  | 'search'
+  | 'generator'
 
 /**
  * What a tool takes from the visitor (packages/tools has it too): a page's address, which the
@@ -194,6 +203,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       links: 'الروابط',
       generator: 'مولّد',
       sitemap: 'خريطة الموقع',
+      search: 'بحث الموقع',
     },
     kinds: { scan: 'فحص صفحتك', paste: 'الصق وجرّب', generator: 'مولّد' },
     home: {
@@ -211,6 +221,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         links: 'يطلب روابط الصفحة',
         generator: 'مولّد',
         sitemap: 'يقرأ خرائط الموقع',
+        search: 'يسأل بحث الموقع',
       },
     },
     page: {
@@ -324,6 +335,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       links: 'Links',
       generator: 'Generator',
       sitemap: 'Sitemap',
+      search: 'Site search',
     },
     kinds: { scan: 'Checks your page', paste: 'Paste and test', generator: 'Generator' },
     home: {
@@ -341,6 +353,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         links: 'Asks for the page’s links',
         generator: 'Generator',
         sitemap: 'Reads the sitemaps',
+        search: 'Asks the site’s search',
       },
     },
     page: {

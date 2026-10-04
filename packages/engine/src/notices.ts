@@ -42,6 +42,10 @@ export type NoticeCode =
   | 'open-page-rank-private'
   | 'open-page-rank-failed'
   | 'open-page-rank-refused'
+  | 'search-not-found'
+  | 'search-robots'
+  | 'search-unreachable'
+  | 'search-no-words'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -279,6 +283,22 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'open-page-rank-refused': {
     ar: 'رفضت Open PageRank الطلب، وأكثر ما يكون ذلك لمفتاح غير صالح، فلا تُعرض قوة النطاق.',
     en: "Open PageRank refused the request, most often for a key that is not valid, so the domain's authority is not shown.",
+  },
+  'search-not-found': {
+    ar: 'لم نجد في الصفحة بحثًا نسأله: لا نموذج بحث بطريقة GET في موقعها نفسه، ولا منصة نعرف عنوان بحثها.',
+    en: 'We found no search on the page to ask: no GET search form on its own site, and no platform whose search address we know.',
+  },
+  'search-robots': {
+    ar: 'يمنع ملف robots.txt في الموقع زاحفنا ArablyzerBot من صفحات البحث، فلم نرسل إليها شيئًا، واحترمنا ذلك.',
+    en: "The site's robots.txt keeps our crawler ArablyzerBot from its search pages, so we sent them nothing, as it asks.",
+  },
+  'search-unreachable': {
+    ar: 'لم نستطع قراءة جواب بحث الموقع، فلم نختبر الإملاءات: ردّ البحث على استعلام لا معنى له بخطأ أو بغير صفحة.',
+    en: "We could not read an answer from the site's search, so no spelling was tested: it answered a query that means nothing with an error or no page.",
+  },
+  'search-no-words': {
+    ar: 'وجدنا بحث الموقع، لكن ليس في الصفحة كلمات عربية من نصها نسأله عنها، فلم نختبر شيئًا.',
+    en: "We found the site's search, but the page has no Arabic words of its own to ask it for, so nothing was tested.",
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

@@ -10,7 +10,7 @@ import { createPolicy } from '@arablyzer/egress'
 import { RULES } from '@arablyzer/rules'
 import { describe, expect, it } from 'vitest'
 import { scan } from '../src/index'
-import { FIXTURE_CASES, RENDER_RULES } from './fixture-cases'
+import { FIXTURE_CASES, RENDER_RULES, SEARCH_RULES } from './fixture-cases'
 import { policyFor, resolverFor, schemaErrors } from './helpers'
 
 // Fixture sites served over HTTPS carry certificates from the test authority.
@@ -65,7 +65,11 @@ describe('rule fixtures over HTTP', () => {
       expect(report.scan).toMatchObject({ status: challenged ? 'partial' : 'complete' })
       if (challenged) expect(report.score.overall).toBeNull()
       const failed = report.rules.filter((rule) => rule.status === 'fail').map((rule) => rule.id)
-      if (RENDER_RULES.has(ruleId)) {
+      if (SEARCH_RULES.has(ruleId)) {
+        // A whole scan does not ask a site's search: its fixtures must pass every other rule.
+        expect(failed.sort()).toEqual([...alsoFails].sort())
+        expect(report.rules.some((rule) => rule.id === ruleId)).toBe(false)
+      } else if (RENDER_RULES.has(ruleId)) {
         // Without a browser, a render rule's fixtures must pass every other rule.
         expect(failed.sort()).toEqual(alsoFails.filter((id) => !RENDER_RULES.has(id)).sort())
         expect(report.scan.notices.map((notice) => notice.code)).toContain('render-skipped')

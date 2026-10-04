@@ -17,6 +17,14 @@ export const RENDER_RULES: ReadonlySet<string> = new Set(
   RULES.filter((rule) => rule.needs.includes('render')).map((rule) => rule.id),
 )
 
+/**
+ * Rules that ask the site's own search (a tool's scan names them; a whole scan never runs them),
+ * judged by test/search-test.test.ts on a site whose search answers: a static fixture cannot.
+ */
+export const SEARCH_RULES: ReadonlySet<string> = new Set(
+  RULES.filter((rule) => rule.needs.includes('search')).map((rule) => rule.id),
+)
+
 /** Rules that ask for a person's review: they never fail, so their fixtures need review or not. */
 export const MANUAL_RULES: ReadonlySet<string> = new Set(
   RULES.filter((rule) => rule.manualCheck === true).map((rule) => rule.id),

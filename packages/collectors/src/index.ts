@@ -50,6 +50,27 @@ export {
 } from './html'
 export { fontCoverage, MAX_FONT_DATA } from './font-coverage'
 export {
+  compareProbe,
+  COUNTED_KINDS,
+  findSearch,
+  lossOf,
+  pickNumbers,
+  pickWords,
+  planQueries,
+  plainWord,
+  searchUrl,
+  variantsOf,
+  VARIANT_KINDS,
+  type SearchFacts,
+  type SearchProbe,
+  type SearchQuery,
+  type SearchTarget,
+  type SearchVariantKind,
+  type SearchVariantResult,
+  type SearchVia,
+  type SearchWordResult,
+} from './search'
+export {
   MAX_SUBSET_INPUT,
   subsetCharacters,
   subsetFont,

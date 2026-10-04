@@ -7,6 +7,7 @@ import {
   collectRobots,
   ENGINES,
   headerValues,
+  lossOf,
   type CruxFacts,
   organizationalDomain,
   type KnowledgeGraphFacts,
@@ -19,6 +20,7 @@ import {
   type RenderedFacts,
   type RobotsFacts,
   type RobotsRule,
+  type SearchFacts,
   type SitemapFacts,
 } from '@arablyzer/collectors'
 import {
@@ -76,6 +78,7 @@ import { fetchKnowledgeGraph, type KnowledgeGraphOptions } from './knowledge-gra
 import { fetchSafeBrowsing, type SafeBrowsingOptions } from './safe-browsing'
 import { lookupDns, txtResolverFor } from './dns'
 import { checkLinks, MAX_LINKS } from './links'
+import { runSearchTest } from './search-test'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
@@ -604,6 +607,16 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : undefined
   const sitemap =
     sitemapRead !== undefined && 'facts' in sitemapRead ? sitemapRead.facts : undefined
+  // The site's own search, for the rules that read it (a tool's scan): after everything else, so
+  // that its pauses cannot shorten the render or Lighthouse, and at the page's own lockdown.
+  const search: SearchFacts | undefined =
+    rules.some((rule) => rule.needs.includes('search')) && reached && page.html !== null
+      ? await runSearchTest(page, {
+          base: { ...base, policy: robotsPolicy },
+          optedOut: linkOptOut(robotsRead.facts, bot),
+          platformId: platformOf(page),
+        }).catch((): SearchFacts => ({ outcome: 'not-found' }))
+      : undefined
   // Some sitemap could not be checked, or robots.txt could not be read, so none is known.
   const sitemapUnread =
     sitemapRead !== undefined &&
@@ -648,6 +661,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ? [notice('dns-unchecked', { domain: dns.facts.domain })]
       : []),
     ...(dnsSkipped ? [notice('dns-unavailable')] : []),
+    ...searchNotices(search),
     ...linkNotices(links, bot),
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
@@ -661,6 +675,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     redirects: target.http.redirects,
     dns: dns?.facts,
     links,
+    search,
     sitemap,
     sitemapUnknown: sitemapRead !== undefined && 'failed' in sitemapRead,
   })
@@ -687,6 +702,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...knowledgeGraphFacts(knowledgeGraph),
       ...openPageRankFacts(openPageRank),
       ...arabicFontsFacts(rendering?.rendered, rules),
+      ...searchFacts(search),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
@@ -705,7 +721,11 @@ function chooseRules(
   engines: readonly Engine[] | undefined,
   dnsAvailable = true,
 ): { rules: Rule[]; renderSkipped: boolean; engineSkipped: Engine[]; dnsSkipped: boolean } {
-  const named = selectRules(all, ids)
+  // The site's search is asked only by a scan that names its rules (a tool's): never in a whole
+  // scan, where a dozen requests to every site's search would be a load nobody asked for.
+  const named = selectRules(all, ids).filter(
+    (rule) => ids !== undefined || !rule.needs.includes('search'),
+  )
   const needDns = named.filter((rule) => rule.needs.includes('dns'))
   if (!dnsAvailable && ids !== undefined && needDns.length > 0) {
     throw new TypeError(
@@ -914,6 +934,8 @@ export interface EvaluateOptions {
   readonly dns?: DnsFacts
   /** How the checks of the page's links ended (M2.3c); without them, rules that need `links` do not apply. */
   readonly links?: LinkFacts
+  /** The site's search's answers; without them, rules that need `search` do not apply. */
+  readonly search?: SearchFacts
   /** The site's sitemaps; without them, rules that need them do not apply. */
   readonly sitemap?: SitemapFacts
 }
@@ -947,6 +969,7 @@ interface Collected {
   readonly redirects?: readonly Redirect[] | undefined
   readonly dns?: DnsFacts | undefined
   readonly links?: LinkFacts | undefined
+  readonly search?: SearchFacts | undefined
   readonly sitemap?: SitemapFacts | undefined
   /**
    * The sitemaps were asked for and robots.txt could not be read, so which they are is not known:
@@ -1078,6 +1101,11 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   if (rule.needs.includes('sitemap') && collected.sitemapUnknown === true) {
     return { status: 'error', error: 'sitemap-unchecked', findings: [] }
   }
+  // The site's search: not asked (a whole scan, or no search found), nothing to judge.
+  const search = rule.needs.includes('search') ? collected.search : undefined
+  if (rule.needs.includes('search') && search === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
   // Only for the rules that read them, like the redirects; not asked for, on a local site or
   // without a scan, they leave the rules nothing to judge.
   const sitemap = rule.needs.includes('sitemap') ? collected.sitemap : undefined
@@ -1144,6 +1172,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
     ...(redirects === undefined ? {} : { redirects }),
     ...(dns === undefined ? {} : { dns }),
     ...(links === undefined ? {} : { links }),
+    ...(search === undefined ? {} : { search }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
@@ -1451,6 +1480,58 @@ function platformFacts(page: PageFacts, rules: readonly Rule[]): Facts {
     platform: {
       primary: technologies.find((tech) => tech.kind === 'platform') ?? null,
       technologies,
+    },
+  }
+}
+
+/** The id of the platform the page runs on, when it is sure of it (`facts.platform.primary.id`). */
+function platformOf(page: PageFacts): string | null {
+  return (
+    detectPlatforms(page).find((tech) => tech.kind === 'platform' && tech.confidence >= 50)?.id ??
+    null
+  )
+}
+
+/** What the search test came to, as a notice, when it tested nothing. */
+function searchNotices(search: SearchFacts | undefined): ReturnType<typeof notice>[] {
+  switch (search?.outcome) {
+    case 'not-found':
+      return [notice('search-not-found')]
+    case 'robots':
+      return [notice('search-robots')]
+    case 'unreachable':
+      return [notice('search-unreachable')]
+    case 'no-words':
+      return [notice('search-no-words')]
+    default:
+      return []
+  }
+}
+
+/** The search test's result as the report gives it: the words, their variants and what was lost. */
+function searchFacts(search: SearchFacts | undefined): Facts {
+  if (search?.outcome !== 'tested') return {}
+  const { lost, total } = lossOf(search.words)
+  return {
+    searchTest: {
+      via: search.via,
+      url: search.url,
+      requests: search.requests,
+      lost,
+      total,
+      words: search.words.map((word) => ({
+        word: word.word,
+        results: word.base.results,
+        first: word.base.first,
+        variants: word.variants.map(({ kind, query, results, first, outcome, counted }) => ({
+          kind,
+          query,
+          results,
+          first,
+          outcome,
+          counted,
+        })),
+      })),
     },
   }
 }

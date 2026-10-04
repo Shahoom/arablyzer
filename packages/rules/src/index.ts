@@ -55,6 +55,7 @@ import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
 import { rule as safeBrowsingFlagged } from './rules/safe-browsing-flagged/rule'
+import { rule as searchSpellingVariants } from './rules/search-spelling-variants/rule'
 import { rule as sitemapInvalid } from './rules/sitemap-invalid/rule'
 import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
 import { rule as spfMissing } from './rules/spf-missing/rule'
@@ -131,6 +132,7 @@ export const RULES: readonly Rule[] = [
   rtlMirroredIcons,
   rtlPhysicalCss,
   safeBrowsingFlagged,
+  searchSpellingVariants,
   sitemapInvalid,
   sitemapMissing,
   spfMissing,

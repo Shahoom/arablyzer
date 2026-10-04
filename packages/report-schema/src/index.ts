@@ -376,6 +376,55 @@ export const ArabicFontsFact = z
   .meta({ id: 'ArabicFontsFact' })
 export type ArabicFontsFact = z.infer<typeof ArabicFontsFact>
 
+/**
+ * What the site's own search did with words of the page in their spelling variants (rule
+ * search-spelling-variants and the spelling search tool): each word the page uses, how many
+ * results its own spelling found, and each variant against it. `lost` counts the variants whose
+ * search found none, or fewer than half, of what the word's own spelling found, of `total` asked
+ * where the word's own spelling found something; an Arabizi form is shown and never counted.
+ */
+export const SearchTestFact = z
+  .strictObject({
+    via: z.enum(['form', 'wordpress', 'platform']),
+    /** The search's address, without the query. */
+    url: z.string().min(1).max(2048),
+    requests: count(),
+    lost: count(),
+    total: count(),
+    words: z
+      .array(
+        z.strictObject({
+          word: z.string().min(1).max(40),
+          /** Links its own spelling found beyond the site's chrome; null with no answer. */
+          results: count().nullable(),
+          first: z.string().max(500).nullable(),
+          variants: z
+            .array(
+              z.strictObject({
+                kind: z.enum([
+                  'ta-marbuta',
+                  'alef',
+                  'ya',
+                  'tatweel',
+                  'diacritics',
+                  'digits',
+                  'arabizi',
+                ]),
+                query: z.string().min(1).max(60),
+                results: count().nullable(),
+                first: z.string().max(500).nullable(),
+                outcome: z.enum(['same', 'differs', 'lost', 'unanswered']),
+                counted: z.boolean(),
+              }),
+            )
+            .max(12),
+        }),
+      )
+      .max(12),
+  })
+  .meta({ id: 'SearchTestFact' })
+export type SearchTestFact = z.infer<typeof SearchTestFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -397,6 +446,8 @@ export const Facts = z.strictObject({
   openPageRank: OpenPageRankFact.optional(),
   /** Present when the font slimmer rule ran with a render that loaded an Arabic web font. */
   arabicFonts: ArabicFontsFact.optional(),
+  /** Present when the spelling search test asked the site's search and read its answers. */
+  searchTest: SearchTestFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

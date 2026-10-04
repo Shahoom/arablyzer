@@ -23,6 +23,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'redirect-chain': 'the redirects before the page, which no excerpt shows',
   'redirect-temporary': 'the redirects before the page, which no excerpt shows',
   'safe-browsing-flagged': "Google's lists, which no excerpt of the page shows",
+  'search-spelling-variants': "the answers of the site's own search, not the page",
   'sitemap-missing': 'the absence of a sitemap, which no excerpt shows',
   'spf-missing': 'DNS records, which no excerpt of the page shows',
   'text-compression-missing': 'how the server sends the page’s files',

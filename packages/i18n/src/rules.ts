@@ -13,6 +13,7 @@ export type RuleReads =
   | 'crux'
   | 'safeBrowsing'
   | 'knowledgeGraph'
+  | 'search'
   | 'http'
   | 'dns'
   | 'links'
@@ -98,6 +99,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         crux: 'تقرأ بيانات زوار Chrome',
         safeBrowsing: 'تسأل Google Safe Browsing',
         knowledgeGraph: 'تسأل Google Knowledge Graph',
+        search: 'تسأل بحث الموقع نفسه (12 طلبًا على الأكثر)',
         http: 'تقرأ رد الخادم',
         dns: 'تقرأ سجلات DNS للنطاق',
         links: 'تطلب روابط الصفحة إلى موقعها',
@@ -148,6 +150,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         crux: 'Reads Chrome’s visitor data',
         safeBrowsing: 'Asks Google Safe Browsing',
         knowledgeGraph: 'Asks Google’s Knowledge Graph',
+        search: 'Asks the site’s own search (at most 12 requests)',
         http: 'Reads the server’s response',
         dns: 'Reads the domain’s DNS records',
         links: 'Asks for the page’s links to its site',

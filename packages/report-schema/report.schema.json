@@ -510,6 +510,9 @@
         },
         "arabicFonts": {
           "$ref": "#/$defs/ArabicFontsFact"
+        },
+        "searchTest": {
+          "$ref": "#/$defs/SearchTestFact"
         }
       },
       "additionalProperties": false
@@ -1440,6 +1443,162 @@
       },
       "required": [
         "fonts"
+      ],
+      "additionalProperties": false
+    },
+    "SearchTestFact": {
+      "type": "object",
+      "properties": {
+        "via": {
+          "type": "string",
+          "enum": [
+            "form",
+            "wordpress",
+            "platform"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "requests": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lost": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "words": {
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "word": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "results": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "first": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "variants": {
+                "maxItems": 12,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "ta-marbuta",
+                        "alef",
+                        "ya",
+                        "tatweel",
+                        "diacritics",
+                        "digits",
+                        "arabizi"
+                      ]
+                    },
+                    "query": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "results": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "first": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "same",
+                        "differs",
+                        "lost",
+                        "unanswered"
+                      ]
+                    },
+                    "counted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "query",
+                    "results",
+                    "first",
+                    "outcome",
+                    "counted"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "word",
+              "results",
+              "first",
+              "variants"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "via",
+        "url",
+        "requests",
+        "lost",
+        "total",
+        "words"
       ],
       "additionalProperties": false
     }

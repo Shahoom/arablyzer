@@ -22,6 +22,22 @@ export interface NativeStrings {
     readonly none: string
     readonly pending: string
   }
+  readonly search: {
+    readonly title: string
+    readonly summary: (lost: number, total: number) => string
+    readonly clean: (total: number) => string
+    readonly via: Readonly<Record<'form' | 'wordpress' | 'platform', string>>
+    readonly requests: (count: number) => string
+    readonly word: string
+    readonly asked: string
+    readonly found: (count: number) => string
+    readonly kinds: Readonly<
+      Record<'ta-marbuta' | 'alef' | 'ya' | 'tatweel' | 'diacritics' | 'digits' | 'arabizi', string>
+    >
+    readonly outcomes: Readonly<Record<'same' | 'differs' | 'lost' | 'unanswered', string>>
+    readonly notCounted: string
+    readonly floor: string
+  }
 }
 
 export const NATIVE: Copy<NativeStrings> = {
@@ -44,6 +60,37 @@ export const NATIVE: Copy<NativeStrings> = {
       none: 'لم تحمّل الصفحة خطوط ويب عربية نقرؤها.',
       pending: 'نصنع النسخة…',
     },
+    search: {
+      title: 'ما فعله بحث موقعك',
+      summary: (lost, total) => `بحثكم يضيّع ${String(lost)} من ${String(total)} تنويعًا إملائيًا`,
+      clean: (total) => `بحثكم وجد كل ${String(total)} من التنويعات التي جرّبناها`,
+      via: {
+        form: 'وجدنا البحث في نموذج الصفحة',
+        wordpress: 'لم نجد نموذجًا، فسألنا عنوان بحث ووردبريس (?s=)',
+        platform: 'لم نجد نموذجًا، فسألنا عنوان بحث المنصة المعروف',
+      },
+      requests: (count) => `${String(count)} طلبًا، شاملةً طلبًا واحدًا لاستعلام لا معنى له`,
+      word: 'الكلمة',
+      asked: 'ما سألنا عنه',
+      found: (count) => `${String(count)} نتيجة`,
+      kinds: {
+        'ta-marbuta': 'ة ↔ ه',
+        alef: 'همزة الألف',
+        ya: 'ى ↔ ي',
+        tatweel: 'تطويل',
+        diacritics: 'تشكيل',
+        digits: 'أرقام الكتابة الأخرى',
+        arabizi: 'عربيزي (لا يُحسب)',
+      },
+      outcomes: {
+        same: 'كالأصل',
+        differs: 'مختلف قليلًا',
+        lost: 'ضاع',
+        unanswered: 'بلا جواب',
+      },
+      notCounted: 'يُعرض ولا يدخل في العدّ',
+      floor: 'عدد النتائج هو ما تعرضه الصفحة الأولى من الجواب، فهو حدٌّ أدنى.',
+    },
   },
   en: {
     fonts: {
@@ -62,6 +109,38 @@ export const NATIVE: Copy<NativeStrings> = {
       limited: 'You asked for many subsets in a short time. Wait a little.',
       none: 'The page loaded no Arabic web fonts we can read.',
       pending: 'Making the subset…',
+    },
+    search: {
+      title: 'What your site search did',
+      summary: (lost, total) =>
+        `Your search loses ${String(lost)} of ${String(total)} spelling variants`,
+      clean: (total) => `Your search found all ${String(total)} variants we tried`,
+      via: {
+        form: 'We found the search in a form on the page',
+        wordpress: 'No form found, so we asked WordPress’s search address (?s=)',
+        platform: 'No form found, so we asked the platform’s known search address',
+      },
+      requests: (count) => `${String(count)} requests, one of them a query that means nothing`,
+      word: 'Word',
+      asked: 'Asked',
+      found: (count) => `${String(count)} ${count === 1 ? 'result' : 'results'}`,
+      kinds: {
+        'ta-marbuta': 'ة ↔ ه',
+        alef: 'Alef’s hamza',
+        ya: 'ى ↔ ي',
+        tatweel: 'Tatweel',
+        diacritics: 'Diacritic',
+        digits: 'Other script’s digits',
+        arabizi: 'Arabizi (not counted)',
+      },
+      outcomes: {
+        same: 'as the word',
+        differs: 'slightly different',
+        lost: 'lost',
+        unanswered: 'no answer',
+      },
+      notCounted: 'Shown, not counted',
+      floor: 'The number of results is what the first page of the answer shows, so it is a floor.',
     },
   },
 }

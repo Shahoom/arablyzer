@@ -36,6 +36,7 @@ import { definition as robotsTester } from './tools/robots-tester/tool'
 import { definition as rtlCheck } from './tools/rtl-check/tool'
 import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
 import { definition as schemaGenerator } from './tools/schema-generator/tool'
+import { definition as searchSpellingTest } from './tools/search-spelling-test/tool'
 import { definition as securityHeaders } from './tools/security-headers/tool'
 import { definition as sitemapCheck } from './tools/sitemap-check/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
@@ -88,6 +89,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   rtlCheck,
   rtlOverflowCheck,
   schemaGenerator,
+  searchSpellingTest,
   securityHeaders,
   sitemapCheck,
   socialPreview,

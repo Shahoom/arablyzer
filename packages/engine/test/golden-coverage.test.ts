@@ -35,13 +35,20 @@ describe('golden reports', () => {
 
   it('between them fail every rule, or ask for a review where a rule only asks', () => {
     const shown = withStatus('fail', 'needs-review')
-    expect(RULES.map((rule) => rule.id).filter((id) => !shown.has(id))).toEqual([])
+    // The rules of a tool's scan alone (the site's search) are not in a whole scan's report.
+    expect(
+      RULES.filter((rule) => !rule.needs.includes('search'))
+        .map((rule) => rule.id)
+        .filter((id) => !shown.has(id)),
+    ).toEqual([])
   })
 
   // A rule that fails where it should not shows on a page that is right: each is right somewhere.
   it('between them pass every rule that does not only ask for a review', () => {
     const passed = withStatus('pass')
-    const unpassed = RULES.filter((rule) => rule.manualCheck !== true && !passed.has(rule.id))
+    const unpassed = RULES.filter(
+      (rule) => rule.manualCheck !== true && !rule.needs.includes('search') && !passed.has(rule.id),
+    )
     expect(unpassed.map((rule) => rule.id)).toEqual([])
   })
 

@@ -9,6 +9,7 @@ import type {
   KnowledgeGraphFacts,
   RobotsFacts,
   SafeBrowsingFacts,
+  SearchFacts,
   SitemapFacts,
   SourceLocation,
 } from '@arablyzer/collectors'
@@ -33,6 +34,9 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * (M2.3c). `safe-browsing`: Google Safe Browsing's verdict on the page's URL and origin, which needs
  * an API key; without one, or for a private page, the rule does not apply. `knowledge-graph`:
  * what Google's Knowledge Graph knows of the page's brand name, which needs an API key too.
+ * `search`: the answers of the site's own search to words of the page in their spelling variants
+ * (at most 12 requests); asked only in a scan that names its rules, a tool's, never in a whole
+ * scan, and only where robots.txt allows.
  */
 export type CollectorId =
   | 'http'
@@ -50,6 +54,7 @@ export type CollectorId =
   | 'response'
   | 'safe-browsing'
   | 'knowledge-graph'
+  | 'search'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -72,6 +77,8 @@ export interface Evidence {
   readonly safeBrowsing?: SafeBrowsingFacts
   /** Present when the rule needs `knowledge-graph` and Google answered or the page gave no name. */
   readonly knowledgeGraph?: KnowledgeGraphFacts
+  /** Present when the rule needs `search` and the scan asked the site's search. */
+  readonly search?: SearchFacts
   /**
    * Present when the rule needs `dns` and the page is on a public name: the page's organizational
    * domain and each TXT lookup made for it. The rule's own lookup (txtName) answered: when it
