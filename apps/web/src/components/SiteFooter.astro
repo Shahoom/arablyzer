@@ -66,10 +66,10 @@ const columns = [
     ],
   },
 ]
-// A link has a little room above and below it on a phone (a 26 px target, over the 24 px WCAG 2.2
-// asks for) and none on a desktop, where the list's gap is the room.
+// A link is at least 24 px tall, as WCAG 2.2 asks, in Latin type too (whose leading is shorter),
+// with a little room above and below it on a phone; on a desktop the list's gap is the room.
 const link =
-  'inline-block py-0.5 text-ink-2 underline-offset-4 hover:text-ink hover:underline md:py-0'
+  'inline-flex min-h-6 items-center py-0.5 text-ink-2 underline-offset-4 hover:text-ink hover:underline md:py-0'
 ---
 
 {/* Compact on a phone (M2.6 R7a): two columns of links in 13 px type, closer together, and the
