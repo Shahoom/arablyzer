@@ -52,6 +52,7 @@ import {
   AI_CRAWLERS,
   challengeOf,
   crawlerAccess,
+  detectPlatforms,
   isPublicUrl,
   matchRobots,
   renderMessage,
@@ -614,6 +615,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     facts: {
       ...robotsFacts(robots, page.url),
       ...cruxFacts(crux),
+      ...platformFacts(page, rules),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
@@ -1348,6 +1350,27 @@ function cruxFacts(crux: CruxFacts | undefined): Facts {
   if (crux === undefined || crux.outcome === 'failed') return {}
   const { outcome, scope, key, period, lcp, inp, cls } = crux
   return { crux: { outcome, scope, key, period, lcp, inp, cls } }
+}
+
+/**
+ * The platform the page runs on, for the report: only when the scan ran the platform rule on an
+ * HTML page. `primary` is the surest CMS or store.
+ */
+function platformFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (page.html === null || !rules.some((rule) => rule.id === 'platform-detected')) return {}
+  const technologies = detectPlatforms(page).map(({ id, name, kind, version, confidence }) => ({
+    id,
+    name,
+    kind,
+    version,
+    confidence,
+  }))
+  return {
+    platform: {
+      primary: technologies.find((tech) => tech.kind === 'platform') ?? null,
+      technologies,
+    },
+  }
 }
 
 function robotsFacts(robots: RobotsFacts | undefined, pageUrl: string): Facts {

@@ -18,6 +18,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'hsts-missing': 'a response header, whose absence no excerpt shows',
   'https-missing': 'the address the page answers at',
   'payment-methods': 'nothing: it lists the payment methods the page shows, as information',
+  'platform-detected': 'nothing: it lists the platform and plugins a page shows, as information',
   'redirect-chain': 'the redirects before the page, which no excerpt shows',
   'redirect-temporary': 'the redirects before the page, which no excerpt shows',
   'safe-browsing-flagged': "Google's lists, which no excerpt of the page shows",

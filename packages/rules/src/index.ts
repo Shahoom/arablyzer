@@ -41,6 +41,7 @@ import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as paymentMethods } from './rules/payment-methods/rule'
 import { rule as priceDecimals } from './rules/price-decimals/rule'
 import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
+import { rule as platformDetected } from './rules/platform-detected/rule'
 import { rule as redirectChain } from './rules/redirect-chain/rule'
 import { rule as redirectTemporary } from './rules/redirect-temporary/rule'
 import { rule as referrerPolicyMissing } from './rules/referrer-policy-missing/rule'
@@ -112,6 +113,7 @@ export const RULES: readonly Rule[] = [
   ogTagsMissing,
   pageNoindex,
   paymentMethods,
+  platformDetected,
   priceDecimals,
   productOfferInvalid,
   redirectChain,
@@ -169,6 +171,8 @@ export {
 } from './example'
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
 export { isLocalHost } from './lib/hosts'
+export { confidenceLevel, detectPlatforms, type Detected, type PlatformKind } from './lib/platforms'
+export { PLATFORM_FIXES, platformFix } from './platform-fixes'
 export {
   CHALLENGE_SIGNALS,
   challengeOf,

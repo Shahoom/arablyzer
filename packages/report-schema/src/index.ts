@@ -275,6 +275,32 @@ export const LabFact = z
   .meta({ id: 'LabFact' })
 export type LabFact = z.infer<typeof LabFact>
 
+/**
+ * The platform a page runs on, from the page and its server alone (rule platform-detected): its
+ * CMS or store, builder, plugins and services. Fix guides read `primary` to give steps for the
+ * platform ("on Salla: …").
+ */
+const DetectedTechnology = z.strictObject({
+  /** Lowercase, kebab-case: the key of platform-specific fix guides. */
+  id: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(64),
+  name: z.string().min(1).max(100),
+  kind: z.enum(['platform', 'builder', 'plugin', 'service']),
+  version: z.string().min(1).max(32).nullable(),
+  /** 1 to 100: 75 and over is sure. */
+  confidence: z.number().int().min(1).max(100),
+})
+export const PlatformFact = z
+  .strictObject({
+    /** The surest CMS or store; null when none was recognized. */
+    primary: DetectedTechnology.nullable(),
+    technologies: z.array(DetectedTechnology).max(40),
+  })
+  .meta({ id: 'PlatformFact' })
+export type PlatformFact = z.infer<typeof PlatformFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -288,6 +314,8 @@ export const Facts = z.strictObject({
   crux: CruxFact.optional(),
   /** Present when Lighthouse was asked for (--lab): information, never part of the score. */
   lab: LabFact.optional(),
+  /** Present when the platform rule ran on an HTML page. */
+  platform: PlatformFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

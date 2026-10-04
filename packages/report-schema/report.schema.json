@@ -498,6 +498,9 @@
         },
         "lab": {
           "$ref": "#/$defs/LabFact"
+        },
+        "platform": {
+          "$ref": "#/$defs/PlatformFact"
         }
       },
       "additionalProperties": false
@@ -1034,6 +1037,125 @@
         "requests",
         "performance",
         "metrics"
+      ],
+      "additionalProperties": false
+    },
+    "PlatformFact": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "platform",
+                    "builder",
+                    "plugin",
+                    "service"
+                  ]
+                },
+                "version": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "confidence": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "kind",
+                "version",
+                "confidence"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "technologies": {
+          "maxItems": 40,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "platform",
+                  "builder",
+                  "plugin",
+                  "service"
+                ]
+              },
+              "version": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "confidence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "version",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "primary",
+        "technologies"
       ],
       "additionalProperties": false
     }
