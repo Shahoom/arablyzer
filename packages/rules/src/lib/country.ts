@@ -24,8 +24,6 @@ export interface CountryInfo {
   readonly latinDigits: boolean
 }
 
-const ADJ = (country: string) => `${country}(?:ي|ة|ا|ين)?`
-
 export const INFO: Readonly<Record<Country, CountryInfo>> = {
   SA: {
     currency: 'SAR',

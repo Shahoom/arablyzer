@@ -30,6 +30,7 @@ const measured = {
   bidi: [],
   fields: [],
   directionIcons: [],
+  riyalSigns: [],
   images: [],
   truncated: false,
 }
