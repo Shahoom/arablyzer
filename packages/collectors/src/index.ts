@@ -29,6 +29,10 @@ export {
 } from './open-page-rank'
 export {
   type LookalikeFacts,
+  type AiAnswer,
+  type AiProviderId,
+  type AiProviderResult,
+  type AiVisibilityFacts,
   type OutsideFacts,
   type PdfFacts,
   type PdfFile,

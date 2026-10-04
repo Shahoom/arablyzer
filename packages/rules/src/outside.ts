@@ -10,6 +10,7 @@ export const OUTSIDE: Readonly<Partial<Record<CollectorId, keyof OutsideFacts>>>
   lookalikes: 'lookalikes',
   pdfs: 'pdfs',
   suggest: 'suggest',
+  'ai-visibility': 'aiVisibility',
 }
 
 /**

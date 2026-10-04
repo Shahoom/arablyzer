@@ -54,6 +54,11 @@ export type NoticeCode =
   | 'suggest-no-terms'
   | 'suggest-failed'
   | 'suggest-stopped'
+  | 'ai-visibility-off'
+  | 'ai-visibility-no-questions'
+  | 'ai-visibility-failed'
+  | 'ai-visibility-refused'
+  | 'ai-visibility-provider'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -339,6 +344,26 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'suggest-stopped': {
     ar: 'توقفت نقطة الاقتراحات عن الردّ في منتصف الفحص، فلم نسأل عن بعض الأخطاء.',
     en: 'The suggestion endpoint stopped answering part-way, so some misspellings were not asked about.',
+  },
+  'ai-visibility-off': {
+    ar: 'فحص الظهور في الذكاء الاصطناعي مطفأ في هذا الخادم: لا مفتاح لأي من OpenAI وGemini وPerplexity وClaude، ولا نرسل شيئاً إلى أحد منها بدون مفتاح.',
+    en: 'The AI visibility check is off on this server: it has no key for OpenAI, Gemini, Perplexity or Claude, and we send nothing to any of them without one.',
+  },
+  'ai-visibility-no-questions': {
+    ar: 'لم نستطع تكوين أسئلة عربية من عنوان الصفحة وعنوانها الرئيسي، فلم نسأل المساعدين.',
+    en: 'We could not make Arabic questions from the page’s title and main heading, so we asked no assistant.',
+  },
+  'ai-visibility-failed': {
+    ar: 'لم يردّ أي مساعد بجواب نقرؤه، فلا نعرف إن كان موقعك يظهر في إجاباتهم.',
+    en: 'No assistant gave an answer we could read, so we do not know whether your site appears in their answers.',
+  },
+  'ai-visibility-refused': {
+    ar: 'رفض المزوّد مفتاح الخادم ({providers})، فلم نحصل على أي جواب. على المشغِّل أن يراجع المفتاح.',
+    en: 'The provider refused the server’s key ({providers}), so no answer came back. The operator should check the key.',
+  },
+  'ai-visibility-provider': {
+    ar: 'لم يكتمل السؤال لدى بعض المساعدين: {providers}. نعرض ما وصلنا منهم.',
+    en: 'The questions did not complete at some assistants: {providers}. We show what came back.',
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

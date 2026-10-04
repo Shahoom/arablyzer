@@ -526,6 +526,9 @@
         "lookalikes": {
           "$ref": "#/$defs/LookalikeFact"
         },
+        "aiVisibility": {
+          "$ref": "#/$defs/AiVisibilityFact"
+        },
         "suggest": {
           "$ref": "#/$defs/SuggestFact"
         },
@@ -2154,6 +2157,140 @@
         "asked",
         "ct",
         "found"
+      ],
+      "additionalProperties": false
+    },
+    "AiVisibilityFact": {
+      "type": "object",
+      "properties": {
+        "brand": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "questions": {
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "providers": {
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openai",
+                  "gemini",
+                  "perplexity",
+                  "anthropic"
+                ]
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "refused",
+                  "limited",
+                  "failed"
+                ]
+              },
+              "answers": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "question": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 300
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "answered",
+                        "failed"
+                      ]
+                    },
+                    "mentioned": {
+                      "type": "boolean"
+                    },
+                    "cited": {
+                      "type": "boolean"
+                    },
+                    "citations": {
+                      "maxItems": 10,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 300
+                      }
+                    },
+                    "competitors": {
+                      "maxItems": 10,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 253
+                      }
+                    }
+                  },
+                  "required": [
+                    "question",
+                    "status",
+                    "mentioned",
+                    "cited",
+                    "citations",
+                    "competitors"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "provider",
+              "model",
+              "status",
+              "answers"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "brand",
+        "domain",
+        "questions",
+        "calls",
+        "providers"
       ],
       "additionalProperties": false
     },

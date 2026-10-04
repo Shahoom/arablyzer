@@ -661,6 +661,42 @@ export const SuggestFact = z
 export type SuggestFact = z.infer<typeof SuggestFact>
 
 /**
+ * Whether the AI assistants with a key mention or cite the site when asked questions in Arabic made
+ * from the page (tool ai-visibility, rule ai-visibility-gap). Only what was derived is kept: no
+ * answer text. `competitors` are the other domains the answers cite.
+ */
+export const AiVisibilityFact = z
+  .strictObject({
+    brand: z.string().max(100).nullable(),
+    domain: z.string().min(1).max(253),
+    questions: z.array(z.string().min(1).max(300)).max(5),
+    calls: count(),
+    providers: z
+      .array(
+        z.strictObject({
+          provider: z.enum(['openai', 'gemini', 'perplexity', 'anthropic']),
+          model: z.string().min(1).max(80),
+          status: z.enum(['ok', 'refused', 'limited', 'failed']),
+          answers: z
+            .array(
+              z.strictObject({
+                question: z.string().min(1).max(300),
+                status: z.enum(['answered', 'failed']),
+                mentioned: z.boolean(),
+                cited: z.boolean(),
+                citations: z.array(z.string().max(300)).max(10),
+                competitors: z.array(z.string().max(253)).max(10),
+              }),
+            )
+            .max(5),
+        }),
+      )
+      .max(4),
+  })
+  .meta({ id: 'AiVisibilityFact' })
+export type AiVisibilityFact = z.infer<typeof AiVisibilityFact>
+
+/**
  * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
  * counted and the ones drawn wrongly (a letter no font in their list draws, or a replacement
  * character), where the broken ones stand in the first screen, and a small JPEG of that screen to
@@ -737,6 +773,8 @@ export const Facts = z.strictObject({
   aiTraining: AiTrainingFact.optional(),
   /** Present when the look-alike domains tool ran and DNS answered. */
   lookalikes: LookalikeFact.optional(),
+  /** Present when the AI visibility tool ran with at least one key and an assistant answered. */
+  aiVisibility: AiVisibilityFact.optional(),
   /** Present when the misspellings tool ran, was switched on, and Google answered. */
   suggest: SuggestFact.optional(),
   /** Present when the PDF tool ran on a page that links PDFs. */

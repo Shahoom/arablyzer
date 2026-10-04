@@ -114,6 +114,53 @@ export type SuggestFacts =
   | { readonly outcome: 'no-terms' }
   | { readonly outcome: 'failed' }
 
+export type AiProviderId = 'openai' | 'gemini' | 'perplexity' | 'anthropic'
+
+/** What one assistant said to one question, reduced to what the report keeps: no answer text. */
+export interface AiAnswer {
+  readonly question: string
+  readonly status: 'answered' | 'failed'
+  /** The brand's name or the site's domain is in the answer's text or its citations. */
+  readonly mentioned: boolean
+  /** The site's domain is among the answer's cited URLs. */
+  readonly cited: boolean
+  readonly citations: readonly string[]
+  /** Registrable domains cited other than the site's. */
+  readonly competitors: readonly string[]
+}
+
+export interface AiProviderResult {
+  readonly provider: AiProviderId
+  readonly model: string
+  /** `refused`: the key was not accepted; `limited`: the provider asked us to slow down. */
+  readonly status: 'ok' | 'refused' | 'limited' | 'failed'
+  readonly answers: readonly AiAnswer[]
+}
+
+/**
+ * Whether the AI assistants with a key mention or cite the site, for questions in Arabic made
+ * from the page (docs/design/plans/arabic-native.md §13). Nothing the assistants wrote is kept.
+ */
+export type AiVisibilityFacts =
+  | {
+      readonly outcome: 'checked'
+      readonly brand: string | null
+      readonly domain: string
+      readonly questions: readonly string[]
+      readonly providers: readonly AiProviderResult[]
+      /** Requests made (not counting those answered from the cache). */
+      readonly calls: number
+    }
+  | { readonly outcome: 'no-questions' }
+  | {
+      readonly outcome: 'failed'
+      /** How each provider with a key ended: a refused key is told apart from a timeout. */
+      readonly statuses: readonly {
+        readonly provider: AiProviderId
+        readonly status: AiProviderResult['status']
+      }[]
+    }
+
 /**
  * What the tools that ask other services collected, each under the key of its collector. A key is
  * missing where the feature was not asked for (not named by the scan, or off without its key).
@@ -122,4 +169,5 @@ export interface OutsideFacts {
   readonly lookalikes?: LookalikeFacts
   readonly pdfs?: PdfFacts
   readonly suggest?: SuggestFacts
+  readonly aiVisibility?: AiVisibilityFacts
 }

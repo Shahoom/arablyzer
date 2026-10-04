@@ -46,6 +46,21 @@ export interface Native2Strings {
     readonly ct: Readonly<Record<'partial' | 'unavailable', string>>
     readonly note: string
   }
+  readonly ai: {
+    readonly title: string
+    readonly summary: (mentioned: number, total: number) => string
+    readonly providers: Readonly<Record<'openai' | 'gemini' | 'perplexity' | 'anthropic', string>>
+    readonly status: Readonly<Record<'ok' | 'refused' | 'limited' | 'failed', string>>
+    readonly mentioned: string
+    readonly notMentioned: string
+    readonly cited: string
+    readonly notCited: string
+    readonly answers: (answered: number, mentioned: number, cited: number) => string
+    readonly sources: string
+    readonly competitors: string
+    readonly questions: string
+    readonly note: string
+  }
   readonly suggest: {
     readonly title: string
     readonly summary: (typed: number, uncovered: number, calls: number) => string
@@ -157,6 +172,33 @@ export const NATIVE2: Copy<Native2Strings> = {
         unavailable: 'لم يردّ سجلّ الشهادات (crt.sh)، فلا تواريخ شهادات هنا.',
       },
       note: 'أسماء نولّدها بقواعد ثابتة ونسأل عنها DNS عبر HTTPS؛ لا نفتح أي موقع منها، وقد يكون المسجَّل لصاحب مشروع بريء.',
+    },
+    ai: {
+      title: 'هل يذكرك الذكاء الاصطناعي؟',
+      summary: (mentioned, total) =>
+        `ذكرك ${String(mentioned)} من ${String(total)} مساعدين أجابوا عن أسئلة عربية في مجالك`,
+      providers: {
+        openai: 'OpenAI',
+        gemini: 'Gemini',
+        perplexity: 'Perplexity',
+        anthropic: 'Claude',
+      },
+      status: {
+        ok: 'أجاب',
+        refused: 'رفض المفتاح',
+        limited: 'طلب التمهّل',
+        failed: 'لم يجب',
+      },
+      mentioned: 'ذكر علامتك',
+      notMentioned: 'لم يذكر علامتك',
+      cited: 'استشهد بدومينك',
+      notCited: 'لم يستشهد بدومينك',
+      answers: (answered, mentioned, cited) =>
+        `${String(mentioned)} ذكرتك و${String(cited)} استشهدت بك، من ${String(answered)} إجابات`,
+      sources: 'المصادر',
+      competitors: 'دومينات استشهد بها بدلاً منك',
+      questions: 'الأسئلة',
+      note: 'لقطة لإجابات تتغير، ولا نحفظ نص أي إجابة. معلومة لا تُخصم من درجتك.',
     },
     suggest: {
       title: 'أخطاء البحث الشائعة في كلماتك',
@@ -322,6 +364,33 @@ export const NATIVE2: Copy<Native2Strings> = {
           'The certificate log (crt.sh) did not answer, so there are no certificate dates here.',
       },
       note: 'Names we make by fixed rules and ask DNS over HTTPS about; we open none of these sites, and a registered name may belong to an innocent business.',
+    },
+    ai: {
+      title: 'Does AI mention you?',
+      summary: (mentioned, total) =>
+        `${String(mentioned)} of the ${String(total)} assistants that answered Arabic questions in your field mentioned you`,
+      providers: {
+        openai: 'OpenAI',
+        gemini: 'Gemini',
+        perplexity: 'Perplexity',
+        anthropic: 'Claude',
+      },
+      status: {
+        ok: 'answered',
+        refused: 'refused the key',
+        limited: 'asked us to slow down',
+        failed: 'did not answer',
+      },
+      mentioned: 'mentioned your brand',
+      notMentioned: 'did not mention your brand',
+      cited: 'cited your domain',
+      notCited: 'did not cite your domain',
+      answers: (answered, mentioned, cited) =>
+        `${String(mentioned)} mentioned you and ${String(cited)} cited you, of ${String(answered)} answers`,
+      sources: 'Sources',
+      competitors: 'Domains cited instead of you',
+      questions: 'Questions',
+      note: 'A snapshot of answers that change; no answer text is kept. Information, never deducted from your score.',
     },
     suggest: {
       title: 'Common search misspellings of your words',

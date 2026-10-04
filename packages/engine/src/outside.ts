@@ -1,4 +1,5 @@
 import type {
+  AiVisibilityFacts,
   LookalikeFacts,
   OutsideFacts,
   PageFacts,
@@ -14,6 +15,7 @@ import { notice } from './notices'
 import { askVia, type Ask } from './outside-http'
 import { checkPdfs, PDFS_TOTAL_MS } from './pdfs'
 import type { PdfExtract } from './pdf-read'
+import { AI_TOTAL_MS, askAssistants, PROVIDERS, type AiVisibilityOptions } from './ai-visibility'
 import { askSuggest, SUGGEST_TOTAL_MS, type SuggestOptions } from './suggest'
 import { budget } from './timeout'
 
@@ -32,6 +34,11 @@ export interface OutsideOptions {
    * switched it on (ARABLYZER_SUGGEST=1). Without it the rule does not apply and a notice says why.
    */
   readonly suggest?: SuggestOptions
+  /**
+   * The AI assistants' keys, for the AI visibility tool: present only when the operator gave at least
+   * one. Without it the rule does not apply and a notice says so; nothing is ever sent.
+   */
+  readonly aiVisibility?: AiVisibilityOptions
   /** Makes the pauses short, and fixes "now"; tests only. */
   readonly test?: {
     readonly now?: () => number
@@ -139,11 +146,52 @@ export async function runOutside(context: OutsideContext): Promise<OutsideRun> {
       else if (suggest.stopped) notices.push(notice('suggest-stopped'))
     }
   }
+  let aiVisibility: AiVisibilityFacts | undefined
+  if (needs(rules, 'ai-visibility') && context.reached) {
+    const keys = options?.aiVisibility?.keys ?? {}
+    if (options?.aiVisibility === undefined || PROVIDERS.every((id) => (keys[id] ?? '') === '')) {
+      notices.push(notice('ai-visibility-off'))
+    } else if (!context.privateAccess) {
+      const limit = budget(AI_TOTAL_MS, context.signal)
+      try {
+        aiVisibility = await askAssistants(context.page, {
+          ask,
+          options: options.aiVisibility,
+          hostname: context.hostname,
+          signal: limit.signal,
+        })
+      } finally {
+        limit.stop()
+      }
+      if (aiVisibility.outcome === 'no-questions')
+        notices.push(notice('ai-visibility-no-questions'))
+      else if (aiVisibility.outcome === 'failed') {
+        const refused = aiVisibility.statuses.filter((item) => item.status === 'refused')
+        notices.push(
+          refused.length > 0
+            ? notice('ai-visibility-refused', {
+                providers: refused.map((item) => item.provider).join(', '),
+              })
+            : notice('ai-visibility-failed'),
+        )
+      } else {
+        const trouble = aiVisibility.providers.filter((item) => item.status !== 'ok')
+        if (trouble.length > 0) {
+          notices.push(
+            notice('ai-visibility-provider', {
+              providers: trouble.map((item) => `${item.provider} (${item.status})`).join(', '),
+            }),
+          )
+        }
+      }
+    }
+  }
   return {
     collected: {
       ...(lookalikes === undefined ? {} : { lookalikes }),
       ...(pdfs === undefined ? {} : { pdfs }),
       ...(suggest === undefined ? {} : { suggest }),
+      ...(aiVisibility === undefined ? {} : { aiVisibility }),
     },
     notices,
   }
@@ -184,6 +232,26 @@ export function outsideFacts(collected: OutsideFacts, rules: readonly Rule[]): F
         term: term.term,
         written: term.written,
         variants: term.variants.map((variant) => ({ ...variant })),
+      })),
+    }
+  }
+  const { aiVisibility } = collected
+  if (
+    aiVisibility?.outcome === 'checked' &&
+    rules.some((rule) => rule.needs.includes('ai-visibility'))
+  ) {
+    facts.aiVisibility = {
+      brand: aiVisibility.brand,
+      domain: aiVisibility.domain,
+      questions: [...aiVisibility.questions],
+      calls: aiVisibility.calls,
+      providers: aiVisibility.providers.map((provider) => ({
+        ...provider,
+        answers: provider.answers.map((answer) => ({
+          ...answer,
+          citations: [...answer.citations],
+          competitors: [...answer.competitors],
+        })),
       })),
     }
   }

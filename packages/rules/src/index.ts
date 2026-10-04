@@ -6,6 +6,7 @@ import { rule as a11yImageAlt } from './rules/a11y-image-alt/rule'
 import { rule as a11yLinkName } from './rules/a11y-link-name/rule'
 import { rule as a11yValidLang } from './rules/a11y-valid-lang/rule'
 import { rule as aiTrainingFilters } from './rules/ai-training-filters/rule'
+import { rule as aiVisibilityGap } from './rules/ai-visibility-gap/rule'
 import { rule as arAiReadability } from './rules/ar-ai-readability/rule'
 import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
@@ -94,6 +95,7 @@ export const RULES: readonly Rule[] = [
   a11yLinkName,
   a11yValidLang,
   aiTrainingFilters,
+  aiVisibilityGap,
   arAiReadability,
   arDigitsMixed,
   arFontFallback,
@@ -210,7 +212,8 @@ export {
   writes,
   type Spelling,
 } from './lib/spelling-variants'
-export { arabicWords, normalizeArabic } from './lib/ar-normalize'
+export { arabicWords, nameKey, normalizeArabic } from './lib/ar-normalize'
+export { collectBrandNames } from './lib/brand-names'
 export { dialectOfPage, fitsCountry, readDialect, type Dialect, type Variety } from './lib/dialect'
 export { isMostlyArabic } from './lib/arabic'
 export { inferCountry, readPage } from './lib/country'

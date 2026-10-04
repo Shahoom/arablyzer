@@ -72,6 +72,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       reads: 'يقرأ:',
       rendersIn: 'يعرض الصفحة في:',
       sentOut: {
+        'ai-visibility':
+          'نرسل إلى كل مساعد لدى الخادم مفتاحه (OpenAI وGemini وPerplexity وClaude) من 3 إلى 5 أسئلة نصية بالعربية تحمل اسم علامتك وموضوع صفحتك وبلدها، مع تفعيل بحثه في الويب. لا نرسل صفحتك ولا بيانات زوارك، ولا نحفظ إجاباتهم.',
         'common-misspellings':
           'نرسل إلى نقطة الاقتراحات العامة لدى جوجل (suggestqueries.google.com) كلماتك الرئيسية بأخطائها الإملائية الشائعة، 12 طلباً على الأكثر، واحداً بعد واحد، باسم ArablyzerBot. وهي نقطة غير موثَّقة للاستعمال الآلي، فلا تعمل إلا إذا فعّلها مشغِّل الخادم.',
         'pdf-forensics':
@@ -136,6 +138,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       reads: 'Reads:',
       rendersIn: 'Renders the page in:',
       sentOut: {
+        'ai-visibility':
+          'We send each assistant the server has a key for (OpenAI, Gemini, Perplexity and Claude) 3 to 5 text questions in Arabic that carry your brand name, your page’s subject and its country, with its web search on. We send neither your page nor your visitors’ data, and we keep no answer.',
         'common-misspellings':
           'We send Google’s public suggestion endpoint (suggestqueries.google.com) your main words in their common misspellings, 12 requests at most, one at a time, as ArablyzerBot. That endpoint is not documented for automated use, so this runs only if the server’s operator turned it on.',
         'pdf-forensics':

@@ -27,6 +27,25 @@ export function outsideFrom(
 ): OutsideOptions | undefined {
   const outside: { -readonly [K in keyof OutsideOptions]: OutsideOptions[K] } = {}
   if (env.ARABLYZER_SUGGEST?.trim() === '1') outside.suggest = {}
+  const key = (name: string) => env[name]?.trim() ?? ''
+  const keys = {
+    ...(key('ARABLYZER_OPENAI_KEY') === '' ? {} : { openai: key('ARABLYZER_OPENAI_KEY') }),
+    ...(key('ARABLYZER_GEMINI_KEY') === '' ? {} : { gemini: key('ARABLYZER_GEMINI_KEY') }),
+    ...(key('ARABLYZER_PERPLEXITY_KEY') === ''
+      ? {}
+      : { perplexity: key('ARABLYZER_PERPLEXITY_KEY') }),
+    ...(key('ARABLYZER_ANTHROPIC_KEY') === '' ? {} : { anthropic: key('ARABLYZER_ANTHROPIC_KEY') }),
+  }
+  if (Object.keys(keys).length > 0) {
+    const models = {
+      ...(key('ARABLYZER_OPENAI_MODEL') === '' ? {} : { openai: key('ARABLYZER_OPENAI_MODEL') }),
+      ...(key('ARABLYZER_GEMINI_MODEL') === '' ? {} : { gemini: key('ARABLYZER_GEMINI_MODEL') }),
+      ...(key('ARABLYZER_ANTHROPIC_MODEL') === ''
+        ? {}
+        : { anthropic: key('ARABLYZER_ANTHROPIC_MODEL') }),
+    }
+    outside.aiVisibility = { keys, ...(Object.keys(models).length === 0 ? {} : { models }) }
+  }
   return Object.keys(outside).length === 0 ? undefined : outside
 }
 
