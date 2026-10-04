@@ -34,6 +34,10 @@ export type NoticeCode =
   | 'safe-browsing-private'
   | 'safe-browsing-failed'
   | 'safe-browsing-refused'
+  | 'knowledge-graph-no-key'
+  | 'knowledge-graph-private'
+  | 'knowledge-graph-failed'
+  | 'knowledge-graph-refused'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -239,6 +243,22 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'safe-browsing-refused': {
     ar: 'رفضت Google (Safe Browsing) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Safe Browsing API، فلم يعمل الفحص.',
     en: 'Google (Safe Browsing) refused the request, most often for an API key that is not valid or not enabled for the Safe Browsing API, so the check could not run.',
+  },
+  'knowledge-graph-no-key': {
+    ar: 'فحص حضور العلامة في Knowledge Graph من Google يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.',
+    en: "The check of the brand in Google's Knowledge Graph needs a key this scan was not given, so it did not run.",
+  },
+  'knowledge-graph-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Google (Knowledge Graph) عن اسم علامتها.',
+    en: "The page is on a local or private address, so Google (Knowledge Graph) was not asked about its brand's name.",
+  },
+  'knowledge-graph-failed': {
+    ar: 'تعذّر الحصول على جواب Google (Knowledge Graph)، فلم يعمل فحص حضور العلامة.',
+    en: 'Google (Knowledge Graph) did not give an answer, so the check of the brand did not run.',
+  },
+  'knowledge-graph-refused': {
+    ar: 'رفضت Google (Knowledge Graph) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Knowledge Graph Search API، فلم يعمل الفحص.',
+    en: 'Google (Knowledge Graph) refused the request, most often for an API key that is not valid or not enabled for the Knowledge Graph Search API, so the check could not run.',
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

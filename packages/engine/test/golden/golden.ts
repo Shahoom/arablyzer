@@ -25,6 +25,8 @@ export const GOLDEN_NAMES: readonly string[] = readdirSync(SITES, { withFileType
 export const CRUX_PORT = 30_000
 /** The Safe Browsing stand-in's, just below it. */
 export const SAFE_BROWSING_PORT = 29_999
+/** The Knowledge Graph stand-in's. */
+export const KNOWLEDGE_GRAPH_PORT = 29_998
 
 export function portOf(name: string): number {
   const number = /^(\d{2})-/.exec(name)?.[1]

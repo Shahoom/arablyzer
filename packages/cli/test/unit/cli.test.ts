@@ -18,6 +18,7 @@ describe('parseCliArgs', () => {
       render: null,
       cruxKey: null,
       safeBrowsingKey: null,
+      knowledgeGraphKey: null,
       lab: false,
       help: false,
       version: false,
@@ -40,6 +41,13 @@ describe('parseCliArgs', () => {
     expect(key({ ARABLYZER_SAFE_BROWSING_KEY: ' sb ', ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('sb')
     expect(key({ ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('crux')
     expect(key({ ARABLYZER_SAFE_BROWSING_KEY: ' ' })).toBeNull()
+  })
+
+  it('reads the Knowledge Graph key from its own variable, then the CrUX key', () => {
+    const key = (env: Record<string, string>) => parseCliArgs(['x.test'], env).knowledgeGraphKey
+    expect(key({ ARABLYZER_KG_KEY: ' kg ', ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('kg')
+    expect(key({ ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('crux')
+    expect(key({})).toBeNull()
   })
 
   it('renders in Chromium with --render, in the engines asked for, and --screenshots implies it', () => {

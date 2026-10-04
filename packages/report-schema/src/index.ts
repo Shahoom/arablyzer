@@ -301,6 +301,30 @@ export const PlatformFact = z
   .meta({ id: 'PlatformFact' })
 export type PlatformFact = z.infer<typeof PlatformFact>
 
+/**
+ * What Google's Knowledge Graph knows of the page's brand name (rule knowledge-graph-entity),
+ * asked in Arabic and English: information, never judged. `unknown`: no entity has the name.
+ */
+export const KnowledgeGraphFact = z
+  .strictObject({
+    outcome: z.enum(['known', 'unknown', 'no-name']),
+    /** The name asked about; null when the page gives none. */
+    brand: z.string().min(1).max(100).nullable(),
+    entities: z
+      .array(
+        z.strictObject({
+          lang: z.enum(['ar', 'en']),
+          name: z.string().min(1).max(200),
+          types: z.array(z.string().max(100)).max(6),
+          description: z.string().max(200).nullable(),
+          wikipediaUrl: z.string().max(2048).nullable(),
+        }),
+      )
+      .max(2),
+  })
+  .meta({ id: 'KnowledgeGraphFact' })
+export type KnowledgeGraphFact = z.infer<typeof KnowledgeGraphFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -316,6 +340,8 @@ export const Facts = z.strictObject({
   lab: LabFact.optional(),
   /** Present when the platform rule ran on an HTML page. */
   platform: PlatformFact.optional(),
+  /** Present when Knowledge Graph was asked, with a key, and answered. */
+  knowledgeGraph: KnowledgeGraphFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

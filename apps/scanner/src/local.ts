@@ -42,5 +42,6 @@ export function optionsFor(options: ScanOptions, tool: string | undefined): Scan
   if (!renders) delete tooled.render
   if (!reads('crux')) delete tooled.crux
   if (!reads('safe-browsing')) delete tooled.safeBrowsing
+  if (!reads('knowledge-graph')) delete tooled.knowledgeGraph
   return tooled
 }

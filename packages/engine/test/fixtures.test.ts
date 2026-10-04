@@ -1,6 +1,7 @@
 import {
   loadSiteConfig,
   serveCrux,
+  serveKnowledgeGraph,
   serveSafeBrowsing,
   serveSite,
   trustFixtureCa,
@@ -32,7 +33,9 @@ describe('rule fixtures over HTTP', () => {
     // The same for Safe Browsing data.
     const sbData = config.safeBrowsing
     const safeBrowsing = sbData === undefined ? undefined : await serveSafeBrowsing(sbData)
-    const stoodIn = [crux, safeBrowsing].flatMap((standIn) =>
+    const kgData = config.knowledgeGraph
+    const knowledgeGraph = kgData === undefined ? undefined : await serveKnowledgeGraph(kgData)
+    const stoodIn = [crux, safeBrowsing, knowledgeGraph].flatMap((standIn) =>
       standIn === undefined ? [] : [standIn],
     )
     try {
@@ -51,6 +54,9 @@ describe('rule fixtures over HTTP', () => {
         ...(safeBrowsing === undefined
           ? {}
           : { safeBrowsing: { apiKey: 'fixture-key', endpoint: safeBrowsing.endpoint } }),
+        ...(knowledgeGraph === undefined
+          ? {}
+          : { knowledgeGraph: { apiKey: 'fixture-key', endpoint: knowledgeGraph.endpoint } }),
       })
       expect(schemaErrors(report)).toBe('')
       // A challenge is not the page (M2.3c): none of the page was checked, so the scan is short
@@ -73,6 +79,7 @@ describe('rule fixtures over HTTP', () => {
       await site.close()
       await crux?.close()
       await safeBrowsing?.close()
+      await knowledgeGraph?.close()
     }
   })
 })

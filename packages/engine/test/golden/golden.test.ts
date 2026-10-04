@@ -2,9 +2,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createPolicy } from '@arablyzer/egress'
 import {
   type CruxStandIn,
+  type KnowledgeGraphStandIn,
   type SafeBrowsingStandIn,
   loadSiteConfig,
   serveCrux,
+  serveKnowledgeGraph,
   serveSafeBrowsing,
   serveSite,
   trustFixtureCa,
@@ -18,6 +20,7 @@ import {
   GOLDEN_NAMES,
   IMAGE_FONTS,
   normalize,
+  KNOWLEDGE_GRAPH_PORT,
   portOf,
   REPORTS,
   SAFE_BROWSING_PORT,
@@ -74,8 +77,14 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
       const site = await serveSite(dir, { port: portOf(name) })
       let crux: CruxStandIn | undefined
       let safeBrowsing: SafeBrowsingStandIn | undefined
+      let knowledgeGraph: KnowledgeGraphStandIn | undefined
       try {
         if (config.crux !== undefined) crux = await serveCrux(config.crux, { port: CRUX_PORT })
+        if (config.knowledgeGraph !== undefined) {
+          knowledgeGraph = await serveKnowledgeGraph(config.knowledgeGraph, {
+            port: KNOWLEDGE_GRAPH_PORT,
+          })
+        }
         if (config.safeBrowsing !== undefined) {
           safeBrowsing = await serveSafeBrowsing(config.safeBrowsing, { port: SAFE_BROWSING_PORT })
         }
@@ -84,6 +93,9 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
             allowTargets: [
               { address: '127.0.0.1', port: site.port },
               ...(crux === undefined ? [] : [{ address: '127.0.0.1', port: crux.port }]),
+              ...(knowledgeGraph === undefined
+                ? []
+                : [{ address: '127.0.0.1', port: knowledgeGraph.port }]),
               ...(safeBrowsing === undefined
                 ? []
                 : [{ address: '127.0.0.1', port: safeBrowsing.port }]),
@@ -98,6 +110,9 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
           ...(crux === undefined
             ? {}
             : { crux: { apiKey: 'golden-key', endpoint: crux.endpoint } }),
+          ...(knowledgeGraph === undefined
+            ? {}
+            : { knowledgeGraph: { apiKey: 'golden-key', endpoint: knowledgeGraph.endpoint } }),
           ...(safeBrowsing === undefined
             ? {}
             : { safeBrowsing: { apiKey: 'golden-key', endpoint: safeBrowsing.endpoint } }),
@@ -114,6 +129,7 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
         await site.close()
         await crux?.close()
         await safeBrowsing?.close()
+        await knowledgeGraph?.close()
       }
     },
     180_000,

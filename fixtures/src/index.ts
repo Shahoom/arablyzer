@@ -8,6 +8,13 @@ export {
   type CruxStandIn,
 } from './crux'
 export {
+  answerKnowledgeGraph,
+  KnowledgeGraphData,
+  serveKnowledgeGraph,
+  type KnowledgeGraphQuery,
+  type KnowledgeGraphStandIn,
+} from './knowledge-graph'
+export {
   answerSafeBrowsing,
   SafeBrowsingData,
   serveSafeBrowsing,

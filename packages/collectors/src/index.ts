@@ -15,6 +15,13 @@ export {
   type SafeBrowsingFacts,
   type SafeBrowsingThreat,
 } from './safe-browsing'
+export {
+  collectKnowledgeGraph,
+  normalizeName,
+  type KnowledgeGraphAnswer,
+  type KnowledgeGraphEntity,
+  type KnowledgeGraphFacts,
+} from './knowledge-graph'
 export { organizationalDomain, txtLookup, type DnsFacts, type TxtLookup } from './dns'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {

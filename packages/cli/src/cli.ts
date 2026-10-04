@@ -53,6 +53,9 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     ...(options.safeBrowsingKey === null
       ? {}
       : { safeBrowsing: { apiKey: options.safeBrowsingKey } }),
+    ...(options.knowledgeGraphKey === null
+      ? {}
+      : { knowledgeGraph: { apiKey: options.knowledgeGraphKey } }),
     ...(options.lab ? { lab: {} } : {}),
     ...(io.signal === undefined ? {} : { signal: io.signal }),
     ...(render === null

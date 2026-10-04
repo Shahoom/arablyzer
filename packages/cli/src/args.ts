@@ -33,6 +33,8 @@ export interface CliOptions {
   readonly cruxKey: string | null
   /** ARABLYZER_SAFE_BROWSING_KEY, or the CrUX key when it is not set; null without either. */
   readonly safeBrowsingKey: string | null
+  /** ARABLYZER_KG_KEY, or the CrUX key when it is not set; null without either. */
+  readonly knowledgeGraphKey: string | null
   /** --lab: Lighthouse's lab metrics, as information (M1.3b). */
   readonly lab: boolean
   readonly help: boolean
@@ -76,6 +78,7 @@ export function parseCliArgs(
       render: null,
       cruxKey: null,
       safeBrowsingKey: null,
+      knowledgeGraphKey: null,
       lab: false,
     }
   }
@@ -112,6 +115,7 @@ export function parseCliArgs(
     render,
     cruxKey: cruxKey(env),
     safeBrowsingKey: safeBrowsingKey(env),
+    knowledgeGraphKey: knowledgeGraphKey(env),
     lab: values.lab,
   }
 }
@@ -129,6 +133,14 @@ export const SAFE_BROWSING_KEY_VARIABLE = 'ARABLYZER_SAFE_BROWSING_KEY'
 
 function safeBrowsingKey(env: Readonly<Record<string, string | undefined>>): string | null {
   const key = env[SAFE_BROWSING_KEY_VARIABLE]?.trim() ?? ''
+  return key === '' ? cruxKey(env) : key
+}
+
+/** The Knowledge Graph API key from the environment, else the CrUX key. */
+export const KG_KEY_VARIABLE = 'ARABLYZER_KG_KEY'
+
+function knowledgeGraphKey(env: Readonly<Record<string, string | undefined>>): string | null {
+  const key = env[KG_KEY_VARIABLE]?.trim() ?? ''
   return key === '' ? cruxKey(env) : key
 }
 

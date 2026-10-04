@@ -17,6 +17,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'frame-protection-missing': 'response headers, whose absence no excerpt shows',
   'hsts-missing': 'a response header, whose absence no excerpt shows',
   'https-missing': 'the address the page answers at',
+  'knowledge-graph-entity': "Google's Knowledge Graph, not the page",
   'payment-methods': 'nothing: it lists the payment methods the page shows, as information',
   'platform-detected': 'nothing: it lists the platform and plugins a page shows, as information',
   'redirect-chain': 'the redirects before the page, which no excerpt shows',

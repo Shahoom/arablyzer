@@ -8,6 +8,7 @@ import {
   ENGINES,
   headerValues,
   type CruxFacts,
+  type KnowledgeGraphFacts,
   type SafeBrowsingFacts,
   type DnsFacts,
   type Engine,
@@ -51,6 +52,7 @@ import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
   challengeOf,
+  brandName,
   crawlerAccess,
   detectPlatforms,
   isPublicUrl,
@@ -67,6 +69,7 @@ import {
 import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
+import { fetchKnowledgeGraph, type KnowledgeGraphOptions } from './knowledge-graph'
 import { fetchSafeBrowsing, type SafeBrowsingOptions } from './safe-browsing'
 import { lookupDns, txtResolverFor } from './dns'
 import { checkLinks, MAX_LINKS } from './links'
@@ -183,6 +186,13 @@ export interface ScanOptions {
    * so. A page on a private address is not asked about. Nothing is kept from one scan to the next.
    */
   readonly safeBrowsing?: SafeBrowsingOptions
+  /**
+   * Google's Knowledge Graph, asked with this key when a rule the scan runs needs `knowledge-graph`:
+   * the site's brand name, as the page gives it, goes to Google, in Arabic and in English. Without
+   * it, those rules do not apply, and a notice says so. A page on a private address is not asked
+   * about.
+   */
+  readonly knowledgeGraph?: KnowledgeGraphOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
   readonly lab?: LabRequest
   /**
@@ -484,6 +494,22 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     readsSafeBrowsing && safeBrowsingSkipped === null && options.safeBrowsing !== undefined
       ? await fetchSafeBrowsing(response.url, options.safeBrowsing, { ...base, policy })
       : undefined
+  // Knowledge Graph: the brand's name goes to Google, for the rules that read it.
+  const readsKnowledgeGraph = rules.some((rule) => rule.needs.includes('knowledge-graph'))
+  const knowledgeGraphSkipped: NoticeCode | null = !readsKnowledgeGraph
+    ? null
+    : options.knowledgeGraph === undefined
+      ? 'knowledge-graph-no-key'
+      : fetched.privateAccess
+        ? 'knowledge-graph-private'
+        : null
+  const brand = isSuccess(page.status) ? brandName(page) : null
+  const knowledgeGraph: KnowledgeGraphFacts | undefined =
+    readsKnowledgeGraph && knowledgeGraphSkipped === null && options.knowledgeGraph !== undefined
+      ? brand === null
+        ? { outcome: 'no-name', brand: null, entities: [] }
+        : await fetchKnowledgeGraph(brand.name, options.knowledgeGraph, { ...base, policy })
+      : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
   else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
   // The TXT records the rules that read DNS ask for (M2.3c), and those alone, asked as the scan
@@ -565,6 +591,14 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : []),
     ...(rendering?.notices ?? []),
     ...(cruxSkipped === null ? [] : [notice(cruxSkipped)]),
+    ...(knowledgeGraphSkipped === null ? [] : [notice(knowledgeGraphSkipped)]),
+    ...(knowledgeGraph?.outcome === 'failed'
+      ? [
+          notice(
+            knowledgeGraph.refused === true ? 'knowledge-graph-refused' : 'knowledge-graph-failed',
+          ),
+        ]
+      : []),
     ...(safeBrowsingSkipped === null ? [] : [notice(safeBrowsingSkipped)]),
     ...(safeBrowsing?.outcome === 'failed'
       ? [notice(safeBrowsing.refused === true ? 'safe-browsing-refused' : 'safe-browsing-failed')]
@@ -590,6 +624,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     rendered: rendering?.rendered,
     crux,
     safeBrowsing,
+    knowledgeGraph,
     redirects: target.http.redirects,
     dns: dns?.facts,
     links,
@@ -616,6 +651,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...robotsFacts(robots, page.url),
       ...cruxFacts(crux),
       ...platformFacts(page, rules),
+      ...knowledgeGraphFacts(knowledgeGraph),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
@@ -832,6 +868,8 @@ export interface EvaluateOptions {
   readonly crux?: CruxFacts
   /** What Safe Browsing said; without it, rules that need `safe-browsing` do not apply. */
   readonly safeBrowsing?: SafeBrowsingFacts
+  /** What Knowledge Graph said; without it, rules that need `knowledge-graph` do not apply. */
+  readonly knowledgeGraph?: KnowledgeGraphFacts
   /**
    * The redirects the page's fetch followed, in order (the report's target.http.redirects);
    * without them, rules that need them do not apply.
@@ -870,6 +908,7 @@ interface Collected {
   readonly rendered?: readonly RenderedFacts[] | undefined
   readonly crux?: CruxFacts | undefined
   readonly safeBrowsing?: SafeBrowsingFacts | undefined
+  readonly knowledgeGraph?: KnowledgeGraphFacts | undefined
   readonly redirects?: readonly Redirect[] | undefined
   readonly dns?: DnsFacts | undefined
   readonly links?: LinkFacts | undefined
@@ -983,10 +1022,11 @@ const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set([
   'response',
   'crux',
   'safe-browsing',
+  'knowledge-graph',
 ])
 
 function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: boolean): Outcome {
-  const { robots, rendered, crux, safeBrowsing } = collected
+  const { robots, rendered, crux, safeBrowsing, knowledgeGraph } = collected
   const needsPage = rule.needs.some((need) => !BESIDE_THE_PAGE.has(need))
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
@@ -1023,6 +1063,12 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   }
   if (rule.needs.includes('safe-browsing') && safeBrowsing?.outcome === 'failed') {
     return { status: 'error', error: 'safe-browsing-unchecked', findings: [] }
+  }
+  if (rule.needs.includes('knowledge-graph') && knowledgeGraph === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
+  if (rule.needs.includes('knowledge-graph') && knowledgeGraph?.outcome === 'failed') {
+    return { status: 'error', error: 'knowledge-graph-unchecked', findings: [] }
   }
   // Only for the rules that read them: the others see the evidence they always did.
   const redirects = rule.needs.includes('redirects') ? collected.redirects : undefined
@@ -1067,6 +1113,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
     ...(safeBrowsing === undefined ? {} : { safeBrowsing }),
+    ...(knowledgeGraph === undefined ? {} : { knowledgeGraph }),
     ...(sitemap === undefined ? {} : { sitemap }),
   }
   try {
@@ -1369,6 +1416,19 @@ function platformFacts(page: PageFacts, rules: readonly Rule[]): Facts {
     platform: {
       primary: technologies.find((tech) => tech.kind === 'platform') ?? null,
       technologies,
+    },
+  }
+}
+
+/** Knowledge Graph's answer as the report gives it; nothing when it was not asked or failed. */
+function knowledgeGraphFacts(facts: KnowledgeGraphFacts | undefined): Facts {
+  if (facts === undefined || facts.outcome === 'failed') return {}
+  const { outcome, brand, entities } = facts
+  return {
+    knowledgeGraph: {
+      outcome,
+      brand,
+      entities: entities.map((entity) => ({ ...entity, types: [...entity.types] })),
     },
   }
 }

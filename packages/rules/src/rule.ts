@@ -6,6 +6,7 @@ import type {
   LinkFacts,
   PageFacts,
   RenderedFacts,
+  KnowledgeGraphFacts,
   RobotsFacts,
   SafeBrowsingFacts,
   SitemapFacts,
@@ -30,7 +31,8 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * read whatever the page answered. `response`: the page's answer whatever its status, its status
  * and headers, for a rule that judges how the server answered, such as with a bot challenge
  * (M2.3c). `safe-browsing`: Google Safe Browsing's verdict on the page's URL and origin, which needs
- * an API key; without one, or for a private page, the rule does not apply.
+ * an API key; without one, or for a private page, the rule does not apply. `knowledge-graph`:
+ * what Google's Knowledge Graph knows of the page's brand name, which needs an API key too.
  */
 export type CollectorId =
   | 'http'
@@ -47,6 +49,7 @@ export type CollectorId =
   | 'sitemap'
   | 'response'
   | 'safe-browsing'
+  | 'knowledge-graph'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -67,6 +70,8 @@ export interface Evidence {
   readonly crux?: CruxFacts
   /** Present when the rule needs `safe-browsing` and Google answered; never `failed` (an error instead). */
   readonly safeBrowsing?: SafeBrowsingFacts
+  /** Present when the rule needs `knowledge-graph` and Google answered or the page gave no name. */
+  readonly knowledgeGraph?: KnowledgeGraphFacts
   /**
    * Present when the rule needs `dns` and the page is on a public name: the page's organizational
    * domain and each TXT lookup made for it. The rule's own lookup (txtName) answered: when it

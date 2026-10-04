@@ -5,6 +5,7 @@
     "daysLeft": 60
   },
   "safeBrowsing": {},
+  "knowledgeGraph": { "ar": [{ "name": "شيء آخر" }] },
   "crux": {
     "url": {
       "lcp": 2100,

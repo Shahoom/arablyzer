@@ -13,6 +13,11 @@ export { MAX_SITE_LINKS, REFUSAL_STATUSES } from '@arablyzer/collectors'
 export { DNS_TIMEOUT_MS } from './dns'
 export { CONCURRENCY, LINK_TIMEOUT_MS, LINKS_TIMEOUT_MS, MAX_LINKS } from './links'
 export {
+  fetchKnowledgeGraph,
+  KNOWLEDGE_GRAPH_ENDPOINT,
+  type KnowledgeGraphOptions,
+} from './knowledge-graph'
+export {
   fetchSafeBrowsing,
   SAFE_BROWSING_ENDPOINT,
   type SafeBrowsingOptions,

@@ -501,6 +501,9 @@
         },
         "platform": {
           "$ref": "#/$defs/PlatformFact"
+        },
+        "knowledgeGraph": {
+          "$ref": "#/$defs/KnowledgeGraphFact"
         }
       },
       "additionalProperties": false
@@ -1156,6 +1159,96 @@
       "required": [
         "primary",
         "technologies"
+      ],
+      "additionalProperties": false
+    },
+    "KnowledgeGraphFact": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "known",
+            "unknown",
+            "no-name"
+          ]
+        },
+        "brand": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entities": {
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "lang": {
+                "type": "string",
+                "enum": [
+                  "ar",
+                  "en"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "types": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "wikipediaUrl": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 2048
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "lang",
+              "name",
+              "types",
+              "description",
+              "wikipediaUrl"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "outcome",
+        "brand",
+        "entities"
       ],
       "additionalProperties": false
     }

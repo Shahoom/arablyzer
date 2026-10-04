@@ -1,5 +1,6 @@
 {
   "safeBrowsing": { "threats": ["MALWARE"] },
+  "knowledgeGraph": { "ar": [{ "name": "العروض الكبرى", "types": ["Organization"] }] },
   "crux": {
     "url": {
       "lcp": 5200,

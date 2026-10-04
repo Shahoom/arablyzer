@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import {
   ARABIC_BLOCKS,
   collectCrux,
+  collectKnowledgeGraph,
   collectSafeBrowsing,
   collectPage,
   collectRobots,
@@ -14,6 +15,7 @@ import {
   sitemapTargets,
   txtLookup,
   type CruxFacts,
+  type KnowledgeGraphFacts,
   type SafeBrowsingFacts,
   type DnsFacts,
   type LinkAnswer,
@@ -34,11 +36,13 @@ import {
 } from '@arablyzer/collectors'
 import {
   answerCrux,
+  answerKnowledgeGraph,
   answerSafeBrowsing,
   certificateWindow,
   fixtureTxt,
   loadFixtureConfig,
   type CruxData,
+  type KnowledgeGraphData,
   type SafeBrowsingData,
   loadSiteConfig,
   resolveFixtureResponse,
@@ -46,6 +50,7 @@ import {
   type SiteConfig,
 } from '@arablyzer/fixtures'
 import type { Redirect } from '@arablyzer/report-schema'
+import { brandName } from '../src/lib/brand'
 import { isLocalHost, isPublicUrl } from '../src/lib/hosts'
 import type { DetectorFinding, Evidence, Rule } from '../src/rule'
 
@@ -151,6 +156,9 @@ export async function fixtureEvidence(
     ...(site.safeBrowsing === undefined
       ? {}
       : { safeBrowsing: safeBrowsingOf(site.safeBrowsing, url) }),
+    ...(site.knowledgeGraph === undefined
+      ? {}
+      : { knowledgeGraph: knowledgeGraphOf(site.knowledgeGraph, facts) }),
     ...dnsOf(site, url, txtNames),
     links: await linksOf(root, config, names, facts),
   }
@@ -251,6 +259,17 @@ function safeBrowsingOf(data: SafeBrowsingData, pageUrl: string): SafeBrowsingFa
   const origin = `${new URL(pageUrl).origin}/`
   const query = { threatInfo: { threatEntries: [{ url: pageUrl }, { url: origin }] } }
   return collectSafeBrowsing(answerSafeBrowsing(data, query, 'fixture-key'))
+}
+
+/**
+ * What the engine would read from the Knowledge Graph stand-in for a fixture site's page: the
+ * brand's name as the page gives it, asked in both languages.
+ */
+function knowledgeGraphOf(data: KnowledgeGraphData, page: PageFacts): KnowledgeGraphFacts {
+  const found = brandName(page)
+  if (found === null) return { outcome: 'no-name', brand: null, entities: [] }
+  const ask = (lang: 'ar' | 'en') => answerKnowledgeGraph(data, lang, 'fixture-key')
+  return collectKnowledgeGraph({ brand: found.name, ar: ask('ar'), en: ask('en') })
 }
 
 function headerList(headers: Record<string, string | string[]>): Header[] {

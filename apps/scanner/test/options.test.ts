@@ -46,6 +46,13 @@ describe('scanOptionsFrom', () => {
     expect(sb({})).toBeUndefined()
   })
 
+  it('asks Knowledge Graph with its own key, or the CrUX key, and not without one', () => {
+    const kg = (env: Record<string, string>) => scanOptionsFrom(env).knowledgeGraph
+    expect(kg({ ARABLYZER_KG_KEY: ' kg ', ARABLYZER_CRUX_KEY: 'crux' })).toEqual({ apiKey: 'kg' })
+    expect(kg({ ARABLYZER_KG_KEY: '', ARABLYZER_CRUX_KEY: 'crux' })).toEqual({ apiKey: 'crux' })
+    expect(kg({})).toBeUndefined()
+  })
+
   // M2.3c review: behind the egress proxy the scanner resolves no name of its own, so the TXT
   // lookups of its DNS rules are DNS over HTTPS (RFC 8484), asked through that proxy.
   it('asks DNS over HTTPS behind the egress proxy, of Cloudflare unless told another resolver', () => {
