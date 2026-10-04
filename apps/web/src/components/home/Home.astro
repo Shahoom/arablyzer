@@ -4,15 +4,21 @@ import { webApplication } from '@arablyzer/seo/json-ld'
 import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import Page from '../../layouts/Page.astro'
 import { CLOUDTOPIA, siteOf } from '../../lib/site'
-import ArabicLayer from './ArabicLayer.astro'
+import Bento from './Bento.astro'
+import Counts from './Counts.astro'
 import Faq from './Faq.astro'
 import FinalCta from './FinalCta.astro'
 import Hero from './Hero.astro'
-import Honest from './Honest.astro'
-import HomeTools from './HomeTools.astro'
 import HowItWorks from './HowItWorks.astro'
-import TopicStrip from './TopicStrip.astro'
+import Monitoring from './Monitoring.astro'
+import Plans from './Plans.astro'
+import ToolsMarquee from './ToolsMarquee.astro'
 
+/**
+ * The home page: the hero (with the product shot), then the sections under it a section's gap
+ * apart (`gap-section`: 40 px on a phone, 56 on a tablet, 72 on a desktop). The marquee and the
+ * counts are one strip of proof, so they sit closer to each other than sections do.
+ */
 interface Props {
   lang: Lang
 }
@@ -41,11 +47,16 @@ const jsonLd = [
   jsonLd={jsonLd}
 >
   <Hero lang={lang} />
-  <TopicStrip lang={lang} />
-  <HowItWorks lang={lang} number={2} />
-  <ArabicLayer lang={lang} number={3} />
-  <HomeTools lang={lang} number={4} />
-  <Honest lang={lang} number={5} />
-  <Faq lang={lang} number={6} />
-  <FinalCta lang={lang} />
+  <div class="flex flex-col gap-section pt-4 pb-section md:pt-6">
+    <div class="flex flex-col gap-5 md:gap-6">
+      <ToolsMarquee lang={lang} />
+      <Counts lang={lang} />
+    </div>
+    <Bento lang={lang} />
+    <HowItWorks lang={lang} />
+    <Monitoring lang={lang} />
+    <Plans lang={lang} />
+    <Faq lang={lang} />
+    <FinalCta lang={lang} />
+  </div>
 </Page>

@@ -1,0 +1,44 @@
+---
+import type { Lang } from '@arablyzer/seo/site'
+import Bidi from '../Bidi.astro'
+
+/**
+ * The pages a document points to (M2.6 R7), as one card with a group of links for each kind: the
+ * tools that check it, its rules, its guides, its terms. One card where there were four, so that
+ * the sticky aside beside a page stays short; a group with no links is left out, and so is the
+ * card if every group is. Each group is a `nav` named by its heading.
+ */
+interface Props {
+  lang: Lang
+  groups: readonly {
+    readonly id: string
+    readonly title: string
+    readonly links: readonly { readonly href: string; readonly title: string }[]
+  }[]
+}
+const { lang } = Astro.props
+const groups = Astro.props.groups.filter((group) => group.links.length > 0)
+---
+
+{groups.length > 0 && (
+  <div class="kb-box flex flex-col p-3">
+    {groups.map((group, index) => (
+      <nav
+        aria-labelledby={group.id}
+        class:list={['flex flex-col gap-0.5', index > 0 && 'mt-2 border-t border-line pt-2']}
+      >
+        <h2 id={group.id} class="m-0 px-3 pt-1 pb-1 text-meta font-semibold text-ink-2">
+          {group.title}
+        </h2>
+        {group.links.map((link) => (
+          <a href={link.href} class="group kb-link text-ink lg:[--kb-link-h-lg:34px]">
+            <span class="min-w-0">
+              <Bidi text={link.title} lang={lang} />
+            </span>
+            <span aria-hidden="true" class="chev-end text-ink-3 group-hover:text-brand-ink" />
+          </a>
+        ))}
+      </nav>
+    ))}
+  </div>
+)}

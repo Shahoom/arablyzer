@@ -1,10 +1,12 @@
 ---
 import type { DocCopyData } from '../../lib/guide-data'
+import DocHeading from '../DocHeading.astro'
 
 /**
  * A guide's or a term's sections, as their copy orders them: each a <section> with its heading,
  * and the questions, each an <h3> with its answer showing (the audit reads them, as do answer
- * engines).
+ * engines). The questions are a plain list with a hairline between them, not a card for each
+ * (M2.6 R7): the section is the box, and the page has enough of them.
  */
 interface Props {
   copy: DocCopyData
@@ -12,8 +14,7 @@ interface Props {
   faqKey?: string
 }
 const { copy, faqKey } = Astro.props
-const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
-const prose = 'prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]'
+const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
 ---
 
 {copy.sections.map((section) => (
@@ -22,20 +23,12 @@ const prose = 'prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-
     aria-labelledby={`${section.key}-title`}
     class="flex scroll-mt-6 flex-col gap-4"
   >
-    <h2 id={`${section.key}-title`} class={heading}>
-      {section.title}
-    </h2>
+    <DocHeading id={`${section.key}-title`} title={section.title} />
     {section.key === faqKey ? (
-      <div class="flex flex-col">
-        {copy.faq.map((entry, index) => (
-          <div
-            class:list={[
-              'flex flex-col gap-3 py-[18px]',
-              index === 0 ? 'border-t border-ink' : 'border-t border-rule',
-              index === copy.faq.length - 1 && 'border-b border-rule',
-            ]}
-          >
-            <h3 class="m-0 text-lg leading-snug font-semibold" set:html={entry.question} />
+      <div class="flex flex-col divide-y divide-line">
+        {copy.faq.map((entry) => (
+          <div class="flex flex-col gap-2 py-5 first:pt-0 last:pb-0">
+            <h3 class="heading-3 m-0" set:html={entry.question} />
             <div class={prose} set:html={entry.answer} />
           </div>
         ))}

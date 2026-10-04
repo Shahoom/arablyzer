@@ -3,14 +3,16 @@ import { GUIDES_UI } from '@arablyzer/i18n'
 import { breadcrumbList, techArticle } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
+import { HEAD } from '../../lib/heads'
 import { fixGuideData } from '../../lib/guide-data'
 import { ruleData } from '../../lib/rule-data'
 import { siteOf } from '../../lib/site'
 import { toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
+import Contents from '../pages/Contents.astro'
 import DocPage from '../pages/DocPage.astro'
 import DocBody from './DocBody.astro'
-import LinkBox from './LinkBox.astro'
+import Related from './Related.astro'
 
 // A /fix guide (BUILD-PLAN §6.3, M2.4d): the message as the report shows it, what it means,
 // why it shows, how to fix it and check the fix, and the Arablyzer tools and rules that check it.
@@ -42,12 +44,13 @@ const tools = guide.tools.map((tool) => ({
 const rules = guide.rules.map((rule) => ({
   href: localePath(lang, PATHS.rule(rule)),
   title: ruleData(rule).copy[lang].title,
-  code: rule,
 }))
 const related = guide.related.map((other) => ({
   href: localePath(lang, PATHS.fixGuide(other)),
   title: fixGuideData(other).message[lang],
 }))
+// The sections the page has, for its contents: the same ids and titles DocBody draws.
+const sections = copy.sections.map((section) => ({ id: section.key, title: section.title }))
 ---
 
 <DocPage
@@ -61,32 +64,41 @@ const related = guide.related.map((other) => ({
   parent={{ name: t.title, href: localePath(lang, PATHS.fix) }}
 >
   <Fragment slot="head">
-    <span class="self-start border border-signal px-2.5 py-0.5 text-sm font-semibold text-signal">
+    <span class="kick self-start">
       <Bidi text={t.source} lang={lang} />
     </span>
-    <h1 class="m-0 text-[30px] leading-[1.25] font-semibold text-balance md:text-[44px]">
+    <h1 class={HEAD.page}>
       <Bidi text={copy.title} lang={lang} />
     </h1>
-    <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
+    <p class={HEAD.lead}>
       <Bidi text={copy.description} lang={lang} />
     </p>
-    <p class="m-0 flex flex-wrap items-baseline gap-x-2 text-sm text-ink-3">
-      {t.otherMessage}:
-      <span lang={other} dir={other === 'ar' ? 'rtl' : 'ltr'} class="font-semibold text-ink-2">
-        {guide.message[other]}
+    <p class="m-0 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-small text-ink-2">
+      <span class="flex flex-wrap items-baseline gap-x-2">
+        {t.otherMessage}:
+        <span lang={other} dir={other === 'ar' ? 'rtl' : 'ltr'} class="font-semibold text-ink">
+          {guide.message[other]}
+        </span>
+      </span>
+      <span class="flex flex-wrap items-baseline gap-x-2">
+        {t.updated}
+        <time datetime={guide.updated} dir="ltr" class="tabular-nums">
+          {guide.updated}
+        </time>
       </span>
     </p>
+    <Contents variant="inline" label={t.contents} sections={sections} />
   </Fragment>
-  <div slot="aside" class="flex flex-col gap-4">
-    <LinkBox lang={lang} id="tools-title" title={t.tools} links={tools} />
-    <LinkBox lang={lang} id="rules-title" title={t.rules} links={rules} />
-    <LinkBox lang={lang} id="related-title" title={t.related} links={related} />
-    <p class="m-0 text-sm text-ink-3">
-      {t.updated}{' '}
-      <time datetime={guide.updated} dir="ltr" class="font-mono">
-        {guide.updated}
-      </time>
-    </p>
+  <div slot="aside" class="flex flex-col gap-3">
+    <Contents label={t.contents} sections={sections} />
+    <Related
+      lang={lang}
+      groups={[
+        { id: 'tools-title', title: t.tools, links: tools },
+        { id: 'rules-title', title: t.rules, links: rules },
+        { id: 'related-title', title: t.related, links: related },
+      ]}
+    />
   </div>
   <DocBody copy={copy} faqKey="faq" />
 </DocPage>

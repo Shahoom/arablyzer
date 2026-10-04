@@ -30,6 +30,12 @@ export type ToolCategoryName =
 export type ToolTag =
   'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links' | 'sitemap' | 'generator'
 
+/**
+ * What a tool takes from the visitor (packages/tools has it too): a page's address, which the
+ * scanner checks; a text to paste; or a few fields, from which the tool writes code.
+ */
+export type ToolKindName = 'scan' | 'paste' | 'generator'
+
 /** The tools' directory and the tool pages (M2.2), around each tool's own copy. */
 export interface ToolsStrings {
   readonly directory: {
@@ -52,6 +58,8 @@ export interface ToolsStrings {
     Record<ToolCategoryName, { readonly name: string; readonly blurb: string }>
   >
   readonly tags: Readonly<Record<ToolTag, string>>
+  /** On each card of the directory: what the tool takes (R3, the v2 cards). */
+  readonly kinds: Readonly<Record<ToolKindName, string>>
   /** The home page's section on the tools (§ 04 in the design). */
   readonly home: {
     readonly kicker: string
@@ -69,6 +77,10 @@ export interface ToolsStrings {
     readonly updated: string
     readonly methodology: string
     readonly fullScan: string
+    /** The methodology's title on a tool page: a question, folded, as the FAQ's are (R3). */
+    readonly measure: string
+    /** The name of the list of the page's sections, in the aside of a wide screen (R7). */
+    readonly contents: string
   }
 }
 
@@ -183,6 +195,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       generator: 'مولّد',
       sitemap: 'خريطة الموقع',
     },
+    kinds: { scan: 'فحص صفحتك', paste: 'الصق وجرّب', generator: 'مولّد' },
     home: {
       kicker: 'الأدوات',
       title: 'أدوات مجانية، كل أداة صفحة',
@@ -207,6 +220,8 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       updated: 'آخر تحديث',
       methodology: 'المنهجية وحساب الدرجة',
       fullScan: 'الفحص الكامل لصفحتك',
+      measure: 'كيف نقيس',
+      contents: 'في هذه الصفحة',
     },
   },
   en: {
@@ -310,6 +325,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       generator: 'Generator',
       sitemap: 'Sitemap',
     },
+    kinds: { scan: 'Checks your page', paste: 'Paste and test', generator: 'Generator' },
     home: {
       kicker: 'Tools',
       title: 'Free tools, each on its own page',
@@ -334,6 +350,8 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       updated: 'Last updated',
       methodology: 'Methodology and scoring',
       fullScan: 'A full check of your page',
+      measure: 'How we measure',
+      contents: 'On this page',
     },
   },
 }

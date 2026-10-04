@@ -1,10 +1,13 @@
 ---
-import { PAGES_UI } from '@arablyzer/i18n'
+import { PAGES_UI, RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList, techArticle } from '@arablyzer/seo/json-ld'
-import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
+import { HEAD } from '../../lib/heads'
 import { METHODOLOGY_DATA } from '../../lib/methodology'
 import { METHODOLOGY_SOURCE, siteOf } from '../../lib/site'
+import DocHeading from '../DocHeading.astro'
+import Related from '../guides/Related.astro'
 import Contents from './Contents.astro'
 import DocPage from './DocPage.astro'
 
@@ -25,7 +28,20 @@ const jsonLd = [
     { name: doc.title, url },
   ]),
 ]
-const prose = 'prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]'
+// The pages that say what a scan checks, and what fetches the page.
+const related = [
+  {
+    id: 'related-title',
+    title: t.related,
+    links: [
+      { href: localePath(lang, PATHS.rules), title: RULES_UI[lang].library.title },
+      { href: localePath(lang, PATHS.bot), title: PAGES_UI[lang].bot.title },
+      { href: localePath(lang, PATHS.tools), title: TOOLS_UI[lang].directory.title },
+    ],
+  },
+]
+const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
+const source = 'text-small font-semibold text-brand-ink underline underline-offset-4 hover:text-ink'
 ---
 
 <DocPage
@@ -38,40 +54,38 @@ const prose = 'prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-
   breadcrumbLabel={t.breadcrumb}
 >
   <Fragment slot="head">
-    <h1 class="m-0 text-[32px] leading-[1.2] font-semibold text-balance md:text-[52px]">
-      {doc.title}
-    </h1>
-    <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
-      {doc.description}
-    </p>
+    <h1 class={HEAD.page}>{doc.title}</h1>
+    <p class={HEAD.lead}>{doc.description}</p>
+    <Contents variant="inline" label={t.contents} sections={doc.sections} />
   </Fragment>
-  <Contents slot="aside" label={t.contents} sections={doc.sections}>
-    <a
-      href={METHODOLOGY_SOURCE}
-      class="mt-3 border-t border-dashed border-tick pt-3 text-sm text-ink-2 underline underline-offset-4 hover:text-signal"
-    >
-      {t.source}
-    </a>
-  </Contents>
+  <div slot="aside" class="flex flex-col gap-3">
+    <Contents label={t.contents} sections={doc.sections}>
+      <a href={METHODOLOGY_SOURCE} class:list={['kb-link mt-1 border-t border-line pt-2', source]}>
+        {t.source}
+      </a>
+    </Contents>
+    <Related lang={lang} groups={related} />
+  </div>
   {doc.sections.map((section) => (
     <section
       id={section.id}
       aria-labelledby={`${section.id}-title`}
       class="flex scroll-mt-6 flex-col gap-4"
     >
-      <h2
-        id={`${section.id}-title`}
-        class="m-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]"
-      >
-        {section.title}
-      </h2>
+      <DocHeading id={`${section.id}-title`} title={section.title} />
       <div class={prose} set:html={section.html} />
       {section.parts.map((part) => (
         <div class="flex flex-col gap-3 pt-2">
-          <h3 class="m-0 text-xl font-semibold">{part.title}</h3>
+          <h3 class="heading-3 m-0">{part.title}</h3>
           <div class={prose} set:html={part.html} />
         </div>
       ))}
     </section>
   ))}
+  {/* On a phone the source link is here, at the foot: the aside's copy is for a desktop. */}
+  <p class="m-0 lg:hidden">
+    <a href={METHODOLOGY_SOURCE} class={source}>
+      {t.source}
+    </a>
+  </p>
 </DocPage>

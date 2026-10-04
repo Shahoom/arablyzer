@@ -2,7 +2,7 @@ import { RULES, ruleById } from '@arablyzer/rules'
 import { SEVERITY_WEIGHTS } from '@arablyzer/scoring'
 import { TOOLS } from '@arablyzer/tools'
 import { describe, expect, it } from 'vitest'
-import { firstPoint, libraryData, ruleReads } from '../scripts/rule-data'
+import { firstPoint, firstPointWithCode, libraryData, ruleReads } from '../scripts/rule-data'
 
 describe('the rules as their library pages have them', () => {
   const data = libraryData()
@@ -106,5 +106,41 @@ describe('firstPoint', () => {
     expect(cut.length).toBeLessThanOrEqual(160)
     expect(cut.endsWith('…')).toBe(true)
     expect(cut).not.toMatch(/\s…$/)
+  })
+})
+
+describe('the first point of a rule’s reasons, with its code', () => {
+  it('is the description with its code kept in backticks, in every rule and language', () => {
+    for (const rule of libraryData().rules) {
+      for (const lang of ['ar', 'en'] as const) {
+        const { description, summary } = rule.copy[lang]
+        expect(summary.replaceAll('`', ''), `${rule.id} ${lang}`).toBe(description)
+        // Each span is closed, so the page can set it in <code>.
+        expect(summary.split('`').length % 2, `${rule.id} ${lang}`).toBe(1)
+      }
+    }
+  })
+
+  it('keeps the examples a rule judges as code, which the site’s own rules do not read', () => {
+    const rules = libraryData().rules
+    const summary = (id: string, lang: 'ar' | 'en') =>
+      rules.find((rule) => rule.id === id)?.copy[lang].summary ?? ''
+    expect(summary('ar-tatweel', 'ar')).toContain('`مـحـمـد`')
+    expect(summary('form-arabic-digits-rejected', 'ar')).toContain('`١٢٣`')
+    expect(summary('form-arabic-digits-rejected', 'en')).toContain('`١٢٣`')
+  })
+
+  it('is cut where the description is, and closes a code span the cut leaves open', () => {
+    const long = `${'كلمة '.repeat(28)}\`${'x'.repeat(40)}\` وبعدها`
+    const description = firstPoint(long)
+    const summary = firstPointWithCode(long)
+    expect(description.endsWith('…')).toBe(true)
+    expect(summary.endsWith('…')).toBe(true)
+    expect(summary.replaceAll('`', '')).toBe(description)
+    expect(summary.split('`').length % 2).toBe(1)
+    // A short point is whole, backticks and all.
+    expect(firstPointWithCode('يكتب **المستخدم** `١٢٣` ثم يضغط')).toBe(
+      'يكتب المستخدم `١٢٣` ثم يضغط',
+    )
   })
 })

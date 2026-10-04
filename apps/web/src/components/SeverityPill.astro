@@ -3,21 +3,22 @@ import type { Severity } from '@arablyzer/report-schema'
 import { STRINGS } from '@arablyzer/seo/strings'
 import type { Lang } from '@arablyzer/seo/site'
 
-/** A severity in the report's own words, coloured by weight: filled for the two heaviest. */
+/**
+ * A severity in the report's own words, as a pill (global.css, `sev`): critical filled, serious
+ * and moderate in their colour on its tint, minor outlined, info quiet.
+ */
 interface Props {
   severity: Severity
   lang: Lang
 }
 const { severity, lang } = Astro.props
-const style: Record<Severity, string> = {
-  critical: 'bg-critical text-white border-critical',
-  serious: 'bg-signal text-white border-signal',
-  moderate: 'bg-moderate-soft text-moderate border-moderate-line',
-  minor: 'bg-white text-ink-2 border-tick',
-  info: 'bg-measure-soft text-measure border-measure-soft',
+const tone: Record<Severity, string> = {
+  critical: 'sev-critical',
+  serious: 'sev-serious',
+  moderate: 'sev-moderate',
+  minor: 'sev-minor',
+  info: 'sev-info',
 }
 ---
 
-<span class:list={['border px-2 py-px text-xs font-semibold whitespace-nowrap', style[severity]]}>
-  {STRINGS[lang].report.severity[severity]}
-</span>
+<span class:list={['sev', tone[severity]]}>{STRINGS[lang].report.severity[severity]}</span>

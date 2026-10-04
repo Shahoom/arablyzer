@@ -1,0 +1,141 @@
+---
+import { HOME } from '@arablyzer/i18n'
+import type { Lang } from '@arablyzer/seo/site'
+import { homeCounts, MARQUEE_TOOL_SLUGS } from '../../lib/home'
+import { CATEGORY_STYLE, toolData } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
+
+/**
+ * The tools, as their names in one compact row (M2.6 R7). With motion it slides toward the start of
+ * the line and loops, its ends faded; the registry's names are said once to a screen reader, and
+ * the second copy that makes the loop seamless is aria-hidden. It has no links, so nothing moves
+ * under a keyboard; the tools are the links of the chips above and of the tools page. The row
+ * pauses under the pointer and under focus, and takes focus itself (a stop of the Tab key that
+ * pauses the slide, and that scrolls the row by the arrow keys when it does not slide).
+ *
+ * With reduced motion it does not slide: it is the shared `scroll-row` (a row that scrolls
+ * sideways, its end faded, bleeding to the edges of a phone), and from md it stays one row too,
+ * never a wall of chips: sixteen names do not fit in 1,200 px.
+ */
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const counts = homeCounts()
+const tools = MARQUEE_TOOL_SLUGS.map((slug) => {
+  const tool = toolData(slug)
+  return { slug, title: tool.copy[lang].title, dot: CATEGORY_STYLE[tool.category].dot }
+})
+---
+
+<section aria-labelledby="marquee-label" class="wrap below-fold strip">
+  <p id="marquee-label" class="text-small m-0 mb-3 text-center text-ink-2">
+    {HOME[lang].marquee.label(counts.tools)}
+  </p>
+  <div
+    class="viewport motion-reduce:scroll-row"
+    role="group"
+    aria-labelledby="marquee-label"
+    tabindex="0"
+  >
+    <ul class="track" role="list">
+      {tools.map((tool) => (
+        <li class="chip item">
+          <span aria-hidden="true" class:list={['size-2 shrink-0 rounded-full', tool.dot]} />
+          <Bidi text={tool.title} lang={lang} />
+        </li>
+      ))}
+      {tools.map((tool) => (
+        <li class="chip item" aria-hidden="true">
+          <span class:list={['size-2 shrink-0 rounded-full', tool.dot]} />
+          <Bidi text={tool.title} lang={lang} />
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
+  .strip {
+    contain-intrinsic-size: auto 76px;
+  }
+  /* The chips of the row are names, not links: they do not lift, and they keep the page's ground. */
+  .item {
+    flex: none;
+    cursor: default;
+    background-color: var(--color-white);
+    backdrop-filter: none;
+    white-space: nowrap;
+  }
+  .item:hover {
+    transform: none;
+    border-color: rgb(205 213 223 / 0.9);
+    color: var(--color-ink-2);
+  }
+  .track {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    width: max-content;
+  }
+
+  /* With motion: one row, clipped and faded at both ends, that slides half its length toward the
+     start of the line and loops (its copy takes its place), and pauses under the pointer and under
+     focus. The track's end padding is one gap, so that half of it is exactly one copy. */
+  @media (prefers-reduced-motion: no-preference) {
+    .viewport {
+      position: relative;
+      overflow: hidden;
+      /* On a phone it runs from edge to edge of the screen, as the scroll-row does. */
+      margin-inline: calc(var(--gutter) * -1);
+      mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    }
+    .track {
+      padding-inline-end: 8px;
+      animation: home-marquee 60s linear infinite;
+      will-change: transform;
+    }
+    .viewport:hover .track,
+    .viewport:focus-within .track {
+      animation-play-state: paused;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) and (min-width: 48rem) {
+    .viewport {
+      margin-inline: 0;
+    }
+  }
+
+  /* Reduced motion: the shared scroll-row, once, without the second copy. From md the scroll-row
+     wraps; here it stays one row, faded at both ends. */
+  @media (prefers-reduced-motion: reduce) {
+    .track > [aria-hidden='true'] {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) and (min-width: 48rem) {
+    .viewport {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      margin-inline: 0;
+      padding-inline: 4px;
+      mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+    }
+  }
+
+  /* The row moves half its length, toward the start of the line (--reading: 1 in Arabic). */
+  @keyframes home-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(var(--reading) * 50%));
+    }
+  }
+</style>

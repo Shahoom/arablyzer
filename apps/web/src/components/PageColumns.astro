@@ -1,0 +1,64 @@
+---
+/**
+ * The two columns of an inner page (M2.6 R7a), for the pages whose body has an aside: the main
+ * column and, beside it, a column of what goes with it (a tool's scan box and the rules it runs,
+ * a report's score and its actions, a page's contents and its related links). From lg the grid is
+ * the main column, 760 px at the most, and the aside, 320 to 360 px, which sticks 24 px under the
+ * header while the main column scrolls; the content is 1200 px wide (`wrap`). Below lg it is one
+ * column, and the page chooses where the aside goes: after the main column (the default: links to
+ * more), or before it (`asideFirst`: a scan box, a summary, a contents list). The main column is
+ * the start of the line on a desktop whichever comes first in the HTML, and the HTML order is the
+ * order a screen reader and the Tab key take.
+ *
+ *   <PageColumns asideFirst class="pt-6 pb-section lg:pt-10">
+ *     <Fragment slot="aside">…the aside…</Fragment>
+ *     …the main column…
+ *   </PageColumns>
+ *
+ * The utilities it is made of (`page-columns`, `page-main`, `page-aside`, `page-aside-sticky`, in
+ * global.css) are for an island that draws its own columns.
+ */
+interface Props {
+  /** Below lg, the aside comes before the main column instead of after it. */
+  asideFirst?: boolean
+  /**
+   * The aside's element. `aside` (the default) is a complementary landmark: right for contents and
+   * related links. A `div` is for an aside whose content is the page's own, such as a scan box.
+   */
+  asideAs?: 'aside' | 'div'
+  /** The aside's accessible name, for a page that has more than one landmark of the kind. */
+  asideLabel?: string
+  /**
+   * The aside sticks under the header from lg. It scrolls inside itself if it is taller than the
+   * room it has, so keep it short. `false` leaves it in the flow, beside the top of the main column.
+   */
+  sticky?: boolean
+  /** More classes for the grid, which also has `wrap`: the room above and below it. */
+  class?: string
+}
+const {
+  asideFirst = false,
+  asideAs = 'aside',
+  asideLabel,
+  sticky = true,
+  class: className,
+} = Astro.props
+const Aside = asideAs
+const aside = ['page-aside', sticky && 'page-aside-sticky']
+---
+
+<div class:list={['wrap page-columns', className]}>
+  {asideFirst && (
+    <Aside class:list={aside} aria-label={asideAs === 'aside' ? asideLabel : undefined}>
+      <slot name="aside" />
+    </Aside>
+  )}
+  <div class="page-main">
+    <slot />
+  </div>
+  {!asideFirst && (
+    <Aside class:list={aside} aria-label={asideAs === 'aside' ? asideLabel : undefined}>
+      <slot name="aside" />
+    </Aside>
+  )}
+</div>

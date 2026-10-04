@@ -1,0 +1,37 @@
+---
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import { CATEGORY_STYLE, toolData } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
+
+/**
+ * A tool as a row of a list (M2.6 R7), the whole row a link: the directory's, and the related tools
+ * of a tool page. A small dot in its category's colour, its name (16 px, semibold) and its
+ * question (14 px, quiet). The rows are the children of a `card` that clips them (`ul.card`), so
+ * the focus ring is drawn inside the row, and a hovered row follows the card's corners.
+ */
+interface Props {
+  lang: Lang
+  slug: string
+}
+const { lang, slug } = Astro.props
+const tool = toolData(slug)
+const copy = tool.copy[lang]
+---
+
+<a
+  href={localePath(lang, PATHS.tool(slug))}
+  class="group flex items-start gap-3 px-card py-3 text-ink hover:bg-surface-2 hover:text-ink focus-visible:outline-offset-[-3px]"
+>
+  <span
+    aria-hidden="true"
+    class:list={['mt-2.5 size-2 shrink-0 rounded-full', CATEGORY_STYLE[tool.category].dot]}
+  ></span>
+  <span class="bidi-whole flex min-w-0 flex-col">
+    <span class="text-body font-semibold text-balance group-hover:text-brand-ink">
+      <Bidi text={copy.title} lang={lang} />
+    </span>
+    <span class="text-small text-pretty text-ink-2">
+      <Bidi text={copy.summary} lang={lang} />
+    </span>
+  </span>
+</a>

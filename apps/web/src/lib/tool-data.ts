@@ -109,19 +109,19 @@ export const ARABIC_LAYER: ReadonlySet<ToolCategoryName> = new Set([
 ])
 
 /**
- * Each category's colour (the Lab system's tokens, global.css): its dot, the rule under its
- * heading, and the chip with its number. Written out in full, for Tailwind to find.
+ * Each category's colour (the tokens of global.css): its dot, the rule under its heading, and the
+ * chip with its number. Written out in full, for Tailwind to find.
  */
 export const CATEGORY_STYLE: Readonly<
   Record<ToolCategoryName, { readonly dot: string; readonly line: string; readonly chip: string }>
 > = {
-  crawl: { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-rule-soft text-ink-2' },
+  crawl: { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-surface-2 text-ink-2' },
   index: {
     dot: 'bg-cat-index',
     line: 'border-cat-index',
     chip: 'bg-cat-index-soft text-cat-index',
   },
-  onpage: { dot: 'bg-ink-2', line: 'border-ink-2', chip: 'bg-rule-soft text-ink-2' },
+  onpage: { dot: 'bg-ink-2', line: 'border-ink-2', chip: 'bg-surface-2 text-ink-2' },
   links: { dot: 'bg-cat-rtl', line: 'border-cat-rtl', chip: 'bg-cat-rtl-soft text-cat-rtl' },
   schema: {
     dot: 'bg-cat-schema',
@@ -133,7 +133,7 @@ export const CATEGORY_STYLE: Readonly<
     line: 'border-cat-fonts',
     chip: 'bg-cat-fonts-soft text-cat-fonts',
   },
-  'seo-tools': { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-rule-soft text-ink-2' },
+  'seo-tools': { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-surface-2 text-ink-2' },
   'search-data': {
     dot: 'bg-cat-rtl',
     line: 'border-cat-rtl',
@@ -150,11 +150,8 @@ export const CATEGORY_STYLE: Readonly<
     chip: 'bg-cat-prices-soft text-cat-prices',
   },
   ai: { dot: 'bg-cat-ai', line: 'border-cat-ai', chip: 'bg-cat-ai-soft text-cat-ai' },
-  trust: {
-    dot: 'bg-cat-forms',
-    line: 'border-cat-forms',
-    chip: 'bg-cat-forms-soft text-cat-forms',
-  },
+  // Trust is the green of a passed check, as the v2 artboards have it.
+  trust: { dot: 'bg-pass', line: 'border-pass', chip: 'bg-pass-soft text-pass' },
   'ar-render': {
     dot: 'bg-cat-render',
     line: 'border-cat-render',
@@ -171,10 +168,11 @@ export const CATEGORY_STYLE: Readonly<
     line: 'border-cat-forms',
     chip: 'bg-cat-forms-soft text-cat-forms',
   },
+  // Locale, like the international category, is cyan.
   locale: {
-    dot: 'bg-cat-prices',
-    line: 'border-cat-prices',
-    chip: 'bg-cat-prices-soft text-cat-prices',
+    dot: 'bg-cat-fonts',
+    line: 'border-cat-fonts',
+    chip: 'bg-cat-fonts-soft text-cat-fonts',
   },
-  general: { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-rule-soft text-ink-2' },
+  general: { dot: 'bg-ink-3', line: 'border-ink-3', chip: 'bg-surface-2 text-ink-2' },
 }

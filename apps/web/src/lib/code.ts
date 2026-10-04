@@ -11,7 +11,7 @@ export function escapeHtml(text: string): string {
 }
 
 const MUTED = 'text-ink-3'
-const TONE = { wrong: 'text-signal', right: 'text-pass' } as const
+const TONE = { wrong: 'text-serious', right: 'text-pass' } as const
 
 const span = (className: string, text: string) =>
   `<span class="${className}">${escapeHtml(text)}</span>`
@@ -19,7 +19,7 @@ const span = (className: string, text: string) =>
 /**
  * An example's code as the design draws it (the Tool-WhatsApp board): its markup muted, the
  * values in quotes, a CSS declaration's value, a robots.txt rule's path, an HTTP header's value
- * or a DNS record's strings in the colour of the example, the signal for the wrong one and pass
+ * or a DNS record's strings in the colour of the example, serious for the wrong one and pass
  * for the right one; the text between tags as it is. Escaped throughout.
  */
 export function highlight(

@@ -1,119 +1,104 @@
 ---
 import { HOME } from '@arablyzer/i18n'
 import type { Lang } from '@arablyzer/seo/site'
-import SectionHead from '../SectionHead.astro'
-import { SHOWCASE } from '../../lib/showcase'
+import Bidi from '../Bidi.astro'
+import SectionIntro from './SectionIntro.astro'
 
+/**
+ * Three numbered steps, which are a real sequence (an ordered list). On a phone (M2.6 R7) they are
+ * a column: each step's number (40 px) beside its title and words, a thin line joining one number
+ * to the next. From md they are three columns, centred under their numbers, and a band of light
+ * runs along the line that joins them in the way the text is read, from the start of the line to
+ * its end, with the reading beam's keyframes (M2.6 R1); with reduced motion there is no band.
+ */
 interface Props {
   lang: Lang
-  number: number
 }
-const { lang, number } = Astro.props
+const { lang } = Astro.props
 const t = HOME[lang].how
 ---
 
-<section
-  aria-labelledby="how-title"
-  class="below-fold flex flex-col gap-6 px-5 py-10 md:gap-11 md:px-16 md:py-[88px]"
->
-  <SectionHead number={number} id="how-title" title={t.title} size="md" />
-  <ol class="m-0 grid list-none gap-5 p-0 md:grid-cols-3 md:gap-6">
-    {t.steps.map((step, index) => (
-      <li class="flex flex-col gap-2 border-t-2 border-ink pt-3.5 md:gap-[18px] md:border md:border-rule-strong md:bg-white md:p-7">
-        {index === 0 && (
-          <svg
-            class="hidden md:block ltr:-scale-x-100"
-            width="100%"
-            height="96"
-            viewBox="0 0 300 96"
-            fill="none"
-            aria-hidden="true"
-            direction="ltr"
-          >
-            <rect x="20" y="30" width="260" height="38" class="stroke-ink" stroke-width="1.5" />
-            <rect x="20" y="30" width="72" height="38" class="fill-ink" />
-            <path d="M150 40v18" class="stroke-measure" stroke-width="2" />
-            <path d="M180 49h82" class="stroke-rule" stroke-width="6" />
-            <path d="M20 82h260M20 78v8M280 78v8" class="stroke-measure" stroke-width="1" />
-          </svg>
-        )}
-        {index === 1 && (
-          <svg
-            class="hidden md:block ltr:-scale-x-100"
-            width="100%"
-            height="96"
-            viewBox="0 0 300 96"
-            fill="none"
-            aria-hidden="true"
-            direction="ltr"
-          >
-            <rect
-              x="40"
-              y="10"
-              width="120"
-              height="76"
-              class="fill-white stroke-tick"
-              stroke-width="1.5"
-            />
-            <rect
-              x="90"
-              y="16"
-              width="120"
-              height="76"
-              class="fill-white stroke-ink-3"
-              stroke-width="1.5"
-            />
-            <rect
-              x="140"
-              y="4"
-              width="120"
-              height="76"
-              class="fill-white stroke-ink"
-              stroke-width="1.5"
-            />
-            <path d="M140 16h120" class="stroke-ink" stroke-width="1.5" />
-            <path d="M156 34h88M168 48h76M156 62h88" class="stroke-rule" stroke-width="6" />
-          </svg>
-        )}
-        {index === 2 && (
-          <svg
-            class="hidden md:block"
-            width="100%"
-            height="96"
-            viewBox="0 0 300 96"
-            fill="none"
-            aria-hidden="true"
-            direction="ltr"
-          >
-            <rect
-              x="80"
-              y="4"
-              width="140"
-              height="88"
-              class="fill-white stroke-ink"
-              stroke-width="1.5"
-            />
-            <text x="200" y="38" text-anchor="end" font-size="26" class="fill-ink font-mono">
-              {SHOWCASE.score}
-            </text>
-            <path d="M96 50h108" class="stroke-rule-soft" stroke-width="4" />
-            <path
-              d={`M204 50H${204 - SHOWCASE.score * 1.08}`}
-              class="stroke-ink"
-              stroke-width="4"
-            />
-            <rect x="176" y="62" width="28" height="8" class="fill-signal" />
-            <path d="M96 66h70M96 80h108" class="stroke-rule" stroke-width="5" />
-          </svg>
-        )}
-        <div class="flex items-baseline gap-3">
-          <span dir="ltr" class="font-mono text-[13px] text-signal md:text-sm">
-            {String(index + 1).padStart(2, '0')}
-          </span>
-          <h3 class="m-0 text-[19px] font-semibold md:text-[22px]">{step.title}</h3>
-        </div>
-        <p class="m-0 text-[15px] leading-[1.8] text-ink-2 md:text-base">{step.text}</p>
-      </li>
-    ))}
-  </ol>
+<section aria-labelledby="how-title" class="below-fold strip">
+  <div class="wrap">
+    <SectionIntro kicker={t.kicker} id="how-title" title={t.title} />
+    <div class="relative">
+      <div
+        aria-hidden="true"
+        class="track absolute inset-x-[16%] top-[23px] hidden h-0.5 overflow-hidden rounded-sm bg-line md:block"
+      ></div>
+      <ol class="m-0 grid list-none gap-4 p-0 md:grid-cols-3 md:gap-5" role="list">
+        {t.steps.map((step, index) => (
+          <li class="step relative z-10 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 md:flex md:flex-col md:items-center md:gap-3 md:px-3 md:text-center">
+            <span
+              aria-hidden="true"
+              class="grid size-10 place-items-center rounded-xl bg-[#00727c] bg-(image:--gradient-btn) text-[1.125rem] font-semibold text-white shadow-[0_10px_20px_-10px_rgb(79_70_229/0.6)] md:size-12 md:rounded-2xl md:text-[1.25rem]"
+            >
+              {index + 1}
+            </span>
+            <div class="min-w-0">
+              <h3 class="heading-3 m-0">{step.title}</h3>
+              <p class="text-small m-0 mt-1 max-w-[40ch] text-ink-2 md:mx-auto md:max-w-[34ch]">
+                <Bidi text={step.text} lang={lang} />
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
 </section>
+
+<style>
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
+  .strip {
+    contain-intrinsic-size: auto 355px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 262px;
+    }
+  }
+  @media (min-width: 64rem) {
+    .strip {
+      contain-intrinsic-size: auto 245px;
+    }
+  }
+  /* A phone's line from one number to the next: 2 px, in the middle of the 40 px number. */
+  .step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 19px;
+    inset-block-start: 46px;
+    inset-block-end: -12px;
+    width: 2px;
+    border-radius: 1px;
+    background-color: var(--color-line-2);
+  }
+  @media (min-width: 48rem) {
+    .step::before {
+      display: none;
+    }
+  }
+  .track::after {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 30%;
+    background: linear-gradient(
+      var(--grad-dir, to left),
+      transparent,
+      var(--color-indigo, #4f46e5),
+      var(--color-brand, #007d88),
+      transparent
+    );
+    animation: reading-beam 3.2s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .track::after {
+      animation: none;
+      display: none;
+    }
+  }
+</style>

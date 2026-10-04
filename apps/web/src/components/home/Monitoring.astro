@@ -1,0 +1,201 @@
+---
+import { HOME } from '@arablyzer/i18n'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import Check from '@lucide/astro/icons/check'
+import TriangleAlert from '@lucide/astro/icons/triangle-alert'
+import { previewPoints } from '../../lib/home'
+import { scanFormHref } from '../../lib/site'
+import Bidi from '../Bidi.astro'
+
+/**
+ * The monitoring band: a dark navy panel with two glows, on what the dashboard will do. Its quiet
+ * text is panel-soft, not panel-dim: on the indigo glow (#292c7d at its brightest) panel-dim is
+ * under 4.5:1. The glows are two radial gradients on the panel itself (M2.6 R7), not two blurred
+ * elements as they were: axe reads a blurred box as a solid colour and counts it behind any text
+ * whose box it overlaps, even text outside the panel that the panel clips, so the how-it-works
+ * step above the band measured on the teal glow (4.2:1) and the live pill on both glows at once
+ * (3.7:1). A gradient on the panel is a background axe sends to review, as it does for every
+ * other gradient of the page, and the pixels are what the contrast test measures. The
+ * dashboard is Phase 4 and does not exist yet, so the band says so («قريباً») and has no link to
+ * it; its glass preview is made-up data and says that too. The line of the chart is drawn from a
+ * list of numbers, newest at the start of the line whichever way the page reads.
+ */
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = HOME[lang].monitoring
+const rtl = lang === 'ar'
+const points = previewPoints(rtl)
+const line = points.map((point) => `${point.x},${point.y}`).join(' ')
+const first = points[0]
+const last = points[points.length - 1]
+const area =
+  first === undefined || last === undefined
+    ? ''
+    : `M${first.x} 200 ${points.map((point) => `L${point.x} ${point.y}`).join(' ')} L${last.x} 200 Z`
+// The preview's numbers are an example: a score, how it moved, problems, pages.
+const KPIS = [
+  { key: 'score', value: '91', change: '+6' },
+  { key: 'problems', value: '2', change: null },
+  { key: 'pages', value: '24', change: null },
+] as const
+---
+
+<section aria-labelledby="monitoring-title" class="below-fold strip">
+  <div class="wrap">
+    <div class="panel-dark band relative overflow-hidden rounded-[24px] text-panel-text md:rounded-[32px]">
+      <div class="relative grid items-center gap-7 p-5 md:gap-9 md:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 lg:p-14">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="kick bg-[rgb(94_234_212/0.14)] text-panel-pass">{t.kicker}</span>
+            <span class="inline-flex h-[30px] items-center rounded-full border border-dashed border-panel-tick px-3 text-meta font-semibold text-panel-text">
+              {t.soon}
+            </span>
+          </div>
+          <h2 id="monitoring-title" class="heading-2 m-0 mt-3">
+            {t.title}
+          </h2>
+          <p class="text-body m-0 mt-3 mb-5 text-panel-soft md:mb-0">{t.text}</p>
+          <ul class="text-small m-0 mt-5 mb-6 hidden list-none flex-col gap-2.5 p-0 text-panel-text md:flex md:text-body">
+            {t.points.map((point) => (
+              <li class="flex items-center gap-2.5">
+                <Check
+                  size={18}
+                  stroke-width={1.8}
+                  aria-hidden="true"
+                  class="shrink-0 text-panel-pass"
+                />
+                {point}
+              </li>
+            ))}
+          </ul>
+          <div class="flex flex-wrap gap-3">
+            <a href={scanFormHref(lang)} class="btn-light btn-lg">
+              {t.scan}
+            </a>
+            <a href={`${localePath(lang, PATHS.home)}#plans`} class="btn-outline-light btn-lg">
+              {t.plans}
+            </a>
+          </div>
+        </div>
+
+        <figure
+          aria-label={t.preview.label}
+          class="relative m-0 flex flex-col gap-3 rounded-2xl border border-white/12 bg-white/6 p-4 backdrop-blur-[10px] md:gap-4 md:rounded-[20px] md:p-5"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <span class="inline-flex items-center gap-2.5 font-semibold">
+              <span
+                aria-hidden="true"
+                class="grid size-7 place-items-center rounded-lg bg-[linear-gradient(135deg,#14b8a6,#6366f1)] text-[13px]"
+                lang="en"
+              >
+                M
+              </span>
+              <bdi dir="ltr">matjar.example</bdi>
+            </span>
+            <span class="text-meta inline-flex h-[26px] shrink-0 items-center gap-2 rounded-full bg-[rgb(94_234_212/0.14)] px-2.5 font-semibold whitespace-nowrap text-panel-pass">
+              <i aria-hidden="true" class="live size-[7px] rounded-full bg-panel-pass"></i>
+              {t.preview.live}
+            </span>
+          </div>
+          <dl class="m-0 grid grid-cols-3 gap-2 md:gap-2.5">
+            {KPIS.map((kpi) => (
+              <div class="rounded-xl bg-white/6 p-2.5 md:p-3">
+                <dt class="text-meta text-panel-soft">{t.preview[kpi.key]}</dt>
+                <dd class="m-0">
+                  <b class="text-[1.375rem] font-semibold tabular-nums md:text-[1.625rem]">
+                    {kpi.value}
+                  </b>
+                  {kpi.change !== null && (
+                    <small class="text-meta ms-1 text-panel-pass">
+                      <bdi dir="ltr">{kpi.change}</bdi>
+                    </small>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <svg viewBox="0 0 640 200" aria-hidden="true" class="block h-auto w-full">
+            <defs>
+              <linearGradient id="home-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.45"></stop>
+                <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"></stop>
+              </linearGradient>
+            </defs>
+            <path d="M0 40H640M0 100H640M0 160H640" fill="none" stroke="rgb(255 255 255 / 0.08)" />
+            <path d={area} fill="url(#home-area)"></path>
+            <polyline
+              points={line}
+              fill="none"
+              stroke="#5eead4"
+              stroke-width="2.5"
+              stroke-linejoin="round"
+              stroke-linecap="round"
+            ></polyline>
+          </svg>
+          <p class="text-meta m-0 flex items-center gap-2.5 rounded-xl bg-[rgb(244_63_94/0.12)] px-3 py-2 text-[#fecdd3] md:py-2.5">
+            <TriangleAlert size={16} stroke-width={1.8} aria-hidden="true" class="shrink-0" />
+            <Bidi text={t.preview.alert} lang={lang} />
+          </p>
+          <span class="absolute end-5 -top-3 inline-flex h-[22px] items-center rounded-full border border-dashed border-panel-tick bg-panel px-2.5 text-xs text-panel-soft">
+            {t.preview.example}
+          </span>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
+  .strip {
+    contain-intrinsic-size: auto 630px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 900px;
+    }
+  }
+  @media (min-width: 64rem) {
+    .strip {
+      contain-intrinsic-size: auto 530px;
+    }
+  }
+  /* The two glows: teal in the corner where the line starts, indigo in the one where it ends
+     (--reading is 1 in a right-to-left page and -1 in a left-to-right one, so the same centre
+     serves both). Each is flat at its core and fades out, as the blurred discs it replaces did. */
+  .band {
+    background-image:
+      radial-gradient(
+        circle 380px at calc(50% + var(--reading) * (50% - 170px)) 90px,
+        rgb(13 148 136 / 0.45) 0,
+        rgb(13 148 136 / 0.4) 35%,
+        transparent 100%
+      ),
+      radial-gradient(
+        circle 400px at calc(50% - var(--reading) * (50% - 200px)) calc(100% - 70px),
+        rgb(79 70 229 / 0.45) 0,
+        rgb(79 70 229 / 0.4) 35%,
+        transparent 100%
+      );
+  }
+  .live {
+    animation: home-pulse 2s ease-out infinite;
+  }
+  @keyframes home-pulse {
+    from {
+      box-shadow: 0 0 0 0 rgb(94 234 212 / 0.6);
+    }
+    to {
+      box-shadow: 0 0 0 10px rgb(94 234 212 / 0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live {
+      animation: none;
+    }
+  }
+</style>

@@ -3,13 +3,25 @@ import { GENERATORS_UI } from '@arablyzer/i18n/generators'
 import type { Lang } from '@arablyzer/seo/site'
 import type { TargetedSubmitEvent } from 'preact'
 import { useState } from 'preact/hooks'
-import { CopyBox, FIELD, LABEL, SUBMIT } from './CopyBox'
+import { ScanNote } from '../ScanNote'
+import { FIELD, LABEL, SUBMIT, ToolBox } from '../ToolBox'
+import { CopyBox } from './CopyBox'
 
 /** The Gulf's currencies first, then others the stores of the region sell in. */
 const CURRENCIES = ['OMR', 'SAR', 'AED', 'KWD', 'BHD', 'QAR', 'USD', 'EUR', 'EGP', 'JOD']
 
 /** The product structured data generator (M2.3b): a Product the product rules accept. */
-export default function SchemaGenerator({ lang, tool }: { lang: Lang; tool: string }) {
+export default function SchemaGenerator({
+  lang,
+  tool,
+  title,
+  dot,
+}: {
+  lang: Lang
+  tool: string
+  title: string
+  dot: string
+}) {
   const t = GENERATORS_UI[lang].schema
   const common = GENERATORS_UI[lang].common
   const [result, setResult] = useState<ProductResult | null>(null)
@@ -34,8 +46,15 @@ export default function SchemaGenerator({ lang, tool }: { lang: Lang; tool: stri
       }),
     )
   }
-  const optional = (id: string, label: string, type: 'url' | 'text', ltr: boolean) => (
-    <div className="flex flex-col gap-2">
+  // `wide`: a long address takes the whole line on a phone, where the short fields share one.
+  const optional = (
+    id: string,
+    label: string,
+    type: 'url' | 'text',
+    ltr: boolean,
+    wide = false,
+  ) => (
+    <div className={`flex flex-col gap-2 ${wide ? 'col-span-2 sm:col-span-1' : ''}`}>
       <label htmlFor={`product-${id}`} className={LABEL}>
         {label} <span className="font-normal text-ink-3">({t.optional})</span>
       </label>
@@ -49,78 +68,93 @@ export default function SchemaGenerator({ lang, tool }: { lang: Lang; tool: stri
     </div>
   )
   return (
-    <div className="flex flex-col gap-6" data-tool={tool}>
-      <form onSubmit={onSubmit} data-tool-kind="generator" className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <label htmlFor="product-name" className={LABEL}>
-            {t.name}
-          </label>
-          <input id="product-name" name="name" type="text" dir="auto" required className={FIELD} />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
+    <div className="flex flex-col gap-4" data-tool={tool}>
+      <ToolBox
+        title={title}
+        dot={dot}
+        note={<ScanNote lang={lang} id="generator-note" line={common.local} keep={[]} />}
+      >
+        <form onSubmit={onSubmit} data-tool-kind="generator" className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label htmlFor="product-price" className={LABEL}>
-              {t.price}
+            <label htmlFor="product-name" className={LABEL}>
+              {t.name}
             </label>
             <input
-              id="product-price"
-              name="price"
+              id="product-name"
+              name="name"
               type="text"
-              inputMode="decimal"
-              dir="ltr"
+              dir="auto"
               required
-              placeholder="12.500"
-              className={`${FIELD} font-mono`}
+              className={FIELD}
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="product-currency" className={LABEL}>
-              {t.currency}
-            </label>
-            <select
-              id="product-currency"
-              name="currency"
-              dir="ltr"
-              className={`${FIELD} font-mono`}
-            >
-              {CURRENCIES.map((currency) => (
-                <option key={currency} value={currency}>
-                  {currency}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="product-price" className={LABEL}>
+                {t.price}
+              </label>
+              <input
+                id="product-price"
+                name="price"
+                type="text"
+                inputMode="decimal"
+                dir="ltr"
+                required
+                placeholder="12.500"
+                className={`${FIELD} font-mono`}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="product-currency" className={LABEL}>
+                {t.currency}
+              </label>
+              <select
+                id="product-currency"
+                name="currency"
+                dir="ltr"
+                className={`${FIELD} font-mono`}
+              >
+                {CURRENCIES.map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-2 flex flex-col gap-2 sm:col-span-1">
+              <label htmlFor="product-availability" className={LABEL}>
+                {t.availability}
+              </label>
+              <select id="product-availability" name="availability" className={FIELD}>
+                {(['InStock', 'OutOfStock', 'PreOrder'] as const).map((key) => (
+                  <option key={key} value={key}>
+                    {t.availabilities[key]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <label htmlFor="product-availability" className={LABEL}>
-              {t.availability}
-            </label>
-            <select id="product-availability" name="availability" className={FIELD}>
-              {(['InStock', 'OutOfStock', 'PreOrder'] as const).map((key) => (
-                <option key={key} value={key}>
-                  {t.availabilities[key]}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            {optional('url', t.url, 'url', true, true)}
+            {optional('image', t.image, 'url', true, true)}
+            {optional('sku', t.sku, 'text', true)}
+            {optional('brand', t.brand, 'text', false)}
           </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {optional('url', t.url, 'url', true)}
-          {optional('image', t.image, 'url', true)}
-          {optional('sku', t.sku, 'text', true)}
-          {optional('brand', t.brand, 'text', false)}
-        </div>
-        {optional('description', t.description, 'text', false)}
-        <button type="submit" className={SUBMIT}>
-          {t.submit}
-        </button>
-        <p className="m-0 text-sm text-ink-3">{common.local}</p>
-      </form>
+          {optional('description', t.description, 'text', false)}
+          <button type="submit" className={SUBMIT}>
+            {t.submit}
+          </button>
+        </form>
+      </ToolBox>
       {result !== null && (
         <section aria-label={common.result} className="flex flex-col gap-3">
           {result.ok ? (
             <CopyBox lang={lang} label={t.html} text={result.html} />
           ) : (
-            <p role="alert" className="m-0 text-sm text-signal">
+            <p
+              role="alert"
+              className="m-0 rounded-xl bg-serious-soft px-card py-3 text-small text-serious"
+            >
               {t.problems[result.problem]}
             </p>
           )}

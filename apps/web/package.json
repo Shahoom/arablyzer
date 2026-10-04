@@ -18,7 +18,6 @@
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
     "@arablyzer/browser": "workspace:*",
-    "@arablyzer/cli": "workspace:*",
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/engine": "workspace:*",
     "@arablyzer/fixtures": "workspace:*",
@@ -31,6 +30,7 @@
     "@arablyzer/seo": "workspace:*",
     "@arablyzer/tools": "workspace:*",
     "@astrojs/preact": "6.0.5",
+    "@fontsource/dm-sans": "5.3.0",
     "@fontsource/ibm-plex-mono": "5.3.0",
     "@fontsource/ibm-plex-sans-arabic": "5.3.0",
     "@lucide/astro": "1.48.0",

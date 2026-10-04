@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./copy": "./src/copy.ts",
     "./scan-form": "./src/scan-form.ts",
     "./report": "./src/report.ts",
     "./tools": "./src/tools.ts",
@@ -13,6 +14,7 @@
     "./rules": "./src/rules.ts",
     "./pages": "./src/pages.ts",
     "./guides": "./src/guides.ts",
+    "./knowledge": "./src/knowledge.ts",
     "./tool-app": "./src/tool-app.ts"
   },
   "scripts": {
