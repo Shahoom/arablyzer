@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+// Imported, not read from disk, so a bundle (the CLI's) carries the list inside it.
+import vendoredList from '../../vendor/webappanalyzer/fingerprints.json'
 import { headerValues, type PageFacts } from '@arablyzer/collectors'
 
 /**
@@ -108,8 +109,7 @@ let sources: ReadonlySet<string> = new Set()
 
 function fingerprints(): Readonly<Record<string, Fingerprint>> {
   if (loaded !== undefined) return loaded
-  const file = new URL('../../vendor/webappanalyzer/fingerprints.json', import.meta.url)
-  const vendored = JSON.parse(readFileSync(file, 'utf8')) as Vendored
+  const vendored = vendoredList as unknown as Vendored
   const merged: Record<string, Fingerprint> = { ...vendored.techs }
   for (const [name, own] of Object.entries(ARAB_FINGERPRINTS)) {
     merged[name] = mergeFingerprints(merged[name], own)

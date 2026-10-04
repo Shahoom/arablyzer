@@ -1,6 +1,3 @@
-// @ts-expect-error subset-font ships no type declarations
-import subsetFontModule from 'subset-font'
-
 import { mergeRanges, type CodePointRange } from './code-points'
 import { fontCoverage } from './font-coverage'
 
@@ -10,7 +7,16 @@ type SubsetData = (
   text: string,
   options?: { readonly targetFormat?: 'sfnt' | 'woff' | 'woff2' | 'truetype' },
 ) => Promise<Buffer>
-const subsetFontData = subsetFontModule as SubsetData
+
+/**
+ * Loaded when a subset is made, not when this file is: its WebAssembly glue cannot load in the
+ * CLI's bundle, which never makes one.
+ */
+async function subsetFontData(...args: Parameters<SubsetData>): ReturnType<SubsetData> {
+  // @ts-expect-error subset-font ships no type declarations
+  const module = (await import('subset-font')) as { default: SubsetData }
+  return module.default(...args)
+}
 
 /**
  * Characters every Arabic subset keeps whatever the page showed: the digits of both scripts,
