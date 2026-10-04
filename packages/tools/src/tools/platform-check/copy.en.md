@@ -1,5 +1,5 @@
 ---
-summary: Which platform does a site run on: WordPress, Salla, Zid, Shopify? And which builder, plugins and services?
+summary: Which platform does a site run on: WordPress, Salla, Zid or Shopify? And which plugins?
 ---
 
 # Platform check

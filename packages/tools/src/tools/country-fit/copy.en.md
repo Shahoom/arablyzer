@@ -1,5 +1,5 @@
 ---
-summary: Is your page ready for Saudi Arabia, the UAE, Egypt, Morocco? Currency, phone, digits, VAT, Hijri date.
+summary: Is your page ready for Saudi Arabia, the UAE or Egypt? Currency, phone, digits, VAT, Hijri date.
 ---
 
 # Country fit for Arab sites
