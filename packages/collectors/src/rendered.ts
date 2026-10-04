@@ -133,6 +133,18 @@ export interface DirectionIconFact extends RenderedElement {
   readonly name: string
 }
 
+/** A control whose icon points against what the control says it does, in right-to-left text. */
+export interface RoleIconFact extends RenderedElement {
+  /** What the control says it is, from its label, text, rel or class. */
+  readonly role: 'next' | 'prev'
+  /** Where the icon points on screen, after any mirroring. */
+  readonly pointing: 'left' | 'right'
+  /** What names the icon: an icon-font class, a Material name, an SVG's name, or the arrow. */
+  readonly name: string
+  /** The control's label or text, shortened. */
+  readonly label: string
+}
+
 /** An element whose own text has the Saudi Riyal sign (U+20C1, Unicode 17), and the fonts it asks for. */
 export interface RiyalSignFact extends RenderedElement {
   /** Computed font-family, as the engine serializes it. */
@@ -287,6 +299,8 @@ export interface RenderedFacts {
   readonly fields: readonly RenderedFieldFact[]
   /** Unmirrored direction icons in right-to-left text (the first 20). */
   readonly directionIcons: readonly DirectionIconFact[]
+  /** Controls whose icon points against their role (the first 20). */
+  readonly roleIcons: readonly RoleIconFact[]
   /** Elements with the Saudi Riyal sign (the first 20). */
   readonly riyalSigns: readonly RiyalSignFact[]
   readonly compression: CompressionFact

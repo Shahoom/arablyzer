@@ -5,6 +5,7 @@ import { rule as a11yColorContrastReview } from './rules/a11y-color-contrast-rev
 import { rule as a11yImageAlt } from './rules/a11y-image-alt/rule'
 import { rule as a11yLinkName } from './rules/a11y-link-name/rule'
 import { rule as a11yValidLang } from './rules/a11y-valid-lang/rule'
+import { rule as arAiReadability } from './rules/ar-ai-readability/rule'
 import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
 import { rule as arFontMissingLetters } from './rules/ar-font-missing-letters/rule'
@@ -53,6 +54,7 @@ import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/r
 import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
 import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
+import { rule as rtlIconRole } from './rules/rtl-icon-role/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
 import { rule as safeBrowsingFlagged } from './rules/safe-browsing-flagged/rule'
@@ -84,6 +86,7 @@ export const RULES: readonly Rule[] = [
   a11yImageAlt,
   a11yLinkName,
   a11yValidLang,
+  arAiReadability,
   arDigitsMixed,
   arFontFallback,
   arFontMissingLetters,
@@ -132,6 +135,7 @@ export const RULES: readonly Rule[] = [
   rtlBidiIsolation,
   rtlHorizontalOverflow,
   rtlHtmlDir,
+  rtlIconRole,
   rtlMirroredIcons,
   rtlPhysicalCss,
   safeBrowsingFlagged,

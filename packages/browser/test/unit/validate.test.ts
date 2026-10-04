@@ -31,6 +31,7 @@ const measured = {
   fields: [],
   directionIcons: [],
   riyalSigns: [],
+  roleIcons: [],
   images: [],
   truncated: false,
 }

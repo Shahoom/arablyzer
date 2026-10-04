@@ -370,6 +370,7 @@ export function renderedFacts(
     fields: [],
     directionIcons: [],
     riyalSigns: [],
+    roleIcons: [],
     compression: { checked: 0, uncompressed: [] },
     images: [],
     a11y: null,

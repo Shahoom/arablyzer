@@ -124,6 +124,7 @@ export {
   type RenderedFacts,
   type RenderedFieldFact,
   type RiyalSignFact,
+  type RoleIconFact,
   type StylesheetsFact,
   type UncompressedTextFact,
   type UsedFont,

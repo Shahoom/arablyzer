@@ -504,6 +504,33 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(page.directionIcons[2]?.box.width).toBeLessThan(40)
   })
 
+  it('finds a control whose icon points against what it says it does, in right-to-left text', async () => {
+    const icon = 'display: inline-block; width: 12px; height: 12px'
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<a href="/2" class="next">التالي <i id="wrong" class="fa-solid fa-arrow-right" style="${icon}"></i></a>
+         <a href="/3" class="next">التالي <i class="fa-solid fa-arrow-right" style="${icon}; transform: scaleX(-1)"></i></a>
+         <a href="/4">التالي <i class="fa-solid fa-arrow-left" style="${icon}"></i></a>
+         <a href="/5" id="back">رجوع <span id="char">←</span></a>
+         <a href="/6">رجوع <i class="fa-solid fa-arrow-right" style="${icon}"></i></a>
+         <a href="/7" dir="ltr">Next <i class="fa-solid fa-arrow-right" style="${icon}"></i></a>
+         <a href="/8">اقرأ المزيد <i class="fa-solid fa-chevron-down" style="${icon}"></i></a>`,
+      ),
+    })
+    expect(page.roleIcons.map((found) => [found.selector, found.role, found.pointing])).toEqual([
+      ['#wrong', 'next', 'right'],
+      ['#char', 'prev', 'left'],
+    ])
+    // A stylesheet that sets what the class draws for right-to-left text: the class says nothing.
+    const swapped = await facts(engine, {
+      '/': arabicPage(
+        `<style>[dir='rtl'] .fa-arrow-right::before { content: 'L' }</style>
+         <a href="/2">التالي <i class="fa-solid fa-arrow-right" style="${icon}"></i></a>`,
+      ),
+    })
+    expect(swapped.roleIcons).toEqual([])
+  })
+
   it('reads the first family whole when its quoted name holds a comma (M1.1 review)', async () => {
     const page = await facts(engine, {
       '/': arabicPage(

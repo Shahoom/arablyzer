@@ -86,6 +86,18 @@ const Measured = z.strictObject({
   directionIcons: z
     .array(z.strictObject({ selector, box: Box, name: z.string().max(100) }))
     .max(MEASURE_LIMITS.maxIcons),
+  roleIcons: z
+    .array(
+      z.strictObject({
+        selector,
+        box: Box,
+        role: z.enum(['next', 'prev']),
+        pointing: z.enum(['left', 'right']),
+        name: z.string().max(100),
+        label: z.string().max(60),
+      }),
+    )
+    .max(MEASURE_LIMITS.maxRoleIcons),
   riyalSigns: z
     .array(
       z.strictObject({
@@ -207,6 +219,7 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     bidi: facts.bidi,
     fields: facts.fields,
     directionIcons: facts.directionIcons,
+    roleIcons: facts.roleIcons,
     riyalSigns: facts.riyalSigns,
     compression: context.compression ?? NO_COMPRESSION,
     images: facts.images.map((image) => {
