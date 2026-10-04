@@ -76,6 +76,33 @@ export interface UsedFont {
   readonly glyphs: number
 }
 
+/**
+ * A font file the page loaded that draws Arabic letters, and what a subset of it for the page's own
+ * Arabic text would weigh (docs/design/plans/arabic-native.md §1).
+ */
+export interface WebFontFileFact {
+  /** The @font-face family the file belongs to. */
+  readonly family: string
+  /** Redacted, as every URL in a report is. */
+  readonly url: string
+  readonly format: 'woff2' | 'woff' | 'ttf' | 'otf' | 'unknown'
+  /** The file's bytes, as the browser handed them over. */
+  readonly bytes: number
+  /** The font-weight and font-style of the rule that loads it, as written; null when it sets none. */
+  readonly weight: string | null
+  readonly style: string | null
+  /**
+   * The distinct characters of the text set in this family (the first 400), from the Arabic text
+   * blocks measured: what the page shows in it, and what the subset is made for. Empty when no
+   * measured Arabic text uses the family.
+   */
+  readonly usedCharacters: string
+  /** A WOFF2 subset of those characters, with the shaping tables, in bytes; null when none was made. */
+  readonly subsetBytes: number | null
+  /** The subset's code points as a unicode-range value; null without a subset. */
+  readonly unicodeRange: string | null
+}
+
 /** Declarations in one stylesheet that set a side by left or right. */
 export interface PhysicalCssFact {
   /** The stylesheet's URL; the page's, for its <style> elements, which count as one. */
@@ -241,6 +268,8 @@ export interface RenderedFacts {
    * loaded (the first 50 families).
    */
   readonly arabicFontCoverage: readonly WebFontCoverageFact[]
+  /** The Arabic web font files read (the first 8), each with its subset's size. */
+  readonly webFonts: readonly WebFontFileFact[]
   readonly stylesheets: StylesheetsFact
   /** Chromium only. */
   readonly usedFonts?: readonly UsedFontsFact[]

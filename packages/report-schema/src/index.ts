@@ -348,6 +348,34 @@ export const OpenPageRankFact = z
   .meta({ id: 'OpenPageRankFact' })
 export type OpenPageRankFact = z.infer<typeof OpenPageRankFact>
 
+/**
+ * The Arabic web fonts the page loaded and what a subset of each, made for the Arabic text the
+ * page shows, would weigh (rule ar-font-subset-savings and the font slimmer tool): the tool's page
+ * offers each as a download, made on request from the font's own address.
+ */
+export const ArabicFontsFact = z
+  .strictObject({
+    fonts: z
+      .array(
+        z.strictObject({
+          family: z.string().min(1).max(200),
+          url: z.string().min(1).max(2048),
+          format: z.enum(['woff2', 'woff', 'ttf', 'otf', 'unknown']),
+          bytes: count(),
+          weight: z.string().max(30).nullable(),
+          style: z.string().max(30).nullable(),
+          /** The characters of the page's text set in this family (the first 400). */
+          characters: z.string().max(1600),
+          /** Null when no subset was made: no text of the page uses the family, or the file is unreadable. */
+          subsetBytes: count().nullable(),
+          unicodeRange: z.string().max(4000).nullable(),
+        }),
+      )
+      .max(8),
+  })
+  .meta({ id: 'ArabicFontsFact' })
+export type ArabicFontsFact = z.infer<typeof ArabicFontsFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -367,6 +395,8 @@ export const Facts = z.strictObject({
   knowledgeGraph: KnowledgeGraphFact.optional(),
   /** Present when Open PageRank was asked, with a key, and listed the domain. */
   openPageRank: OpenPageRankFact.optional(),
+  /** Present when the font slimmer rule ran with a render that loaded an Arabic web font. */
+  arabicFonts: ArabicFontsFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

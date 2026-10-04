@@ -1,5 +1,6 @@
 import type {
   A11yFacts,
+  ArabicTextBlock,
   CompressionFact,
   Engine,
   FontFaceFact,
@@ -8,6 +9,7 @@ import type {
   StylesheetsFact,
   UsedFontsFact,
   WebFontCoverageFact,
+  WebFontFileFact,
 } from '@arablyzer/collectors'
 import { redactUrl } from '@arablyzer/egress'
 import { z } from 'zod'
@@ -113,6 +115,7 @@ export interface FactsContext {
   readonly a11y?: A11yFacts | null
   /** From the font files and stylesheets read after the render; none when absent. */
   readonly arabicFontCoverage?: readonly WebFontCoverageFact[]
+  readonly webFonts?: readonly WebFontFileFact[]
   readonly stylesheets?: StylesheetsFact
   readonly compression?: CompressionFact
   /** Each image file's media type and size, by URL. */
@@ -136,6 +139,29 @@ export function measuredFontFaces(measured: unknown): FontFaceFact[] {
     .loose()
     .safeParse(measured)
   return faces.success ? faces.data.fontFaces : []
+}
+
+/** The Arabic text the page script measured; none when its result is not what the script returns. */
+export function arabicTextOf(
+  measured: unknown,
+): Pick<ArabicTextBlock, 'primaryFamily' | 'text' | 'arabicCharacters'>[] {
+  const text = z
+    .strictObject({
+      arabicText: z
+        .array(
+          z
+            .strictObject({
+              primaryFamily: z.string().max(200),
+              text: z.string().max(MEASURE_LIMITS.textLength),
+              arabicCharacters: z.string().max(MEASURE_LIMITS.maxCharacters),
+            })
+            .loose(),
+        )
+        .max(MEASURE_LIMITS.maxBlocks),
+    })
+    .loose()
+    .safeParse(measured)
+  return text.success ? text.data.arabicText : []
 }
 
 /** The page script's result as RenderedFacts; throws when it is not what the script returns. */
@@ -165,6 +191,7 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     fontFacesOmitted: facts.fontFacesOmitted,
     fontRequests: context.fontRequests,
     arabicFontCoverage: context.arabicFontCoverage ?? [],
+    webFonts: context.webFonts ?? [],
     stylesheets: context.stylesheets ?? NO_STYLESHEETS,
     ...(context.usedFonts === undefined ? {} : { usedFonts: context.usedFonts }),
     bidi: facts.bidi,

@@ -94,6 +94,10 @@ export const scanEventsPath = (id: string): string => `/api/scans/${id}/events`
 export const scanPath = (id: string): string => `/api/scans/${id}`
 export const reportPath = (id: string): string => `/api/reports/${id}`
 
+/** The WOFF2 subset of one of a report's Arabic fonts, by the font's address in the report. */
+export const fontSubsetPath = (id: string, fontUrl: string): string =>
+  `/api/reports/${id}/font-subset?font=${encodeURIComponent(fontUrl)}`
+
 /**
  * Google Search Console, connected from a finished report (account-free, nothing stored): the
  * paths of its routes, the one-time result's id, and the result the report page shows.

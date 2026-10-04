@@ -9,6 +9,7 @@ import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
 import { rule as arFontMissingLetters } from './rules/ar-font-missing-letters/rule'
 import { rule as arFontNoArabic } from './rules/ar-font-no-arabic/rule'
+import { rule as arFontSubsetSavings } from './rules/ar-font-subset-savings/rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
@@ -84,6 +85,7 @@ export const RULES: readonly Rule[] = [
   arFontFallback,
   arFontMissingLetters,
   arFontNoArabic,
+  arFontSubsetSavings,
   arHtmlLang,
   arLatinPunctuation,
   arLetterSpacing,

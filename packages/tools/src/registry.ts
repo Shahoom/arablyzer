@@ -3,6 +3,7 @@ import { definition as accessibilityCheck } from './tools/accessibility-check/to
 import { definition as aiAccess } from './tools/ai-access/tool'
 import { definition as aiCrawlerCheck } from './tools/ai-crawler-check/tool'
 import { definition as arabicFontCheck } from './tools/arabic-font-check/tool'
+import { definition as arabicFontSlimmer } from './tools/arabic-font-slimmer/tool'
 import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
 import { definition as arabicPunctuationCheck } from './tools/arabic-punctuation-check/tool'
 import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/tool'
@@ -54,6 +55,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   aiAccess,
   aiCrawlerCheck,
   arabicFontCheck,
+  arabicFontSlimmer,
   arabicFormTest,
   arabicPunctuationCheck,
   arabicShapingCheck,

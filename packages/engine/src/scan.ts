@@ -686,6 +686,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...platformFacts(page, rules),
       ...knowledgeGraphFacts(knowledgeGraph),
       ...openPageRankFacts(openPageRank),
+      ...arabicFontsFacts(rendering?.rendered, rules),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
@@ -1450,6 +1451,34 @@ function platformFacts(page: PageFacts, rules: readonly Rule[]): Facts {
     platform: {
       primary: technologies.find((tech) => tech.kind === 'platform') ?? null,
       technologies,
+    },
+  }
+}
+
+/**
+ * The Arabic web fonts the render loaded with their subset sizes, from the first engine that saw
+ * any (Chromium renders first); nothing without the font slimmer rule or a font.
+ */
+function arabicFontsFacts(
+  rendered: readonly RenderedFacts[] | undefined,
+  rules: readonly Rule[],
+): Facts {
+  if (!rules.some((rule) => rule.id === 'ar-font-subset-savings')) return {}
+  const fonts = rendered?.find((facts) => facts.webFonts.length > 0)?.webFonts
+  if (fonts === undefined) return {}
+  return {
+    arabicFonts: {
+      fonts: fonts.map((font) => ({
+        family: font.family,
+        url: font.url,
+        format: font.format,
+        bytes: font.bytes,
+        weight: font.weight,
+        style: font.style,
+        characters: font.usedCharacters,
+        subsetBytes: font.subsetBytes,
+        unicodeRange: font.unicodeRange,
+      })),
     },
   }
 }

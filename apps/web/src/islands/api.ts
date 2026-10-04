@@ -1,4 +1,5 @@
 import {
+  fontSubsetPath,
   GSC_STATUS_PATH,
   gscResultPath,
   reportPath,
@@ -104,4 +105,23 @@ export async function fetchGscResult(
     Array.isArray(value.countries)
     ? { ok: true, value: value as GscResult }
     : { ok: false, reason: 'offline' }
+}
+
+export type FontDownload =
+  | { readonly ok: true; readonly blob: Blob }
+  | { readonly ok: false; readonly reason: 'limited' | 'failed' }
+
+/** A WOFF2 subset of one of the report's Arabic fonts, made by the API on this request. */
+export async function fetchFontSubset(
+  id: string,
+  fontUrl: string,
+  send: typeof fetch = fetch,
+): Promise<FontDownload> {
+  try {
+    const response = await send(fontSubsetPath(id, fontUrl), { credentials: 'omit' })
+    if (!response.ok) return { ok: false, reason: response.status === 429 ? 'limited' : 'failed' }
+    return { ok: true, blob: await response.blob() }
+  } catch {
+    return { ok: false, reason: 'failed' }
+  }
 }

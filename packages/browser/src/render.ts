@@ -56,7 +56,7 @@ import {
   type PageRequests,
   type RequestBudget,
 } from './requests'
-import { measuredFontFaces, toFacts } from './validate'
+import { arabicTextOf, measuredFontFaces, toFacts } from './validate'
 
 /** BUILD-PLAN §11: 30 s for the page load, 20 s for each further engine. */
 export const RENDER_TIMEOUT_MS = 30_000
@@ -580,6 +580,8 @@ async function renderWith(
     files,
     measuredFontFaces(measured),
     Math.min(deadline, performance.now() + FILES_CAP_MS),
+    undefined,
+    arabicTextOf(measured),
   ).catch(() => undefined)
   // Used fonts only explain font findings; without them those rules stay silent.
   const usedFonts =

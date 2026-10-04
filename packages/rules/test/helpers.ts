@@ -363,6 +363,7 @@ export function renderedFacts(
     fontFacesOmitted: 0,
     fontRequests: [],
     arabicFontCoverage: [],
+    webFonts: [],
     stylesheets: { read: 0, unread: 0, physical: [] },
     ...(engine === 'chromium' ? { usedFonts: [] } : {}),
     bidi: [],

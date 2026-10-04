@@ -49,6 +49,13 @@ export {
   type TextAlternative,
 } from './html'
 export { fontCoverage, MAX_FONT_DATA } from './font-coverage'
+export {
+  MAX_SUBSET_INPUT,
+  subsetCharacters,
+  subsetFont,
+  unicodeRangeOf,
+  type FontSubset,
+} from './font-subset'
 export { collectPageIsolated, ISOLATED_HEAP_MB, type IsolatedOptions } from './isolated'
 export { MAX_TEXT_ALTERNATIVES } from './html'
 export { parseLinkHeader, type LinkHeaderEntry } from './link-header'
@@ -99,6 +106,7 @@ export {
   type UncompressedTextFact,
   type UsedFont,
   type UsedFontsFact,
+  type WebFontFileFact,
 } from './rendered'
 export {
   collectRobots,

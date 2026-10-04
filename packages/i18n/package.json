@@ -15,7 +15,8 @@
     "./pages": "./src/pages.ts",
     "./guides": "./src/guides.ts",
     "./knowledge": "./src/knowledge.ts",
-    "./tool-app": "./src/tool-app.ts"
+    "./tool-app": "./src/tool-app.ts",
+    "./native": "./src/native.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

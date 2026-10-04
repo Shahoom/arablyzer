@@ -43,6 +43,7 @@ function facts(engine: RenderedFacts['engine']): RenderedFacts {
     fontFacesOmitted: 0,
     fontRequests: [],
     arabicFontCoverage: [],
+    webFonts: [],
     stylesheets: { read: 0, unread: 0, physical: [] },
     bidi: [],
     fields: [],
