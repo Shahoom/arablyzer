@@ -35,6 +35,10 @@ export {
   type PdfIssue,
   type PdfIssueKind,
   type PdfOutcome,
+  type SpellingKind,
+  type SuggestFacts,
+  type SuggestTerm,
+  type SuggestVariant,
   type LookalikeFound,
   type LookalikeKind,
 } from './outside'

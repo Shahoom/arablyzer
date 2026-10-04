@@ -48,12 +48,7 @@ export type LookalikeFacts =
   | { readonly outcome: 'failed'; readonly domain: string; readonly candidates: number }
 
 export type PdfIssueKind =
-  | 'reversed'
-  | 'presentation-forms'
-  | 'no-unicode-map'
-  | 'image-only'
-  | 'no-title'
-  | 'no-language'
+  'reversed' | 'presentation-forms' | 'no-unicode-map' | 'image-only' | 'no-title' | 'no-language'
 
 export interface PdfIssue {
   readonly kind: PdfIssueKind
@@ -64,13 +59,7 @@ export interface PdfIssue {
 }
 
 export type PdfOutcome =
-  | 'read'
-  | 'robots'
-  | 'too-large'
-  | 'not-pdf'
-  | 'encrypted'
-  | 'unreadable'
-  | 'failed'
+  'read' | 'robots' | 'too-large' | 'not-pdf' | 'encrypted' | 'unreadable' | 'failed'
 
 export interface PdfFile {
   readonly url: string
@@ -90,6 +79,41 @@ export interface PdfFacts {
   readonly files: readonly PdfFile[]
 }
 
+export type SpellingKind = 'ta-marbuta' | 'hamza' | 'ya' | 'arabizi' | 'drop' | 'swap'
+
+export interface SuggestVariant {
+  readonly text: string
+  readonly kind: SpellingKind
+  /** Google's suggestions show people type it; null where it was not asked (the budget ran out). */
+  readonly typed: boolean | null
+  /** The first suggestion that starts with the variant; null for none. */
+  readonly suggestion: string | null
+  /** The page writes the variant as a word. */
+  readonly covered: boolean
+}
+
+export interface SuggestTerm {
+  readonly term: string
+  /** The page writes the term itself. */
+  readonly written: boolean
+  readonly variants: readonly SuggestVariant[]
+}
+
+/**
+ * Google's suggestions for the misspellings of the page's key terms (docs/design/plans/
+ * arabic-native.md §12). `no-terms`: the page has no Arabic word to make misspellings of. `stopped`:
+ * Google stopped answering before the budget was spent, so later variants were not asked.
+ */
+export type SuggestFacts =
+  | {
+      readonly outcome: 'checked'
+      readonly calls: number
+      readonly stopped: boolean
+      readonly terms: readonly SuggestTerm[]
+    }
+  | { readonly outcome: 'no-terms' }
+  | { readonly outcome: 'failed' }
+
 /**
  * What the tools that ask other services collected, each under the key of its collector. A key is
  * missing where the feature was not asked for (not named by the scan, or off without its key).
@@ -97,4 +121,5 @@ export interface PdfFacts {
 export interface OutsideFacts {
   readonly lookalikes?: LookalikeFacts
   readonly pdfs?: PdfFacts
+  readonly suggest?: SuggestFacts
 }

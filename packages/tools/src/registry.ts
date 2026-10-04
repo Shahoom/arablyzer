@@ -11,6 +11,7 @@ import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/t
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
 import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
+import { definition as commonMisspellings } from './tools/common-misspellings/tool'
 import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
 import { definition as countryFit } from './tools/country-fit/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
@@ -68,6 +69,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   bidiIsolationCheck,
   brokenLinks,
   canonicalCheck,
+  commonMisspellings,
   coreWebVitals,
   countryFit,
   digitsConsistency,

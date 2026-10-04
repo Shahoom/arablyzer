@@ -9,6 +9,7 @@ import type { CollectorId } from './rule'
 export const OUTSIDE: Readonly<Partial<Record<CollectorId, keyof OutsideFacts>>> = {
   lookalikes: 'lookalikes',
   pdfs: 'pdfs',
+  suggest: 'suggest',
 }
 
 /**

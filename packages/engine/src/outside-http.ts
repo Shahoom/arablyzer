@@ -95,6 +95,10 @@ export class TtlCache<T> {
     return entry.value
   }
 
+  clear(): void {
+    this.entries.clear()
+  }
+
   set(key: string, value: T): void {
     if (this.entries.size >= this.max) {
       const oldest = this.entries.keys().next().value

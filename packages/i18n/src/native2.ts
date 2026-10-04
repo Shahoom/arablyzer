@@ -46,6 +46,23 @@ export interface Native2Strings {
     readonly ct: Readonly<Record<'partial' | 'unavailable', string>>
     readonly note: string
   }
+  readonly suggest: {
+    readonly title: string
+    readonly summary: (typed: number, uncovered: number, calls: number) => string
+    readonly term: string
+    readonly written: string
+    readonly notWritten: string
+    readonly kinds: Readonly<
+      Record<'ta-marbuta' | 'hamza' | 'ya' | 'arabizi' | 'drop' | 'swap', string>
+    >
+    readonly typed: string
+    readonly notTyped: string
+    readonly notAsked: string
+    readonly covered: string
+    readonly uncovered: string
+    readonly stopped: string
+    readonly note: string
+  }
   readonly pdfs: {
     readonly title: string
     readonly summary: (read: number, linked: number) => string
@@ -140,6 +157,29 @@ export const NATIVE2: Copy<Native2Strings> = {
         unavailable: 'لم يردّ سجلّ الشهادات (crt.sh)، فلا تواريخ شهادات هنا.',
       },
       note: 'أسماء نولّدها بقواعد ثابتة ونسأل عنها DNS عبر HTTPS؛ لا نفتح أي موقع منها، وقد يكون المسجَّل لصاحب مشروع بريء.',
+    },
+    suggest: {
+      title: 'أخطاء البحث الشائعة في كلماتك',
+      summary: (typed, uncovered, calls) =>
+        `يكتب الناس ${String(typed)} من الأخطاء، ولا تكتب صفحتك ${String(uncovered)} منها (${String(calls)} طلبات إلى جوجل)`,
+      term: 'الكلمة',
+      written: 'تكتبها صفحتك',
+      notWritten: 'لا تكتبها صفحتك',
+      kinds: {
+        'ta-marbuta': 'تاء مربوطة/هاء',
+        hamza: 'همزة',
+        ya: 'ألف مقصورة/ياء',
+        arabizi: 'أرابيزي',
+        drop: 'حرف محذوف',
+        swap: 'حرفان مبدَّلان',
+      },
+      typed: 'يكتبه الناس',
+      notTyped: 'لا يظهر في الاقتراحات',
+      notAsked: 'لم نسأل عنه',
+      covered: 'في صفحتك',
+      uncovered: 'ليس في صفحتك',
+      stopped: 'توقفت جوجل عن الردّ، فلم نسأل عن بعض الصيغ.',
+      note: 'نعدّ الصيغة مما يكتبه الناس إن بدأ بها أحد اقتراحات جوجل التلقائية. معلومة لا تُخصم من درجتك.',
     },
     pdfs: {
       title: 'ملفات PDF في الصفحة',
@@ -282,6 +322,29 @@ export const NATIVE2: Copy<Native2Strings> = {
           'The certificate log (crt.sh) did not answer, so there are no certificate dates here.',
       },
       note: 'Names we make by fixed rules and ask DNS over HTTPS about; we open none of these sites, and a registered name may belong to an innocent business.',
+    },
+    suggest: {
+      title: 'Common search misspellings of your words',
+      summary: (typed, uncovered, calls) =>
+        `People type ${String(typed)} of the misspellings, and your page does not write ${String(uncovered)} of them (${String(calls)} requests to Google)`,
+      term: 'Word',
+      written: 'your page writes it',
+      notWritten: 'your page does not write it',
+      kinds: {
+        'ta-marbuta': 'ta marbuta / ha',
+        hamza: 'hamza',
+        ya: 'alef maqsura / ya',
+        arabizi: 'Arabizi',
+        drop: 'a letter dropped',
+        swap: 'two letters swapped',
+      },
+      typed: 'people type it',
+      notTyped: 'not in the suggestions',
+      notAsked: 'not asked about',
+      covered: 'on your page',
+      uncovered: 'not on your page',
+      stopped: 'Google stopped answering, so some forms were not asked about.',
+      note: 'A form counts as typed when one of Google’s autocomplete suggestions begins with it. Information, never deducted from your score.',
     },
     pdfs: {
       title: 'PDFs on the page',

@@ -50,6 +50,10 @@ export type NoticeCode =
   | 'lookalikes-ct'
   | 'pdfs-none'
   | 'pdfs-unread'
+  | 'suggest-off'
+  | 'suggest-no-terms'
+  | 'suggest-failed'
+  | 'suggest-stopped'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -319,6 +323,22 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'pdfs-unread': {
     ar: 'لم نستطع قراءة بعض ملفات PDF المرتبطة بالصفحة: يمنعنا robots.txt من جلبها، أو أكبر من 15 ميغابايت، أو مشفَّرة، أو ليست PDF، أو لم يردّ الخادم. تجد السبب بجانب كل ملف.',
     en: 'Some PDFs the page links could not be read: robots.txt keeps us from fetching them, they are over 15 MB, they are encrypted, they are not PDFs, or the server did not answer. The reason is beside each file.',
+  },
+  'suggest-off': {
+    ar: 'فحص أخطاء البحث الشائعة مطفأ في هذا الخادم: يسأل نقطة الاقتراحات العامة لدى جوجل، وهي غير موثَّقة للاستعمال الآلي، فلا يفعّلها إلا المشغِّل (ARABLYZER_SUGGEST=1).',
+    en: 'The common search misspellings check is off on this server: it asks Google’s public suggestion endpoint, which is not documented for automated use, so only the operator turns it on (ARABLYZER_SUGGEST=1).',
+  },
+  'suggest-no-terms': {
+    ar: 'لم نجد في عنوان h1 ولا في عنوان الصفحة كلمات عربية رئيسية نولّد أخطاءها، فلم نختبر شيئاً.',
+    en: 'We found no Arabic key words in the h1 or the title to make misspellings of, so nothing was tested.',
+  },
+  'suggest-failed': {
+    ar: 'لم تردّ نقطة الاقتراحات لدى جوجل بجواب نقرؤه، فلا نعرف أي الأخطاء يكتبها الناس.',
+    en: 'Google’s suggestion endpoint gave no answer we could read, so we do not know which misspellings people type.',
+  },
+  'suggest-stopped': {
+    ar: 'توقفت نقطة الاقتراحات عن الردّ في منتصف الفحص، فلم نسأل عن بعض الأخطاء.',
+    en: 'The suggestion endpoint stopped answering part-way, so some misspellings were not asked about.',
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

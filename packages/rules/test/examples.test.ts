@@ -21,6 +21,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'knowledge-graph-entity': "Google's Knowledge Graph, not the page",
   'payment-methods': 'nothing: it lists the payment methods the page shows, as information',
   'platform-detected': 'nothing: it lists the platform and plugins a page shows, as information',
+  'misspellings-uncovered': 'what people type in Google’s suggestions, not the page',
   'pdf-arabic-text': 'the PDF files the page links, not the page',
   'pdf-metadata': 'the PDF files the page links, not the page',
   'redirect-chain': 'the redirects before the page, which no excerpt shows',

@@ -1,4 +1,10 @@
-import type { LookalikeFacts, OutsideFacts, PageFacts, PdfFacts } from '@arablyzer/collectors'
+import type {
+  LookalikeFacts,
+  OutsideFacts,
+  PageFacts,
+  PdfFacts,
+  SuggestFacts,
+} from '@arablyzer/collectors'
 import { type SafeFetchOptions } from '@arablyzer/egress'
 import type { Notice } from '@arablyzer/report-schema'
 import type { Facts } from '@arablyzer/report-schema'
@@ -8,6 +14,7 @@ import { notice } from './notices'
 import { askVia, type Ask } from './outside-http'
 import { checkPdfs, PDFS_TOTAL_MS } from './pdfs'
 import type { PdfExtract } from './pdf-read'
+import { askSuggest, SUGGEST_TOTAL_MS, type SuggestOptions } from './suggest'
 import { budget } from './timeout'
 
 /**
@@ -20,12 +27,18 @@ export interface OutsideOptions {
    * Tests give a stand-in so that no service is ever called.
    */
   readonly ask?: Ask
+  /**
+   * Google's public suggest endpoint, for the misspellings tool: present only when the operator
+   * switched it on (ARABLYZER_SUGGEST=1). Without it the rule does not apply and a notice says why.
+   */
+  readonly suggest?: SuggestOptions
   /** Makes the pauses short, and fixes "now"; tests only. */
   readonly test?: {
     readonly now?: () => number
     readonly ctEndpoint?: string
     readonly ctGapMs?: number
     readonly dnsGapMs?: number
+    readonly suggestGapMs?: number
     /** Reads a PDF without the thread. */
     readonly read?: (data: Uint8Array) => Promise<PdfExtract | null>
   }
@@ -106,10 +119,31 @@ export async function runOutside(context: OutsideContext): Promise<OutsideRun> {
       notices.push(notice('pdfs-unread'))
     }
   }
+  let suggest: SuggestFacts | undefined
+  if (needs(rules, 'suggest') && context.reached && context.page.html !== null) {
+    if (options?.suggest === undefined) notices.push(notice('suggest-off'))
+    else {
+      const limit = budget(SUGGEST_TOTAL_MS, context.signal)
+      try {
+        suggest = await askSuggest(context.page, {
+          ask,
+          options: options.suggest,
+          signal: limit.signal,
+          ...(options.test?.suggestGapMs === undefined ? {} : { gapMs: options.test.suggestGapMs }),
+        })
+      } finally {
+        limit.stop()
+      }
+      if (suggest.outcome === 'no-terms') notices.push(notice('suggest-no-terms'))
+      else if (suggest.outcome === 'failed') notices.push(notice('suggest-failed'))
+      else if (suggest.stopped) notices.push(notice('suggest-stopped'))
+    }
+  }
   return {
     collected: {
       ...(lookalikes === undefined ? {} : { lookalikes }),
       ...(pdfs === undefined ? {} : { pdfs }),
+      ...(suggest === undefined ? {} : { suggest }),
     },
     notices,
   }
@@ -138,6 +172,18 @@ export function outsideFacts(collected: OutsideFacts, rules: readonly Rule[]): F
       files: pdfs.files.map((file) => ({
         ...file,
         issues: file.issues.map((issue) => ({ ...issue })),
+      })),
+    }
+  }
+  const { suggest } = collected
+  if (suggest?.outcome === 'checked' && rules.some((rule) => rule.needs.includes('suggest'))) {
+    facts.suggest = {
+      calls: suggest.calls,
+      stopped: suggest.stopped,
+      terms: suggest.terms.map((term) => ({
+        term: term.term,
+        written: term.written,
+        variants: term.variants.map((variant) => ({ ...variant })),
       })),
     }
   }

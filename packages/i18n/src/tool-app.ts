@@ -72,6 +72,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       reads: 'يقرأ:',
       rendersIn: 'يعرض الصفحة في:',
       sentOut: {
+        'common-misspellings':
+          'نرسل إلى نقطة الاقتراحات العامة لدى جوجل (suggestqueries.google.com) كلماتك الرئيسية بأخطائها الإملائية الشائعة، 12 طلباً على الأكثر، واحداً بعد واحد، باسم ArablyzerBot. وهي نقطة غير موثَّقة للاستعمال الآلي، فلا تعمل إلا إذا فعّلها مشغِّل الخادم.',
         'pdf-forensics':
           'نجلب حتى 3 ملفات PDF مرتبطة بالصفحة، واحداً بعد واحد، باسم ArablyzerBot وبعد أن نقرأ robots.txt لموقع كل ملف؛ وقد يكون بعضها على موقع غير موقعك. تظهر طلباتنا في سجلات ذلك الموقع.',
         'lookalike-domains':
@@ -134,6 +136,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       reads: 'Reads:',
       rendersIn: 'Renders the page in:',
       sentOut: {
+        'common-misspellings':
+          'We send Google’s public suggestion endpoint (suggestqueries.google.com) your main words in their common misspellings, 12 requests at most, one at a time, as ArablyzerBot. That endpoint is not documented for automated use, so this runs only if the server’s operator turned it on.',
         'pdf-forensics':
           'We fetch up to 3 PDFs the page links, one at a time, as ArablyzerBot and after reading the robots.txt of each file’s site; some may be on a site that is not yours. Our requests show in that site’s logs.',
         'lookalike-domains':

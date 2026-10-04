@@ -590,7 +590,15 @@ export const PdfFact = z
       .array(
         z.strictObject({
           url: z.string().min(1).max(2048),
-          outcome: z.enum(['read', 'robots', 'too-large', 'not-pdf', 'encrypted', 'unreadable', 'failed']),
+          outcome: z.enum([
+            'read',
+            'robots',
+            'too-large',
+            'not-pdf',
+            'encrypted',
+            'unreadable',
+            'failed',
+          ]),
           bytes: count(),
           pages: count(),
           pagesRead: count(),
@@ -618,6 +626,39 @@ export const PdfFact = z
   })
   .meta({ id: 'PdfFact' })
 export type PdfFact = z.infer<typeof PdfFact>
+
+/**
+ * Which misspellings of the page's key terms people type, by Google's suggestions, and which the
+ * page writes (tool common-misspellings, rule misspellings-uncovered). `typed` is null for a
+ * variant that was not asked about, `stopped` when Google stopped answering before the budget of
+ * calls was spent.
+ */
+export const SuggestFact = z
+  .strictObject({
+    calls: count(),
+    stopped: z.boolean(),
+    terms: z
+      .array(
+        z.strictObject({
+          term: z.string().min(1).max(60),
+          written: z.boolean(),
+          variants: z
+            .array(
+              z.strictObject({
+                text: z.string().min(1).max(60),
+                kind: z.enum(['ta-marbuta', 'hamza', 'ya', 'arabizi', 'drop', 'swap']),
+                typed: z.boolean().nullable(),
+                suggestion: z.string().max(200).nullable(),
+                covered: z.boolean(),
+              }),
+            )
+            .max(20),
+        }),
+      )
+      .max(3),
+  })
+  .meta({ id: 'SuggestFact' })
+export type SuggestFact = z.infer<typeof SuggestFact>
 
 /**
  * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
@@ -696,6 +737,8 @@ export const Facts = z.strictObject({
   aiTraining: AiTrainingFact.optional(),
   /** Present when the look-alike domains tool ran and DNS answered. */
   lookalikes: LookalikeFact.optional(),
+  /** Present when the misspellings tool ran, was switched on, and Google answered. */
+  suggest: SuggestFact.optional(),
   /** Present when the PDF tool ran on a page that links PDFs. */
   pdfs: PdfFact.optional(),
   /** Present when a scan asked for the Arabic X-ray and an engine counted Arabic words. */

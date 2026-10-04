@@ -43,6 +43,7 @@ import { rule as knowledgeGraphEntity } from './rules/knowledge-graph-entity/rul
 import { rule as linkBroken } from './rules/link-broken/rule'
 import { rule as lookalikeDomains } from './rules/lookalike-domains/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
+import { rule as misspellingsUncovered } from './rules/misspellings-uncovered/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
@@ -130,6 +131,7 @@ export const RULES: readonly Rule[] = [
   linkBroken,
   lookalikeDomains,
   metaDescriptionMissing,
+  misspellingsUncovered,
   mixedContent,
   ogTagsMissing,
   pageNoindex,
@@ -200,6 +202,14 @@ export { brandName, type Brand } from './lib/brand'
 export { xrayFamilies } from './lib/missing-letters'
 export { FINEWEB2, readTraining, trainingText, type FilterCheck } from './lib/ai-training'
 export { OUTSIDE, TOOL_ONLY } from './outside'
+export {
+  KIND_ORDER,
+  keyTerms,
+  misspellings,
+  pageWords,
+  writes,
+  type Spelling,
+} from './lib/spelling-variants'
 export { arabicWords, normalizeArabic } from './lib/ar-normalize'
 export { dialectOfPage, fitsCountry, readDialect, type Dialect, type Variety } from './lib/dialect'
 export { isMostlyArabic } from './lib/arabic'
