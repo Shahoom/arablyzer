@@ -120,11 +120,16 @@ describe('GET /api/reports/:id/font-subset', () => {
   })
 
   it('limits how often one visitor asks', async () => {
-    const { seed, get } = setup()
+    // The font is unavailable each time: the limit counts asks, and no subset (WebAssembly) is
+    // made, so the loop takes no time that a slow machine could stretch past the test's own.
+    const { seed, get } = setup({ status: 404, body: new Uint8Array() })
     await seed()
     const statuses: number[] = []
     for (let i = 0; i < DEVELOPMENT_LIMITS.attempts.scans + 2; i++)
       statuses.push((await get()).status)
-    expect(statuses.at(-1)).toBe(429)
+    expect(statuses.slice(0, DEVELOPMENT_LIMITS.attempts.scans)).toEqual(
+      Array(DEVELOPMENT_LIMITS.attempts.scans).fill(502),
+    )
+    expect(statuses.slice(DEVELOPMENT_LIMITS.attempts.scans)).toEqual([429, 429])
   })
 })

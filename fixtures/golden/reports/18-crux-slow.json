@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.6.0"
+    "rulesetVersion": "0.8.0"
   },
   "target": {
     "url": "http://127.0.0.1:30018/",
@@ -59,21 +59,21 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 22,
-    "fail": 2,
+    "pass": 26,
+    "fail": 4,
     "needsReview": 0,
-    "notApplicable": 37,
+    "notApplicable": 39,
     "error": 0,
     "bySeverity": {
-      "critical": 0,
+      "critical": 1,
       "serious": 2,
       "moderate": 0,
       "minor": 0,
-      "info": 0
+      "info": 1
     }
   },
   "score": {
-    "overall": 89,
+    "overall": 81,
     "categories": {
       "ai": 100,
       "ar-content": 100,
@@ -84,16 +84,17 @@
       "index": 100,
       "intl": 100,
       "links": null,
+      "locale": null,
       "onpage": 100,
       "rtl": 100,
       "schema": null,
       "speed": 44,
-      "trust": 100
+      "trust": 33
     },
     "partial": false,
     "rules": {
-      "ran": 61,
-      "total": 61
+      "ran": 69,
+      "total": 70
     }
   },
   "rules": [
@@ -183,6 +184,17 @@
       }
     },
     {
+      "id": "ar-ai-readability",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "نص عربي تقرؤه الآلات قراءة سيئة",
+        "en": "Arabic text that machines read badly"
+      }
+    },
+    {
       "id": "ar-digits-mixed",
       "version": "1.0.0",
       "category": "ar-content",
@@ -224,6 +236,17 @@
       "title": {
         "ar": "خط ويب بلا حروف عربية",
         "en": "Web font without Arabic letters"
+      }
+    },
+    {
+      "id": "ar-font-subset-savings",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خط عربي يحمل أكثر بكثير مما تعرضه الصفحة",
+        "en": "Arabic font carries much more than the page shows"
       }
     },
     {
@@ -304,6 +327,17 @@
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
+      }
+    },
+    {
+      "id": "country-fit",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "ملاءمة البلد",
+        "en": "Country fit"
       }
     },
     {
@@ -497,6 +531,17 @@
       }
     },
     {
+      "id": "knowledge-graph-entity",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "fail",
+      "title": {
+        "ar": "العلامة في Knowledge Graph من Google",
+        "en": "Brand in Google's Knowledge Graph"
+      }
+    },
+    {
       "id": "link-broken",
       "version": "1.0.0",
       "category": "links",
@@ -560,6 +605,17 @@
       "title": {
         "ar": "طرق الدفع الخليجية في الصفحة",
         "en": "Gulf payment methods on the page"
+      }
+    },
+    {
+      "id": "platform-detected",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "المنصة التي يعمل عليها الموقع",
+        "en": "Platform detected"
       }
     },
     {
@@ -673,6 +729,17 @@
       }
     },
     {
+      "id": "rtl-icon-role",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "أيقونة تشير عكس وظيفة زرّها",
+        "en": "An icon that points against its button"
+      }
+    },
+    {
       "id": "rtl-mirrored-icons",
       "version": "1.0.0",
       "category": "rtl",
@@ -692,6 +759,28 @@
       "title": {
         "ar": "CSS يحدد الجهات باليمين واليسار",
         "en": "CSS that sets sides by left and right"
+      }
+    },
+    {
+      "id": "safe-browsing-flagged",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "status": "fail",
+      "title": {
+        "ar": "Google Safe Browsing يصنّف الموقع خطراً",
+        "en": "Google Safe Browsing flags the site"
+      }
+    },
+    {
+      "id": "sar-sign-font",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "علامة الريال السعودي ناقصة من خط الصفحة",
+        "en": "Saudi Riyal sign missing from the page's font"
       }
     },
     {
@@ -799,6 +888,21 @@
   ],
   "findings": [
     {
+      "ruleId": "safe-browsing-flagged",
+      "severity": "critical",
+      "fingerprint": "ce9fed2f6ec27ec4",
+      "message": {
+        "ar": "يدرج Google Safe Browsing هذا الموقع بين المواقع التي تنشر برمجيات خبيثة (http://127.0.0.1:30018/).",
+        "en": "Google Safe Browsing lists this site as distributing malware (http://127.0.0.1:30018/)."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30018/",
+        "values": {
+          "url": "http://127.0.0.1:30018/"
+        }
+      }
+    },
+    {
       "ruleId": "cwv-inp-poor",
       "severity": "serious",
       "fingerprint": "3a607a55290a8017",
@@ -831,6 +935,26 @@
           "limit": 4,
           "first": "2026-08-30",
           "last": "2026-09-26"
+        }
+      }
+    },
+    {
+      "ruleId": "knowledge-graph-entity",
+      "severity": "info",
+      "fingerprint": "c5930e1e0804ef11",
+      "message": {
+        "ar": "يعرف Knowledge Graph من Google «العروض الكبرى» (سألنا بـ ar)، للعلامة «العروض الكبرى». الأنواع: Organization. الوصف: . ويكيبيديا: .",
+        "en": "Google's Knowledge Graph knows “العروض الكبرى” (asked in ar), for the brand “العروض الكبرى”. Types: Organization. Description: . Wikipedia: ."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30018/",
+        "values": {
+          "brand": "العروض الكبرى",
+          "name": "العروض الكبرى",
+          "lang": "ar",
+          "types": "Organization",
+          "description": "",
+          "wikipedia": ""
         }
       }
     }
@@ -898,6 +1022,33 @@
       "lcp": 5200,
       "inp": 650,
       "cls": 0.05
+    },
+    "platform": {
+      "primary": null,
+      "technologies": []
+    },
+    "knowledgeGraph": {
+      "outcome": "known",
+      "brand": "العروض الكبرى",
+      "entities": [
+        {
+          "lang": "ar",
+          "name": "العروض الكبرى",
+          "types": [
+            "Organization"
+          ],
+          "description": null,
+          "wikipediaUrl": null
+        }
+      ]
+    },
+    "countryFit": {
+      "country": null,
+      "confidence": "unclear",
+      "percent": null,
+      "judged": 0,
+      "signals": [],
+      "items": []
     }
   }
 }

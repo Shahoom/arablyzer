@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.6.0"
+    "rulesetVersion": "0.8.0"
   },
   "target": {
     "url": "http://127.0.0.1:30019/",
@@ -19,7 +19,22 @@
   "scan": {
     "status": "complete",
     "durationMs": 0,
-    "notices": [],
+    "notices": [
+      {
+        "code": "knowledge-graph-no-key",
+        "message": {
+          "ar": "فحص حضور العلامة في Knowledge Graph من Google يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.",
+          "en": "The check of the brand in Google's Knowledge Graph needs a key this scan was not given, so it did not run."
+        }
+      },
+      {
+        "code": "safe-browsing-no-key",
+        "message": {
+          "ar": "فحص قوائم Google للتصفح الآمن (Safe Browsing) يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.",
+          "en": "The check against Google's Safe Browsing lists needs a key this scan was not given, so it did not run."
+        }
+      }
+    ],
     "render": [
       {
         "engine": "chromium",
@@ -59,10 +74,10 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 23,
+    "pass": 27,
     "fail": 1,
     "needsReview": 0,
-    "notApplicable": 37,
+    "notApplicable": 41,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -84,6 +99,7 @@
       "index": 100,
       "intl": 100,
       "links": null,
+      "locale": null,
       "onpage": 100,
       "rtl": 100,
       "schema": null,
@@ -92,8 +108,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 61,
-      "total": 61
+      "ran": 69,
+      "total": 70
     }
   },
   "rules": [
@@ -183,6 +199,17 @@
       }
     },
     {
+      "id": "ar-ai-readability",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "نص عربي تقرؤه الآلات قراءة سيئة",
+        "en": "Arabic text that machines read badly"
+      }
+    },
+    {
       "id": "ar-digits-mixed",
       "version": "1.0.0",
       "category": "ar-content",
@@ -224,6 +251,17 @@
       "title": {
         "ar": "خط ويب بلا حروف عربية",
         "en": "Web font without Arabic letters"
+      }
+    },
+    {
+      "id": "ar-font-subset-savings",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خط عربي يحمل أكثر بكثير مما تعرضه الصفحة",
+        "en": "Arabic font carries much more than the page shows"
       }
     },
     {
@@ -304,6 +342,17 @@
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
+      }
+    },
+    {
+      "id": "country-fit",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "ملاءمة البلد",
+        "en": "Country fit"
       }
     },
     {
@@ -497,6 +546,17 @@
       }
     },
     {
+      "id": "knowledge-graph-entity",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "not-applicable",
+      "title": {
+        "ar": "العلامة في Knowledge Graph من Google",
+        "en": "Brand in Google's Knowledge Graph"
+      }
+    },
+    {
       "id": "link-broken",
       "version": "1.0.0",
       "category": "links",
@@ -560,6 +620,17 @@
       "title": {
         "ar": "طرق الدفع الخليجية في الصفحة",
         "en": "Gulf payment methods on the page"
+      }
+    },
+    {
+      "id": "platform-detected",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "المنصة التي يعمل عليها الموقع",
+        "en": "Platform detected"
       }
     },
     {
@@ -673,6 +744,17 @@
       }
     },
     {
+      "id": "rtl-icon-role",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "أيقونة تشير عكس وظيفة زرّها",
+        "en": "An icon that points against its button"
+      }
+    },
+    {
       "id": "rtl-mirrored-icons",
       "version": "1.0.0",
       "category": "rtl",
@@ -692,6 +774,28 @@
       "title": {
         "ar": "CSS يحدد الجهات باليمين واليسار",
         "en": "CSS that sets sides by left and right"
+      }
+    },
+    {
+      "id": "safe-browsing-flagged",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "status": "not-applicable",
+      "title": {
+        "ar": "Google Safe Browsing يصنّف الموقع خطراً",
+        "en": "Google Safe Browsing flags the site"
+      }
+    },
+    {
+      "id": "sar-sign-font",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "علامة الريال السعودي ناقصة من خط الصفحة",
+        "en": "Saudi Riyal sign missing from the page's font"
       }
     },
     {
@@ -880,6 +984,18 @@
       "lcp": 2100,
       "inp": 180,
       "cls": 0.31
+    },
+    "platform": {
+      "primary": null,
+      "technologies": []
+    },
+    "countryFit": {
+      "country": null,
+      "confidence": "unclear",
+      "percent": null,
+      "judged": 0,
+      "signals": [],
+      "items": []
     }
   }
 }

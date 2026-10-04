@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.6.0"
+    "rulesetVersion": "0.8.0"
   },
   "target": {
     "url": "https://store.example:30001/",
@@ -35,7 +35,7 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 36,
+    "pass": 41,
     "fail": 0,
     "needsReview": 0,
     "notApplicable": 6,
@@ -59,6 +59,7 @@
       "index": 100,
       "intl": 100,
       "links": null,
+      "locale": null,
       "onpage": 100,
       "rtl": 100,
       "schema": 100,
@@ -67,11 +68,22 @@
     },
     "partial": false,
     "rules": {
-      "ran": 42,
-      "total": 61
+      "ran": 47,
+      "total": 70
     }
   },
   "rules": [
+    {
+      "id": "ar-ai-readability",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "نص عربي تقرؤه الآلات قراءة سيئة",
+        "en": "Arabic text that machines read badly"
+      }
+    },
     {
       "id": "ar-digits-mixed",
       "version": "1.0.0",
@@ -150,6 +162,17 @@
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
+      }
+    },
+    {
+      "id": "country-fit",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "ملاءمة البلد",
+        "en": "Country fit"
       }
     },
     {
@@ -296,6 +319,17 @@
       }
     },
     {
+      "id": "knowledge-graph-entity",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "العلامة في Knowledge Graph من Google",
+        "en": "Brand in Google's Knowledge Graph"
+      }
+    },
+    {
       "id": "link-broken",
       "version": "1.0.0",
       "category": "links",
@@ -359,6 +393,17 @@
       "title": {
         "ar": "طرق الدفع الخليجية في الصفحة",
         "en": "Gulf payment methods on the page"
+      }
+    },
+    {
+      "id": "platform-detected",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "المنصة التي يعمل عليها الموقع",
+        "en": "Platform detected"
       }
     },
     {
@@ -447,6 +492,17 @@
       "title": {
         "ar": "صفحة عربية بلا dir=\"rtl\" في وسم html",
         "en": "Arabic page without dir=\"rtl\" on the html element"
+      }
+    },
+    {
+      "id": "safe-browsing-flagged",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "status": "pass",
+      "title": {
+        "ar": "Google Safe Browsing يصنّف الموقع خطراً",
+        "en": "Google Safe Browsing flags the site"
       }
     },
     {
@@ -605,6 +661,50 @@
       "lcp": 2100,
       "inp": 180,
       "cls": 0.05
+    },
+    "platform": {
+      "primary": null,
+      "technologies": []
+    },
+    "knowledgeGraph": {
+      "outcome": "unknown",
+      "brand": "بخور العود الملكي",
+      "entities": []
+    },
+    "countryFit": {
+      "country": "OM",
+      "confidence": "thin",
+      "percent": null,
+      "judged": 1,
+      "signals": [
+        {
+          "kind": "currency",
+          "country": "OM",
+          "value": "ر.ع."
+        }
+      ],
+      "items": [
+        {
+          "id": "currency",
+          "status": "ok",
+          "detail": "12.500 ر.ع."
+        },
+        {
+          "id": "phone",
+          "status": "unknown",
+          "detail": ""
+        },
+        {
+          "id": "digits",
+          "status": "unknown",
+          "detail": ""
+        },
+        {
+          "id": "lang",
+          "status": "unknown",
+          "detail": "ar"
+        }
+      ]
     }
   }
 }
