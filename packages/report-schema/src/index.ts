@@ -460,6 +460,52 @@ export const CountryFitFact = z
   .meta({ id: 'CountryFitFact' })
 export type CountryFitFact = z.infer<typeof CountryFitFact>
 
+/**
+ * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
+ * counted and the ones drawn wrongly (a letter no font in their list draws, or a replacement
+ * character), where the broken ones stand in the first screen, and a small JPEG of that screen to
+ * draw them on, as a `data:` URL. `percent` is the share of Arabic words drawn correctly across
+ * the engines, the Arabic integrity; null where no engine counted a word. The pictures stay in the
+ * report, so they are kept and deleted with it.
+ */
+export const XrayFact = z
+  .strictObject({
+    percent: z.number().int().min(0).max(100).nullable(),
+    engines: z
+      .array(
+        z.strictObject({
+          engine: Engine,
+          total: count(),
+          broken: count(),
+          /** The page had more words than the pass went through. */
+          truncated: z.boolean(),
+          viewport: z.strictObject({
+            width: z.number().int().min(1).max(10_000),
+            height: z.number().int().min(1).max(10_000),
+          }),
+          /** The broken words in the first screen (the first 40). */
+          words: z
+            .array(
+              z.strictObject({
+                text: z.string().max(100),
+                kind: z.enum(['glyph', 'replacement']),
+                box: Box,
+              }),
+            )
+            .max(40),
+          /** The first screen as it was drawn; null where it was too big to keep. */
+          image: z
+            .string()
+            .max(110_000)
+            .regex(/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/)
+            .nullable(),
+        }),
+      )
+      .max(3),
+  })
+  .meta({ id: 'XrayFact' })
+export type XrayFact = z.infer<typeof XrayFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -485,6 +531,8 @@ export const Facts = z.strictObject({
   searchTest: SearchTestFact.optional(),
   /** Present when the country fit rule ran on an HTML page. */
   countryFit: CountryFitFact.optional(),
+  /** Present when a scan asked for the Arabic X-ray and an engine counted Arabic words. */
+  xray: XrayFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

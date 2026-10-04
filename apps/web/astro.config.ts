@@ -54,7 +54,8 @@ export default defineConfig({
       directives: [
         "default-src 'self'",
         "connect-src 'self'",
-        "img-src 'self'",
+        // data: for the Arabic X-ray's pictures, which a report carries as data URLs.
+        "img-src 'self' data:",
         `frame-src ${TURNSTILE}`,
         "base-uri 'self'",
         "form-action 'self'",

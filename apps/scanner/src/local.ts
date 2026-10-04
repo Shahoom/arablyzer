@@ -40,6 +40,7 @@ export function optionsFor(options: ScanOptions, tool: string | undefined): Scan
   }
   delete tooled.lab
   if (!renders) delete tooled.render
+  else if (tooled.render?.xray === true) tooled.render = { ...tooled.render, xray: false }
   if (!reads('crux')) delete tooled.crux
   if (!reads('safe-browsing')) delete tooled.safeBrowsing
   if (!reads('knowledge-graph')) delete tooled.knowledgeGraph

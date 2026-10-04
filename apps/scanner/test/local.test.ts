@@ -173,6 +173,18 @@ describe('optionsFor', () => {
     })
   })
 
+  it('keeps the Arabic X-ray for a whole scan and leaves it out of a tool scan', () => {
+    const rules = rtlCheckNeeding('render')
+    expect(optionsFor({ rules, render: { ...render, xray: true } }, undefined).render).toEqual({
+      ...render,
+      xray: true,
+    })
+    expect(optionsFor({ rules, render: { ...render, xray: true } }, 'rtl-check').render).toEqual({
+      ...render,
+      xray: false,
+    })
+  })
+
   it('renders for a tool whose rules need it, and refuses where there is no browser', () => {
     const rules = rtlCheckNeeding('render')
     expect(optionsFor({ rules, render, lab }, 'rtl-check')).toEqual({

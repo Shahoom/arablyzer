@@ -42,7 +42,8 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
     policy,
     isolateParse: {},
     ...(dohUrl === undefined ? {} : { dohUrl }),
-    render: { engines, networkIsolated: networkIsolated(env) },
+    // The Arabic X-ray is for a whole scan: a tool's scan drops it (optionsFor).
+    render: { engines, networkIsolated: networkIsolated(env), xray: true },
     ...(cruxKey === undefined || cruxKey === '' ? {} : { crux: { apiKey: cruxKey } }),
     ...(safeBrowsingKey === undefined || safeBrowsingKey === ''
       ? {}

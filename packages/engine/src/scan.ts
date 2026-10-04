@@ -60,6 +60,7 @@ import {
   crawlerAccess,
   detectPlatforms,
   fitOf,
+  xrayFamilies,
   isPublicUrl,
   matchRobots,
   renderMessage,
@@ -123,6 +124,12 @@ const MIN_LAB_MS = 20_000
 export interface RenderRequest {
   readonly engines: readonly Engine[]
   readonly screenshots?: boolean
+  /**
+   * The Arabic X-ray: the render goes through the Arabic words for the ones drawn wrongly, and keeps
+   * a small picture of the first screen, to draw them on (report fact `xray`). A whole scan asks for
+   * it; a tool's scan does not.
+   */
+  readonly xray?: boolean
   /** Receives each engine's screenshot of the first screen, when screenshots are asked for. */
   readonly onScreenshot?: (engine: Engine, png: Uint8Array) => void
   /** Browser binaries by engine; the ARABLYZER_<ENGINE>_PATH variables by default. */
@@ -567,7 +574,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
             progress,
             ...(options.signal === undefined ? {} : { signal: options.signal }),
           })
-        : { runs: [], rendered: [], notices: [], challenged: false }
+        : { runs: [], rendered: [], notices: [], xrayImages: new Map(), challenged: false }
 
   const links = await linking
   // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
@@ -705,6 +712,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...arabicFontsFacts(rendering?.rendered, rules),
       ...searchFacts(search),
       ...countryFitFacts(page, rules),
+      ...xrayFacts(rendering),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
@@ -777,6 +785,8 @@ interface Rendering {
   readonly runs: RenderRun[]
   readonly rendered: RenderedFacts[]
   readonly notices: Notice[]
+  /** The X-ray's picture of the first screen, by engine. */
+  readonly xrayImages: ReadonlyMap<Engine, Uint8Array>
   /** A browser was answered with a bot challenge in place of the page (M2.3c). */
   readonly challenged: boolean
 }
@@ -800,6 +810,7 @@ async function renderAll(
   const runs: RenderRun[] = []
   const rendered: RenderedFacts[] = []
   const notices: Notice[] = []
+  const xrayImages = new Map<Engine, Uint8Array>()
   let challenged = false
   let browser: typeof import('@arablyzer/browser')
   try {
@@ -818,7 +829,7 @@ async function renderAll(
       context.progress({ step: 'render', run })
       notices.push(notice('engine-unavailable', { engine: ENGINE_NAMES[engine] }))
     }
-    return { runs, rendered, notices, challenged: false }
+    return { runs, rendered, notices, xrayImages: new Map(), challenged: false }
   }
   const { renderPage, RENDER_TIMEOUT_MS, EXTRA_ENGINE_TIMEOUT_MS } = browser
   for (const [index, engine] of request.engines.entries()) {
@@ -848,6 +859,7 @@ async function renderAll(
       resolver: context.resolver,
       timeoutMs: Math.round(budget),
       screenshots: request.screenshots === true,
+      ...(request.xray === true ? { xray: xrayFamilies } : {}),
       ...(request.executablePaths === undefined
         ? {}
         : { executablePaths: request.executablePaths }),
@@ -865,6 +877,7 @@ async function renderAll(
       if (outcome.facts.truncated) notices.push(notice('render-truncated', { engine: name }))
     }
     if (outcome.screenshot !== null) request.onScreenshot?.(engine, outcome.screenshot)
+    if (outcome.xrayImage != null) xrayImages.set(engine, outcome.xrayImage)
     if (outcome.status === 'challenged') {
       challenged = true
       notices.push(
@@ -890,7 +903,7 @@ async function renderAll(
       notices.push(notice('host-limit', { engine: name, hosts: String(browser.DEFAULT_MAX_HOSTS) }))
     }
   }
-  return { runs, rendered, notices, challenged }
+  return { runs, rendered, notices, xrayImages, challenged }
 }
 
 /**
@@ -1484,6 +1497,42 @@ function platformFacts(page: PageFacts, rules: readonly Rule[]): Facts {
       technologies,
     },
   }
+}
+
+/**
+ * The Arabic X-ray: for each engine that counted Arabic words, how many were drawn wrongly, where
+ * the broken ones stand in the first screen, and the picture of it; and the share drawn correctly
+ * across the engines, which never rounds up to 100 while a word is broken.
+ */
+function xrayFacts(rendering: Rendering | undefined): Facts {
+  const engines = (rendering?.rendered ?? []).flatMap((facts) => {
+    const xray = facts.xray
+    if (xray === undefined || xray.total === 0) return []
+    const image = rendering?.xrayImages.get(facts.engine)
+    return [
+      {
+        engine: facts.engine,
+        total: xray.total,
+        broken: xray.broken,
+        truncated: xray.truncated,
+        viewport: { width: facts.viewport.width, height: facts.viewport.height },
+        words: xray.words.map((word) => ({
+          text: word.text.slice(0, 100),
+          kind: word.kind,
+          box: { ...word.box },
+        })),
+        image:
+          image === undefined
+            ? null
+            : `data:image/jpeg;base64,${Buffer.from(image).toString('base64')}`,
+      },
+    ]
+  })
+  if (engines.length === 0) return {}
+  const total = engines.reduce((sum, engine) => sum + engine.total, 0)
+  const broken = engines.reduce((sum, engine) => sum + engine.broken, 0)
+  const exact = Math.round((100 * (total - broken)) / total)
+  return { xray: { percent: broken > 0 ? Math.min(exact, 99) : 100, engines } }
 }
 
 /** How ready the page is for the country it is written for; nothing without the rule or HTML. */

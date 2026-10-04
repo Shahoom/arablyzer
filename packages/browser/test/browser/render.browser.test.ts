@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 import { inRanges, type Engine } from '@arablyzer/collectors'
 import { createPolicy } from '@arablyzer/egress'
+import { xrayFamilies } from '@arablyzer/rules'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   bypassesProxyForLoopback,
@@ -529,6 +530,40 @@ describe.each(engines)('rendered facts: %s', (engine) => {
       ),
     })
     expect(swapped.roleIcons).toEqual([])
+  })
+
+  it('finds the Arabic words a web font cannot draw, where they stand, and keeps a small picture of the first screen', async () => {
+    const outcome = await rendered(
+      engine,
+      {
+        '/': arabicPage(
+          `<p id="a" style="font-family: 'Partial', serif">كلمة سليمة وكلمة ڤيلا مكسورة وأخرى پاسبورت</p>
+           <p id="b" style="font-family: serif">نص آخر سليم تماما \ufffd</p>
+           <p style="margin-top: 5000px; font-family: 'Partial', serif">ڤيلا بعيدة</p>`,
+          `<style>@font-face { font-family: 'Partial'; src: url(/partial.woff2) format('woff2'); }</style>`,
+        ),
+        '/partial.woff2': [200, { 'content-type': 'font/woff2' }, PARTIAL_FONT],
+      },
+      { xray: xrayFamilies },
+    )
+    expect(outcome.status, outcome.error ?? '').toBe('rendered')
+    const xray = outcome.facts?.xray
+    // 7 + 6 + 1 words; broken: ڤيلا, پاسبورت, the replacement character, and the far ڤيلا.
+    expect(xray).toMatchObject({ total: 14, broken: 4, truncated: false })
+    expect(xray?.words.map((word) => [word.text, word.kind])).toEqual([
+      ['ڤيلا', 'glyph'],
+      ['پاسبورت', 'glyph'],
+      ['\ufffd', 'replacement'],
+    ])
+    expect(xray?.words[0]?.box.width).toBeGreaterThan(10)
+    const image = outcome.xrayImage
+    expect(image?.[0]).toBe(0xff)
+    expect(image?.[1]).toBe(0xd8)
+    expect(image?.length).toBeLessThanOrEqual(70_000)
+    // Without the option, no pass and no picture.
+    const plain = await rendered(engine, { '/': arabicPage('<p>نص</p>') })
+    expect(plain.facts?.xray).toBeUndefined()
+    expect(plain.xrayImage ?? null).toBeNull()
   })
 
   it('reads the first family whole when its quoted name holds a comma (M1.1 review)', async () => {

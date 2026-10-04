@@ -6,6 +6,8 @@ import type {
   Header,
   RenderedFacts,
   UsedFontsFact,
+  XrayFacts,
+  XrayFamily,
 } from '@arablyzer/collectors'
 import {
   DEFAULT_MAX_REQUESTS,
@@ -47,6 +49,7 @@ import { axeRunnerSource, axeSource, toA11yFacts } from './a11y'
 import { readPageFiles } from './files'
 import { DECODED_SIZES, fromPage, inPage, RESULT_GUARD, throughGuard } from './guard'
 import { measureSource } from './measure'
+import { toXrayFacts, XRAY_IMAGE_BYTES, XRAY_LIMITS, xrayPage } from './xray'
 import {
   admit,
   DEFAULT_MAX_HOSTS,
@@ -111,6 +114,13 @@ export interface RenderOptions {
   readonly timeoutMs?: number
   readonly extraEngineTimeoutMs?: number
   readonly screenshots?: boolean
+  /**
+   * The Arabic X-ray (docs/design/plans/arabic-native.md §6): asked for the font-family lists of
+   * the page's Arabic text and the characters no web font in each draws, from the facts, the
+   * render goes through the page's Arabic words for the broken ones, and keeps a small JPEG of the
+   * first screen (`xrayImage`) to draw them on.
+   */
+  readonly xray?: (facts: RenderedFacts) => readonly XrayFamily[]
   readonly signal?: AbortSignal
   /** Browser binaries by engine; the ARABLYZER_<ENGINE>_PATH variables by default. */
   readonly executablePaths?: Partial<Record<Engine, string>>
@@ -164,6 +174,8 @@ export interface RenderOutcome {
   readonly pageRequests: PageRequests
   readonly facts: RenderedFacts | null
   readonly screenshot: Uint8Array | null
+  /** The first screen as a small JPEG, for the X-ray; null or absent without one. */
+  readonly xrayImage?: Uint8Array | null
 }
 
 class RenderTimeout extends Error {}
@@ -303,6 +315,7 @@ async function renderIn(
     error: string | null,
     facts: RenderedFacts | null = null,
     screenshot: Uint8Array | null = null,
+    xrayImage: Uint8Array | null = null,
   ): RenderOutcome => ({
     engine,
     status,
@@ -314,6 +327,7 @@ async function renderIn(
     pageRequests: pageRequests(budget),
     facts,
     screenshot,
+    xrayImage,
   })
 
   // A browser server rather than a plain launch, because only a server can be killed; it listens
@@ -358,14 +372,15 @@ async function renderIn(
       version = browser.version()
       return await renderWith(browser, engine, url, proxy, deadline, {
         screenshots: options.screenshots === true,
+        xray: options.xray,
         budget,
         met,
       })
     })()
     work.catch(() => undefined)
     // A page that blocks its own main thread would hold page.evaluate forever; the budget wins.
-    const { facts, screenshot } = await Promise.race([work, expired, aborted])
-    return finish('rendered', null, facts, screenshot)
+    const { facts, screenshot, xrayImage } = await Promise.race([work, expired, aborted])
+    return finish('rendered', null, facts, screenshot, xrayImage)
   } catch (error) {
     if (error instanceof RenderTimeout || error instanceof RenderAborted) stuck = true
     // A challenge ended the render, by whatever error the ending gave: a page closed under it.
@@ -430,8 +445,22 @@ async function renderWith(
   url: string,
   proxy: EgressProxy,
   deadline: number,
-  { screenshots, budget, met }: { screenshots: boolean; budget: RequestBudget; met: DocumentsMet },
-): Promise<{ facts: RenderedFacts; screenshot: Uint8Array | null }> {
+  {
+    screenshots,
+    xray,
+    budget,
+    met,
+  }: {
+    screenshots: boolean
+    xray: RenderOptions['xray']
+    budget: RequestBudget
+    met: DocumentsMet
+  },
+): Promise<{
+  facts: RenderedFacts
+  screenshot: Uint8Array | null
+  xrayImage: Uint8Array | null
+}> {
   const remaining = () => Math.max(1, Math.round(deadline - performance.now()))
   const agent = await defaultUserAgent(browser)
   const context = await browser.newContext(contextOptions(userAgentFor(agent, BOT_TOKEN)))
@@ -617,7 +646,57 @@ async function renderWith(
     a11y,
     ...(read ?? {}),
   })
-  return { facts, screenshot }
+  if (xray === undefined || remaining() < XRAY_MIN_MS) return { facts, screenshot, xrayImage: null }
+  const seen = await arabicXray(page, xray(facts), remaining())
+  return {
+    facts: seen === undefined ? facts : { ...facts, xray: seen.facts },
+    screenshot,
+    xrayImage: seen?.image ?? null,
+  }
+}
+
+/** Below this, the X-ray is not started: the render has no time left to spend on it. */
+const XRAY_MIN_MS = 3_000
+
+/**
+ * The Arabic X-ray's pass over the page, and a small JPEG of the first screen to draw it on;
+ * nothing where the pass failed, or the page has no Arabic words. The picture is the first screen
+ * as it is, at the render's viewport, in JPEG at a quality that keeps it under XRAY_IMAGE_BYTES;
+ * where even the lowest quality does not, the words are kept and the picture is not.
+ */
+async function arabicXray(
+  page: Page,
+  families: readonly XrayFamily[],
+  budgetMs: number,
+): Promise<{ facts: XrayFacts; image: Uint8Array | null } | undefined> {
+  try {
+    const facts = toXrayFacts(
+      fromPage(await page.evaluate(throughGuard(inPage(xrayPage, families, XRAY_LIMITS)))),
+    )
+    if (facts === undefined || facts.total === 0) return undefined
+    let image: Uint8Array | null = null
+    const started = performance.now()
+    for (const quality of [55, 35]) {
+      if (performance.now() - started > budgetMs / 2) break
+      const bytes = new Uint8Array(
+        await page.screenshot({
+          type: 'jpeg',
+          quality,
+          scale: 'css',
+          animations: 'disabled',
+          caret: 'hide',
+          timeout: Math.max(1, Math.round(budgetMs / 2)),
+        }),
+      )
+      if (bytes.length <= XRAY_IMAGE_BYTES) {
+        image = bytes
+        break
+      }
+    }
+    return { facts, image }
+  } catch {
+    return undefined
+  }
 }
 
 /**

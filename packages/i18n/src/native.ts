@@ -56,6 +56,20 @@ export interface NativeStrings {
     readonly notCounted: string
     readonly floor: string
   }
+  readonly xray: {
+    readonly title: string
+    readonly intro: string
+    readonly integrity: (percent: number) => string
+    readonly clean: string
+    readonly engineLine: (broken: number, total: number) => string
+    readonly imageAlt: (engine: string) => string
+    readonly noImage: string
+    readonly words: string
+    readonly kinds: Readonly<Record<'glyph' | 'replacement', string>>
+    readonly elsewhere: (count: number) => string
+    readonly truncated: string
+    readonly note: string
+  }
 }
 
 export const NATIVE: Copy<NativeStrings> = {
@@ -147,6 +161,24 @@ export const NATIVE: Copy<NativeStrings> = {
       notCounted: 'يُعرض ولا يدخل في العدّ',
       floor: 'عدد النتائج هو ما تعرضه الصفحة الأولى من الجواب، فهو حدٌّ أدنى.',
     },
+    xray: {
+      title: 'أشعة الحرف العربي',
+      intro:
+        'الشاشة الأولى كما رسمها كل متصفح، وحول كل كلمة عربية رُسمت خطأً دائرة: حرف لا يرسمه أي خط في قائمة خطوط الكلمة، أو حرف استبدال (�).',
+      integrity: (percent) => `سلامة العربية ${String(percent)}٪`,
+      clean: 'رُسمت كل الكلمات العربية سليمة في المتصفحات الثلاثة، بحسب خطوط الصفحة التي قرأناها.',
+      engineLine: (broken, total) =>
+        broken === 0
+          ? `كل الكلمات سليمة (${String(total)})`
+          : `${String(broken)} من ${String(total)} كلمة رُسمت خطأً`,
+      imageAlt: (engine) => `الشاشة الأولى في ${engine} وحول الكلمات الخاطئة دوائر`,
+      noImage: 'صورة الشاشة كبيرة فلم نحتفظ بها، وهذه الكلمات الخاطئة فيها.',
+      words: 'كلمات الشاشة الأولى',
+      kinds: { glyph: 'حرف بلا رسم', replacement: 'حرف استبدال' },
+      elsewhere: (count) => `${String(count)} كلمة خاطئة أخرى أسفل الشاشة الأولى`,
+      truncated: 'الصفحة أطول مما نعدّ، فالنسبة تقريبية.',
+      note: 'نحكم بخطوط الويب التي حمّلتها الصفحة وبأحرف الاستبدال؛ لا نعرف ما ترسمه خطوط جهاز الزائر. معلومة لا تُخصم من درجتك.',
+    },
   },
   en: {
     fonts: {
@@ -236,6 +268,26 @@ export const NATIVE: Copy<NativeStrings> = {
       },
       notCounted: 'Shown, not counted',
       floor: 'The number of results is what the first page of the answer shows, so it is a floor.',
+    },
+    xray: {
+      title: 'Arabic X-ray',
+      intro:
+        'The first screen as each browser drew it, with a circle round every Arabic word drawn wrongly: a letter no font in the word’s font list draws, or a replacement character (�).',
+      integrity: (percent) => `Arabic integrity ${String(percent)}%`,
+      clean:
+        'Every Arabic word was drawn correctly in all the browsers, going by the page’s fonts we could read.',
+      engineLine: (broken, total) =>
+        broken === 0
+          ? `All ${String(total)} words are drawn correctly`
+          : `${String(broken)} of ${String(total)} words drawn wrongly`,
+      imageAlt: (engine) => `The first screen in ${engine}, with circles round the wrong words`,
+      noImage: 'The picture was too big to keep, but these are the wrong words in it.',
+      words: 'Words in the first screen',
+      kinds: { glyph: 'Letter with no glyph', replacement: 'Replacement character' },
+      elsewhere: (count) =>
+        `${String(count)} more wrong ${count === 1 ? 'word' : 'words'} below the first screen`,
+      truncated: 'The page is longer than we count, so the percentage is approximate.',
+      note: 'We judge by the web fonts the page loaded and by replacement characters; we cannot know what a visitor’s own fonts draw. Information, never deducted from your score.',
     },
   },
 }

@@ -50,7 +50,7 @@ describe('rtl-icon-role', () => {
     ])
   })
 
-  it('applies only when an engine found such a control', () => {
+  it('finds nothing where no control has an icon against its role', () => {
     expect(rule.severity).toBe('moderate')
     expect(detectAll(rule, renderedEvidence([facts('chromium', [])]))).toEqual([])
   })

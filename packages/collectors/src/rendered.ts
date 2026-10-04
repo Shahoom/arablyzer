@@ -133,6 +133,38 @@ export interface DirectionIconFact extends RenderedElement {
   readonly name: string
 }
 
+/** A font-family list of the page's Arabic text, and the characters no web font in it draws. */
+export interface XrayFamily {
+  /** The computed font-family, as ArabicTextBlock.fontFamily gives it. */
+  readonly fontFamily: string
+  readonly chars: string
+}
+
+/** An Arabic word the engine drew wrongly, where it stands in the first screen. */
+export interface XrayWord {
+  /** At most 40 characters. */
+  readonly text: string
+  /** `glyph`: a letter no font draws, so the engine draws a box or another font's letter; `replacement`: U+FFFD. */
+  readonly kind: 'glyph' | 'replacement'
+  /** In CSS pixels of the first screen, as the screenshot is. */
+  readonly box: Box
+}
+
+/**
+ * The Arabic words of the page checked in one engine for letters it cannot draw, and the broken
+ * ones that stand in the first screen (docs/design/plans/arabic-native.md §6).
+ */
+export interface XrayFacts {
+  /** Arabic words on the page. */
+  readonly total: number
+  /** Of them, the ones with a letter no font in their list draws, or a replacement character. */
+  readonly broken: number
+  /** The first screen's broken words (the first 40). */
+  readonly words: readonly XrayWord[]
+  /** The page had more words than the pass could go through. */
+  readonly truncated: boolean
+}
+
 /** A control whose icon points against what the control says it does, in right-to-left text. */
 export interface RoleIconFact extends RenderedElement {
   /** What the control says it is, from its label, text, rel or class. */
@@ -301,6 +333,8 @@ export interface RenderedFacts {
   readonly directionIcons: readonly DirectionIconFact[]
   /** Controls whose icon points against their role (the first 20). */
   readonly roleIcons: readonly RoleIconFact[]
+  /** Set when the render was asked for the Arabic X-ray, and its pass finished. */
+  readonly xray?: XrayFacts
   /** Elements with the Saudi Riyal sign (the first 20). */
   readonly riyalSigns: readonly RiyalSignFact[]
   readonly compression: CompressionFact

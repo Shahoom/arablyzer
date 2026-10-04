@@ -51,6 +51,31 @@ describe(`scan with rendering (${engine})`, () => {
     expect(screenshots[0]?.[1]).toBeGreaterThan(0)
   })
 
+  it('keeps the Arabic X-ray when asked: the broken words, a small picture and the integrity', async () => {
+    site = await tempSite({
+      'index.html':
+        '<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><p id="a">مرحبا \ufffd بكم</p></html>',
+    })
+    const asked = await scan(site.url('/'), {
+      rules: [renderRule()],
+      policy: policyFor(site),
+      render: { engines: [engine], xray: true },
+    })
+    expect(schemaErrors(asked)).toBe('')
+    expect(asked.facts.xray).toMatchObject({
+      percent: 67,
+      engines: [{ engine, total: 3, broken: 1, words: [{ kind: 'replacement' }] }],
+    })
+    expect(asked.facts.xray?.engines[0]?.image).toMatch(/^data:image\/jpeg;base64,/)
+    // Not asked for: no pass, no picture.
+    const plain = await scan(site.url('/'), {
+      rules: [renderRule()],
+      policy: policyFor(site),
+      render: { engines: [engine] },
+    })
+    expect(plain.facts.xray).toBeUndefined()
+  })
+
   it('says when the engine is missing, and the rules that needed it could not run', async () => {
     site = await tempSite({ 'index.html': '<p>نص</p>' })
     const report = await scan(site.url('/'), {

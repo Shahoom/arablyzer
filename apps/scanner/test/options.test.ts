@@ -7,6 +7,7 @@ describe('scanOptionsFrom', () => {
     expect(options.render).toEqual({
       engines: ['chromium', 'firefox', 'webkit'],
       networkIsolated: false,
+      xray: true,
     })
     expect(scanOptionsFrom({ ARABLYZER_NETWORK_ISOLATED: '1' }).render?.networkIsolated).toBe(true)
     expect(options.crux).toBeUndefined()

@@ -18,8 +18,7 @@ export const rule = defineRule({
   severity: 'moderate',
   needs: ['render'],
   messages: ['next', 'prev'],
-  appliesTo: (_page, evidence) =>
-    renderedFacts(evidence).some((facts) => facts.roleIcons.length > 0),
+  appliesTo: (_page, evidence) => renderedFacts(evidence).some((facts) => facts.dir === 'rtl'),
   detect: ({ rendered = [] }) => {
     const icons = new Sightings<RoleIconFact>()
     for (const facts of rendered) {
