@@ -55,7 +55,10 @@ describe('scanOptionsFrom', () => {
 
   it('asks Open PageRank with its own key alone', () => {
     expect(scanOptionsFrom({ ARABLYZER_OPR_KEY: ' opr ' }).openPageRank).toEqual({ apiKey: 'opr' })
-    expect(scanOptionsFrom({ ARABLYZER_CRUX_KEY: 'crux' }).openPageRank).toBeUndefined()
+    // No key still gives the option, so a whole scan says the check is off.
+    expect(scanOptionsFrom({ ARABLYZER_CRUX_KEY: 'crux' }).openPageRank).toEqual({
+      apiKey: undefined,
+    })
   })
 
   // M2.3c review: behind the egress proxy the scanner resolves no name of its own, so the TXT

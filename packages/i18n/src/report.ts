@@ -119,6 +119,15 @@ export interface ReportStrings {
     readonly scannedOn: string
     /** The domain's authority from Open PageRank, in the line under the address. */
     readonly authority: string
+    readonly authorityTrend: {
+      readonly rising: string
+      readonly stable: string
+      readonly falling: string
+    }
+    /** The domains that link to the domain, with their count. */
+    readonly referringDomains: string
+    /** The domain is not in Open PageRank's index yet. */
+    readonly authorityNone: string
     readonly rules: string
     readonly noindex: string
     readonly copyLink: string
@@ -350,6 +359,9 @@ export const REPORT: Copy<ReportStrings> = {
       kicker: 'التقرير',
       scannedOn: 'فُحصت في',
       authority: 'قوة النطاق',
+      authorityTrend: { rising: 'في صعود', stable: 'مستقرة', falling: 'في هبوط' },
+      referringDomains: 'نطاقات تربط إليه',
+      authorityNone: 'غير موجود في الفهرس بعد',
       rules: 'القواعد',
       noindex: 'لا يظهر في محركات البحث',
       copyLink: 'انسخ الرابط',
@@ -589,6 +601,9 @@ export const REPORT: Copy<ReportStrings> = {
       kicker: 'Report',
       scannedOn: 'Scanned on',
       authority: 'Domain authority',
+      authorityTrend: { rising: 'rising', stable: 'stable', falling: 'falling' },
+      referringDomains: 'Referring domains',
+      authorityNone: 'not in the index yet',
       rules: 'Rules',
       noindex: 'Not in search engines',
       copyLink: 'Copy link',

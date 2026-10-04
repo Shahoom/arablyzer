@@ -326,18 +326,24 @@ export const KnowledgeGraphFact = z
 export type KnowledgeGraphFact = z.infer<typeof KnowledgeGraphFact>
 
 /**
- * The domain's authority from Open PageRank (a whole scan, with a key): information, never judged
- * and never part of the score. 0 is the weakest, 10 the strongest.
+ * The domain's authority from Open PageRank (a whole scan, with a key), built on Common Crawl's
+ * web graph: information, never judged and never part of the score. 0 is the weakest, 10 the
+ * strongest.
  */
 export const OpenPageRankFact = z
   .strictObject({
     /** The domain asked about: the page's registrable domain. */
     domain: z.string().min(1).max(255),
-    rank: z.number().int().min(0).max(10),
-    /** The rank with its decimals. */
-    decimal: z.number().min(0).max(10),
+    /** 0 to 10, with up to two decimals; null when the domain is not in the index yet. */
+    score: z.number().min(0).max(10).nullable(),
     /** The domain's place among all domains (1 is first); null when the API gave none. */
     position: z.number().int().positive().nullable(),
+    /** The domains that link to it. */
+    referringDomains: z.number().int().nonnegative().nullable(),
+    /** The score over the last year; null with too little history. */
+    trend: z.enum(['rising', 'stable', 'falling']).nullable(),
+    /** The month of the score, YYYY-MM-DD. */
+    asOf: IsoDate.nullable(),
   })
   .meta({ id: 'OpenPageRankFact' })
 export type OpenPageRankFact = z.infer<typeof OpenPageRankFact>

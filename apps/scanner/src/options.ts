@@ -48,6 +48,7 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
       ? {}
       : { safeBrowsing: { apiKey: safeBrowsingKey } }),
     ...(kgKey === undefined || kgKey === '' ? {} : { knowledgeGraph: { apiKey: kgKey } }),
-    ...(oprKey === undefined || oprKey === '' ? {} : { openPageRank: { apiKey: oprKey } }),
+    // Always given, so a whole scan says when the key is missing.
+    openPageRank: { apiKey: oprKey === '' ? undefined : oprKey },
   }
 }

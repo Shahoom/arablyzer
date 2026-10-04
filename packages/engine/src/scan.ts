@@ -197,10 +197,10 @@ export interface ScanOptions {
    */
   readonly knowledgeGraph?: KnowledgeGraphOptions
   /**
-   * Open PageRank, asked with this key in a whole scan (one with no `ruleIds`): the page's domain
-   * goes to it, and its rank, 0 to 10, to the report. Without the key a notice says so; a page on
-   * a private address, or on a domain that is no one's own (a platform's subdomain), is not asked
-   * about.
+   * Open PageRank, asked in a whole scan (one with no `ruleIds`) when this is given: the page's
+   * domain goes to it, and its score, 0 to 10, to the report. With no key in it a notice says the
+   * check is off; a page on a private address, or on a domain that is no one's own (a platform's
+   * subdomain), is not asked about.
    */
   readonly openPageRank?: OpenPageRankOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
@@ -522,20 +522,22 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : undefined
   // Open PageRank: the domain's authority, for a whole scan.
   const rankDomain = organizationalDomain(new URL(response.url).hostname)
-  const wantsRank = options.ruleIds === undefined
+  const rankKey = options.openPageRank?.apiKey
+  // Only a whole scan the caller set up for it: a tool's scan names its rules and says nothing.
+  const wantsRank = options.ruleIds === undefined && options.openPageRank !== undefined
   const openPageRankSkipped: NoticeCode | null = !wantsRank
     ? null
-    : options.openPageRank === undefined
+    : rankKey === undefined || rankKey === ''
       ? 'open-page-rank-no-key'
       : fetched.privateAccess
         ? 'open-page-rank-private'
         : null
   const openPageRank: OpenPageRankFacts | undefined =
-    wantsRank &&
-    openPageRankSkipped === null &&
-    options.openPageRank !== undefined &&
-    rankDomain !== null
-      ? await fetchOpenPageRank(rankDomain, options.openPageRank, { ...base, policy })
+    wantsRank && openPageRankSkipped === null && rankKey !== undefined && rankDomain !== null
+      ? await fetchOpenPageRank(rankDomain, rankKey, options.openPageRank.endpoint, {
+          ...base,
+          policy,
+        })
       : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
   else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
@@ -1465,17 +1467,12 @@ function knowledgeGraphFacts(facts: KnowledgeGraphFacts | undefined): Facts {
   }
 }
 
-/** Open PageRank's rank as the report gives it; nothing when not asked, not listed or failed. */
+/** Open PageRank's rank as the report gives it; nothing when not asked or failed; a score of null when the domain is not in the index yet. */
 function openPageRankFacts(facts: OpenPageRankFacts | undefined): Facts {
-  if (facts?.outcome !== 'found' || facts.rank === null || facts.decimal === null) return {}
-  return {
-    openPageRank: {
-      domain: facts.domain,
-      rank: facts.rank,
-      decimal: facts.decimal,
-      position: facts.position,
-    },
-  }
+  if (facts === undefined || facts.outcome === 'failed') return {}
+  // Not listed: the domain is not in the index yet; the score is null, and the page says so.
+  const { domain, score, position, referringDomains, trend, asOf } = facts
+  return { openPageRank: { domain, score, position, referringDomains, trend, asOf } }
 }
 
 function robotsFacts(robots: RobotsFacts | undefined, pageUrl: string): Facts {
