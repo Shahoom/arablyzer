@@ -32,6 +32,9 @@ const DESCRIPTION = 160
 export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('render')) return 'render'
   if (rule.needs.includes('crux')) return 'crux'
+  if (rule.needs.includes('safe-browsing')) return 'safeBrowsing'
+  if (rule.needs.includes('knowledge-graph')) return 'knowledgeGraph'
+  if (rule.needs.includes('search')) return 'search'
   if (rule.needs.includes('dns')) return 'dns'
   if (rule.needs.includes('links')) return 'links'
   if (rule.needs.includes('sitemap')) return 'sitemap'

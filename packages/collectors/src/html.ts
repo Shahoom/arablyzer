@@ -87,6 +87,20 @@ export interface FieldElement extends ElementRef {
 }
 
 /**
+ * A form that looks like a site's search: marked as one (`role="search"`, or in an element that is,
+ * or `<search>`), or with an `input[type=search]` or a text field named like a query. Its action as
+ * the page's address resolves it, its method, and the field that takes the query.
+ */
+export interface SearchFormElement extends ElementRef {
+  /** Resolved against the document base URL; the page's own URL when the form has no action. */
+  readonly action: string
+  readonly method: 'get' | 'post'
+  /** The field's name: the query parameter of a GET form. */
+  readonly field: string
+  readonly marked: boolean
+}
+
+/**
  * An element that loads something over http:, or sends a form there: on an HTTPS page, mixed
  * content (W3C Mixed Content). Images, audio and video browsers upgrade to https: (or load with a
  * warning); everything else they block, and images too when chosen by srcset or <picture> or on
@@ -127,6 +141,8 @@ export interface HtmlFacts {
   readonly scripts: readonly ScriptElement[]
   readonly headings: readonly HeadingElement[]
   readonly fields: readonly FieldElement[]
+  /** The forms that look like a search (the first 10). */
+  readonly searchForms: readonly SearchFormElement[]
   /** The first MAX_INSECURE_LOADS, in document order. */
   readonly insecureLoads: readonly InsecureLoadElement[]
   /**
@@ -177,6 +193,7 @@ export function collectHtml(
   const scripts: ScriptElement[] = []
   const headings: HeadingElement[] = []
   const fields: FieldElement[] = []
+  const searchForms: SearchFormElement[] = []
   const insecureLoads: InsecureLoadElement[] = []
   const firstAlternatives: TextAlternative[] = []
   const lastAlternatives = new LastKept<TextAlternative>(MAX_TEXT_ALTERNATIVES)
@@ -224,6 +241,13 @@ export function collectHtml(
       continue
     }
     switch (element.tagName) {
+      case 'form': {
+        if (searchForms.length < MAX_SEARCH_FORMS && isHtmlElement(element, 'form')) {
+          const found = searchFormOf(element, baseUrl, pageUrl, walk)
+          if (found !== null) searchForms.push({ ...index.ref(element), ...found })
+        }
+        break
+      }
       case 'meta':
         metas.push({
           ...index.ref(element),
@@ -292,12 +316,70 @@ export function collectHtml(
     scripts,
     headings,
     fields,
+    searchForms,
     insecureLoads,
     textAlternatives: [...firstAlternatives, ...lastAlternatives.toArray()],
   }
 }
 
 export const MAX_INSECURE_LOADS = 100
+export const MAX_SEARCH_FORMS = 10
+
+/** Names of a text field that takes a search query. */
+const QUERY_NAMES = new Set(['s', 'q', 'query', 'search', 'keyword', 'keywords', 'term', 'text'])
+
+/** Whether the element, or an element it is in, says it is a search (role="search" or <search>). */
+function markedSearch(element: Element): boolean {
+  for (let node: Node | null = element; node !== null && isElement(node); node = node.parentNode) {
+    if (node.tagName === 'search' || attr(node, 'role')?.trim().toLowerCase() === 'search') {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * What a form needs to be asked as a search (docs/design/plans/arabic-native.md §2): the field
+ * that takes the query, from its descendants, and where the form sends it. Null when the form is
+ * not marked as a search and has neither an input[type=search] nor a text field named like a query.
+ */
+function searchFormOf(
+  form: Element,
+  baseUrl: string,
+  pageUrl: string,
+  walk: Walk,
+): Pick<SearchFormElement, 'action' | 'method' | 'field' | 'marked'> | null {
+  const marked = markedSearch(form)
+  let field: string | null = null
+  let typed = false
+  const stack: Node[] = [...form.childNodes].reverse()
+  while (stack.length > 0 && walk.left > 0) {
+    const node = stack.pop()
+    walk.left--
+    if (node === undefined || !isElement(node)) continue
+    if (node.tagName === 'input' && isHtmlElement(node, 'input')) {
+      const type = inputType(attr(node, 'type'))
+      const name = attr(node, 'name')?.trim()
+      if (name !== undefined && name !== '' && (type === 'search' || type === 'text')) {
+        if (type === 'search' && !typed) {
+          field = name
+          typed = true
+        } else if (field === null && QUERY_NAMES.has(name.toLowerCase())) field = name
+        else if (field === null && marked) field = name
+      }
+    }
+    stack.push(...[...node.childNodes].reverse())
+  }
+  if (field === null || (!marked && !typed && !QUERY_NAMES.has(field.toLowerCase()))) return null
+  const action = attr(form, 'action')
+  return {
+    action:
+      action === null || action.trim() === '' ? pageUrl : (resolve(action, baseUrl) ?? pageUrl),
+    method: attr(form, 'method')?.trim().toLowerCase() === 'post' ? 'post' : 'get',
+    field,
+    marked,
+  }
+}
 /**
  * Text alternatives kept from one page (M2.3c review): the first this many and the last this many,
  * in document order, so a page's payment logos, which sit in its footer, are kept beside its first

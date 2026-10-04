@@ -4,8 +4,12 @@ import type { RuleResult } from '@arablyzer/report-schema'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { Check, Info, Minus, TriangleAlert, X } from 'lucide-preact'
 import type { ComponentChildren } from 'preact'
+import { ArabicXray } from './report/ArabicXray'
 import { Bidi } from './report/Bidi'
+import { CountryFit } from './report/CountryFit'
 import { Evidence } from './report/Evidence'
+import { FontSlimmer } from './report/FontSlimmer'
+import { SearchTest } from './report/SearchTest'
 import { Notices } from './report/Notices'
 import { SeverityPill } from './report/ui'
 import {
@@ -229,6 +233,12 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
           </ul>
         </article>
       ))}
+      {verdict !== 'blocked' && verdict !== 'opted-out' && (
+        <FontSlimmer report={report} id={id} lang={lang} />
+      )}
+      <SearchTest report={report} lang={lang} />
+      <CountryFit report={report} lang={lang} />
+      <ArabicXray report={report} lang={lang} />
       {/* Nothing was checked on a page the site refused to send, or asked us not to check. */}
       {verdict !== 'blocked' && verdict !== 'opted-out' && (
         <Checked rules={report.rules} lang={lang} reportsOnly={reportsOnly} />

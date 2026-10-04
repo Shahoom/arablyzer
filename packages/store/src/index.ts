@@ -6,6 +6,7 @@ export {
   VALKEY_PROTOCOLS,
   type ConnectionUrlOptions,
 } from './connection'
+export { MemoryHandoff, type Handoff } from './handoff'
 export { hostKey, hostLimitKey } from './host-key'
 export { IN_FLIGHT_TTL_MS, MemoryInFlight, type InFlight, type Place } from './in-flight'
 export { MemoryRateLimiter, secondsUntilOne, type RateLimiter, type Taken } from './limits'
@@ -30,4 +31,4 @@ export type {
   ScanStore,
   StoredEvent,
 } from './types'
-export { ValkeyInFlight, ValkeyRateLimiter, ValkeyScanEvents } from './valkey'
+export { ValkeyHandoff, ValkeyInFlight, ValkeyRateLimiter, ValkeyScanEvents } from './valkey'

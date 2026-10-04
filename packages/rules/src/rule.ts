@@ -6,7 +6,10 @@ import type {
   LinkFacts,
   PageFacts,
   RenderedFacts,
+  KnowledgeGraphFacts,
   RobotsFacts,
+  SafeBrowsingFacts,
+  SearchFacts,
   SitemapFacts,
   SourceLocation,
 } from '@arablyzer/collectors'
@@ -28,7 +31,12 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * sitemaps, those robots.txt names or /sitemap.xml (M2.3c); like robots.txt, they are the site's,
  * read whatever the page answered. `response`: the page's answer whatever its status, its status
  * and headers, for a rule that judges how the server answered, such as with a bot challenge
- * (M2.3c).
+ * (M2.3c). `safe-browsing`: Google Safe Browsing's verdict on the page's URL and origin, which needs
+ * an API key; without one, or for a private page, the rule does not apply. `knowledge-graph`:
+ * what Google's Knowledge Graph knows of the page's brand name, which needs an API key too.
+ * `search`: the answers of the site's own search to words of the page in their spelling variants
+ * (at most 12 requests); asked only in a scan that names its rules, a tool's, never in a whole
+ * scan, and only where robots.txt allows.
  */
 export type CollectorId =
   | 'http'
@@ -44,6 +52,9 @@ export type CollectorId =
   | 'links'
   | 'sitemap'
   | 'response'
+  | 'safe-browsing'
+  | 'knowledge-graph'
+  | 'search'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -62,6 +73,12 @@ export interface Evidence {
   readonly rendered?: readonly RenderedFacts[]
   /** Present when the rule needs `crux` and CrUX answered; never `failed` (an error instead). */
   readonly crux?: CruxFacts
+  /** Present when the rule needs `safe-browsing` and Google answered; never `failed` (an error instead). */
+  readonly safeBrowsing?: SafeBrowsingFacts
+  /** Present when the rule needs `knowledge-graph` and Google answered or the page gave no name. */
+  readonly knowledgeGraph?: KnowledgeGraphFacts
+  /** Present when the rule needs `search` and the scan asked the site's search. */
+  readonly search?: SearchFacts
   /**
    * Present when the rule needs `dns` and the page is on a public name: the page's organizational
    * domain and each TXT lookup made for it. The rule's own lookup (txtName) answered: when it

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 import { inRanges, type Engine } from '@arablyzer/collectors'
 import { createPolicy } from '@arablyzer/egress'
+import { xrayFamilies } from '@arablyzer/rules'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   bypassesProxyForLoopback,
@@ -502,6 +503,67 @@ describe.each(engines)('rendered facts: %s', (engine) => {
       ['#alone', '→'],
     ])
     expect(page.directionIcons[2]?.box.width).toBeLessThan(40)
+  })
+
+  it('finds a control whose icon points against what it says it does, in right-to-left text', async () => {
+    const icon = 'display: inline-block; width: 12px; height: 12px'
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<a href="/2" class="next">التالي <i id="wrong" class="fa-solid fa-arrow-right" style="${icon}"></i></a>
+         <a href="/3" class="next">التالي <i class="fa-solid fa-arrow-right" style="${icon}; transform: scaleX(-1)"></i></a>
+         <a href="/4">التالي <i class="fa-solid fa-arrow-left" style="${icon}"></i></a>
+         <a href="/5" id="back">رجوع <span id="char">←</span></a>
+         <a href="/6">رجوع <i class="fa-solid fa-arrow-right" style="${icon}"></i></a>
+         <a href="/7" dir="ltr">Next <i class="fa-solid fa-arrow-right" style="${icon}"></i></a>
+         <a href="/8">اقرأ المزيد <i class="fa-solid fa-chevron-down" style="${icon}"></i></a>`,
+      ),
+    })
+    expect(page.roleIcons.map((found) => [found.selector, found.role, found.pointing])).toEqual([
+      ['#wrong', 'next', 'right'],
+      ['#char', 'prev', 'left'],
+    ])
+    // A stylesheet that sets what the class draws for right-to-left text: the class says nothing.
+    const swapped = await facts(engine, {
+      '/': arabicPage(
+        `<style>[dir='rtl'] .fa-arrow-right::before { content: 'L' }</style>
+         <a href="/2">التالي <i class="fa-solid fa-arrow-right" style="${icon}"></i></a>`,
+      ),
+    })
+    expect(swapped.roleIcons).toEqual([])
+  })
+
+  it('finds the Arabic words a web font cannot draw, where they stand, and keeps a small picture of the first screen', async () => {
+    const outcome = await rendered(
+      engine,
+      {
+        '/': arabicPage(
+          `<p id="a" style="font-family: 'Partial', serif">كلمة سليمة وكلمة ڤيلا مكسورة وأخرى پاسبورت</p>
+           <p id="b" style="font-family: serif">نص آخر سليم تماما \ufffd</p>
+           <p style="margin-top: 5000px; font-family: 'Partial', serif">ڤيلا بعيدة</p>`,
+          `<style>@font-face { font-family: 'Partial'; src: url(/partial.woff2) format('woff2'); }</style>`,
+        ),
+        '/partial.woff2': [200, { 'content-type': 'font/woff2' }, PARTIAL_FONT],
+      },
+      { xray: xrayFamilies },
+    )
+    expect(outcome.status, outcome.error ?? '').toBe('rendered')
+    const xray = outcome.facts?.xray
+    // 7 + 6 + 1 words; broken: ڤيلا, پاسبورت, the replacement character, and the far ڤيلا.
+    expect(xray).toMatchObject({ total: 14, broken: 4, truncated: false })
+    expect(xray?.words.map((word) => [word.text, word.kind])).toEqual([
+      ['ڤيلا', 'glyph'],
+      ['پاسبورت', 'glyph'],
+      ['\ufffd', 'replacement'],
+    ])
+    expect(xray?.words[0]?.box.width).toBeGreaterThan(10)
+    const image = outcome.xrayImage
+    expect(image?.[0]).toBe(0xff)
+    expect(image?.[1]).toBe(0xd8)
+    expect(image?.length).toBeLessThanOrEqual(70_000)
+    // Without the option, no pass and no picture.
+    const plain = await rendered(engine, { '/': arabicPage('<p>نص</p>') })
+    expect(plain.facts?.xray).toBeUndefined()
+    expect(plain.xrayImage ?? null).toBeNull()
   })
 
   it('reads the first family whole when its quoted name holds a comma (M1.1 review)', async () => {

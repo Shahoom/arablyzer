@@ -230,6 +230,12 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
+    // The monthly benchmark: the owner's `bq` command line asked for two BigQuery queries; it opens
+    // no connection of its own and fetches no page.
+    files: ['apps/web/scripts/httparchive-benchmark.ts'],
+    rules: networkRules({ allowProcesses: true }),
+  },
+  {
     // The site's Open Graph images, drawn by Chromium at build (M2.4c): the card's own HTML,
     // inline fonts, and every request refused.
     files: ['apps/web/scripts/og-images.ts'],
@@ -258,6 +264,7 @@ export default defineConfig(
       'apps/web/test/browser/heads.browser.test.ts',
       'apps/web/test/browser/contrast.browser.test.ts',
       'apps/web/test/browser/shared-layer.browser.test.ts',
+      'apps/web/test/browser/xray.browser.test.ts',
     ],
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
@@ -270,7 +277,11 @@ export default defineConfig(
   {
     // The report page drawn in the browsers (M2.6 R4): the site's own pages on loopback, the API's
     // answers the test's, and every request off the site refused.
-    files: ['apps/web/test/browser/report-layout.browser.test.ts'],
+    files: [
+      'apps/web/test/browser/report-layout.browser.test.ts',
+      // The Search Console card on the report page: the same, Chromium alone.
+      'apps/web/test/browser/gsc.browser.test.ts',
+    ],
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {

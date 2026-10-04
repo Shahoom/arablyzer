@@ -8,7 +8,11 @@ import { useState } from 'preact/hooks'
 import { Bidi } from './Bidi'
 import { ScanDock } from './Dock'
 import { Checks, Findings, type Fixes } from './Findings'
+import { ArabicXray } from './ArabicXray'
+import { BenchmarkSection } from './Benchmark'
+import { CountryFit } from './CountryFit'
 import { Frame } from './Frame'
+import { GscSection } from './Gsc'
 import { Notices } from './Notices'
 import { ReadLine } from './ReadLine'
 import { Categories, Headline, Summary } from './Summary'
@@ -93,11 +97,19 @@ export function ReportView({
       </div>
       <Findings report={report} fixes={fixes} lang={lang} />
       <Checks report={report} lang={lang} />
+      {tool === undefined && <CountryFit report={report} lang={lang} standalone />}
+      {tool === undefined && <ArabicXray report={report} lang={lang} standalone />}
+      {tool === undefined && <BenchmarkSection report={report} lang={lang} />}
+      {/* Search Console: a whole scan's, not a tool's; hidden unless the site has it on. */}
+      {tool === undefined && <GscSection id={id} lang={lang} />}
       {more('main')}
       <ScanDock lang={lang} tool={tool?.slug} />
     </Frame>
   )
 }
+
+/** A score of 0 to 10 with one decimal, as «7.2». */
+const score = (value: number) => value.toFixed(1)
 
 /** The line under the address: which tool, when, what the page answered and the rules' version. */
 function Meta({ report, lang, tool }: { report: Report; lang: Lang; tool: ToolRef | undefined }) {
@@ -122,6 +134,30 @@ function Meta({ report, lang, tool }: { report: Report; lang: Lang; tool: ToolRe
         {report.target.fetchedAt.slice(0, 10)}
       </span>
     </span>,
+    report.facts.openPageRank !== undefined && (
+      <span key="authority" className="whitespace-nowrap">
+        {t.authority}{' '}
+        {report.facts.openPageRank.score === null ? (
+          t.authorityNone
+        ) : (
+          <>
+            <span dir="ltr" lang="en" className="tabular-nums" title="Open PageRank">
+              {score(report.facts.openPageRank.score)}/10
+            </span>
+            {report.facts.openPageRank.trend !== null &&
+              ` (${t.authorityTrend[report.facts.openPageRank.trend]})`}
+          </>
+        )}
+      </span>
+    ),
+    report.facts.openPageRank?.referringDomains != null && (
+      <span key="referring" className="whitespace-nowrap">
+        {t.referringDomains}{' '}
+        <span dir="ltr" className="tabular-nums">
+          {new Intl.NumberFormat('en').format(report.facts.openPageRank.referringDomains)}
+        </span>
+      </span>
+    ),
     report.target.http.status !== null && (
       <span key="http" dir="ltr" className="whitespace-nowrap tabular-nums">
         HTTP {report.target.http.status}

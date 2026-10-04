@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.6.0"
+    "rulesetVersion": "0.8.0"
   },
   "target": {
     "url": "https://spices.example:30024/",
@@ -33,6 +33,20 @@
           "ar": "فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.",
           "en": "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run."
         }
+      },
+      {
+        "code": "knowledge-graph-no-key",
+        "message": {
+          "ar": "فحص حضور العلامة في Knowledge Graph من Google يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.",
+          "en": "The check of the brand in Google's Knowledge Graph needs a key this scan was not given, so it did not run."
+        }
+      },
+      {
+        "code": "safe-browsing-no-key",
+        "message": {
+          "ar": "فحص قوائم Google للتصفح الآمن (Safe Browsing) يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.",
+          "en": "The check against Google's Safe Browsing lists needs a key this scan was not given, so it did not run."
+        }
       }
     ]
   },
@@ -42,10 +56,10 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 27,
+    "pass": 30,
     "fail": 1,
     "needsReview": 0,
-    "notApplicable": 14,
+    "notApplicable": 16,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -66,6 +80,7 @@
       "index": 100,
       "intl": 100,
       "links": null,
+      "locale": null,
       "onpage": 100,
       "rtl": 100,
       "schema": null,
@@ -74,11 +89,22 @@
     },
     "partial": false,
     "rules": {
-      "ran": 42,
-      "total": 61
+      "ran": 47,
+      "total": 70
     }
   },
   "rules": [
+    {
+      "id": "ar-ai-readability",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "نص عربي تقرؤه الآلات قراءة سيئة",
+        "en": "Arabic text that machines read badly"
+      }
+    },
     {
       "id": "ar-digits-mixed",
       "version": "1.0.0",
@@ -157,6 +183,17 @@
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
+      }
+    },
+    {
+      "id": "country-fit",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "ملاءمة البلد",
+        "en": "Country fit"
       }
     },
     {
@@ -303,6 +340,17 @@
       }
     },
     {
+      "id": "knowledge-graph-entity",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "not-applicable",
+      "title": {
+        "ar": "العلامة في Knowledge Graph من Google",
+        "en": "Brand in Google's Knowledge Graph"
+      }
+    },
+    {
       "id": "link-broken",
       "version": "1.0.0",
       "category": "links",
@@ -366,6 +414,17 @@
       "title": {
         "ar": "طرق الدفع الخليجية في الصفحة",
         "en": "Gulf payment methods on the page"
+      }
+    },
+    {
+      "id": "platform-detected",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "المنصة التي يعمل عليها الموقع",
+        "en": "Platform detected"
       }
     },
     {
@@ -454,6 +513,17 @@
       "title": {
         "ar": "صفحة عربية بلا dir=\"rtl\" في وسم html",
         "en": "Arabic page without dir=\"rtl\" on the html element"
+      }
+    },
+    {
+      "id": "safe-browsing-flagged",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "status": "not-applicable",
+      "title": {
+        "ar": "Google Safe Browsing يصنّف الموقع خطراً",
+        "en": "Google Safe Browsing flags the site"
       }
     },
     {
@@ -618,6 +688,18 @@
           "allowed": true
         }
       ]
+    },
+    "platform": {
+      "primary": null,
+      "technologies": []
+    },
+    "countryFit": {
+      "country": null,
+      "confidence": "unclear",
+      "percent": null,
+      "judged": 0,
+      "signals": [],
+      "items": []
     }
   }
 }

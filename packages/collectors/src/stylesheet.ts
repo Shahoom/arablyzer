@@ -17,6 +17,9 @@ export interface FontFaceRule {
   readonly sources: readonly FontSource[]
   /** All of Unicode when the rule sets none or one the browser ignores as invalid. */
   readonly unicodeRange: readonly CodePointRange[]
+  /** The font-weight and font-style descriptors as written, when the rule has them. */
+  readonly weight?: string
+  readonly style?: string
 }
 
 /** A declaration that sets a side by left or right. */
@@ -209,6 +212,8 @@ function fontFace(
   let family: string | null = null
   let sources: FontSource[] = []
   let unicodeRange: readonly CodePointRange[] = ALL_CODE_POINTS
+  let weight: string | undefined
+  let style: string | undefined
   for (const child of children) {
     if (child.type !== 'Declaration' || child.value.type !== 'Raw') continue
     const raw = child.value.value
@@ -217,8 +222,17 @@ function fontFace(
     if (name === 'font-family') family = familyName(raw)
     else if (name === 'src') sources = fontSources(raw, baseUrl, limits.maxSources)
     else if (name === 'unicode-range') unicodeRange = parseUnicodeRange(raw) ?? ALL_CODE_POINTS
+    else if (name === 'font-weight') weight = collapse(raw).slice(0, 30)
+    else if (name === 'font-style') style = collapse(raw).slice(0, 30)
   }
-  return family === null ? null : { family, sources, unicodeRange }
+  if (family === null) return null
+  return {
+    family,
+    sources,
+    unicodeRange,
+    ...(weight === undefined ? {} : { weight }),
+    ...(style === undefined ? {} : { style }),
+  }
 }
 
 /** A family name: one string, or identifiers joined by single spaces (CSS Fonts 4 §2.1). */

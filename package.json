@@ -27,7 +27,8 @@
     "copy:review": "pnpm --recursive --no-bail run copy:review",
     "seo:audit": "pnpm --filter @arablyzer/seo run seo:audit",
     "site:build": "pnpm --filter @arablyzer/web run build",
-    "site:audit": "pnpm --filter @arablyzer/seo run site:audit"
+    "site:audit": "pnpm --filter @arablyzer/seo run site:audit",
+    "benchmark:httparchive": "pnpm --filter @arablyzer/web exec tsx scripts/httparchive-benchmark.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

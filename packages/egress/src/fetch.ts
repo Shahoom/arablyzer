@@ -67,6 +67,11 @@ export interface SafeFetchOptions {
    */
   readonly json?: unknown
   /**
+   * A form body (application/x-www-form-urlencoded) to send with POST, as an OAuth token endpoint
+   * takes; at most MAX_JSON_BODY_BYTES, and not with `json`. Never redirected, like `json`.
+   */
+  readonly form?: Readonly<Record<string, string>>
+  /**
    * Request headers to add, such as an API key: sent, and never kept in a result or an error.
    * Names are tokens and cannot be the fetch's own (FIXED_HEADERS); values have no line breaks.
    */
@@ -177,9 +182,9 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
   checkLimit('timeoutMs', options.timeoutMs, 1, MAX_TIMEOUT_MS)
   checkLimit('maxBytes', options.maxBytes, 1, DEFAULT_MAX_BYTES)
   checkLimit('maxRedirects', options.maxRedirects, 0, MAX_REDIRECTS)
-  const postBody = jsonBody(options.json)
+  const postBody = requestBody(options)
   if (postBody !== undefined && options.method === 'HEAD') {
-    throw new TypeError('A request with a JSON body is a POST, not a HEAD')
+    throw new TypeError('A request with a body is a POST, not a HEAD')
   }
   const addedHeaders = extraHeaders(options.headers)
   const policy = options.policy ?? DEFAULT_POLICY
@@ -327,6 +332,18 @@ export function validityOf(
   return { validFrom: from.toISOString(), validTo: to.toISOString() }
 }
 
+/** The JSON or form body as bytes; a TypeError when it cannot be sent, or both are given. */
+function requestBody(options: SafeFetchOptions): Buffer | undefined {
+  if (options.form === undefined) return jsonBody(options.json)
+  if (options.json !== undefined)
+    throw new TypeError('A request has a json body or a form, not both')
+  const bytes = Buffer.from(new URLSearchParams(options.form).toString(), 'utf8')
+  if (bytes.length > MAX_JSON_BODY_BYTES) {
+    throw new TypeError(`form is over the ${MAX_JSON_BODY_BYTES}-byte limit`)
+  }
+  return bytes
+}
+
 /** The JSON body as bytes; a TypeError when it cannot be sent. */
 function jsonBody(json: unknown): Buffer | undefined {
   if (json === undefined) return undefined
@@ -372,7 +389,11 @@ function requestHeaders(
     'accept-encoding': 'gzip, deflate, br',
     ...(body === undefined
       ? {}
-      : { 'content-type': 'application/json', 'content-length': String(body.length) }),
+      : {
+          'content-type':
+            options.form === undefined ? 'application/json' : 'application/x-www-form-urlencoded',
+          'content-length': String(body.length),
+        }),
   }
 }
 

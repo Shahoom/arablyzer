@@ -62,6 +62,7 @@ describe('the tools as their pages have them', () => {
     expect(data.tools.filter((tool) => tool.reportsOnly).map((tool) => tool.slug)).toEqual([
       'logical-css-check',
       'payment-methods-detector',
+      'platform-check',
     ])
   })
 

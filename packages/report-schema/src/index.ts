@@ -275,6 +275,237 @@ export const LabFact = z
   .meta({ id: 'LabFact' })
 export type LabFact = z.infer<typeof LabFact>
 
+/**
+ * The platform a page runs on, from the page and its server alone (rule platform-detected): its
+ * CMS or store, builder, plugins and services. Fix guides read `primary` to give steps for the
+ * platform ("on Salla: …").
+ */
+const DetectedTechnology = z.strictObject({
+  /** Lowercase, kebab-case: the key of platform-specific fix guides. */
+  id: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(64),
+  name: z.string().min(1).max(100),
+  kind: z.enum(['platform', 'builder', 'plugin', 'service']),
+  version: z.string().min(1).max(32).nullable(),
+  /** 1 to 100: 75 and over is sure. */
+  confidence: z.number().int().min(1).max(100),
+})
+export const PlatformFact = z
+  .strictObject({
+    /** The surest CMS or store; null when none was recognized. */
+    primary: DetectedTechnology.nullable(),
+    technologies: z.array(DetectedTechnology).max(40),
+  })
+  .meta({ id: 'PlatformFact' })
+export type PlatformFact = z.infer<typeof PlatformFact>
+
+/**
+ * What Google's Knowledge Graph knows of the page's brand name (rule knowledge-graph-entity),
+ * asked in Arabic and English: information, never judged. `unknown`: no entity has the name.
+ */
+export const KnowledgeGraphFact = z
+  .strictObject({
+    outcome: z.enum(['known', 'unknown', 'no-name']),
+    /** The name asked about; null when the page gives none. */
+    brand: z.string().min(1).max(100).nullable(),
+    entities: z
+      .array(
+        z.strictObject({
+          lang: z.enum(['ar', 'en']),
+          name: z.string().min(1).max(200),
+          types: z.array(z.string().max(100)).max(6),
+          description: z.string().max(200).nullable(),
+          wikipediaUrl: z.string().max(2048).nullable(),
+        }),
+      )
+      .max(2),
+  })
+  .meta({ id: 'KnowledgeGraphFact' })
+export type KnowledgeGraphFact = z.infer<typeof KnowledgeGraphFact>
+
+/**
+ * The domain's authority from Open PageRank (a whole scan, with a key), built on Common Crawl's
+ * web graph: information, never judged and never part of the score. 0 is the weakest, 10 the
+ * strongest.
+ */
+export const OpenPageRankFact = z
+  .strictObject({
+    /** The domain asked about: the page's registrable domain. */
+    domain: z.string().min(1).max(255),
+    /** 0 to 10, with up to two decimals; null when the domain is not in the index yet. */
+    score: z.number().min(0).max(10).nullable(),
+    /** The domain's place among all domains (1 is first); null when the API gave none. */
+    position: z.number().int().positive().nullable(),
+    /** The domains that link to it. */
+    referringDomains: z.number().int().nonnegative().nullable(),
+    /** The score over the last year; null with too little history. */
+    trend: z.enum(['rising', 'stable', 'falling']).nullable(),
+    /** The month of the score, YYYY-MM-DD. */
+    asOf: IsoDate.nullable(),
+  })
+  .meta({ id: 'OpenPageRankFact' })
+export type OpenPageRankFact = z.infer<typeof OpenPageRankFact>
+
+/**
+ * The Arabic web fonts the page loaded and what a subset of each, made for the Arabic text the
+ * page shows, would weigh (rule ar-font-subset-savings and the font slimmer tool): the tool's page
+ * offers each as a download, made on request from the font's own address.
+ */
+export const ArabicFontsFact = z
+  .strictObject({
+    fonts: z
+      .array(
+        z.strictObject({
+          family: z.string().min(1).max(200),
+          url: z.string().min(1).max(2048),
+          format: z.enum(['woff2', 'woff', 'ttf', 'otf', 'unknown']),
+          bytes: count(),
+          weight: z.string().max(30).nullable(),
+          style: z.string().max(30).nullable(),
+          /** The characters of the page's text set in this family (the first 400). */
+          characters: z.string().max(1600),
+          /** Null when no subset was made: no text of the page uses the family, or the file is unreadable. */
+          subsetBytes: count().nullable(),
+          unicodeRange: z.string().max(4000).nullable(),
+        }),
+      )
+      .max(8),
+  })
+  .meta({ id: 'ArabicFontsFact' })
+export type ArabicFontsFact = z.infer<typeof ArabicFontsFact>
+
+/**
+ * What the site's own search did with words of the page in their spelling variants (rule
+ * search-spelling-variants and the spelling search tool): each word the page uses, how many
+ * results its own spelling found, and each variant against it. `lost` counts the variants whose
+ * search found none, or fewer than half, of what the word's own spelling found, of `total` asked
+ * where the word's own spelling found something; an Arabizi form is shown and never counted.
+ */
+export const SearchTestFact = z
+  .strictObject({
+    via: z.enum(['form', 'wordpress', 'platform']),
+    /** The search's address, without the query. */
+    url: z.string().min(1).max(2048),
+    requests: count(),
+    lost: count(),
+    total: count(),
+    words: z
+      .array(
+        z.strictObject({
+          word: z.string().min(1).max(40),
+          /** Links its own spelling found beyond the site's chrome; null with no answer. */
+          results: count().nullable(),
+          first: z.string().max(500).nullable(),
+          variants: z
+            .array(
+              z.strictObject({
+                kind: z.enum([
+                  'ta-marbuta',
+                  'alef',
+                  'ya',
+                  'tatweel',
+                  'diacritics',
+                  'digits',
+                  'arabizi',
+                ]),
+                query: z.string().min(1).max(60),
+                results: count().nullable(),
+                first: z.string().max(500).nullable(),
+                outcome: z.enum(['same', 'differs', 'lost', 'unanswered']),
+                counted: z.boolean(),
+              }),
+            )
+            .max(12),
+        }),
+      )
+      .max(12),
+  })
+  .meta({ id: 'SearchTestFact' })
+export type SearchTestFact = z.infer<typeof SearchTestFact>
+
+/**
+ * How ready the page is for the Arab country it is written for (rule country-fit): information,
+ * never judged. `country` is null where the page says too little or too much to name one;
+ * `confidence` is `strong` only when two kinds of evidence agree, and only then is there a
+ * `percent` (with three or more items judged). An item is `unknown` where the page shows nothing
+ * to judge it by.
+ */
+export const CountryFitFact = z
+  .strictObject({
+    country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']).nullable(),
+    confidence: z.enum(['strong', 'thin', 'unclear']),
+    percent: z.number().int().min(0).max(100).nullable(),
+    judged: count(),
+    signals: z
+      .array(
+        z.strictObject({
+          kind: z.enum(['domain', 'lang', 'hreflang', 'currency', 'phone']),
+          country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']),
+          value: z.string().max(100),
+        }),
+      )
+      .max(30),
+    items: z
+      .array(
+        z.strictObject({
+          id: z.enum(['currency', 'phone', 'digits', 'vat', 'hijri', 'lang']),
+          status: z.enum(['ok', 'gap', 'unknown']),
+          detail: z.string().max(100),
+        }),
+      )
+      .max(10),
+  })
+  .meta({ id: 'CountryFitFact' })
+export type CountryFitFact = z.infer<typeof CountryFitFact>
+
+/**
+ * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
+ * counted and the ones drawn wrongly (a letter no font in their list draws, or a replacement
+ * character), where the broken ones stand in the first screen, and a small JPEG of that screen to
+ * draw them on, as a `data:` URL. `percent` is the share of Arabic words drawn correctly across
+ * the engines, the Arabic integrity; null where no engine counted a word. The pictures stay in the
+ * report, so they are kept and deleted with it.
+ */
+export const XrayFact = z
+  .strictObject({
+    percent: z.number().int().min(0).max(100).nullable(),
+    engines: z
+      .array(
+        z.strictObject({
+          engine: Engine,
+          total: count(),
+          broken: count(),
+          /** The page had more words than the pass went through. */
+          truncated: z.boolean(),
+          viewport: z.strictObject({
+            width: z.number().int().min(1).max(10_000),
+            height: z.number().int().min(1).max(10_000),
+          }),
+          /** The broken words in the first screen (the first 40). */
+          words: z
+            .array(
+              z.strictObject({
+                text: z.string().max(100),
+                kind: z.enum(['glyph', 'replacement']),
+                box: Box,
+              }),
+            )
+            .max(40),
+          /** The first screen as it was drawn; null where it was too big to keep. */
+          image: z
+            .string()
+            .max(110_000)
+            .regex(/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/)
+            .nullable(),
+        }),
+      )
+      .max(3),
+  })
+  .meta({ id: 'XrayFact' })
+export type XrayFact = z.infer<typeof XrayFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -288,6 +519,20 @@ export const Facts = z.strictObject({
   crux: CruxFact.optional(),
   /** Present when Lighthouse was asked for (--lab): information, never part of the score. */
   lab: LabFact.optional(),
+  /** Present when the platform rule ran on an HTML page. */
+  platform: PlatformFact.optional(),
+  /** Present when Knowledge Graph was asked, with a key, and answered. */
+  knowledgeGraph: KnowledgeGraphFact.optional(),
+  /** Present when Open PageRank was asked, with a key, and listed the domain. */
+  openPageRank: OpenPageRankFact.optional(),
+  /** Present when the font slimmer rule ran with a render that loaded an Arabic web font. */
+  arabicFonts: ArabicFontsFact.optional(),
+  /** Present when the spelling search test asked the site's search and read its answers. */
+  searchTest: SearchTestFact.optional(),
+  /** Present when the country fit rule ran on an HTML page. */
+  countryFit: CountryFitFact.optional(),
+  /** Present when a scan asked for the Arabic X-ray and an engine counted Arabic words. */
+  xray: XrayFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

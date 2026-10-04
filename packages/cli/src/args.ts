@@ -31,6 +31,12 @@ export interface CliOptions {
   readonly render: RenderChoice | null
   /** ARABLYZER_CRUX_API_KEY: real-user data from CrUX (M1.3b); null without it. */
   readonly cruxKey: string | null
+  /** ARABLYZER_SAFE_BROWSING_KEY, or the CrUX key when it is not set; null without either. */
+  readonly safeBrowsingKey: string | null
+  /** ARABLYZER_KG_KEY, or the CrUX key when it is not set; null without either. */
+  readonly knowledgeGraphKey: string | null
+  /** ARABLYZER_OPR_KEY: Open PageRank; null without it. */
+  readonly openPageRankKey: string | null
   /** --lab: Lighthouse's lab metrics, as information (M1.3b). */
   readonly lab: boolean
   readonly help: boolean
@@ -73,6 +79,9 @@ export function parseCliArgs(
       timeoutMs: 0,
       render: null,
       cruxKey: null,
+      safeBrowsingKey: null,
+      knowledgeGraphKey: null,
+      openPageRankKey: null,
       lab: false,
     }
   }
@@ -108,6 +117,9 @@ export function parseCliArgs(
     timeoutMs: timeout(values.timeout),
     render,
     cruxKey: cruxKey(env),
+    safeBrowsingKey: safeBrowsingKey(env),
+    knowledgeGraphKey: knowledgeGraphKey(env),
+    openPageRankKey: openPageRankKey(env),
     lab: values.lab,
   }
 }
@@ -117,6 +129,30 @@ export const CRUX_KEY_VARIABLE = 'ARABLYZER_CRUX_API_KEY'
 
 function cruxKey(env: Readonly<Record<string, string | undefined>>): string | null {
   const key = env[CRUX_KEY_VARIABLE]?.trim() ?? ''
+  return key === '' ? null : key
+}
+
+/** The Safe Browsing API key from the environment; one Google key may allow both APIs. */
+export const SAFE_BROWSING_KEY_VARIABLE = 'ARABLYZER_SAFE_BROWSING_KEY'
+
+function safeBrowsingKey(env: Readonly<Record<string, string | undefined>>): string | null {
+  const key = env[SAFE_BROWSING_KEY_VARIABLE]?.trim() ?? ''
+  return key === '' ? cruxKey(env) : key
+}
+
+/** The Knowledge Graph API key from the environment, else the CrUX key. */
+export const KG_KEY_VARIABLE = 'ARABLYZER_KG_KEY'
+
+function knowledgeGraphKey(env: Readonly<Record<string, string | undefined>>): string | null {
+  const key = env[KG_KEY_VARIABLE]?.trim() ?? ''
+  return key === '' ? cruxKey(env) : key
+}
+
+/** The Open PageRank API key from the environment. */
+export const OPR_KEY_VARIABLE = 'ARABLYZER_OPR_KEY'
+
+function openPageRankKey(env: Readonly<Record<string, string | undefined>>): string | null {
+  const key = env[OPR_KEY_VARIABLE]?.trim() ?? ''
   return key === '' ? null : key
 }
 

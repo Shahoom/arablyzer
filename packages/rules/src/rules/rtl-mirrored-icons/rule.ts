@@ -24,7 +24,10 @@ export const rule = defineRule({
   detect: ({ rendered = [] }) => {
     const icons = new Sightings<DirectionIconFact>()
     for (const facts of rendered) {
+      // A control whose role says which way its icon should point is rtl-icon-role's.
+      const judged = new Set(facts.roleIcons.map((found) => found.selector))
       for (const icon of facts.directionIcons) {
+        if (judged.has(icon.selector)) continue
         icons.add(`${icon.selector}\n${icon.name}`, facts.engine, icon)
       }
     }

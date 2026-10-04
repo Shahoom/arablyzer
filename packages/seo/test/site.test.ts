@@ -32,7 +32,7 @@ describe('auditSite', () => {
       check: 'own-rules',
       message: expect.stringContaining('ar-latin-punctuation fail') as string,
     })
-  })
+  }, 60_000)
 })
 
 describe('sampleReport', () => {

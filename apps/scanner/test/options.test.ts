@@ -7,6 +7,7 @@ describe('scanOptionsFrom', () => {
     expect(options.render).toEqual({
       engines: ['chromium', 'firefox', 'webkit'],
       networkIsolated: false,
+      xray: true,
     })
     expect(scanOptionsFrom({ ARABLYZER_NETWORK_ISOLATED: '1' }).render?.networkIsolated).toBe(true)
     expect(options.crux).toBeUndefined()
@@ -30,6 +31,35 @@ describe('scanOptionsFrom', () => {
   it('asks CrUX only with a key', () => {
     expect(scanOptionsFrom({ ARABLYZER_CRUX_KEY: 'key' }).crux).toEqual({ apiKey: 'key' })
     expect(scanOptionsFrom({ ARABLYZER_CRUX_KEY: ' ' }).crux).toBeUndefined()
+  })
+
+  it('asks Safe Browsing with its own key, or the CrUX key, and not without one', () => {
+    const sb = (env: Record<string, string>) => scanOptionsFrom(env).safeBrowsing
+    expect(sb({ ARABLYZER_SAFE_BROWSING_KEY: ' sb ', ARABLYZER_CRUX_KEY: 'crux' })).toEqual({
+      apiKey: 'sb',
+    })
+    expect(sb({ ARABLYZER_CRUX_KEY: 'crux' })).toEqual({ apiKey: 'crux' })
+    // Compose passes an empty variable when it is not set: the CrUX key is used then.
+    expect(sb({ ARABLYZER_SAFE_BROWSING_KEY: '', ARABLYZER_CRUX_KEY: 'crux' })).toEqual({
+      apiKey: 'crux',
+    })
+    expect(sb({ ARABLYZER_SAFE_BROWSING_KEY: ' ' })).toBeUndefined()
+    expect(sb({})).toBeUndefined()
+  })
+
+  it('asks Knowledge Graph with its own key, or the CrUX key, and not without one', () => {
+    const kg = (env: Record<string, string>) => scanOptionsFrom(env).knowledgeGraph
+    expect(kg({ ARABLYZER_KG_KEY: ' kg ', ARABLYZER_CRUX_KEY: 'crux' })).toEqual({ apiKey: 'kg' })
+    expect(kg({ ARABLYZER_KG_KEY: '', ARABLYZER_CRUX_KEY: 'crux' })).toEqual({ apiKey: 'crux' })
+    expect(kg({})).toBeUndefined()
+  })
+
+  it('asks Open PageRank with its own key alone', () => {
+    expect(scanOptionsFrom({ ARABLYZER_OPR_KEY: ' opr ' }).openPageRank).toEqual({ apiKey: 'opr' })
+    // No key still gives the option, so a whole scan says the check is off.
+    expect(scanOptionsFrom({ ARABLYZER_CRUX_KEY: 'crux' }).openPageRank).toEqual({
+      apiKey: undefined,
+    })
   })
 
   // M2.3c review: behind the egress proxy the scanner resolves no name of its own, so the TXT

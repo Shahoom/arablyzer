@@ -34,5 +34,6 @@ export {
   type RenderStatus,
 } from './render'
 export { DEFAULT_MAX_HOSTS, type PageRequests } from './requests'
+export { toXrayFacts, XRAY_IMAGE_BYTES, XRAY_LIMITS, xrayPage, type XrayLimits } from './xray'
 export { toFacts, type FactsContext } from './validate'
 export { PLAYWRIGHT_VERSION } from './version'

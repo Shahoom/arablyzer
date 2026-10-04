@@ -22,7 +22,7 @@ export interface ToolAppStrings {
      * What a tool sends to a host that is not ours, which its box's disclosure says beside what is
      * kept: the DNS tool puts the page's domain to a resolver.
      */
-    readonly sentOut: Readonly<Partial<Record<'dns', string>>>
+    readonly sentOut: Readonly<Partial<Record<'dns' | 'search', string>>>
   }
   readonly result: {
     readonly running: string
@@ -73,6 +73,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       rendersIn: 'يعرض الصفحة في:',
       sentOut: {
         dns: 'نسأل DNS عبر HTTPS لدى Cloudflare، أو لدى المحلِّل الذي ضُبطت عليه الخدمة، عن سجلَّي TXT لنطاق الصفحة: SPF وDMARC. ويصل اسم النطاق إلى ذلك المحلِّل، ولا شيء آخر من الصفحة.',
+        search:
+          'نرسل إلى بحث الموقع نفسه 12 طلبًا على الأكثر، واحدًا واحدًا وبينها مهلة، باسم ArablyzerBot، وبعد أن نقرأ robots.txt؛ وتظهر في سجلات الموقع، وقد تُحسب في إحصاءات بحثه.',
       },
     },
     result: {
@@ -129,6 +131,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       rendersIn: 'Renders the page in:',
       sentOut: {
         dns: 'We ask Cloudflare’s DNS over HTTPS, or the resolver the service is set to, for two TXT records of the page’s domain, SPF and DMARC. The domain’s name goes there, and nothing else of the page.',
+        search:
+          'We send the site’s own search at most 12 requests, one at a time with a pause, as ArablyzerBot, after reading its robots.txt. They show in the site’s logs and may count in its search statistics.',
       },
     },
     result: {

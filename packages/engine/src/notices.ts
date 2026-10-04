@@ -30,6 +30,22 @@ export type NoticeCode =
   | 'crux-not-found'
   | 'crux-failed'
   | 'crux-refused'
+  | 'safe-browsing-no-key'
+  | 'safe-browsing-private'
+  | 'safe-browsing-failed'
+  | 'safe-browsing-refused'
+  | 'knowledge-graph-no-key'
+  | 'knowledge-graph-private'
+  | 'knowledge-graph-failed'
+  | 'knowledge-graph-refused'
+  | 'open-page-rank-no-key'
+  | 'open-page-rank-private'
+  | 'open-page-rank-failed'
+  | 'open-page-rank-refused'
+  | 'search-not-found'
+  | 'search-robots'
+  | 'search-unreachable'
+  | 'search-no-words'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -219,6 +235,70 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'crux-not-found': {
     ar: 'ليس عند Google (CrUX) بيانات عن زوار هذه الصفحة ولا موقعها، وهذا حال كثير من المواقع قليلة الزيارات، فلا تنطبق فحوص سرعة الزوار الحقيقيين.',
     en: "Google (CrUX) has no data on visitors to this page or its site, as for many sites with fewer visits, so the checks of real visitors' speed do not apply.",
+  },
+  'safe-browsing-no-key': {
+    ar: 'فحص قوائم Google للتصفح الآمن (Safe Browsing) يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.',
+    en: "The check against Google's Safe Browsing lists needs a key this scan was not given, so it did not run.",
+  },
+  'safe-browsing-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Google (Safe Browsing) عنها.',
+    en: 'The page is on a local or private address, so Google (Safe Browsing) was not asked about it.',
+  },
+  'safe-browsing-failed': {
+    ar: 'تعذّر الحصول على جواب Google (Safe Browsing)، فلم يعمل فحص قوائم التصفح الآمن، ولا يعني ذلك أن الصفحة سليمة أو مصابة.',
+    en: 'Google (Safe Browsing) did not give an answer, so the check against its lists did not run. That says nothing of whether the page is safe.',
+  },
+  'safe-browsing-refused': {
+    ar: 'رفضت Google (Safe Browsing) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Safe Browsing API، فلم يعمل الفحص.',
+    en: 'Google (Safe Browsing) refused the request, most often for an API key that is not valid or not enabled for the Safe Browsing API, so the check could not run.',
+  },
+  'knowledge-graph-no-key': {
+    ar: 'فحص حضور العلامة في Knowledge Graph من Google يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.',
+    en: "The check of the brand in Google's Knowledge Graph needs a key this scan was not given, so it did not run.",
+  },
+  'knowledge-graph-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Google (Knowledge Graph) عن اسم علامتها.',
+    en: "The page is on a local or private address, so Google (Knowledge Graph) was not asked about its brand's name.",
+  },
+  'knowledge-graph-failed': {
+    ar: 'تعذّر الحصول على جواب Google (Knowledge Graph)، فلم يعمل فحص حضور العلامة.',
+    en: 'Google (Knowledge Graph) did not give an answer, so the check of the brand did not run.',
+  },
+  'knowledge-graph-refused': {
+    ar: 'رفضت Google (Knowledge Graph) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Knowledge Graph Search API، فلم يعمل الفحص.',
+    en: 'Google (Knowledge Graph) refused the request, most often for an API key that is not valid or not enabled for the Knowledge Graph Search API, so the check could not run.',
+  },
+  'open-page-rank-no-key': {
+    ar: 'قوة النطاق تُقرأ من Open PageRank وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تُعرض.',
+    en: "The domain's authority is read from Open PageRank, which needs a key this scan was not given, so it is not shown.",
+  },
+  'open-page-rank-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Open PageRank عن نطاقها.',
+    en: 'The page is on a local or private address, so Open PageRank was not asked about its domain.',
+  },
+  'open-page-rank-failed': {
+    ar: 'تعذّر الحصول على جواب Open PageRank، فلا تُعرض قوة النطاق.',
+    en: "Open PageRank did not give an answer, so the domain's authority is not shown.",
+  },
+  'open-page-rank-refused': {
+    ar: 'رفضت Open PageRank الطلب، وأكثر ما يكون ذلك لمفتاح غير صالح، فلا تُعرض قوة النطاق.',
+    en: "Open PageRank refused the request, most often for a key that is not valid, so the domain's authority is not shown.",
+  },
+  'search-not-found': {
+    ar: 'لم نجد في الصفحة بحثًا نسأله: لا نموذج بحث بطريقة GET في موقعها نفسه، ولا منصة نعرف عنوان بحثها.',
+    en: 'We found no search on the page to ask: no GET search form on its own site, and no platform whose search address we know.',
+  },
+  'search-robots': {
+    ar: 'يمنع ملف robots.txt في الموقع زاحفنا ArablyzerBot من صفحات البحث، فلم نرسل إليها شيئًا، واحترمنا ذلك.',
+    en: "The site's robots.txt keeps our crawler ArablyzerBot from its search pages, so we sent them nothing, as it asks.",
+  },
+  'search-unreachable': {
+    ar: 'لم نستطع قراءة جواب بحث الموقع، فلم نختبر الإملاءات: ردّ البحث على استعلام لا معنى له بخطأ أو بغير صفحة.',
+    en: "We could not read an answer from the site's search, so no spelling was tested: it answered a query that means nothing with an error or no page.",
+  },
+  'search-no-words': {
+    ar: 'وجدنا بحث الموقع، لكن ليس في الصفحة كلمات عربية من نصها نسأله عنها، فلم نختبر شيئًا.',
+    en: "We found the site's search, but the page has no Arabic words of its own to ask it for, so nothing was tested.",
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

@@ -1,0 +1,3 @@
+{
+  "safeBrowsing": { "threats": ["SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"] }
+}
