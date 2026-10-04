@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import {
   ARABIC_BLOCKS,
   collectCrux,
+  collectSafeBrowsing,
   collectPage,
   collectRobots,
   collectSitemap,
@@ -13,6 +14,7 @@ import {
   sitemapTargets,
   txtLookup,
   type CruxFacts,
+  type SafeBrowsingFacts,
   type DnsFacts,
   type LinkAnswer,
   type LinkCheck,
@@ -32,10 +34,12 @@ import {
 } from '@arablyzer/collectors'
 import {
   answerCrux,
+  answerSafeBrowsing,
   certificateWindow,
   fixtureTxt,
   loadFixtureConfig,
   type CruxData,
+  type SafeBrowsingData,
   loadSiteConfig,
   resolveFixtureResponse,
   type FixtureConfig,
@@ -143,6 +147,10 @@ export async function fixtureEvidence(
     ...(sitemap === undefined ? {} : { sitemap }),
     // CrUX's answers as the engine asks for them: the URL, then the origin when it has none.
     ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, url) }),
+    // Safe Browsing's answer for the page's URL and origin, as the engine asks.
+    ...(site.safeBrowsing === undefined
+      ? {}
+      : { safeBrowsing: safeBrowsingOf(site.safeBrowsing, url) }),
     ...dnsOf(site, url, txtNames),
     links: await linksOf(root, config, names, facts),
   }
@@ -236,6 +244,13 @@ function cruxOf(data: CruxData, pageUrl: string): CruxFacts {
   return url.status === 404
     ? collectCrux({ url, origin: ask({ origin: new URL(pageUrl).origin }) })
     : collectCrux({ url })
+}
+
+/** What the engine would read from the Safe Browsing stand-in for a fixture site's page. */
+function safeBrowsingOf(data: SafeBrowsingData, pageUrl: string): SafeBrowsingFacts {
+  const origin = `${new URL(pageUrl).origin}/`
+  const query = { threatInfo: { threatEntries: [{ url: pageUrl }, { url: origin }] } }
+  return collectSafeBrowsing(answerSafeBrowsing(data, query, 'fixture-key'))
 }
 
 function headerList(headers: Record<string, string | string[]>): Header[] {

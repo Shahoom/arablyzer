@@ -1,4 +1,5 @@
 {
+  "safeBrowsing": { "threats": ["MALWARE"] },
   "crux": {
     "url": {
       "lcp": 5200,

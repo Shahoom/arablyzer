@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CruxData } from './crux'
+import { SafeBrowsingData } from './safe-browsing'
 
 const HeaderValue = z.union([z.string(), z.array(z.string()).min(1)])
 
@@ -38,6 +39,8 @@ export const SiteConfig = z
   .strictObject({
     /** What the CrUX stand-in answers for the site (see serveCrux): the CrUX rules' fixtures. */
     crux: CruxData.optional(),
+    /** What the Safe Browsing stand-in answers for the site (serveSafeBrowsing): its rule's fixtures. */
+    safeBrowsing: SafeBrowsingData.optional(),
     host: z.string().regex(EXAMPLE_NAME).optional(),
     aliases: z.array(z.string().regex(EXAMPLE_NAME)).min(1).optional(),
     tls: z

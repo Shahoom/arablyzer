@@ -1,4 +1,10 @@
-import { loadSiteConfig, serveCrux, serveSite, trustFixtureCa } from '@arablyzer/fixtures'
+import {
+  loadSiteConfig,
+  serveCrux,
+  serveSafeBrowsing,
+  serveSite,
+  trustFixtureCa,
+} from '@arablyzer/fixtures'
 import { createPolicy } from '@arablyzer/egress'
 import { RULES } from '@arablyzer/rules'
 import { describe, expect, it } from 'vitest'
@@ -20,21 +26,31 @@ describe('rule fixtures over HTTP', () => {
   it.each(FIXTURE_CASES)('$ruleId/$fixture', async ({ ruleId, fixture, dir, alsoFails }) => {
     const site = await serveSite(dir)
     // A site with CrUX data is scanned with a key, against a local stand-in for the API.
-    const data = (await loadSiteConfig(dir)).crux
+    const config = await loadSiteConfig(dir)
+    const data = config.crux
     const crux = data === undefined ? undefined : await serveCrux(data)
+    // The same for Safe Browsing data.
+    const sbData = config.safeBrowsing
+    const safeBrowsing = sbData === undefined ? undefined : await serveSafeBrowsing(sbData)
+    const stoodIn = [crux, safeBrowsing].flatMap((standIn) =>
+      standIn === undefined ? [] : [standIn],
+    )
     try {
       const report = await scan(site.url('/'), {
         policy:
-          crux === undefined
+          stoodIn.length === 0
             ? policyFor(site)
             : createPolicy({
-                allowTargets: [
-                  { address: '127.0.0.1', port: site.port },
-                  { address: '127.0.0.1', port: crux.port },
-                ],
+                allowTargets: [site, ...stoodIn].map(({ port }) => ({
+                  address: '127.0.0.1',
+                  port,
+                })),
               }),
         resolver: resolverFor(site),
         ...(crux === undefined ? {} : { crux: { apiKey: 'fixture-key', endpoint: crux.endpoint } }),
+        ...(safeBrowsing === undefined
+          ? {}
+          : { safeBrowsing: { apiKey: 'fixture-key', endpoint: safeBrowsing.endpoint } }),
       })
       expect(schemaErrors(report)).toBe('')
       // A challenge is not the page (M2.3c): none of the page was checked, so the scan is short
@@ -56,6 +72,7 @@ describe('rule fixtures over HTTP', () => {
     } finally {
       await site.close()
       await crux?.close()
+      await safeBrowsing?.close()
     }
   })
 })

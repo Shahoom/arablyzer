@@ -30,6 +30,10 @@ export type NoticeCode =
   | 'crux-not-found'
   | 'crux-failed'
   | 'crux-refused'
+  | 'safe-browsing-no-key'
+  | 'safe-browsing-private'
+  | 'safe-browsing-failed'
+  | 'safe-browsing-refused'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -219,6 +223,22 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'crux-not-found': {
     ar: 'ليس عند Google (CrUX) بيانات عن زوار هذه الصفحة ولا موقعها، وهذا حال كثير من المواقع قليلة الزيارات، فلا تنطبق فحوص سرعة الزوار الحقيقيين.',
     en: "Google (CrUX) has no data on visitors to this page or its site, as for many sites with fewer visits, so the checks of real visitors' speed do not apply.",
+  },
+  'safe-browsing-no-key': {
+    ar: 'فحص قوائم Google للتصفح الآمن (Safe Browsing) يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.',
+    en: "The check against Google's Safe Browsing lists needs a key this scan was not given, so it did not run.",
+  },
+  'safe-browsing-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Google (Safe Browsing) عنها.',
+    en: 'The page is on a local or private address, so Google (Safe Browsing) was not asked about it.',
+  },
+  'safe-browsing-failed': {
+    ar: 'تعذّر الحصول على جواب Google (Safe Browsing)، فلم يعمل فحص قوائم التصفح الآمن، ولا يعني ذلك أن الصفحة سليمة أو مصابة.',
+    en: 'Google (Safe Browsing) did not give an answer, so the check against its lists did not run. That says nothing of whether the page is safe.',
+  },
+  'safe-browsing-refused': {
+    ar: 'رفضت Google (Safe Browsing) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Safe Browsing API، فلم يعمل الفحص.',
+    en: 'Google (Safe Browsing) refused the request, most often for an API key that is not valid or not enabled for the Safe Browsing API, so the check could not run.',
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

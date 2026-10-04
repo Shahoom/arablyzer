@@ -17,6 +17,7 @@ describe('parseCliArgs', () => {
       allowPrivate: false,
       render: null,
       cruxKey: null,
+      safeBrowsingKey: null,
       lab: false,
       help: false,
       version: false,
@@ -32,6 +33,13 @@ describe('parseCliArgs', () => {
     expect(key({ ARABLYZER_CRUX_API_KEY: ' abc123 ' })).toBe('abc123')
     expect(key({ ARABLYZER_CRUX_API_KEY: '  ' })).toBeNull()
     expect(key({})).toBeNull()
+  })
+
+  it('reads the Safe Browsing key from its own variable, then the CrUX key', () => {
+    const key = (env: Record<string, string>) => parseCliArgs(['x.test'], env).safeBrowsingKey
+    expect(key({ ARABLYZER_SAFE_BROWSING_KEY: ' sb ', ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('sb')
+    expect(key({ ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('crux')
+    expect(key({ ARABLYZER_SAFE_BROWSING_KEY: ' ' })).toBeNull()
   })
 
   it('renders in Chromium with --render, in the engines asked for, and --screenshots implies it', () => {

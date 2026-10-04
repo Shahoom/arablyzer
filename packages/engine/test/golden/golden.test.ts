@@ -2,8 +2,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createPolicy } from '@arablyzer/egress'
 import {
   type CruxStandIn,
+  type SafeBrowsingStandIn,
   loadSiteConfig,
   serveCrux,
+  serveSafeBrowsing,
   serveSite,
   trustFixtureCa,
 } from '@arablyzer/fixtures'
@@ -18,6 +20,7 @@ import {
   normalize,
   portOf,
   REPORTS,
+  SAFE_BROWSING_PORT,
   SITES,
 } from './golden'
 
@@ -70,13 +73,20 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
       const config = await loadSiteConfig(dir)
       const site = await serveSite(dir, { port: portOf(name) })
       let crux: CruxStandIn | undefined
+      let safeBrowsing: SafeBrowsingStandIn | undefined
       try {
         if (config.crux !== undefined) crux = await serveCrux(config.crux, { port: CRUX_PORT })
+        if (config.safeBrowsing !== undefined) {
+          safeBrowsing = await serveSafeBrowsing(config.safeBrowsing, { port: SAFE_BROWSING_PORT })
+        }
         const report = await scan(site.url('/'), {
           policy: createPolicy({
             allowTargets: [
               { address: '127.0.0.1', port: site.port },
               ...(crux === undefined ? [] : [{ address: '127.0.0.1', port: crux.port }]),
+              ...(safeBrowsing === undefined
+                ? []
+                : [{ address: '127.0.0.1', port: safeBrowsing.port }]),
             ],
           }),
           resolver: resolverFor(site),
@@ -88,6 +98,9 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
           ...(crux === undefined
             ? {}
             : { crux: { apiKey: 'golden-key', endpoint: crux.endpoint } }),
+          ...(safeBrowsing === undefined
+            ? {}
+            : { safeBrowsing: { apiKey: 'golden-key', endpoint: safeBrowsing.endpoint } }),
         })
         const actual = `${JSON.stringify(normalize(report), null, 2)}\n`
         // Kept before anything is checked, so CI has it whatever fails.
@@ -100,6 +113,7 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
       } finally {
         await site.close()
         await crux?.close()
+        await safeBrowsing?.close()
       }
     },
     180_000,

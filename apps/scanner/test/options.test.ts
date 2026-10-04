@@ -32,6 +32,16 @@ describe('scanOptionsFrom', () => {
     expect(scanOptionsFrom({ ARABLYZER_CRUX_KEY: ' ' }).crux).toBeUndefined()
   })
 
+  it('asks Safe Browsing with its own key, or the CrUX key, and not without one', () => {
+    const sb = (env: Record<string, string>) => scanOptionsFrom(env).safeBrowsing
+    expect(sb({ ARABLYZER_SAFE_BROWSING_KEY: ' sb ', ARABLYZER_CRUX_KEY: 'crux' })).toEqual({
+      apiKey: 'sb',
+    })
+    expect(sb({ ARABLYZER_CRUX_KEY: 'crux' })).toEqual({ apiKey: 'crux' })
+    expect(sb({ ARABLYZER_SAFE_BROWSING_KEY: ' ' })).toBeUndefined()
+    expect(sb({})).toBeUndefined()
+  })
+
   // M2.3c review: behind the egress proxy the scanner resolves no name of its own, so the TXT
   // lookups of its DNS rules are DNS over HTTPS (RFC 8484), asked through that proxy.
   it('asks DNS over HTTPS behind the egress proxy, of Cloudflare unless told another resolver', () => {

@@ -20,6 +20,7 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'payment-methods': 'nothing: it lists the payment methods the page shows, as information',
   'redirect-chain': 'the redirects before the page, which no excerpt shows',
   'redirect-temporary': 'the redirects before the page, which no excerpt shows',
+  'safe-browsing-flagged': "Google's lists, which no excerpt of the page shows",
   'sitemap-missing': 'the absence of a sitemap, which no excerpt shows',
   'spf-missing': 'DNS records, which no excerpt of the page shows',
   'text-compression-missing': 'how the server sends the page’s files',

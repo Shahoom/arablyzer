@@ -7,6 +7,13 @@ export {
   type CruxQuery,
   type CruxStandIn,
 } from './crux'
+export {
+  answerSafeBrowsing,
+  SafeBrowsingData,
+  serveSafeBrowsing,
+  type SafeBrowsingQuery,
+  type SafeBrowsingStandIn,
+} from './safe-browsing'
 export { fixtureTxt, NO_MAIL_DMARC, NO_MAIL_SPF, type FixtureTxtAnswer } from './dns'
 export {
   serveDoh,

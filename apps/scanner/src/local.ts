@@ -18,7 +18,7 @@ export function localScanner(options: ScanOptions): Scanner {
 
 /**
  * A tool page's scan runs the tool's rules alone (M2.2): a browser only when one of them reads
- * the rendered page, CrUX only when one reads real users' data (the page's URL goes to Google),
+ * the rendered page, CrUX or Safe Browsing only when one reads them (the page's URL goes to Google),
  * and no lab metrics, which the whole scan's report shows. Without a tool, the options as they
  * are.
  */
@@ -41,5 +41,6 @@ export function optionsFor(options: ScanOptions, tool: string | undefined): Scan
   delete tooled.lab
   if (!renders) delete tooled.render
   if (!reads('crux')) delete tooled.crux
+  if (!reads('safe-browsing')) delete tooled.safeBrowsing
   return tooled
 }

@@ -6,7 +6,8 @@ import { arabicCount, englishCount } from './plural'
  * records, the answers of the page's links, the server's response (its headers, redirects or
  * connection), or the page; or robots.txt and the sitemaps.
  */
-export type RuleReads = 'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links' | 'sitemap'
+export type RuleReads =
+  'html' | 'robots' | 'render' | 'crux' | 'safeBrowsing' | 'http' | 'dns' | 'links' | 'sitemap'
 
 /** The rule library (BUILD-PLAN §6.2, M2.4): its index and each rule's page, around the copy. */
 export interface RulesStrings {
@@ -86,6 +87,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         robots: 'تقرأ robots.txt',
         render: 'تحتاج عرض الصفحة في المتصفح',
         crux: 'تقرأ بيانات زوار Chrome',
+        safeBrowsing: 'تسأل Google Safe Browsing',
         http: 'تقرأ رد الخادم',
         dns: 'تقرأ سجلات DNS للنطاق',
         links: 'تطلب روابط الصفحة إلى موقعها',
@@ -134,6 +136,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         robots: 'Reads robots.txt',
         render: 'Renders the page in browsers',
         crux: 'Reads Chrome’s visitor data',
+        safeBrowsing: 'Asks Google Safe Browsing',
         http: 'Reads the server’s response',
         dns: 'Reads the domain’s DNS records',
         links: 'Asks for the page’s links to its site',

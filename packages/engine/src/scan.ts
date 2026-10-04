@@ -8,6 +8,7 @@ import {
   ENGINES,
   headerValues,
   type CruxFacts,
+  type SafeBrowsingFacts,
   type DnsFacts,
   type Engine,
   type LinkFacts,
@@ -65,6 +66,7 @@ import {
 import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
+import { fetchSafeBrowsing, type SafeBrowsingOptions } from './safe-browsing'
 import { lookupDns, txtResolverFor } from './dns'
 import { checkLinks, MAX_LINKS } from './links'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
@@ -174,6 +176,12 @@ export interface ScanOptions {
    * private address is not asked about.
    */
   readonly crux?: CruxOptions
+  /**
+   * Google Safe Browsing, asked with this key when a rule the scan runs needs `safe-browsing`: the
+   * page's URL and origin go to Google. Without it, those rules do not apply, and a notice says
+   * so. A page on a private address is not asked about. Nothing is kept from one scan to the next.
+   */
+  readonly safeBrowsing?: SafeBrowsingOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
   readonly lab?: LabRequest
   /**
@@ -462,6 +470,19 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     readsCrux && cruxSkipped === null && options.crux !== undefined && cruxAsked
       ? await fetchCrux(response.url, options.crux, { ...base, policy })
       : undefined
+  // Safe Browsing: the same, for the rules that read it; the site is not asked, Google is.
+  const readsSafeBrowsing = rules.some((rule) => rule.needs.includes('safe-browsing'))
+  const safeBrowsingSkipped: NoticeCode | null = !readsSafeBrowsing
+    ? null
+    : options.safeBrowsing === undefined
+      ? 'safe-browsing-no-key'
+      : fetched.privateAccess
+        ? 'safe-browsing-private'
+        : null
+  const safeBrowsing =
+    readsSafeBrowsing && safeBrowsingSkipped === null && options.safeBrowsing !== undefined
+      ? await fetchSafeBrowsing(response.url, options.safeBrowsing, { ...base, policy })
+      : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
   else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
   // The TXT records the rules that read DNS ask for (M2.3c), and those alone, asked as the scan
@@ -543,6 +564,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : []),
     ...(rendering?.notices ?? []),
     ...(cruxSkipped === null ? [] : [notice(cruxSkipped)]),
+    ...(safeBrowsingSkipped === null ? [] : [notice(safeBrowsingSkipped)]),
+    ...(safeBrowsing?.outcome === 'failed'
+      ? [notice(safeBrowsing.refused === true ? 'safe-browsing-refused' : 'safe-browsing-failed')]
+      : []),
     ...(crux?.outcome === 'not-found' ? [notice('crux-not-found')] : []),
     ...(crux?.outcome === 'failed'
       ? [notice(crux.refused === true ? 'crux-refused' : 'crux-failed')]
@@ -563,6 +588,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     robots,
     rendered: rendering?.rendered,
     crux,
+    safeBrowsing,
     redirects: target.http.redirects,
     dns: dns?.facts,
     links,
@@ -802,6 +828,8 @@ export interface EvaluateOptions {
   readonly rendered?: readonly RenderedFacts[]
   /** Real-user data; without it, rules that need `crux` do not apply. */
   readonly crux?: CruxFacts
+  /** What Safe Browsing said; without it, rules that need `safe-browsing` do not apply. */
+  readonly safeBrowsing?: SafeBrowsingFacts
   /**
    * The redirects the page's fetch followed, in order (the report's target.http.redirects);
    * without them, rules that need them do not apply.
@@ -839,6 +867,7 @@ interface Collected {
   readonly robots?: RobotsFacts | undefined
   readonly rendered?: readonly RenderedFacts[] | undefined
   readonly crux?: CruxFacts | undefined
+  readonly safeBrowsing?: SafeBrowsingFacts | undefined
   readonly redirects?: readonly Redirect[] | undefined
   readonly dns?: DnsFacts | undefined
   readonly links?: LinkFacts | undefined
@@ -946,10 +975,16 @@ interface Outcome {
  * which was asked for when the page answered a bot challenge too. Their rules run whatever the
  * page answered.
  */
-const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set(['robots', 'sitemap', 'response', 'crux'])
+const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set([
+  'robots',
+  'sitemap',
+  'response',
+  'crux',
+  'safe-browsing',
+])
 
 function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: boolean): Outcome {
-  const { robots, rendered, crux } = collected
+  const { robots, rendered, crux, safeBrowsing } = collected
   const needsPage = rule.needs.some((need) => !BESIDE_THE_PAGE.has(need))
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
@@ -978,6 +1013,14 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   }
   if (rule.needs.includes('crux') && crux?.outcome === 'failed') {
     return { status: 'error', error: 'crux-unchecked', findings: [] }
+  }
+  // Safe Browsing was not asked for (no key, or a private page): nothing to judge; asked, with no
+  // usable answer, the rule could not check.
+  if (rule.needs.includes('safe-browsing') && safeBrowsing === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
+  if (rule.needs.includes('safe-browsing') && safeBrowsing?.outcome === 'failed') {
+    return { status: 'error', error: 'safe-browsing-unchecked', findings: [] }
   }
   // Only for the rules that read them: the others see the evidence they always did.
   const redirects = rule.needs.includes('redirects') ? collected.redirects : undefined
@@ -1021,6 +1064,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
+    ...(safeBrowsing === undefined ? {} : { safeBrowsing }),
     ...(sitemap === undefined ? {} : { sitemap }),
   }
   try {

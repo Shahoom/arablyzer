@@ -23,6 +23,8 @@ export const GOLDEN_NAMES: readonly string[] = readdirSync(SITES, { withFileType
  * closing, would hold a fixed port there.
  */
 export const CRUX_PORT = 30_000
+/** The Safe Browsing stand-in's, just below it. */
+export const SAFE_BROWSING_PORT = 29_999
 
 export function portOf(name: string): number {
   const number = /^(\d{2})-/.exec(name)?.[1]

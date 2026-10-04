@@ -8,6 +8,13 @@ export {
   type CodePointRange,
 } from './code-points'
 export { collectCrux, type CruxAnswer, type CruxFacts, type CruxInput } from './crux'
+export {
+  collectSafeBrowsing,
+  SAFE_BROWSING_THREATS,
+  type SafeBrowsingAnswer,
+  type SafeBrowsingFacts,
+  type SafeBrowsingThreat,
+} from './safe-browsing'
 export { organizationalDomain, txtLookup, type DnsFacts, type TxtLookup } from './dns'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {

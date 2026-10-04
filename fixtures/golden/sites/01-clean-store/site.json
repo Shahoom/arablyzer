@@ -4,6 +4,7 @@
     "lifetimeDays": 90,
     "daysLeft": 60
   },
+  "safeBrowsing": {},
   "crux": {
     "url": {
       "lcp": 2100,
