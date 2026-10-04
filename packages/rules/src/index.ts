@@ -24,6 +24,7 @@ import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
 import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
 import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
+import { rule as dialectRegister } from './rules/dialect-register/rule'
 import { rule as dmarcMissing } from './rules/dmarc-missing/rule'
 import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
@@ -106,6 +107,7 @@ export const RULES: readonly Rule[] = [
   cwvClsPoor,
   cwvInpPoor,
   cwvLcpPoor,
+  dialectRegister,
   dmarcMissing,
   formArabicDigitsRejected,
   formArabicNameRejected,
@@ -188,6 +190,9 @@ export {
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
 export { brandName, type Brand } from './lib/brand'
 export { xrayFamilies } from './lib/missing-letters'
+export { dialectOfPage, fitsCountry, readDialect, type Dialect, type Variety } from './lib/dialect'
+export { isMostlyArabic } from './lib/arabic'
+export { inferCountry, readPage } from './lib/country'
 export { COUNTRIES, fitOf, NAMES as COUNTRY_NAMES, type Country, type Fit } from './lib/country'
 export { isLocalHost } from './lib/hosts'
 export { confidenceLevel, detectPlatforms, type Detected, type PlatformKind } from './lib/platforms'

@@ -517,6 +517,9 @@
         "countryFit": {
           "$ref": "#/$defs/CountryFitFact"
         },
+        "dialect": {
+          "$ref": "#/$defs/DialectFact"
+        },
         "xray": {
           "$ref": "#/$defs/XrayFact"
         }
@@ -1714,7 +1717,8 @@
                   "digits",
                   "vat",
                   "hijri",
-                  "lang"
+                  "lang",
+                  "dialect"
                 ]
               },
               "status": {
@@ -1746,6 +1750,201 @@
         "judged",
         "signals",
         "items"
+      ],
+      "additionalProperties": false
+    },
+    "DialectFact": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "classified",
+            "too-little"
+          ]
+        },
+        "words": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "msa",
+                "gulf",
+                "egyptian",
+                "levantine",
+                "maghrebi"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mix": {
+          "type": "object",
+          "properties": {
+            "msa": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "gulf": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "egyptian": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "levantine": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "maghrebi": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "msa",
+            "gulf",
+            "egyptian",
+            "levantine",
+            "maghrebi"
+          ],
+          "additionalProperties": false
+        },
+        "hits": {
+          "type": "object",
+          "properties": {
+            "msa": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "gulf": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "egyptian": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "levantine": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maghrebi": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "msa",
+            "gulf",
+            "egyptian",
+            "levantine",
+            "maghrebi"
+          ],
+          "additionalProperties": false
+        },
+        "headings": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "msa",
+                "gulf",
+                "egyptian",
+                "levantine",
+                "maghrebi"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "markers": {
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "word": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "dialect": {
+                "type": "string",
+                "enum": [
+                  "msa",
+                  "gulf",
+                  "egyptian",
+                  "levantine",
+                  "maghrebi"
+                ]
+              }
+            },
+            "required": [
+              "word",
+              "dialect"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "country": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "SA",
+                "AE",
+                "EG",
+                "KW",
+                "QA",
+                "BH",
+                "OM",
+                "JO",
+                "MA"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fits": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "outcome",
+        "words",
+        "label",
+        "mix",
+        "hits",
+        "headings",
+        "markers",
+        "country",
+        "fits"
       ],
       "additionalProperties": false
     },

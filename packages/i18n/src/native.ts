@@ -35,7 +35,7 @@ export interface NativeStrings {
     readonly evidence: string
     readonly signal: Readonly<Record<'domain' | 'lang' | 'hreflang' | 'currency' | 'phone', string>>
     readonly items: Readonly<
-      Record<'currency' | 'phone' | 'digits' | 'vat' | 'hijri' | 'lang', string>
+      Record<'currency' | 'phone' | 'digits' | 'vat' | 'hijri' | 'lang' | 'dialect', string>
     >
     readonly status: Readonly<Record<'ok' | 'gap' | 'unknown', string>>
     readonly note: string
@@ -126,6 +126,7 @@ export const NATIVE: Copy<NativeStrings> = {
         vat: 'بيان الضريبة',
         hijri: 'التاريخ الهجري',
         lang: 'إقليم وسم اللغة',
+        dialect: 'لهجة النص',
       },
       status: { ok: 'مناسب', gap: 'ينقص', unknown: 'لا ما نحكم به' },
       note: 'معلومة لا تُخصم من درجتك.',
@@ -233,6 +234,7 @@ export const NATIVE: Copy<NativeStrings> = {
         vat: 'VAT statement',
         hijri: 'Hijri date',
         lang: 'Language tag region',
+        dialect: 'Dialect of the text',
       },
       status: { ok: 'fits', gap: 'missing', unknown: 'nothing to judge by' },
       note: 'Information, never deducted from your score.',

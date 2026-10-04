@@ -1,4 +1,5 @@
 import type { PageFacts } from '@arablyzer/collectors'
+import { fitsCountry, readDialect } from './dialect'
 
 /** The countries whose fit the rule judges, by ISO 3166-1 alpha-2. */
 export const COUNTRIES = ['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA'] as const
@@ -336,7 +337,7 @@ export function inferCountry(reading: Reading): Inference {
   return { country, confidence: strong ? 'strong' : 'thin', signals }
 }
 
-export type ItemId = 'currency' | 'phone' | 'digits' | 'vat' | 'hijri' | 'lang'
+export type ItemId = 'currency' | 'phone' | 'digits' | 'vat' | 'hijri' | 'lang' | 'dialect'
 
 export interface Item {
   readonly id: ItemId
@@ -424,6 +425,19 @@ export function itemsFor(reading: Reading, country: Country): Item[] {
     region === null
       ? { id: 'lang', status: 'unknown', detail: reading.lang ?? '' }
       : { id: 'lang', status: region === country ? 'ok' : 'gap', detail: reading.lang ?? '' },
+  )
+
+  // The dialect of the text: a dialect that is not the country's is a gap; Modern Standard fits
+  // every country, so it is nothing to judge by.
+  const dialect = readDialect(text)
+  items.push(
+    dialect.label === null || dialect.label === 'msa'
+      ? { id: 'dialect', status: 'unknown', detail: '' }
+      : {
+          id: 'dialect',
+          status: fitsCountry(dialect.label, country) ? 'ok' : 'gap',
+          detail: dialect.label,
+        },
   )
   return items
 }

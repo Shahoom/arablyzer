@@ -16,7 +16,8 @@
     "./guides": "./src/guides.ts",
     "./knowledge": "./src/knowledge.ts",
     "./tool-app": "./src/tool-app.ts",
-    "./native": "./src/native.ts"
+    "./native": "./src/native.ts",
+    "./native2": "./src/native2.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

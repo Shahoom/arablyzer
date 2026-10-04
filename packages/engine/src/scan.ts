@@ -59,7 +59,12 @@ import {
   brandName,
   crawlerAccess,
   detectPlatforms,
+  dialectOfPage,
   fitOf,
+  fitsCountry,
+  inferCountry,
+  isMostlyArabic,
+  readPage,
   xrayFamilies,
   isPublicUrl,
   matchRobots,
@@ -712,6 +717,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...arabicFontsFacts(rendering?.rendered, rules),
       ...searchFacts(search),
       ...countryFitFacts(page, rules),
+      ...dialectFacts(page, rules),
       ...xrayFacts(rendering),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
@@ -1551,6 +1557,38 @@ function countryFitFacts(page: PageFacts, rules: readonly Rule[]): Facts {
         value: value.slice(0, 100),
       })),
       items: items.map(({ id, status, detail }) => ({ id, status, detail: detail.slice(0, 100) })),
+    },
+  }
+}
+
+/** The dialect of the page's Arabic, for the report; nothing without the rule or Arabic text. */
+function dialectFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (
+    page.html === null ||
+    page.text === null ||
+    !rules.some((rule) => rule.id === 'dialect-register')
+  ) {
+    return {}
+  }
+  if (!isMostlyArabic(page)) return {}
+  const dialect = dialectOfPage(page.text.segments)
+  const { whole } = dialect
+  const inferred = inferCountry(readPage(page))
+  const country = inferred.confidence === 'strong' ? inferred.country : null
+  return {
+    dialect: {
+      outcome: whole.label === null ? 'too-little' : 'classified',
+      words: whole.words,
+      label: whole.label,
+      mix: { ...whole.mix },
+      hits: { ...whole.hits },
+      headings: dialect.headings?.label ?? null,
+      markers: whole.seen.map(({ word, dialect: name }) => ({ word, dialect: name })),
+      country,
+      fits:
+        country === null || whole.label === null || whole.label === 'msa'
+          ? null
+          : fitsCountry(whole.label, country),
     },
   }
 }

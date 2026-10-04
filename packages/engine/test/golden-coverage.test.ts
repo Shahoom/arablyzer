@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import type { Report } from '@arablyzer/report-schema'
 import { RULES } from '@arablyzer/rules'
 import { describe, expect, it } from 'vitest'
+import { LONG_TEXT_RULES } from './fixture-cases'
 import { GOLDEN_NAMES, portOf, REPORTS } from './golden/golden'
 
 const reports = GOLDEN_NAMES.filter((name) => existsSync(`${REPORTS}${name}.json`)).map(
@@ -35,9 +36,10 @@ describe('golden reports', () => {
 
   it('between them fail every rule, or ask for a review where a rule only asks', () => {
     const shown = withStatus('fail', 'needs-review')
-    // The rules of a tool's scan alone (the site's search) are not in a whole scan's report.
+    // The rules of a tool's scan alone (the site's search) are not in a whole scan's report, nor are
+    // those that need a long text.
     expect(
-      RULES.filter((rule) => !rule.needs.includes('search'))
+      RULES.filter((rule) => !rule.needs.includes('search') && !LONG_TEXT_RULES.has(rule.id))
         .map((rule) => rule.id)
         .filter((id) => !shown.has(id)),
     ).toEqual([])
@@ -47,7 +49,11 @@ describe('golden reports', () => {
   it('between them pass every rule that does not only ask for a review', () => {
     const passed = withStatus('pass')
     const unpassed = RULES.filter(
-      (rule) => rule.manualCheck !== true && !rule.needs.includes('search') && !passed.has(rule.id),
+      (rule) =>
+        rule.manualCheck !== true &&
+        !rule.needs.includes('search') &&
+        !LONG_TEXT_RULES.has(rule.id) &&
+        !passed.has(rule.id),
     )
     expect(unpassed.map((rule) => rule.id)).toEqual([])
   })

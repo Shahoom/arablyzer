@@ -450,7 +450,7 @@ export const CountryFitFact = z
     items: z
       .array(
         z.strictObject({
-          id: z.enum(['currency', 'phone', 'digits', 'vat', 'hijri', 'lang']),
+          id: z.enum(['currency', 'phone', 'digits', 'vat', 'hijri', 'lang', 'dialect']),
           status: z.enum(['ok', 'gap', 'unknown']),
           detail: z.string().max(100),
         }),
@@ -459,6 +459,46 @@ export const CountryFitFact = z
   })
   .meta({ id: 'CountryFitFact' })
 export type CountryFitFact = z.infer<typeof CountryFitFact>
+
+const Variety = z.enum(['msa', 'gulf', 'egyptian', 'levantine', 'maghrebi'])
+
+/**
+ * The dialect of the page's Arabic (rule dialect-register): which variety it is written in, from a
+ * compact marker lexicon, and the mix of marker words by variety. `label` is null where the page
+ * has too little Arabic text to judge (`outcome` is then `too-little`). `country` is the country
+ * the page is written for when two kinds of evidence name one, and `fits` whether the dialect is
+ * the speech of that country (null with a Modern Standard text, an unnamed country, or no verdict).
+ * Information, never deducted.
+ */
+export const DialectFact = z
+  .strictObject({
+    outcome: z.enum(['classified', 'too-little']),
+    words: count(),
+    label: Variety.nullable(),
+    /** The share of each variety among all marker words, whole percentages. */
+    mix: z.strictObject({
+      msa: z.number().int().min(0).max(100),
+      gulf: z.number().int().min(0).max(100),
+      egyptian: z.number().int().min(0).max(100),
+      levantine: z.number().int().min(0).max(100),
+      maghrebi: z.number().int().min(0).max(100),
+    }),
+    /** Marker words counted, by variety. */
+    hits: z.strictObject({
+      msa: count(),
+      gulf: count(),
+      egyptian: count(),
+      levantine: count(),
+      maghrebi: count(),
+    }),
+    /** The headings' variety, where they have enough words. */
+    headings: Variety.nullable(),
+    markers: z.array(z.strictObject({ word: z.string().min(1).max(40), dialect: Variety })).max(12),
+    country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']).nullable(),
+    fits: z.boolean().nullable(),
+  })
+  .meta({ id: 'DialectFact' })
+export type DialectFact = z.infer<typeof DialectFact>
 
 /**
  * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
@@ -531,6 +571,8 @@ export const Facts = z.strictObject({
   searchTest: SearchTestFact.optional(),
   /** Present when the country fit rule ran on an HTML page. */
   countryFit: CountryFitFact.optional(),
+  /** Present when the dialect rule ran on an Arabic page. */
+  dialect: DialectFact.optional(),
   /** Present when a scan asked for the Arabic X-ray and an engine counted Arabic words. */
   xray: XrayFact.optional(),
 })
