@@ -11,6 +11,7 @@ import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/t
 import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
 import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
+import { definition as countryFit } from './tools/country-fit/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
@@ -64,6 +65,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   brokenLinks,
   canonicalCheck,
   coreWebVitals,
+  countryFit,
   digitsConsistency,
   emailSecurity,
   fontFallbackCheck,

@@ -22,6 +22,24 @@ export interface NativeStrings {
     readonly none: string
     readonly pending: string
   }
+  readonly country: {
+    readonly title: string
+    readonly names: Readonly<
+      Record<'SA' | 'AE' | 'EG' | 'KW' | 'QA' | 'BH' | 'OM' | 'JO' | 'MA', string>
+    >
+    readonly ready: (percent: number, country: string) => string
+    readonly thin: (country: string) => string
+    readonly unclear: string
+    readonly none: string
+    readonly judged: (judged: number) => string
+    readonly evidence: string
+    readonly signal: Readonly<Record<'domain' | 'lang' | 'hreflang' | 'currency' | 'phone', string>>
+    readonly items: Readonly<
+      Record<'currency' | 'phone' | 'digits' | 'vat' | 'hijri' | 'lang', string>
+    >
+    readonly status: Readonly<Record<'ok' | 'gap' | 'unknown', string>>
+    readonly note: string
+  }
   readonly search: {
     readonly title: string
     readonly summary: (lost: number, total: number) => string
@@ -59,6 +77,44 @@ export const NATIVE: Copy<NativeStrings> = {
       limited: 'طلبت نسخًا كثيرة في وقت قصير. انتظر قليلًا.',
       none: 'لم تحمّل الصفحة خطوط ويب عربية نقرؤها.',
       pending: 'نصنع النسخة…',
+    },
+    country: {
+      title: 'ملاءمة الصفحة لبلدها',
+      names: {
+        SA: 'السعودية',
+        AE: 'الإمارات',
+        EG: 'مصر',
+        KW: 'الكويت',
+        QA: 'قطر',
+        BH: 'البحرين',
+        OM: 'عُمان',
+        JO: 'الأردن',
+        MA: 'المغرب',
+      },
+      ready: (percent, country) => `جاهزة بنسبة ${String(percent)}٪ لـ${country}`,
+      thin: (country) =>
+        `تبدو الصفحة لـ${country}، لكن دليلًا واحدًا لا يكفي لنقول ذلك ولا لحساب نسبة`,
+      unclear: 'الأدلة متعارضة أو متقاربة بين بلدان، فلا نسمّي بلدًا ولا نحسب نسبة',
+      none: 'لا في الصفحة ما يدل على بلد بعينه، فلا نخمّن',
+      judged: (judged) => `حكمنا على ${String(judged)} من البنود`,
+      evidence: 'ما دلّنا',
+      signal: {
+        domain: 'نطاق البلد',
+        lang: 'إقليم وسم اللغة',
+        hreflang: 'hreflang',
+        currency: 'العملة',
+        phone: 'رمز الاتصال',
+      },
+      items: {
+        currency: 'عملة الأسعار',
+        phone: 'أرقام الهاتف برمز الدولة',
+        digits: 'الأرقام',
+        vat: 'بيان الضريبة',
+        hijri: 'التاريخ الهجري',
+        lang: 'إقليم وسم اللغة',
+      },
+      status: { ok: 'مناسب', gap: 'ينقص', unknown: 'لا ما نحكم به' },
+      note: 'معلومة لا تُخصم من درجتك.',
     },
     search: {
       title: 'ما فعله بحث موقعك',
@@ -109,6 +165,45 @@ export const NATIVE: Copy<NativeStrings> = {
       limited: 'You asked for many subsets in a short time. Wait a little.',
       none: 'The page loaded no Arabic web fonts we can read.',
       pending: 'Making the subset…',
+    },
+    country: {
+      title: 'How ready the page is for its country',
+      names: {
+        SA: 'Saudi Arabia',
+        AE: 'the UAE',
+        EG: 'Egypt',
+        KW: 'Kuwait',
+        QA: 'Qatar',
+        BH: 'Bahrain',
+        OM: 'Oman',
+        JO: 'Jordan',
+        MA: 'Morocco',
+      },
+      ready: (percent, country) => `Ready ${String(percent)}% for ${country}`,
+      thin: (country) =>
+        `The page looks written for ${country}, but one kind of evidence is not enough to say so or to work out a percentage`,
+      unclear:
+        'The evidence conflicts or is close between countries, so we name none and give no percentage',
+      none: 'Nothing on the page points to one country, and we do not guess',
+      judged: (judged) => `${String(judged)} items judged`,
+      evidence: 'What told us',
+      signal: {
+        domain: 'Country domain',
+        lang: 'Language tag region',
+        hreflang: 'hreflang',
+        currency: 'Currency',
+        phone: 'Calling code',
+      },
+      items: {
+        currency: 'Currency of the prices',
+        phone: 'Phone numbers with the country code',
+        digits: 'Digits',
+        vat: 'VAT statement',
+        hijri: 'Hijri date',
+        lang: 'Language tag region',
+      },
+      status: { ok: 'fits', gap: 'missing', unknown: 'nothing to judge by' },
+      note: 'Information, never deducted from your score.',
     },
     search: {
       title: 'What your site search did',

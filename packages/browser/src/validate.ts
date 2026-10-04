@@ -86,6 +86,16 @@ const Measured = z.strictObject({
   directionIcons: z
     .array(z.strictObject({ selector, box: Box, name: z.string().max(100) }))
     .max(MEASURE_LIMITS.maxIcons),
+  riyalSigns: z
+    .array(
+      z.strictObject({
+        selector,
+        box: Box,
+        fontFamily: z.string().max(500),
+        primaryFamily: z.string().max(200),
+      }),
+    )
+    .max(MEASURE_LIMITS.maxSigns),
   images: z
     .array(
       z.strictObject({
@@ -197,6 +207,7 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     bidi: facts.bidi,
     fields: facts.fields,
     directionIcons: facts.directionIcons,
+    riyalSigns: facts.riyalSigns,
     compression: context.compression ?? NO_COMPRESSION,
     images: facts.images.map((image) => {
       const file = context.imageFiles?.get(image.url)

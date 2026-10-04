@@ -123,6 +123,7 @@ export {
   type RenderedElement,
   type RenderedFacts,
   type RenderedFieldFact,
+  type RiyalSignFact,
   type StylesheetsFact,
   type UncompressedTextFact,
   type UsedFont,

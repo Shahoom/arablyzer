@@ -133,6 +133,14 @@ export interface DirectionIconFact extends RenderedElement {
   readonly name: string
 }
 
+/** An element whose own text has the Saudi Riyal sign (U+20C1, Unicode 17), and the fonts it asks for. */
+export interface RiyalSignFact extends RenderedElement {
+  /** Computed font-family, as the engine serializes it. */
+  readonly fontFamily: string
+  /** Its first family, unquoted. */
+  readonly primaryFamily: string
+}
+
 /** A text response that came without Content-Encoding, and what gzip makes of it. */
 export interface UncompressedTextFact {
   readonly url: string
@@ -279,6 +287,8 @@ export interface RenderedFacts {
   readonly fields: readonly RenderedFieldFact[]
   /** Unmirrored direction icons in right-to-left text (the first 20). */
   readonly directionIcons: readonly DirectionIconFact[]
+  /** Elements with the Saudi Riyal sign (the first 20). */
+  readonly riyalSigns: readonly RiyalSignFact[]
   readonly compression: CompressionFact
   /** Images drawn on the page (the first 100). */
   readonly images: readonly ImageFact[]

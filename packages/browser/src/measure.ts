@@ -25,6 +25,8 @@ export interface MeasureLimits {
   readonly maxIconCandidates: number
   /** Images drawn on the page, with their natural size. */
   readonly maxImages: number
+  /** Elements whose own text has the Saudi Riyal sign (U+20C1). */
+  readonly maxSigns: number
   readonly timeMs: number
 }
 
@@ -88,6 +90,12 @@ export interface Measured {
     readonly box: MeasuredBox
     readonly name: string
   }[]
+  readonly riyalSigns: readonly {
+    readonly selector: string
+    readonly box: MeasuredBox
+    readonly fontFamily: string
+    readonly primaryFamily: string
+  }[]
   readonly images: readonly {
     readonly selector: string
     readonly box: MeasuredBox
@@ -112,6 +120,7 @@ export const MEASURE_LIMITS: MeasureLimits = {
   maxIcons: 20,
   maxIconCandidates: 3_000,
   maxImages: 100,
+  maxSigns: 20,
   timeMs: 5_000,
 }
 
@@ -247,6 +256,8 @@ export function measurePage(limits: MeasureLimits): Measured {
   let tokens = 0
   const seen = new Set<Element>()
   const arrows: { readonly node: Text; readonly index: number; readonly arrow: string }[] = []
+  const riyalSigns: Measured['riyalSigns'][number][] = []
+  const signParents = new Set<Element>()
   // Numbers in groups (+966 50 123 4567, 1 500), and phone numbers written with + and at least
   // 8 digits. A short number after + ("+500 clients") reads as "500+" either way (M1.1 review).
   const numberGroups =
@@ -317,6 +328,24 @@ export function measurePage(limits: MeasureLimits): Measured {
           : getComputedStyle(parent).display.startsWith('inline') &&
             arabicLetter.test(parent.parentElement?.textContent ?? '')
         if (beside) arrows.push({ node: text, index: arrow.index, arrow: arrow[0] })
+      }
+      // The Saudi Riyal sign (Unicode 17): a font that predates it draws an empty box.
+      if (
+        riyalSigns.length < limits.maxSigns &&
+        text.data.includes('\u20c1') &&
+        !signParents.has(parent)
+      ) {
+        signParents.add(parent)
+        const rect = parent.getBoundingClientRect()
+        if (rect.width > 0 || rect.height > 0) {
+          const style = getComputedStyle(parent)
+          riyalSigns.push({
+            selector: selectorOf(parent),
+            box: box(rect),
+            fontFamily: style.fontFamily.slice(0, 500),
+            primaryFamily: primaryFamily(style.fontFamily).slice(0, 200),
+          })
+        }
       }
       if (/[+#0-9\u0660-\u0669\u06F0-\u06F9]/.test(text.data)) {
         let dir = direction.get(parent)
@@ -631,6 +660,7 @@ export function measurePage(limits: MeasureLimits): Measured {
     bidi,
     fields,
     directionIcons,
+    riyalSigns,
     images,
     truncated,
   }

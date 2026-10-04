@@ -513,6 +513,9 @@
         },
         "searchTest": {
           "$ref": "#/$defs/SearchTestFact"
+        },
+        "countryFit": {
+          "$ref": "#/$defs/CountryFitFact"
         }
       },
       "additionalProperties": false
@@ -1599,6 +1602,147 @@
         "lost",
         "total",
         "words"
+      ],
+      "additionalProperties": false
+    },
+    "CountryFitFact": {
+      "type": "object",
+      "properties": {
+        "country": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "SA",
+                "AE",
+                "EG",
+                "KW",
+                "QA",
+                "BH",
+                "OM",
+                "JO",
+                "MA"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "strong",
+            "thin",
+            "unclear"
+          ]
+        },
+        "percent": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "judged": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "signals": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "domain",
+                  "lang",
+                  "hreflang",
+                  "currency",
+                  "phone"
+                ]
+              },
+              "country": {
+                "type": "string",
+                "enum": [
+                  "SA",
+                  "AE",
+                  "EG",
+                  "KW",
+                  "QA",
+                  "BH",
+                  "OM",
+                  "JO",
+                  "MA"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "kind",
+              "country",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "items": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "currency",
+                  "phone",
+                  "digits",
+                  "vat",
+                  "hijri",
+                  "lang"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "gap",
+                  "unknown"
+                ]
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "detail"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "country",
+        "confidence",
+        "percent",
+        "judged",
+        "signals",
+        "items"
       ],
       "additionalProperties": false
     }

@@ -425,6 +425,41 @@ export const SearchTestFact = z
   .meta({ id: 'SearchTestFact' })
 export type SearchTestFact = z.infer<typeof SearchTestFact>
 
+/**
+ * How ready the page is for the Arab country it is written for (rule country-fit): information,
+ * never judged. `country` is null where the page says too little or too much to name one;
+ * `confidence` is `strong` only when two kinds of evidence agree, and only then is there a
+ * `percent` (with three or more items judged). An item is `unknown` where the page shows nothing
+ * to judge it by.
+ */
+export const CountryFitFact = z
+  .strictObject({
+    country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']).nullable(),
+    confidence: z.enum(['strong', 'thin', 'unclear']),
+    percent: z.number().int().min(0).max(100).nullable(),
+    judged: count(),
+    signals: z
+      .array(
+        z.strictObject({
+          kind: z.enum(['domain', 'lang', 'hreflang', 'currency', 'phone']),
+          country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']),
+          value: z.string().max(100),
+        }),
+      )
+      .max(30),
+    items: z
+      .array(
+        z.strictObject({
+          id: z.enum(['currency', 'phone', 'digits', 'vat', 'hijri', 'lang']),
+          status: z.enum(['ok', 'gap', 'unknown']),
+          detail: z.string().max(100),
+        }),
+      )
+      .max(10),
+  })
+  .meta({ id: 'CountryFitFact' })
+export type CountryFitFact = z.infer<typeof CountryFitFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -448,6 +483,8 @@ export const Facts = z.strictObject({
   arabicFonts: ArabicFontsFact.optional(),
   /** Present when the spelling search test asked the site's search and read its answers. */
   searchTest: SearchTestFact.optional(),
+  /** Present when the country fit rule ran on an HTML page. */
+  countryFit: CountryFitFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

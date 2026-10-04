@@ -17,6 +17,7 @@ import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as botChallenge } from './rules/bot-challenge/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as countryFit } from './rules/country-fit/rule'
 import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
 import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
@@ -55,6 +56,7 @@ import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
 import { rule as safeBrowsingFlagged } from './rules/safe-browsing-flagged/rule'
+import { rule as sarSignFont } from './rules/sar-sign-font/rule'
 import { rule as searchSpellingVariants } from './rules/search-spelling-variants/rule'
 import { rule as sitemapInvalid } from './rules/sitemap-invalid/rule'
 import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
@@ -94,6 +96,7 @@ export const RULES: readonly Rule[] = [
   arTatweel,
   botChallenge,
   canonicalConflict,
+  countryFit,
   cspMissing,
   cwvClsPoor,
   cwvInpPoor,
@@ -132,6 +135,7 @@ export const RULES: readonly Rule[] = [
   rtlMirroredIcons,
   rtlPhysicalCss,
   safeBrowsingFlagged,
+  sarSignFont,
   searchSpellingVariants,
   sitemapInvalid,
   sitemapMissing,
@@ -177,6 +181,7 @@ export {
 } from './example'
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
 export { brandName, type Brand } from './lib/brand'
+export { COUNTRIES, fitOf, NAMES as COUNTRY_NAMES, type Country, type Fit } from './lib/country'
 export { isLocalHost } from './lib/hosts'
 export { confidenceLevel, detectPlatforms, type Detected, type PlatformKind } from './lib/platforms'
 export { PLATFORM_FIXES, platformFix } from './platform-fixes'

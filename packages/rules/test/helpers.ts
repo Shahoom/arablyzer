@@ -369,6 +369,7 @@ export function renderedFacts(
     bidi: [],
     fields: [],
     directionIcons: [],
+    riyalSigns: [],
     compression: { checked: 0, uncompressed: [] },
     images: [],
     a11y: null,

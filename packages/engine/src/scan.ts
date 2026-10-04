@@ -59,6 +59,7 @@ import {
   brandName,
   crawlerAccess,
   detectPlatforms,
+  fitOf,
   isPublicUrl,
   matchRobots,
   renderMessage,
@@ -703,6 +704,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...openPageRankFacts(openPageRank),
       ...arabicFontsFacts(rendering?.rendered, rules),
       ...searchFacts(search),
+      ...countryFitFacts(page, rules),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
@@ -1480,6 +1482,26 @@ function platformFacts(page: PageFacts, rules: readonly Rule[]): Facts {
     platform: {
       primary: technologies.find((tech) => tech.kind === 'platform') ?? null,
       technologies,
+    },
+  }
+}
+
+/** How ready the page is for the country it is written for; nothing without the rule or HTML. */
+function countryFitFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (page.html === null || !rules.some((rule) => rule.id === 'country-fit')) return {}
+  const { country, confidence, percent, judged, signals, items } = fitOf(page)
+  return {
+    countryFit: {
+      country,
+      confidence,
+      percent,
+      judged,
+      signals: signals.slice(0, 30).map(({ kind, country: signalCountry, value }) => ({
+        kind,
+        country: signalCountry,
+        value: value.slice(0, 100),
+      })),
+      items: items.map(({ id, status, detail }) => ({ id, status, detail: detail.slice(0, 100) })),
     },
   }
 }
