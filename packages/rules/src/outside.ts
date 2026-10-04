@@ -11,6 +11,7 @@ export const OUTSIDE: Readonly<Partial<Record<CollectorId, keyof OutsideFacts>>>
   pdfs: 'pdfs',
   suggest: 'suggest',
   'ai-visibility': 'aiVisibility',
+  'crux-countries': 'cruxCountries',
 }
 
 /**

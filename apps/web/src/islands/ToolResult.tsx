@@ -8,6 +8,7 @@ import { ArabicXray } from './report/ArabicXray'
 import { Bidi } from './report/Bidi'
 import { CountryFit } from './report/CountryFit'
 import { AiTraining } from './report/AiTraining'
+import { CruxCountries } from './report/CruxCountries'
 import { Dialect } from './report/Dialect'
 import { AiVisibility } from './report/AiVisibility'
 import { Lookalikes } from './report/Lookalikes'
@@ -250,6 +251,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
       <Pdfs report={report} lang={lang} />
       <Suggest report={report} lang={lang} />
       <AiVisibility report={report} lang={lang} />
+      <CruxCountries report={report} lang={lang} />
       <ArabicXray report={report} lang={lang} />
       {/* Nothing was checked on a page the site refused to send, or asked us not to check. */}
       {verdict !== 'blocked' && verdict !== 'opted-out' && (

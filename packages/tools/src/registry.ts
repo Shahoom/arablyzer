@@ -15,6 +15,7 @@ import { definition as canonicalCheck } from './tools/canonical-check/tool'
 import { definition as commonMisspellings } from './tools/common-misspellings/tool'
 import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
 import { definition as countryFit } from './tools/country-fit/tool'
+import { definition as cruxByCountry } from './tools/crux-by-country/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
@@ -74,6 +75,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   commonMisspellings,
   coreWebVitals,
   countryFit,
+  cruxByCountry,
   digitsConsistency,
   emailSecurity,
   fontFallbackCheck,

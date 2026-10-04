@@ -161,6 +161,41 @@ export type AiVisibilityFacts =
       }[]
     }
 
+export type CruxMetric = 'lcp' | 'inp' | 'cls'
+
+/** One Arab country's real-user data for the origin, phones, from the Chrome UX Report in BigQuery. */
+export interface CruxCountry {
+  readonly country: 'SA' | 'AE' | 'EG' | 'KW' | 'QA' | 'BH' | 'OM' | 'JO' | 'MA'
+  /** The origin has data in that country's table for the month. */
+  readonly found: boolean
+  /** The share (0 to 1) of page loads with a good value; null where the table has none for it. */
+  readonly good: Readonly<Record<CruxMetric, number | null>>
+  /** The origin's popularity rank magnitude in that country (1000, 10000, ...); null where unknown. */
+  readonly rank: number | null
+}
+
+/**
+ * The Chrome UX Report by country (docs/design/plans/arabic-native.md §14), which the CrUX API
+ * does not offer: one BigQuery query for the origin across the nine Arab countries' tables for the
+ * latest month. `bytes` is what BigQuery billed (0 when answered from its cache).
+ */
+export type CruxCountriesFacts =
+  | {
+      readonly outcome: 'checked'
+      readonly origin: string
+      /** yyyymm of the tables read. */
+      readonly month: string
+      readonly bytes: number
+      readonly countries: readonly CruxCountry[]
+    }
+  | {
+      readonly outcome: 'too-big'
+      /** What BigQuery's dry run said the query would read, and the cap. */
+      readonly bytes: number
+      readonly cap: number
+    }
+  | { readonly outcome: 'failed' }
+
 /**
  * What the tools that ask other services collected, each under the key of its collector. A key is
  * missing where the feature was not asked for (not named by the scan, or off without its key).
@@ -170,4 +205,5 @@ export interface OutsideFacts {
   readonly pdfs?: PdfFacts
   readonly suggest?: SuggestFacts
   readonly aiVisibility?: AiVisibilityFacts
+  readonly cruxCountries?: CruxCountriesFacts
 }

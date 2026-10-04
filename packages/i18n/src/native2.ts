@@ -46,6 +46,23 @@ export interface Native2Strings {
     readonly ct: Readonly<Record<'partial' | 'unavailable', string>>
     readonly note: string
   }
+  readonly crux: {
+    readonly title: string
+    readonly summary: (found: number, month: string) => string
+    readonly none: (month: string) => string
+    readonly countries: Readonly<
+      Record<'SA' | 'AE' | 'EG' | 'KW' | 'QA' | 'BH' | 'OM' | 'JO' | 'MA', string>
+    >
+    readonly metrics: Readonly<Record<'lcp' | 'inp' | 'cls', string>>
+    readonly rank: string
+    readonly top: (rank: number) => string
+    readonly noData: string
+    readonly good: string
+    readonly weak: string
+    readonly billed: (megabytes: string) => string
+    readonly cached: string
+    readonly note: string
+  }
   readonly ai: {
     readonly title: string
     readonly summary: (mentioned: number, total: number) => string
@@ -172,6 +189,32 @@ export const NATIVE2: Copy<Native2Strings> = {
         unavailable: 'لم يردّ سجلّ الشهادات (crt.sh)، فلا تواريخ شهادات هنا.',
       },
       note: 'أسماء نولّدها بقواعد ثابتة ونسأل عنها DNS عبر HTTPS؛ لا نفتح أي موقع منها، وقد يكون المسجَّل لصاحب مشروع بريء.',
+    },
+    crux: {
+      title: 'بيانات Chrome لكل دولة',
+      summary: (found, month) =>
+        `لموقعك بيانات في ${String(found)} من الدول التسع (جداول ${month})`,
+      none: (month) => `لا بيانات لموقعك في أي من الدول التسع (جداول ${month})`,
+      countries: {
+        SA: 'السعودية',
+        AE: 'الإمارات',
+        EG: 'مصر',
+        KW: 'الكويت',
+        QA: 'قطر',
+        BH: 'البحرين',
+        OM: 'عُمان',
+        JO: 'الأردن',
+        MA: 'المغرب',
+      },
+      metrics: { lcp: 'LCP', inp: 'INP', cls: 'CLS' },
+      rank: 'ترتيب الشعبية',
+      top: (rank) => `ضمن أعلى ${rank.toLocaleString('ar-EG-u-nu-latn')}`,
+      noData: 'لا بيانات كافية',
+      good: 'جيد',
+      weak: 'دون 75٪',
+      billed: (megabytes) => `حاسب BigQuery على ${megabytes} ميغابايت`,
+      cached: 'من ذاكرة BigQuery بلا محاسبة',
+      note: 'حصة زيارات الهاتف الجيدة: LCP حتى 2.5 ثانية، INP حتى 200 مللي ثانية، CLS حتى 0.1. معلومة لا تُخصم من درجتك.',
     },
     ai: {
       title: 'هل يذكرك الذكاء الاصطناعي؟',
@@ -364,6 +407,32 @@ export const NATIVE2: Copy<Native2Strings> = {
           'The certificate log (crt.sh) did not answer, so there are no certificate dates here.',
       },
       note: 'Names we make by fixed rules and ask DNS over HTTPS about; we open none of these sites, and a registered name may belong to an innocent business.',
+    },
+    crux: {
+      title: 'Chrome data by country',
+      summary: (found, month) =>
+        `Your site has data in ${String(found)} of the nine countries (tables ${month})`,
+      none: (month) => `Your site has no data in any of the nine countries (tables ${month})`,
+      countries: {
+        SA: 'Saudi Arabia',
+        AE: 'the UAE',
+        EG: 'Egypt',
+        KW: 'Kuwait',
+        QA: 'Qatar',
+        BH: 'Bahrain',
+        OM: 'Oman',
+        JO: 'Jordan',
+        MA: 'Morocco',
+      },
+      metrics: { lcp: 'LCP', inp: 'INP', cls: 'CLS' },
+      rank: 'Popularity rank',
+      top: (rank) => `in the top ${rank.toLocaleString('en-US')}`,
+      noData: 'not enough data',
+      good: 'good',
+      weak: 'under 75%',
+      billed: (megabytes) => `BigQuery billed ${megabytes} MB`,
+      cached: 'from BigQuery’s cache, not billed',
+      note: 'The share of good phone visits: LCP up to 2.5 s, INP up to 200 ms, CLS up to 0.1. Information, never deducted from your score.',
     },
     ai: {
       title: 'Does AI mention you?',

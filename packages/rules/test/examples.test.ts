@@ -11,6 +11,7 @@ import { fixtureNames, fixturesDir } from './helpers'
 const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'ai-visibility-gap': 'what AI assistants answer, not the page',
   'bot-challenge': 'the headers of a challenge in place of the page, which no excerpt shows',
+  'crux-country-gaps': 'real visitors’ data by country from BigQuery, not the page',
   'cwv-cls-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-inp-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-lcp-poor': "real visitors' data from the Chrome UX Report, not the page",

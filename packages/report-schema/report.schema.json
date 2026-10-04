@@ -526,6 +526,9 @@
         "lookalikes": {
           "$ref": "#/$defs/LookalikeFact"
         },
+        "cruxCountries": {
+          "$ref": "#/$defs/CruxCountriesFact"
+        },
         "aiVisibility": {
           "$ref": "#/$defs/AiVisibilityFact"
         },
@@ -2157,6 +2160,124 @@
         "asked",
         "ct",
         "found"
+      ],
+      "additionalProperties": false
+    },
+    "CruxCountriesFact": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "month": {
+          "type": "string",
+          "pattern": "^\\d{6}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "countries": {
+          "maxItems": 9,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "country": {
+                "type": "string",
+                "enum": [
+                  "SA",
+                  "AE",
+                  "EG",
+                  "KW",
+                  "QA",
+                  "BH",
+                  "OM",
+                  "JO",
+                  "MA"
+                ]
+              },
+              "found": {
+                "type": "boolean"
+              },
+              "good": {
+                "type": "object",
+                "properties": {
+                  "lcp": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "inp": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cls": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "lcp",
+                  "inp",
+                  "cls"
+                ],
+                "additionalProperties": false
+              },
+              "rank": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "country",
+              "found",
+              "good",
+              "rank"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "origin",
+        "month",
+        "bytes",
+        "countries"
       ],
       "additionalProperties": false
     },

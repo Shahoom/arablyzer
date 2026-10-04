@@ -1,5 +1,6 @@
 import type {
   AiVisibilityFacts,
+  CruxCountriesFacts,
   LookalikeFacts,
   OutsideFacts,
   PageFacts,
@@ -16,6 +17,8 @@ import { askVia, type Ask } from './outside-http'
 import { checkPdfs, PDFS_TOTAL_MS } from './pdfs'
 import type { PdfExtract } from './pdf-read'
 import { AI_TOTAL_MS, askAssistants, PROVIDERS, type AiVisibilityOptions } from './ai-visibility'
+import { httpClient, type BigQueryClient, type BigQueryCredentials } from './bigquery'
+import { DEFAULT_MAX_BYTES, queryCruxCountries } from './crux-countries'
 import { askSuggest, SUGGEST_TOTAL_MS, type SuggestOptions } from './suggest'
 import { budget } from './timeout'
 
@@ -39,6 +42,18 @@ export interface OutsideOptions {
    * one. Without it the rule does not apply and a notice says so; nothing is ever sent.
    */
   readonly aiVisibility?: AiVisibilityOptions
+  /**
+   * BigQuery, for the per-country Chrome UX tool: a service account's key and the project that
+   * pays for the queries. Without it the rule does not apply and a notice says so; nothing is sent.
+   */
+  readonly cruxCountries?: {
+    readonly credentials: BigQueryCredentials
+    readonly project: string
+    /** Bytes billed at most for one scan; DEFAULT_MAX_BYTES (20 GiB). */
+    readonly maxBytes?: number
+    /** Another client; tests give a stand-in. */
+    readonly client?: BigQueryClient
+  }
   /** Makes the pauses short, and fixes "now"; tests only. */
   readonly test?: {
     readonly now?: () => number
@@ -186,12 +201,48 @@ export async function runOutside(context: OutsideContext): Promise<OutsideRun> {
       }
     }
   }
+  let cruxCountries: CruxCountriesFacts | undefined
+  if (needs(rules, 'crux-countries') && context.reached) {
+    const config = options?.cruxCountries
+    if (config === undefined) notices.push(notice('crux-countries-off'))
+    else if (!context.privateAccess) {
+      const limit = budget(120_000, context.signal)
+      try {
+        cruxCountries = await queryCruxCountries({
+          origin: new URL(context.page.url).origin,
+          options: {
+            client:
+              config.client ??
+              httpClient({
+                ask,
+                credentials: config.credentials,
+                project: config.project,
+                signal: limit.signal,
+              }),
+            maxBytes: config.maxBytes ?? DEFAULT_MAX_BYTES,
+          },
+        })
+      } finally {
+        limit.stop()
+      }
+      if (cruxCountries.outcome === 'failed') notices.push(notice('crux-countries-failed'))
+      else if (cruxCountries.outcome === 'too-big') {
+        notices.push(
+          notice('crux-countries-too-big', {
+            bytes: String(Math.round(cruxCountries.bytes / 1024 ** 3)),
+            cap: String(Math.round(cruxCountries.cap / 1024 ** 3)),
+          }),
+        )
+      }
+    }
+  }
   return {
     collected: {
       ...(lookalikes === undefined ? {} : { lookalikes }),
       ...(pdfs === undefined ? {} : { pdfs }),
       ...(suggest === undefined ? {} : { suggest }),
       ...(aiVisibility === undefined ? {} : { aiVisibility }),
+      ...(cruxCountries === undefined ? {} : { cruxCountries }),
     },
     notices,
   }
@@ -252,6 +303,21 @@ export function outsideFacts(collected: OutsideFacts, rules: readonly Rule[]): F
           citations: [...answer.citations],
           competitors: [...answer.competitors],
         })),
+      })),
+    }
+  }
+  const { cruxCountries } = collected
+  if (
+    cruxCountries?.outcome === 'checked' &&
+    rules.some((rule) => rule.needs.includes('crux-countries'))
+  ) {
+    facts.cruxCountries = {
+      origin: cruxCountries.origin,
+      month: cruxCountries.month,
+      bytes: cruxCountries.bytes,
+      countries: cruxCountries.countries.map((country) => ({
+        ...country,
+        good: { ...country.good },
       })),
     }
   }

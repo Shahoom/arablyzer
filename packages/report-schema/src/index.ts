@@ -697,6 +697,35 @@ export const AiVisibilityFact = z
 export type AiVisibilityFact = z.infer<typeof AiVisibilityFact>
 
 /**
+ * The Chrome UX Report by country (tool crux-by-country, rule crux-country-gaps): for the origin,
+ * phones, the share of page loads that are good (LCP up to 2.5 s, INP up to 200 ms, CLS up to
+ * 0.1) in each of the nine Arab countries' BigQuery tables for `month` (yyyymm), and the origin's
+ * popularity rank magnitude there. `bytes` is what BigQuery billed for the scan.
+ */
+export const CruxCountriesFact = z
+  .strictObject({
+    origin: z.string().min(1).max(300),
+    month: z.string().regex(/^\d{6}$/),
+    bytes: count(),
+    countries: z
+      .array(
+        z.strictObject({
+          country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']),
+          found: z.boolean(),
+          good: z.strictObject({
+            lcp: z.number().min(0).max(1).nullable(),
+            inp: z.number().min(0).max(1).nullable(),
+            cls: z.number().min(0).max(1).nullable(),
+          }),
+          rank: count().nullable(),
+        }),
+      )
+      .max(9),
+  })
+  .meta({ id: 'CruxCountriesFact' })
+export type CruxCountriesFact = z.infer<typeof CruxCountriesFact>
+
+/**
  * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
  * counted and the ones drawn wrongly (a letter no font in their list draws, or a replacement
  * character), where the broken ones stand in the first screen, and a small JPEG of that screen to
@@ -773,6 +802,8 @@ export const Facts = z.strictObject({
   aiTraining: AiTrainingFact.optional(),
   /** Present when the look-alike domains tool ran and DNS answered. */
   lookalikes: LookalikeFact.optional(),
+  /** Present when the per-country Chrome UX tool ran with BigQuery credentials and BigQuery answered. */
+  cruxCountries: CruxCountriesFact.optional(),
   /** Present when the AI visibility tool ran with at least one key and an assistant answered. */
   aiVisibility: AiVisibilityFact.optional(),
   /** Present when the misspellings tool ran, was switched on, and Google answered. */

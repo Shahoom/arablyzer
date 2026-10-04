@@ -22,6 +22,7 @@ import { rule as botChallenge } from './rules/bot-challenge/rule'
 import { rule as brandNameConsistency } from './rules/brand-name-consistency/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
 import { rule as countryFit } from './rules/country-fit/rule'
+import { rule as cruxCountryGaps } from './rules/crux-country-gaps/rule'
 import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
 import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
@@ -111,6 +112,7 @@ export const RULES: readonly Rule[] = [
   brandNameConsistency,
   canonicalConflict,
   countryFit,
+  cruxCountryGaps,
   cspMissing,
   cwvClsPoor,
   cwvInpPoor,

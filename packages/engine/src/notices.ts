@@ -59,6 +59,9 @@ export type NoticeCode =
   | 'ai-visibility-failed'
   | 'ai-visibility-refused'
   | 'ai-visibility-provider'
+  | 'crux-countries-off'
+  | 'crux-countries-failed'
+  | 'crux-countries-too-big'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -364,6 +367,18 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'ai-visibility-provider': {
     ar: 'لم يكتمل السؤال لدى بعض المساعدين: {providers}. نعرض ما وصلنا منهم.',
     en: 'The questions did not complete at some assistants: {providers}. We show what came back.',
+  },
+  'crux-countries-off': {
+    ar: 'فحص بيانات Chrome لكل بلد مطفأ في هذا الخادم: يقرأ جداول CrUX في BigQuery، وتحتاج إلى حساب خدمة (ARABLYZER_BIGQUERY_CREDENTIALS) ومشروع (ARABLYZER_BIGQUERY_PROJECT) يدفع ثمن الاستعلام.',
+    en: 'The per-country Chrome data check is off on this server: it reads the CrUX tables in BigQuery, which needs a service account (ARABLYZER_BIGQUERY_CREDENTIALS) and a project (ARABLYZER_BIGQUERY_PROJECT) to pay for the query.',
+  },
+  'crux-countries-failed': {
+    ar: 'لم يردّ BigQuery بجواب نقرؤه عن جداول CrUX للشهرين الأخيرين، فلا نعرف بيانات الدول. قد يكون مفتاح الحساب غير صالح أو ينقصه صلاحية، أو الجداول لم تُنشر بعد.',
+    en: 'BigQuery gave no answer we could read for the CrUX tables of the last two months, so we do not know the countries’ data. The account key may be invalid or lack a permission, or the tables may not be published yet.',
+  },
+  'crux-countries-too-big': {
+    ar: 'كان الاستعلام سيقرأ نحو {bytes} غيغابايت وسقف الفحص {cap} غيغابايت، فلم نشغّله ولم يُحاسَب عليه شيء. يرفع المشغِّل السقف بالمتغير ARABLYZER_BIGQUERY_MAX_BYTES.',
+    en: 'The query would have read about {bytes} GB and the cap for a scan is {cap} GB, so we did not run it and nothing was billed. The operator raises the cap with ARABLYZER_BIGQUERY_MAX_BYTES.',
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

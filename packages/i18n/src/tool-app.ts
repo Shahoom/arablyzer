@@ -72,6 +72,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       reads: 'يقرأ:',
       rendersIn: 'يعرض الصفحة في:',
       sentOut: {
+        'crux-by-country':
+          'نرسل أصل موقعك (النطاق مع البروتوكول) إلى Google BigQuery بحساب الخدمة الذي وضعه مشغِّل الخادم، في استعلامين على جداول Chrome UX Report، ولا شيء آخر من صفحتك. تُحاسَب الاستعلامات على مشروعه.',
         'ai-visibility':
           'نرسل إلى كل مساعد لدى الخادم مفتاحه (OpenAI وGemini وPerplexity وClaude) من 3 إلى 5 أسئلة نصية بالعربية تحمل اسم علامتك وموضوع صفحتك وبلدها، مع تفعيل بحثه في الويب. لا نرسل صفحتك ولا بيانات زوارك، ولا نحفظ إجاباتهم.',
         'common-misspellings':
@@ -138,6 +140,8 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       reads: 'Reads:',
       rendersIn: 'Renders the page in:',
       sentOut: {
+        'crux-by-country':
+          'We send your site’s origin (the domain with its protocol) to Google BigQuery, with the service account the server’s operator set up, in two queries on the Chrome UX Report tables, and nothing else of your page. The queries are billed to the operator’s project.',
         'ai-visibility':
           'We send each assistant the server has a key for (OpenAI, Gemini, Perplexity and Claude) 3 to 5 text questions in Arabic that carry your brand name, your page’s subject and its country, with its web search on. We send neither your page nor your visitors’ data, and we keep no answer.',
         'common-misspellings':

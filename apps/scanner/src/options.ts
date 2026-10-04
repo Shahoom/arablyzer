@@ -1,6 +1,6 @@
 import { networkIsolated } from '@arablyzer/browser/engines'
 import { dohUrlFrom, serverPolicy } from '@arablyzer/egress'
-import type { OutsideOptions, ScanOptions } from '@arablyzer/engine'
+import { parseCredentials, type OutsideOptions, type ScanOptions } from '@arablyzer/engine'
 import type { Engine } from '@arablyzer/report-schema'
 
 const ENGINES: readonly Engine[] = ['chromium', 'firefox', 'webkit']
@@ -45,6 +45,27 @@ export function outsideFrom(
         : { anthropic: key('ARABLYZER_ANTHROPIC_MODEL') }),
     }
     outside.aiVisibility = { keys, ...(Object.keys(models).length === 0 ? {} : { models }) }
+  }
+  const credentials = key('ARABLYZER_BIGQUERY_CREDENTIALS')
+  const project = key('ARABLYZER_BIGQUERY_PROJECT')
+  if ((credentials === '') !== (project === '')) {
+    throw new Error(
+      'ARABLYZER_BIGQUERY_CREDENTIALS and ARABLYZER_BIGQUERY_PROJECT are set together or not at all',
+    )
+  }
+  if (credentials !== '') {
+    const parsed = parseCredentials(credentials)
+    if (parsed === null) {
+      throw new Error(
+        'ARABLYZER_BIGQUERY_CREDENTIALS must be a service account key (JSON, or base64 of it)',
+      )
+    }
+    const maxBytes = Number(key('ARABLYZER_BIGQUERY_MAX_BYTES'))
+    outside.cruxCountries = {
+      credentials: parsed,
+      project,
+      ...(Number.isFinite(maxBytes) && maxBytes > 0 ? { maxBytes } : {}),
+    }
   }
   return Object.keys(outside).length === 0 ? undefined : outside
 }

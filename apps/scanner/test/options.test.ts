@@ -93,3 +93,58 @@ describe('scanOptionsFrom', () => {
     expect(() => scanOptionsFrom({ ARABLYZER_DOH_URL: 'dns.example.net' })).toThrow(TypeError)
   })
 })
+
+describe('the services beside the site', () => {
+  const key = JSON.stringify({ client_email: 'svc@p.iam.gserviceaccount.com', private_key: 'k' })
+
+  it('are all off by default: nothing is given, so nothing is sent', () => {
+    expect(scanOptionsFrom({}).outside).toBeUndefined()
+    expect(
+      scanOptionsFrom({ ARABLYZER_SUGGEST: '0', ARABLYZER_OPENAI_KEY: ' ' }).outside,
+    ).toBeUndefined()
+  })
+
+  it('turn on one by one: Google’s suggestions, each assistant’s key, BigQuery', () => {
+    expect(scanOptionsFrom({ ARABLYZER_SUGGEST: '1' }).outside).toEqual({ suggest: {} })
+    expect(
+      scanOptionsFrom({
+        ARABLYZER_OPENAI_KEY: ' o ',
+        ARABLYZER_ANTHROPIC_KEY: 'a',
+        ARABLYZER_ANTHROPIC_MODEL: 'claude-x',
+      }).outside,
+    ).toEqual({
+      aiVisibility: { keys: { openai: 'o', anthropic: 'a' }, models: { anthropic: 'claude-x' } },
+    })
+    const bigquery = scanOptionsFrom({
+      ARABLYZER_BIGQUERY_CREDENTIALS: key,
+      ARABLYZER_BIGQUERY_PROJECT: 'proj',
+      ARABLYZER_BIGQUERY_MAX_BYTES: '1000000',
+    }).outside?.cruxCountries
+    expect(bigquery).toMatchObject({
+      credentials: { clientEmail: 'svc@p.iam.gserviceaccount.com' },
+      project: 'proj',
+      maxBytes: 1_000_000,
+    })
+  })
+
+  it('refuse BigQuery credentials without a project, or that are not a service account key', () => {
+    expect(() => scanOptionsFrom({ ARABLYZER_BIGQUERY_CREDENTIALS: key })).toThrow(
+      /together or not at all/,
+    )
+    expect(() => scanOptionsFrom({ ARABLYZER_BIGQUERY_PROJECT: 'p' })).toThrow(
+      /together or not at all/,
+    )
+    expect(() =>
+      scanOptionsFrom({ ARABLYZER_BIGQUERY_CREDENTIALS: 'nope', ARABLYZER_BIGQUERY_PROJECT: 'p' }),
+    ).toThrow(/service account key/)
+    // The error never repeats the key.
+    try {
+      scanOptionsFrom({
+        ARABLYZER_BIGQUERY_CREDENTIALS: 'SECRETVALUE',
+        ARABLYZER_BIGQUERY_PROJECT: 'p',
+      })
+    } catch (error) {
+      expect(String(error)).not.toContain('SECRETVALUE')
+    }
+  })
+})

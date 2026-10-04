@@ -5,6 +5,8 @@ export interface AskRequest {
   readonly url: string
   /** A JSON body makes it a POST. */
   readonly json?: unknown
+  /** A form body (an OAuth token request), sent as a POST. */
+  readonly form?: Readonly<Record<string, string>>
   readonly headers?: Readonly<Record<string, string>>
   readonly accept?: string
   readonly maxBytes?: number
@@ -37,6 +39,7 @@ export function askVia(base: SafeFetchOptions): Ask {
         ...(request.truncate === true ? { onTooLarge: 'truncate' as const } : {}),
         ...(request.accept === undefined ? {} : { accept: request.accept }),
         ...(request.json === undefined ? {} : { json: request.json }),
+        ...(request.form === undefined ? {} : { form: request.form }),
         ...(request.headers === undefined ? {} : { headers: request.headers }),
         ...(request.signal === undefined ? {} : { signal: request.signal }),
       })
