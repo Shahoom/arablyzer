@@ -18,12 +18,12 @@ function Circles({ engine }: { engine: Engine }) {
       {engine.words.map((word) => {
         const cx = word.box.x + word.box.width / 2
         const cy = word.box.y + word.box.height / 2
-        const rx = word.box.width / 2 + 7
-        const ry = word.box.height / 2 + 5
+        const rx = word.box.width / 2 + 9
+        const ry = word.box.height / 2 + 8
         return (
           <g key={`${String(word.box.x)}-${String(word.box.y)}`} fill="none">
-            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} stroke="#fff" strokeWidth="6" />
-            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} stroke="currentColor" strokeWidth="3" />
+            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} stroke="#fff" strokeWidth="10" />
+            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} stroke="currentColor" strokeWidth="5" />
           </g>
         )
       })}
@@ -36,7 +36,16 @@ function Circles({ engine }: { engine: Engine }) {
  * (boxes drawn here over the stored picture), and the Arabic integrity, the share of Arabic words
  * drawn correctly across the engines. Draws nothing when the report holds no X-ray.
  */
-export function ArabicXray({ report, lang }: { report: Report; lang: Lang }) {
+export function ArabicXray({
+  report,
+  lang,
+  standalone = false,
+}: {
+  report: Report
+  lang: Lang
+  /** On the report page, a card of its own; inside a tool's result, a section of it. */
+  standalone?: boolean
+}) {
   const fact = report.facts.xray
   if (fact === undefined) return null
   const t = NATIVE[lang].xray
@@ -44,7 +53,7 @@ export function ArabicXray({ report, lang }: { report: Report; lang: Lang }) {
   return (
     <section
       aria-labelledby="xray-title"
-      className="flex flex-col gap-3 border-b border-line p-card"
+      className={`flex flex-col gap-3 p-card ${standalone ? 'card rounded-card' : 'border-b border-line'}`}
     >
       <h3 id="xray-title" className="heading-3 m-0">
         {t.title}

@@ -9,7 +9,16 @@ import { Revealed } from './Bidi'
  * with the items judged, and what told us. With thin or conflicting evidence it says so and shows
  * no percentage. Draws nothing when the rule did not run.
  */
-export function CountryFit({ report, lang }: { report: Report; lang: Lang }) {
+export function CountryFit({
+  report,
+  lang,
+  standalone = false,
+}: {
+  report: Report
+  lang: Lang
+  /** On the report page, a card of its own; inside a tool's result, a section of it. */
+  standalone?: boolean
+}) {
   const fact = report.facts.countryFit
   if (fact === undefined) return null
   const t = NATIVE[lang].country
@@ -25,7 +34,7 @@ export function CountryFit({ report, lang }: { report: Report; lang: Lang }) {
   return (
     <section
       aria-labelledby="country-title"
-      className="flex flex-col gap-3 border-b border-line p-card"
+      className={`flex flex-col gap-3 p-card ${standalone ? 'card rounded-card' : 'border-b border-line'}`}
     >
       <h3 id="country-title" className="heading-3 m-0">
         {t.title}
