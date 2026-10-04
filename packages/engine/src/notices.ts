@@ -46,6 +46,10 @@ export type NoticeCode =
   | 'search-robots'
   | 'search-unreachable'
   | 'search-no-words'
+  | 'lookalikes-failed'
+  | 'lookalikes-ct'
+  | 'pdfs-none'
+  | 'pdfs-unread'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -299,6 +303,22 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'search-no-words': {
     ar: 'وجدنا بحث الموقع، لكن ليس في الصفحة كلمات عربية من نصها نسأله عنها، فلم نختبر شيئًا.',
     en: "We found the site's search, but the page has no Arabic words of its own to ask it for, so nothing was tested.",
+  },
+  'lookalikes-failed': {
+    ar: 'لم يصل جواب أي استعلام DNS عن الدومينات الشبيهة، فلا نعرف أيها مسجَّل. حاول بعد قليل.',
+    en: 'None of the DNS lookups for the look-alike domains was answered, so we do not know which are registered. Try again shortly.',
+  },
+  'lookalikes-ct': {
+    ar: 'لم يردّ سجلّ الشهادات (Certificate Transparency) على بعض الأسماء، أو بلغنا حدّ ما نسأله عنه، فتواريخ أول شهادة ناقصة لبعض الدومينات.',
+    en: 'The Certificate Transparency log did not answer for some names, or we reached the limit of what we ask it, so the first-certificate date is missing for some domains.',
+  },
+  'pdfs-none': {
+    ar: 'لا رابط إلى ملف PDF في الصفحة، فلم نفحص شيئاً.',
+    en: 'The page links to no PDF file, so nothing was checked.',
+  },
+  'pdfs-unread': {
+    ar: 'لم نستطع قراءة بعض ملفات PDF المرتبطة بالصفحة: يمنعنا robots.txt من جلبها، أو أكبر من 15 ميغابايت، أو مشفَّرة، أو ليست PDF، أو لم يردّ الخادم. تجد السبب بجانب كل ملف.',
+    en: 'Some PDFs the page links could not be read: robots.txt keeps us from fetching them, they are over 15 MB, they are encrypted, they are not PDFs, or the server did not answer. The reason is beside each file.',
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

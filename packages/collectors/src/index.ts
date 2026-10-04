@@ -27,6 +27,17 @@ export {
   type OpenPageRankAnswer,
   type OpenPageRankFacts,
 } from './open-page-rank'
+export {
+  type LookalikeFacts,
+  type OutsideFacts,
+  type PdfFacts,
+  type PdfFile,
+  type PdfIssue,
+  type PdfIssueKind,
+  type PdfOutcome,
+  type LookalikeFound,
+  type LookalikeKind,
+} from './outside'
 export { organizationalDomain, txtLookup, type DnsFacts, type TxtLookup } from './dns'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {

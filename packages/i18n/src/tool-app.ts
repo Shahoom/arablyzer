@@ -22,7 +22,7 @@ export interface ToolAppStrings {
      * What a tool sends to a host that is not ours, which its box's disclosure says beside what is
      * kept: the DNS tool puts the page's domain to a resolver.
      */
-    readonly sentOut: Readonly<Partial<Record<'dns' | 'search', string>>>
+    readonly sentOut: Readonly<Partial<Record<string, string>>>
   }
   readonly result: {
     readonly running: string
@@ -72,6 +72,10 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       reads: 'يقرأ:',
       rendersIn: 'يعرض الصفحة في:',
       sentOut: {
+        'pdf-forensics':
+          'نجلب حتى 3 ملفات PDF مرتبطة بالصفحة، واحداً بعد واحد، باسم ArablyzerBot وبعد أن نقرأ robots.txt لموقع كل ملف؛ وقد يكون بعضها على موقع غير موقعك. تظهر طلباتنا في سجلات ذلك الموقع.',
+        'lookalike-domains':
+          'نرسل أسماء الدومينات الشبيهة بدومينك (حتى 100 اسم) إلى محلِّل DNS لدى Cloudflare، وأسماء ما سُجِّل منها (12 على الأكثر) إلى crt.sh. لا نفتح أي موقع منها، ولا يخرج شيء آخر من صفحتك.',
         dns: 'نسأل DNS عبر HTTPS لدى Cloudflare، أو لدى المحلِّل الذي ضُبطت عليه الخدمة، عن سجلَّي TXT لنطاق الصفحة: SPF وDMARC. ويصل اسم النطاق إلى ذلك المحلِّل، ولا شيء آخر من الصفحة.',
         search:
           'نرسل إلى بحث الموقع نفسه 12 طلبًا على الأكثر، واحدًا واحدًا وبينها مهلة، باسم ArablyzerBot، وبعد أن نقرأ robots.txt؛ وتظهر في سجلات الموقع، وقد تُحسب في إحصاءات بحثه.',
@@ -130,6 +134,10 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       reads: 'Reads:',
       rendersIn: 'Renders the page in:',
       sentOut: {
+        'pdf-forensics':
+          'We fetch up to 3 PDFs the page links, one at a time, as ArablyzerBot and after reading the robots.txt of each file’s site; some may be on a site that is not yours. Our requests show in that site’s logs.',
+        'lookalike-domains':
+          'We send the names of the look-alikes of your domain (up to 100) to a DNS resolver at Cloudflare, and the names of the registered ones (12 at most) to crt.sh. We open none of those sites, and nothing else of your page goes out.',
         dns: 'We ask Cloudflare’s DNS over HTTPS, or the resolver the service is set to, for two TXT records of the page’s domain, SPF and DMARC. The domain’s name goes there, and nothing else of the page.',
         search:
           'We send the site’s own search at most 12 requests, one at a time with a pause, as ArablyzerBot, after reading its robots.txt. They show in the site’s logs and may count in its search statistics.',

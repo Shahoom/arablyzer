@@ -41,6 +41,7 @@ import { rule as jsOnlyContent } from './rules/js-only-content/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
 import { rule as knowledgeGraphEntity } from './rules/knowledge-graph-entity/rule'
 import { rule as linkBroken } from './rules/link-broken/rule'
+import { rule as lookalikeDomains } from './rules/lookalike-domains/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
@@ -48,6 +49,8 @@ import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as paymentMethods } from './rules/payment-methods/rule'
 import { rule as priceDecimals } from './rules/price-decimals/rule'
 import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
+import { rule as pdfArabicText } from './rules/pdf-arabic-text/rule'
+import { rule as pdfMetadata } from './rules/pdf-metadata/rule'
 import { rule as platformDetected } from './rules/platform-detected/rule'
 import { rule as redirectChain } from './rules/redirect-chain/rule'
 import { rule as redirectTemporary } from './rules/redirect-temporary/rule'
@@ -125,11 +128,14 @@ export const RULES: readonly Rule[] = [
   jsonldSyntaxError,
   knowledgeGraphEntity,
   linkBroken,
+  lookalikeDomains,
   metaDescriptionMissing,
   mixedContent,
   ogTagsMissing,
   pageNoindex,
   paymentMethods,
+  pdfArabicText,
+  pdfMetadata,
   platformDetected,
   priceDecimals,
   productOfferInvalid,
@@ -193,6 +199,8 @@ export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-cra
 export { brandName, type Brand } from './lib/brand'
 export { xrayFamilies } from './lib/missing-letters'
 export { FINEWEB2, readTraining, trainingText, type FilterCheck } from './lib/ai-training'
+export { OUTSIDE, TOOL_ONLY } from './outside'
+export { arabicWords, normalizeArabic } from './lib/ar-normalize'
 export { dialectOfPage, fitsCountry, readDialect, type Dialect, type Variety } from './lib/dialect'
 export { isMostlyArabic } from './lib/arabic'
 export { inferCountry, readPage } from './lib/country'

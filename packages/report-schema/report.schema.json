@@ -523,6 +523,12 @@
         "aiTraining": {
           "$ref": "#/$defs/AiTrainingFact"
         },
+        "lookalikes": {
+          "$ref": "#/$defs/LookalikeFact"
+        },
+        "pdfs": {
+          "$ref": "#/$defs/PdfFact"
+        },
         "xray": {
           "$ref": "#/$defs/XrayFact"
         }
@@ -2040,6 +2046,234 @@
         "lines",
         "passes",
         "checks"
+      ],
+      "additionalProperties": false
+    },
+    "LookalikeFact": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "candidates": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "asked": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ct": {
+          "type": "string",
+          "enum": [
+            "checked",
+            "partial",
+            "unavailable"
+          ]
+        },
+        "found": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 253
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "tld",
+                  "arabizi",
+                  "omission",
+                  "doubling",
+                  "transposition",
+                  "neighbour",
+                  "hyphen",
+                  "confusable"
+                ]
+              },
+              "address": {
+                "type": "boolean"
+              },
+              "mail": {
+                "type": "boolean"
+              },
+              "firstSeen": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "certificates": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "recent": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "domain",
+              "kind",
+              "address",
+              "mail",
+              "firstSeen",
+              "certificates",
+              "recent"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "domain",
+        "candidates",
+        "asked",
+        "ct",
+        "found"
+      ],
+      "additionalProperties": false
+    },
+    "PdfFact": {
+      "type": "object",
+      "properties": {
+        "linked": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "files": {
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "read",
+                  "robots",
+                  "too-large",
+                  "not-pdf",
+                  "encrypted",
+                  "unreadable",
+                  "failed"
+                ]
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "pages": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "pagesRead": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "language": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "issues": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "reversed",
+                        "presentation-forms",
+                        "no-unicode-map",
+                        "image-only",
+                        "no-title",
+                        "no-language"
+                      ]
+                    },
+                    "measure": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "example": {
+                      "type": "string",
+                      "maxLength": 60
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "measure",
+                    "example"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "url",
+              "outcome",
+              "bytes",
+              "pages",
+              "pagesRead",
+              "title",
+              "language",
+              "issues"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "linked",
+        "files"
       ],
       "additionalProperties": false
     },

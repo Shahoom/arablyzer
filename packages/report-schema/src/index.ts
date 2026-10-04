@@ -538,6 +538,88 @@ export const AiTrainingFact = z
 export type AiTrainingFact = z.infer<typeof AiTrainingFact>
 
 /**
+ * The look-alikes of the scanned domain that exist (tool lookalike-domains, rule
+ * lookalike-domains): the candidates generated (typos, Arabizi digit swaps, other suffixes), those
+ * whose A or MX records DoH found, and, from Certificate Transparency, when each one's first
+ * certificate was logged. `ct` says whether the log answered for every name asked.
+ */
+export const LookalikeFact = z
+  .strictObject({
+    domain: z.string().min(1).max(253),
+    candidates: count(),
+    asked: count(),
+    ct: z.enum(['checked', 'partial', 'unavailable']),
+    found: z
+      .array(
+        z.strictObject({
+          domain: z.string().min(1).max(253),
+          kind: z.enum([
+            'tld',
+            'arabizi',
+            'omission',
+            'doubling',
+            'transposition',
+            'neighbour',
+            'hyphen',
+            'confusable',
+          ]),
+          address: z.boolean(),
+          mail: z.boolean(),
+          firstSeen: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .nullable(),
+          certificates: count().nullable(),
+          recent: z.boolean(),
+        }),
+      )
+      .max(100),
+  })
+  .meta({ id: 'LookalikeFact' })
+export type LookalikeFact = z.infer<typeof LookalikeFact>
+
+/**
+ * The PDFs the page links, up to three read (tool pdf-forensics, rules pdf-arabic-text and
+ * pdf-metadata): for each, how it ended and, where it was read, the pages, the document's title and
+ * language and what is wrong with its Arabic. `measure` is a share (0 to 1) or a count by kind.
+ */
+export const PdfFact = z
+  .strictObject({
+    linked: count(),
+    files: z
+      .array(
+        z.strictObject({
+          url: z.string().min(1).max(2048),
+          outcome: z.enum(['read', 'robots', 'too-large', 'not-pdf', 'encrypted', 'unreadable', 'failed']),
+          bytes: count(),
+          pages: count(),
+          pagesRead: count(),
+          title: z.string().max(200).nullable(),
+          language: z.string().max(40).nullable(),
+          issues: z
+            .array(
+              z.strictObject({
+                kind: z.enum([
+                  'reversed',
+                  'presentation-forms',
+                  'no-unicode-map',
+                  'image-only',
+                  'no-title',
+                  'no-language',
+                ]),
+                measure: z.number().min(0),
+                example: z.string().max(60),
+              }),
+            )
+            .max(6),
+        }),
+      )
+      .max(3),
+  })
+  .meta({ id: 'PdfFact' })
+export type PdfFact = z.infer<typeof PdfFact>
+
+/**
  * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
  * counted and the ones drawn wrongly (a letter no font in their list draws, or a replacement
  * character), where the broken ones stand in the first screen, and a small JPEG of that screen to
@@ -612,6 +694,10 @@ export const Facts = z.strictObject({
   dialect: DialectFact.optional(),
   /** Present when the AI training filter rule ran on an Arabic page. */
   aiTraining: AiTrainingFact.optional(),
+  /** Present when the look-alike domains tool ran and DNS answered. */
+  lookalikes: LookalikeFact.optional(),
+  /** Present when the PDF tool ran on a page that links PDFs. */
+  pdfs: PdfFact.optional(),
   /** Present when a scan asked for the Arabic X-ray and an engine counted Arabic words. */
   xray: XrayFact.optional(),
 })

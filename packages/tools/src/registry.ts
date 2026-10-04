@@ -25,9 +25,11 @@ import { definition as jsRenderingCheck } from './tools/js-rendering-check/tool'
 import { definition as languageCheck } from './tools/language-check/tool'
 import { definition as letterSpacingCheck } from './tools/letter-spacing-check/tool'
 import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
+import { definition as lookalikeDomains } from './tools/lookalike-domains/tool'
 import { definition as mirroredIconsCheck } from './tools/mirrored-icons-check/tool'
 import { definition as mixedContent } from './tools/mixed-content/tool'
 import { definition as paymentMethodsDetector } from './tools/payment-methods-detector/tool'
+import { definition as pdfForensics } from './tools/pdf-forensics/tool'
 import { definition as phoneFormatCheck } from './tools/phone-format-check/tool'
 import { definition as platformCheck } from './tools/platform-check/tool'
 import { definition as priceFormatCheck } from './tools/price-format-check/tool'
@@ -80,9 +82,11 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   languageCheck,
   letterSpacingCheck,
   logicalCssCheck,
+  lookalikeDomains,
   mirroredIconsCheck,
   mixedContent,
   paymentMethodsDetector,
+  pdfForensics,
   phoneFormatCheck,
   platformCheck,
   priceFormatCheck,

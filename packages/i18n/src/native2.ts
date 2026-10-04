@@ -21,6 +21,58 @@ export interface Native2Strings {
     readonly clashes: (country: string) => string
     readonly note: string
   }
+  readonly lookalikes: {
+    readonly title: string
+    readonly summary: (found: number, asked: number) => string
+    readonly none: (asked: number) => string
+    readonly kinds: Readonly<
+      Record<
+        | 'tld'
+        | 'arabizi'
+        | 'omission'
+        | 'doubling'
+        | 'transposition'
+        | 'neighbour'
+        | 'hyphen'
+        | 'confusable',
+        string
+      >
+    >
+    readonly address: string
+    readonly mail: string
+    readonly firstCertificate: string
+    readonly noCertificate: string
+    readonly fresh: string
+    readonly ct: Readonly<Record<'partial' | 'unavailable', string>>
+    readonly note: string
+  }
+  readonly pdfs: {
+    readonly title: string
+    readonly summary: (read: number, linked: number) => string
+    readonly none: string
+    readonly more: (count: number) => string
+    readonly outcomes: Readonly<
+      Record<'robots' | 'too-large' | 'not-pdf' | 'encrypted' | 'unreadable' | 'failed', string>
+    >
+    readonly pages: (read: number, total: number) => string
+    readonly clean: string
+    readonly issues: Readonly<
+      Record<
+        | 'reversed'
+        | 'presentation-forms'
+        | 'no-unicode-map'
+        | 'image-only'
+        | 'no-title'
+        | 'no-language',
+        { readonly name: string; readonly fix: string }
+      >
+    >
+    readonly measure: (percent: number) => string
+    readonly example: string
+    readonly titleLabel: string
+    readonly languageLabel: string
+    readonly note: string
+  }
   readonly training: {
     readonly title: string
     readonly intro: string
@@ -62,6 +114,80 @@ export const NATIVE2: Copy<Native2Strings> = {
       fits: (country) => `تناسب لهجة النص بلدها (${country})`,
       clashes: (country) => `لا تُحكى هذه اللهجة في ${country}`,
       note: 'عيّنة كلمات مميِّزة لا نموذج لغة؛ ومعلومة لا تُخصم من درجتك.',
+    },
+    lookalikes: {
+      title: 'الدومينات الشبيهة بدومينك',
+      summary: (found, asked) =>
+        `سجّل غيرك ${String(found)} من الدومينات الشبيهة، من ${String(asked)} اسماً سألنا عنها`,
+      none: (asked) => `لم نجد دومينات شبيهة مسجَّلة بين ${String(asked)} اسماً سألنا عنها`,
+      kinds: {
+        tld: 'امتداد آخر',
+        arabizi: 'أرابيزي',
+        omission: 'حرف ناقص',
+        doubling: 'حرف مكرَّر',
+        transposition: 'حرفان مبدَّلان',
+        neighbour: 'مفتاح مجاور',
+        hyphen: 'شرطة',
+        confusable: 'أحرف متشابهة',
+      },
+      address: 'موقع (A)',
+      mail: 'بريد (MX)',
+      firstCertificate: 'أول شهادة',
+      noCertificate: 'لا شهادة في السجل',
+      fresh: 'حديثة',
+      ct: {
+        partial: 'لم نسأل سجلّ الشهادات عن كل الأسماء، أو لم يردّ عن بعضها.',
+        unavailable: 'لم يردّ سجلّ الشهادات (crt.sh)، فلا تواريخ شهادات هنا.',
+      },
+      note: 'أسماء نولّدها بقواعد ثابتة ونسأل عنها DNS عبر HTTPS؛ لا نفتح أي موقع منها، وقد يكون المسجَّل لصاحب مشروع بريء.',
+    },
+    pdfs: {
+      title: 'ملفات PDF في الصفحة',
+      summary: (read, linked) =>
+        `قرأنا ${String(read)} من ${String(linked)} ملف PDF مرتبطاً بالصفحة`,
+      none: 'لا رابط إلى ملف PDF في الصفحة.',
+      more: (count) => `وفيها ${String(count)} ملفات أخرى لم نفحصها (نقرأ 3 كحد أقصى).`,
+      outcomes: {
+        robots: 'يمنع robots.txt جلبه',
+        'too-large': 'أكبر من 15 ميغابايت',
+        'not-pdf': 'ليس ملف PDF',
+        encrypted: 'مشفَّر بكلمة سر',
+        unreadable: 'لم نستطع قراءته',
+        failed: 'لم يردّ الخادم',
+      },
+      pages: (read, total) => `قرأنا ${String(read)} صفحة من ${String(total)}`,
+      clean: 'نصه العربي يُقرأ كما يجب',
+      issues: {
+        reversed: {
+          name: 'حروف معكوسة',
+          fix: 'أعد التصدير من برنامج يدعم العربية (Word أو InDesign الشرق الأوسط) ولا تصدّر من خط يرسم الحروف مقلوبة.',
+        },
+        'presentation-forms': {
+          name: 'أشكال عرض بدل الحروف',
+          fix: 'أعد التصدير بخط OpenType/TrueType حديث مع تضمينه، فيخرج النص حروفاً أساسية.',
+        },
+        'no-unicode-map': {
+          name: 'خط بلا خريطة Unicode',
+          fix: 'ضمّن الخط في التصدير بخريطة ToUnicode (الخيارات الحديثة تفعل ذلك)، ولا تحوّل النص إلى منحنيات.',
+        },
+        'image-only': {
+          name: 'صفحات صور بلا نص',
+          fix: 'شغّل التعرف الضوئي (OCR) بالعربية، أو أعد التصدير من الملف الأصلي.',
+        },
+        'no-title': {
+          name: 'بلا عنوان للمستند',
+          fix: 'اكتب العنوان في خصائص الملف (Word: ملف ‹ معلومات ‹ العنوان).',
+        },
+        'no-language': {
+          name: 'بلا لغة للمستند',
+          fix: 'عيّن لغة النص «العربية» وفعّل «Create Tagged PDF» عند التصدير.',
+        },
+      },
+      measure: (percent) => `${String(percent)}٪`,
+      example: 'مثال',
+      titleLabel: 'العنوان',
+      languageLabel: 'اللغة',
+      note: 'تقدير من نص تقرؤه مكتبة pdf.js من أول 20 صفحة، لا يحفظ الملف.',
     },
     training: {
       title: 'هل يمر نصك من فلاتر بيانات التدريب؟',
@@ -127,6 +253,83 @@ export const NATIVE2: Copy<Native2Strings> = {
       fits: (country) => `The dialect fits the page's country (${country})`,
       clashes: (country) => `This dialect is not the speech of ${country}`,
       note: 'A sample of telling words, not a language model; information, never deducted from your score.',
+    },
+    lookalikes: {
+      title: 'Look-alikes of your domain',
+      summary: (found, asked) =>
+        `Someone has registered ${String(found)} look-alike domains, of the ${String(asked)} names we asked about`,
+      none: (asked) =>
+        `We found no registered look-alike among the ${String(asked)} names we asked about`,
+      kinds: {
+        tld: 'another suffix',
+        arabizi: 'Arabizi',
+        omission: 'a letter left out',
+        doubling: 'a letter doubled',
+        transposition: 'two letters swapped',
+        neighbour: 'a neighbouring key',
+        hyphen: 'a hyphen',
+        confusable: 'confusable letters',
+      },
+      address: 'site (A)',
+      mail: 'mail (MX)',
+      firstCertificate: 'First certificate',
+      noCertificate: 'no certificate in the log',
+      fresh: 'recent',
+      ct: {
+        partial:
+          'We did not ask the certificate log about every name, or it did not answer for some.',
+        unavailable:
+          'The certificate log (crt.sh) did not answer, so there are no certificate dates here.',
+      },
+      note: 'Names we make by fixed rules and ask DNS over HTTPS about; we open none of these sites, and a registered name may belong to an innocent business.',
+    },
+    pdfs: {
+      title: 'PDFs on the page',
+      summary: (read, linked) =>
+        `We read ${String(read)} of the ${String(linked)} PDFs the page links`,
+      none: 'The page links to no PDF.',
+      more: (count) => `It has ${String(count)} more we did not check (we read 3 at most).`,
+      outcomes: {
+        robots: 'robots.txt keeps us from fetching it',
+        'too-large': 'over 15 MB',
+        'not-pdf': 'not a PDF file',
+        encrypted: 'encrypted with a password',
+        unreadable: 'we could not read it',
+        failed: 'the server did not answer',
+      },
+      pages: (read, total) => `We read ${String(read)} of ${String(total)} pages`,
+      clean: 'its Arabic text reads as it should',
+      issues: {
+        reversed: {
+          name: 'Reversed letters',
+          fix: 'Export again from a program that supports Arabic (Word, or the Middle Eastern edition of InDesign), and not from a font that draws the letters backwards.',
+        },
+        'presentation-forms': {
+          name: 'Presentation forms instead of letters',
+          fix: 'Export again with a modern OpenType or TrueType font, embedded, so the text comes out as base letters.',
+        },
+        'no-unicode-map': {
+          name: 'A font with no Unicode map',
+          fix: 'Embed the font on export with a ToUnicode map (modern options do) and do not convert text to outlines.',
+        },
+        'image-only': {
+          name: 'Picture pages with no text',
+          fix: 'Run Arabic OCR, or export again from the original file.',
+        },
+        'no-title': {
+          name: 'No document title',
+          fix: 'Write the title in the file’s properties (Word: File › Info › Title).',
+        },
+        'no-language': {
+          name: 'No document language',
+          fix: 'Set the text’s language to Arabic and turn on «Create Tagged PDF» when exporting.',
+        },
+      },
+      measure: (percent) => `${String(percent)}%`,
+      example: 'Example',
+      titleLabel: 'Title',
+      languageLabel: 'Language',
+      note: 'An estimate from the text pdf.js reads from the first 20 pages; the file is not kept.',
     },
     training: {
       title: 'Does your text pass the training-data filters?',

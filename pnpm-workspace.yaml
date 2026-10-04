@@ -17,6 +17,11 @@ ignoredBuiltDependencies:
 # A fix that cannot wait is named in `minimumReleaseAgeExclude`, in the pull request that needs it.
 minimumReleaseAge: 10080
 
+# pdfjs-dist (the PDF tool) asks for @napi-rs/canvas ^1.0.0, an optional library to draw pages, which
+# we never do. 1.0.10 is under the week above, so the newest version old enough is named.
+overrides:
+  '@napi-rs/canvas': 1.0.9
+
 auditConfig:
   ignoreGhsas:
     # http-cache-semantics (through astro): max-stale handling in a shared HTTP cache. The site is

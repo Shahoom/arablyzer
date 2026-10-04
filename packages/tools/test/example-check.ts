@@ -15,7 +15,7 @@ import {
 } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
 import type { Redirect } from '@arablyzer/report-schema'
-import { reportsOnly, RULES, ruleById } from '@arablyzer/rules'
+import { reportsOnly, RULES, ruleById, TOOL_ONLY } from '@arablyzer/rules'
 import {
   locationOf,
   parseDnsExample,
@@ -50,7 +50,7 @@ export function fromFixtures(tool: Tool): boolean {
     return (
       needs.includes('render') ||
       needs.includes('links') ||
-      needs.includes('search') ||
+      needs.some((need) => TOOL_ONLY.has(need)) ||
       // A text of 50 words or more is judged, longer than an excerpt of a page.
       id === 'ai-training-filters'
     )

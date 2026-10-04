@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { RULES } from '@arablyzer/rules'
+import { RULES, TOOL_ONLY } from '@arablyzer/rules'
 
 const RULES_DIR = fileURLToPath(new URL('../../rules/src/rules/', import.meta.url))
 
@@ -18,11 +18,11 @@ export const RENDER_RULES: ReadonlySet<string> = new Set(
 )
 
 /**
- * Rules that ask the site's own search (a tool's scan names them; a whole scan never runs them),
- * judged by test/search-test.test.ts on a site whose search answers: a static fixture cannot.
+ * Rules that ask the site's own search or other services (a tool's scan names them; a whole scan
+ * never runs them), judged by their own tests on stand-in answers: a static fixture cannot.
  */
 export const SEARCH_RULES: ReadonlySet<string> = new Set(
-  RULES.filter((rule) => rule.needs.includes('search')).map((rule) => rule.id),
+  RULES.filter((rule) => rule.needs.some((need) => TOOL_ONLY.has(need))).map((rule) => rule.id),
 )
 
 /**

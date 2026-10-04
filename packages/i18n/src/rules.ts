@@ -14,6 +14,7 @@ export type RuleReads =
   | 'safeBrowsing'
   | 'knowledgeGraph'
   | 'search'
+  | 'outside'
   | 'http'
   | 'dns'
   | 'links'
@@ -100,6 +101,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         safeBrowsing: 'تسأل Google Safe Browsing',
         knowledgeGraph: 'تسأل Google Knowledge Graph',
         search: 'تسأل بحث الموقع نفسه (12 طلبًا على الأكثر)',
+        outside: 'تسأل خدمات غير موقعك (DNS وسجل الشهادات وغيرهما)',
         http: 'تقرأ رد الخادم',
         dns: 'تقرأ سجلات DNS للنطاق',
         links: 'تطلب روابط الصفحة إلى موقعها',
@@ -151,6 +153,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         safeBrowsing: 'Asks Google Safe Browsing',
         knowledgeGraph: 'Asks Google’s Knowledge Graph',
         search: 'Asks the site’s own search (at most 12 requests)',
+        outside: 'Asks services other than your site (DNS, the certificate log and others)',
         http: 'Reads the server’s response',
         dns: 'Reads the domain’s DNS records',
         links: 'Asks for the page’s links to its site',
