@@ -56,6 +56,9 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     ...(options.knowledgeGraphKey === null
       ? {}
       : { knowledgeGraph: { apiKey: options.knowledgeGraphKey } }),
+    ...(options.openPageRankKey === null
+      ? {}
+      : { openPageRank: { apiKey: options.openPageRankKey } }),
     ...(options.lab ? { lab: {} } : {}),
     ...(io.signal === undefined ? {} : { signal: io.signal }),
     ...(render === null

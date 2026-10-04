@@ -504,6 +504,9 @@
         },
         "knowledgeGraph": {
           "$ref": "#/$defs/KnowledgeGraphFact"
+        },
+        "openPageRank": {
+          "$ref": "#/$defs/OpenPageRankFact"
         }
       },
       "additionalProperties": false
@@ -1249,6 +1252,45 @@
         "outcome",
         "brand",
         "entities"
+      ],
+      "additionalProperties": false
+    },
+    "OpenPageRankFact": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "decimal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "domain",
+        "rank",
+        "decimal",
+        "position"
       ],
       "additionalProperties": false
     }

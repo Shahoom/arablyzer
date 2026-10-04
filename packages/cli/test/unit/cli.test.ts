@@ -19,6 +19,7 @@ describe('parseCliArgs', () => {
       cruxKey: null,
       safeBrowsingKey: null,
       knowledgeGraphKey: null,
+      openPageRankKey: null,
       lab: false,
       help: false,
       version: false,
@@ -48,6 +49,12 @@ describe('parseCliArgs', () => {
     expect(key({ ARABLYZER_KG_KEY: ' kg ', ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('kg')
     expect(key({ ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('crux')
     expect(key({})).toBeNull()
+  })
+
+  it('reads the Open PageRank key from ARABLYZER_OPR_KEY alone', () => {
+    const key = (env: Record<string, string>) => parseCliArgs(['x.test'], env).openPageRankKey
+    expect(key({ ARABLYZER_OPR_KEY: ' opr ', ARABLYZER_CRUX_API_KEY: 'crux' })).toBe('opr')
+    expect(key({ ARABLYZER_CRUX_API_KEY: 'crux' })).toBeNull()
   })
 
   it('renders in Chromium with --render, in the engines asked for, and --screenshots implies it', () => {

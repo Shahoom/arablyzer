@@ -8,7 +8,9 @@ import {
   ENGINES,
   headerValues,
   type CruxFacts,
+  organizationalDomain,
   type KnowledgeGraphFacts,
+  type OpenPageRankFacts,
   type SafeBrowsingFacts,
   type DnsFacts,
   type Engine,
@@ -69,6 +71,7 @@ import {
 import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
+import { fetchOpenPageRank, type OpenPageRankOptions } from './open-page-rank'
 import { fetchKnowledgeGraph, type KnowledgeGraphOptions } from './knowledge-graph'
 import { fetchSafeBrowsing, type SafeBrowsingOptions } from './safe-browsing'
 import { lookupDns, txtResolverFor } from './dns'
@@ -193,6 +196,13 @@ export interface ScanOptions {
    * about.
    */
   readonly knowledgeGraph?: KnowledgeGraphOptions
+  /**
+   * Open PageRank, asked with this key in a whole scan (one with no `ruleIds`): the page's domain
+   * goes to it, and its rank, 0 to 10, to the report. Without the key a notice says so; a page on
+   * a private address, or on a domain that is no one's own (a platform's subdomain), is not asked
+   * about.
+   */
+  readonly openPageRank?: OpenPageRankOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
   readonly lab?: LabRequest
   /**
@@ -510,6 +520,23 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
         ? { outcome: 'no-name', brand: null, entities: [] }
         : await fetchKnowledgeGraph(brand.name, options.knowledgeGraph, { ...base, policy })
       : undefined
+  // Open PageRank: the domain's authority, for a whole scan.
+  const rankDomain = organizationalDomain(new URL(response.url).hostname)
+  const wantsRank = options.ruleIds === undefined
+  const openPageRankSkipped: NoticeCode | null = !wantsRank
+    ? null
+    : options.openPageRank === undefined
+      ? 'open-page-rank-no-key'
+      : fetched.privateAccess
+        ? 'open-page-rank-private'
+        : null
+  const openPageRank: OpenPageRankFacts | undefined =
+    wantsRank &&
+    openPageRankSkipped === null &&
+    options.openPageRank !== undefined &&
+    rankDomain !== null
+      ? await fetchOpenPageRank(rankDomain, options.openPageRank, { ...base, policy })
+      : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
   else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
   // The TXT records the rules that read DNS ask for (M2.3c), and those alone, asked as the scan
@@ -591,6 +618,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : []),
     ...(rendering?.notices ?? []),
     ...(cruxSkipped === null ? [] : [notice(cruxSkipped)]),
+    ...(openPageRankSkipped === null ? [] : [notice(openPageRankSkipped)]),
+    ...(openPageRank?.outcome === 'failed'
+      ? [notice(openPageRank.refused === true ? 'open-page-rank-refused' : 'open-page-rank-failed')]
+      : []),
     ...(knowledgeGraphSkipped === null ? [] : [notice(knowledgeGraphSkipped)]),
     ...(knowledgeGraph?.outcome === 'failed'
       ? [
@@ -652,6 +683,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...cruxFacts(crux),
       ...platformFacts(page, rules),
       ...knowledgeGraphFacts(knowledgeGraph),
+      ...openPageRankFacts(openPageRank),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
@@ -1429,6 +1461,19 @@ function knowledgeGraphFacts(facts: KnowledgeGraphFacts | undefined): Facts {
       outcome,
       brand,
       entities: entities.map((entity) => ({ ...entity, types: [...entity.types] })),
+    },
+  }
+}
+
+/** Open PageRank's rank as the report gives it; nothing when not asked, not listed or failed. */
+function openPageRankFacts(facts: OpenPageRankFacts | undefined): Facts {
+  if (facts?.outcome !== 'found' || facts.rank === null || facts.decimal === null) return {}
+  return {
+    openPageRank: {
+      domain: facts.domain,
+      rank: facts.rank,
+      decimal: facts.decimal,
+      position: facts.position,
     },
   }
 }

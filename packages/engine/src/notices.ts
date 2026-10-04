@@ -38,6 +38,10 @@ export type NoticeCode =
   | 'knowledge-graph-private'
   | 'knowledge-graph-failed'
   | 'knowledge-graph-refused'
+  | 'open-page-rank-no-key'
+  | 'open-page-rank-private'
+  | 'open-page-rank-failed'
+  | 'open-page-rank-refused'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -259,6 +263,22 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'knowledge-graph-refused': {
     ar: 'رفضت Google (Knowledge Graph) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Knowledge Graph Search API، فلم يعمل الفحص.',
     en: 'Google (Knowledge Graph) refused the request, most often for an API key that is not valid or not enabled for the Knowledge Graph Search API, so the check could not run.',
+  },
+  'open-page-rank-no-key': {
+    ar: 'قوة النطاق تُقرأ من Open PageRank وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تُعرض.',
+    en: "The domain's authority is read from Open PageRank, which needs a key this scan was not given, so it is not shown.",
+  },
+  'open-page-rank-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Open PageRank عن نطاقها.',
+    en: 'The page is on a local or private address, so Open PageRank was not asked about its domain.',
+  },
+  'open-page-rank-failed': {
+    ar: 'تعذّر الحصول على جواب Open PageRank، فلا تُعرض قوة النطاق.',
+    en: "Open PageRank did not give an answer, so the domain's authority is not shown.",
+  },
+  'open-page-rank-refused': {
+    ar: 'رفضت Open PageRank الطلب، وأكثر ما يكون ذلك لمفتاح غير صالح، فلا تُعرض قوة النطاق.',
+    en: "Open PageRank refused the request, most often for a key that is not valid, so the domain's authority is not shown.",
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

@@ -35,6 +35,8 @@ export interface CliOptions {
   readonly safeBrowsingKey: string | null
   /** ARABLYZER_KG_KEY, or the CrUX key when it is not set; null without either. */
   readonly knowledgeGraphKey: string | null
+  /** ARABLYZER_OPR_KEY: Open PageRank; null without it. */
+  readonly openPageRankKey: string | null
   /** --lab: Lighthouse's lab metrics, as information (M1.3b). */
   readonly lab: boolean
   readonly help: boolean
@@ -79,6 +81,7 @@ export function parseCliArgs(
       cruxKey: null,
       safeBrowsingKey: null,
       knowledgeGraphKey: null,
+      openPageRankKey: null,
       lab: false,
     }
   }
@@ -116,6 +119,7 @@ export function parseCliArgs(
     cruxKey: cruxKey(env),
     safeBrowsingKey: safeBrowsingKey(env),
     knowledgeGraphKey: knowledgeGraphKey(env),
+    openPageRankKey: openPageRankKey(env),
     lab: values.lab,
   }
 }
@@ -142,6 +146,14 @@ export const KG_KEY_VARIABLE = 'ARABLYZER_KG_KEY'
 function knowledgeGraphKey(env: Readonly<Record<string, string | undefined>>): string | null {
   const key = env[KG_KEY_VARIABLE]?.trim() ?? ''
   return key === '' ? cruxKey(env) : key
+}
+
+/** The Open PageRank API key from the environment. */
+export const OPR_KEY_VARIABLE = 'ARABLYZER_OPR_KEY'
+
+function openPageRankKey(env: Readonly<Record<string, string | undefined>>): string | null {
+  const key = env[OPR_KEY_VARIABLE]?.trim() ?? ''
+  return key === '' ? null : key
 }
 
 /** --engines or --screenshots imply --render; Chromium alone by default (Phase 1 decision 2). */

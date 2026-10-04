@@ -125,6 +125,14 @@ function Meta({ report, lang, tool }: { report: Report; lang: Lang; tool: ToolRe
         {report.target.fetchedAt.slice(0, 10)}
       </span>
     </span>,
+    report.facts.openPageRank !== undefined && (
+      <span key="authority" className="whitespace-nowrap">
+        {t.authority}{' '}
+        <span dir="ltr" lang="en" className="tabular-nums" title="Open PageRank">
+          {report.facts.openPageRank.rank}/10
+        </span>
+      </span>
+    ),
     report.target.http.status !== null && (
       <span key="http" dir="ltr" className="whitespace-nowrap tabular-nums">
         HTTP {report.target.http.status}

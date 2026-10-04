@@ -11,7 +11,7 @@ const ENGINES: readonly Engine[] = ['chromium', 'firefox', 'webkit']
  * isolated (ARABLYZER_NETWORK_ISOLATED), and the CrUX key when the owner gives one
  * (ARABLYZER_CRUX_KEY). Safe Browsing takes ARABLYZER_SAFE_BROWSING_KEY, or the CrUX key when
  * there is none: one Google key can allow both APIs. Knowledge Graph takes ARABLYZER_KG_KEY, or the
- * CrUX key likewise. Budgets are the plan's (§11), the engine's defaults. Behind the egress
+ * CrUX key likewise. Open PageRank takes ARABLYZER_OPR_KEY alone. Budgets are the plan's (§11), the engine's defaults. Behind the egress
  * proxy, which resolves every name, the TXT lookups of the DNS rules are DNS over HTTPS:
  * ARABLYZER_DOH_URL names the resolver, Cloudflare's by default (M2.3c review). A page's HTML is
  * read in a thread with a heap of its own, and a clock that ends it wherever it is (H1 of the
@@ -35,6 +35,7 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
     ownSafeBrowsingKey === undefined || ownSafeBrowsingKey === '' ? cruxKey : ownSafeBrowsingKey
   const ownKgKey = env.ARABLYZER_KG_KEY?.trim()
   const kgKey = ownKgKey === undefined || ownKgKey === '' ? cruxKey : ownKgKey
+  const oprKey = env.ARABLYZER_OPR_KEY?.trim()
   const policy = serverPolicy(env)
   const dohUrl = dohUrlFrom(env, policy)
   return {
@@ -47,5 +48,6 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
       ? {}
       : { safeBrowsing: { apiKey: safeBrowsingKey } }),
     ...(kgKey === undefined || kgKey === '' ? {} : { knowledgeGraph: { apiKey: kgKey } }),
+    ...(oprKey === undefined || oprKey === '' ? {} : { openPageRank: { apiKey: oprKey } }),
   }
 }

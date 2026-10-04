@@ -53,6 +53,11 @@ describe('scanOptionsFrom', () => {
     expect(kg({})).toBeUndefined()
   })
 
+  it('asks Open PageRank with its own key alone', () => {
+    expect(scanOptionsFrom({ ARABLYZER_OPR_KEY: ' opr ' }).openPageRank).toEqual({ apiKey: 'opr' })
+    expect(scanOptionsFrom({ ARABLYZER_CRUX_KEY: 'crux' }).openPageRank).toBeUndefined()
+  })
+
   // M2.3c review: behind the egress proxy the scanner resolves no name of its own, so the TXT
   // lookups of its DNS rules are DNS over HTTPS (RFC 8484), asked through that proxy.
   it('asks DNS over HTTPS behind the egress proxy, of Cloudflare unless told another resolver', () => {

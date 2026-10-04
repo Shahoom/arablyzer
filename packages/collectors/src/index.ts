@@ -22,6 +22,11 @@ export {
   type KnowledgeGraphEntity,
   type KnowledgeGraphFacts,
 } from './knowledge-graph'
+export {
+  collectOpenPageRank,
+  type OpenPageRankAnswer,
+  type OpenPageRankFacts,
+} from './open-page-rank'
 export { organizationalDomain, txtLookup, type DnsFacts, type TxtLookup } from './dns'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {

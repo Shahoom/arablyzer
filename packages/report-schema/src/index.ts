@@ -325,6 +325,23 @@ export const KnowledgeGraphFact = z
   .meta({ id: 'KnowledgeGraphFact' })
 export type KnowledgeGraphFact = z.infer<typeof KnowledgeGraphFact>
 
+/**
+ * The domain's authority from Open PageRank (a whole scan, with a key): information, never judged
+ * and never part of the score. 0 is the weakest, 10 the strongest.
+ */
+export const OpenPageRankFact = z
+  .strictObject({
+    /** The domain asked about: the page's registrable domain. */
+    domain: z.string().min(1).max(255),
+    rank: z.number().int().min(0).max(10),
+    /** The rank with its decimals. */
+    decimal: z.number().min(0).max(10),
+    /** The domain's place among all domains (1 is first); null when the API gave none. */
+    position: z.number().int().positive().nullable(),
+  })
+  .meta({ id: 'OpenPageRankFact' })
+export type OpenPageRankFact = z.infer<typeof OpenPageRankFact>
+
 export const Facts = z.strictObject({
   robots: z
     .strictObject({
@@ -342,6 +359,8 @@ export const Facts = z.strictObject({
   platform: PlatformFact.optional(),
   /** Present when Knowledge Graph was asked, with a key, and answered. */
   knowledgeGraph: KnowledgeGraphFact.optional(),
+  /** Present when Open PageRank was asked, with a key, and listed the domain. */
+  openPageRank: OpenPageRankFact.optional(),
 })
 export type Facts = z.infer<typeof Facts>
 

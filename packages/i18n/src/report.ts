@@ -117,6 +117,8 @@ export interface ReportStrings {
   readonly header: {
     readonly kicker: string
     readonly scannedOn: string
+    /** The domain's authority from Open PageRank, in the line under the address. */
+    readonly authority: string
     readonly rules: string
     readonly noindex: string
     readonly copyLink: string
@@ -347,6 +349,7 @@ export const REPORT: Copy<ReportStrings> = {
     header: {
       kicker: 'التقرير',
       scannedOn: 'فُحصت في',
+      authority: 'قوة النطاق',
       rules: 'القواعد',
       noindex: 'لا يظهر في محركات البحث',
       copyLink: 'انسخ الرابط',
@@ -585,6 +588,7 @@ export const REPORT: Copy<ReportStrings> = {
     header: {
       kicker: 'Report',
       scannedOn: 'Scanned on',
+      authority: 'Domain authority',
       rules: 'Rules',
       noindex: 'Not in search engines',
       copyLink: 'Copy link',
