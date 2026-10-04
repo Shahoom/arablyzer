@@ -9,6 +9,9 @@ const reports = GOLDEN_NAMES.filter((name) => existsSync(`${REPORTS}${name}.json
   (name) => JSON.parse(readFileSync(`${REPORTS}${name}.json`, 'utf8')) as Report,
 )
 
+/** Rules a whole scan never runs: a tool's scan asks the site's search. */
+const NOT_IN_A_SCAN = RULES.filter((rule) => rule.needs.includes('search')).length
+
 /** The rules each report gave this status. */
 function withStatus(...statuses: string[]): Set<string> {
   return new Set(
@@ -20,13 +23,14 @@ function withStatus(...statuses: string[]): Set<string> {
 
 // M1.3 plan §5: local pages that between them fail every rule, twenty then, two more for the
 // redirect rules (M2.3a), and seven for M2.3c: three for the sitemap and challenge rules (from 23)
-// and four for DNS, links, the rendered text and payments (from 31). The reports come from the
+// and four for DNS, links, the rendered text and payments (from 31), and two for the
+// Arabic-native rules (from 35: one that fails them, one that passes the riyal sign's). The reports come from the
 // scanner image (test/golden); this reads the committed ones, so a new rule needs a page too.
 describe('golden reports', () => {
-  it('are twenty-nine, one for each page, and none for a page that is gone', () => {
-    expect(GOLDEN_NAMES).toHaveLength(29)
+  it('are thirty-one, one for each page, and none for a page that is gone', () => {
+    expect(GOLDEN_NAMES).toHaveLength(31)
     expect(reports).toHaveLength(GOLDEN_NAMES.length)
-    expect(readdirSync(REPORTS).filter((file) => file.endsWith('.json'))).toHaveLength(29)
+    expect(readdirSync(REPORTS).filter((file) => file.endsWith('.json'))).toHaveLength(31)
   })
 
   it('have pages numbered once each, which gives each its port', () => {
@@ -63,7 +67,7 @@ describe('golden reports', () => {
     const clean = reports.filter(
       (report) =>
         report.score.overall === 100 &&
-        report.score.rules.ran === report.score.rules.total &&
+        report.score.rules.ran === report.score.rules.total - NOT_IN_A_SCAN &&
         (report.scan.render ?? []).length > 0 &&
         report.scan.render?.every((run) => run.status === 'rendered') === true,
     )

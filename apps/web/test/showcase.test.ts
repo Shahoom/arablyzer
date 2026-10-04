@@ -8,7 +8,7 @@ describe('the showcase', () => {
   it('reads the instrument panel from golden report 04', () => {
     expect(SHOWCASE.page).toBe('04-rtl-layout')
     expect(SHOWCASE.heading).toEqual({ text: 'متجر العطور', selector: 'html > body > main > h1' })
-    expect([SHOWCASE.score, SHOWCASE.failed, SHOWCASE.passed]).toEqual([91, 3, 21])
+    expect([SHOWCASE.score, SHOWCASE.failed, SHOWCASE.passed]).toEqual([91, 3, 25])
     expect(SHOWCASE.engines).toEqual([
       { engine: 'chromium', name: 'Chromium', version: '153', joined: true },
       { engine: 'firefox', name: 'Firefox', version: '155', joined: true },
@@ -21,10 +21,10 @@ describe('the showcase', () => {
   // M2.6 R2: the home page's product shot is this report as a visitor's report shows it, so every
   // number on it is one of these.
   it('reads the rest of the report the product shot draws: severities, categories, third finding', () => {
-    expect(SHOWCASE.notApplicable).toBe(37)
+    expect(SHOWCASE.notApplicable).toBe(41)
     expect(SHOWCASE.bySeverity).toEqual({ critical: 0, serious: 1, moderate: 1, minor: 0, info: 1 })
     expect(SHOWCASE.categories).toMatchObject({
-      rtl: 67,
+      rtl: 72,
       'ar-render': 0,
       'ar-content': 100,
       index: 100,
