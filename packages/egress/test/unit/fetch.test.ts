@@ -227,6 +227,36 @@ describe('safeFetch: a JSON POST (the CrUX API, M1.3b)', () => {
     expect(JSON.stringify(result)).not.toContain(KEY)
   })
 
+  it('posts a form body as an OAuth token endpoint takes it, and never with a JSON one', async () => {
+    let seen: { type?: string; body: string } = { body: '' }
+    const local = await serve((req, res) => {
+      const chunks: Buffer[] = []
+      req.on('data', (chunk: Buffer) => chunks.push(chunk))
+      req.on('end', () => {
+        seen = {
+          ...(req.headers['content-type'] === undefined
+            ? {}
+            : { type: req.headers['content-type'] }),
+          body: Buffer.concat(chunks).toString('utf8'),
+        }
+        res.end('{}')
+      })
+    })
+    const options = { userAgent: UA, policy: onlyServer(local.port) }
+    const result = await safeFetch(`${local.origin}/token`, {
+      ...options,
+      form: { code: 'a b&c', grant_type: 'authorization_code' },
+    })
+    expect(result.error).toBeNull()
+    expect(seen).toEqual({
+      type: 'application/x-www-form-urlencoded',
+      body: 'code=a+b%26c&grant_type=authorization_code',
+    })
+    await expect(
+      safeFetch(`${local.origin}/token`, { ...options, form: {}, json: {} }),
+    ).rejects.toThrow(TypeError)
+  })
+
   it('never follows a redirect with the body and its key', async () => {
     let elsewhere = 0
     const other = await startServer((_req, res) => {

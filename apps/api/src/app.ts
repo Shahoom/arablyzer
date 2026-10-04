@@ -27,6 +27,7 @@ import {
   type ScanStore,
   type StoredEvent,
 } from '@arablyzer/store'
+import { registerGscRoutes, type GscDeps } from './gsc/routes'
 import { hashDeleteToken, newDeleteToken } from './ids'
 import { holdPlace } from './places'
 import { parseTarget, resolveTarget } from './target'
@@ -68,6 +69,8 @@ export interface ApiDeps {
    * it, as in development, where the site is served from anywhere, none is asked.
    */
   readonly origin?: string
+  /** Search Console, connected from a report; absent, the feature is off (gsc/routes.ts). */
+  readonly gsc?: GscDeps
 }
 
 export interface StreamCaps {
@@ -430,6 +433,17 @@ export function createApp(deps: ApiDeps): Hono {
       await deps.inFlight.release(deps.connectionKey(address, now()), [id]).catch(() => undefined)
     }
     return c.body(null, 204)
+  })
+
+  registerGscRoutes(app, {
+    gsc: deps.gsc,
+    store: deps.store,
+    limiter: deps.limiter,
+    window: deps.limits.attempts,
+    address: deps.address,
+    connectionKey: deps.connectionKey,
+    now,
+    log: failure,
   })
 
   app.notFound((c) => c.json({ error: 'not-found' }, 404))

@@ -1,10 +1,11 @@
-import { randomBytes } from 'node:crypto'
-import { TURNSTILE_ACTION } from '@arablyzer/api-contract'
+import { createHmac, randomBytes } from 'node:crypto'
+import { GSC_CALLBACK_PATH, TURNSTILE_ACTION } from '@arablyzer/api-contract'
 import { checkDenyCidrs, defaultResolver, safeFetch, serverPolicy } from '@arablyzer/egress'
 import { USER_AGENT } from '@arablyzer/engine/identity'
 import { limitsFrom } from '@arablyzer/plans'
 import {
   requireSecret,
+  type Handoff,
   type InFlight,
   type RateLimiter,
   type ScanEvents,
@@ -13,6 +14,7 @@ import {
 } from '@arablyzer/store'
 import type { ApiDeps } from './app'
 import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
+import { googleApi } from './gsc/google'
 import { newScanId } from './ids'
 import { cloudflareTurnstile, isTurnstileTestSecret, noTurnstile } from './turnstile'
 
@@ -24,6 +26,8 @@ export interface Stores {
   readonly events: ScanEvents
   readonly limiter: RateLimiter
   readonly inFlight: InFlight
+  /** One-time values for the Search Console connection; without it the feature is off. */
+  readonly handoff?: Handoff
 }
 
 /**
@@ -44,7 +48,11 @@ export function apiDeps(
   stores: Stores,
   log: (message: string) => void = console.warn,
   /** Turnstile's request; tests pass their own. */
-  options: { readonly fetcher?: typeof safeFetch } = {},
+  options: {
+    readonly fetcher?: typeof safeFetch
+    /** Google's endpoints elsewhere: tests' stand-in. */
+    readonly rewriteGoogle?: (url: string) => string
+  } = {},
 ): ApiDeps {
   const production = env.NODE_ENV === 'production'
   const policy = serverPolicy(env)
@@ -107,13 +115,46 @@ export function apiDeps(
   }
   if (production) requireSecret('ARABLYZER_LIMIT_SECRET', key)
 
+  // Search Console (apps/api/src/gsc): on only with the OAuth client's id and secret, the site's
+  // address to send the visitor back to, and a store for the one-time values. Half a client is a
+  // mistake, said at start in production.
+  const clientId = env.ARABLYZER_GSC_CLIENT_ID?.trim() ?? ''
+  const clientSecret = env.ARABLYZER_GSC_CLIENT_SECRET?.trim() ?? ''
+  if (production && (clientId === '') !== (clientSecret === '')) {
+    throw new Error('ARABLYZER_GSC_CLIENT_ID and ARABLYZER_GSC_CLIENT_SECRET are set together')
+  }
+  const { handoff, ...otherStores } = stores
+  const gsc =
+    clientId !== '' && clientSecret !== '' && siteUrl !== undefined && handoff !== undefined
+      ? {
+          clientId,
+          clientSecret,
+          redirectUri: `${siteUrl.origin}${GSC_CALLBACK_PATH}`,
+          origin: siteUrl.origin,
+          secure: siteUrl.protocol === 'https:',
+          // The cookie's key is derived from the limiter's secret, for this use alone.
+          signingKey: createHmac('sha256', key).update('arablyzer gsc flow cookie').digest(),
+          handoff,
+          google: googleApi({
+            policy,
+            resolver,
+            ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
+            ...(options.rewriteGoogle === undefined ? {} : { rewrite: options.rewriteGoogle }),
+          }),
+        }
+      : undefined
+  if (production && (clientId !== '') !== (gsc !== undefined)) {
+    log('Search Console is off: it needs ARABLYZER_SITE and the store for its one-time values.')
+  }
+
   return {
     ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
+    ...(gsc === undefined ? {} : { gsc }),
     limits: limitsFrom(env),
     policy,
     resolver,
     turnstile,
-    ...stores,
+    ...otherStores,
     address: (c) => clientAddress(c, trust, proxySecret),
     connectionKey: (address, now) => connectionKey(address, key, now),
     networkKey: (address, now) => networkKey(address, key, now),

@@ -77,6 +77,9 @@ services:
       # bootstrap user's, whose password only `migrate` holds.
       DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
       ARABLYZER_SITE: ${ARABLYZER_SITE:?}
+      # Search Console, connected from a report: both, or neither (the button is then hidden).
+      ARABLYZER_GSC_CLIENT_ID: ${ARABLYZER_GSC_CLIENT_ID:-}
+      ARABLYZER_GSC_CLIENT_SECRET: ${ARABLYZER_GSC_CLIENT_SECRET:-}
       TURNSTILE_SECRET: ${TURNSTILE_SECRET:?}
       ARABLYZER_LIMIT_SECRET: ${ARABLYZER_LIMIT_SECRET:?}
       ARABLYZER_LIMIT_CONNECTION_SCANS: ${ARABLYZER_LIMIT_CONNECTION_SCANS:?}

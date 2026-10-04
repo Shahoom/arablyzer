@@ -1,6 +1,7 @@
 import { ScanEvent } from '@arablyzer/api-contract'
 import type { Window } from '@arablyzer/plans'
 import type { Redis } from 'ioredis'
+import type { Handoff } from './handoff'
 import { IN_FLIGHT_TTL_MS, type InFlight, type Place } from './in-flight'
 import { secondsUntilOne, type RateLimiter, type Taken } from './limits'
 import type { ScanEvents, StoredEvent } from './types'
@@ -218,3 +219,20 @@ export class ValkeyInFlight implements InFlight {
 }
 
 const inFlightKey = (visitor: string) => `${PREFIX}:inflight:${visitor}`
+
+/** One-time values in Valkey: SET with an expiry, read and deleted in one GETDEL. */
+export class ValkeyHandoff implements Handoff {
+  readonly #redis: Redis
+
+  constructor(redis: Redis) {
+    this.#redis = redis
+  }
+
+  async put(key: string, value: string, ttlSeconds: number): Promise<void> {
+    await this.#redis.set(`${PREFIX}:handoff:${key}`, value, 'EX', ttlSeconds)
+  }
+
+  take(key: string): Promise<string | null> {
+    return this.#redis.getdel(`${PREFIX}:handoff:${key}`)
+  }
+}
