@@ -9,7 +9,9 @@ import { fixtureNames, fixturesDir } from './helpers'
  * files. Their pages go without the example; the fix section shows the code to write.
  */
 const NO_EXAMPLE: Readonly<Record<string, string>> = {
+  'ai-visibility-gap': 'what AI assistants answer, not the page',
   'bot-challenge': 'the headers of a challenge in place of the page, which no excerpt shows',
+  'crux-country-gaps': 'real visitors’ data by country from BigQuery, not the page',
   'cwv-cls-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-inp-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-lcp-poor': "real visitors' data from the Chrome UX Report, not the page",
@@ -17,9 +19,17 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'frame-protection-missing': 'response headers, whose absence no excerpt shows',
   'hsts-missing': 'a response header, whose absence no excerpt shows',
   'https-missing': 'the address the page answers at',
+  'lookalike-domains': 'DNS and Certificate Transparency records of other domains, not the page',
+  'knowledge-graph-entity': "Google's Knowledge Graph, not the page",
   'payment-methods': 'nothing: it lists the payment methods the page shows, as information',
+  'platform-detected': 'nothing: it lists the platform and plugins a page shows, as information',
+  'misspellings-uncovered': 'what people type in Google’s suggestions, not the page',
+  'pdf-arabic-text': 'the PDF files the page links, not the page',
+  'pdf-metadata': 'the PDF files the page links, not the page',
   'redirect-chain': 'the redirects before the page, which no excerpt shows',
   'redirect-temporary': 'the redirects before the page, which no excerpt shows',
+  'safe-browsing-flagged': "Google's lists, which no excerpt of the page shows",
+  'search-spelling-variants': "the answers of the site's own search, not the page",
   'sitemap-missing': 'the absence of a sitemap, which no excerpt shows',
   'spf-missing': 'DNS records, which no excerpt of the page shows',
   'text-compression-missing': 'how the server sends the page’s files',

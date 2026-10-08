@@ -7,7 +7,6 @@ import { ogImagePath } from '@arablyzer/seo/sitemap'
 import { Font } from 'astro:assets'
 import SiteFooter from '../components/SiteFooter.astro'
 import SiteHeader from '../components/SiteHeader.astro'
-import StatusBar from '../components/StatusBar.astro'
 import { OG_HEIGHT, OG_WIDTH } from '../lib/og'
 import { dirOf, siteOf } from '../lib/site'
 import '../styles/global.css'
@@ -66,7 +65,19 @@ const head =
   <head>
     <Fragment set:html={head} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#111418" />
+    <meta name="theme-color" content="#007D88" />
+    {/* Every page preloads the two weights of DM Sans it opens with, and an Arabic page the two of
+        Plex Arabic too. An Arabic page draws the Latin letters of a heading, a lead or a tag in DM
+        Sans, which, not preloaded, arrives after the first paint: the text re-wraps and moves the
+        page under it (a glossary term 0.08 to 0.10 of layout shift, a guide 0.16, M2.6 R5; the home
+        page and the tools 0.0004 to 0.005, R6). Two small files (14 KB each) against that. */}
+    <Font
+      cssVariable="--font-dm-sans"
+      preload={[
+        { subset: 'latin', weight: 600 },
+        { subset: 'latin', weight: 400 },
+      ]}
+    />
     <Font
       cssVariable="--font-plex-arabic"
       preload={
@@ -75,22 +86,18 @@ const head =
               { subset: 'arabic', weight: 600 },
               { subset: 'arabic', weight: 400 },
             ]
-          : [
-              { subset: 'latin', weight: 600 },
-              { subset: 'latin', weight: 400 },
-            ]
+          : false
       }
     />
     <Font cssVariable="--font-plex-mono" />
   </head>
-  <body class="bg-lab-grid">
+  <body>
     <a
       href="#main"
-      class="sr-only z-50 bg-ink px-4 py-2 text-white focus:not-sr-only focus:absolute focus:start-4 focus:top-4"
+      class="sr-only z-50 rounded-md bg-ink px-4 py-2 text-white focus:not-sr-only focus:absolute focus:start-4 focus:top-4"
     >
       {SITE[lang].skipToContent}
     </a>
-    <StatusBar lang={lang} />
     <SiteHeader lang={lang} path={path} keepId={report} />
     <main id="main" class="flex flex-col">
       <slot />

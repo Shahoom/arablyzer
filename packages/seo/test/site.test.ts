@@ -5,6 +5,7 @@ import { auditSite, sampleReport } from '../src/audit/index'
 import { PREVIEW_SITE } from '../src/index'
 
 describe('auditSite', () => {
+  // Every page of the site: more than five seconds on a busy CI runner.
   it('finds no problem on any of our pages', () => {
     const { pages, problems } = auditSite()
     expect(problems).toEqual([])
@@ -13,7 +14,7 @@ describe('auditSite', () => {
       'report.ar.html',
       'report.en.html',
     ])
-  })
+  }, 60_000)
 
   it('reports a defect in a tool page, naming the page', () => {
     const [first, ...rest] = TOOLS
@@ -31,7 +32,7 @@ describe('auditSite', () => {
       check: 'own-rules',
       message: expect.stringContaining('ar-latin-punctuation fail') as string,
     })
-  })
+  }, 60_000)
 })
 
 describe('sampleReport', () => {

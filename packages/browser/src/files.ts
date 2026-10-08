@@ -3,8 +3,12 @@ import { gzipSync } from 'node:zlib'
 import {
   decodeStylesheet,
   fontCoverage,
+  intersectRanges,
   readStylesheet,
+  subsetFont,
+  unicodeRangeOf,
   webFontCoverage,
+  type ArabicTextBlock,
   type CodePointRange,
   type FontFaceFact,
   type FontFaceRule,
@@ -14,6 +18,7 @@ import {
   type StylesheetsFact,
   type UncompressedTextFact,
   type WebFontCoverageFact,
+  type WebFontFileFact,
 } from '@arablyzer/collectors'
 import { redactUrl } from '@arablyzer/egress'
 import type { Page, Request, Response } from 'playwright-core'
@@ -35,6 +40,9 @@ export interface FileLimits {
   readonly maxTextBytes: number
   readonly maxTextTotal: number
   readonly maxUncompressed: number
+  /** Arabic font files subset to say how much a subset would weigh, and the largest of them. */
+  readonly maxSubsets: number
+  readonly maxSubsetBytes: number
 }
 
 /** docs/design/plans/m1.2c-css-fonts.md §2. */
@@ -49,6 +57,8 @@ export const FILE_LIMITS: FileLimits = {
   maxTextBytes: 5 * 1024 * 1024,
   maxTextTotal: 10 * 1024 * 1024,
   maxUncompressed: 50,
+  maxSubsets: 8,
+  maxSubsetBytes: 2 * 1024 * 1024,
 }
 
 /** The main frame's responses the rules read, as they arrived during the render. */
@@ -69,6 +79,7 @@ export interface PageFiles {
 
 export interface FilesFacts {
   readonly arabicFontCoverage: readonly WebFontCoverageFact[]
+  readonly webFonts: readonly WebFontFileFact[]
   readonly stylesheets: StylesheetsFact
   readonly compression: CompressionFact
   readonly imageFiles: ReadonlyMap<string, ImageFile>
@@ -101,6 +112,8 @@ export async function readPageFiles(
   faces: readonly FontFaceFact[],
   until: number,
   limits: FileLimits = FILE_LIMITS,
+  /** The Arabic text measured, which says what each font family shows. */
+  shown: readonly Pick<ArabicTextBlock, 'primaryFamily' | 'text' | 'arabicCharacters'>[] = [],
 ): Promise<FilesFacts> {
   const sizes = await decodedSizes(page, until)
   const bodyOf = (response: Response, max: number) => readBody(response, sizes, files, max, until)
@@ -143,6 +156,8 @@ export async function readPageFiles(
   }
 
   const fontFiles = new Map<string, readonly CodePointRange[] | null>()
+  // The Arabic fonts that are small enough to subset, kept until their rules say their family.
+  const arabicFonts: { urls: string[]; url: string; bytes: Uint8Array }[] = []
   let fonts = 0
   for (const response of files.fonts) {
     if (!response.ok()) continue
@@ -151,6 +166,19 @@ export async function readPageFiles(
       fonts++
       const body = await bodyOf(response, limits.maxFontBytes)
       coverage = body === null ? null : fontCoverage(body.bytes)
+      if (
+        body !== null &&
+        coverage !== null &&
+        arabicFonts.length < limits.maxSubsets &&
+        body.bytes.byteLength <= limits.maxSubsetBytes &&
+        intersectRanges(coverage, ARABIC_LETTERS).length > 0
+      ) {
+        arabicFonts.push({
+          urls: urlsOf(response),
+          url: redactUrl(response.url()).slice(0, MAX_URL),
+          bytes: body.bytes,
+        })
+      }
     }
     for (const url of urlsOf(response)) fontFiles.set(url, coverage)
   }
@@ -218,12 +246,79 @@ export async function readPageFiles(
 
   return {
     arabicFontCoverage: webFontCoverage(faces, rules, fontFiles),
+    webFonts: await subsetEstimates(arabicFonts, rules, shown, until),
     stylesheets: { read, unread, physical },
     // Those that would gain most, whatever order they came in: many small files cannot crowd
     // out a large one.
     compression: { checked, uncompressed: mostGained(uncompressed, limits.maxUncompressed) },
     imageFiles,
   }
+}
+
+/** The Arabic letters proper: a font that has none of them does not draw Arabic. */
+const ARABIC_LETTERS: readonly CodePointRange[] = [[0x0621, 0x064a]]
+
+const MAX_USED_CHARACTERS = 400
+
+/** The format a font file is, by its first bytes. */
+export function fontFormat(bytes: Uint8Array): WebFontFileFact['format'] {
+  const tag = String.fromCharCode(...bytes.subarray(0, 4))
+  if (tag === 'wOF2') return 'woff2'
+  if (tag === 'wOFF') return 'woff'
+  if (tag === 'OTTO') return 'otf'
+  if (tag === '\u0000\u0001\u0000\u0000' || tag === 'true') return 'ttf'
+  return 'unknown'
+}
+
+/**
+ * What a WOFF2 subset of each Arabic font file would weigh for the Arabic text the page shows in
+ * its family (docs/design/plans/arabic-native.md §1). The family comes from the @font-face rule
+ * that loads the file; the characters, from the measured Arabic blocks set in that family. A
+ * family none of the measured text uses, or a file the subsetter cannot read, has no subset size.
+ */
+async function subsetEstimates(
+  fonts: readonly { urls: string[]; url: string; bytes: Uint8Array }[],
+  rules: readonly FontFaceRule[],
+  shown: readonly Pick<ArabicTextBlock, 'primaryFamily' | 'text' | 'arabicCharacters'>[],
+  until: number,
+): Promise<WebFontFileFact[]> {
+  const facts: WebFontFileFact[] = []
+  for (const font of fonts) {
+    const rule = rules.find((candidate) =>
+      candidate.sources.some((source) => source.kind === 'url' && font.urls.includes(source.url)),
+    )
+    if (rule === undefined) continue
+    const family = rule.family.toLowerCase()
+    const characters = new Set<string>()
+    for (const block of shown) {
+      if (block.primaryFamily.toLowerCase() !== family) continue
+      for (const char of block.arabicCharacters + block.text) characters.add(char)
+    }
+    const usedCharacters = [...characters].join('').slice(0, MAX_USED_CHARACTERS)
+    let subsetBytes: number | null = null
+    let unicodeRange: string | null = null
+    if (usedCharacters !== '' && performance.now() < until) {
+      try {
+        const subset = await subsetFont(font.bytes, usedCharacters)
+        subsetBytes = subset.woff2.byteLength
+        unicodeRange = unicodeRangeOf(subset.ranges)
+      } catch {
+        // A file the subsetter cannot read has no subset: the rule leaves it out.
+      }
+    }
+    facts.push({
+      family: rule.family,
+      url: font.url,
+      format: fontFormat(font.bytes),
+      bytes: font.bytes.byteLength,
+      weight: rule.weight ?? null,
+      style: rule.style ?? null,
+      usedCharacters,
+      subsetBytes,
+      unicodeRange,
+    })
+  }
+  return facts
 }
 
 /** Content codings the browsers decode (Chromium, Firefox and WebKit). */

@@ -1,0 +1,1540 @@
+{
+  "schemaVersion": "0.2.0",
+  "generator": {
+    "name": "arablyzer",
+    "version": "0.1.0",
+    "rulesetVersion": "0.9.0"
+  },
+  "target": {
+    "url": "http://127.0.0.1:30035/",
+    "finalUrl": "http://127.0.0.1:30035/",
+    "fetchedAt": "1970-01-01T00:00:00.000Z",
+    "userAgent": "ArablyzerBot/1.0 (+https://arablyzer.com/bot)",
+    "http": {
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "redirects": []
+    }
+  },
+  "scan": {
+    "status": "complete",
+    "durationMs": 0,
+    "notices": [
+      {
+        "code": "crux-no-key",
+        "message": {
+          "ar": "فحوص سرعة الزوار الحقيقيين تقرأ بيانات Google (CrUX)، وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تعمل.",
+          "en": "The checks of real visitors' speed read Google's data (CrUX), which needs a key this scan was not given, so they did not run."
+        }
+      },
+      {
+        "code": "knowledge-graph-no-key",
+        "message": {
+          "ar": "فحص حضور العلامة في Knowledge Graph من Google يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.",
+          "en": "The check of the brand in Google's Knowledge Graph needs a key this scan was not given, so it did not run."
+        }
+      },
+      {
+        "code": "safe-browsing-no-key",
+        "message": {
+          "ar": "فحص قوائم Google للتصفح الآمن (Safe Browsing) يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.",
+          "en": "The check against Google's Safe Browsing lists needs a key this scan was not given, so it did not run."
+        }
+      }
+    ],
+    "render": [
+      {
+        "engine": "chromium",
+        "version": "153.0.8010.12",
+        "status": "rendered",
+        "durationMs": 0,
+        "requests": {
+          "total": 2,
+          "refused": 0
+        }
+      },
+      {
+        "engine": "firefox",
+        "version": "155.0",
+        "status": "rendered",
+        "durationMs": 0,
+        "requests": {
+          "total": 2,
+          "refused": 0
+        }
+      },
+      {
+        "engine": "webkit",
+        "version": "26.6",
+        "status": "rendered",
+        "durationMs": 0,
+        "requests": {
+          "total": 2,
+          "refused": 0
+        }
+      }
+    ]
+  },
+  "page": {
+    "lang": "ar-SA",
+    "dir": "rtl",
+    "dominantScript": "arabic"
+  },
+  "summary": {
+    "pass": 29,
+    "fail": 5,
+    "needsReview": 1,
+    "notApplicable": 37,
+    "error": 0,
+    "bySeverity": {
+      "critical": 0,
+      "serious": 0,
+      "moderate": 1,
+      "minor": 3,
+      "info": 1
+    }
+  },
+  "score": {
+    "overall": 94,
+    "categories": {
+      "ai": 100,
+      "ar-content": 90,
+      "ar-render": 92,
+      "commerce": null,
+      "crawl": 100,
+      "forms": null,
+      "index": 100,
+      "intl": 100,
+      "links": null,
+      "locale": null,
+      "onpage": 100,
+      "rtl": 83,
+      "schema": 100,
+      "speed": 75,
+      "trust": 100
+    },
+    "partial": false,
+    "rules": {
+      "ran": 72,
+      "total": 79
+    }
+  },
+  "rules": [
+    {
+      "id": "a11y-button-name",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "wcag": [
+        "4.1.2"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "زر بلا اسم يقرؤه قارئ الشاشة",
+        "en": "Button without an accessible name"
+      }
+    },
+    {
+      "id": "a11y-color-contrast",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "wcag": [
+        "1.4.3"
+      ],
+      "status": "pass",
+      "title": {
+        "ar": "نص بتباين ضعيف",
+        "en": "Text with too little contrast"
+      }
+    },
+    {
+      "id": "a11y-color-contrast-review",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "wcag": [
+        "1.4.3"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص يحتاج تباينه فحصاً بالعين",
+        "en": "Text whose contrast needs checking by eye"
+      }
+    },
+    {
+      "id": "a11y-image-alt",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "wcag": [
+        "1.1.1"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "صورة بلا نص بديل",
+        "en": "Image without a text alternative"
+      }
+    },
+    {
+      "id": "a11y-link-name",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "wcag": [
+        "2.4.4",
+        "4.1.2"
+      ],
+      "status": "pass",
+      "title": {
+        "ar": "رابط بلا اسم يقرؤه قارئ الشاشة",
+        "en": "Link without an accessible name"
+      }
+    },
+    {
+      "id": "a11y-valid-lang",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "wcag": [
+        "3.1.2"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "خاصية lang لا تسمّي لغة",
+        "en": "lang attribute that names no language"
+      }
+    },
+    {
+      "id": "ai-training-filters",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص الصفحة لا يمر من فلاتر جودة بيانات تدريب الذكاء الاصطناعي",
+        "en": "The page's text does not pass the AI training quality filters"
+      }
+    },
+    {
+      "id": "ar-ai-readability",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "نص عربي تقرؤه الآلات قراءة سيئة",
+        "en": "Arabic text that machines read badly"
+      }
+    },
+    {
+      "id": "ar-digits-mixed",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "أنظمة أرقام مختلطة في نص عربي",
+        "en": "Mixed digit systems in Arabic text"
+      }
+    },
+    {
+      "id": "ar-font-fallback",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "خط ويب عربي لم يُحمَّل",
+        "en": "Arabic web font that did not load"
+      }
+    },
+    {
+      "id": "ar-font-missing-letters",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "خط عربي تنقصه حروف يستخدمها النص",
+        "en": "Arabic font missing letters its text uses"
+      }
+    },
+    {
+      "id": "ar-font-no-arabic",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "خط ويب بلا حروف عربية",
+        "en": "Web font without Arabic letters"
+      }
+    },
+    {
+      "id": "ar-font-subset-savings",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "minor",
+      "status": "fail",
+      "title": {
+        "ar": "خط عربي يحمل أكثر بكثير مما تعرضه الصفحة",
+        "en": "Arabic font carries much more than the page shows"
+      }
+    },
+    {
+      "id": "ar-html-lang",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "serious",
+      "wcag": [
+        "3.1.1"
+      ],
+      "status": "pass",
+      "title": {
+        "ar": "سمة lang مفقودة أو خاطئة في صفحة عربية",
+        "en": "Missing or wrong lang attribute on an Arabic page"
+      }
+    },
+    {
+      "id": "ar-latin-punctuation",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "علامات ترقيم لاتينية في نص عربي",
+        "en": "Latin punctuation in Arabic text"
+      }
+    },
+    {
+      "id": "ar-letter-spacing",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "تباعد الحروف في النص العربي",
+        "en": "Letter-spacing on Arabic text"
+      }
+    },
+    {
+      "id": "ar-mojibake",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "نص عربي مشوّه الترميز",
+        "en": "Garbled Arabic text (mojibake)"
+      }
+    },
+    {
+      "id": "ar-tatweel",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "كلمات ممدودة بالتطويل (ـ)",
+        "en": "Words stretched with tatweel (ـ)"
+      }
+    },
+    {
+      "id": "bot-challenge",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "الموقع يرد على البوتات بتحدٍّ",
+        "en": "The site answers bots with a challenge"
+      }
+    },
+    {
+      "id": "brand-name-consistency",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "fail",
+      "title": {
+        "ar": "اسم العلامة مكتوب بطرق مختلفة",
+        "en": "Brand name written in different ways"
+      }
+    },
+    {
+      "id": "canonical-conflict",
+      "version": "1.0.0",
+      "category": "index",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "روابط canonical متعارضة في الصفحة",
+        "en": "Conflicting canonical URLs on the page"
+      }
+    },
+    {
+      "id": "country-fit",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "info",
+      "status": "fail",
+      "title": {
+        "ar": "ملاءمة البلد",
+        "en": "Country fit"
+      }
+    },
+    {
+      "id": "csp-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة بلا سياسة أمان المحتوى (CSP)",
+        "en": "No Content Security Policy"
+      }
+    },
+    {
+      "id": "cwv-cls-poor",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "محتوى يتحرك أثناء التحميل على الجوال",
+        "en": "Content that moves while loading on phones"
+      }
+    },
+    {
+      "id": "cwv-inp-poor",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "بطء الاستجابة للّمس على الجوال",
+        "en": "Slow to answer taps on phones"
+      }
+    },
+    {
+      "id": "cwv-lcp-poor",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
+        "en": "Slow to show its main content on phones"
+      }
+    },
+    {
+      "id": "dialect-register",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لهجة النص لا تناسب البلد أو بقية الصفحة",
+        "en": "The page's dialect does not fit the country or the rest of the page"
+      }
+    },
+    {
+      "id": "dmarc-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لا سجل DMARC صالح للنطاق",
+        "en": "No valid DMARC record for the domain"
+      }
+    },
+    {
+      "id": "form-arabic-digits-rejected",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل الأرقام يرفض الأرقام العربية المشرقية",
+        "en": "Number field rejects Arabic-Indic digits"
+      }
+    },
+    {
+      "id": "form-arabic-name-rejected",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل الاسم يرفض الأسماء العربية",
+        "en": "Name field rejects Arabic names"
+      }
+    },
+    {
+      "id": "form-label-missing",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "critical",
+      "wcag": [
+        "4.1.2"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل نموذج بلا عنوان",
+        "en": "Form field without a label"
+      }
+    },
+    {
+      "id": "form-phone-direction",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل هاتف يُعرض من اليمين إلى اليسار",
+        "en": "Phone field shown right to left"
+      }
+    },
+    {
+      "id": "frame-protection-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "أي موقع يستطيع عرض الصفحة داخل إطار",
+        "en": "Any site may show the page in a frame"
+      }
+    },
+    {
+      "id": "h1-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "لا عنوان رئيسياً (h1) في الصفحة",
+        "en": "The page has no main heading (h1)"
+      }
+    },
+    {
+      "id": "hreflang-invalid-code",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "رمز hreflang غير صالح",
+        "en": "Invalid hreflang code"
+      }
+    },
+    {
+      "id": "hsts-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "HTTPS بلا HSTS",
+        "en": "HTTPS without HSTS"
+      }
+    },
+    {
+      "id": "https-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة بلا HTTPS",
+        "en": "Page without HTTPS"
+      }
+    },
+    {
+      "id": "image-format-legacy",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صور بصيغ قديمة",
+        "en": "Images in older formats"
+      }
+    },
+    {
+      "id": "js-only-content",
+      "version": "1.0.0",
+      "category": "index",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "محتوى الصفحة تكتبه السكربتات",
+        "en": "The page's content is written by scripts"
+      }
+    },
+    {
+      "id": "jsonld-syntax-error",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "خطأ في صيغة JSON داخل البيانات المنظّمة (JSON-LD)",
+        "en": "JSON syntax error in structured data (JSON-LD)"
+      }
+    },
+    {
+      "id": "knowledge-graph-entity",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "not-applicable",
+      "title": {
+        "ar": "العلامة في Knowledge Graph من Google",
+        "en": "Brand in Google's Knowledge Graph"
+      }
+    },
+    {
+      "id": "link-broken",
+      "version": "1.0.0",
+      "category": "links",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "روابط معطّلة إلى صفحات الموقع نفسه",
+        "en": "Broken links to the site's own pages"
+      }
+    },
+    {
+      "id": "meta-description-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "وصف الصفحة مفقود",
+        "en": "The page has no description"
+      }
+    },
+    {
+      "id": "mixed-content",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "محتوى مختلط: صفحة HTTPS تحمّل عبر HTTP",
+        "en": "Mixed content: an HTTPS page that loads over HTTP"
+      }
+    },
+    {
+      "id": "og-tags-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "وسوم المشاركة (Open Graph) ناقصة",
+        "en": "Open Graph sharing tags are missing"
+      }
+    },
+    {
+      "id": "page-noindex",
+      "version": "1.0.0",
+      "category": "index",
+      "severity": "critical",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة تمنع أرشفتها في محركات البحث (noindex)",
+        "en": "The page blocks search indexing (noindex)"
+      }
+    },
+    {
+      "id": "payment-methods",
+      "version": "1.0.0",
+      "category": "commerce",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "طرق الدفع الخليجية في الصفحة",
+        "en": "Gulf payment methods on the page"
+      }
+    },
+    {
+      "id": "platform-detected",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "المنصة التي يعمل عليها الموقع",
+        "en": "Platform detected"
+      }
+    },
+    {
+      "id": "price-decimals",
+      "version": "1.0.0",
+      "category": "commerce",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "أسعار بالريال العماني أو الدينار الكويتي أو البحريني بلا ثلاث منازل عشرية",
+        "en": "Prices in Omani rials or Kuwaiti or Bahraini dinars without three decimals"
+      }
+    },
+    {
+      "id": "product-offer-invalid",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "عرض منتج بلا سعر أو عملة صالحَين (JSON-LD)",
+        "en": "Product offer without a valid price or currency (JSON-LD)"
+      }
+    },
+    {
+      "id": "redirect-chain",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "سلسلة تحويلات قبل الصفحة",
+        "en": "A chain of redirects before the page"
+      }
+    },
+    {
+      "id": "redirect-temporary",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "تحويل مؤقت لانتقال دائم",
+        "en": "A temporary redirect for a move made for good"
+      }
+    },
+    {
+      "id": "referrer-policy-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة بلا سياسة للمُحيل (Referrer-Policy)",
+        "en": "No referrer policy"
+      }
+    },
+    {
+      "id": "robots-blocks-ai-search",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "robots.txt يمنع زواحف البحث بالذكاء الاصطناعي",
+        "en": "robots.txt blocks AI search crawlers"
+      }
+    },
+    {
+      "id": "robots-blocks-googlebot",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "critical",
+      "status": "pass",
+      "title": {
+        "ar": "robots.txt يمنع Googlebot من الصفحة",
+        "en": "robots.txt blocks Googlebot from the page"
+      }
+    },
+    {
+      "id": "rtl-bidi-isolation",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "أرقام وكلمات لاتينية بترتيب خطأ في نص من اليمين إلى اليسار",
+        "en": "Numbers and Latin words out of order in right-to-left text"
+      }
+    },
+    {
+      "id": "rtl-horizontal-overflow",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة من اليمين إلى اليسار أعرض من شاشة الهاتف",
+        "en": "Right-to-left page wider than a phone screen"
+      }
+    },
+    {
+      "id": "rtl-html-dir",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة عربية بلا dir=\"rtl\" في وسم html",
+        "en": "Arabic page without dir=\"rtl\" on the html element"
+      }
+    },
+    {
+      "id": "rtl-icon-role",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "moderate",
+      "status": "fail",
+      "title": {
+        "ar": "أيقونة تشير عكس وظيفة زرّها",
+        "en": "An icon that points against its button"
+      }
+    },
+    {
+      "id": "rtl-mirrored-icons",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "minor",
+      "status": "needs-review",
+      "title": {
+        "ar": "أيقونات اتجاه لا تنعكس في النص العربي",
+        "en": "Direction icons not mirrored in Arabic text"
+      }
+    },
+    {
+      "id": "rtl-physical-css",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "CSS يحدد الجهات باليمين واليسار",
+        "en": "CSS that sets sides by left and right"
+      }
+    },
+    {
+      "id": "safe-browsing-flagged",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "status": "not-applicable",
+      "title": {
+        "ar": "Google Safe Browsing يصنّف الموقع خطراً",
+        "en": "Google Safe Browsing flags the site"
+      }
+    },
+    {
+      "id": "sar-sign-font",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "minor",
+      "status": "fail",
+      "title": {
+        "ar": "علامة الريال السعودي ناقصة من خط الصفحة",
+        "en": "Saudi Riyal sign missing from the page's font"
+      }
+    },
+    {
+      "id": "sitemap-invalid",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خريطة موقع لا تستطيع محركات البحث قراءتها",
+        "en": "A sitemap search engines cannot read"
+      }
+    },
+    {
+      "id": "sitemap-missing",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لا خريطة للموقع تجدها محركات البحث",
+        "en": "No sitemap for search engines to find"
+      }
+    },
+    {
+      "id": "spf-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لا سجل SPF للنطاق",
+        "en": "No SPF record for the domain"
+      }
+    },
+    {
+      "id": "text-compression-missing",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "نصوص تُرسَل دون ضغط",
+        "en": "Text sent without compression"
+      }
+    },
+    {
+      "id": "title-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "serious",
+      "wcag": [
+        "2.4.2"
+      ],
+      "status": "pass",
+      "title": {
+        "ar": "عنوان الصفحة مفقود",
+        "en": "The page has no title"
+      }
+    },
+    {
+      "id": "tls-expiring",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "شهادة TLS توشك أن تنتهي",
+        "en": "TLS certificate about to expire"
+      }
+    },
+    {
+      "id": "viewport-missing",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة غير مهيأة لشاشة الجوال (viewport)",
+        "en": "The page is not set up for phone screens (viewport)"
+      }
+    },
+    {
+      "id": "whatsapp-link-format",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "رقم رابط واتساب ليس بالصيغة الدولية",
+        "en": "WhatsApp link number not in international format"
+      }
+    },
+    {
+      "id": "x-content-type-options-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة بلا X-Content-Type-Options: nosniff",
+        "en": "No X-Content-Type-Options: nosniff"
+      }
+    }
+  ],
+  "findings": [
+    {
+      "ruleId": "rtl-icon-role",
+      "severity": "moderate",
+      "fingerprint": "b79519be37732a0a",
+      "message": {
+        "ar": "زرّ «التالي» («التالي») فيه أيقونة تشير إلى اليمين (icon-arrow-right). في العربية التقدم إلى الأمام هو إلى اليسار، فتأخذ الأيقونة العين إلى الخلف.",
+        "en": "The «التالي» control (\"next\") has an icon that points right (icon-arrow-right). In Arabic, going on is going left, so the icon sends the eye backwards."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30035/",
+        "selector": "html > body > main > p:nth-of-type(3) > a > span",
+        "engines": [
+          "chromium",
+          "firefox",
+          "webkit"
+        ],
+        "box": {
+          "x": 329,
+          "y": 176,
+          "width": 12,
+          "height": 12
+        },
+        "values": {
+          "name": "icon-arrow-right",
+          "label": "التالي"
+        }
+      }
+    },
+    {
+      "ruleId": "ar-font-subset-savings",
+      "severity": "minor",
+      "fingerprint": "41c0ab9690d1bb84",
+      "message": {
+        "ar": "الخط «Brand Arabic» (ibm-plex-sans-arabic-400.ttf) حجمه 140 KB، ونسخة مخفّفة بالحروف التي يستخدمها نص هذه الصفحة العربي ستكون 10 KB: أقل بـ130 KB (93٪)، مع بقاء الوصل والتشكيل.",
+        "en": "The font «Brand Arabic» (ibm-plex-sans-arabic-400.ttf) is 140 KB, and a subset of the letters this page's Arabic text uses would be 10 KB: 130 KB less (93%), with joining and shaping kept."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30035/_shared/fonts/ibm-plex-sans-arabic-400.ttf",
+        "engines": [
+          "chromium",
+          "firefox",
+          "webkit"
+        ],
+        "values": {
+          "family": "Brand Arabic",
+          "file": "ibm-plex-sans-arabic-400.ttf",
+          "fontUrl": "http://127.0.0.1:30035/_shared/fonts/ibm-plex-sans-arabic-400.ttf",
+          "format": "ttf",
+          "weight": "",
+          "style": "",
+          "bytes": 143168,
+          "subsetBytes": 10268,
+          "savedBytes": 132900,
+          "size": "140 KB",
+          "subset": "10 KB",
+          "saved": "130 KB",
+          "percent": 93,
+          "characters": "ادرطعكلموي سفق150.⃁بةتصنى23467",
+          "unicodeRange": "U+20,U+A0,U+60C,U+61B,U+61F,U+627-62A,U+62F,U+631,U+633,U+635,U+637,U+639,U+640-646,U+648-64A,U+660-66C,U+6F0-6F9,U+FBE8-FBE9,U+FC09-FC0A,U+FC0F-FC10,U+FC31-FC32,U+FC35-FC36,U+FC3D-FC3E,U+FC42-FC44,U+FC4F-FC50,U+FC59-FC5A,U+FC6A,U+FC6D-FC70,U+FC73-FC75,U+FC83-FC84,U+FC8A,U+FC8D-FC8F,U+FC91,U+FC94-FC96,U+FCCC,U+FCFB-FCFC,U+FD05-FD06,U+FD0E-FD0F,U+FD17-FD18,U+FD21-FD22,U+FD2A-FD2B,U+FE8D-FE98,U+FEA9-FEAA,U+FEAD-FEAE,U+FEB1-FEB4,U+FEB9-FEBC,U+FEC1-FEC4,U+FEC9-FECC,U+FED1-FEE8,U+FEED-FEF4,U+FEFB-FEFC"
+        }
+      }
+    },
+    {
+      "ruleId": "brand-name-consistency",
+      "severity": "minor",
+      "fingerprint": "ea92b54a064dceb9",
+      "message": {
+        "ar": "اسم العلامة في الصفحة يختلف بين موضعين: «متجر الرياض» في WebSite.name و«متجر النخلة» في og:site_name.",
+        "en": "The brand's name differs between two places on the page: «متجر الرياض» in WebSite.name and «متجر النخلة» in og:site_name."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30035/",
+        "snippet": "متجر الرياض / متجر النخلة",
+        "values": {
+          "first": "متجر الرياض",
+          "firstSource": "WebSite.name",
+          "second": "متجر النخلة",
+          "secondSource": "og:site_name"
+        }
+      }
+    },
+    {
+      "ruleId": "sar-sign-font",
+      "severity": "minor",
+      "fingerprint": "29e9efe1adfac303",
+      "message": {
+        "ar": "علامة الريال السعودي الجديدة (⃁، U+20C1) في هذه الصفحة، لكن خط الويب «Brand Arabic» لا حرف لها فيه، فيتولى جهاز الزائر رسمها، وحيث لا يكون الجهاز محدَّثًا إلى Unicode 17 يظهر مربع فارغ وسط السعر.",
+        "en": "The new Saudi Riyal sign (⃁, U+20C1) is in this page, but its web font «Brand Arabic» has no glyph for it, so a visitor's device must draw it, and where the device is not updated to Unicode 17 it shows an empty box in the middle of the price."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30035/",
+        "selector": "html > body > main > p:nth-of-type(1)",
+        "engines": [
+          "chromium",
+          "firefox",
+          "webkit"
+        ],
+        "box": {
+          "x": 16,
+          "y": 91,
+          "width": 358,
+          "height": 24
+        },
+        "values": {
+          "family": "Brand Arabic"
+        }
+      }
+    },
+    {
+      "ruleId": "country-fit",
+      "severity": "info",
+      "fingerprint": "2642ba5597692269",
+      "message": {
+        "ar": "تبدو هذه الصفحة مكتوبة لـالسعودية (lang: ar-SA · currency: ر.س)، وهي جاهزة لها بنسبة 50٪: 2 من 4 بنود استطعنا الحكم عليها تناسبها، و2 لا تناسبها.",
+        "en": "This page looks written for Saudi Arabia (lang: ar-SA · currency: ر.س), and is ready 50% for it: 2 of the 4 items we could judge fit, and 2 do not."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30035/",
+        "values": {
+          "country": "SA",
+          "percent": 50,
+          "ok": 2,
+          "judged": 4,
+          "gaps": 2,
+          "evidence": "lang: ar-SA · currency: ر.س"
+        }
+      }
+    },
+    {
+      "ruleId": "country-fit",
+      "severity": "info",
+      "fingerprint": "6963b21c06f71b03",
+      "message": {
+        "ar": "الرقم «0501234567» بلا رمز الدولة، فلا يمكن الاتصال به من الخارج ولا فتحه في واتساب: اكتبه +966 ثم الرقم بدون الصفر في أوله.",
+        "en": "The number «0501234567» has no country code, so it cannot be dialed from abroad or opened in WhatsApp: write it as +966 followed by the number without its leading 0."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30035/",
+        "snippet": "0501234567",
+        "values": {
+          "country": "SA",
+          "currency": "SAR",
+          "dial": "966",
+          "seen": "0501234567"
+        }
+      }
+    },
+    {
+      "ruleId": "country-fit",
+      "severity": "info",
+      "fingerprint": "530e4b288960de95",
+      "message": {
+        "ar": "تعرض الصفحة أسعارًا ولا تقول إن كانت تشمل ضريبة القيمة المضافة، وهذا البلد يفرضها: اكتب «شامل الضريبة» أو «غير شامل الضريبة» بجانبها.",
+        "en": "The page shows prices but never says whether they include value-added tax, which this country charges: say «including VAT» or «excluding VAT» beside them."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30035/",
+        "snippet": "",
+        "values": {
+          "country": "SA",
+          "currency": "SAR",
+          "dial": "966",
+          "seen": ""
+        }
+      }
+    }
+  ],
+  "facts": {
+    "robots": {
+      "url": "http://127.0.0.1:30035/robots.txt",
+      "status": 404,
+      "aiCrawlers": [
+        {
+          "token": "OAI-SearchBot",
+          "purpose": "search",
+          "allowed": true
+        },
+        {
+          "token": "GPTBot",
+          "purpose": "training",
+          "allowed": true
+        },
+        {
+          "token": "ChatGPT-User",
+          "purpose": "user-fetch",
+          "allowed": true
+        },
+        {
+          "token": "Claude-SearchBot",
+          "purpose": "search",
+          "allowed": true
+        },
+        {
+          "token": "ClaudeBot",
+          "purpose": "training",
+          "allowed": true
+        },
+        {
+          "token": "Claude-User",
+          "purpose": "user-fetch",
+          "allowed": true
+        },
+        {
+          "token": "PerplexityBot",
+          "purpose": "search",
+          "allowed": true
+        },
+        {
+          "token": "Perplexity-User",
+          "purpose": "user-fetch",
+          "allowed": true
+        },
+        {
+          "token": "Google-Extended",
+          "purpose": "training",
+          "allowed": true
+        }
+      ]
+    },
+    "platform": {
+      "primary": null,
+      "technologies": []
+    },
+    "arabicFonts": {
+      "fonts": [
+        {
+          "family": "Brand Arabic",
+          "url": "http://127.0.0.1:30035/_shared/fonts/ibm-plex-sans-arabic-400.ttf",
+          "format": "ttf",
+          "bytes": 143168,
+          "weight": null,
+          "style": null,
+          "characters": "ادرطعكلموي سفق150.⃁بةتصنى23467",
+          "subsetBytes": 10268,
+          "unicodeRange": "U+20,U+A0,U+60C,U+61B,U+61F,U+627-62A,U+62F,U+631,U+633,U+635,U+637,U+639,U+640-646,U+648-64A,U+660-66C,U+6F0-6F9,U+FBE8-FBE9,U+FC09-FC0A,U+FC0F-FC10,U+FC31-FC32,U+FC35-FC36,U+FC3D-FC3E,U+FC42-FC44,U+FC4F-FC50,U+FC59-FC5A,U+FC6A,U+FC6D-FC70,U+FC73-FC75,U+FC83-FC84,U+FC8A,U+FC8D-FC8F,U+FC91,U+FC94-FC96,U+FCCC,U+FCFB-FCFC,U+FD05-FD06,U+FD0E-FD0F,U+FD17-FD18,U+FD21-FD22,U+FD2A-FD2B,U+FE8D-FE98,U+FEA9-FEAA,U+FEAD-FEAE,U+FEB1-FEB4,U+FEB9-FEBC,U+FEC1-FEC4,U+FEC9-FECC,U+FED1-FEE8,U+FEED-FEF4,U+FEFB-FEFC"
+        }
+      ]
+    },
+    "countryFit": {
+      "country": "SA",
+      "confidence": "strong",
+      "percent": 50,
+      "judged": 4,
+      "signals": [
+        {
+          "kind": "lang",
+          "country": "SA",
+          "value": "ar-SA"
+        },
+        {
+          "kind": "currency",
+          "country": "SA",
+          "value": "ر.س"
+        }
+      ],
+      "items": [
+        {
+          "id": "currency",
+          "status": "ok",
+          "detail": "150 ر.س"
+        },
+        {
+          "id": "phone",
+          "status": "gap",
+          "detail": "0501234567"
+        },
+        {
+          "id": "digits",
+          "status": "unknown",
+          "detail": ""
+        },
+        {
+          "id": "vat",
+          "status": "gap",
+          "detail": ""
+        },
+        {
+          "id": "hijri",
+          "status": "unknown",
+          "detail": ""
+        },
+        {
+          "id": "lang",
+          "status": "ok",
+          "detail": "ar-SA"
+        },
+        {
+          "id": "dialect",
+          "status": "unknown",
+          "detail": ""
+        }
+      ]
+    },
+    "dialect": {
+      "outcome": "too-little",
+      "words": 16,
+      "label": null,
+      "mix": {
+        "msa": 0,
+        "gulf": 0,
+        "egyptian": 0,
+        "levantine": 0,
+        "maghrebi": 0
+      },
+      "hits": {
+        "msa": 0,
+        "gulf": 0,
+        "egyptian": 0,
+        "levantine": 0,
+        "maghrebi": 0
+      },
+      "headings": null,
+      "markers": [],
+      "country": "SA",
+      "fits": null
+    },
+    "aiTraining": {
+      "outcome": "too-little",
+      "words": 20,
+      "lines": 4,
+      "passes": false,
+      "checks": [
+        {
+          "group": "language",
+          "id": "language_score",
+          "measured": 1,
+          "threshold": 0.711,
+          "limit": "min",
+          "pass": true,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "dup_line_frac",
+          "measured": 0,
+          "threshold": 0.304,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_2_gram",
+          "measured": 0.154,
+          "threshold": 0.197,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_3_gram",
+          "measured": 0.192,
+          "threshold": 0.172,
+          "limit": "max",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_4_gram",
+          "measured": 0.24,
+          "threshold": 0.146,
+          "limit": "max",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_5_n_grams",
+          "measured": 0,
+          "threshold": 0.165,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_6_n_grams",
+          "measured": 0,
+          "threshold": 0.153,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_7_n_grams",
+          "measured": 0,
+          "threshold": 0.142,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_8_n_grams",
+          "measured": 0,
+          "threshold": 0.131,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_9_n_grams",
+          "measured": 0,
+          "threshold": 0.12,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_10_n_grams",
+          "measured": 0,
+          "threshold": 0.109,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "line_punct_ratio",
+          "measured": 0.5,
+          "threshold": 0.143,
+          "limit": "min",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "char_dup_ratio",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "list_ratio",
+          "measured": 0.13,
+          "threshold": 0.189,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_short_doc",
+          "measured": 20,
+          "threshold": 50,
+          "limit": "min",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_long_doc",
+          "measured": 20,
+          "threshold": 100000,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_avg_word_length_min",
+          "measured": 4.15,
+          "threshold": 2,
+          "limit": "min",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_avg_word_length_max",
+          "measured": 4.15,
+          "threshold": 9,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_hashes",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_ellipsis",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_bullets",
+          "measured": 0,
+          "threshold": 0.9,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_end_ellipsis",
+          "measured": 0,
+          "threshold": 0.3,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_below_alpha_threshold",
+          "measured": 0.696,
+          "threshold": 0.787,
+          "limit": "min",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_enough_stop_words",
+          "measured": 1,
+          "threshold": 2,
+          "limit": "min",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "c4",
+          "id": "line_kept_ratio",
+          "measured": 0.5,
+          "threshold": 0,
+          "limit": "min",
+          "pass": true,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "c4",
+          "id": "too_few_sentences",
+          "measured": 3,
+          "threshold": 5,
+          "limit": "min",
+          "pass": false,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "c4",
+          "id": "lorem_ipsum_or_curly_bracket",
+          "measured": 0,
+          "threshold": 0,
+          "limit": "max",
+          "pass": true,
+          "applied": false,
+          "proxy": false
+        }
+      ]
+    }
+  }
+}

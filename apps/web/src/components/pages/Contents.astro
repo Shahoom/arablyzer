@@ -1,32 +1,53 @@
 ---
-/** A document's sections, numbered as the Rule board numbers its steps, with links to each. */
+import ChevronDown from '@lucide/astro/icons/chevron-down'
+
+/**
+ * A document's sections as links to them (M2.6 R7), in two forms for the two kinds of screen.
+ * From lg, `aside`: a card in the page's sticky aside, whose slot takes one more link (the
+ * methodology's source). Below lg, `inline`: a disclosure under the page's head, shut, so that a
+ * phone's first screen is the page and not a list of what it holds; one tap lists the sections.
+ * A page draws both, the first in the head and the second in the aside: each is hidden where it is
+ * not wanted, so a screen reader meets one list.
+ */
 interface Props {
   label: string
   sections: readonly { readonly id: string; readonly title: string }[]
+  variant?: 'aside' | 'inline'
 }
-const { label, sections } = Astro.props
+const { label, sections, variant = 'aside' } = Astro.props
+// A list of short names: denser than the other asides' links from lg.
+const link = 'kb-link text-ink-2 hover:text-ink lg:[--kb-link-h-lg:32px]'
 ---
 
-<nav
-  aria-labelledby="contents-title"
-  class="flex flex-col gap-1 border border-rule-strong bg-white p-[22px] text-[15px]"
->
-  <h2 id="contents-title" class="m-0 mb-2 text-sm font-semibold text-ink-3">
-    {label}
-  </h2>
-  {sections.map((section, index) => (
-    <a
-      href={`#${section.id}`}
-      class:list={[
-        'flex items-baseline gap-3 py-2 hover:text-signal',
-        index < sections.length - 1 && 'border-b border-rule-soft',
-      ]}
-    >
-      <span dir="ltr" class="font-mono text-xs text-signal">
-        {String(index + 1).padStart(2, '0')}
-      </span>
-      {section.title}
-    </a>
-  ))}
-  <slot />
-</nav>
+{variant === 'inline' ? (
+  <details class="group/contents kb-box lg:hidden">
+    <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-small font-semibold text-ink focus-visible:-outline-offset-2 [&::-webkit-details-marker]:hidden">
+      {label}
+      <ChevronDown
+        size={18}
+        stroke-width={2}
+        aria-hidden="true"
+        class="text-ink-2 transition-transform group-open/contents:rotate-180"
+      />
+    </summary>
+    <nav aria-label={label} class="flex flex-col gap-0.5 border-t border-line p-2">
+      {sections.map((section) => (
+        <a href={`#${section.id}`} class={link}>
+          {section.title}
+        </a>
+      ))}
+    </nav>
+  </details>
+) : (
+  <nav aria-labelledby="contents-title" class="kb-box hidden flex-col gap-0.5 p-3 lg:flex">
+    <h2 id="contents-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+      {label}
+    </h2>
+    {sections.map((section) => (
+      <a href={`#${section.id}`} class={link}>
+        {section.title}
+      </a>
+    ))}
+    <slot />
+  </nav>
+)}

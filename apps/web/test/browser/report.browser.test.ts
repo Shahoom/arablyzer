@@ -30,6 +30,8 @@ const TOOL = 'ToolToolToolToolTool_2'
 const OPTED_OUT = 'OptedOutOptedOutOpte_3'
 /** A page its site answered with a bot challenge (M2.3c): the state that names the service. */
 const BLOCKED = 'BlockedBlockedBlocke_4'
+/** A scan that failed, and has no report (M2.6 R7: one centred card under its address). */
+const FAILED = 'FailedFailedFailedFail_5'
 
 /**
  * Rules a report page fails on purpose: it is never indexed (BUILD-PLAN §6.5), and the page its
@@ -113,6 +115,8 @@ beforeAll(async () => {
       [`/r/${BLOCKED}`]: html,
       [`/api/scans/${BLOCKED}`]: json(summary(BLOCKED, 'partial')),
       [`/api/reports/${BLOCKED}`]: json(challenged),
+      [`/r/${FAILED}`]: html,
+      [`/api/scans/${FAILED}`]: json(summary(FAILED, 'failed')),
       [`/api/scans/${RUNNING}/events`]: {
         headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-store' },
         body: events
@@ -177,6 +181,11 @@ describe('the report page, rendered', () => {
 
   it(`shows a scan that runs and passes every rule in ${ENGINES.join(', ')}`, async () => {
     const report = await scanned(RUNNING)
+    expect(problems(report)).toEqual([])
+  }, 180_000)
+
+  it(`shows a scan that failed and passes every rule in ${ENGINES.join(', ')}`, async () => {
+    const report = await scanned(FAILED)
     expect(problems(report)).toEqual([])
   }, 180_000)
 

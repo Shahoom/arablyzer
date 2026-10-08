@@ -1,0 +1,58 @@
+---
+import type { ToolCategoryName } from '@arablyzer/i18n'
+import ArrowLeftRight from '@lucide/astro/icons/arrow-left-right'
+import Braces from '@lucide/astro/icons/braces'
+import FileSearch from '@lucide/astro/icons/file-search'
+import Gauge from '@lucide/astro/icons/gauge'
+import LayoutTemplate from '@lucide/astro/icons/layout-template'
+import Languages from '@lucide/astro/icons/languages'
+import Link from '@lucide/astro/icons/link'
+import MapPin from '@lucide/astro/icons/map-pin'
+import Route from '@lucide/astro/icons/route'
+import ScanSearch from '@lucide/astro/icons/scan-search'
+import ShieldCheck from '@lucide/astro/icons/shield-check'
+import ShoppingBag from '@lucide/astro/icons/shopping-bag'
+import Sparkles from '@lucide/astro/icons/sparkles'
+import TextCursorInput from '@lucide/astro/icons/text-cursor-input'
+import TextQuote from '@lucide/astro/icons/text-quote'
+import Type from '@lucide/astro/icons/type'
+import WandSparkles from '@lucide/astro/icons/wand-sparkles'
+import Wrench from '@lucide/astro/icons/wrench'
+
+/**
+ * A category's icon, the one its tile wears. A tile is the category's colour on its tint
+ * (CATEGORY_STYLE.chip), so the icon is drawn in the current colour. Decorative: the category's
+ * name is always written beside it. Since R7 the tools' pages draw no tile (the directory's rows
+ * and a tool's neighbours have a dot of the category's colour, and a section's heading has no
+ * icon): no page of the tools uses it, and it stays for a page that wants a category's mark.
+ */
+interface Props {
+  category: ToolCategoryName
+  size?: number
+}
+const { category, size = 22 } = Astro.props
+
+const ICONS: Readonly<Record<ToolCategoryName, typeof Link>> = {
+  crawl: Route,
+  index: FileSearch,
+  onpage: LayoutTemplate,
+  links: Link,
+  schema: Braces,
+  intl: Languages,
+  'seo-tools': Wrench,
+  'search-data': ScanSearch,
+  speed: Gauge,
+  commerce: ShoppingBag,
+  ai: Sparkles,
+  trust: ShieldCheck,
+  'ar-render': Type,
+  rtl: ArrowLeftRight,
+  'ar-content': TextQuote,
+  forms: TextCursorInput,
+  locale: MapPin,
+  general: WandSparkles,
+}
+const Icon = ICONS[category]
+---
+
+<Icon size={size} stroke-width={1.9} aria-hidden="true" />

@@ -57,3 +57,11 @@ otherwise to promote the sale, use or other dealings in this Font Software
 without prior written authorization from the Gnome Foundation or Bitstream
 Inc., respectively. For further information, contact: fonts at gnome dot
 org.
+
+ibm-plex-sans-arabic-400.ttf is IBM Plex Sans Arabic Regular (SIL Open Font License 1.1, LICENSE-IBM-Plex.txt),
+the Arabic subset of @fontsource/ibm-plex-sans-arabic 5.3.0 converted from WOFF2 to TrueType, with no
+change to its design or name. It is the large file the font slimmer rule's wrong fixture loads.
+
+arablyzer-test-arabic-riyal.woff2 is arablyzer-test-arabic.woff2 with U+20C1 (the Saudi Riyal sign, Unicode 17)
+mapped to the glyph of U+0631 with fontTools, and renamed "Arablyzer Test Arabic Riyal": a web font that has
+the sign, for the sar-sign-font rule's right fixture. The glyph is a stand-in, not the official shape.

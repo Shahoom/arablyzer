@@ -1,0 +1,7 @@
+{
+  "/": {
+    "headers": {
+      "Set-Cookie": ["zid_language=ar; path=/; httponly", "zid_currency=SAR; path=/; httponly"]
+    }
+  }
+}

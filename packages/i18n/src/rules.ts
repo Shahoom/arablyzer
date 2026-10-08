@@ -6,7 +6,19 @@ import { arabicCount, englishCount } from './plural'
  * records, the answers of the page's links, the server's response (its headers, redirects or
  * connection), or the page; or robots.txt and the sitemaps.
  */
-export type RuleReads = 'html' | 'robots' | 'render' | 'crux' | 'http' | 'dns' | 'links' | 'sitemap'
+export type RuleReads =
+  | 'html'
+  | 'robots'
+  | 'render'
+  | 'crux'
+  | 'safeBrowsing'
+  | 'knowledgeGraph'
+  | 'search'
+  | 'outside'
+  | 'http'
+  | 'dns'
+  | 'links'
+  | 'sitemap'
 
 /** The rule library (BUILD-PLAN §6.2, M2.4): its index and each rule's page, around the copy. */
 export interface RulesStrings {
@@ -47,6 +59,11 @@ export interface RulesStrings {
     readonly inTools: string
     readonly fullScan: string
     readonly near: string
+    /** The list of the page's sections, beside it on a desktop and under its heading on a phone. */
+    readonly contents: string
+    /** The fix guides and the glossary terms that name the rule, in the page's links to more. */
+    readonly guides: string
+    readonly terms: string
   }
 }
 
@@ -60,8 +77,7 @@ export const RULES_UI: Copy<RulesStrings> = {
           'كل قاعدة يفحصها Arablyzer في صفحة: لماذا تهم، ومثال خطأ وصحيح، وكيف تُصلح، وكيف نكشفها، ووزنها في الدرجة.',
       },
       title: 'مكتبة القواعد',
-      intro:
-        'كل ما يفحصه Arablyzer قاعدة لها صفحة: لماذا تهم، وكيف تُصلح، وكيف نكشفها بالضبط. كل مخالفة في تقاريرنا تقود إلى قاعدتها هنا.',
+      intro: 'كل ما يفحصه Arablyzer قاعدة لها صفحة: لماذا تهم، وكيف تُصلح، وكيف نكشفها.',
       search: 'ابحث في القواعد',
       searchPlaceholder: 'ابحث: خط، اتجاه، robots، hreflang…',
       categories: 'الفئات',
@@ -82,6 +98,10 @@ export const RULES_UI: Copy<RulesStrings> = {
         robots: 'تقرأ robots.txt',
         render: 'تحتاج عرض الصفحة في المتصفح',
         crux: 'تقرأ بيانات زوار Chrome',
+        safeBrowsing: 'تسأل Google Safe Browsing',
+        knowledgeGraph: 'تسأل Google Knowledge Graph',
+        search: 'تسأل بحث الموقع نفسه (12 طلبًا على الأكثر)',
+        outside: 'تسأل خدمات غير موقعك (DNS وسجل الشهادات وغيرهما)',
         http: 'تقرأ رد الخادم',
         dns: 'تقرأ سجلات DNS للنطاق',
         links: 'تطلب روابط الصفحة إلى موقعها',
@@ -101,6 +121,9 @@ export const RULES_UI: Copy<RulesStrings> = {
       inTools: 'تجدها في',
       fullScan: 'الفحص الكامل',
       near: 'قواعد قريبة',
+      contents: 'في هذه الصفحة',
+      guides: 'أدلة إصلاح ذات صلة',
+      terms: 'مصطلحات ذات صلة',
     },
   },
   en: {
@@ -112,7 +135,7 @@ export const RULES_UI: Copy<RulesStrings> = {
       },
       title: 'Rule library',
       intro:
-        'Everything Arablyzer checks is a rule with its own page: why it matters, how to fix it, and exactly how we detect it. Every finding in our reports leads to its rule here.',
+        'Every rule Arablyzer checks has its own page: why it matters, how to fix it, how we detect it.',
       search: 'Search the rules',
       searchPlaceholder: 'Search: font, direction, robots, hreflang…',
       categories: 'Categories',
@@ -127,6 +150,10 @@ export const RULES_UI: Copy<RulesStrings> = {
         robots: 'Reads robots.txt',
         render: 'Renders the page in browsers',
         crux: 'Reads Chrome’s visitor data',
+        safeBrowsing: 'Asks Google Safe Browsing',
+        knowledgeGraph: 'Asks Google’s Knowledge Graph',
+        search: 'Asks the site’s own search (at most 12 requests)',
+        outside: 'Asks services other than your site (DNS, the certificate log and others)',
         http: 'Reads the server’s response',
         dns: 'Reads the domain’s DNS records',
         links: 'Asks for the page’s links to its site',
@@ -146,6 +173,9 @@ export const RULES_UI: Copy<RulesStrings> = {
       inTools: 'Find it in',
       fullScan: 'The full scan',
       near: 'Related rules',
+      contents: 'On this page',
+      guides: 'Related fix guides',
+      terms: 'Related terms',
     },
   },
 }

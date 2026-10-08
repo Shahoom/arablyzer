@@ -4,7 +4,13 @@ import { createPolicy } from '@arablyzer/egress'
 import { scan } from '@arablyzer/engine'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
 import type { Engine, Report } from '@arablyzer/report-schema'
-import { builtPages, isKnownGap, isNoindexPage, representativePages } from '@arablyzer/seo/audit'
+import {
+  builtPages,
+  isKnownGap,
+  isNoindexPage,
+  NOT_FOR_SITE_PAGES,
+  representativePages,
+} from '@arablyzer/seo/audit'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The site scanned by Arablyzer, in its three engines, as a visitor's scan would (M2.1 plan §3,
@@ -30,8 +36,9 @@ const PAGES = builtPages(DIST)
   .map((page) => page.path)
   .filter((path) => !isNoindexPage(path))
 /**
- * The pages that stand for the rest render in the three engines; the other tool pages, one
- * template with other words, in Chromium, which keeps the run short as the tools grow (M2.2).
+ * The pages that stand for the rest render in the three engines; the other pages of a template
+ * (tools, rules, guides, glossary terms), one template with other words, in Chromium, which
+ * keeps the run short as the site grows (M2.2).
  */
 const EVERY_ENGINE = new Set(representativePages(builtPages(DIST)).map((page) => page.path))
 const enginesFor = (path: string): Engine[] =>
@@ -52,7 +59,11 @@ function problems(report: Report) {
   return (
     report.rules
       .filter(
-        (rule) => (rule.status === 'fail' || rule.status === 'error') && !SERVER_RULES.has(rule.id),
+        (rule) =>
+          (rule.status === 'fail' || rule.status === 'error') &&
+          !SERVER_RULES.has(rule.id) &&
+          // Rules the site audit leaves out too: prose-corpus rules, for a visitor's own text.
+          !NOT_FOR_SITE_PAGES.has(rule.id),
       )
       // A rule that failed only for gaps the site knows it has: the self-audit's own list.
       .filter((rule) => {

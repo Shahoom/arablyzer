@@ -1,5 +1,6 @@
 import type {
   A11yFacts,
+  ArabicTextBlock,
   CompressionFact,
   Engine,
   FontFaceFact,
@@ -8,6 +9,7 @@ import type {
   StylesheetsFact,
   UsedFontsFact,
   WebFontCoverageFact,
+  WebFontFileFact,
 } from '@arablyzer/collectors'
 import { redactUrl } from '@arablyzer/egress'
 import { z } from 'zod'
@@ -84,6 +86,28 @@ const Measured = z.strictObject({
   directionIcons: z
     .array(z.strictObject({ selector, box: Box, name: z.string().max(100) }))
     .max(MEASURE_LIMITS.maxIcons),
+  roleIcons: z
+    .array(
+      z.strictObject({
+        selector,
+        box: Box,
+        role: z.enum(['next', 'prev']),
+        pointing: z.enum(['left', 'right']),
+        name: z.string().max(100),
+        label: z.string().max(60),
+      }),
+    )
+    .max(MEASURE_LIMITS.maxRoleIcons),
+  riyalSigns: z
+    .array(
+      z.strictObject({
+        selector,
+        box: Box,
+        fontFamily: z.string().max(500),
+        primaryFamily: z.string().max(200),
+      }),
+    )
+    .max(MEASURE_LIMITS.maxSigns),
   images: z
     .array(
       z.strictObject({
@@ -113,6 +137,7 @@ export interface FactsContext {
   readonly a11y?: A11yFacts | null
   /** From the font files and stylesheets read after the render; none when absent. */
   readonly arabicFontCoverage?: readonly WebFontCoverageFact[]
+  readonly webFonts?: readonly WebFontFileFact[]
   readonly stylesheets?: StylesheetsFact
   readonly compression?: CompressionFact
   /** Each image file's media type and size, by URL. */
@@ -136,6 +161,29 @@ export function measuredFontFaces(measured: unknown): FontFaceFact[] {
     .loose()
     .safeParse(measured)
   return faces.success ? faces.data.fontFaces : []
+}
+
+/** The Arabic text the page script measured; none when its result is not what the script returns. */
+export function arabicTextOf(
+  measured: unknown,
+): Pick<ArabicTextBlock, 'primaryFamily' | 'text' | 'arabicCharacters'>[] {
+  const text = z
+    .strictObject({
+      arabicText: z
+        .array(
+          z
+            .strictObject({
+              primaryFamily: z.string().max(200),
+              text: z.string().max(MEASURE_LIMITS.textLength),
+              arabicCharacters: z.string().max(MEASURE_LIMITS.maxCharacters),
+            })
+            .loose(),
+        )
+        .max(MEASURE_LIMITS.maxBlocks),
+    })
+    .loose()
+    .safeParse(measured)
+  return text.success ? text.data.arabicText : []
 }
 
 /** The page script's result as RenderedFacts; throws when it is not what the script returns. */
@@ -165,11 +213,14 @@ export function toFacts(measured: unknown, context: FactsContext): RenderedFacts
     fontFacesOmitted: facts.fontFacesOmitted,
     fontRequests: context.fontRequests,
     arabicFontCoverage: context.arabicFontCoverage ?? [],
+    webFonts: context.webFonts ?? [],
     stylesheets: context.stylesheets ?? NO_STYLESHEETS,
     ...(context.usedFonts === undefined ? {} : { usedFonts: context.usedFonts }),
     bidi: facts.bidi,
     fields: facts.fields,
     directionIcons: facts.directionIcons,
+    roleIcons: facts.roleIcons,
+    riyalSigns: facts.riyalSigns,
     compression: context.compression ?? NO_COMPRESSION,
     images: facts.images.map((image) => {
       const file = context.imageFiles?.get(image.url)

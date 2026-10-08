@@ -1,0 +1,430 @@
+---
+import { HOME, REPORT } from '@arablyzer/i18n'
+import { SEVERITY_ORDER, type Engine, type Severity } from '@arablyzer/report-schema'
+import type { Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import Check from '@lucide/astro/icons/check'
+import CodeXml from '@lucide/astro/icons/code-xml'
+import Lock from '@lucide/astro/icons/lock'
+import Smartphone from '@lucide/astro/icons/smartphone'
+import Type from '@lucide/astro/icons/type'
+import X from '@lucide/astro/icons/x'
+import { barSpan, joinNames, ringDash, scoreTone, SHOWN_CATEGORIES } from '../../lib/home'
+import { ENGINE_NAMES, SHOWCASE } from '../../lib/showcase'
+import Bidi from '../Bidi.astro'
+import SeverityPill from '../SeverityPill.astro'
+
+/**
+ * The product shot under the hero: a browser window holding golden report 04, as a visitor's
+ * report shows it, with glass cards floating at its edges. Every number is read from that report
+ * (lib/showcase.ts) and the window says it is an example of one of our test pages. The glass cards
+ * repeat what the window says, so they are hidden from a screen reader. The bars and the ring are
+ * SVG, whose sizes are attributes: the page's Content-Security-Policy allows no style attribute.
+ * Motion is CSS and stops under reduced motion.
+ *
+ * On a phone (M2.6 R7) it is the short version: the score beside its tally and the severity
+ * pills, and the three findings as compact rows. The category bars, the overflow drawing and the
+ * floating cards are a desktop's (lg and xl): they are decoration for the numbers already
+ * above them, and a phone's whole shot is about 400 px, not a desktop report squeezed down. A
+ * tablet has the short version, wider, with the findings' icons.
+ */
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = HOME[lang].figure
+const s = SHOWCASE
+const rtl = lang === 'ar'
+const names = (engines: readonly Engine[]) => engines.map((engine) => ENGINE_NAMES[engine])
+
+// Where each finding was seen, as the report has it.
+const overflowIn = t.inEngines(joinNames(names(s.overflow.engines), lang))
+const [onlyEngine] = s.spacing.drawnBy
+const spacingIn =
+  s.spacing.drawnBy.length === 1 && onlyEngine !== undefined
+    ? t.onlyIn(ENGINE_NAMES[onlyEngine])
+    : t.inEngines(joinNames(names(s.spacing.drawnBy), lang))
+const physicalIn = t.declarations(s.physical.count)
+
+// The severities the report has, most severe first, each with how many.
+const severityTone: Record<Severity, string> = {
+  critical: 'sev-critical',
+  serious: 'sev-serious',
+  moderate: 'sev-moderate',
+  minor: 'sev-minor',
+  info: 'sev-info',
+}
+const severities = SEVERITY_ORDER.filter((severity) => s.bySeverity[severity] > 0).map(
+  (severity) => ({
+    severity,
+    label: STRINGS[lang].report.severity[severity],
+    count: s.bySeverity[severity],
+  }),
+)
+
+// Each shown category: its name, its score, and how the bar is drawn (a gradient by tone).
+const GRADIENT = {
+  good: ['#14b8a6', '#6366f1'],
+  mid: ['#f59e0b', '#fb923c'],
+  low: ['#e11d48', '#e11d48'],
+} as const
+const VALUE_COLOUR = { good: 'text-ink', mid: 'text-moderate', low: 'text-critical-ink' } as const
+const categories = SHOWN_CATEGORIES.flatMap((category, index) => {
+  const score = s.categories[category]
+  if (score === undefined) return []
+  const tone = scoreTone(score)
+  return [
+    {
+      id: `home-bar-${index}`,
+      name: REPORT[lang].categories[category],
+      score,
+      tone,
+      span: barSpan(score, rtl),
+      // The bar fills from the start of the line, so its colours run the same way.
+      from: rtl ? 1 : 0,
+      to: rtl ? 0 : 1,
+      colours: GRADIENT[tone],
+    },
+  ]
+})
+
+// The overflow, drawn to scale: a phone, and the element out past its left edge. The drawing is
+// the page's own geometry (the element is left of the screen whichever way the home page reads).
+const SCALE = 94 / s.overflow.viewport
+const phone = { x: 96, y: 6, width: 94, height: 138 }
+const element = { x: phone.x + s.overflow.x * SCALE, width: s.overflow.width * SCALE }
+const round = (value: number) => Math.round(value * 10) / 10
+
+const findings = [
+  {
+    title: s.overflow.title[lang],
+    where: overflowIn,
+    severity: s.overflow.finding.severity,
+    tone: 'bg-serious-soft text-serious',
+    open: true,
+  },
+  {
+    title: s.spacing.title[lang],
+    where: spacingIn,
+    severity: s.spacing.finding.severity,
+    tone: 'bg-moderate-soft text-moderate',
+    open: false,
+  },
+  {
+    title: s.physical.title[lang],
+    where: physicalIn,
+    severity: s.physical.finding.severity,
+    tone: 'bg-surface-2 text-ink-2',
+    open: false,
+  },
+] as const
+const icons = [Smartphone, Type, CodeXml] as const
+
+// The floating cards: the first one's engine, the second's screen, the third's tally.
+const spacingEngine = onlyEngine === undefined ? '' : ENGINE_NAMES[onlyEngine]
+---
+
+<div class="relative mx-auto mt-2 w-full max-w-[1080px] text-start md:mt-6">
+  <div aria-hidden="true" class="float -start-[34px] -top-[22px] hidden xl:flex" data-float="1">
+    <span class="grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-critical text-white">
+      <X size={16} stroke-width={2.2} aria-hidden="true" />
+    </span>
+    <div>
+      <b lang="en" dir="ltr" class="block text-[13px] font-semibold">
+        {spacingEngine}
+      </b>
+      <span class="block text-xs text-ink-2">{t.float.parted}</span>
+    </div>
+  </div>
+  <div aria-hidden="true" class="float -end-[44px] top-[210px] hidden xl:flex" data-float="2">
+    <span class="grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-serious text-white">
+      <Smartphone size={16} stroke-width={2} aria-hidden="true" />
+    </span>
+    <div>
+      <b class="block text-[13px] font-semibold">{t.float.screen(s.overflow.viewport)}</b>
+      <span class="block text-xs text-ink-2">{t.float.overflow(s.overflow.overflow)}</span>
+    </div>
+  </div>
+  <div aria-hidden="true" class="float start-[120px] -bottom-[22px] hidden xl:flex" data-float="3">
+    <span class="grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-pass text-white">
+      <Check size={16} stroke-width={2.4} aria-hidden="true" />
+    </span>
+    <div>
+      <b class="block text-[13px] font-semibold">{t.float.passed(s.passed)}</b>
+      <span class="block text-xs text-ink-2">{t.float.skipped(s.notApplicable)}</span>
+    </div>
+  </div>
+
+  <figure
+    aria-label={t.label}
+    class="relative z-10 m-0 overflow-hidden rounded-card border border-white/90 bg-white shadow-lg lg:bg-white/80 lg:backdrop-blur-[14px]"
+  >
+    <div class="flex h-10 items-center gap-3 border-b border-line bg-[rgb(248_250_252/0.9)] px-3 lg:h-[46px] lg:gap-3.5 lg:px-4">
+      <span class="hidden gap-1.5 sm:flex" aria-hidden="true">
+        <i class="size-2.5 rounded-full bg-line"></i>
+        <i class="size-2.5 rounded-full bg-line"></i>
+        <i class="size-2.5 rounded-full bg-line"></i>
+      </span>
+      <span class="mx-auto inline-flex h-7 min-w-0 items-center gap-2 rounded-lg border border-line bg-white px-3 text-meta whitespace-nowrap text-ink-2 lg:h-[30px] lg:px-3.5">
+        <Lock size={14} stroke-width={2} aria-hidden="true" class="shrink-0" />
+        {t.source}
+        <bdi dir="ltr" class="font-semibold text-ink">
+          {s.page}
+        </bdi>
+      </span>
+    </div>
+
+    <div class="grid lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div class="flex flex-col gap-[18px] border-b border-line p-card lg:border-e lg:border-b-0">
+        <div class="flex items-center gap-4 lg:flex-col lg:gap-[18px]">
+          <div class="relative size-[96px] shrink-0 lg:size-[132px] lg:self-center">
+            <svg viewBox="0 0 120 120" aria-hidden="true" class="block size-full">
+              <defs>
+                <linearGradient id="home-ring" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#007d88"></stop>
+                  <stop offset="1" stop-color="#4f46e5"></stop>
+                </linearGradient>
+              </defs>
+              <circle
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="#eef2f6"
+                stroke-width="11"
+              ></circle>
+              <circle
+                class="ring-val"
+                cx="60"
+                cy="60"
+                r="52"
+                fill="none"
+                stroke="url(#home-ring)"
+                stroke-width="11"
+                stroke-linecap="round"
+                pathLength="100"
+                stroke-dasharray={ringDash(s.score)}
+                transform="rotate(-90 60 60)"
+              ></circle>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center leading-[1.1]">
+              <b class="text-[1.625rem] font-semibold tabular-nums lg:text-[2.5rem]">{s.score}</b>
+              <span class="text-xs text-ink">{t.outOf}</span>
+            </div>
+          </div>
+          <div class="flex min-w-0 flex-1 flex-col gap-2.5 lg:flex-none lg:items-center lg:gap-[18px]">
+            <p class="text-body m-0 font-semibold lg:text-center">{t.tally(s.failed, s.passed)}</p>
+            <div class="flex flex-wrap gap-1.5 lg:justify-center">
+              {severities.map((item) => (
+                <span class:list={['sev', severityTone[item.severity]]}>
+                  {item.label} <span class="tabular-nums">{item.count}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <ul
+          aria-label={t.categories}
+          class="text-meta m-0 hidden list-none flex-col gap-3 p-0 lg:flex"
+        >
+          {categories.map((category) => (
+            <li class="grid grid-cols-[96px_minmax(0,1fr)_28px] items-center gap-2.5">
+              <span>{category.name}</span>
+              <svg
+                width="100%"
+                height="8"
+                aria-hidden="true"
+                class="block overflow-hidden rounded-full"
+              >
+                <defs>
+                  <linearGradient
+                    id={category.id}
+                    x1={category.from}
+                    y1="0"
+                    x2={category.to}
+                    y2="0"
+                  >
+                    <stop offset="0" stop-color={category.colours[0]} />
+                    <stop offset="1" stop-color={category.colours[1]} />
+                  </linearGradient>
+                </defs>
+                <rect width="100%" height="8" fill="#eef2f6" />
+                <rect
+                  class="bar-fill"
+                  x={`${category.span.x}%`}
+                  width={`${category.span.width}%`}
+                  height="8"
+                  rx="4"
+                  fill={`url(#${category.id})`}
+                />
+              </svg>
+              <span
+                dir="ltr"
+                class:list={['text-end font-semibold tabular-nums', VALUE_COLOUR[category.tone]]}
+              >
+                {category.score}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="flex min-w-0 flex-col gap-2.5 p-card lg:gap-3">
+        <p class="text-small m-0 font-semibold lg:mb-1 lg:text-[0.9375rem]">{t.found}</p>
+        <ul class="m-0 flex list-none flex-col gap-2 p-0 lg:gap-3">
+          {findings.map((finding, index) => {
+            const Icon = icons[index] ?? Smartphone
+            return (
+              <li class="flex flex-col gap-3">
+                <div
+                  class:list={[
+                    'flex items-center gap-3 rounded-xl border bg-white px-3 py-2.5 lg:gap-3.5 lg:px-4 lg:py-3.5',
+                    finding.open
+                      ? 'border-[#fdba8c] shadow-[0_10px_24px_-16px_rgb(194_65_12/0.45)]'
+                      : 'border-line',
+                  ]}
+                >
+                  <span
+                    class:list={[
+                      'hidden size-9 shrink-0 place-items-center rounded-[10px] md:grid',
+                      finding.tone,
+                    ]}
+                  >
+                    <Icon size={18} stroke-width={1.8} aria-hidden="true" />
+                  </span>
+                  <span class="text-small min-w-0 flex-1 font-semibold text-balance">
+                    {finding.title}
+                    <span class="text-meta block font-normal text-ink-2">
+                      <Bidi text={finding.where} lang={lang} />
+                    </span>
+                  </span>
+                  <SeverityPill severity={finding.severity} lang={lang} />
+                </div>
+                {finding.open && (
+                  <div class="-mt-1 hidden items-center gap-4 rounded-xl bg-[#fff7f2] px-4 py-3.5 lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-[18px]">
+                    <svg
+                      viewBox="0 0 200 150"
+                      aria-hidden="true"
+                      class="block h-[150px] w-[200px] max-w-full justify-self-center lg:justify-self-auto"
+                    >
+                      <rect
+                        x={phone.x}
+                        y={phone.y}
+                        width={phone.width}
+                        height={phone.height}
+                        rx="12"
+                        fill="#fff"
+                        stroke="#98a2b3"
+                        stroke-width="1.5"
+                      />
+                      <rect x="120" y="28" width="60" height="6" rx="3" fill="#eef2f6" />
+                      <rect x="132" y="42" width="48" height="6" rx="3" fill="#eef2f6" />
+                      <rect x="108" y="64" width="72" height="44" rx="8" fill="#eef2f6" />
+                      <rect
+                        x={round(element.x)}
+                        y="6"
+                        width={round(element.width)}
+                        height="6"
+                        rx="2"
+                        fill="#ffede5"
+                        stroke="#c2410c"
+                        stroke-width="1.5"
+                        stroke-dasharray="4 3"
+                      />
+                      <path
+                        d={`M${round(element.x)} 22H${phone.x}M${round(element.x)} 18v8M${phone.x} 18v8`}
+                        fill="none"
+                        stroke="#c2410c"
+                        stroke-width="1.5"
+                      />
+                      <text
+                        x={round((element.x + phone.x) / 2)}
+                        y="42"
+                        text-anchor="middle"
+                        font-size="11"
+                        font-weight="600"
+                        fill="#c2410c"
+                      >
+                        {t.offscreen(s.overflow.overflow)}
+                      </text>
+                    </svg>
+                    <div class="text-meta flex min-w-0 flex-col gap-1.5 text-ink-2">
+                      <span>{t.element}</span>
+                      <code
+                        dir="ltr"
+                        class="inline-block self-start rounded-md bg-white px-2 py-0.5 font-mono text-xs text-ink"
+                      >
+                        {s.overflow.finding.evidence.selector}
+                      </code>
+                      <span>
+                        <Bidi text={s.overflow.finding.message[lang]} lang={lang} />
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </div>
+  </figure>
+</div>
+
+<style>
+  .float {
+    position: absolute;
+    z-index: 20;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid rgb(255 255 255 / 0.95);
+    border-radius: 16px;
+    background: rgb(255 255 255 / 0.88);
+    box-shadow: var(--shadow-lg, 0 36px 70px -28px rgb(16 24 40 / 0.32));
+    backdrop-filter: blur(10px);
+    animation: home-bob 6s ease-in-out infinite;
+  }
+  .float[data-float='2'] {
+    animation-delay: -2s;
+  }
+  .float[data-float='3'] {
+    animation-delay: -4s;
+  }
+  .ring-val {
+    animation: home-ring 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .bar-fill {
+    /* Each bar grows from the start of the line: the right in Arabic, the left in English. */
+    transform-box: fill-box;
+    transform-origin: calc(50% + var(--reading, 1) * 50%) 50%;
+    animation: home-grow 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @keyframes home-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  /* Only where it starts: it ends at the dash the element itself carries. */
+  @keyframes home-ring {
+    from {
+      stroke-dasharray: 0 100;
+    }
+  }
+  @keyframes home-grow {
+    from {
+      transform: scaleX(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .float,
+    .ring-val,
+    .bar-fill {
+      animation: none;
+    }
+  }
+</style>

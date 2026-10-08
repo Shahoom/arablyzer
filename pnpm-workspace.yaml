@@ -16,3 +16,17 @@ ignoredBuiltDependencies:
 # from the lockfile (`--frozen-lockfile`, as CI and the images do) takes what the lockfile names.
 # A fix that cannot wait is named in `minimumReleaseAgeExclude`, in the pull request that needs it.
 minimumReleaseAge: 10080
+
+# pdfjs-dist (the PDF tool) asks for @napi-rs/canvas ^1.0.0, an optional library to draw pages, which
+# we never do. 1.0.10 is under the week above, so the newest version old enough is named.
+overrides:
+  '@napi-rs/canvas': 1.0.9
+  # GHSA-68fv-2mgg-jv7q: event-loop denial of service in source-map-js before 1.2.2 (through postcss).
+  source-map-js: '>=1.2.2'
+
+auditConfig:
+  ignoreGhsas:
+    # http-cache-semantics (through astro): max-stale handling in a shared HTTP cache. The site is
+    # static, and astro uses it only at build time for its own image cache: no response is ever
+    # cached for one visitor and served to another. No patched version exists yet (2026-10-04).
+    - GHSA-ch52-4w7c-c8xp

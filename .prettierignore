@@ -7,3 +7,7 @@ packages/rules/src/rules/*/fixtures/
 packages/seo/test/fixtures/
 fixtures/golden/
 packages/store/drizzle/
+# The approved artboards (M2.6): the design canvas's own format, kept as it was exported.
+docs/design/v2/
+
+packages/rules/vendor/

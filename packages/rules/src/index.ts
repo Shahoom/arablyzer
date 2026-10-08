@@ -5,21 +5,29 @@ import { rule as a11yColorContrastReview } from './rules/a11y-color-contrast-rev
 import { rule as a11yImageAlt } from './rules/a11y-image-alt/rule'
 import { rule as a11yLinkName } from './rules/a11y-link-name/rule'
 import { rule as a11yValidLang } from './rules/a11y-valid-lang/rule'
+import { rule as aiTrainingFilters } from './rules/ai-training-filters/rule'
+import { rule as aiVisibilityGap } from './rules/ai-visibility-gap/rule'
+import { rule as arAiReadability } from './rules/ar-ai-readability/rule'
 import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
 import { rule as arFontMissingLetters } from './rules/ar-font-missing-letters/rule'
 import { rule as arFontNoArabic } from './rules/ar-font-no-arabic/rule'
+import { rule as arFontSubsetSavings } from './rules/ar-font-subset-savings/rule'
 import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as botChallenge } from './rules/bot-challenge/rule'
+import { rule as brandNameConsistency } from './rules/brand-name-consistency/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as countryFit } from './rules/country-fit/rule'
+import { rule as cruxCountryGaps } from './rules/crux-country-gaps/rule'
 import { rule as cspMissing } from './rules/csp-missing/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
 import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
 import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
+import { rule as dialectRegister } from './rules/dialect-register/rule'
 import { rule as dmarcMissing } from './rules/dmarc-missing/rule'
 import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
@@ -33,14 +41,20 @@ import { rule as httpsMissing } from './rules/https-missing/rule'
 import { rule as imageFormatLegacy } from './rules/image-format-legacy/rule'
 import { rule as jsOnlyContent } from './rules/js-only-content/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
+import { rule as knowledgeGraphEntity } from './rules/knowledge-graph-entity/rule'
 import { rule as linkBroken } from './rules/link-broken/rule'
+import { rule as lookalikeDomains } from './rules/lookalike-domains/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
+import { rule as misspellingsUncovered } from './rules/misspellings-uncovered/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as paymentMethods } from './rules/payment-methods/rule'
 import { rule as priceDecimals } from './rules/price-decimals/rule'
 import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
+import { rule as pdfArabicText } from './rules/pdf-arabic-text/rule'
+import { rule as pdfMetadata } from './rules/pdf-metadata/rule'
+import { rule as platformDetected } from './rules/platform-detected/rule'
 import { rule as redirectChain } from './rules/redirect-chain/rule'
 import { rule as redirectTemporary } from './rules/redirect-temporary/rule'
 import { rule as referrerPolicyMissing } from './rules/referrer-policy-missing/rule'
@@ -49,8 +63,12 @@ import { rule as robotsBlocksGooglebot } from './rules/robots-blocks-googlebot/r
 import { rule as rtlBidiIsolation } from './rules/rtl-bidi-isolation/rule'
 import { rule as rtlHorizontalOverflow } from './rules/rtl-horizontal-overflow/rule'
 import { rule as rtlHtmlDir } from './rules/rtl-html-dir/rule'
+import { rule as rtlIconRole } from './rules/rtl-icon-role/rule'
 import { rule as rtlMirroredIcons } from './rules/rtl-mirrored-icons/rule'
 import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
+import { rule as safeBrowsingFlagged } from './rules/safe-browsing-flagged/rule'
+import { rule as sarSignFont } from './rules/sar-sign-font/rule'
+import { rule as searchSpellingVariants } from './rules/search-spelling-variants/rule'
 import { rule as sitemapInvalid } from './rules/sitemap-invalid/rule'
 import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
 import { rule as spfMissing } from './rules/spf-missing/rule'
@@ -77,21 +95,29 @@ export const RULES: readonly Rule[] = [
   a11yImageAlt,
   a11yLinkName,
   a11yValidLang,
+  aiTrainingFilters,
+  aiVisibilityGap,
+  arAiReadability,
   arDigitsMixed,
   arFontFallback,
   arFontMissingLetters,
   arFontNoArabic,
+  arFontSubsetSavings,
   arHtmlLang,
   arLatinPunctuation,
   arLetterSpacing,
   arMojibake,
   arTatweel,
   botChallenge,
+  brandNameConsistency,
   canonicalConflict,
+  countryFit,
+  cruxCountryGaps,
   cspMissing,
   cwvClsPoor,
   cwvInpPoor,
   cwvLcpPoor,
+  dialectRegister,
   dmarcMissing,
   formArabicDigitsRejected,
   formArabicNameRejected,
@@ -105,12 +131,18 @@ export const RULES: readonly Rule[] = [
   imageFormatLegacy,
   jsOnlyContent,
   jsonldSyntaxError,
+  knowledgeGraphEntity,
   linkBroken,
+  lookalikeDomains,
   metaDescriptionMissing,
+  misspellingsUncovered,
   mixedContent,
   ogTagsMissing,
   pageNoindex,
   paymentMethods,
+  pdfArabicText,
+  pdfMetadata,
+  platformDetected,
   priceDecimals,
   productOfferInvalid,
   redirectChain,
@@ -121,8 +153,12 @@ export const RULES: readonly Rule[] = [
   rtlBidiIsolation,
   rtlHorizontalOverflow,
   rtlHtmlDir,
+  rtlIconRole,
   rtlMirroredIcons,
   rtlPhysicalCss,
+  safeBrowsingFlagged,
+  sarSignFont,
+  searchSpellingVariants,
   sitemapInvalid,
   sitemapMissing,
   spfMissing,
@@ -166,7 +202,27 @@ export {
   type RuleExample,
 } from './example'
 export { AI_CRAWLERS, type AiCrawler, type AiCrawlerPurpose } from './lib/ai-crawlers'
+export { brandName, type Brand } from './lib/brand'
+export { xrayFamilies } from './lib/missing-letters'
+export { FINEWEB2, readTraining, trainingText, type FilterCheck } from './lib/ai-training'
+export { OUTSIDE, TOOL_ONLY } from './outside'
+export {
+  KIND_ORDER,
+  keyTerms,
+  misspellings,
+  pageWords,
+  writes,
+  type Spelling,
+} from './lib/spelling-variants'
+export { arabicWords, nameKey, normalizeArabic } from './lib/ar-normalize'
+export { collectBrandNames } from './lib/brand-names'
+export { dialectOfPage, fitsCountry, readDialect, type Dialect, type Variety } from './lib/dialect'
+export { isMostlyArabic } from './lib/arabic'
+export { inferCountry, readPage } from './lib/country'
+export { COUNTRIES, fitOf, NAMES as COUNTRY_NAMES, type Country, type Fit } from './lib/country'
 export { isLocalHost } from './lib/hosts'
+export { confidenceLevel, detectPlatforms, type Detected, type PlatformKind } from './lib/platforms'
+export { PLATFORM_FIXES, platformFix } from './platform-fixes'
 export {
   CHALLENGE_SIGNALS,
   challengeOf,

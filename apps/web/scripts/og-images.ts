@@ -69,6 +69,8 @@ export function kickerOf(page: BuiltPage): Pick<Card, 'kicker' | 'kickerCode'> {
   switch (arabic) {
     case '/tools':
       return { kicker: TOOLS_UI[lang].directory.title }
+    case '/knowledge':
+      return { kicker: SITE[lang].nav.knowledge }
     case '/rules':
       return { kicker: RULES_UI[lang].library.title }
     case '/fix':

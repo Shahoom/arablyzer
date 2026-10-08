@@ -1,0 +1,16 @@
+---
+/**
+ * A document section's heading: an `h2` in `heading-2` (22 px on a phone, 28 from lg) with the id
+ * the links to it use. It has no number and no icon (M2.6 R7): a section starts with its name,
+ * and the contents list beside the page says where the others are.
+ */
+interface Props {
+  id: string
+  title: string
+}
+const { id, title } = Astro.props
+---
+
+<h2 id={id} class="heading-2">
+  {title}
+</h2>

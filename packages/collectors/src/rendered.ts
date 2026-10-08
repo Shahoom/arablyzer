@@ -76,6 +76,33 @@ export interface UsedFont {
   readonly glyphs: number
 }
 
+/**
+ * A font file the page loaded that draws Arabic letters, and what a subset of it for the page's own
+ * Arabic text would weigh (docs/design/plans/arabic-native.md §1).
+ */
+export interface WebFontFileFact {
+  /** The @font-face family the file belongs to. */
+  readonly family: string
+  /** Redacted, as every URL in a report is. */
+  readonly url: string
+  readonly format: 'woff2' | 'woff' | 'ttf' | 'otf' | 'unknown'
+  /** The file's bytes, as the browser handed them over. */
+  readonly bytes: number
+  /** The font-weight and font-style of the rule that loads it, as written; null when it sets none. */
+  readonly weight: string | null
+  readonly style: string | null
+  /**
+   * The distinct characters of the text set in this family (the first 400), from the Arabic text
+   * blocks measured: what the page shows in it, and what the subset is made for. Empty when no
+   * measured Arabic text uses the family.
+   */
+  readonly usedCharacters: string
+  /** A WOFF2 subset of those characters, with the shaping tables, in bytes; null when none was made. */
+  readonly subsetBytes: number | null
+  /** The subset's code points as a unicode-range value; null without a subset. */
+  readonly unicodeRange: string | null
+}
+
 /** Declarations in one stylesheet that set a side by left or right. */
 export interface PhysicalCssFact {
   /** The stylesheet's URL; the page's, for its <style> elements, which count as one. */
@@ -104,6 +131,58 @@ export interface StylesheetsFact {
 export interface DirectionIconFact extends RenderedElement {
   /** What names it: an icon-font class (`fa-arrow-right`), a Material name, or the arrow. */
   readonly name: string
+}
+
+/** A font-family list of the page's Arabic text, and the characters no web font in it draws. */
+export interface XrayFamily {
+  /** The computed font-family, as ArabicTextBlock.fontFamily gives it. */
+  readonly fontFamily: string
+  readonly chars: string
+}
+
+/** An Arabic word the engine drew wrongly, where it stands in the first screen. */
+export interface XrayWord {
+  /** At most 40 characters. */
+  readonly text: string
+  /** `glyph`: a letter no font draws, so the engine draws a box or another font's letter; `replacement`: U+FFFD. */
+  readonly kind: 'glyph' | 'replacement'
+  /** In CSS pixels of the first screen, as the screenshot is. */
+  readonly box: Box
+}
+
+/**
+ * The Arabic words of the page checked in one engine for letters it cannot draw, and the broken
+ * ones that stand in the first screen (docs/design/plans/arabic-native.md §6).
+ */
+export interface XrayFacts {
+  /** Arabic words on the page. */
+  readonly total: number
+  /** Of them, the ones with a letter no font in their list draws, or a replacement character. */
+  readonly broken: number
+  /** The first screen's broken words (the first 40). */
+  readonly words: readonly XrayWord[]
+  /** The page had more words than the pass could go through. */
+  readonly truncated: boolean
+}
+
+/** A control whose icon points against what the control says it does, in right-to-left text. */
+export interface RoleIconFact extends RenderedElement {
+  /** What the control says it is, from its label, text, rel or class. */
+  readonly role: 'next' | 'prev'
+  /** Where the icon points on screen, after any mirroring. */
+  readonly pointing: 'left' | 'right'
+  /** What names the icon: an icon-font class, a Material name, an SVG's name, or the arrow. */
+  readonly name: string
+  /** The control's label or text, shortened. */
+  readonly label: string
+}
+
+/** An element whose own text has the Saudi Riyal sign (U+20C1, Unicode 17), and the fonts it asks for. */
+export interface RiyalSignFact extends RenderedElement {
+  /** Computed font-family, as the engine serializes it. */
+  readonly fontFamily: string
+  /** Its first family, unquoted. */
+  readonly primaryFamily: string
 }
 
 /** A text response that came without Content-Encoding, and what gzip makes of it. */
@@ -241,6 +320,8 @@ export interface RenderedFacts {
    * loaded (the first 50 families).
    */
   readonly arabicFontCoverage: readonly WebFontCoverageFact[]
+  /** The Arabic web font files read (the first 8), each with its subset's size. */
+  readonly webFonts: readonly WebFontFileFact[]
   readonly stylesheets: StylesheetsFact
   /** Chromium only. */
   readonly usedFonts?: readonly UsedFontsFact[]
@@ -250,6 +331,12 @@ export interface RenderedFacts {
   readonly fields: readonly RenderedFieldFact[]
   /** Unmirrored direction icons in right-to-left text (the first 20). */
   readonly directionIcons: readonly DirectionIconFact[]
+  /** Controls whose icon points against their role (the first 20). */
+  readonly roleIcons: readonly RoleIconFact[]
+  /** Set when the render was asked for the Arabic X-ray, and its pass finished. */
+  readonly xray?: XrayFacts
+  /** Elements with the Saudi Riyal sign (the first 20). */
+  readonly riyalSigns: readonly RiyalSignFact[]
   readonly compression: CompressionFact
   /** Images drawn on the page (the first 100). */
   readonly images: readonly ImageFact[]

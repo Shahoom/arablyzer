@@ -1,0 +1,70 @@
+---
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import ChevronLeft from '@lucide/astro/icons/chevron-left'
+import ChevronRight from '@lucide/astro/icons/chevron-right'
+import Bidi from './Bidi.astro'
+
+/**
+ * The trail above a page's heading: the home page, the steps between it and this page (a
+ * section's directory, say), and this page, which is not a link. The same trail as the page's
+ * BreadcrumbList in JSON-LD; the chevrons point the way the text reads.
+ *
+ * It is one line at every width (M2.6 R7a): an item that does not fit is cut with an ellipsis, and
+ * on a phone the current page is left out when the trail has steps, since the heading under the
+ * trail says it (a tool's trail is «الرئيسية › الأدوات › الاتجاه»). A page with no steps, an
+ * index, keeps its own name: the trail would otherwise be the word «الرئيسية» alone.
+ */
+interface Props {
+  lang: Lang
+  /** The landmark's name. */
+  label: string
+  /**
+   * The steps between the home page and this one. A step may carry the class of a dot drawn before
+   * its name (a tool's category, in its colour).
+   */
+  steps?: readonly { readonly name: string; readonly href: string; readonly dot?: string }[]
+  /** This page. */
+  current: string
+}
+const { lang, label, steps = [], current } = Astro.props
+const Next = lang === 'ar' ? ChevronLeft : ChevronRight
+// Quiet, and still 4.5:1 on the tint behind a page's head: ink-2, not the quieter ink-3.
+const link = 'text-ink-2 underline-offset-4 hover:text-brand-ink hover:underline'
+---
+
+<nav aria-label={label} class="text-meta text-ink-2 lg:text-small">
+  <ol class="m-0 flex list-none flex-nowrap items-center gap-x-2 p-0">
+    <li class="flex shrink-0 items-center gap-2">
+      <a href={localePath(lang, PATHS.home)} class={link}>
+        {STRINGS[lang].home}
+      </a>
+      <Next size={14} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
+    </li>
+    {steps.map((step, index) => (
+      <li class="flex min-w-0 items-center gap-2">
+        <a href={step.href} class:list={[link, 'flex min-w-0 items-center gap-2']}>
+          {step.dot !== undefined && (
+            <span aria-hidden="true" class:list={['size-2 shrink-0 rounded-full', step.dot]} />
+          )}
+          <span class="min-w-0 truncate">
+            <Bidi text={step.name} lang={lang} />
+          </span>
+        </a>
+        {/* Below md the current page is left out, and the last step's arrow with it. */}
+        <Next
+          size={14}
+          stroke-width={2}
+          aria-hidden="true"
+          class:list={['shrink-0 text-ink-3', index === steps.length - 1 && 'max-md:hidden']}
+        />
+      </li>
+    ))}
+    <li
+      aria-current="page"
+      class:list={['min-w-0 truncate font-semibold text-ink', steps.length > 0 && 'max-md:hidden']}
+    >
+      <Bidi text={current} lang={lang} />
+    </li>
+  </ol>
+</nav>

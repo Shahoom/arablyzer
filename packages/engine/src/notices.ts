@@ -30,6 +30,38 @@ export type NoticeCode =
   | 'crux-not-found'
   | 'crux-failed'
   | 'crux-refused'
+  | 'safe-browsing-no-key'
+  | 'safe-browsing-private'
+  | 'safe-browsing-failed'
+  | 'safe-browsing-refused'
+  | 'knowledge-graph-no-key'
+  | 'knowledge-graph-private'
+  | 'knowledge-graph-failed'
+  | 'knowledge-graph-refused'
+  | 'open-page-rank-no-key'
+  | 'open-page-rank-private'
+  | 'open-page-rank-failed'
+  | 'open-page-rank-refused'
+  | 'search-not-found'
+  | 'search-robots'
+  | 'search-unreachable'
+  | 'search-no-words'
+  | 'lookalikes-failed'
+  | 'lookalikes-ct'
+  | 'pdfs-none'
+  | 'pdfs-unread'
+  | 'suggest-off'
+  | 'suggest-no-terms'
+  | 'suggest-failed'
+  | 'suggest-stopped'
+  | 'ai-visibility-off'
+  | 'ai-visibility-no-questions'
+  | 'ai-visibility-failed'
+  | 'ai-visibility-refused'
+  | 'ai-visibility-provider'
+  | 'crux-countries-off'
+  | 'crux-countries-failed'
+  | 'crux-countries-too-big'
   | 'lab-failed'
   | 'lab-timeout'
   | 'lab-unavailable'
@@ -219,6 +251,134 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'crux-not-found': {
     ar: 'ليس عند Google (CrUX) بيانات عن زوار هذه الصفحة ولا موقعها، وهذا حال كثير من المواقع قليلة الزيارات، فلا تنطبق فحوص سرعة الزوار الحقيقيين.',
     en: "Google (CrUX) has no data on visitors to this page or its site, as for many sites with fewer visits, so the checks of real visitors' speed do not apply.",
+  },
+  'safe-browsing-no-key': {
+    ar: 'فحص قوائم Google للتصفح الآمن (Safe Browsing) يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.',
+    en: "The check against Google's Safe Browsing lists needs a key this scan was not given, so it did not run.",
+  },
+  'safe-browsing-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Google (Safe Browsing) عنها.',
+    en: 'The page is on a local or private address, so Google (Safe Browsing) was not asked about it.',
+  },
+  'safe-browsing-failed': {
+    ar: 'تعذّر الحصول على جواب Google (Safe Browsing)، فلم يعمل فحص قوائم التصفح الآمن، ولا يعني ذلك أن الصفحة سليمة أو مصابة.',
+    en: 'Google (Safe Browsing) did not give an answer, so the check against its lists did not run. That says nothing of whether the page is safe.',
+  },
+  'safe-browsing-refused': {
+    ar: 'رفضت Google (Safe Browsing) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Safe Browsing API، فلم يعمل الفحص.',
+    en: 'Google (Safe Browsing) refused the request, most often for an API key that is not valid or not enabled for the Safe Browsing API, so the check could not run.',
+  },
+  'knowledge-graph-no-key': {
+    ar: 'فحص حضور العلامة في Knowledge Graph من Google يحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم يعمل.',
+    en: "The check of the brand in Google's Knowledge Graph needs a key this scan was not given, so it did not run.",
+  },
+  'knowledge-graph-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Google (Knowledge Graph) عن اسم علامتها.',
+    en: "The page is on a local or private address, so Google (Knowledge Graph) was not asked about its brand's name.",
+  },
+  'knowledge-graph-failed': {
+    ar: 'تعذّر الحصول على جواب Google (Knowledge Graph)، فلم يعمل فحص حضور العلامة.',
+    en: 'Google (Knowledge Graph) did not give an answer, so the check of the brand did not run.',
+  },
+  'knowledge-graph-refused': {
+    ar: 'رفضت Google (Knowledge Graph) الطلب، وأكثر ما يكون ذلك لمفتاح API غير صالح أو غير مفعّل لـ Knowledge Graph Search API، فلم يعمل الفحص.',
+    en: 'Google (Knowledge Graph) refused the request, most often for an API key that is not valid or not enabled for the Knowledge Graph Search API, so the check could not run.',
+  },
+  'open-page-rank-no-key': {
+    ar: 'قوة النطاق تُقرأ من Open PageRank وتحتاج مفتاحاً لم يُعطَ لهذا الفحص، فلم تُعرض.',
+    en: "The domain's authority is read from Open PageRank, which needs a key this scan was not given, so it is not shown.",
+  },
+  'open-page-rank-private': {
+    ar: 'الصفحة على عنوان محلي أو خاص، فلم نسأل Open PageRank عن نطاقها.',
+    en: 'The page is on a local or private address, so Open PageRank was not asked about its domain.',
+  },
+  'open-page-rank-failed': {
+    ar: 'تعذّر الحصول على جواب Open PageRank، فلا تُعرض قوة النطاق.',
+    en: "Open PageRank did not give an answer, so the domain's authority is not shown.",
+  },
+  'open-page-rank-refused': {
+    ar: 'رفضت Open PageRank الطلب، وأكثر ما يكون ذلك لمفتاح غير صالح، فلا تُعرض قوة النطاق.',
+    en: "Open PageRank refused the request, most often for a key that is not valid, so the domain's authority is not shown.",
+  },
+  'search-not-found': {
+    ar: 'لم نجد في الصفحة بحثًا نسأله: لا نموذج بحث بطريقة GET في موقعها نفسه، ولا منصة نعرف عنوان بحثها.',
+    en: 'We found no search on the page to ask: no GET search form on its own site, and no platform whose search address we know.',
+  },
+  'search-robots': {
+    ar: 'يمنع ملف robots.txt في الموقع زاحفنا ArablyzerBot من صفحات البحث، فلم نرسل إليها شيئًا، واحترمنا ذلك.',
+    en: "The site's robots.txt keeps our crawler ArablyzerBot from its search pages, so we sent them nothing, as it asks.",
+  },
+  'search-unreachable': {
+    ar: 'لم نستطع قراءة جواب بحث الموقع، فلم نختبر الإملاءات: ردّ البحث على استعلام لا معنى له بخطأ أو بغير صفحة.',
+    en: "We could not read an answer from the site's search, so no spelling was tested: it answered a query that means nothing with an error or no page.",
+  },
+  'search-no-words': {
+    ar: 'وجدنا بحث الموقع، لكن ليس في الصفحة كلمات عربية من نصها نسأله عنها، فلم نختبر شيئًا.',
+    en: "We found the site's search, but the page has no Arabic words of its own to ask it for, so nothing was tested.",
+  },
+  'lookalikes-failed': {
+    ar: 'لم يصل جواب أي استعلام DNS عن الدومينات الشبيهة، فلا نعرف أيها مسجَّل. حاول بعد قليل.',
+    en: 'None of the DNS lookups for the look-alike domains was answered, so we do not know which are registered. Try again shortly.',
+  },
+  'lookalikes-ct': {
+    ar: 'لم يردّ سجلّ الشهادات (Certificate Transparency) على بعض الأسماء، أو بلغنا حدّ ما نسأله عنه، فتواريخ أول شهادة ناقصة لبعض الدومينات.',
+    en: 'The Certificate Transparency log did not answer for some names, or we reached the limit of what we ask it, so the first-certificate date is missing for some domains.',
+  },
+  'pdfs-none': {
+    ar: 'لا رابط إلى ملف PDF في الصفحة، فلم نفحص شيئاً.',
+    en: 'The page links to no PDF file, so nothing was checked.',
+  },
+  'pdfs-unread': {
+    ar: 'لم نستطع قراءة بعض ملفات PDF المرتبطة بالصفحة: يمنعنا robots.txt من جلبها، أو أكبر من 15 ميغابايت، أو مشفَّرة، أو ليست PDF، أو لم يردّ الخادم. تجد السبب بجانب كل ملف.',
+    en: 'Some PDFs the page links could not be read: robots.txt keeps us from fetching them, they are over 15 MB, they are encrypted, they are not PDFs, or the server did not answer. The reason is beside each file.',
+  },
+  'suggest-off': {
+    ar: 'فحص أخطاء البحث الشائعة مطفأ في هذا الخادم: يسأل نقطة الاقتراحات العامة لدى جوجل، وهي غير موثَّقة للاستعمال الآلي، فلا يفعّلها إلا المشغِّل (ARABLYZER_SUGGEST=1).',
+    en: 'The common search misspellings check is off on this server: it asks Google’s public suggestion endpoint, which is not documented for automated use, so only the operator turns it on (ARABLYZER_SUGGEST=1).',
+  },
+  'suggest-no-terms': {
+    ar: 'لم نجد في عنوان h1 ولا في عنوان الصفحة كلمات عربية رئيسية نولّد أخطاءها، فلم نختبر شيئاً.',
+    en: 'We found no Arabic key words in the h1 or the title to make misspellings of, so nothing was tested.',
+  },
+  'suggest-failed': {
+    ar: 'لم تردّ نقطة الاقتراحات لدى جوجل بجواب نقرؤه، فلا نعرف أي الأخطاء يكتبها الناس.',
+    en: 'Google’s suggestion endpoint gave no answer we could read, so we do not know which misspellings people type.',
+  },
+  'suggest-stopped': {
+    ar: 'توقفت نقطة الاقتراحات عن الردّ في منتصف الفحص، فلم نسأل عن بعض الأخطاء.',
+    en: 'The suggestion endpoint stopped answering part-way, so some misspellings were not asked about.',
+  },
+  'ai-visibility-off': {
+    ar: 'فحص الظهور في الذكاء الاصطناعي مطفأ في هذا الخادم: لا مفتاح لأي من OpenAI وGemini وPerplexity وClaude، ولا نرسل شيئاً إلى أحد منها بدون مفتاح.',
+    en: 'The AI visibility check is off on this server: it has no key for OpenAI, Gemini, Perplexity or Claude, and we send nothing to any of them without one.',
+  },
+  'ai-visibility-no-questions': {
+    ar: 'لم نستطع تكوين أسئلة عربية من عنوان الصفحة وعنوانها الرئيسي، فلم نسأل المساعدين.',
+    en: 'We could not make Arabic questions from the page’s title and main heading, so we asked no assistant.',
+  },
+  'ai-visibility-failed': {
+    ar: 'لم يردّ أي مساعد بجواب نقرؤه، فلا نعرف إن كان موقعك يظهر في إجاباتهم.',
+    en: 'No assistant gave an answer we could read, so we do not know whether your site appears in their answers.',
+  },
+  'ai-visibility-refused': {
+    ar: 'رفض المزوّد مفتاح الخادم ({providers})، فلم نحصل على أي جواب. على المشغِّل أن يراجع المفتاح.',
+    en: 'The provider refused the server’s key ({providers}), so no answer came back. The operator should check the key.',
+  },
+  'ai-visibility-provider': {
+    ar: 'لم يكتمل السؤال لدى بعض المساعدين: {providers}. نعرض ما وصلنا منهم.',
+    en: 'The questions did not complete at some assistants: {providers}. We show what came back.',
+  },
+  'crux-countries-off': {
+    ar: 'فحص بيانات Chrome لكل بلد مطفأ في هذا الخادم: يقرأ جداول CrUX في BigQuery، وتحتاج إلى حساب خدمة (ARABLYZER_BIGQUERY_CREDENTIALS) ومشروع (ARABLYZER_BIGQUERY_PROJECT) يدفع ثمن الاستعلام.',
+    en: 'The per-country Chrome data check is off on this server: it reads the CrUX tables in BigQuery, which needs a service account (ARABLYZER_BIGQUERY_CREDENTIALS) and a project (ARABLYZER_BIGQUERY_PROJECT) to pay for the query.',
+  },
+  'crux-countries-failed': {
+    ar: 'لم يردّ BigQuery بجواب نقرؤه عن جداول CrUX للشهرين الأخيرين، فلا نعرف بيانات الدول. قد يكون مفتاح الحساب غير صالح أو ينقصه صلاحية، أو الجداول لم تُنشر بعد.',
+    en: 'BigQuery gave no answer we could read for the CrUX tables of the last two months, so we do not know the countries’ data. The account key may be invalid or lack a permission, or the tables may not be published yet.',
+  },
+  'crux-countries-too-big': {
+    ar: 'كان الاستعلام سيقرأ نحو {bytes} غيغابايت وسقف الفحص {cap} غيغابايت، فلم نشغّله ولم يُحاسَب عليه شيء. يرفع المشغِّل السقف بالمتغير ARABLYZER_BIGQUERY_MAX_BYTES.',
+    en: 'The query would have read about {bytes} GB and the cap for a scan is {cap} GB, so we did not run it and nothing was billed. The operator raises the cap with ARABLYZER_BIGQUERY_MAX_BYTES.',
   },
   'lab-failed': {
     ar: 'تعذّر قياس الصفحة بـ Lighthouse، فليس في التقرير قياساته.',

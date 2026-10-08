@@ -238,9 +238,27 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['lighthouse', 'chrome-launcher'] }),
   },
   {
+    // The knowledge hub and the content pages driven in the browsers (M2.6 R5): the site's own
+    // pages on loopback, and every request off the site refused.
+    files: ['apps/web/test/browser/knowledge.browser.test.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
+    // The monthly benchmark: the owner's `bq` command line asked for two BigQuery queries; it opens
+    // no connection of its own and fetches no page.
+    files: ['apps/web/scripts/httparchive-benchmark.ts'],
+    rules: networkRules({ allowProcesses: true }),
+  },
+  {
     // The site's Open Graph images, drawn by Chromium at build (M2.4c): the card's own HTML,
     // inline fonts, and every request refused.
     files: ['apps/web/scripts/og-images.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
+    // The home page after the owner's review (M2.6 R7), driven in the browsers: the site's own
+    // pages on loopback, and every request off the site refused.
+    files: ['apps/web/test/browser/home-r7.browser.test.ts'],
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
@@ -250,9 +268,35 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {
+    // The tools' directory and the tool pages' own parts driven in the browsers (M2.6 R3), the
+    // heads of the pages and the contrast of their text as one system (R6), and the shared layer
+    // of R7 (the header, the scale, the two columns, the footer): the site's own pages on
+    // loopback, and every request off the site refused.
+    files: [
+      'apps/web/test/browser/directory.browser.test.ts',
+      'apps/web/test/browser/tool-page.browser.test.ts',
+      'apps/web/test/browser/heads.browser.test.ts',
+      'apps/web/test/browser/contrast.browser.test.ts',
+      'apps/web/test/browser/shared-layer.browser.test.ts',
+      'apps/web/test/browser/xray.browser.test.ts',
+      'apps/web/test/browser/native2.browser.test.ts',
+    ],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
     // The generators and the paste tool driven in the browsers (M2.3b): the site's own pages on
     // loopback, and every request off the site refused.
     files: ['apps/web/test/browser/generators.browser.test.ts'],
+    rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
+  },
+  {
+    // The report page drawn in the browsers (M2.6 R4): the site's own pages on loopback, the API's
+    // answers the test's, and every request off the site refused.
+    files: [
+      'apps/web/test/browser/report-layout.browser.test.ts',
+      // The Search Console card on the report page: the same, Chromium alone.
+      'apps/web/test/browser/gsc.browser.test.ts',
+    ],
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },
   {

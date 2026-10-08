@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url'
 import {
   ARABIC_BLOCKS,
   collectCrux,
+  collectKnowledgeGraph,
+  collectSafeBrowsing,
   collectPage,
   collectRobots,
   collectSitemap,
@@ -13,6 +15,8 @@ import {
   sitemapTargets,
   txtLookup,
   type CruxFacts,
+  type KnowledgeGraphFacts,
+  type SafeBrowsingFacts,
   type DnsFacts,
   type LinkAnswer,
   type LinkCheck,
@@ -32,16 +36,21 @@ import {
 } from '@arablyzer/collectors'
 import {
   answerCrux,
+  answerKnowledgeGraph,
+  answerSafeBrowsing,
   certificateWindow,
   fixtureTxt,
   loadFixtureConfig,
   type CruxData,
+  type KnowledgeGraphData,
+  type SafeBrowsingData,
   loadSiteConfig,
   resolveFixtureResponse,
   type FixtureConfig,
   type SiteConfig,
 } from '@arablyzer/fixtures'
 import type { Redirect } from '@arablyzer/report-schema'
+import { brandName } from '../src/lib/brand'
 import { isLocalHost, isPublicUrl } from '../src/lib/hosts'
 import type { DetectorFinding, Evidence, Rule } from '../src/rule'
 
@@ -143,6 +152,13 @@ export async function fixtureEvidence(
     ...(sitemap === undefined ? {} : { sitemap }),
     // CrUX's answers as the engine asks for them: the URL, then the origin when it has none.
     ...(site.crux === undefined ? {} : { crux: cruxOf(site.crux, url) }),
+    // Safe Browsing's answer for the page's URL and origin, as the engine asks.
+    ...(site.safeBrowsing === undefined
+      ? {}
+      : { safeBrowsing: safeBrowsingOf(site.safeBrowsing, url) }),
+    ...(site.knowledgeGraph === undefined
+      ? {}
+      : { knowledgeGraph: knowledgeGraphOf(site.knowledgeGraph, facts) }),
     ...dnsOf(site, url, txtNames),
     links: await linksOf(root, config, names, facts),
   }
@@ -238,6 +254,24 @@ function cruxOf(data: CruxData, pageUrl: string): CruxFacts {
     : collectCrux({ url })
 }
 
+/** What the engine would read from the Safe Browsing stand-in for a fixture site's page. */
+function safeBrowsingOf(data: SafeBrowsingData, pageUrl: string): SafeBrowsingFacts {
+  const origin = `${new URL(pageUrl).origin}/`
+  const query = { threatInfo: { threatEntries: [{ url: pageUrl }, { url: origin }] } }
+  return collectSafeBrowsing(answerSafeBrowsing(data, query, 'fixture-key'))
+}
+
+/**
+ * What the engine would read from the Knowledge Graph stand-in for a fixture site's page: the
+ * brand's name as the page gives it, asked in both languages.
+ */
+function knowledgeGraphOf(data: KnowledgeGraphData, page: PageFacts): KnowledgeGraphFacts {
+  const found = brandName(page)
+  if (found === null) return { outcome: 'no-name', brand: null, entities: [] }
+  const ask = (lang: 'ar' | 'en') => answerKnowledgeGraph(data, lang, 'fixture-key')
+  return collectKnowledgeGraph({ brand: found.name, ar: ask('ar'), en: ask('en') })
+}
+
 function headerList(headers: Record<string, string | string[]>): Header[] {
   return Object.entries(headers).flatMap(([name, value]) =>
     (Array.isArray(value) ? value : [value]).map((item): Header => [name, item]),
@@ -329,11 +363,14 @@ export function renderedFacts(
     fontFacesOmitted: 0,
     fontRequests: [],
     arabicFontCoverage: [],
+    webFonts: [],
     stylesheets: { read: 0, unread: 0, physical: [] },
     ...(engine === 'chromium' ? { usedFonts: [] } : {}),
     bidi: [],
     fields: [],
     directionIcons: [],
+    riyalSigns: [],
+    roleIcons: [],
     compression: { checked: 0, uncompressed: [] },
     images: [],
     a11y: null,

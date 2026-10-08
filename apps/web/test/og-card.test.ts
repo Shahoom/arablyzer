@@ -18,7 +18,7 @@ describe('tokensFrom', () => {
   it("reads the card's colours from the site's tokens, so a redesign redraws the cards", () => {
     expect(TOKENS.ink).toMatch(/^#[0-9a-f]{6}$/i)
     expect(TOKENS.signal).toMatch(/^#[0-9a-f]{6}$/i)
-    expect(() => tokensFrom(':root{}')).toThrow(/--color-paper/)
+    expect(() => tokensFrom(':root{}')).toThrow(/--color-bg/)
   })
 })
 
@@ -64,6 +64,9 @@ describe('pageText and kickerOf', () => {
       kickerCode: true,
     })
     expect(kickerOf({ path: '/en/tools', file: '', lang: 'en' }).kicker).toBe('Tools')
+    // The knowledge hub's card says what the section is called in the header.
+    expect(kickerOf({ path: '/knowledge', file: '', lang: 'ar' }).kicker).toBe('المعرفة')
+    expect(kickerOf({ path: '/en/knowledge', file: '', lang: 'en' }).kicker).toBe('Knowledge')
     expect(() => kickerOf({ path: '/somewhere', file: '', lang: 'ar' })).toThrow(/add one/)
   })
 })

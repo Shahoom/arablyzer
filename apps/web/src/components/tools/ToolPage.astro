@@ -4,19 +4,24 @@ import { breadcrumbList, webApplication } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
-import ChevronLeft from '@lucide/astro/icons/chevron-left'
-import ChevronRight from '@lucide/astro/icons/chevron-right'
+import Plus from '@lucide/astro/icons/plus'
 import X from '@lucide/astro/icons/x'
 import HreflangGenerator from '../../islands/generators/HreflangGenerator'
 import RobotsTester from '../../islands/generators/RobotsTester'
 import SchemaGenerator from '../../islands/generators/SchemaGenerator'
 import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
 import ToolApp from '../../islands/ToolApp'
+import ToolResult from '../../islands/ToolResult'
 import Page from '../../layouts/Page.astro'
+import { HEAD } from '../../lib/heads'
 import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
-import { TOOLS_DATA, toolData } from '../../lib/tool-data'
+import { CATEGORY_STYLE, TOOLS_DATA, toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
+import Breadcrumb from '../Breadcrumb.astro'
+import PageColumns from '../PageColumns.astro'
 import SeverityPill from '../SeverityPill.astro'
+import ToolCard from './ToolCard.astro'
+import ToolSection from './ToolSection.astro'
 
 interface Props {
   lang: Lang
@@ -32,11 +37,7 @@ const path = PATHS.tool(slug)
 const url = pageUrl(site, lang, path)
 const toolsPath = localePath(lang, PATHS.tools)
 const category = t.categories[tool.category].name
-const Next = lang === 'ar' ? ChevronLeft : ChevronRight
-const near = tool.related.map((other) => ({
-  href: localePath(lang, PATHS.tool(other)),
-  title: toolData(other).copy[lang].title,
-}))
+const dot = CATEGORY_STYLE[tool.category].dot
 const jsonLd = [
   webApplication({ name: copy.title, description: copy.description, url, lang }),
   // From the home page, as the directory's: a search result shows this trail.
@@ -46,7 +47,32 @@ const jsonLd = [
     { name: copy.title, url },
   ]),
 ]
-const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
+// What the tool's island is given: its name for the label of its box, and its category's colour.
+const boxed = { lang, tool: slug, title: copy.title, dot }
+// A tool that checks a page is a small box (the address and its button) that sits in the aside of
+// the page, sticking beside the text, with its result at the head of the main column. A generator
+// or the paste tool has fields and an output that want the main column's width, so it is the
+// first thing in that column, and the aside holds the page's contents alone.
+const scan = tool.kind === 'scan'
+// The sections the aside lists, in the page's order.
+const contents = [
+  { id: 'checks', title: headings.checks },
+  { id: 'example', title: headings.example },
+  { id: 'fix', title: headings.fix },
+  { id: 'faq', title: headings.faq },
+  { id: 'links', title: t.page.runs },
+  { id: 'about', title: t.page.measure },
+]
+// A question's answer opens and closes (the script below): the heading is a button, the answer
+// the panel after it, as the ARIA authoring practices have it. The methodology is the same.
+// Its focus ring is drawn inside the button: the card clips whatever is drawn outside it.
+const toggle =
+  'group heading-3 flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 px-card py-3 text-start text-ink focus-visible:outline-offset-[-3px]'
+const plus =
+  'grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-2 transition-[transform,background-color] duration-200 group-aria-expanded:rotate-45 group-aria-expanded:bg-indigo-soft group-aria-expanded:text-indigo-ink'
+const accordion = 'card overflow-hidden'
+// The links of a row of the page's small print: a 44 px target.
+const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 hover:text-brand-ink'
 ---
 
 <Page
@@ -56,38 +82,49 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
   description={copy.description}
   jsonLd={jsonLd}
 >
-  <div class="tool-layout px-5 pt-7 pb-16 md:px-16 md:pt-10 md:pb-[88px]">
-    <div class="tool-main flex min-w-0 flex-col gap-12 md:gap-14">
-      <div class="flex flex-col gap-5 md:gap-[22px]">
-        <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
-          <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
-            <li class="flex items-center gap-2">
-              <a href={toolsPath} class="text-ink-3 hover:text-signal">
-                {t.directory.title}
-              </a>
-              <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
-            </li>
-            <li>
-              <a href={`${toolsPath}#cat-${tool.category}`} class="text-ink-3 hover:text-signal">
-                {category}
-              </a>
-            </li>
-          </ol>
-        </nav>
-        <h1 class="m-0 text-[32px] leading-[1.25] font-semibold text-balance md:text-[52px] md:leading-[1.2]">
-          {copy.title}
-        </h1>
-        <p class="m-0 max-w-[720px] text-base leading-[1.75] text-ink-2 md:text-[19px] md:leading-[1.8]">
-          {copy.description}
-        </p>
+  {/* The head is a div, not a section: the site audit wants no section and no h2 before the tool's
+      form, and the h1 followed by its description. */}
+  <div class="relative isolate border-b border-line">
+    <div aria-hidden="true" class="page-wash"></div>
+    <div class:list={['wrap flex flex-col gap-4 lg:gap-5', HEAD.padding]}>
+      <Breadcrumb
+        lang={lang}
+        label={t.page.breadcrumb}
+        steps={[
+          { name: t.directory.title, href: toolsPath },
+          { name: category, href: `${toolsPath}#cat-${tool.category}`, dot },
+        ]}
+        current={copy.title}
+      />
+      <h1 class={HEAD.page}>
+        <Bidi text={copy.title} lang={lang} />
+      </h1>
+      {/* The lead is the tool's question (its card's line), one or two lines on a phone; the longer
+          description is the page's meta description and its structured data. A Latin name with a
+          hyphen, such as JSON-LD, is not broken at it: it is one name. */}
+      <p class:list={[HEAD.lead, 'bidi-whole']}>
+        <Bidi text={copy.summary} lang={lang} />
+      </p>
+    </div>
+  </div>
+
+  {/* The document's order is the audit's (BUILD-PLAN §6.1): the tool before every section, then the
+      sections, the rules and the nearby tools, and the methodology last. A scan tool's aside is
+      first in it, and a phone shows it first: the box is right under the lead. */}
+  <PageColumns
+    asideFirst={scan}
+    asideAs="div"
+    class:list={[HEAD.bodyTop, 'pb-section', !scan && 'max-lg:[&>.page-aside]:hidden']}
+  >
+    <Fragment slot="aside">
+      <div class="flex flex-col gap-6">
         {/* One island per tool, started when the browser is idle or after half a second at most: a
             busy page, such as CI's Chromium, may never be idle, and the tool waits for its island.
             Astro hydrates only islands it can name. */}
-        {tool.kind === 'scan' && (
+        {scan && (
           <ToolApp
             client:idle={{ timeout: 500 }}
-            lang={lang}
-            tool={slug}
+            {...boxed}
             reportsOnly={tool.reportsOnly}
             reads={
               tool.renders
@@ -96,209 +133,250 @@ const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[30px]'
                     tool.tag === 'dns' ||
                     tool.tag === 'links' ||
                     tool.tag === 'sitemap' ||
-                    tool.tag === 'crux'
+                    tool.tag === 'crux' ||
+                    tool.tag === 'search' ||
+                    tool.tag === 'outside'
                   ? tool.tag
                   : 'html'
             }
+            readsLabel={t.tags[tool.tag]}
           />
         )}
-        {slug === 'whatsapp-link-generator' && (
-          <WhatsAppGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
-        )}
-        {slug === 'hreflang-generator' && (
-          <HreflangGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
-        )}
-        {slug === 'schema-generator' && (
-          <SchemaGenerator client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
-        )}
-        {slug === 'robots-tester' && (
-          <RobotsTester client:idle={{ timeout: 500 }} lang={lang} tool={slug} />
-        )}
+        <nav aria-label={t.page.contents} class="hidden lg:block">
+          <p aria-hidden="true" class="m-0 pb-2 text-meta font-semibold text-ink-3">
+            {t.page.contents}
+          </p>
+          <ul class="m-0 flex list-none flex-col border-s border-line p-0">
+            {contents.map((item) => (
+              <li>
+                <a
+                  href={`#${item.id}`}
+                  class="-ms-px block border-s-2 border-transparent py-1.5 ps-3 text-small text-ink-2 hover:border-brand hover:text-ink"
+                >
+                  {item.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
+    </Fragment>
 
-      <section id="checks" aria-labelledby="checks-title" class="flex flex-col gap-4 md:gap-[18px]">
-        <h2 id="checks-title" class={heading}>
-          {headings.checks}
-        </h2>
-        <ul class="prose-tool m-0 flex flex-col gap-2.5 ps-[22px] text-base leading-[1.8] text-ink-2 md:text-[17px]">
-          {copy.checks.map((item) => (
-            <li set:html={item} />
-          ))}
-        </ul>
-      </section>
+    <div class="flex flex-col gap-section">
+      {scan && (
+        <ToolResult client:idle={{ timeout: 500 }} lang={lang} reportsOnly={tool.reportsOnly} />
+      )}
+      {slug === 'whatsapp-link-generator' && (
+        <WhatsAppGenerator client:idle={{ timeout: 500 }} {...boxed} />
+      )}
+      {slug === 'hreflang-generator' && (
+        <HreflangGenerator client:idle={{ timeout: 500 }} {...boxed} />
+      )}
+      {slug === 'schema-generator' && <SchemaGenerator client:idle={{ timeout: 500 }} {...boxed} />}
+      {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
 
-      <section
-        id="example"
-        aria-labelledby="example-title"
-        class="flex flex-col gap-4 md:gap-[18px]"
-      >
-        <h2 id="example-title" class={heading}>
-          {headings.example}
-        </h2>
-        <div class="grid gap-4 md:grid-cols-2">
+      <ToolSection id="checks" title={headings.checks}>
+        <div class="card p-card">
+          <ul class="checks m-0 flex list-none flex-col gap-3 p-0">
+            {copy.checks.map((item) => (
+              <li class="flex items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-pass-soft text-pass"
+                >
+                  <Check size={14} stroke-width={2.6} />
+                </span>
+                <span class="prose-tool text-body text-ink-2" set:html={item} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </ToolSection>
+
+      <ToolSection id="example" title={headings.example}>
+        <div class="grid gap-3 md:grid-cols-2">
           {(['wrong', 'right'] as const).map((kind) => (
-            <figure class="m-0 flex min-w-0 flex-col border border-rule-strong bg-white">
-              <figcaption
-                class:list={[
-                  'flex items-center gap-2 border-b border-rule-soft px-4 py-2.5 text-sm font-semibold',
-                  kind === 'wrong' ? 'text-signal' : 'text-pass',
-                ]}
-              >
-                {kind === 'wrong' ? (
-                  <X size={14} stroke-width={2.6} aria-hidden="true" />
-                ) : (
-                  <Check size={14} stroke-width={2.6} aria-hidden="true" />
-                )}
-                {headings[kind]}
+            <figure class="card m-0 flex min-w-0 flex-col overflow-hidden">
+              <figcaption class="flex items-center px-card py-2.5">
+                <span class:list={['sev gap-1.5', kind === 'wrong' ? 'sev-serious' : 'sev-pass']}>
+                  {kind === 'wrong' ? (
+                    <X size={13} stroke-width={2.6} aria-hidden="true" />
+                  ) : (
+                    <Check size={13} stroke-width={2.6} aria-hidden="true" />
+                  )}
+                  {headings[kind]}
+                </span>
               </figcaption>
               <pre
                 dir="ltr"
                 tabindex="0"
-                class="m-0 overflow-x-auto px-4 py-[18px] text-start font-mono text-[13px] leading-[1.7] md:text-sm"
+                class:list={[
+                  'ex-code panel-dark m-0 grow overflow-x-auto p-card text-start font-mono text-meta leading-[1.7] text-panel-soft md:text-small',
+                  kind === 'wrong' ? 'ex-wrong' : 'ex-right',
+                ]}
                 set:html={copy.example[kind].html}
               />
             </figure>
           ))}
         </div>
-      </section>
+      </ToolSection>
 
-      <section id="fix" aria-labelledby="fix-title" class="flex flex-col gap-4 md:gap-[18px]">
-        <h2 id="fix-title" class={heading}>
-          {headings.fix}
-        </h2>
-        <div
-          class="prose-fix prose-tool text-base leading-[1.8] text-ink-2 md:text-[17px]"
-          set:html={copy.fix}
-        />
-      </section>
+      <ToolSection id="fix" title={headings.fix}>
+        <div class="card p-card">
+          <div class="prose-fix prose-tool text-body text-ink-2" set:html={copy.fix} />
+        </div>
+      </ToolSection>
 
-      <section id="faq" aria-labelledby="faq-title" class="flex flex-col">
-        <h2 id="faq-title" class:list={[heading, 'mb-3']}>
-          {headings.faq}
-        </h2>
-        {copy.faq.map((entry, index) => (
-          <div
-            class:list={[
-              'flex flex-col gap-3 py-[18px]',
-              index === 0 ? 'border-t border-ink' : 'border-t border-rule',
-              index === copy.faq.length - 1 && 'border-b border-rule',
-            ]}
-          >
-            <h3 class="m-0 text-lg leading-snug font-semibold" set:html={entry.question} />
-            <div
-              class="prose-fix prose-tool text-base leading-[1.8] text-ink-2"
-              set:html={entry.answer}
-            />
-          </div>
-        ))}
-      </section>
-    </div>
+      <ToolSection id="faq" title={headings.faq}>
+        <div class="flex flex-col gap-3">
+          {copy.faq.map((entry, index) => (
+            <div class={accordion} data-accordion>
+              <h3 class="m-0">
+                <button
+                  type="button"
+                  id={`faq-q-${index}`}
+                  aria-expanded="true"
+                  aria-controls={`faq-a-${index}`}
+                  class={toggle}
+                >
+                  <span set:html={entry.question} />
+                  <span aria-hidden="true" class={plus}>
+                    <Plus size={16} stroke-width={2.2} />
+                  </span>
+                </button>
+              </h3>
+              <div
+                id={`faq-a-${index}`}
+                class="prose-fix prose-tool px-card pb-4 text-body text-ink-2"
+                set:html={entry.answer}
+              />
+            </div>
+          ))}
+        </div>
+      </ToolSection>
 
-    <aside class="tool-aside flex min-w-0 flex-col gap-4">
-      <section id="links" aria-labelledby="runs-title" class="flex flex-col gap-4">
-        <div class="flex flex-col gap-3 border border-rule-strong bg-white p-[22px]">
-          <h2 id="runs-title" class="m-0 text-sm font-semibold text-ink-3">
-            {t.page.runs}
-          </h2>
-          <ul class="m-0 flex list-none flex-col gap-5 p-0">
+      <ToolSection id="links" title={t.page.runs}>
+        <div class="card overflow-hidden">
+          <ul class="m-0 flex list-none flex-col p-0">
             {tool.rules.map((rule) => (
-              <li class="flex flex-col gap-1.5">
-                <code dir="ltr" class="self-start font-mono text-sm text-ink-2">
-                  {rule.id}
-                </code>
+              <li class="flex flex-col border-t border-line px-card first:border-t-0 md:flex-row md:items-center md:gap-3">
                 <a
                   href={localePath(lang, PATHS.rule(rule.id))}
-                  class="text-base leading-[1.6] font-semibold underline decoration-tick underline-offset-4 hover:text-signal"
+                  class="bidi-whole block min-w-0 grow py-2 text-body font-semibold underline decoration-line-2 underline-offset-4 hover:text-brand-ink md:py-3"
                 >
                   <Bidi text={rule.title[lang]} lang={lang} />
                 </a>
-                <span class="self-start">
+                <span class="flex min-w-0 flex-wrap items-center gap-2 pb-3 md:shrink-0 md:flex-nowrap md:pb-0">
                   <SeverityPill severity={rule.severity} lang={lang} />
+                  <code
+                    dir="ltr"
+                    class="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-meta text-ink-2"
+                  >
+                    {rule.id}
+                  </code>
                 </span>
               </li>
             ))}
           </ul>
         </div>
-        {near.length > 0 && (
-          <nav
-            aria-labelledby="near-title"
-            class="flex flex-col gap-1 border border-rule-strong bg-white p-[22px]"
-          >
-            <h2 id="near-title" class="m-0 mb-2 text-sm font-semibold text-ink-3">
+        {tool.related.length > 0 && (
+          <nav aria-labelledby="near-title" class="flex flex-col gap-3 pt-2">
+            <h3 id="near-title" class="heading-3 m-0">
               {t.page.near}
-            </h2>
-            {near.map((other, index) => (
-              <a
-                href={other.href}
-                class:list={[
-                  'flex items-center justify-between gap-3 py-2.5 text-base hover:text-signal',
-                  index < near.length - 1 && 'border-b border-rule-soft',
-                ]}
-              >
-                {other.title}
-                <Next size={16} stroke-width={2} aria-hidden="true" class="shrink-0" />
-              </a>
-            ))}
+            </h3>
+            <ul class="card m-0 flex list-none flex-col divide-y divide-line overflow-hidden p-0">
+              {tool.related.map((other) => (
+                <li>
+                  <ToolCard lang={lang} slug={other} />
+                </li>
+              ))}
+            </ul>
           </nav>
         )}
-      </section>
-    </aside>
+      </ToolSection>
 
-    <section
-      id="about"
-      aria-labelledby="about-title"
-      class="tool-about flex flex-col gap-3.5 border border-rule-strong bg-white p-6"
-    >
-      <h2 id="about-title" class="m-0 text-xl font-semibold">
-        {headings.methodology}
-      </h2>
-      <div
-        class="prose-fix prose-tool text-[15px] leading-[1.9] text-ink-2"
-        set:html={copy.methodology}
-      />
-      <p class="m-0 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-dashed border-tick pt-3.5 text-sm text-ink-2">
-        <span>
-          {t.page.updated}{' '}
-          <time datetime={tool.updated} dir="ltr" class="font-mono">
-            {tool.updated}
-          </time>
-        </span>
-        <a href={methodologyHref(lang)} class="underline underline-offset-4 hover:text-signal">
-          {t.page.methodology}
-        </a>
-        <a href={scanFormHref(lang)} class="underline underline-offset-4 hover:text-signal">
-          {t.page.fullScan}
-        </a>
-      </p>
-    </section>
-  </div>
+      <section id="about" aria-labelledby="about-title">
+        <div class={accordion} data-accordion>
+          <h2 id="about-title" class="m-0">
+            <button
+              type="button"
+              id="about-toggle"
+              aria-expanded="true"
+              aria-controls="about-panel"
+              class={toggle}
+            >
+              <span>{t.page.measure}</span>
+              <span aria-hidden="true" class={plus}>
+                <Plus size={16} stroke-width={2.2} />
+              </span>
+            </button>
+          </h2>
+          <div id="about-panel" class="flex flex-col gap-3 px-card pb-4">
+            <div class="prose-fix prose-tool text-small text-ink-2" set:html={copy.methodology} />
+            <p class="m-0 flex flex-wrap items-center gap-x-6 gap-y-0 border-t border-dashed border-line-2 pt-2 text-small text-ink-2">
+              <span>
+                {t.page.updated}{' '}
+                <time datetime={tool.updated} dir="ltr" class="font-mono">
+                  {tool.updated}
+                </time>
+              </span>
+              <a href={methodologyHref(lang)} class={quiet}>
+                {t.page.methodology}
+              </a>
+              <a href={scanFormHref(lang)} class={quiet}>
+                {t.page.fullScan}
+              </a>
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </PageColumns>
 </Page>
 
-<style>
-  .tool-layout {
-    display: grid;
-    gap: 3rem;
+<script>
+  // The questions and the methodology start folded and open one by one; without script they stay
+  // open, which is why their buttons say they are expanded until this runs.
+  for (const button of document.querySelectorAll<HTMLButtonElement>(
+    '[data-accordion] button[aria-controls]',
+  )) {
+    const panel = document.getElementById(button.getAttribute('aria-controls') ?? '')
+    if (panel === null) continue
+    const show = (open: boolean) => {
+      button.setAttribute('aria-expanded', String(open))
+      panel.hidden = !open
+    }
+    show(false)
+    button.addEventListener('click', () => {
+      show(button.getAttribute('aria-expanded') !== 'true')
+    })
   }
-  @media (min-width: 1024px) {
-    /* The design's twelve columns: the tool in eight, what it runs and its neighbours in four. */
-    .tool-layout {
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-      grid-template-areas:
-        'main aside'
-        'about aside';
-      column-gap: 56px;
-      row-gap: 56px;
-      align-items: start;
-    }
-    .tool-main {
-      grid-area: main;
-    }
-    .tool-aside {
-      grid-area: aside;
-      padding-block-start: 48px;
-    }
-    .tool-about {
-      grid-area: about;
-    }
+</script>
+
+<style>
+  /*
+   * The example's code is on the dark panel, where the highlighter's colours (made for a light
+   * ground, and pinned by test/code.test.ts) do not read: muted text, the wrong example's values
+   * and the right example's are redrawn in the panel's own tones, and each value is marked with a
+   * tint of its colour, as the artboards mark the line that matters.
+   */
+  .ex-code :global(.text-ink-3) {
+    color: var(--color-panel-dim);
+  }
+  .ex-wrong :global(.text-serious) {
+    color: var(--color-panel-signal);
+    background-color: rgb(251 146 60 / 0.16);
+    border-radius: 4px;
+  }
+  .ex-right :global(.text-pass) {
+    color: var(--color-panel-pass);
+    background-color: rgb(94 234 212 / 0.14);
+    border-radius: 4px;
+  }
+  /* Code in a check: the quiet chip the fix's code has. */
+  .checks :global(code) {
+    background-color: var(--color-surface-2);
+    border-radius: var(--radius-xs);
+    padding: 0.05rem 0.35rem;
   }
 </style>

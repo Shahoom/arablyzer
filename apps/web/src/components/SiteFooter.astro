@@ -1,7 +1,11 @@
 ---
+import { USER_AGENT } from '@arablyzer/engine/identity'
 import { SITE } from '@arablyzer/i18n'
+import { RULESET_VERSION } from '@arablyzer/rules/version'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
-import { CLOUDTOPIA, methodologyHref, NAV, otherLang, REPOSITORY } from '../lib/site'
+import { CLOUDTOPIA, methodologyHref, NAV, otherLang, REPOSITORY, scanFormHref } from '../lib/site'
+import { toolData } from '../lib/tool-data'
+import Bidi from './Bidi.astro'
 import Logo from './Logo.astro'
 
 interface Props {
@@ -13,92 +17,129 @@ interface Props {
 const { lang, path, keepId = false } = Astro.props
 const t = SITE[lang]
 const other = otherLang(lang)
+// The bot's product token, as sites see it in their logs: "ArablyzerBot/1.0".
+const bot = USER_AGENT.split(' ')[0]
+
+// The tools the footer names, by slug and in the tool's own title. toolData throws for a slug
+// that is gone, so a renamed tool breaks the build instead of leaving a dead link here.
+const POPULAR = [
+  'rtl-check',
+  'arabic-shaping-check',
+  'whatsapp-link-generator',
+  'robots-check',
+] as const
+const popular = POPULAR.map((slug) => ({
+  href: localePath(lang, PATHS.tool(slug)),
+  label: toolData(slug).copy[lang].title,
+}))
+
+// The columns, from pages that exist: the tools index, the sections the header lists (NAV, less
+// the tools), the glossary and the methodology, the bot's page, the code, and the other language.
+const columns = [
+  {
+    id: 'footer-product',
+    title: t.footer.product,
+    links: [
+      { href: scanFormHref(lang), label: t.footer.scan },
+      { href: localePath(lang, PATHS.tools), label: t.nav.tools },
+    ],
+  },
+  { id: 'footer-tools', title: t.footer.popularTools, links: popular },
+  {
+    id: 'footer-knowledge',
+    title: t.footer.knowledge,
+    links: [
+      ...NAV.filter((item) => item.key !== 'tools').map((item) => ({
+        href: localePath(lang, item.path),
+        label: t.nav[item.key],
+      })),
+      { href: localePath(lang, PATHS.glossary), label: t.footer.glossary },
+      { href: methodologyHref(lang), label: t.footer.methodology },
+    ],
+  },
+  {
+    id: 'footer-about',
+    title: t.footer.aboutHeading,
+    links: [
+      { href: localePath(lang, PATHS.bot), label: t.footer.bot },
+      { href: REPOSITORY, label: t.footer.github },
+    ],
+  },
+]
+// A link is at least 24 px tall, as WCAG 2.2 asks, in Latin type too (whose leading is shorter),
+// with a little room above and below it on a phone; on a desktop the list's gap is the room.
+const link =
+  'inline-flex min-h-6 items-center py-0.5 text-ink-2 underline-offset-4 hover:text-ink hover:underline md:py-0'
 ---
 
-<footer class="below-fold flex flex-col gap-10 border-t border-ink bg-paper px-5 pt-10 pb-7 md:px-16 md:pt-14">
-  <div class="grid gap-8 md:grid-cols-12 md:gap-x-8">
-    <div class="flex flex-col gap-3.5 md:col-span-5">
-      <a href={localePath(lang, PATHS.home)} class="flex items-center gap-3 self-start">
-        <Logo size={28} />
-        <span dir="ltr" class="font-mono text-lg font-semibold">
-          Arablyzer
-        </span>
-      </a>
-      <p class="max-w-[340px] text-[15px] leading-[1.8] text-ink-2">{t.footer.about}</p>
-    </div>
-    {NAV.length > 0 && (
+{/* Compact on a phone (M2.6 R7a): two columns of links in 13 px type, closer together, and the
+    small print in short lines; from md the footer is what R1 drew. */}
+<footer class="below-fold border-t border-line [contain-intrinsic-size:auto_360px] md:[contain-intrinsic-size:auto_520px]">
+  <div class="wrap pt-8 pb-6 md:pt-16 md:pb-10">
+    <div class="grid gap-6 md:gap-10 lg:grid-cols-[1.4fr_4fr] lg:gap-8">
+      <div class="flex flex-col gap-3 md:gap-3.5">
+        <a
+          href={localePath(lang, PATHS.home)}
+          aria-label={t.homeLink}
+          class="inline-flex items-center gap-2.5 self-start text-ink hover:text-ink"
+        >
+          <Logo size={28} />
+          <span lang="en" dir="ltr" class="text-lg font-bold">
+            Arablyzer
+          </span>
+        </a>
+        <p class="m-0 max-w-[34ch] text-meta text-ink-2 md:text-sm md:leading-[1.8]">
+          {t.footer.about}
+        </p>
+      </div>
       <nav
-        aria-labelledby="footer-sections"
-        class="flex flex-col gap-2.5 text-[15px] md:col-span-3"
+        aria-label={t.footer.navLabel}
+        class="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 md:gap-x-6 md:gap-y-8"
       >
-        <h2 id="footer-sections" class="mb-1 text-[13px] font-semibold text-ink-3">
-          {t.footer.sections}
-        </h2>
-        {NAV.map((item) => (
-          <a
-            href={localePath(lang, item.path)}
-            class="self-start underline-offset-4 hover:text-signal hover:underline"
-          >
-            {t.nav[item.key]}
-          </a>
+        {columns.map((column) => (
+          <div class="flex min-w-0 flex-col gap-1.5 md:gap-3.5">
+            <h2 class="m-0 text-meta font-semibold md:text-sm">
+              <Bidi text={column.title} lang={lang} />
+            </h2>
+            <ul class="m-0 flex list-none flex-col p-0 text-meta md:gap-2.5 md:text-sm">
+              {column.links.map((item) => (
+                <li>
+                  <a href={item.href} class={link}>
+                    <Bidi text={item.label} lang={lang} />
+                  </a>
+                </li>
+              ))}
+              {column.id === 'footer-about' && (
+                <li>
+                  <a
+                    href={localePath(other, path)}
+                    data-keep-id={keepId ? '' : undefined}
+                    lang={other}
+                    hreflang={other}
+                    class={link}
+                  >
+                    {t.otherLang.label}
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
         ))}
       </nav>
-    )}
-    <nav aria-labelledby="footer-project" class="flex flex-col gap-2.5 text-[15px] md:col-span-3">
-      <h2 id="footer-project" class="mb-1 text-[13px] font-semibold text-ink-3">
-        {t.footer.project}
-      </h2>
-      <a
-        href={methodologyHref(lang)}
-        class="self-start underline-offset-4 hover:text-signal hover:underline"
-      >
-        {t.footer.methodology}
-      </a>
-      <a
-        href={localePath(lang, PATHS.glossary)}
-        class="self-start underline-offset-4 hover:text-signal hover:underline"
-      >
-        {t.footer.glossary}
-      </a>
-      <a
-        href={localePath(lang, PATHS.bot)}
-        class="self-start underline-offset-4 hover:text-signal hover:underline"
-      >
-        {t.footer.bot}
-      </a>
-      <a href={REPOSITORY} class="self-start underline-offset-4 hover:text-signal hover:underline">
-        {t.footer.github}
-      </a>
-    </nav>
-  </div>
-  <div
-    aria-hidden="true"
-    dir="ltr"
-    class="overflow-hidden text-center font-mono text-[clamp(56px,11.6vw,168px)] leading-[0.9] font-semibold tracking-[-0.04em] whitespace-nowrap text-transparent [-webkit-text-stroke:1.5px_var(--color-rule-strong)]"
-  >
-    Arablyzer
-  </div>
-  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5 text-[13px] text-ink-3">
-    <span>
-      {t.footer.license} · {t.footer.builtBy}{' '}
-      <a href={CLOUDTOPIA} class="underline underline-offset-4 hover:text-signal">
-        {t.footer.cloudtopia}
-      </a>
-    </span>
-    <span dir="ltr" class="font-mono">
-      LAB-001 ·{' '}
-      <a
-        href={localePath(other, path)}
-        data-keep-id={keepId ? '' : undefined}
-        lang={other}
-        hreflang={other}
-        class:list={[
-          'underline underline-offset-4 hover:text-signal',
-          other === 'en' ? 'font-mono' : 'font-sans',
-        ]}
-      >
-        {SITE[lang].otherLang.label}
-      </a>
-    </span>
+    </div>
+    <div class="mt-6 flex flex-col items-start gap-y-1.5 border-t border-line pt-4 text-meta text-ink-3 md:mt-10 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-x-6 md:gap-y-2 md:pt-6">
+      <span>
+        {t.footer.designed} {t.footer.reportsPrivate}
+      </span>
+      <span>
+        {t.footer.license} · {t.footer.builtBy}{' '}
+        <a href={CLOUDTOPIA} class="underline underline-offset-4 hover:text-ink">
+          {t.footer.cloudtopia}
+        </a>
+      </span>
+      <span dir="ltr" lang="en" class="font-mono text-xs">
+        {bot} · rules {RULESET_VERSION}
+      </span>
+    </div>
   </div>
 </footer>

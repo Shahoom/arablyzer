@@ -1,5 +1,6 @@
 import type { Copy } from './copy'
-import { arabicCount, englishCount, REQUESTS, RULES_NOMINATIVE } from './plural'
+import { arabicCount, englishCount, englishForm, REQUESTS, RULES_NOMINATIVE } from './plural'
+import type { ArabicForms } from './plural'
 
 /** The report's categories, as report-schema names them. */
 export const CATEGORIES = [
@@ -55,10 +56,102 @@ export interface ReportStrings {
     /** The page could not be fetched. */
     readonly pageFailed: string
   }
+  /**
+   * Google Search Console, connected from a finished report (account-free, nothing stored): the
+   * card's words, in both languages. Google's own words (coverage state) are shown as they come.
+   */
+  readonly gsc: {
+    readonly title: string
+    readonly intro: string
+    readonly connect: string
+    readonly privacy: string
+    readonly loading: string
+    readonly denied: string
+    readonly failed: string
+    readonly retry: string
+    readonly noProperty: string
+    readonly tryAnother: string
+    readonly partial: string
+    readonly clear: string
+    readonly shownOnce: string
+    readonly property: string
+    readonly period: (start: string, end: string) => string
+    readonly totals: {
+      readonly clicks: string
+      readonly impressions: string
+      readonly ctr: string
+      readonly position: string
+      readonly none: string
+    }
+    readonly lists: {
+      readonly queries: string
+      readonly pages: string
+      readonly countries: string
+      readonly none: string
+    }
+    readonly rowDetail: (clicks: string, impressions: string) => string
+    readonly inspection: {
+      readonly title: string
+      readonly none: string
+      readonly verdict: string
+      readonly verdicts: {
+        readonly pass: string
+        readonly partial: string
+        readonly fail: string
+        readonly neutral: string
+        readonly unknown: string
+      }
+      readonly coverage: string
+      readonly lastCrawl: string
+      readonly googleCanonical: string
+      readonly userCanonical: string
+      readonly canonicalDiffers: string
+      readonly mobile: string
+      readonly mobileVerdicts: {
+        readonly pass: string
+        readonly fail: string
+        readonly unknown: string
+      }
+    }
+  }
+  /**
+   * "Your page against Arabic sites" (HTTP Archive and CrUX percentiles, made monthly by the owner):
+   * a card on the report page, with its words in both languages.
+   */
+  readonly benchmark: {
+    readonly title: string
+    /** No benchmark has been made yet. */
+    readonly none: string
+    /** None of the metrics it compares is in this report. */
+    readonly nothingToCompare: string
+    readonly source: (crawl: string, pages: string) => string
+    readonly metrics: {
+      readonly requests: string
+      readonly lcp: string
+      readonly cls: string
+    }
+    readonly bands: {
+      readonly best: string
+      readonly better: string
+      readonly worse: string
+      readonly worst: string
+    }
+    readonly median: (value: string) => string
+  }
   readonly header: {
     readonly kicker: string
-    readonly title: string
     readonly scannedOn: string
+    /** The domain's authority from Open PageRank, in the line under the address. */
+    readonly authority: string
+    readonly authorityTrend: {
+      readonly rising: string
+      readonly stable: string
+      readonly falling: string
+    }
+    /** The domains that link to the domain, with their count. */
+    readonly referringDomains: string
+    /** The domain is not in Open PageRank's index yet. */
+    readonly authorityNone: string
     readonly rules: string
     readonly noindex: string
     readonly copyLink: string
@@ -69,17 +162,13 @@ export interface ReportStrings {
     readonly tool: string
   }
   readonly score: {
-    readonly title: string
-    readonly categories: string
+    /** The categories no rule applied to. */
     readonly none: string
     readonly methodology: string
   }
   readonly contents: {
-    readonly title: string
-    readonly findings: string
+    /** The browsers' list, when none rendered the page. */
     readonly engines: string
-    readonly passed: string
-    readonly json: string
   }
   readonly engines: {
     /** The engines the scan rendered in: one to three. */
@@ -89,7 +178,6 @@ export interface ReportStrings {
     readonly alone: string
   }
   readonly findings: {
-    readonly title: string
     readonly none: string
     /** Some rules could not run: those that did found nothing, which is not a clean page. */
     readonly noneIncomplete: string
@@ -104,18 +192,9 @@ export interface ReportStrings {
     readonly overflow: (overflow: number, viewport: number) => string
   }
   readonly passed: { readonly title: string; readonly notApplicable: string }
-  /** The results' tabs, and the severity filter beside them. */
-  readonly tabs: {
-    readonly problems: string
-    readonly pass: string
-    readonly notApplicable: string
-    readonly filter: string
-  }
+  /** The severity filter over the findings. */
+  readonly tabs: { readonly filter: string }
   readonly notices: string
-  /** The results' section: the problems, the passed and the not-applicable rules. */
-  readonly results: string
-  /** A tab with no rule in it. */
-  readonly noRules: string
   /** Said to a screen reader when the report replaces the progress. */
   readonly ready: string
   /** When a scan does not go as it should (the approved States design). */
@@ -141,6 +220,96 @@ export interface ReportStrings {
     readonly another: string
     readonly again: string
   }
+  /**
+   * The report under the scanned address (M2.6, R4 and R7): the line that says what was read, the
+   * summary, the findings, the form that scans another page.
+   */
+  readonly thread: {
+    /** The collapsible line: what the scan read, and how many rules ran on it. */
+    readonly read: {
+      /** The engines it rendered in, named: «Chromium وFirefox». */
+      readonly rendered: (engines: string, rules: number) => string
+      /** No browser rendered the page: it was read as the server sends it. */
+      readonly html: (rules: number) => string
+    }
+    readonly summary: {
+      /** Problems and notes, counted: «مشكلتان وملاحظة واحدة في هذه الصفحة». */
+      readonly counts: (problems: number, notes: number) => string
+      /** Only checks that need a review. */
+      readonly review: (count: number) => string
+      /** Every rule finished, and none found a problem. */
+      readonly clean: string
+      /** Some rules did not finish, and those that did found no problem. */
+      readonly incomplete: string
+      /** No rule finished. */
+      readonly unknown: string
+      /** What passed and what did not apply, in a sentence; empty when both are zero. */
+      readonly checks: (passed: number, notApplicable: number) => string
+      /** Under the score's number. */
+      readonly outOf: string
+    }
+    readonly categories: {
+      readonly title: string
+      /** Before the categories that score 100. */
+      readonly full: string
+    }
+    readonly findings: {
+      readonly title: string
+      /** A problem only one of the browsers shows. */
+      readonly only: (engine: string) => string
+      /** The link to the rule's page. */
+      readonly about: string
+    }
+    /** The form at the end of the report: scanning another page. */
+    readonly dock: {
+      /** Its heading. */
+      readonly title: string
+      readonly label: string
+      readonly submit: string
+    }
+    /** The scan box while a scan runs: where it is of how many steps. */
+    readonly stepOf: (step: number, of: number) => string
+  }
+}
+
+/** A rule the scan ran, as the object of «شغّلنا»: «قاعدتين»، «3 قواعد». */
+const RULES_ACCUSATIVE: ArabicForms = {
+  one: 'قاعدة واحدة',
+  two: 'قاعدتين',
+  few: '{n} قواعد',
+  many: '{n} قاعدة',
+}
+const PROBLEMS: ArabicForms = {
+  one: 'مشكلة واحدة',
+  two: 'مشكلتان',
+  few: '{n} مشكلات',
+  many: '{n} مشكلة',
+}
+const NOTES: ArabicForms = {
+  one: 'ملاحظة واحدة',
+  two: 'ملاحظتان',
+  few: '{n} ملاحظات',
+  many: '{n} ملاحظة',
+}
+/** A check that needs a human eye, as the subject of its sentence. */
+const REVIEWS: ArabicForms = {
+  one: 'فحص واحد يحتاج عين إنسان',
+  two: 'فحصان يحتاجان عين إنسان',
+  few: '{n} فحوص تحتاج عين إنسان',
+  many: '{n} فحصاً يحتاج عين إنسان',
+}
+/** «نجح 21 فحصاً»: the verb agrees with the count, as in speech. */
+const PASSED: ArabicForms = {
+  one: 'نجح فحص واحد',
+  two: 'نجح فحصان',
+  few: 'نجحت {n} فحوص',
+  many: 'نجح {n} فحصاً',
+}
+const NOT_APPLICABLE: ArabicForms = {
+  one: 'ولا ينطبق فحص واحد على هذه الصفحة',
+  two: 'ولا ينطبق فحصان على هذه الصفحة',
+  few: 'ولا تنطبق {n} فحوص على هذه الصفحة',
+  many: 'ولا ينطبق {n} فحصاً على هذه الصفحة',
 }
 
 export const REPORT: Copy<ReportStrings> = {
@@ -210,10 +379,33 @@ export const REPORT: Copy<ReportStrings> = {
       waitingStart: 'بانتظار بدء الفحص',
       pageFailed: 'تعذّر جلبها',
     },
+    benchmark: {
+      title: 'صفحتك مقابل المواقع العربية',
+      none: 'لا مقارنة بعد: لم تُنتج بعدُ أرقام HTTP Archive للمواقع العربية.',
+      nothingToCompare:
+        'ليس في هذا التقرير ما نقارنه بهذه الأرقام: لا بيانات زوار ولا عرض للصفحة في متصفح.',
+      source: (crawl, pages) =>
+        `من زحف HTTP Archive في ${crawl}، على ${pages} صفحة في نطاقات الدول العربية (جوال).`,
+      metrics: {
+        requests: 'عدد الطلبات',
+        lcp: 'ظهور أكبر محتوى (LCP، زوار حقيقيون)',
+        cls: 'ثبات التخطيط (CLS، زوار حقيقيون)',
+      },
+      bands: {
+        best: 'من أفضل ربع المواقع',
+        better: 'أفضل من وسيط المواقع',
+        worse: 'أسوأ من وسيط المواقع',
+        worst: 'من أسوأ ربع المواقع',
+      },
+      median: (value) => `الوسيط ${value}`,
+    },
     header: {
       kicker: 'التقرير',
-      title: 'تقرير الصفحة',
       scannedOn: 'فُحصت في',
+      authority: 'قوة النطاق',
+      authorityTrend: { rising: 'في صعود', stable: 'مستقرة', falling: 'في هبوط' },
+      referringDomains: 'نطاقات تربط إليه',
+      authorityNone: 'غير موجود في الفهرس بعد',
       rules: 'القواعد',
       noindex: 'لا يظهر في محركات البحث',
       copyLink: 'انسخ الرابط',
@@ -222,19 +414,68 @@ export const REPORT: Copy<ReportStrings> = {
       rescan: 'أعد الفحص',
       tool: 'نتيجة أداة',
     },
+    gsc: {
+      title: 'ما يعرفه Google عن موقعك',
+      intro:
+        'اربط حسابك في Google Search Console ليظهر هنا ما يعرفه Google عن موقعك: النقرات والظهور وأهم عبارات البحث والصفحات، وحال فهرسة هذه الصفحة.',
+      connect: 'اربط Search Console',
+      privacy:
+        'قراءة فقط. نقرأ البيانات مرة واحدة ونعرضها هنا، ولا نحفظ منها شيئاً، ولا نحتفظ برمز الدخول.',
+      loading: 'نقرأ بياناتك من Search Console…',
+      denied: 'لم تسمح بالوصول، فلم نقرأ شيئاً. يمكنك المحاولة مرة أخرى متى شئت.',
+      failed: 'تعذّرت قراءة Search Console. جرّب مرة أخرى بعد قليل.',
+      retry: 'حاول مرة أخرى',
+      noProperty:
+        'ليس في هذا الحساب موقع في Search Console يطابق هذه الصفحة. أضف الموقع إلى Search Console وأثبت ملكيته، أو اربط حساباً آخر يملكه.',
+      tryAnother: 'اربط حساباً آخر',
+      partial: 'لم يعطِنا Google بعض البيانات، فنعرض ما وصلنا منها.',
+      clear: 'أخفِ هذه البيانات',
+      shownOnce: 'تُعرض هذه البيانات مرة واحدة في هذه الصفحة؛ وإعادة تحميلها تمحوها.',
+      property: 'الموقع في Search Console',
+      period: (start, end) => `آخر 28 يوماً، من ${start} إلى ${end}`,
+      totals: {
+        clicks: 'النقرات',
+        impressions: 'مرات الظهور',
+        ctr: 'نسبة النقر',
+        position: 'متوسط الترتيب',
+        none: 'لا بيانات بحث لهذا الموقع في هذه المدة.',
+      },
+      lists: {
+        queries: 'أهم عبارات البحث',
+        pages: 'أهم الصفحات',
+        countries: 'النقرات حسب البلد',
+        none: 'لا بيانات.',
+      },
+      rowDetail: (clicks, impressions) => `${clicks} نقرة من ${impressions} ظهور`,
+      inspection: {
+        title: 'حال هذه الصفحة عند Google',
+        none: 'لم يعطِنا Google فحص هذه الصفحة.',
+        verdict: 'الفهرسة',
+        verdicts: {
+          pass: 'الصفحة على Google',
+          partial: 'مفهرسة جزئياً',
+          fail: 'الصفحة ليست على Google',
+          neutral: 'مستثناة من الفهرسة',
+          unknown: 'غير معروف',
+        },
+        coverage: 'حالة التغطية',
+        lastCrawl: 'آخر زحف',
+        googleCanonical: 'الرابط الأساسي الذي اختاره Google',
+        userCanonical: 'الرابط الأساسي الذي أعلنته الصفحة',
+        canonicalDiffers: 'اختار Google رابطاً أساسياً غير الذي أعلنته الصفحة',
+        mobile: 'سهولة الاستعمال على الجوال',
+        mobileVerdicts: {
+          pass: 'مناسبة للجوال',
+          fail: 'فيها مشكلات على الجوال',
+          unknown: 'غير معروف',
+        },
+      },
+    },
     score: {
-      title: 'الدرجة',
-      categories: 'الفئات',
       none: 'لا قواعد تنطبق',
       methodology: 'كيف حُسبت الدرجة؟ المنهجية',
     },
-    contents: {
-      title: 'في هذا التقرير',
-      findings: 'المخالفات',
-      engines: 'المتصفحات',
-      passed: 'فحوص نجحت',
-      json: 'التفاصيل التقنية',
-    },
+    contents: { engines: 'المتصفحات' },
     engines: {
       title: (count) =>
         count === 1
@@ -246,7 +487,6 @@ export const REPORT: Copy<ReportStrings> = {
       alone: 'فيها مخالفة لا تظهر في غيرها',
     },
     findings: {
-      title: 'المخالفات',
       none: 'لم تجد القواعد أي مشكلة.',
       noneIncomplete:
         'لم تجد القواعد التي اكتملت أي مشكلة، لكن بعضها لم يكتمل، فلا نقول إن الصفحة بلا مشاكل.',
@@ -261,10 +501,8 @@ export const REPORT: Copy<ReportStrings> = {
         `يتجاوز حافة شاشة عرضها ${viewport} بكسل بمقدار ${overflow} بكسل`,
     },
     passed: { title: 'فحوص نجحت', notApplicable: 'لا تنطبق على هذه الصفحة' },
-    tabs: { problems: 'المخالفات', pass: 'نجحت', notApplicable: 'لا تنطبق', filter: 'حسب الخطورة' },
+    tabs: { filter: 'حسب الخطورة' },
     notices: 'تنبيهات',
-    results: 'النتائج',
-    noRules: 'لا قواعد هنا.',
     ready: 'التقرير جاهز.',
     states: {
       blocked: {
@@ -296,6 +534,45 @@ export const REPORT: Copy<ReportStrings> = {
       },
       another: 'افحص صفحة أخرى',
       again: 'أعد الفحص',
+    },
+    thread: {
+      read: {
+        rendered: (engines, rules) =>
+          `قرأنا الصفحة في ${engines}، وشغّلنا ${arabicCount(rules, RULES_ACCUSATIVE)}`,
+        html: (rules) =>
+          `قرأنا الصفحة كما يرسلها الخادم، وشغّلنا ${arabicCount(rules, RULES_ACCUSATIVE)}`,
+      },
+      summary: {
+        counts: (problems, notes) => {
+          const parts = []
+          if (problems > 0) parts.push(arabicCount(problems, PROBLEMS))
+          if (notes > 0) parts.push(arabicCount(notes, NOTES))
+          return `${parts.join(' و')} في هذه الصفحة`
+        },
+        review: (count) => arabicCount(count, REVIEWS),
+        clean: 'لا مشاكل في هذه الصفحة',
+        incomplete: 'لم نجد مشكلة، لكن الفحص لم يكتمل',
+        unknown: 'لا نعرف إن كانت في الصفحة مشاكل',
+        checks: (passed, notApplicable) => {
+          if (passed === 0 && notApplicable === 0) return ''
+          const parts = [passed === 0 ? 'لم ينجح أي فحص' : arabicCount(passed, PASSED)]
+          if (notApplicable > 0) parts.push(arabicCount(notApplicable, NOT_APPLICABLE))
+          return `${parts.join('، ')}.`
+        },
+        outOf: 'من 100',
+      },
+      categories: { title: 'حسب الفئة', full: 'درجتها 100' },
+      findings: {
+        title: 'ما وجدناه',
+        only: (engine) => `في ${engine} وحده`,
+        about: 'عن هذه القاعدة',
+      },
+      dock: {
+        title: 'افحص صفحة أخرى',
+        label: 'رابط صفحة أخرى',
+        submit: 'افحص',
+      },
+      stepOf: (step, of) => `الخطوة ${step} من ${of}`,
     },
   },
   en: {
@@ -364,10 +641,33 @@ export const REPORT: Copy<ReportStrings> = {
       waitingStart: 'Waiting for the scan to start',
       pageFailed: 'Could not be fetched',
     },
+    benchmark: {
+      title: 'Your page against Arabic sites',
+      none: 'No benchmark yet: the HTTP Archive numbers for Arabic sites have not been made.',
+      nothingToCompare:
+        'This report has nothing to compare with these numbers: no visitor data, and no render in a browser.',
+      source: (crawl, pages) =>
+        `From the HTTP Archive crawl of ${crawl}, over ${pages} pages on Arab countries' domains (mobile).`,
+      metrics: {
+        requests: 'Requests',
+        lcp: 'Largest Contentful Paint (LCP, real visitors)',
+        cls: 'Layout stability (CLS, real visitors)',
+      },
+      bands: {
+        best: 'In the best quarter of sites',
+        better: 'Better than the median site',
+        worse: 'Worse than the median site',
+        worst: 'In the worst quarter of sites',
+      },
+      median: (value) => `Median ${value}`,
+    },
     header: {
       kicker: 'Report',
-      title: 'Page report',
       scannedOn: 'Scanned on',
+      authority: 'Domain authority',
+      authorityTrend: { rising: 'rising', stable: 'stable', falling: 'falling' },
+      referringDomains: 'Referring domains',
+      authorityNone: 'not in the index yet',
       rules: 'Rules',
       noindex: 'Not in search engines',
       copyLink: 'Copy link',
@@ -376,19 +676,68 @@ export const REPORT: Copy<ReportStrings> = {
       rescan: 'Scan again',
       tool: 'A tool’s result',
     },
+    gsc: {
+      title: 'What Google knows about your site',
+      intro:
+        'Connect your Google Search Console account to see here what Google knows about your site: clicks, impressions, top queries and pages, and how Google indexed this page.',
+      connect: 'Connect Search Console',
+      privacy:
+        'Read-only. We read the data once and show it here. We store none of it, and we do not keep the access token.',
+      loading: 'Reading your Search Console data…',
+      denied: 'You did not allow access, so nothing was read. You can try again whenever you like.',
+      failed: 'We could not read Search Console. Try again in a moment.',
+      retry: 'Try again',
+      noProperty:
+        'This account has no Search Console property that matches this page. Add the site to Search Console and verify it, or connect an account that owns it.',
+      tryAnother: 'Connect another account',
+      partial: 'Google did not give us some of the data, so this shows what arrived.',
+      clear: 'Hide this data',
+      shownOnce: 'This data is shown once on this page; reloading the page clears it.',
+      property: 'Search Console property',
+      period: (start, end) => `Last 28 days, ${start} to ${end}`,
+      totals: {
+        clicks: 'Clicks',
+        impressions: 'Impressions',
+        ctr: 'Click-through rate',
+        position: 'Average position',
+        none: 'No search data for this site in this period.',
+      },
+      lists: {
+        queries: 'Top queries',
+        pages: 'Top pages',
+        countries: 'Clicks by country',
+        none: 'No data.',
+      },
+      rowDetail: (clicks, impressions) => `${clicks} clicks from ${impressions} impressions`,
+      inspection: {
+        title: 'This page at Google',
+        none: 'Google did not give us an inspection of this page.',
+        verdict: 'Indexing',
+        verdicts: {
+          pass: 'The page is on Google',
+          partial: 'Partly indexed',
+          fail: 'The page is not on Google',
+          neutral: 'Excluded from indexing',
+          unknown: 'Unknown',
+        },
+        coverage: 'Coverage state',
+        lastCrawl: 'Last crawl',
+        googleCanonical: 'Canonical Google chose',
+        userCanonical: 'Canonical the page declares',
+        canonicalDiffers: 'Google chose a different canonical from the one the page declares',
+        mobile: 'Mobile usability',
+        mobileVerdicts: {
+          pass: 'Usable on mobile',
+          fail: 'Has problems on mobile',
+          unknown: 'Unknown',
+        },
+      },
+    },
     score: {
-      title: 'Score',
-      categories: 'Categories',
       none: 'No rule applies',
       methodology: 'How is the score computed? The methodology',
     },
-    contents: {
-      title: 'In this report',
-      findings: 'Problems',
-      engines: 'Browsers',
-      passed: 'Checks passed',
-      json: 'Technical details',
-    },
+    contents: { engines: 'Browsers' },
     engines: {
       title: (count) =>
         count === 1
@@ -400,7 +749,6 @@ export const REPORT: Copy<ReportStrings> = {
       alone: 'Shows a problem the others do not',
     },
     findings: {
-      title: 'Problems',
       none: 'The rules found no problems.',
       noneIncomplete:
         'The rules that finished found no problems, but some did not finish, so we do not say the page has none.',
@@ -415,15 +763,8 @@ export const REPORT: Copy<ReportStrings> = {
         `Reaches ${overflow} pixels past the edge of a ${viewport}-pixel screen`,
     },
     passed: { title: 'Checks passed', notApplicable: 'Not applicable to this page' },
-    tabs: {
-      problems: 'Problems',
-      pass: 'Passed',
-      notApplicable: 'Not applicable',
-      filter: 'By severity',
-    },
+    tabs: { filter: 'By severity' },
     notices: 'Notices',
-    results: 'Results',
-    noRules: 'No rules here.',
     ready: 'The report is ready.',
     states: {
       blocked: {
@@ -455,6 +796,46 @@ export const REPORT: Copy<ReportStrings> = {
       },
       another: 'Check another page',
       again: 'Scan again',
+    },
+    thread: {
+      read: {
+        rendered: (engines, rules) =>
+          `We read the page in ${engines}, and ran ${englishCount(rules, 'rule', 'rules')}`,
+        html: (rules) =>
+          `We read the page as the server sends it, and ran ${englishCount(rules, 'rule', 'rules')}`,
+      },
+      summary: {
+        counts: (problems, notes) => {
+          const parts = []
+          if (problems > 0) parts.push(englishCount(problems, 'problem', 'problems'))
+          if (notes > 0) parts.push(englishCount(notes, 'note', 'notes'))
+          return `${parts.join(' and ')} on this page`
+        },
+        review: (count) =>
+          `${count} ${englishForm(count, 'check needs', 'checks need')} a human eye`,
+        clean: 'No problems on this page',
+        incomplete: 'No problems found, but the scan did not finish',
+        unknown: 'We cannot say whether this page has problems',
+        checks: (passed, notApplicable) => {
+          if (passed === 0 && notApplicable === 0) return ''
+          const parts = [`${englishCount(passed, 'check', 'checks')} passed`]
+          if (notApplicable > 0) parts.push(`${notApplicable} not applicable to this page`)
+          return `${parts.join(', ')}.`
+        },
+        outOf: 'out of 100',
+      },
+      categories: { title: 'By category', full: 'Scoring 100' },
+      findings: {
+        title: 'What we found',
+        only: (engine) => `Only in ${engine}`,
+        about: 'About this rule',
+      },
+      dock: {
+        title: 'Scan another page',
+        label: 'URL of another page',
+        submit: 'Scan',
+      },
+      stepOf: (step, of) => `Step ${step} of ${of}`,
     },
   },
 }

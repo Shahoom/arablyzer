@@ -4,15 +4,24 @@ import { breadcrumbList, techArticle } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
-import ChevronLeft from '@lucide/astro/icons/chevron-left'
-import ChevronRight from '@lucide/astro/icons/chevron-right'
 import X from '@lucide/astro/icons/x'
 import Page from '../../layouts/Page.astro'
-import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
+import { GUIDES_DATA } from '../../lib/guide-data'
+import { HEAD } from '../../lib/heads'
 import { LIBRARY_DATA, ruleData } from '../../lib/rule-data'
+import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
 import { toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
+import Breadcrumb from '../Breadcrumb.astro'
+import DocHeading from '../DocHeading.astro'
+import Related from '../guides/Related.astro'
+import PageColumns from '../PageColumns.astro'
+import Contents from '../pages/Contents.astro'
 import SeverityPill from '../SeverityPill.astro'
+
+// A rule's page (BUILD-PLAN §6.2, M2.4; on two columns in M2.6 R7): the head, then the sections in
+// the main column, and in the sticky aside its weight in the score, its contents and the pages it
+// points to: the tools that run it, rules near it, the fix guides and terms that name it.
 
 interface Props {
   lang: Lang
@@ -27,16 +36,30 @@ const path = PATHS.rule(id)
 const url = pageUrl(site, lang, path)
 const libraryPath = localePath(lang, PATHS.rules)
 const category = TOOLS_UI[lang].categories[rule.category].name
-const Next = lang === 'ar' ? ChevronLeft : ChevronRight
-const tools = rule.tools.map((slug) => ({
-  href: localePath(lang, PATHS.tool(slug)),
-  title: toolData(slug).copy[lang].title,
-}))
+const tools = [
+  ...rule.tools.map((slug) => ({
+    href: localePath(lang, PATHS.tool(slug)),
+    title: toolData(slug).copy[lang].title,
+  })),
+  { href: scanFormHref(lang), title: t.page.fullScan },
+]
 const near = rule.near.map((other) => ({
-  id: other,
   href: localePath(lang, PATHS.rule(other)),
   title: ruleData(other).copy[lang].title,
 }))
+// The guides and the terms that name this rule, which point back to it from their own pages.
+const guides = GUIDES_DATA.fix
+  .filter((guide) => guide.rules.includes(id))
+  .map((guide) => ({
+    href: localePath(lang, PATHS.fixGuide(guide.slug)),
+    title: guide.message[lang],
+  }))
+const terms = GUIDES_DATA.glossary
+  .filter((term) => term.rules.includes(id))
+  .map((term) => ({
+    href: localePath(lang, PATHS.term(term.slug)),
+    title: term.copy[lang].title,
+  }))
 const jsonLd = [
   techArticle({
     headline: copy.title,
@@ -52,9 +75,23 @@ const jsonLd = [
   ]),
 ]
 const headings = LIBRARY_DATA.headings[lang]
-const heading = 'm-0 text-[26px] leading-[1.25] font-semibold md:text-[28px]'
-const chip = 'border border-rule-strong px-2.5 py-0.5'
-const card = 'flex flex-col border bg-white p-[22px]'
+// The sections in the order of BUILD-PLAN §6.2: a rule with no code to show has no example.
+const sections = [
+  { id: 'why', title: headings.why },
+  ...(rule.example === null ? [] : [{ id: 'example', title: t.page.example }]),
+  { id: 'fix', title: headings.fix },
+  { id: 'detect', title: headings.detect },
+  { id: 'references', title: headings.references },
+]
+const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
+// What the rule is, in one quiet line: its version, what it reads, whether a person must review it,
+// and the WCAG criteria it serves. (Its category is the trail's last step.)
+const facts = [
+  { text: `${t.page.version} `, ltr: rule.version },
+  { text: t.page.reads[rule.reads] },
+  ...(rule.manual ? [{ text: t.page.manual }] : []),
+  ...rule.wcag.map((criterion) => ({ text: 'WCAG ', ltr: criterion })),
+]
 ---
 
 <Page
@@ -64,88 +101,106 @@ const card = 'flex flex-col border bg-white p-[22px]'
   description={copy.description}
   jsonLd={jsonLd}
 >
-  <div class="rule-layout px-5 pt-7 pb-16 md:px-16 md:pt-10 md:pb-[88px]">
-    <div class="rule-main flex min-w-0 flex-col gap-12">
-      <div class="flex flex-col gap-5">
-        <nav aria-label={t.page.breadcrumb} class="text-sm text-ink-3">
-          <ol class="m-0 flex list-none flex-wrap items-center gap-2 p-0">
-            <li class="flex items-center gap-2">
-              <a href={libraryPath} class="text-ink-3 hover:text-signal">
-                {t.library.title}
-              </a>
-              <Next size={14} stroke-width={2} aria-hidden="true" class="text-ink-4" />
-            </li>
+  <section class="relative isolate border-b border-line">
+    <div aria-hidden="true" class="page-wash"></div>
+    <div class:list={['wrap flex flex-col gap-4 lg:gap-5', HEAD.padding]}>
+      <Breadcrumb
+        lang={lang}
+        label={t.page.breadcrumb}
+        steps={[
+          { name: t.library.title, href: libraryPath },
+          { name: category, href: `${libraryPath}#cat-${rule.category}` },
+        ]}
+        current={copy.title}
+      />
+      <h1 class={HEAD.page}>
+        <Bidi text={copy.title} lang={lang} />
+      </h1>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <code
+          dir="ltr"
+          class="inline-flex h-7 items-center rounded-md bg-navy px-2.5 font-mono text-meta text-panel-text"
+        >
+          {rule.id}
+        </code>
+        <SeverityPill severity={rule.severity} lang={lang} />
+        <ul class="m-0 flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0 text-meta text-ink-2 lg:text-small [&>li+li]:before:me-2 [&>li+li]:before:content-['·']">
+          {facts.map((fact) => (
             <li>
-              <a href={`${libraryPath}#cat-${rule.category}`} class="text-ink-3 hover:text-signal">
-                {category}
-              </a>
-            </li>
-          </ol>
-        </nav>
-        <h1 class="m-0 text-[30px] leading-[1.25] font-semibold text-balance md:text-[46px]">
-          <Bidi text={copy.title} lang={lang} />
-        </h1>
-        <ul class="m-0 flex list-none flex-wrap items-center gap-2 p-0 text-[13px]">
-          <li>
-            <code dir="ltr" class="block bg-ink px-2.5 py-[3px] font-mono text-[13px] text-white">
-              {rule.id}
-            </code>
-          </li>
-          <li>
-            <SeverityPill severity={rule.severity} lang={lang} />
-          </li>
-          <li class={chip}>{category}</li>
-          <li class={chip}>
-            {t.page.version}{' '}
-            <span dir="ltr" class="font-mono">
-              {rule.version}
-            </span>
-          </li>
-          <li class={chip}>{t.page.reads[rule.reads]}</li>
-          {rule.manual && <li class={chip}>{t.page.manual}</li>}
-          {rule.wcag.map((criterion) => (
-            <li class={chip} dir="ltr">
-              WCAG <span class="font-mono">{criterion}</span>
+              {fact.text}
+              {fact.ltr !== undefined && <span dir="ltr">{fact.ltr}</span>}
             </li>
           ))}
         </ul>
       </div>
+      <Contents variant="inline" label={t.page.contents} sections={sections} />
+    </div>
+  </section>
 
-      <section id="why" aria-labelledby="why-title" class="flex flex-col gap-4">
-        <h2 id="why-title" class={heading}>
-          {headings.why}
+  <PageColumns class:list={[HEAD.bodyTop, 'pb-section']}>
+    <div slot="aside" class="flex flex-col gap-3">
+      <Contents label={t.page.contents} sections={sections} />
+      <section aria-labelledby="weight-title" class="kb-box flex flex-col gap-1.5 px-4 py-3">
+        <h2
+          id="weight-title"
+          class="m-0 flex items-center justify-between gap-3 text-small font-semibold text-ink"
+        >
+          {t.page.weight.title}
+          <span dir="ltr" class="heading-2 tabular-nums">
+            {rule.weight}
+          </span>
         </h2>
-        <div
-          class="prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]"
-          set:html={copy.why}
-        />
+        <p class="m-0 text-meta text-ink-2">
+          {rule.manual ? t.page.weight.manual : t.page.weight.scale(LIBRARY_DATA.weights)}
+        </p>
+        <a
+          href={methodologyHref(lang)}
+          class="self-start text-small font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
+        >
+          {t.page.weight.methodology}
+        </a>
+      </section>
+      <Related
+        lang={lang}
+        groups={[
+          { id: 'in-tools-title', title: t.page.inTools, links: tools },
+          { id: 'near-title', title: t.page.near, links: near },
+          { id: 'guides-title', title: t.page.guides, links: guides },
+          { id: 'terms-title', title: t.page.terms, links: terms },
+        ]}
+      />
+    </div>
+
+    <div class="flex flex-col gap-section">
+      <section id="why" aria-labelledby="why-title" class="flex scroll-mt-6 flex-col gap-4">
+        <DocHeading id="why-title" title={headings.why} />
+        <div class={prose} set:html={copy.why} />
       </section>
 
       {rule.example !== null && (
-        <section id="example" aria-labelledby="example-title" class="flex flex-col gap-4">
-          <h2 id="example-title" class={heading}>
-            {t.page.example}
-          </h2>
-          <div class="grid gap-4 md:grid-cols-2">
+        <section
+          id="example"
+          aria-labelledby="example-title"
+          class="flex scroll-mt-6 flex-col gap-4"
+        >
+          <DocHeading id="example-title" title={t.page.example} />
+          <div class="grid gap-3 md:grid-cols-2 md:gap-4">
             {(['wrong', 'right'] as const).map((kind) => (
-              <figure class="m-0 flex min-w-0 flex-col border border-rule-strong bg-white">
-                <figcaption
-                  class:list={[
-                    'flex items-center gap-2 border-b border-rule-soft px-4 py-2.5 text-sm font-semibold',
-                    kind === 'wrong' ? 'text-signal' : 'text-pass',
-                  ]}
-                >
-                  {kind === 'wrong' ? (
-                    <X size={14} stroke-width={2.6} aria-hidden="true" />
-                  ) : (
-                    <Check size={14} stroke-width={2.6} aria-hidden="true" />
-                  )}
-                  {t.page[kind]}
+              <figure class="card m-0 flex min-w-0 flex-col overflow-hidden">
+                <figcaption class="flex items-center border-b border-line px-3 py-2">
+                  <span class:list={['sev', kind === 'wrong' ? 'sev-serious' : 'sev-pass']}>
+                    {kind === 'wrong' ? (
+                      <X size={14} stroke-width={2.6} aria-hidden="true" />
+                    ) : (
+                      <Check size={14} stroke-width={2.6} aria-hidden="true" />
+                    )}
+                    {t.page[kind]}
+                  </span>
                 </figcaption>
                 {/* Wrapped, not scrolled: the examples are short, and often a sentence long. */}
                 <pre
                   dir="ltr"
-                  class="m-0 px-4 py-[18px] text-start font-mono text-[13px] leading-[1.7] whitespace-pre-wrap [overflow-wrap:anywhere] md:text-sm"
+                  class="m-0 grow bg-surface-2 px-4 py-3 text-start font-mono text-meta whitespace-pre-wrap [overflow-wrap:anywhere] md:text-small"
                   set:html={rule.example?.[kind]}
                 />
               </figure>
@@ -154,138 +209,57 @@ const card = 'flex flex-col border bg-white p-[22px]'
         </section>
       )}
 
-      <section id="fix" aria-labelledby="fix-title" class="flex flex-col gap-4">
-        <h2 id="fix-title" class={heading}>
-          {headings.fix}
-        </h2>
-        <div
-          class="prose-fix prose-tool text-base leading-[1.85] text-ink-2 md:text-[17px]"
-          set:html={copy.fix}
-        />
+      <section id="fix" aria-labelledby="fix-title" class="flex scroll-mt-6 flex-col gap-4">
+        <DocHeading id="fix-title" title={headings.fix} />
+        <div class={prose} set:html={copy.fix} />
       </section>
 
-      <section id="detect" aria-labelledby="detect-title" class="flex flex-col gap-4">
-        <h2 id="detect-title" class={heading}>
-          {headings.detect}
-        </h2>
-        <div
-          class="rule-detect prose-fix prose-tool text-base leading-[1.85] text-ink-2"
-          set:html={copy.detect}
-        />
+      <section id="detect" aria-labelledby="detect-title" class="flex scroll-mt-6 flex-col gap-4">
+        <DocHeading id="detect-title" title={headings.detect} />
+        <div class:list={['rule-detect', prose]} set:html={copy.detect} />
       </section>
 
-      <section id="references" aria-labelledby="references-title" class="flex flex-col gap-3">
-        <h2 id="references-title" class="m-0 text-[22px] font-semibold">
-          {headings.references}
-        </h2>
-        <div class="rule-references prose-fix text-base leading-[1.8]" set:html={copy.references} />
+      <section
+        id="references"
+        aria-labelledby="references-title"
+        class="flex scroll-mt-6 flex-col gap-4"
+      >
+        <DocHeading id="references-title" title={headings.references} />
+        <div class="rule-references prose-fix text-body" set:html={copy.references} />
       </section>
     </div>
-
-    <aside class="rule-aside flex min-w-0 flex-col gap-4">
-      <section aria-labelledby="weight-title" class:list={[card, 'gap-2.5 border-ink']}>
-        <h2 id="weight-title" class="m-0 text-sm font-semibold text-ink-3">
-          {t.page.weight.title}
-        </h2>
-        <span dir="ltr" class="self-start font-mono text-5xl leading-none">
-          {rule.weight}
-        </span>
-        <p class="m-0 text-sm leading-[1.8] text-ink-2">
-          {rule.manual ? t.page.weight.manual : t.page.weight.scale(LIBRARY_DATA.weights)}
-        </p>
-        <a
-          href={methodologyHref(lang)}
-          class="self-start text-sm font-semibold underline underline-offset-4 hover:text-signal"
-        >
-          {t.page.weight.methodology}
-        </a>
-      </section>
-
-      <nav aria-labelledby="in-tools-title" class:list={[card, 'gap-1 border-rule-strong']}>
-        <h2 id="in-tools-title" class="m-0 mb-2 text-sm font-semibold text-ink-3">
-          {t.page.inTools}
-        </h2>
-        {[...tools, { href: scanFormHref(lang), title: t.page.fullScan }].map((link, index) => (
-          <a
-            href={link.href}
-            class:list={[
-              'flex items-center justify-between gap-3 py-2.5 text-base hover:text-signal',
-              index < tools.length && 'border-b border-rule-soft',
-            ]}
-          >
-            <Bidi text={link.title} lang={lang} />
-            <Next size={16} stroke-width={2} aria-hidden="true" class="shrink-0" />
-          </a>
-        ))}
-      </nav>
-
-      {near.length > 0 && (
-        <nav aria-labelledby="near-title" class:list={[card, 'gap-1 border-rule-strong']}>
-          <h2 id="near-title" class="m-0 mb-2 text-sm font-semibold text-ink-3">
-            {t.page.near}
-          </h2>
-          {near.map((other, index) => (
-            <a
-              href={other.href}
-              class:list={[
-                'flex flex-col gap-0.5 py-2.5 hover:text-signal',
-                index < near.length - 1 && 'border-b border-rule-soft',
-              ]}
-            >
-              <span class="text-[15px] leading-[1.6] font-semibold">
-                <Bidi text={other.title} lang={lang} />
-              </span>
-              <span dir="ltr" class="self-start font-mono text-xs text-ink-3">
-                {other.id}
-              </span>
-            </a>
-          ))}
-        </nav>
-      )}
-    </aside>
-  </div>
+  </PageColumns>
 </Page>
 
 <style>
-  .rule-layout {
-    display: grid;
-    gap: 3rem;
-  }
-  @media (min-width: 1024px) {
-    /* The design's twelve columns: the rule in eight, its weight and its neighbours in four. */
-    .rule-layout {
-      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-      column-gap: 56px;
-      align-items: start;
-    }
-    .rule-aside {
-      padding-block-start: 48px;
-    }
-  }
-  /* How we detect, as the Rule board draws it: numbered steps between rules. */
+  /* How we detect: numbered steps, each number a quiet circle in the brand's tint. */
   .rule-detect > :global(ol) {
     list-style: none;
     counter-reset: step;
     padding: 0;
-    gap: 0;
-    border-top: 1px solid var(--color-ink);
+    gap: 1rem;
   }
   .rule-detect > :global(ol > li) {
     counter-increment: step;
     position: relative;
-    padding-block: 18px;
-    padding-inline-start: 60px;
-    border-bottom: 1px solid var(--color-rule);
+    padding-inline-start: 44px;
+    min-height: 32px;
   }
   .rule-detect > :global(ol > li)::before {
-    content: counter(step, decimal-leading-zero);
+    content: counter(step);
     position: absolute;
     inset-inline-start: 0;
-    width: 48px;
-    text-align: end;
-    font-family: var(--font-mono);
-    font-size: 14px;
-    color: var(--color-signal);
+    inset-block-start: 0;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background-color: var(--color-indigo-soft);
+    color: var(--color-indigo-ink);
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
   }
   .rule-references :global(ul) {
     list-style: none;
@@ -293,6 +267,6 @@ const card = 'flex flex-col border bg-white p-[22px]'
     gap: 0.75rem;
   }
   .rule-references :global(a) {
-    color: var(--color-ink);
+    color: var(--color-brand-ink);
   }
 </style>

@@ -1,45 +1,58 @@
 ---
 import { HOME } from '@arablyzer/i18n'
 import type { Lang } from '@arablyzer/seo/site'
-import Minus from '@lucide/astro/icons/minus'
 import Plus from '@lucide/astro/icons/plus'
-import SectionHead from '../SectionHead.astro'
+import Bidi from '../Bidi.astro'
+import SectionIntro from './SectionIntro.astro'
 
+/**
+ * The questions, each an accordion (<details>), as the home page has always had them; the answers
+ * are in the HTML whether a question is open or not. Each is a card (M2.6 R7) whose summary is the
+ * whole of its first row: 56 px on a phone, so that a thumb finds it. The focus ring is the card's
+ * (its own radius, drawn outside it: a card that clips its content would cut the ring off).
+ */
 interface Props {
   lang: Lang
-  number: number
 }
-const { lang, number } = Astro.props
+const { lang } = Astro.props
 const t = HOME[lang].faq
 ---
 
-<section
-  aria-labelledby="faq-title"
-  class="below-fold grid gap-8 px-5 py-10 md:px-16 md:py-[88px] lg:grid-cols-12 lg:gap-x-12"
->
-  <div class="lg:col-span-4">
-    <SectionHead number={number} label={t.kicker} id="faq-title" title={t.title} size="md" />
-  </div>
-  <div class="flex flex-col border border-ink bg-white lg:col-span-8">
-    {t.items.map((item, index) => (
-      <details
-        open={index === 0}
-        class="group border-b border-rule px-5 py-5 last:border-b-0 md:px-7 md:py-6"
-      >
-        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold md:text-xl">
-          {item.question}
-          <Plus size={20} stroke-width={2} aria-hidden="true" class="shrink-0 group-open:hidden" />
-          <Minus
-            size={20}
-            stroke-width={2}
-            aria-hidden="true"
-            class="hidden shrink-0 group-open:block"
-          />
-        </summary>
-        <p class="m-0 mt-3.5 max-w-[700px] text-base leading-[1.8] text-ink-2 md:text-[17px]">
-          {item.answer}
-        </p>
-      </details>
-    ))}
+<section aria-labelledby="faq-title" class="below-fold strip">
+  <div class="wrap">
+    <SectionIntro kicker={t.kicker} id="faq-title" title={t.title} />
+    <div class="mx-auto flex max-w-[800px] flex-col gap-2.5 md:gap-3">
+      {t.items.map((item) => (
+        <details class="group card has-[summary:focus-visible]:outline-2 has-[summary:focus-visible]:outline-offset-3 has-[summary:focus-visible]:outline-indigo">
+          <summary class="text-body flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-card py-2 font-semibold focus-visible:outline-none md:min-h-16">
+            <span>
+              <Bidi text={item.question} lang={lang} />
+            </span>
+            <span
+              aria-hidden="true"
+              class="grid size-8 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-ink-2 transition-[transform,background-color] duration-200 group-open:rotate-45 group-open:bg-indigo-soft group-open:text-indigo-ink"
+            >
+              <Plus size={16} stroke-width={1.8} />
+            </span>
+          </summary>
+          <p class="text-body m-0 max-w-[70ch] px-card pb-card text-ink-2">
+            <Bidi text={item.answer} lang={lang} />
+          </p>
+        </details>
+      ))}
+    </div>
   </div>
 </section>
+
+<style>
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
+  .strip {
+    contain-intrinsic-size: auto 356px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 402px;
+    }
+  }
+</style>

@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>لوحة التحكم: موقع واحد</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F4F6FA}
+:root{--font:"DM Sans","IBM Plex Sans Arabic",Tahoma,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--grad-btn:linear-gradient(120deg,#00727C 0%,#4F46E5 100%)}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid #6366F1;outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic-s{width:15px;height:15px}
+.mark path{fill:none;stroke:#FFFFFF;stroke-width:2.4;stroke-linecap:round}
+.mk1{stop-color:#007D88}
+.mk2{stop-color:#4F46E5}
+.dash{--bg:#F4F6FA;--surface:#FFFFFF;--surface-2:#F1F4F9;--line:#E4E9F0;--ink:#0B1B2B;--ink-2:#475467;--ink-3:#667085;--side:#FFFFFF;--hover:#F4F6FA;--field:#8A97A8;--teal:#0F766E;--teal-soft:#E3F5F3;--indigo:#4F46E5;--indigo-soft:#EEF0FF;--indigo-ink:#3730A3;--rose:#E11D48;--rose-soft:#FFE4E8;--rose-ink:#BE123C;--orange:#EA580C;--orange-soft:#FFEDE5;--orange-ink:#C2410C;--amber:#F59E0B;--amber-soft:#FEF3DD;--amber-ink:#B45309;--green:#10B981;--green-soft:#E3F7EE;--green-ink:#047857;--grid:#EEF2F6;--shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -14px rgba(16,24,40,.18);display:grid;grid-template-columns:272px minmax(0,1fr);min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.6}
+.dash.dark{--bg:#0B1220;--surface:#111A2B;--surface-2:#16213A;--line:#22304A;--ink:#E6EDF6;--ink-2:#B4C0D3;--ink-3:#8796AD;--side:#0E1626;--hover:#16213A;--field:#5B6B84;--teal:#2DD4BF;--teal-soft:rgba(45,212,191,.14);--indigo:#818CF8;--indigo-soft:rgba(129,140,248,.16);--indigo-ink:#C7D2FE;--rose:#FB7185;--rose-soft:rgba(251,113,133,.15);--rose-ink:#FDA4AF;--orange:#FB923C;--orange-soft:rgba(251,146,60,.15);--orange-ink:#FDBA74;--amber:#FBBF24;--amber-soft:rgba(251,191,36,.14);--amber-ink:#FCD34D;--green:#34D399;--green-soft:rgba(52,211,153,.14);--green-ink:#6EE7B7;--grid:#1C2942;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -16px rgba(0,0,0,.6);color-scheme:dark}
+.dash a{color:inherit}
+.side{position:relative;display:flex;flex-direction:column;gap:16px;padding:18px 14px;border-inline-end:1px solid var(--line);background:var(--side)}
+.brand{display:inline-flex;align-items:center;gap:10px;padding:0 8px;color:var(--ink);text-decoration:none}
+.word{font-size:18px;font-weight:700}
+.switch{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:start}
+.switch:hover{border-color:var(--field)}
+.fav{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:10px;background:linear-gradient(135deg,#14B8A6,#6366F1);color:#FFFFFF;font-size:13px;font-weight:700}
+.sw-t{display:flex;flex:1;flex-direction:column;min-width:0;line-height:1.35}
+.sw-t b{font-size:14px;font-weight:600}
+.sw-t span{color:var(--ink-3);font-size:12px}
+.grp{display:flex;flex-direction:column;gap:2px}
+.grp-t{margin:6px 0 4px;padding:0 10px;color:var(--ink-3);font-size:12px;font-weight:500}
+.item{position:relative;display:flex;align-items:center;gap:12px;height:40px;padding:0 10px;border-radius:12px;color:var(--ink-2);font-size:14px;font-weight:500;text-decoration:none}
+.item:hover{background:var(--hover);color:var(--ink)}
+.item[aria-current="page"]{background:var(--indigo-soft);color:var(--indigo-ink)}
+.item[aria-current="page"] .n-ic{background:var(--grad-btn);color:#FFFFFF}
+.n-ic{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:9px;background:var(--surface-2);color:var(--ink-2)}
+.cnt{min-width:22px;height:20px;margin-inline-start:auto;padding:0 7px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);font-size:11px;font-weight:600;line-height:20px;text-align:center;font-variant-numeric:tabular-nums}
+.cnt.hot{background:var(--rose);color:#FFFFFF}
+.up-card{position:relative;overflow:hidden;margin-top:auto;padding:16px;border-radius:18px;background:linear-gradient(135deg,#00727C 0%,#4F46E5 60%,#7C3AED 100%);color:#FFFFFF}
+.up-card::before{content:"";position:absolute;top:-40px;left:-30px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.14)}
+.up-card b{position:relative;display:block;font-size:15px}
+.up-card p{position:relative;margin:4px 0 12px;color:#E0E7FF;font-size:12px;line-height:1.7}
+.up-btn{position:relative;display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:10px;background:#FFFFFF;color:#312E81 !important;font-size:12px;font-weight:700;text-decoration:none}
+.me-row{display:flex;align-items:center;gap:10px;padding:8px 6px 0;border-top:1px solid var(--line)}
+.av{display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:999px;background:linear-gradient(135deg,#F472B6,#6366F1);color:#FFFFFF}
+.me-t{display:flex;flex:1;flex-direction:column;line-height:1.35}
+.me-t b{font-size:13px;font-weight:600}
+.me-t span{color:var(--ink-3);font-size:12px}
+.main{display:flex;flex-direction:column;min-width:0}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;height:64px;padding:0 28px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.crumbs{display:flex;align-items:center;gap:6px;color:var(--ink-3);font-size:13px}
+.crumbs a{text-decoration:none}
+.crumbs a:hover{color:var(--ink);text-decoration:underline}
+.crumbs b{color:var(--ink);font-weight:600}
+.find{display:flex;align-items:center;gap:10px;width:360px;height:40px;margin-inline-start:auto;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-3);font-size:13px;text-align:start}
+.find:hover{border-color:var(--field)}
+.find kbd{margin-inline-start:auto;padding:0 6px;border:1px solid var(--line);border-radius:6px;font-family:var(--font);font-size:11px}
+.ib{position:relative;display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-2)}
+.ib:hover{color:var(--ink);border-color:var(--field)}
+.ib .dot{position:absolute;top:7px;inset-inline-end:7px;min-width:16px;height:16px;padding:0 4px;border:2px solid var(--surface);border-radius:999px;background:var(--rose);color:#FFFFFF;font-size:9px;font-weight:700;line-height:12px;text-align:center}
+.btn-g{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:0;border-radius:12px;background:var(--grad-btn);background-size:180% 100%;color:#FFFFFF !important;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap;box-shadow:0 10px 22px -12px rgba(79,70,229,.7);transition:background-position .4s ease}
+.btn-g:hover{background-position:100% 0}
+.btn-line{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink) !important;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap}
+.btn-line:hover{border-color:var(--field)}
+.content{display:flex;flex-direction:column;gap:18px;padding:24px 28px 48px}
+.ph{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+.ph-l{display:flex;align-items:center;gap:14px}
+.ph-fav{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#14B8A6,#6366F1);color:#FFFFFF;font-size:22px;font-weight:700;box-shadow:0 12px 24px -12px rgba(79,70,229,.6)}
+.ph h1{margin:0;font-size:26px;font-weight:700;line-height:1.3}
+.ph-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.tag{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);font-size:12px;font-weight:500}
+.tag.live{background:var(--green-soft);color:var(--green-ink)}
+.tag.live i{width:7px;height:7px;border-radius:999px;background:var(--green);animation:pulse 2s ease-out infinite}
+.tag.ex{border:1px dashed var(--field);background:transparent}
+.ph-r{display:flex;flex-wrap:wrap;gap:10px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.kpi{position:relative;display:flex;flex-direction:column;gap:6px;padding:18px 18px 0;border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.k-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.k-l{color:var(--ink-2);font-size:13px;font-weight:500}
+.k-ic{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;color:#FFFFFF}
+.k-v{display:flex;align-items:baseline;gap:8px;font-size:34px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+.k-v small{color:var(--ink-3);font-size:13px;font-weight:500}
+.delta{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:999px;font-size:12px;font-weight:600}
+.delta.up{background:var(--green-soft);color:var(--green-ink)}
+.delta.warn{background:var(--amber-soft);color:var(--amber-ink)}
+.spark{display:block;width:calc(100% + 36px);height:56px;margin:4px -18px 0}
+.sp-line{fill:none;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.row2{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+.row3{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px}
+.card{border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:var(--shadow)}
+.c-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 0}
+.c-head h2{margin:0;font-size:16px;font-weight:700}
+.c-head p{margin:2px 0 0;color:var(--ink-3);font-size:12px}
+.seg{display:inline-flex;padding:3px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:var(--ink-2);font-size:12px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(16,24,40,.12)}
+.chart{position:relative;padding:8px 18px 40px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.gl{stroke:var(--grid);stroke-width:1}
+.ax{direction:ltr;fill:var(--ink-3);font-size:11px;text-anchor:end}
+.c-line{fill:none;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.plot{position:absolute;top:8px;left:18px;right:18px;aspect-ratio:720 / 260}
+.hov{position:absolute;top:0;bottom:0;left:-1.24%;right:4.32%;display:grid;grid-template-columns:repeat(14,minmax(0,1fr))}
+.hov div{cursor:crosshair}
+.tip{position:absolute;z-index:2;min-width:132px;padding:10px 12px;border-radius:12px;background:#0B1B2B;color:#FFFFFF;font-size:12px;box-shadow:0 12px 24px -12px rgba(0,0,0,.5);transform:translate(-50%,-120%);pointer-events:none;white-space:nowrap}
+.dash.dark .tip{background:#E6EDF6;color:#0B1B2B}
+.tip b{display:block;font-size:15px}
+.x-l{position:absolute;bottom:12px;left:18px;right:18px;height:18px;color:var(--ink-3);font-size:11px}
+.x-l span{position:absolute;white-space:nowrap;transform:translateX(-50%)}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:16px 18px 20px}
+.donut{position:relative;width:168px;height:168px}
+.donut svg{display:block;width:168px;height:168px;transform:rotate(-90deg)}
+.d-track{fill:none;stroke:var(--surface-2);stroke-width:16}
+.d-seg{fill:none;stroke-width:16;stroke-linecap:round}
+.d-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2}
+.d-c b{font-size:34px;font-weight:700}
+.d-c span{color:var(--ink-3);font-size:12px}
+.legend{display:flex;flex-direction:column;gap:10px;width:100%;margin:0;padding:0;list-style:none}
+.legend li{display:flex;align-items:center;gap:10px;font-size:13px}
+.legend i{width:10px;height:10px;border-radius:4px}
+.legend b{margin-inline-start:auto;font-variant-numeric:tabular-nums}
+.tbl-wrap{overflow-x:auto;padding:8px 6px 6px}
+.tbl{width:100%;min-width:640px;border-collapse:collapse}
+.tbl th{height:40px;padding:0 12px;color:var(--ink-3);font-size:12px;font-weight:500;text-align:start;white-space:nowrap}
+.tbl td{height:62px;padding:0 12px;border-top:1px solid var(--line);vertical-align:middle}
+.tbl tbody tr:hover td{background:var(--hover)}
+.sev{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.sev i{width:7px;height:7px;border-radius:999px}
+.s-ser{background:var(--orange-soft);color:var(--orange-ink)}
+.s-ser i{background:var(--orange)}
+.s-mod{background:var(--amber-soft);color:var(--amber-ink)}
+.s-mod i{background:var(--amber)}
+.s-info{background:var(--surface-2);color:var(--ink-2)}
+.s-info i{background:var(--ink-3)}
+.i-t{display:flex;flex-direction:column;line-height:1.45}
+.i-t a{font-weight:600;text-decoration:none}
+.i-t a:hover{text-decoration:underline}
+.i-t span{color:var(--ink-3);font-size:12px}
+.pages{display:flex;align-items:center;gap:8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pbar{width:56px;height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.pbar span{display:block;height:100%;border-radius:999px;background:var(--orange)}
+.engs{display:flex;gap:4px}
+.eng{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;color:#FFFFFF;font-size:10px;font-weight:700}
+.st{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap}
+.st.new{background:var(--rose-soft);color:var(--rose-ink)}
+.st.open{background:var(--surface-2);color:var(--ink-2)}
+.feed{position:relative;display:flex;flex-direction:column;gap:18px;margin:0;padding:18px 18px 20px;list-style:none}
+.feed::before{content:"";position:absolute;top:28px;bottom:30px;inset-inline-start:33px;width:2px;background:var(--line)}
+.feed li{position:relative;display:flex;gap:12px}
+.f-dot{position:relative;z-index:1;display:grid;place-items:center;width:32px;height:32px;flex:none;border:3px solid var(--surface);border-radius:999px;color:#FFFFFF}
+.f-t{display:flex;flex-direction:column;line-height:1.5}
+.f-t b{font-size:13px;font-weight:600}
+.f-t span{color:var(--ink-2);font-size:12px}
+.f-t time{color:var(--ink-3);font-size:11px}
+.cats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;padding:16px 18px 18px}
+.cat{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 8px;border:1px solid var(--line);border-radius:16px;text-align:center}
+.cat svg{display:block;width:56px;height:56px;transform:rotate(-90deg)}
+.c-tr{fill:none;stroke:var(--surface-2);stroke-width:6}
+.c-v{fill:none;stroke-width:6;stroke-linecap:round}
+.cat b{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.cat span{color:var(--ink-2);font-size:12px;line-height:1.4}
+.layer{position:fixed;inset:0;z-index:40}
+.scrim{position:absolute;inset:0;width:100%;height:100%;border:0;background:rgba(11,18,32,.45);cursor:default}
+.pal{position:absolute;top:90px;left:50%;width:620px;max-width:calc(100% - 32px);transform:translateX(-50%);border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);box-shadow:0 30px 70px -20px rgba(0,0,0,.45);overflow:hidden}
+.pal-in{display:flex;align-items:center;gap:10px;height:56px;padding:0 16px;border-bottom:1px solid var(--line);color:var(--ink-3)}
+.pal-in input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font-size:16px}
+.pal-body{max-height:360px;padding:6px;overflow-y:auto}
+.pal-g{margin:8px 10px 4px;color:var(--ink-3);font-size:12px}
+.pal-it{display:flex;align-items:center;gap:12px;height:42px;padding:0 10px;border-radius:10px;text-decoration:none}
+.pal-it:hover,.pal-it:focus-visible{background:var(--indigo-soft);color:var(--indigo-ink);outline:0}
+.pal-hint{margin-inline-start:auto;color:var(--ink-3);font-size:12px}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.55)}100%{box-shadow:0 0 0 8px rgba(16,185,129,0)}}
+@keyframes draw{from{stroke-dashoffset:1400}to{stroke-dashoffset:0}}
+.draw{stroke-dasharray:1400;animation:draw 1.6s cubic-bezier(.2,.8,.2,1) both}
+@media (max-width:1180px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.row2,.row3{grid-template-columns:minmax(0,1fr)}.cats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:900px){.dash{grid-template-columns:minmax(0,1fr)}.side{display:none}.find{width:auto;flex:1}.find span,.find kbd{display:none}.top,.content{padding-inline:16px}.crumbs{display:none}}
+@media (prefers-reduced-motion:reduce){.draw{animation:none;stroke-dasharray:none}.tag.live i{animation:none}.btn-g{transition:none}}
+</style>
+</helmet>
+<div class="{{ themeClass }}" dir="rtl" lang="ar">
+  <aside class="side" aria-label="القائمة الجانبية">
+    <a class="brand" href="DashHome.dc.html" aria-label="Arablyzer، لوحة التحكم">
+      <svg class="mark" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true"><defs><linearGradient id="mk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="mk1"></stop><stop offset="1" class="mk2"></stop></linearGradient></defs><rect width="32" height="32" rx="10" fill="url(#mk)"></rect><path d="M24 10.5H8.5M24 16H12.5M24 21.5H16.5"></path></svg>
+      <span class="word" lang="en">Arablyzer</span>
+    </a>
+    <button type="button" class="switch" aria-label="بدّل الموقع"><span class="fav" lang="en">M</span><span class="sw-t"><b><bdi dir="ltr">matjar.example</bdi></b><span>4 مواقع في حسابك</span></span><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"></path></svg></button>
+    <nav class="grp" aria-label="الموقع">
+      <p class="grp-t">الموقع</p>
+      <a class="item" href="DashSite.dc.html" aria-current="page"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2"></rect><rect x="13" y="4" width="7" height="7" rx="2"></rect><rect x="4" y="13" width="7" height="7" rx="2"></rect><rect x="13" y="13" width="7" height="7" rx="2"></rect></svg></span>نظرة عامة</a>
+      <a class="item" href="Report.dc.html"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5l8.5 15h-17z"></path><path d="M12 10v4M12 16.8v.2"></path></svg></span>المشاكل<span class="cnt hot">2</span></a>
+      <a class="item" href="#pages"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"></path><path d="M14 3.5V8h4"></path></svg></span>الصفحات<span class="cnt">24</span></a>
+      <a class="item" href="#monitoring"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12h4l2-5 4 10 2-5h5"></path></svg></span>المراقبة</a>
+      <a class="item" href="Report.dc.html"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"></path><path d="M14 3.5V8h4M9.5 12.5h5M9.5 16h5"></path></svg></span>التقارير</a>
+      <a class="item" href="#site-settings"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h9M18 7h1M5 17h1M10 17h9"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg></span>الإعدادات</a>
+    </nav>
+    <nav class="grp" aria-label="الحساب">
+      <p class="grp-t">الحساب</p>
+      <a class="item" href="DashHome.dc.html"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"></circle><path d="M3.5 12h17M12 3.5c2.6 2.6 3.6 5.5 3.6 8.5s-1 5.9-3.6 8.5c-2.6-2.6-3.6-5.5-3.6-8.5s1-5.9 3.6-8.5z"></path></svg></span>كل المواقع<span class="cnt">4</span></a>
+      <a class="item" href="#team"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="3.2"></circle><path d="M3.5 19c.8-3 3-4.6 5.5-4.6s4.7 1.6 5.5 4.6"></path><path d="M15.5 6.2a3 3 0 0 1 0 5.6M17.5 14.6c1.4.6 2.4 2 2.9 4.4"></path></svg></span>الفريق</a>
+      <a class="item" href="#billing"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="12" rx="2.5"></rect><path d="M3.5 10h17M7 14.5h3"></path></svg></span>الفوترة</a>
+      <a class="item" href="#api"><span class="n-ic"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="3.5"></circle><path d="M10.5 12.5L19 4M16 7l2.5 2.5"></path></svg></span>مفاتيح API</a>
+    </nav>
+    <div class="up-card">
+      <b>راقب مواقع أكثر</b>
+      <p>خطة أعلى تراقب [عدد] مواقع كل يوم، مع زحف المواقع كاملة.</p>
+      <a class="up-btn" href="Main.dc.html#pricing">قارن الخطط</a>
+    </div>
+    <div class="me-row">
+      <span class="av"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="3.5"></circle><path d="M5.5 19.5c1.2-3.2 3.6-4.8 6.5-4.8s5.3 1.6 6.5 4.8"></path></svg></span>
+      <span class="me-t"><b>حسابك</b><span>صاحب الحساب</span></span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <nav class="crumbs" aria-label="مسار الصفحة"><a href="DashHome.dc.html">المواقع</a><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg><bdi dir="ltr">matjar.example</bdi><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg><b>نظرة عامة</b></nav>
+      <button type="button" class="find" onClick="{{ openPal }}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg><span>اذهب إلى موقع أو صفحة…</span><kbd dir="ltr">⌘ K</kbd></button>
+      <button type="button" class="ib" aria-label="{{ themeLabel }}" onClick="{{ toggleTheme }}">
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"></path></svg></sc-if>
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"></path></svg></sc-if>
+      </button>
+      <button type="button" class="ib" aria-label="التنبيهات، 2 جديدة"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg><span class="dot">2</span></button>
+      <a class="btn-g" href="Scan.dc.html"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95"></path><path d="M19 5v4h-4"></path></svg>افحص الآن</a>
+    </header>
+
+    <main class="content">
+      <div class="ph">
+        <div class="ph-l">
+          <span class="ph-fav" lang="en">M</span>
+          <div>
+            <h1><bdi dir="ltr">matjar.example</bdi></h1>
+            <div class="ph-meta"><span class="tag live"><i></i>مراقبة يومية</span><span class="tag">آخر فحص: اليوم</span><span class="tag">Chromium وFirefox وWebKit</span><span class="tag ex">بيانات مثال</span></div>
+          </div>
+        </div>
+        <div class="ph-r"><a class="btn-line" href="Report.dc.html"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"></path><path d="M5 13v5.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V13"></path></svg>شارك التقرير</a></div>
+      </div>
+
+      <div class="kpis">
+        <section class="kpi">
+          <div class="k-top"><span class="k-l">الدرجة</span><span class="k-ic" style="background: linear-gradient(135deg,#0F766E,#14B8A6)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .6-4.5 4 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.5-4 6-.6z"></path></svg></span></div>
+          <div class="k-v">91<small>من 100</small></div>
+          <span><span class="delta up"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>6 نقاط هذا الأسبوع</span></span>
+          <svg class="spark" viewBox="0 0 280 56" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sp1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: #14B8A6; stop-opacity: .35"></stop><stop offset="1" style="stop-color: #14B8A6; stop-opacity: 0"></stop></linearGradient></defs><path fill="url(#sp1)" d="M280 56 L280 40 L258 40 L237 35 L215 35 L194 35 L172 31 L151 26 L129 26 L108 24 L86 20 L65 8 L43 17 L22 17 L0 13 L0 56 Z"></path><polyline class="sp-line" style="stroke: #14B8A6" points="280,40 258,40 237,35 215,35 194,35 172,31 151,26 129,26 108,24 86,20 65,8 43,17 22,17 0,13"></polyline></svg>
+        </section>
+        <section class="kpi">
+          <div class="k-top"><span class="k-l">المشاكل المفتوحة</span><span class="k-ic" style="background: linear-gradient(135deg,#C2410C,#FB923C)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5l8.5 15h-17z"></path><path d="M12 10v4M12 16.8v.2"></path></svg></span></div>
+          <div class="k-v">2<small>وملاحظة واحدة</small></div>
+          <span><span class="delta up"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"></path></svg>أقل بواحدة من الأسبوع الماضي</span></span>
+          <svg class="spark" viewBox="0 0 280 56" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sp2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: #FB923C; stop-opacity: .35"></stop><stop offset="1" style="stop-color: #FB923C; stop-opacity: 0"></stop></linearGradient></defs><path fill="url(#sp2)" d="M280 56 L280 10 L258 10 L237 17 L215 17 L194 17 L172 24 L151 31 L129 31 L108 31 L86 38 L65 46 L43 38 L22 38 L0 38 L0 56 Z"></path><polyline class="sp-line" style="stroke: #FB923C" points="280,10 258,10 237,17 215,17 194,17 172,24 151,31 129,31 108,31 86,38 65,46 43,38 22,38 0,38"></polyline></svg>
+        </section>
+        <section class="kpi">
+          <div class="k-top"><span class="k-l">الصفحات المفحوصة</span><span class="k-ic" style="background: linear-gradient(135deg,#4338CA,#818CF8)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"></path><path d="M14 3.5V8h4"></path></svg></span></div>
+          <div class="k-v">24<small>من خريطة الموقع</small></div>
+          <span><span class="delta up"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"></path></svg>4 صفحات جديدة</span></span>
+          <svg class="spark" viewBox="0 0 280 56" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sp3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: #818CF8; stop-opacity: .35"></stop><stop offset="1" style="stop-color: #818CF8; stop-opacity: 0"></stop></linearGradient></defs><path fill="url(#sp3)" d="M280 56 L280 34 L258 34 L237 34 L215 30 L194 30 L172 30 L151 30 L129 26 L108 26 L86 26 L65 22 L43 22 L22 18 L0 18 L0 56 Z"></path><polyline class="sp-line" style="stroke: #818CF8" points="280,34 258,34 237,34 215,30 194,30 172,30 151,30 129,26 108,26 86,26 65,22 43,22 22,18 0,18"></polyline></svg>
+        </section>
+        <section class="kpi">
+          <div class="k-top"><span class="k-l">سرعة الجوال (LCP)</span><span class="k-ic" style="background: linear-gradient(135deg,#B45309,#FBBF24)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18a8 8 0 1 1 14 0"></path><path d="M12 13l3.5-3.5"></path></svg></span></div>
+          <div class="k-v">2.1<small>ثانية</small></div>
+          <span><span class="delta up">جيد، أقل من 2.5 ثانية</span></span>
+          <svg class="spark" viewBox="0 0 280 56" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sp4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: #FBBF24; stop-opacity: .35"></stop><stop offset="1" style="stop-color: #FBBF24; stop-opacity: 0"></stop></linearGradient></defs><path fill="url(#sp4)" d="M280 56 L280 18 L258 22 L237 20 L215 26 L194 24 L172 28 L151 27 L129 30 L108 29 L86 33 L65 31 L43 34 L22 33 L0 35 L0 56 Z"></path><polyline class="sp-line" style="stroke: #F59E0B" points="280,18 258,22 237,20 215,26 194,24 172,28 151,27 129,30 108,29 86,33 65,31 43,34 22,33 0,35"></polyline></svg>
+        </section>
+      </div>
+
+      <div class="row2">
+        <section class="card" aria-labelledby="ch-h">
+          <div class="c-head">
+            <div><h2 id="ch-h">{{ chartTitle }}</h2><p>آخر 14 يوماً، والأحدث على اليسار</p></div>
+            <div class="seg" role="group" aria-label="اعرض">
+              <button type="button" aria-pressed="{{ mScore }}" onClick="{{ showScore }}">الدرجة</button>
+              <button type="button" aria-pressed="{{ mIssues }}" onClick="{{ showIssues }}">المشاكل</button>
+            </div>
+          </div>
+          <div class="chart">
+            <svg viewBox="0 0 720 260" role="img" aria-label="{{ chartAria }}">
+              <defs><linearGradient id="ca" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color: {{ chartColor }}; stop-opacity: .28"></stop><stop offset="1" style="stop-color: {{ chartColor }}; stop-opacity: 0"></stop></linearGradient></defs>
+              <line class="gl" x1="16" x2="664" y1="20" y2="20"></line>
+              <line class="gl" x1="16" x2="664" y1="86.7" y2="86.7"></line>
+              <line class="gl" x1="16" x2="664" y1="153.3" y2="153.3"></line>
+              <line class="gl" x1="16" x2="664" y1="220" y2="220"></line>
+              <text class="ax" x="712" y="24">{{ ax0 }}</text>
+              <text class="ax" x="712" y="90.7">{{ ax1 }}</text>
+              <text class="ax" x="712" y="157.3">{{ ax2 }}</text>
+              <text class="ax" x="712" y="224">{{ ax3 }}</text>
+              <path fill="url(#ca)" d="{{ areaD }}"></path>
+              <polyline class="c-line draw" style="stroke: {{ chartColor }}" points="{{ linePts }}"></polyline>
+              <line x1="{{ hx }}" x2="{{ hx }}" y1="20" y2="220" style="stroke: {{ chartColor }}; stroke-width: 1; stroke-dasharray: 4 4; opacity: .6"></line>
+              <circle cx="{{ hx }}" cy="{{ hy }}" r="6" style="fill: {{ chartColor }}; stroke: #FFFFFF; stroke-width: 3"></circle>
+            </svg>
+            <div class="plot" aria-hidden="true">
+              <div class="tip" style="left: {{ tipLeft }}; top: {{ tipTop }}; transform: {{ tipShift }}"><span>{{ tipDate }}</span><b>{{ tipValue }}</b></div>
+              <div class="hov">
+                <sc-for list="{{ zones }}" as="z" hint-placeholder-count="14"><div onMouseEnter="{{ z.enter }}"></div></sc-for>
+              </div>
+            </div>
+            <div class="x-l" aria-hidden="true"><span style="left: 92.2%">19 سبتمبر</span><span style="left: 43.8%">26 سبتمبر</span><span style="left: 0; transform: none">اليوم، 2 أكتوبر</span></div>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="dn-h">
+          <div class="c-head"><div><h2 id="dn-h">حسب الخطورة</h2><p>في آخر فحص</p></div></div>
+          <div class="donut-wrap">
+            <div class="donut">
+              <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="d-track" cx="60" cy="60" r="48"></circle><circle class="d-seg" cx="60" cy="60" r="48" style="stroke: #EA580C; stroke-dasharray: 92.5 209.1; stroke-dashoffset: 0"></circle><circle class="d-seg" cx="60" cy="60" r="48" style="stroke: #F59E0B; stroke-dasharray: 92.5 209.1; stroke-dashoffset: -100.5"></circle><circle class="d-seg" cx="60" cy="60" r="48" style="stroke: #94A3B8; stroke-dasharray: 92.5 209.1; stroke-dashoffset: -201"></circle></svg>
+              <div class="d-c"><b>3</b><span>مشكلتان وملاحظة</span></div>
+            </div>
+            <ul class="legend">
+              <li><i style="background: #EA580C"></i>خطيرة<b>1</b></li>
+              <li><i style="background: #F59E0B"></i>متوسطة<b>1</b></li>
+              <li><i style="background: #94A3B8"></i>معلومة<b>1</b></li>
+              <li><i style="background: #E11D48"></i>حرجة<b>0</b></li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <div class="row3">
+        <section class="card" aria-labelledby="is-h">
+          <div class="c-head"><div><h2 id="is-h">المشاكل المفتوحة</h2><p>مرتبة حسب الخطورة</p></div><a class="btn-line" style="height: 34px; font-size: 13px" href="Report.dc.html">كل المشاكل</a></div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th scope="col">الخطورة</th><th scope="col">المشكلة</th><th scope="col">الصفحات</th><th scope="col">المتصفحات</th><th scope="col">الحالة</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="sev s-ser"><i></i>خطيرة</span></td>
+                  <td><span class="i-t"><a href="Report.dc.html">صفحة من اليمين إلى اليسار أعرض من شاشة الهاتف</a><span>الاتجاه RTL، ظهرت قبل يومين</span></span></td>
+                  <td><span class="pages">12<span class="pbar"><span style="width: 50%"></span></span></span></td>
+                  <td><span class="engs"><span class="eng" style="background: #2563EB" title="Chromium">C</span><span class="eng" style="background: #EA580C" title="Firefox">F</span><span class="eng" style="background: #0EA5E9" title="WebKit">W</span></span></td>
+                  <td><span class="st new">جديدة</span></td>
+                </tr>
+                <tr>
+                  <td><span class="sev s-mod"><i></i>متوسطة</span></td>
+                  <td><span class="i-t"><a href="Report.dc.html">تباعد الحروف في النص العربي</a><span>العرض العربي، منذ أسبوعين</span></span></td>
+                  <td><span class="pages">3<span class="pbar"><span style="width: 12.5%; background: #F59E0B"></span></span></span></td>
+                  <td><span class="engs"><span class="eng" style="background: #0EA5E9" title="WebKit">W</span></span></td>
+                  <td><span class="st open">مفتوحة</span></td>
+                </tr>
+                <tr>
+                  <td><span class="sev s-info"><i></i>معلومة</span></td>
+                  <td><span class="i-t"><a href="Report.dc.html">CSS يحدد الجهات باليمين واليسار</a><span>الاتجاه RTL، ملف CSS واحد</span></span></td>
+                  <td><span class="pages">24<span class="pbar"><span style="width: 100%; background: #94A3B8"></span></span></span></td>
+                  <td><span class="engs"><span class="eng" style="background: #2563EB" title="Chromium">C</span><span class="eng" style="background: #EA580C" title="Firefox">F</span><span class="eng" style="background: #0EA5E9" title="WebKit">W</span></span></td>
+                  <td><span class="st open">مفتوحة</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="ac-h">
+          <div class="c-head"><div><h2 id="ac-h">آخر ما حدث</h2><p>بيانات مثال</p></div></div>
+          <ol class="feed">
+            <li><span class="f-dot" style="background: #10B981"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"></path></svg></span><span class="f-t"><b>اكتمل الفحص اليومي</b><span>24 صفحة في المتصفحات الثلاثة</span><time>اليوم</time></span></li>
+            <li><span class="f-dot" style="background: #E11D48"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v6M12 16.8v.2"></path></svg></span><span class="f-t"><b>ظهرت مشكلة خطيرة</b><span>صفحة أعرض من شاشة الهاتف، في 12 صفحة</span><time>قبل يومين</time></span></li>
+            <li><span class="f-dot" style="background: #4F46E5"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"></path></svg></span><span class="f-t"><b>أُصلحت مشكلة</b><span>وصف الصفحة مفقود</span><time>قبل 3 أيام</time></span></li>
+            <li><span class="f-dot" style="background: #0F766E"><svg class="ic ic-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></span><span class="f-t"><b>أُضيفت 4 صفحات</b><span>من خريطة الموقع</span><time>قبل أسبوع</time></span></li>
+          </ol>
+        </section>
+      </div>
+
+      <section class="card" aria-labelledby="ct-h">
+        <div class="c-head"><div><h2 id="ct-h">حسب الفئة</h2><p>درجة كل فئة في آخر فحص</p></div></div>
+        <div class="cats">
+          <div class="cat"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="c-tr" cx="22" cy="22" r="18"></circle><circle class="c-v" cx="22" cy="22" r="18" style="stroke: #F59E0B; stroke-dasharray: 75.8 113.1"></circle></svg><b>67</b><span>الاتجاه RTL</span></div>
+          <div class="cat"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="c-tr" cx="22" cy="22" r="18"></circle><circle class="c-v" cx="22" cy="22" r="18" style="stroke: #E11D48; stroke-dasharray: 2 113.1"></circle></svg><b>0</b><span>العرض العربي</span></div>
+          <div class="cat"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="c-tr" cx="22" cy="22" r="18"></circle><circle class="c-v" cx="22" cy="22" r="18" style="stroke: #10B981; stroke-dasharray: 113.1 113.1"></circle></svg><b>100</b><span>المحتوى العربي</span></div>
+          <div class="cat"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="c-tr" cx="22" cy="22" r="18"></circle><circle class="c-v" cx="22" cy="22" r="18" style="stroke: #10B981; stroke-dasharray: 113.1 113.1"></circle></svg><b>100</b><span>الأرشفة</span></div>
+          <div class="cat"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="c-tr" cx="22" cy="22" r="18"></circle><circle class="c-v" cx="22" cy="22" r="18" style="stroke: #10B981; stroke-dasharray: 113.1 113.1"></circle></svg><b>100</b><span>الزحف والوصول</span></div>
+          <div class="cat"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="c-tr" cx="22" cy="22" r="18"></circle><circle class="c-v" cx="22" cy="22" r="18" style="stroke: #10B981; stroke-dasharray: 113.1 113.1"></circle></svg><b>100</b><span>الثقة والأمان</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <sc-if value="{{ pal }}" hint-placeholder-val="{{ false }}">
+    <div class="layer">
+      <button type="button" class="scrim" aria-label="أغلق" onClick="{{ closePal }}"></button>
+      <div class="pal" role="dialog" aria-modal="true" aria-label="اذهب إلى">
+        <label class="pal-in"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg><span class="sr">اذهب إلى</span><input type="search" dir="auto" placeholder="اذهب إلى موقع أو صفحة أو إجراء" value="{{ pq }}" onChange="{{ onPq }}" onKeyDown="{{ palKey }}" ref="{{ palRef }}"></label>
+        <div class="pal-body">
+          <sc-for list="{{ palGroups }}" as="g" hint-placeholder-count="2">
+            <div><p class="pal-g">{{ g.label }}</p>
+              <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3"><a class="pal-it" href="{{ it.href }}"><span dir="{{ it.dir }}">{{ it.label }}</span><span class="pal-hint">{{ it.hint }}</span></a></sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { dark: null, metric: 'score', hover: 13, pal: false, pq: '' };
+    this.palRef = (el) => {
+      if (el) el.focus();
+    };
+  }
+  renderVals() {
+    const s = this.state;
+    const dark = s.dark === null ? Boolean(this.props.dark) : s.dark;
+    const score = [79, 79, 81, 81, 81, 83, 85, 85, 86, 88, 93, 89, 89, 91];
+    const issues = [6, 6, 5, 5, 5, 4, 3, 3, 3, 2, 1, 2, 2, 2];
+    const days = ['19 سبتمبر', '20 سبتمبر', '21 سبتمبر', '22 سبتمبر', '23 سبتمبر', '24 سبتمبر', '25 سبتمبر', '26 سبتمبر', '27 سبتمبر', '28 سبتمبر', '29 سبتمبر', '30 سبتمبر', '1 أكتوبر', '2 أكتوبر'];
+    const isScore = s.metric === 'score';
+    const data = isScore ? score : issues;
+    const x = (i) => 664 - i * (648 / 13);
+    const y = (v) => (isScore ? 220 - (v - 70) * (200 / 30) : 220 - v * 25);
+    const pts = data.map((v, i) => x(i).toFixed(2) + ',' + y(v).toFixed(2));
+    const area = 'M664 220 L' + pts.join(' L') + ' L16 220 Z';
+    const h = s.hover;
+    const color = isScore ? '#14B8A6' : '#F97316';
+    const norm = (v) => String(v).toLowerCase().replace(/[آأإ]/g, 'ا').replace(/ة/g, 'ه');
+    const pq = norm(s.pq.trim());
+    const palData = [
+      { label: 'في هذا الموقع', items: [
+        { label: 'المشاكل', hint: '2 مفتوحة', href: 'Report.dc.html', dir: 'rtl' },
+        { label: 'التقارير', hint: 'آخرها اليوم', href: 'Report.dc.html', dir: 'rtl' },
+        { label: 'افحص الآن', hint: 'إجراء', href: 'Scan.dc.html', dir: 'rtl' }
+      ] },
+      { label: 'المواقع', items: [
+        { label: 'matjar.example', hint: 'أنت هنا', href: 'DashSite.dc.html', dir: 'ltr' },
+        { label: 'akhbar.example', hint: 'نظرة عامة', href: 'DashSite.dc.html', dir: 'ltr' },
+        { label: 'dalil.example', hint: 'نظرة عامة', href: 'DashSite.dc.html', dir: 'ltr' },
+        { label: 'souq.example', hint: 'لم يُفحص', href: 'DashSite.dc.html', dir: 'ltr' }
+      ] },
+      { label: 'الحساب', items: [
+        { label: 'كل المواقع', hint: '', href: 'DashHome.dc.html', dir: 'rtl' },
+        { label: 'الفريق', hint: '', href: 'DashHome.dc.html', dir: 'rtl' },
+        { label: 'مفاتيح API', hint: '', href: 'DashHome.dc.html', dir: 'rtl' }
+      ] }
+    ];
+    const palGroups = palData
+      .map((g) => ({ label: g.label, items: g.items.filter((it) => !pq || norm(it.label).includes(pq)) }))
+      .filter((g) => g.items.length > 0);
+    return {
+      themeClass: dark ? 'dash dark' : 'dash',
+      isLight: !dark,
+      isDark: dark,
+      themeLabel: dark ? 'الوضع الفاتح' : 'الوضع الداكن',
+      toggleTheme: () => this.setState({ dark: !dark }),
+      chartTitle: isScore ? 'الدرجة' : 'المشاكل المفتوحة',
+      chartAria: isScore ? 'الدرجة خلال 14 يوماً: من 79 إلى 91، ونزلت قبل يومين من 93 إلى 89 حين ظهرت مشكلة خطيرة.' : 'المشاكل المفتوحة خلال 14 يوماً: من 6 إلى 2.',
+      mScore: isScore ? 'true' : 'false',
+      mIssues: isScore ? 'false' : 'true',
+      showScore: () => this.setState({ metric: 'score' }),
+      showIssues: () => this.setState({ metric: 'issues' }),
+      chartColor: color,
+      ax0: isScore ? '100' : '8',
+      ax1: isScore ? '90' : '5',
+      ax2: isScore ? '80' : '3',
+      ax3: isScore ? '70' : '0',
+      linePts: pts.join(' '),
+      areaD: area,
+      hx: x(h).toFixed(2),
+      hy: y(data[h]).toFixed(2),
+      tipLeft: (x(h) / 720 * 100).toFixed(2) + '%',
+      tipTop: (y(data[h]) / 260 * 100).toFixed(2) + '%',
+      tipShift: x(h) / 720 < 0.14 ? 'translate(-14%, -125%)' : x(h) / 720 > 0.86 ? 'translate(-86%, -125%)' : 'translate(-50%, -125%)',
+      tipDate: days[h],
+      tipValue: isScore ? 'الدرجة ' + data[h] : data[h] + ' مشاكل مفتوحة',
+      zones: data.map((v, i) => ({ enter: () => this.setState({ hover: i }) })),
+      pal: s.pal,
+      openPal: () => this.setState({ pal: true, pq: '' }),
+      closePal: () => this.setState({ pal: false }),
+      pq: s.pq,
+      onPq: (e) => this.setState({ pq: e.target.value }),
+      palKey: (e) => {
+        if (e.key === 'Escape') this.setState({ pal: false });
+      },
+      palRef: this.palRef,
+      palGroups
+    };
+  }
+}
+</script>
+</body>
+</html>

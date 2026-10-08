@@ -8,6 +8,7 @@ export {
   auditToolPage,
   isKnownGap,
   KNOWN_GAPS,
+  NOT_FOR_SITE_PAGES,
   type AuditCheck,
   type AuditProblem,
   type ExpectedPage,

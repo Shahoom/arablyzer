@@ -7,7 +7,12 @@ import {
   collectRobots,
   ENGINES,
   headerValues,
+  lossOf,
   type CruxFacts,
+  organizationalDomain,
+  type KnowledgeGraphFacts,
+  type OpenPageRankFacts,
+  type SafeBrowsingFacts,
   type DnsFacts,
   type Engine,
   type LinkFacts,
@@ -15,6 +20,8 @@ import {
   type RenderedFacts,
   type RobotsFacts,
   type RobotsRule,
+  type OutsideFacts,
+  type SearchFacts,
   type SitemapFacts,
 } from '@arablyzer/collectors'
 import {
@@ -50,7 +57,21 @@ import { scoreOf } from '@arablyzer/scoring'
 import {
   AI_CRAWLERS,
   challengeOf,
+  brandName,
   crawlerAccess,
+  detectPlatforms,
+  dialectOfPage,
+  FINEWEB2,
+  fitOf,
+  fitsCountry,
+  OUTSIDE,
+  TOOL_ONLY,
+  inferCountry,
+  isMostlyArabic,
+  readPage,
+  readTraining,
+  trainingText,
+  xrayFamilies,
   isPublicUrl,
   matchRobots,
   renderMessage,
@@ -65,8 +86,13 @@ import {
 import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
+import { fetchOpenPageRank, type OpenPageRankOptions } from './open-page-rank'
+import { runOutside, outsideFacts, type OutsideOptions } from './outside'
+import { fetchKnowledgeGraph, type KnowledgeGraphOptions } from './knowledge-graph'
+import { fetchSafeBrowsing, type SafeBrowsingOptions } from './safe-browsing'
 import { lookupDns, txtResolverFor } from './dns'
 import { checkLinks, MAX_LINKS } from './links'
+import { runSearchTest } from './search-test'
 import { ENGINE_VERSION, USER_AGENT } from './identity'
 import { notice, type NoticeCode } from './notices'
 import { progressEmitter, type ProgressListener, type ScanProgress } from './progress'
@@ -110,6 +136,12 @@ const MIN_LAB_MS = 20_000
 export interface RenderRequest {
   readonly engines: readonly Engine[]
   readonly screenshots?: boolean
+  /**
+   * The Arabic X-ray: the render goes through the Arabic words for the ones drawn wrongly, and keeps
+   * a small picture of the first screen, to draw them on (report fact `xray`). A whole scan asks for
+   * it; a tool's scan does not.
+   */
+  readonly xray?: boolean
   /** Receives each engine's screenshot of the first screen, when screenshots are asked for. */
   readonly onScreenshot?: (engine: Engine, png: Uint8Array) => void
   /** Browser binaries by engine; the ARABLYZER_<ENGINE>_PATH variables by default. */
@@ -174,6 +206,32 @@ export interface ScanOptions {
    * private address is not asked about.
    */
   readonly crux?: CruxOptions
+  /**
+   * Google Safe Browsing, asked with this key when a rule the scan runs needs `safe-browsing`: the
+   * page's URL and origin go to Google. Without it, those rules do not apply, and a notice says
+   * so. A page on a private address is not asked about. Nothing is kept from one scan to the next.
+   */
+  readonly safeBrowsing?: SafeBrowsingOptions
+  /**
+   * Google's Knowledge Graph, asked with this key when a rule the scan runs needs `knowledge-graph`:
+   * the site's brand name, as the page gives it, goes to Google, in Arabic and in English. Without
+   * it, those rules do not apply, and a notice says so. A page on a private address is not asked
+   * about.
+   */
+  readonly knowledgeGraph?: KnowledgeGraphOptions
+  /**
+   * Open PageRank, asked in a whole scan (one with no `ruleIds`) when this is given: the page's
+   * domain goes to it, and its score, 0 to 10, to the report. With no key in it a notice says the
+   * check is off; a page on a private address, or on a domain that is no one's own (a platform's
+   * subdomain), is not asked about.
+   */
+  readonly openPageRank?: OpenPageRankOptions
+  /**
+   * What a tool's scan may ask of other services (look-alike domains, linked PDFs, suggestions, AI
+   * assistants, BigQuery): only those a rule it names needs, and, for the paid or key-gated ones,
+   * only with their key in here. A whole scan asks none of them.
+   */
+  readonly outside?: OutsideOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
   readonly lab?: LabRequest
   /**
@@ -462,6 +520,54 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     readsCrux && cruxSkipped === null && options.crux !== undefined && cruxAsked
       ? await fetchCrux(response.url, options.crux, { ...base, policy })
       : undefined
+  // Safe Browsing: the same, for the rules that read it; the site is not asked, Google is.
+  const readsSafeBrowsing = rules.some((rule) => rule.needs.includes('safe-browsing'))
+  const safeBrowsingSkipped: NoticeCode | null = !readsSafeBrowsing
+    ? null
+    : options.safeBrowsing === undefined
+      ? 'safe-browsing-no-key'
+      : fetched.privateAccess
+        ? 'safe-browsing-private'
+        : null
+  const safeBrowsing =
+    readsSafeBrowsing && safeBrowsingSkipped === null && options.safeBrowsing !== undefined
+      ? await fetchSafeBrowsing(response.url, options.safeBrowsing, { ...base, policy })
+      : undefined
+  // Knowledge Graph: the brand's name goes to Google, for the rules that read it.
+  const readsKnowledgeGraph = rules.some((rule) => rule.needs.includes('knowledge-graph'))
+  const knowledgeGraphSkipped: NoticeCode | null = !readsKnowledgeGraph
+    ? null
+    : options.knowledgeGraph === undefined
+      ? 'knowledge-graph-no-key'
+      : fetched.privateAccess
+        ? 'knowledge-graph-private'
+        : null
+  const brand = isSuccess(page.status) ? brandName(page) : null
+  const knowledgeGraph: KnowledgeGraphFacts | undefined =
+    readsKnowledgeGraph && knowledgeGraphSkipped === null && options.knowledgeGraph !== undefined
+      ? brand === null
+        ? { outcome: 'no-name', brand: null, entities: [] }
+        : await fetchKnowledgeGraph(brand.name, options.knowledgeGraph, { ...base, policy })
+      : undefined
+  // Open PageRank: the domain's authority, for a whole scan.
+  const rankDomain = organizationalDomain(new URL(response.url).hostname)
+  const rankKey = options.openPageRank?.apiKey
+  // Only a whole scan the caller set up for it: a tool's scan names its rules and says nothing.
+  const wantsRank = options.ruleIds === undefined && options.openPageRank !== undefined
+  const openPageRankSkipped: NoticeCode | null = !wantsRank
+    ? null
+    : rankKey === undefined || rankKey === ''
+      ? 'open-page-rank-no-key'
+      : fetched.privateAccess
+        ? 'open-page-rank-private'
+        : null
+  const openPageRank: OpenPageRankFacts | undefined =
+    wantsRank && openPageRankSkipped === null && rankKey !== undefined && rankDomain !== null
+      ? await fetchOpenPageRank(rankDomain, rankKey, options.openPageRank.endpoint, {
+          ...base,
+          policy,
+        })
+      : undefined
   if (crux !== undefined) progress({ step: 'crux', outcome: crux.outcome })
   else if (cruxSkipped !== null) progress({ step: 'crux', outcome: 'skipped' })
   // The TXT records the rules that read DNS ask for (M2.3c), and those alone, asked as the scan
@@ -486,7 +592,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
             progress,
             ...(options.signal === undefined ? {} : { signal: options.signal }),
           })
-        : { runs: [], rendered: [], notices: [], challenged: false }
+        : { runs: [], rendered: [], notices: [], xrayImages: new Map(), challenged: false }
 
   const links = await linking
   // Lighthouse, after the render: one browser at a time (BUILD-PLAN §18.3.1), behind the same
@@ -527,6 +633,33 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : undefined
   const sitemap =
     sitemapRead !== undefined && 'facts' in sitemapRead ? sitemapRead.facts : undefined
+  // The site's own search, for the rules that read it (a tool's scan): after everything else, so
+  // that its pauses cannot shorten the render or Lighthouse, and at the page's own lockdown.
+  const search: SearchFacts | undefined =
+    rules.some((rule) => rule.needs.includes('search')) && reached && page.html !== null
+      ? await runSearchTest(page, {
+          base: { ...base, policy: robotsPolicy },
+          optedOut: linkOptOut(robotsRead.facts, bot),
+          platformId: platformOf(page),
+        }).catch((): SearchFacts => ({ outcome: 'not-found' }))
+      : undefined
+  // The services beside the site (look-alike domains and the rest): a tool's scan, after all else.
+  const outside = await runOutside({
+    rules,
+    page,
+    hostname: new URL(response.url).hostname,
+    reached,
+    privateAccess: fetched.privateAccess,
+    base: { ...base, policy },
+    siteBase: { ...base, policy: robotsPolicy },
+    allowed: async (to) => {
+      const { read } = await robotsFor(to, robotsPolicy)
+      return !linkOptOut(read.facts, bot)(to)
+    },
+    options: options.outside,
+    dohUrl: options.dohUrl,
+    signal: options.signal,
+  })
   // Some sitemap could not be checked, or robots.txt could not be read, so none is known.
   const sitemapUnread =
     sitemapRead !== undefined &&
@@ -543,6 +676,22 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : []),
     ...(rendering?.notices ?? []),
     ...(cruxSkipped === null ? [] : [notice(cruxSkipped)]),
+    ...(openPageRankSkipped === null ? [] : [notice(openPageRankSkipped)]),
+    ...(openPageRank?.outcome === 'failed'
+      ? [notice(openPageRank.refused === true ? 'open-page-rank-refused' : 'open-page-rank-failed')]
+      : []),
+    ...(knowledgeGraphSkipped === null ? [] : [notice(knowledgeGraphSkipped)]),
+    ...(knowledgeGraph?.outcome === 'failed'
+      ? [
+          notice(
+            knowledgeGraph.refused === true ? 'knowledge-graph-refused' : 'knowledge-graph-failed',
+          ),
+        ]
+      : []),
+    ...(safeBrowsingSkipped === null ? [] : [notice(safeBrowsingSkipped)]),
+    ...(safeBrowsing?.outcome === 'failed'
+      ? [notice(safeBrowsing.refused === true ? 'safe-browsing-refused' : 'safe-browsing-failed')]
+      : []),
     ...(crux?.outcome === 'not-found' ? [notice('crux-not-found')] : []),
     ...(crux?.outcome === 'failed'
       ? [notice(crux.refused === true ? 'crux-refused' : 'crux-failed')]
@@ -555,6 +704,8 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ? [notice('dns-unchecked', { domain: dns.facts.domain })]
       : []),
     ...(dnsSkipped ? [notice('dns-unavailable')] : []),
+    ...searchNotices(search),
+    ...outside.notices,
     ...linkNotices(links, bot),
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
@@ -563,9 +714,13 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     robots,
     rendered: rendering?.rendered,
     crux,
+    safeBrowsing,
+    knowledgeGraph,
     redirects: target.http.redirects,
     dns: dns?.facts,
     links,
+    search,
+    outside: outside.collected,
     sitemap,
     sitemapUnknown: sitemapRead !== undefined && 'failed' in sitemapRead,
   })
@@ -588,6 +743,16 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     facts: {
       ...robotsFacts(robots, page.url),
       ...cruxFacts(crux),
+      ...platformFacts(page, rules),
+      ...knowledgeGraphFacts(knowledgeGraph),
+      ...openPageRankFacts(openPageRank),
+      ...arabicFontsFacts(rendering?.rendered, rules),
+      ...searchFacts(search),
+      ...outsideFacts(outside.collected, rules),
+      ...countryFitFacts(page, rules),
+      ...dialectFacts(page, rules),
+      ...aiTrainingFacts(page, rules),
+      ...xrayFacts(rendering),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
     ...(rendering === undefined ? {} : { render: rendering.runs }),
@@ -606,7 +771,11 @@ function chooseRules(
   engines: readonly Engine[] | undefined,
   dnsAvailable = true,
 ): { rules: Rule[]; renderSkipped: boolean; engineSkipped: Engine[]; dnsSkipped: boolean } {
-  const named = selectRules(all, ids)
+  // The site's search is asked only by a scan that names its rules (a tool's): never in a whole
+  // scan, where a dozen requests to every site's search would be a load nobody asked for.
+  const named = selectRules(all, ids).filter(
+    (rule) => ids !== undefined || !rule.needs.some((need) => TOOL_ONLY.has(need)),
+  )
   const needDns = named.filter((rule) => rule.needs.includes('dns'))
   if (!dnsAvailable && ids !== undefined && needDns.length > 0) {
     throw new TypeError(
@@ -656,6 +825,8 @@ interface Rendering {
   readonly runs: RenderRun[]
   readonly rendered: RenderedFacts[]
   readonly notices: Notice[]
+  /** The X-ray's picture of the first screen, by engine. */
+  readonly xrayImages: ReadonlyMap<Engine, Uint8Array>
   /** A browser was answered with a bot challenge in place of the page (M2.3c). */
   readonly challenged: boolean
 }
@@ -679,6 +850,7 @@ async function renderAll(
   const runs: RenderRun[] = []
   const rendered: RenderedFacts[] = []
   const notices: Notice[] = []
+  const xrayImages = new Map<Engine, Uint8Array>()
   let challenged = false
   let browser: typeof import('@arablyzer/browser')
   try {
@@ -697,7 +869,7 @@ async function renderAll(
       context.progress({ step: 'render', run })
       notices.push(notice('engine-unavailable', { engine: ENGINE_NAMES[engine] }))
     }
-    return { runs, rendered, notices, challenged: false }
+    return { runs, rendered, notices, xrayImages: new Map(), challenged: false }
   }
   const { renderPage, RENDER_TIMEOUT_MS, EXTRA_ENGINE_TIMEOUT_MS } = browser
   for (const [index, engine] of request.engines.entries()) {
@@ -727,6 +899,7 @@ async function renderAll(
       resolver: context.resolver,
       timeoutMs: Math.round(budget),
       screenshots: request.screenshots === true,
+      ...(request.xray === true ? { xray: xrayFamilies } : {}),
       ...(request.executablePaths === undefined
         ? {}
         : { executablePaths: request.executablePaths }),
@@ -744,6 +917,7 @@ async function renderAll(
       if (outcome.facts.truncated) notices.push(notice('render-truncated', { engine: name }))
     }
     if (outcome.screenshot !== null) request.onScreenshot?.(engine, outcome.screenshot)
+    if (outcome.xrayImage != null) xrayImages.set(engine, outcome.xrayImage)
     if (outcome.status === 'challenged') {
       challenged = true
       notices.push(
@@ -769,7 +943,7 @@ async function renderAll(
       notices.push(notice('host-limit', { engine: name, hosts: String(browser.DEFAULT_MAX_HOSTS) }))
     }
   }
-  return { runs, rendered, notices, challenged }
+  return { runs, rendered, notices, xrayImages, challenged }
 }
 
 /**
@@ -802,6 +976,10 @@ export interface EvaluateOptions {
   readonly rendered?: readonly RenderedFacts[]
   /** Real-user data; without it, rules that need `crux` do not apply. */
   readonly crux?: CruxFacts
+  /** What Safe Browsing said; without it, rules that need `safe-browsing` do not apply. */
+  readonly safeBrowsing?: SafeBrowsingFacts
+  /** What Knowledge Graph said; without it, rules that need `knowledge-graph` do not apply. */
+  readonly knowledgeGraph?: KnowledgeGraphFacts
   /**
    * The redirects the page's fetch followed, in order (the report's target.http.redirects);
    * without them, rules that need them do not apply.
@@ -811,6 +989,8 @@ export interface EvaluateOptions {
   readonly dns?: DnsFacts
   /** How the checks of the page's links ended (M2.3c); without them, rules that need `links` do not apply. */
   readonly links?: LinkFacts
+  /** The site's search's answers; without them, rules that need `search` do not apply. */
+  readonly search?: SearchFacts
   /** The site's sitemaps; without them, rules that need them do not apply. */
   readonly sitemap?: SitemapFacts
 }
@@ -839,9 +1019,13 @@ interface Collected {
   readonly robots?: RobotsFacts | undefined
   readonly rendered?: readonly RenderedFacts[] | undefined
   readonly crux?: CruxFacts | undefined
+  readonly safeBrowsing?: SafeBrowsingFacts | undefined
+  readonly knowledgeGraph?: KnowledgeGraphFacts | undefined
   readonly redirects?: readonly Redirect[] | undefined
   readonly dns?: DnsFacts | undefined
   readonly links?: LinkFacts | undefined
+  readonly search?: SearchFacts | undefined
+  readonly outside?: OutsideFacts | undefined
   readonly sitemap?: SitemapFacts | undefined
   /**
    * The sitemaps were asked for and robots.txt could not be read, so which they are is not known:
@@ -946,10 +1130,17 @@ interface Outcome {
  * which was asked for when the page answered a bot challenge too. Their rules run whatever the
  * page answered.
  */
-const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set(['robots', 'sitemap', 'response', 'crux'])
+const BESIDE_THE_PAGE: ReadonlySet<CollectorId> = new Set([
+  'robots',
+  'sitemap',
+  'response',
+  'crux',
+  'safe-browsing',
+  'knowledge-graph',
+])
 
 function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: boolean): Outcome {
-  const { robots, rendered, crux } = collected
+  const { robots, rendered, crux, safeBrowsing, knowledgeGraph } = collected
   const needsPage = rule.needs.some((need) => !BESIDE_THE_PAGE.has(need))
   const needsRender = rule.needs.includes('render')
   const needsHtml = rule.needs.includes('html') || rule.needs.includes('text') || needsRender
@@ -966,6 +1157,24 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   if (rule.needs.includes('sitemap') && collected.sitemapUnknown === true) {
     return { status: 'error', error: 'sitemap-unchecked', findings: [] }
   }
+  // The site's search: not asked (a whole scan, or no search found), nothing to judge.
+  const search = rule.needs.includes('search') ? collected.search : undefined
+  if (rule.needs.includes('search') && search === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
+  // The services beside the site: not asked (a whole scan, or off without a key), nothing to judge;
+  // asked, with no usable answer, the rule could not check.
+  const outsideNeeded: Record<string, unknown> = {}
+  for (const need of rule.needs) {
+    const key = OUTSIDE[need]
+    if (key === undefined) continue
+    const answer = collected.outside?.[key]
+    if (answer === undefined) return { status: 'not-applicable', findings: [] }
+    if ('outcome' in answer && answer.outcome === 'failed') {
+      return { status: 'error', error: `${need}-unchecked`, findings: [] }
+    }
+    outsideNeeded[key] = answer
+  }
   // Only for the rules that read them, like the redirects; not asked for, on a local site or
   // without a scan, they leave the rules nothing to judge.
   const sitemap = rule.needs.includes('sitemap') ? collected.sitemap : undefined
@@ -978,6 +1187,20 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   }
   if (rule.needs.includes('crux') && crux?.outcome === 'failed') {
     return { status: 'error', error: 'crux-unchecked', findings: [] }
+  }
+  // Safe Browsing was not asked for (no key, or a private page): nothing to judge; asked, with no
+  // usable answer, the rule could not check.
+  if (rule.needs.includes('safe-browsing') && safeBrowsing === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
+  if (rule.needs.includes('safe-browsing') && safeBrowsing?.outcome === 'failed') {
+    return { status: 'error', error: 'safe-browsing-unchecked', findings: [] }
+  }
+  if (rule.needs.includes('knowledge-graph') && knowledgeGraph === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
+  if (rule.needs.includes('knowledge-graph') && knowledgeGraph?.outcome === 'failed') {
+    return { status: 'error', error: 'knowledge-graph-unchecked', findings: [] }
   }
   // Only for the rules that read them: the others see the evidence they always did.
   const redirects = rule.needs.includes('redirects') ? collected.redirects : undefined
@@ -1018,9 +1241,13 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
     ...(redirects === undefined ? {} : { redirects }),
     ...(dns === undefined ? {} : { dns }),
     ...(links === undefined ? {} : { links }),
+    ...(search === undefined ? {} : { search }),
+    ...(Object.keys(outsideNeeded).length === 0 ? {} : { outside: outsideNeeded }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
+    ...(safeBrowsing === undefined ? {} : { safeBrowsing }),
+    ...(knowledgeGraph === undefined ? {} : { knowledgeGraph }),
     ...(sitemap === undefined ? {} : { sitemap }),
   }
   try {
@@ -1304,6 +1531,238 @@ function cruxFacts(crux: CruxFacts | undefined): Facts {
   if (crux === undefined || crux.outcome === 'failed') return {}
   const { outcome, scope, key, period, lcp, inp, cls } = crux
   return { crux: { outcome, scope, key, period, lcp, inp, cls } }
+}
+
+/**
+ * The platform the page runs on, for the report: only when the scan ran the platform rule on an
+ * HTML page. `primary` is the surest CMS or store.
+ */
+function platformFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (page.html === null || !rules.some((rule) => rule.id === 'platform-detected')) return {}
+  const technologies = detectPlatforms(page).map(({ id, name, kind, version, confidence }) => ({
+    id,
+    name,
+    kind,
+    version,
+    confidence,
+  }))
+  return {
+    platform: {
+      primary: technologies.find((tech) => tech.kind === 'platform') ?? null,
+      technologies,
+    },
+  }
+}
+
+/**
+ * The Arabic X-ray: for each engine that counted Arabic words, how many were drawn wrongly, where
+ * the broken ones stand in the first screen, and the picture of it; and the share drawn correctly
+ * across the engines, which never rounds up to 100 while a word is broken.
+ */
+function xrayFacts(rendering: Rendering | undefined): Facts {
+  const engines = (rendering?.rendered ?? []).flatMap((facts) => {
+    const xray = facts.xray
+    if (xray === undefined || xray.total === 0) return []
+    const image = rendering?.xrayImages.get(facts.engine)
+    return [
+      {
+        engine: facts.engine,
+        total: xray.total,
+        broken: xray.broken,
+        truncated: xray.truncated,
+        viewport: { width: facts.viewport.width, height: facts.viewport.height },
+        words: xray.words.map((word) => ({
+          text: word.text.slice(0, 100),
+          kind: word.kind,
+          box: { ...word.box },
+        })),
+        image:
+          image === undefined
+            ? null
+            : `data:image/jpeg;base64,${Buffer.from(image).toString('base64')}`,
+      },
+    ]
+  })
+  if (engines.length === 0) return {}
+  const total = engines.reduce((sum, engine) => sum + engine.total, 0)
+  const broken = engines.reduce((sum, engine) => sum + engine.broken, 0)
+  const exact = Math.round((100 * (total - broken)) / total)
+  return { xray: { percent: broken > 0 ? Math.min(exact, 99) : 100, engines } }
+}
+
+/** How ready the page is for the country it is written for; nothing without the rule or HTML. */
+function countryFitFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (page.html === null || !rules.some((rule) => rule.id === 'country-fit')) return {}
+  const { country, confidence, percent, judged, signals, items } = fitOf(page)
+  return {
+    countryFit: {
+      country,
+      confidence,
+      percent,
+      judged,
+      signals: signals.slice(0, 30).map(({ kind, country: signalCountry, value }) => ({
+        kind,
+        country: signalCountry,
+        value: value.slice(0, 100),
+      })),
+      items: items.map(({ id, status, detail }) => ({ id, status, detail: detail.slice(0, 100) })),
+    },
+  }
+}
+
+/** The dialect of the page's Arabic, for the report; nothing without the rule or Arabic text. */
+function dialectFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (
+    page.html === null ||
+    page.text === null ||
+    !rules.some((rule) => rule.id === 'dialect-register')
+  ) {
+    return {}
+  }
+  if (!isMostlyArabic(page)) return {}
+  const dialect = dialectOfPage(page.text.segments)
+  const { whole } = dialect
+  const inferred = inferCountry(readPage(page))
+  const country = inferred.confidence === 'strong' ? inferred.country : null
+  return {
+    dialect: {
+      outcome: whole.label === null ? 'too-little' : 'classified',
+      words: whole.words,
+      label: whole.label,
+      mix: { ...whole.mix },
+      hits: { ...whole.hits },
+      headings: dialect.headings?.label ?? null,
+      markers: whole.seen.map(({ word, dialect: name }) => ({ word, dialect: name })),
+      country,
+      fits:
+        country === null || whole.label === null || whole.label === 'msa'
+          ? null
+          : fitsCountry(whole.label, country),
+    },
+  }
+}
+
+/** The page's text against the FineWeb-2 filters for Arabic; nothing without the rule or Arabic text. */
+function aiTrainingFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (
+    page.html === null ||
+    page.text === null ||
+    !isMostlyArabic(page) ||
+    !rules.some((rule) => rule.id === 'ai-training-filters')
+  ) {
+    return {}
+  }
+  const reading = readTraining(trainingText(page))
+  return {
+    aiTraining: {
+      outcome: reading.words < FINEWEB2.minDocWords ? 'too-little' : 'tested',
+      words: reading.words,
+      lines: reading.lines,
+      passes: reading.passes,
+      checks: reading.checks.map((item) => ({ ...item })),
+    },
+  }
+}
+
+/** The id of the platform the page runs on, when it is sure of it (`facts.platform.primary.id`). */
+function platformOf(page: PageFacts): string | null {
+  return (
+    detectPlatforms(page).find((tech) => tech.kind === 'platform' && tech.confidence >= 50)?.id ??
+    null
+  )
+}
+
+/** What the search test came to, as a notice, when it tested nothing. */
+function searchNotices(search: SearchFacts | undefined): ReturnType<typeof notice>[] {
+  switch (search?.outcome) {
+    case 'not-found':
+      return [notice('search-not-found')]
+    case 'robots':
+      return [notice('search-robots')]
+    case 'unreachable':
+      return [notice('search-unreachable')]
+    case 'no-words':
+      return [notice('search-no-words')]
+    default:
+      return []
+  }
+}
+
+/** The search test's result as the report gives it: the words, their variants and what was lost. */
+function searchFacts(search: SearchFacts | undefined): Facts {
+  if (search?.outcome !== 'tested') return {}
+  const { lost, total } = lossOf(search.words)
+  return {
+    searchTest: {
+      via: search.via,
+      url: search.url,
+      requests: search.requests,
+      lost,
+      total,
+      words: search.words.map((word) => ({
+        word: word.word,
+        results: word.base.results,
+        first: word.base.first,
+        variants: word.variants.map(({ kind, query, results, first, outcome, counted }) => ({
+          kind,
+          query,
+          results,
+          first,
+          outcome,
+          counted,
+        })),
+      })),
+    },
+  }
+}
+
+/**
+ * The Arabic web fonts the render loaded with their subset sizes, from the first engine that saw
+ * any (Chromium renders first); nothing without the font slimmer rule or a font.
+ */
+function arabicFontsFacts(
+  rendered: readonly RenderedFacts[] | undefined,
+  rules: readonly Rule[],
+): Facts {
+  if (!rules.some((rule) => rule.id === 'ar-font-subset-savings')) return {}
+  const fonts = rendered?.find((facts) => facts.webFonts.length > 0)?.webFonts
+  if (fonts === undefined) return {}
+  return {
+    arabicFonts: {
+      fonts: fonts.map((font) => ({
+        family: font.family,
+        url: font.url,
+        format: font.format,
+        bytes: font.bytes,
+        weight: font.weight,
+        style: font.style,
+        characters: font.usedCharacters,
+        subsetBytes: font.subsetBytes,
+        unicodeRange: font.unicodeRange,
+      })),
+    },
+  }
+}
+
+/** Knowledge Graph's answer as the report gives it; nothing when it was not asked or failed. */
+function knowledgeGraphFacts(facts: KnowledgeGraphFacts | undefined): Facts {
+  if (facts === undefined || facts.outcome === 'failed') return {}
+  const { outcome, brand, entities } = facts
+  return {
+    knowledgeGraph: {
+      outcome,
+      brand,
+      entities: entities.map((entity) => ({ ...entity, types: [...entity.types] })),
+    },
+  }
+}
+
+/** Open PageRank's rank as the report gives it; nothing when not asked or failed; a score of null when the domain is not in the index yet. */
+function openPageRankFacts(facts: OpenPageRankFacts | undefined): Facts {
+  if (facts === undefined || facts.outcome === 'failed') return {}
+  // Not listed: the domain is not in the index yet; the score is null, and the page says so.
+  const { domain, score, position, referringDomains, trend, asOf } = facts
+  return { openPageRank: { domain, score, position, referringDomains, trend, asOf } }
 }
 
 function robotsFacts(robots: RobotsFacts | undefined, pageUrl: string): Facts {

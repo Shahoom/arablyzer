@@ -50,6 +50,15 @@ export async function run(argv: readonly string[], io: Io): Promise<number> {
     timeoutMs: options.timeoutMs,
     ...(options.ruleIds === undefined ? {} : { ruleIds: options.ruleIds }),
     ...(options.cruxKey === null ? {} : { crux: { apiKey: options.cruxKey } }),
+    ...(options.safeBrowsingKey === null
+      ? {}
+      : { safeBrowsing: { apiKey: options.safeBrowsingKey } }),
+    ...(options.knowledgeGraphKey === null
+      ? {}
+      : { knowledgeGraph: { apiKey: options.knowledgeGraphKey } }),
+    ...(options.openPageRankKey === null
+      ? {}
+      : { openPageRank: { apiKey: options.openPageRankKey } }),
     ...(options.lab ? { lab: {} } : {}),
     ...(io.signal === undefined ? {} : { signal: io.signal }),
     ...(render === null

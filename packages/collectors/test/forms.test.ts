@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parse } from 'parse5'
 import { collectPage, type PageFacts } from '../src/page'
-import { utf8 } from './helpers'
+import { cpuTimed, utf8 } from './helpers'
 
 function html(source: string) {
   const facts: PageFacts = collectPage({
@@ -131,15 +131,9 @@ describe('collectPage: walking headings and labels', () => {
   // searched their subtrees again for each label, five times the parse; the walks now add little.
   it('stays close to the parse time on nested labels', () => {
     const body = '<label>نص<div>'.repeat(4_000)
-    // The fastest of three runs each, so a pause from the machine's other work does not count.
-    const fastest = (run: () => unknown) =>
-      Math.min(
-        ...[0, 1, 2].map(() => {
-          const start = performance.now()
-          run()
-          return performance.now() - start
-        }),
-      )
+    // The fastest of three runs each, and by CPU time: the two are timed one after the other, and
+    // the machine's other work (CI runs every suite at once) is not the same during both.
+    const fastest = (run: () => unknown) => Math.min(...[0, 1, 2].map(() => cpuTimed(run).ms))
     const parsing = fastest(() => parse(body))
     expect(fastest(() => page(body))).toBeLessThan(parsing * 2 + 50)
   }, 30_000)

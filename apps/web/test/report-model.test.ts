@@ -6,22 +6,33 @@ import { createPolicy } from '@arablyzer/egress'
 import { REFUSAL_STATUSES, scan } from '@arablyzer/engine'
 import { serveSite } from '@arablyzer/fixtures'
 import checkoutFormJson from '@arablyzer/fixtures/golden/reports/07-checkout-form.json'
+import cleanStoreJson from '@arablyzer/fixtures/golden/reports/01-clean-store.json'
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
 import { REPORT } from '@arablyzer/i18n/report'
 import { TOOL_APP } from '@arablyzer/i18n/tool-app'
 import { Report, type RuleStatus } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
-import { idFromPath } from '../src/islands/ReportApp'
 import {
   advance,
+  aloneEngines,
+  bandOf,
+  categoryRows,
+  checklistOf,
+  diagramOf,
+  headlineOf,
+  idFromPath,
+  listOf,
+  onlyEngine,
   optOutOf,
   outcomeOf,
   REFUSALS,
   problemCount,
   problemsOf,
+  renderedEngines,
   START,
   stateNotices,
   stepsOf,
+  summaryCounts,
   noProblemsNote,
   noteCount,
   toolHeadline,
@@ -524,5 +535,261 @@ describe('toolHeadline', () => {
     )
     expect(toolHeadline(ruleset({ 'rtl-html-dir': 'not-applicable' }), t)).toBe(t.notApplicable)
     expect(toolHeadline(ruleset({ 'rtl-html-dir': 'needs-review' }), t)).toBe(t.review)
+  })
+})
+
+const cleanStore = Report.parse(cleanStoreJson)
+const checkoutForm = Report.parse(checkoutFormJson)
+
+// M2.6 R4: the summary of the report, counted from the rules' results as the report's own summary
+// counts them.
+describe('summaryCounts', () => {
+  it('counts the failed rules by severity, as the report’s own summary does', () => {
+    for (const report of [rtlLayout, checkoutForm, cleanStore]) {
+      expect(summaryCounts(report).bySeverity).toEqual(report.summary.bySeverity)
+    }
+  })
+
+  it('takes the rules that judge for problems, the rules that only list for notes', () => {
+    // Golden report 04: a serious and a moderate rule failed, and one that only lists (info).
+    expect(summaryCounts(rtlLayout)).toMatchObject({ problems: 2, notes: 1, review: 0 })
+    expect(summaryCounts(checkoutForm)).toMatchObject({ problems: 4, notes: 0, review: 0 })
+    expect(summaryCounts(cleanStore)).toMatchObject({ problems: 0, notes: 0, review: 0 })
+  })
+
+  it('counts a rule that needs a review as neither', () => {
+    expect(summaryCounts(rtlCheck(['needs-review', 'pass']))).toMatchObject({
+      problems: 0,
+      notes: 0,
+      review: 1,
+    })
+  })
+})
+
+describe('headlineOf', () => {
+  it('counts the problems and notes when there are any', () => {
+    expect(headlineOf(rtlLayout)).toEqual({ kind: 'counts', problems: 2, notes: 1 })
+    expect(headlineOf(rtlCheck(['fail', 'pass']))).toEqual({
+      kind: 'counts',
+      problems: 1,
+      notes: 0,
+    })
+  })
+
+  it('asks for a review when that is all there is', () => {
+    expect(headlineOf(rtlCheck(['needs-review', 'pass']))).toEqual({ kind: 'review', count: 1 })
+  })
+
+  it('says the page is clean only as far as the rules that ran can say it', () => {
+    expect(headlineOf(cleanStore)).toEqual({ kind: 'clean' })
+    expect(headlineOf(rtlCheck(['pass', 'error'], { status: 'partial' }))).toEqual({
+      kind: 'incomplete',
+    })
+    expect(headlineOf(rtlCheck(['error', 'error'], { status: 'failed' }))).toEqual({
+      kind: 'unknown',
+    })
+  })
+})
+
+describe('bandOf', () => {
+  it('draws Lighthouse’s cut-offs: 90 and 50', () => {
+    expect([100, 90, 89, 67, 50, 49, 0].map(bandOf)).toEqual([
+      'good',
+      'good',
+      'mid',
+      'mid',
+      'mid',
+      'low',
+      'low',
+    ])
+  })
+})
+
+describe('categoryRows', () => {
+  it('groups the categories: under 100 lowest first, at 100, and those no rule applied to', () => {
+    // Golden report 04: the Arabic rendering is at 0 and the direction at 72.
+    expect(categoryRows(rtlLayout.score.categories)).toEqual({
+      low: [
+        { category: 'ar-render', value: 0 },
+        { category: 'rtl', value: 72 },
+      ],
+      full: ['ar-content', 'onpage', 'index', 'crawl', 'links', 'intl', 'speed', 'trust', 'ai'],
+      none: ['forms', 'locale', 'schema', 'commerce'],
+    })
+  })
+
+  it('keeps the order of the categories among equal scores, and lists only those the report has', () => {
+    const rows = categoryRows({ forms: 50, rtl: 50, speed: null })
+    expect(rows.low.map((row) => row.category)).toEqual(['rtl', 'forms'])
+    expect(rows.none).toEqual(['speed'])
+    expect(rows.full).toEqual([])
+    expect(categoryRows({})).toEqual({ low: [], full: [], none: [] })
+  })
+})
+
+describe('the engines of a report', () => {
+  it('names those that rendered, in the order a scan renders them', () => {
+    expect(renderedEngines(rtlLayout)).toEqual(['chromium', 'firefox', 'webkit'])
+    expect(renderedEngines(cleanStore)).toEqual([])
+    const withFailure = {
+      ...rtlLayout,
+      scan: {
+        ...rtlLayout.scan,
+        render: rtlLayout.scan.render?.map((run) =>
+          run.engine === 'firefox' ? { ...run, status: 'timeout' as const } : run,
+        ),
+      },
+    }
+    expect(renderedEngines(withFailure)).toEqual(['chromium', 'webkit'])
+  })
+
+  it('finds the engine that shows a problem the others do not', () => {
+    // Golden report 04: the letter-spacing is drawn by WebKit alone.
+    expect([...aloneEngines(rtlLayout)]).toEqual(['webkit'])
+    expect([...aloneEngines(cleanStore)]).toEqual([])
+    // With one engine rendered, there is no other to compare it with.
+    const one = {
+      ...rtlLayout,
+      scan: { ...rtlLayout.scan, render: rtlLayout.scan.render?.slice(0, 1) },
+    }
+    expect([...aloneEngines(one)]).toEqual([])
+  })
+
+  it('says a rule is one browser’s only when every finding of it was seen there alone', () => {
+    const [spacing] = rtlLayout.findings.filter((finding) => finding.ruleId === 'ar-letter-spacing')
+    const [overflow] = rtlLayout.findings.filter(
+      (finding) => finding.ruleId === 'rtl-horizontal-overflow',
+    )
+    if (spacing === undefined || overflow === undefined) throw new Error('golden report 04')
+    expect(onlyEngine([spacing], 3)).toBe('webkit')
+    expect(onlyEngine([overflow], 3)).toBeNull()
+    expect(onlyEngine([spacing, overflow], 3)).toBeNull()
+    expect(onlyEngine([spacing], 1)).toBeNull()
+    expect(onlyEngine([], 3)).toBeNull()
+    const fromHtml = { ...spacing, evidence: { ...spacing.evidence, engines: undefined } }
+    expect(onlyEngine([fromHtml as typeof spacing], 3)).toBeNull()
+  })
+
+  it('lists names as each language does', () => {
+    expect(listOf(['Chromium', 'Firefox', 'WebKit'], 'ar')).toBe('Chromium وFirefox وWebKit')
+    expect(listOf(['Chromium', 'Firefox'], 'ar')).toBe('Chromium وFirefox')
+    expect(listOf(['Chromium'], 'ar')).toBe('Chromium')
+    expect(listOf(['Chromium', 'Firefox', 'WebKit'], 'en')).toBe('Chromium, Firefox, and WebKit')
+    expect(listOf(['Chromium', 'Firefox'], 'en')).toBe('Chromium and Firefox')
+    expect(listOf(['Chromium'], 'en')).toBe('Chromium')
+    expect(listOf([], 'en')).toBe('')
+  })
+
+  // WebKit's Intl.ListFormat puts U+2068 and U+2069 around each name of an Arabic list: the page
+  // showed them as «⟨U+2068⟩» in Safari, so the lists are written out.
+  it('writes no bidi control into a list', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      expect(listOf(['Chromium', 'Firefox', 'WebKit'], lang)).not.toMatch(
+        /[\u2066-\u2069\u200e\u200f]/u,
+      )
+    }
+  })
+})
+
+describe('checklistOf', () => {
+  it('tells a finished scan as the progress page told it running, each step done', () => {
+    // Golden report 04: robots.txt answered 404, the page 200, three engines rendered 69 rules.
+    expect(
+      checklistOf(rtlLayout, t).map((step) => [step.key, step.state, step.detail, step.ltr]),
+    ).toEqual([
+      ['robots', 'done', '404', true],
+      ['page', 'done', '200 · text/html', true],
+      ['render', 'done', '3 / 3', true],
+      ['rules', 'done', '72 rules', false],
+    ])
+    // The same keys, in the same order, as the steps of a scan running.
+    const running = stepsOf(
+      fold([
+        { type: 'started', engines: ['chromium', 'firefox', 'webkit'] },
+        { type: 'robots', outcome: 'fetched', status: 200 },
+        { type: 'page', status: 200, contentType: 'text/html', error: null },
+        { type: 'render-start', engine: 'chromium' },
+      ]),
+      t,
+    ).map((step) => step.key)
+    const finished = checklistOf(rtlLayout, t).map((step) => step.key)
+    expect(running.filter((key) => finished.includes(key))).toEqual(finished)
+  })
+
+  it('leaves out what the report holds nothing of, and shows a page that was not fetched', () => {
+    // The clean store's scan did not render, but CrUX answered.
+    expect(checklistOf(cleanStore, t).map((step) => step.key)).toEqual([
+      'robots',
+      'page',
+      'crux',
+      'rules',
+    ])
+    const noPage = {
+      ...cleanStore,
+      facts: {},
+      target: { ...cleanStore.target, http: { ...cleanStore.target.http, status: null } },
+    }
+    expect(checklistOf(noPage, t).map((step) => [step.key, step.state])).toEqual([
+      ['page', 'failed'],
+      ['rules', 'done'],
+    ])
+  })
+
+  it('shows the browsers that did not render, and CrUX when the report has its fact', () => {
+    const none = {
+      ...rtlLayout,
+      scan: {
+        ...rtlLayout.scan,
+        render: rtlLayout.scan.render?.map((run) => ({ ...run, status: 'failed' as const })),
+      },
+      facts: {
+        ...rtlLayout.facts,
+        crux: {
+          outcome: 'not-found' as const,
+          scope: null,
+          key: null,
+          period: null,
+          lcp: null,
+          inp: null,
+          cls: null,
+        },
+      },
+    }
+    const steps = checklistOf(none, t)
+    expect(steps.find((step) => step.key === 'render')).toMatchObject({
+      state: 'failed',
+      detail: '0 / 3',
+    })
+    expect(steps.find((step) => step.key === 'crux')).toMatchObject({
+      state: 'done',
+      detail: 'No CrUX data for it',
+    })
+  })
+})
+
+describe('diagramOf', () => {
+  it('draws an element past the screen’s left edge to scale: golden report 04’s menu', () => {
+    // A 390 px screen is 150 units; the nav starts 280 px left of it and is 260 px wide.
+    const diagram = diagramOf(-280, 260, 390)
+    expect(diagram.screen).toEqual({ x: 300, width: 150 })
+    expect(diagram.start).toBeCloseTo(192.3, 1)
+    expect(diagram.end).toBeCloseTo(292.3, 1)
+    // The drawing is cropped to the box and the screen, a margin each side.
+    expect([diagram.from, diagram.to]).toEqual([178, 464])
+  })
+
+  it('keeps the whole screen in the drawing when the element runs past its right edge', () => {
+    const diagram = diagramOf(300, 400, 390)
+    expect(diagram.end).toBe(516)
+    expect([diagram.from, diagram.to]).toEqual([286, 520])
+  })
+
+  it('never draws outside its 520 units, however far the element is', () => {
+    const far = diagramOf(-2000, 100, 390)
+    expect([far.start, far.from]).toEqual([4, 0])
+    expect(far.end).toBeGreaterThan(far.start)
+    const wide = diagramOf(0, 100_000, 390)
+    expect(wide.to).toBeLessThanOrEqual(520)
+    expect(wide.end).toBeLessThanOrEqual(516)
   })
 })

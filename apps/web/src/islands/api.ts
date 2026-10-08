@@ -1,8 +1,12 @@
 import {
+  fontSubsetPath,
+  GSC_STATUS_PATH,
+  gscResultPath,
   reportPath,
   SCANS_PATH,
   scanPath,
   type CreateScanRequest,
+  type GscResult,
   type ScanSummary,
 } from '@arablyzer/api-contract/codes'
 import type { Report } from '@arablyzer/report-schema'
@@ -74,4 +78,50 @@ export async function fetchReport(id: string, send: typeof fetch = fetch): Promi
   return typeof value?.scan === 'object' && Array.isArray(value.rules)
     ? { ok: true, value: value as Report }
     : { ok: false, reason: 'offline' }
+}
+
+/** Whether the site can connect Google Search Console (the API has an OAuth client); false if unsure. */
+export async function fetchGscStatus(send: typeof fetch = fetch): Promise<boolean> {
+  const loaded = await getJson(GSC_STATUS_PATH, send)
+  return (
+    loaded.ok &&
+    typeof loaded.value === 'object' &&
+    loaded.value !== null &&
+    (loaded.value as { enabled?: unknown }).enabled === true
+  )
+}
+
+/** A Search Console result, which the API gives once: the next read finds it gone. */
+export async function fetchGscResult(
+  id: string,
+  send: typeof fetch = fetch,
+): Promise<Loaded<GscResult>> {
+  const loaded = await getJson(gscResultPath(id), send)
+  if (!loaded.ok) return loaded
+  const value = loaded.value as Partial<GscResult> | null
+  return typeof value?.period === 'object' &&
+    Array.isArray(value.queries) &&
+    Array.isArray(value.pages) &&
+    Array.isArray(value.countries)
+    ? { ok: true, value: value as GscResult }
+    : { ok: false, reason: 'offline' }
+}
+
+export type FontDownload =
+  | { readonly ok: true; readonly blob: Blob }
+  | { readonly ok: false; readonly reason: 'limited' | 'failed' }
+
+/** A WOFF2 subset of one of the report's Arabic fonts, made by the API on this request. */
+export async function fetchFontSubset(
+  id: string,
+  fontUrl: string,
+  send: typeof fetch = fetch,
+): Promise<FontDownload> {
+  try {
+    const response = await send(fontSubsetPath(id, fontUrl), { credentials: 'omit' })
+    if (!response.ok) return { ok: false, reason: response.status === 429 ? 'limited' : 'failed' }
+    return { ok: true, blob: await response.blob() }
+  } catch {
+    return { ok: false, reason: 'failed' }
+  }
 }

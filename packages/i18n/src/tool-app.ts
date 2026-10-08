@@ -11,13 +11,18 @@ export interface ToolAppStrings {
     readonly submit: string
     readonly submitting: string
     /**
-     * Under the form: free, and what the tool reads: the page, robots.txt, the page drawn, the
-     * domain's DNS records, the page and its links, robots.txt and the sitemaps, or real visitors'
-     * data from Chrome.
+     * The line of meta text under the field (M2.6 R7): what the tool reads, before its name, as in
+     * «يقرأ: HTML». The line is all that is said of what it reads: the box's fine print is
+     * ScanNote's (scan-form.ts).
      */
-    readonly note: Readonly<
-      Record<'html' | 'robots' | 'render' | 'dns' | 'links' | 'sitemap' | 'crux', string>
-    >
+    readonly reads: string
+    /** The same line for a tool that opens the page in browsers: it comes before their three names. */
+    readonly rendersIn: string
+    /**
+     * What a tool sends to a host that is not ours, which its box's disclosure says beside what is
+     * kept: the DNS tool puts the page's domain to a resolver.
+     */
+    readonly sentOut: Readonly<Partial<Record<string, string>>>
   }
   readonly result: {
     readonly running: string
@@ -64,14 +69,22 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       urlLabel: 'رابط الصفحة',
       submit: 'افحص الصفحة',
       submitting: 'نفحص…',
-      note: {
-        html: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم.',
-        robots: 'مجاني وبلا تسجيل. نقرأ ملف robots.txt كما يرسله الخادم.',
-        render: 'مجاني وبلا تسجيل. نعرض الصفحة في المتصفحات كما يعرضها زائرك.',
-        dns: 'مجاني وبلا تسجيل. نسأل DNS عبر HTTPS لدى Cloudflare، أو لدى المحلِّل الذي ضُبطت عليه الخدمة، عن سجلَّي TXT لنطاق الصفحة: SPF وDMARC. ويصل اسم النطاق إلى ذلك المحلِّل، ولا شيء آخر من الصفحة.',
-        links: 'مجاني وبلا تسجيل. نقرأ الصفحة كما يرسلها الخادم، ونطلب روابطها إلى موقعها.',
-        sitemap: 'مجاني وبلا تسجيل. نقرأ robots.txt وخرائط الموقع كما يرسلها الخادم.',
-        crux: 'مجاني وبلا تسجيل. نقرأ بيانات الزوار الحقيقيين من تقرير تجربة مستخدمي Chrome.',
+      reads: 'يقرأ:',
+      rendersIn: 'يعرض الصفحة في:',
+      sentOut: {
+        'crux-by-country':
+          'نرسل أصل موقعك (النطاق مع البروتوكول) إلى Google BigQuery بحساب الخدمة الذي وضعه مشغِّل الخادم، في استعلامين على جداول Chrome UX Report، ولا شيء آخر من صفحتك. تُحاسَب الاستعلامات على مشروعه.',
+        'ai-visibility':
+          'نرسل إلى كل مساعد لدى الخادم مفتاحه (OpenAI وGemini وPerplexity وClaude) من 3 إلى 5 أسئلة نصية بالعربية تحمل اسم علامتك وموضوع صفحتك وبلدها، مع تفعيل بحثه في الويب. لا نرسل صفحتك ولا بيانات زوارك، ولا نحفظ إجاباتهم.',
+        'common-misspellings':
+          'نرسل إلى نقطة الاقتراحات العامة لدى جوجل (suggestqueries.google.com) كلماتك الرئيسية بأخطائها الإملائية الشائعة، 12 طلباً على الأكثر، واحداً بعد واحد، باسم ArablyzerBot. وهي نقطة غير موثَّقة للاستعمال الآلي، فلا تعمل إلا إذا فعّلها مشغِّل الخادم.',
+        'pdf-forensics':
+          'نجلب حتى 3 ملفات PDF مرتبطة بالصفحة، واحداً بعد واحد، باسم ArablyzerBot وبعد أن نقرأ robots.txt لموقع كل ملف؛ وقد يكون بعضها على موقع غير موقعك. تظهر طلباتنا في سجلات ذلك الموقع.',
+        'lookalike-domains':
+          'نرسل أسماء الدومينات الشبيهة بدومينك (حتى 100 اسم) إلى محلِّل DNS لدى Cloudflare، وأسماء ما سُجِّل منها (12 على الأكثر) إلى crt.sh. لا نفتح أي موقع منها، ولا يخرج شيء آخر من صفحتك.',
+        dns: 'نسأل DNS عبر HTTPS لدى Cloudflare، أو لدى المحلِّل الذي ضُبطت عليه الخدمة، عن سجلَّي TXT لنطاق الصفحة: SPF وDMARC. ويصل اسم النطاق إلى ذلك المحلِّل، ولا شيء آخر من الصفحة.',
+        search:
+          'نرسل إلى بحث الموقع نفسه 12 طلبًا على الأكثر، واحدًا واحدًا وبينها مهلة، باسم ArablyzerBot، وبعد أن نقرأ robots.txt؛ وتظهر في سجلات الموقع، وقد تُحسب في إحصاءات بحثه.',
       },
     },
     result: {
@@ -124,15 +137,22 @@ export const TOOL_APP: Copy<ToolAppStrings> = {
       urlLabel: 'Page URL',
       submit: 'Check the page',
       submitting: 'Checking…',
-      note: {
-        html: 'Free, no sign-up. We read the page as the server sends it.',
-        robots: 'Free, no sign-up. We read robots.txt as the server sends it.',
-        render: 'Free, no sign-up. We render the page in browsers, as your visitor sees it.',
-        dns: 'Free, no sign-up. We ask Cloudflare’s DNS over HTTPS, or the resolver the service is set to, for two TXT records of the page’s domain, SPF and DMARC. The domain’s name goes there, and nothing else of the page.',
-        links:
-          'Free, no sign-up. We read the page as the server sends it, and ask for its links to its own site.',
-        sitemap: 'Free, no sign-up. We read robots.txt and the sitemaps as the server sends them.',
-        crux: 'Free, no sign-up. We read real visitors’ data from the Chrome UX Report.',
+      reads: 'Reads:',
+      rendersIn: 'Renders the page in:',
+      sentOut: {
+        'crux-by-country':
+          'We send your site’s origin (the domain with its protocol) to Google BigQuery, with the service account the server’s operator set up, in two queries on the Chrome UX Report tables, and nothing else of your page. The queries are billed to the operator’s project.',
+        'ai-visibility':
+          'We send each assistant the server has a key for (OpenAI, Gemini, Perplexity and Claude) 3 to 5 text questions in Arabic that carry your brand name, your page’s subject and its country, with its web search on. We send neither your page nor your visitors’ data, and we keep no answer.',
+        'common-misspellings':
+          'We send Google’s public suggestion endpoint (suggestqueries.google.com) your main words in their common misspellings, 12 requests at most, one at a time, as ArablyzerBot. That endpoint is not documented for automated use, so this runs only if the server’s operator turned it on.',
+        'pdf-forensics':
+          'We fetch up to 3 PDFs the page links, one at a time, as ArablyzerBot and after reading the robots.txt of each file’s site; some may be on a site that is not yours. Our requests show in that site’s logs.',
+        'lookalike-domains':
+          'We send the names of the look-alikes of your domain (up to 100) to a DNS resolver at Cloudflare, and the names of the registered ones (12 at most) to crt.sh. We open none of those sites, and nothing else of your page goes out.',
+        dns: 'We ask Cloudflare’s DNS over HTTPS, or the resolver the service is set to, for two TXT records of the page’s domain, SPF and DMARC. The domain’s name goes there, and nothing else of the page.',
+        search:
+          'We send the site’s own search at most 12 requests, one at a time with a pause, as ArablyzerBot, after reading its robots.txt. They show in the site’s logs and may count in its search statistics.',
       },
     },
     result: {

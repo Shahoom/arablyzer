@@ -1,12 +1,27 @@
 ---
+/**
+ * The mark: a rounded square in the brand's gradient, with three white lines aligned to the right
+ * and each shorter than the one above it, like the lines of Arabic text. It is drawn the same in
+ * a left-to-right page: a mark is not mirrored. The square is a box with a CSS gradient (`logo-mark`),
+ * not an SVG with its own gradient, so two marks on a page share no element id.
+ */
 interface Props {
-  size?: number
+  size?: 24 | 28 | 32 | 40
+  /** More classes for the box: a larger size from a breakpoint (`lg:size-8`), say. */
+  class?: string
 }
-const { size = 32 } = Astro.props
+const { size = 32, class: className } = Astro.props
+// Whole class names, for Tailwind to find.
+const SIDE = { 24: 'size-6', 28: 'size-7', 32: 'size-8', 40: 'size-10' } as const
 ---
 
-<svg width={size} height={size} viewBox="0 0 30 30" fill="none" aria-hidden="true">
-  <rect x="3.5" y="3.5" width="23" height="23" stroke="currentColor" stroke-width="1.5"></rect>
-  <path d="M15 3.5v6M15 20.5v6M3.5 15h6M20.5 15h6" stroke="currentColor" stroke-width="1.5"></path>
-  <circle cx="15" cy="15" r="3.2" stroke="#d2461f" stroke-width="1.8"></circle>
-</svg>
+<span aria-hidden="true" class:list={['logo-mark text-white', SIDE[size], className]}>
+  <svg viewBox="0 0 32 32" fill="none" class="block size-full">
+    <path
+      d="M24 10.5H8.5M24 16H12.5M24 21.5H16.5"
+      stroke="currentColor"
+      stroke-width="2.4"
+      stroke-linecap="round"
+    ></path>
+  </svg>
+</span>

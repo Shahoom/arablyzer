@@ -23,7 +23,8 @@
     "@arablyzer/lab": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/rules": "workspace:*",
-    "@arablyzer/scoring": "workspace:*"
+    "@arablyzer/scoring": "workspace:*",
+    "pdfjs-dist": "6.3.289"
   },
   "devDependencies": {
     "@arablyzer/fixtures": "workspace:*",

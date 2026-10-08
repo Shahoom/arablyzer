@@ -1,18 +1,21 @@
 ---
-import { PAGES_UI } from '@arablyzer/i18n'
+import { KNOWLEDGE_UI, PAGES_UI } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import Search from '@lucide/astro/icons/search'
 import Page from '../../layouts/Page.astro'
+import { HEAD } from '../../lib/heads'
 import { scanFormHref } from '../../lib/site'
-import Forward from '../Forward.astro'
 
-// The page for an address that has none (M2.4b): Caddy serves it with the 404 status, the English
-// one under /en/. Never indexed, and naming no canonical page, since it answers every such address.
+// The page for an address that has none (M2.4b; calm in M2.6 R7): Caddy serves it with the 404
+// status, the English one under /en/. Never indexed, and naming no canonical page, since it answers
+// every such address.
 
 interface Props {
   lang: Lang
 }
 const { lang } = Astro.props
 const t = PAGES_UI[lang].notFound
+const k = KNOWLEDGE_UI[lang]
 const links = [
   { href: localePath(lang, PATHS.home), label: t.links.home },
   { href: localePath(lang, PATHS.tools), label: t.links.tools },
@@ -22,26 +25,54 @@ const links = [
 ---
 
 <Page lang={lang} path={PATHS.home} title={`${t.title} — Arablyzer`} description={t.text} noindex>
-  <section class="flex flex-col gap-6 px-5 pt-12 pb-20 md:px-16 md:pt-20 md:pb-28">
-    <span dir="ltr" class="self-start bg-ink px-2.5 py-1 font-mono text-sm text-white">
-      404
-    </span>
-    <h1 class="m-0 text-[32px] leading-[1.2] font-semibold text-balance md:text-[52px]">
-      {t.title}
-    </h1>
-    <p class="m-0 max-w-[640px] text-base leading-[1.75] text-ink-2 md:text-[19px]">{t.text}</p>
-    <ul class="m-0 grid max-w-[720px] list-none gap-3 p-0 sm:grid-cols-2">
-      {links.map((link) => (
-        <li>
-          <a
-            href={link.href}
-            class="flex items-center justify-between gap-3 border border-rule-strong bg-white px-5 py-4 text-base font-semibold hover:border-ink hover:text-signal"
-          >
-            {link.label}
-            <Forward lang={lang} size={16} />
-          </a>
-        </li>
-      ))}
-    </ul>
+  <section class="relative isolate">
+    <div aria-hidden="true" class="page-wash"></div>
+    <div class="wrap flex flex-col items-center gap-5 pt-12 pb-16 text-center lg:pt-20 lg:pb-24">
+      {/* A number, not a heading: modest, in one solid colour; the h1 below says it in words. */}
+      <p
+        dir="ltr"
+        class="m-0 text-[3rem] leading-none font-semibold text-brand-ink tabular-nums lg:text-[3.5rem]"
+      >
+        404
+      </p>
+      <h1 class={HEAD.page}>{t.title}</h1>
+      <p class="lead m-0">{t.text}</p>
+      {/* The knowledge hub reads ?q=: the visitor's words go there when this page has no answer. */}
+      <form
+        action={localePath(lang, PATHS.knowledge)}
+        method="get"
+        role="search"
+        class="flex w-full max-w-[560px] flex-col gap-2 text-start"
+      >
+        <label for="not-found-search" class="sr-only">
+          {k.search.label}
+        </label>
+        <div class="flex gap-2">
+          <div class="search-field min-w-0 grow">
+            <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
+            <input
+              id="not-found-search"
+              name="q"
+              type="search"
+              autocomplete="off"
+              placeholder={k.search.placeholder}
+              class="h-full min-w-0 grow border-0 bg-transparent text-body text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
+            />
+          </div>
+          <button type="submit" class="btn-grad shrink-0">
+            {k.search.submit}
+          </button>
+        </div>
+      </form>
+      <ul class="m-0 flex list-none flex-wrap justify-center gap-2 p-0">
+        {links.map((link) => (
+          <li>
+            <a href={link.href} class="btn-white">
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   </section>
 </Page>

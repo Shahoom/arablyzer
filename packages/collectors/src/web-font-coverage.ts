@@ -20,6 +20,12 @@ export const ARABIC_BLOCKS: readonly CodePointRange[] = [
   [0xfe70, 0xfeff],
 ]
 
+/**
+ * What the coverage keeps of a font: the Arabic blocks, and U+20C1, the Saudi Riyal sign, which a
+ * font may lack although it has every Arabic letter (docs/design/plans/arabic-native.md §3).
+ */
+const KEPT_BLOCKS: readonly CodePointRange[] = mergeRanges([...ARABIC_BLOCKS, [0x20c1, 0x20c1]])
+
 /** A web font family's Arabic-script code points, as far as Arablyzer could read its files. */
 export interface WebFontCoverageFact {
   /** As document.fonts names it. */
@@ -75,8 +81,8 @@ export function webFontCoverage(
       else groups.set(id, { range, faces: [face] })
     }
     for (const [id, group] of groups) {
-      // Only the Arabic blocks are kept: a CJK font's coverage runs to thousands of ranges.
-      const arabic = intersectRanges(group.range, ARABIC_BLOCKS)
+      // Only the Arabic blocks, and the riyal sign, are kept: a CJK font's coverage runs to thousands of ranges.
+      const arabic = intersectRanges(group.range, KEPT_BLOCKS)
       const loaded = group.faces.filter((face) => face.status === 'loaded').length
       const pending = group.faces.some(
         (face) => face.status === 'loading' || face.status === 'error',

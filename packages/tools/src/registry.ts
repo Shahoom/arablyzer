@@ -2,14 +2,20 @@ import type { ToolDefinition } from './tool'
 import { definition as accessibilityCheck } from './tools/accessibility-check/tool'
 import { definition as aiAccess } from './tools/ai-access/tool'
 import { definition as aiCrawlerCheck } from './tools/ai-crawler-check/tool'
+import { definition as aiTrainingFilter } from './tools/ai-training-filter/tool'
+import { definition as aiVisibility } from './tools/ai-visibility/tool'
 import { definition as arabicFontCheck } from './tools/arabic-font-check/tool'
+import { definition as arabicFontSlimmer } from './tools/arabic-font-slimmer/tool'
 import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
 import { definition as arabicPunctuationCheck } from './tools/arabic-punctuation-check/tool'
 import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
 import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
+import { definition as commonMisspellings } from './tools/common-misspellings/tool'
 import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
+import { definition as countryFit } from './tools/country-fit/tool'
+import { definition as cruxByCountry } from './tools/crux-by-country/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
@@ -22,10 +28,13 @@ import { definition as jsRenderingCheck } from './tools/js-rendering-check/tool'
 import { definition as languageCheck } from './tools/language-check/tool'
 import { definition as letterSpacingCheck } from './tools/letter-spacing-check/tool'
 import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
+import { definition as lookalikeDomains } from './tools/lookalike-domains/tool'
 import { definition as mirroredIconsCheck } from './tools/mirrored-icons-check/tool'
 import { definition as mixedContent } from './tools/mixed-content/tool'
 import { definition as paymentMethodsDetector } from './tools/payment-methods-detector/tool'
+import { definition as pdfForensics } from './tools/pdf-forensics/tool'
 import { definition as phoneFormatCheck } from './tools/phone-format-check/tool'
+import { definition as platformCheck } from './tools/platform-check/tool'
 import { definition as priceFormatCheck } from './tools/price-format-check/tool'
 import { definition as productPageCheck } from './tools/product-page-check/tool'
 import { definition as redirectChainCheck } from './tools/redirect-chain-check/tool'
@@ -34,6 +43,7 @@ import { definition as robotsTester } from './tools/robots-tester/tool'
 import { definition as rtlCheck } from './tools/rtl-check/tool'
 import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
 import { definition as schemaGenerator } from './tools/schema-generator/tool'
+import { definition as searchSpellingTest } from './tools/search-spelling-test/tool'
 import { definition as securityHeaders } from './tools/security-headers/tool'
 import { definition as sitemapCheck } from './tools/sitemap-check/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
@@ -52,14 +62,20 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   accessibilityCheck,
   aiAccess,
   aiCrawlerCheck,
+  aiTrainingFilter,
+  aiVisibility,
   arabicFontCheck,
+  arabicFontSlimmer,
   arabicFormTest,
   arabicPunctuationCheck,
   arabicShapingCheck,
   bidiIsolationCheck,
   brokenLinks,
   canonicalCheck,
+  commonMisspellings,
   coreWebVitals,
+  countryFit,
+  cruxByCountry,
   digitsConsistency,
   emailSecurity,
   fontFallbackCheck,
@@ -72,10 +88,13 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   languageCheck,
   letterSpacingCheck,
   logicalCssCheck,
+  lookalikeDomains,
   mirroredIconsCheck,
   mixedContent,
   paymentMethodsDetector,
+  pdfForensics,
   phoneFormatCheck,
+  platformCheck,
   priceFormatCheck,
   productPageCheck,
   redirectChainCheck,
@@ -84,6 +103,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   rtlCheck,
   rtlOverflowCheck,
   schemaGenerator,
+  searchSpellingTest,
   securityHeaders,
   sitemapCheck,
   socialPreview,

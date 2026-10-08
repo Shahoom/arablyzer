@@ -46,6 +46,9 @@ describe('site and paths', () => {
     expect(localePath('en', PATHS.home)).toBe('/en/')
     expect(localePath('en', PATHS.rule('ar-html-lang'))).toBe('/en/rules/ar-html-lang')
     expect(pageUrl(SITE, 'en', PATHS.tools)).toBe('https://arablyzer.example/en/tools')
+    // The knowledge hub (M2.6 R5) is a section of its own, like the tools' and the rules'.
+    expect(localePath('ar', PATHS.knowledge)).toBe('/knowledge')
+    expect(pageUrl(SITE, 'en', PATHS.knowledge)).toBe('https://arablyzer.example/en/knowledge')
     expect(() => localePath('ar', 'tools')).toThrow(TypeError)
   })
 

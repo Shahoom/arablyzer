@@ -94,6 +94,75 @@ export const scanEventsPath = (id: string): string => `/api/scans/${id}/events`
 export const scanPath = (id: string): string => `/api/scans/${id}`
 export const reportPath = (id: string): string => `/api/reports/${id}`
 
+/** The WOFF2 subset of one of a report's Arabic fonts, by the font's address in the report. */
+export const fontSubsetPath = (id: string, fontUrl: string): string =>
+  `/api/reports/${id}/font-subset?font=${encodeURIComponent(fontUrl)}`
+
+/**
+ * Google Search Console, connected from a finished report (account-free, nothing stored): the
+ * paths of its routes, the one-time result's id, and the result the report page shows.
+ */
+export const GSC_STATUS_PATH = '/api/gsc/status'
+export const GSC_START_PATH = '/api/gsc/start'
+export const GSC_CALLBACK_PATH = '/api/gsc/callback'
+/** A one-time result's id: 32 random bytes. The report page's `?gsc=` holds it, or a keyword. */
+export const GSC_RESULT_PATTERN = /^[A-Za-z0-9_-]{43}$/
+/** What `?gsc=` says, in place of a result's id, when the connection did not give one. */
+export const GSC_FAILURES = ['denied', 'error'] as const
+export type GscFailure = (typeof GSC_FAILURES)[number]
+export const gscStartPath = (report: string, lang: 'ar' | 'en'): string =>
+  `${GSC_START_PATH}?report=${encodeURIComponent(report)}&lang=${lang}`
+export const gscResultPath = (id: string): string => `/api/gsc/results/${id}`
+
+export interface GscStatus {
+  readonly enabled: boolean
+}
+
+/** Search Analytics' numbers: CTR as a fraction (0 to 1), position as the average. */
+export interface GscMetrics {
+  readonly clicks: number
+  readonly impressions: number
+  readonly ctr: number
+  readonly position: number
+}
+
+/** A row of a breakdown: the query, the page's address, or the country (an ISO 3166-1 alpha-3 code). */
+export interface GscRow extends GscMetrics {
+  readonly key: string
+}
+
+/** What URL Inspection says of the report's URL; each field is null when Google did not give it. */
+export interface GscInspection {
+  readonly verdict: string | null
+  readonly coverageState: string | null
+  readonly indexingState: string | null
+  readonly pageFetchState: string | null
+  readonly robotsTxtState: string | null
+  /** ISO 8601. */
+  readonly lastCrawlTime: string | null
+  readonly googleCanonical: string | null
+  readonly userCanonical: string | null
+  /** Mobile usability, where Google still returns it: its verdict and the issues' types. */
+  readonly mobileUsability: {
+    readonly verdict: string | null
+    readonly issues: readonly string[]
+  } | null
+}
+
+export interface GscResult {
+  /** The Search Console property the report's site matched; null when the user owns none. */
+  readonly property: { readonly siteUrl: string; readonly kind: 'domain' | 'prefix' } | null
+  /** The 28 days the numbers cover, as YYYY-MM-DD. */
+  readonly period: { readonly start: string; readonly end: string }
+  readonly totals: GscMetrics | null
+  readonly queries: readonly GscRow[]
+  readonly pages: readonly GscRow[]
+  readonly countries: readonly GscRow[]
+  readonly inspection: GscInspection | null
+  /** Something Google would not give: the rest is shown, and the page says so. */
+  readonly partial: boolean
+}
+
 export type EngineName = 'chromium' | 'firefox' | 'webkit'
 
 /** Where a scan is: waiting, running, or finished the way its report says. */

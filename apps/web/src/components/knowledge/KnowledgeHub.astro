@@ -1,0 +1,89 @@
+---
+import { GUIDES_UI, KNOWLEDGE_UI, RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
+import { breadcrumbList, itemList } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import KnowledgeSearch from '../../islands/KnowledgeSearch'
+import Page from '../../layouts/Page.astro'
+import { knowledgeIndex } from '../../lib/knowledge'
+import { KNOWLEDGE_TYPES } from '../../lib/knowledge-search'
+import { siteOf } from '../../lib/site'
+import Bidi from '../Bidi.astro'
+import PageHead from '../PageHead.astro'
+
+// The knowledge hub (M2.6 R5, rebuilt in R7): one search over the tools, the rules, the fix guides
+// and the glossary. Every page is a link in the HTML (the island renders the groups at build time,
+// and narrows them in the browser), and the four tiles at the foot lead to the directories.
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = KNOWLEDGE_UI[lang]
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, PATHS.knowledge)
+const { items, tones, totals } = knowledgeIndex(lang)
+// Each kind's directory, and its name there: the trail of tiles and the page's item list.
+const directories = {
+  tool: localePath(lang, PATHS.tools),
+  rule: localePath(lang, PATHS.rules),
+  fix: localePath(lang, PATHS.fix),
+  term: localePath(lang, PATHS.glossary),
+}
+const names = {
+  tool: TOOLS_UI[lang].directory.title,
+  rule: RULES_UI[lang].library.title,
+  fix: GUIDES_UI[lang].fix.title,
+  term: GUIDES_UI[lang].glossary.title,
+}
+const jsonLd = [
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.title, url },
+  ]),
+  // The four directories: each page listed here is in the groups below, one link at a time.
+  itemList(
+    KNOWLEDGE_TYPES.map((type) => ({
+      name: names[type],
+      url: `${site.origin}${directories[type]}`,
+    })),
+  ),
+]
+---
+
+<Page
+  lang={lang}
+  path={PATHS.knowledge}
+  title={t.meta.title}
+  description={t.meta.description}
+  jsonLd={jsonLd}
+>
+  <PageHead lang={lang} breadcrumb={{ label: t.breadcrumb, current: t.title }} title={t.title}>
+    <Bidi slot="lead" text={t.lead} lang={lang} />
+  </PageHead>
+
+  <KnowledgeSearch client:load lang={lang} items={items} tones={tones} directories={directories} />
+
+  <section aria-labelledby="browse-title" class="wrap flex flex-col gap-4 py-section lg:gap-5">
+    <h2 id="browse-title" class="heading-2 m-0">
+      {t.browse.label}
+    </h2>
+    <ul class="m-0 grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-4 md:gap-4">
+      {KNOWLEDGE_TYPES.map((type) => (
+        <li>
+          <a
+            href={directories[type]}
+            class="card card-lift group flex h-full flex-col gap-1.5 p-card text-ink hover:text-ink"
+          >
+            <span dir="ltr" class="heading-2 self-start text-ink tabular-nums">
+              {totals[type]}
+            </span>
+            <span class="text-small text-ink-2">
+              <Bidi text={t.browse.tiles[type](totals[type])} lang={lang} />
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Page>

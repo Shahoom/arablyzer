@@ -39,18 +39,14 @@ export function CopyBox({
     }, select)
   }
   return (
-    <div className="flex min-w-0 flex-col border border-rule-strong bg-white">
-      <div className="flex items-center justify-between gap-3 border-b border-rule-soft px-4 py-2.5">
-        <span className="text-sm font-semibold text-ink-2">{label}</span>
-        <button
-          type="button"
-          onClick={copy}
-          className="flex cursor-pointer items-center gap-1.5 border border-rule-strong px-2.5 py-1 text-sm hover:border-ink"
-        >
+    <div className="card flex min-w-0 flex-col overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-line bg-surface-2 px-card py-2">
+        <span className="text-small font-semibold text-ink-2">{label}</span>
+        <button type="button" onClick={copy} className="btn-white">
           {copied ? (
-            <Check size={14} strokeWidth={2.4} aria-hidden="true" className="text-pass" />
+            <Check size={16} strokeWidth={2.4} aria-hidden="true" />
           ) : (
-            <Copy size={14} strokeWidth={2} aria-hidden="true" />
+            <Copy size={16} strokeWidth={2} aria-hidden="true" />
           )}
           <span aria-live="polite">{copied ? t.copied : t.copy}</span>
         </button>
@@ -59,17 +55,10 @@ export function CopyBox({
         ref={box}
         dir="ltr"
         tabIndex={0}
-        className={`m-0 px-4 py-3.5 text-start text-sm leading-[1.7] whitespace-pre-wrap [overflow-wrap:anywhere] ${mono ? 'font-mono' : ''}`}
+        className={`m-0 px-card py-3 text-start text-small leading-[1.7] whitespace-pre-wrap text-ink [overflow-wrap:anywhere] ${mono ? 'font-mono' : ''}`}
       >
         {text}
       </pre>
     </div>
   )
 }
-
-/** The fields' look, as the tool form's: a label above, a bordered field. */
-export const FIELD =
-  'h-12 min-w-0 border-[1.5px] border-ink bg-white px-3.5 text-base text-ink placeholder:text-ink-3'
-export const LABEL = 'text-sm font-semibold'
-export const SUBMIT =
-  'flex h-12 cursor-pointer items-center justify-center gap-2.5 self-start bg-ink px-7 text-[17px] font-semibold text-white hover:bg-signal'

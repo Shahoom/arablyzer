@@ -63,7 +63,8 @@ jobs:
     # §6). A missing engine fails the run instead of being skipped.
     name: Browsers (Chromium, Firefox, WebKit)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # The suites take 28 to 35 minutes and grow with each rendered fact; 40 cut a run on main off.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
@@ -91,9 +92,12 @@ jobs:
     # The site's build, which draws each page's Open Graph image in Chromium (M2.4c), its
     # self-audit, and Lighthouse on the pages that stand for the rest, on a phone and a desktop,
     # three runs each (M2.1 plan §3): a job of its own, beside the browsers' (M2.2).
+    # Its time is the pages that stand for the rest (representativePages in packages/seo) times
+    # the runs, at about seven seconds a run, after an install that a slow package mirror once
+    # stretched to eight minutes: the limit leaves room for both. The step prints its plan first.
     name: The site, its self-audit and Lighthouse
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0

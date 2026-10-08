@@ -1,9 +1,13 @@
 ---
-import { HOME, SCAN_FORM } from '@arablyzer/i18n'
+import { HOME } from '@arablyzer/i18n'
 import type { Lang } from '@arablyzer/seo/site'
-import Crosshairs from '../Crosshairs.astro'
-import ScanForm from '../../islands/ScanForm'
+import { scanFormHref } from '../../lib/site'
 
+/**
+ * The closing call to action: a band in the brand's gradient with a field of dots, and a button
+ * that goes back up to the scan box (there is one form on the page, and it is that one). Its
+ * heading is the scale's `heading-2` like every other section's (M2.6 R7), in white.
+ */
 interface Props {
   lang: Lang
 }
@@ -11,21 +15,38 @@ const { lang } = Astro.props
 const t = HOME[lang].cta
 ---
 
-<section
-  aria-labelledby="cta-title"
-  class="below-fold relative mx-5 mt-10 mb-10 grid items-center gap-6 bg-panel-grid p-6 text-white md:mx-16 md:mb-[88px] md:p-14 lg:grid-cols-12 lg:gap-x-12"
->
-  <Crosshairs />
-  <div class="flex flex-col gap-2.5 lg:col-span-5">
-    <h2 id="cta-title" class="m-0 text-[26px] leading-[1.2] font-semibold md:text-[44px]">
+<section aria-labelledby="cta-title" class="wrap below-fold strip">
+  <div class="final relative isolate flex flex-col items-center gap-3 overflow-hidden rounded-[24px] bg-[#00727c] bg-(image:--gradient-band) px-5 py-9 text-center text-white md:gap-4 md:rounded-[32px] md:px-8 md:py-14">
+    <h2 id="cta-title" class="heading-2 m-0">
       {t.title}
     </h2>
-    <p class="m-0 text-base text-panel-dim md:text-[17px]">{t.text}</p>
-  </div>
-  <div class="lg:col-span-7">
-    <ScanForm client:visible lang={lang} inputId="cta-url" tone="panel" />
-    <noscript>
-      <p class="text-sm text-panel-signal">{SCAN_FORM[lang].noscript}</p>
-    </noscript>
+    <p class="text-body m-0 text-white/90">{t.text}</p>
+    <a href={scanFormHref(lang)} class="btn-light btn-lg mt-1">
+      {t.button}
+    </a>
   </div>
 </section>
+
+<style>
+  /* The browser's placeholder until the section is laid out: its measured height on a phone, a
+     tablet and a desktop (the real height is remembered once it has been drawn). */
+  .strip {
+    contain-intrinsic-size: auto 206px;
+  }
+  @media (min-width: 48rem) {
+    .strip {
+      contain-intrinsic-size: auto 256px;
+    }
+  }
+  /* A field of dots behind the words, faded out toward the edges. */
+  .final::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: radial-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000, transparent 75%);
+  }
+</style>

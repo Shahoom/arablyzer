@@ -1,4 +1,4 @@
-import { SCAN_ID_PATTERN, type ScanSummary } from '@arablyzer/api-contract/codes'
+import type { ScanSummary } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import type { Report } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
@@ -11,6 +11,7 @@ import { ReportView, type Fixes } from './report/ReportView'
 import { StateCard } from './report/StateCard'
 import {
   advance,
+  idFromPath,
   outcomeOf,
   START,
   stateNotices,
@@ -31,16 +32,6 @@ type View =
       readonly tool: { readonly slug: string; readonly title: string | null } | undefined
     }
   | { readonly kind: 'failed'; readonly summary: ScanSummary }
-
-/** The scan's ID, the last part of /r/{id} or /en/r/{id}. */
-export function idFromPath(pathname: string): string | null {
-  const last =
-    pathname
-      .split('/')
-      .filter((part) => part !== '')
-      .at(-1) ?? ''
-  return SCAN_ID_PATTERN.test(last) ? last : null
-}
 
 /** The rules' "how to fix" sections in the page's language, loaded with the report. */
 async function loadFixes(lang: Lang): Promise<Fixes | null> {
@@ -90,6 +81,12 @@ export default function ReportApp({ lang }: { lang: Lang }) {
     const left = () => !active
     /** The scan being followed, for what its events and the offline state need. */
     let following: ScanSummary | null = null
+    // What a finished scan's page needs is asked for while the scan is being read, not after it: the
+    // report, which is there already when the scan ended before the page opened (a shared link's
+    // is), and the rules' fixes. Either waits, unused, until the scan says it is done. Asked one
+    // after the other, they were two more round trips before the first line of the report.
+    const earlyReport = fetchReport(id)
+    const fixesLoaded = loadFixes(lang)
 
     const showFailed = (summary: ScanSummary) => {
       setView({ kind: 'failed', summary })
@@ -99,13 +96,23 @@ export default function ReportApp({ lang }: { lang: Lang }) {
       setView({ kind: 'offline', url: following?.url ?? null })
       setSaid(t.states.offline.title)
     }
+    /**
+     * The report: what the early request found, when that is the report or that there is none (the
+     * API answers 404 for a scan it does not know and for one that failed, which has no report), and
+     * otherwise read now: a report not stored yet answers 409, and a service that does not answer
+     * says nothing.
+     */
+    const readReport = async (first: boolean) => {
+      const early = first ? await earlyReport : null
+      return early !== null && (early.ok || early.reason === 'missing') ? early : fetchReport(id)
+    }
     // The report is stored before its scan says done; a read that fails is tried again.
     const showReport = async (summary: ScanSummary) => {
       for (let attempt = 0; attempt < REPORT_TRIES; attempt++) {
         const slug = summary.tool
         const [loaded, fixes, title] = await Promise.all([
-          fetchReport(id),
-          loadFixes(lang),
+          readReport(attempt === 0),
+          fixesLoaded,
           slug === undefined ? null : loadToolTitle(slug, lang),
         ])
         if (left()) return
@@ -170,7 +177,8 @@ export default function ReportApp({ lang }: { lang: Lang }) {
 function Shown({ view, lang }: { view: View; lang: Lang }) {
   switch (view.kind) {
     case 'loading':
-      return <div aria-busy="true" className="min-h-[60vh]" />
+      // global.css keeps the footer unseen while this is on the page (R7 report).
+      return <div aria-busy="true" data-report-loading="" className="min-h-[60vh]" />
     case 'missing':
       return <StateCard kind="missing" lang={lang} />
     case 'offline':

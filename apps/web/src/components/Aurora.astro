@@ -1,0 +1,17 @@
+---
+/**
+ * The aurora behind the hero: four blurred blobs drifting slowly, and a faint grid fading out
+ * toward the edges. It fills its parent, which must be `relative` and give it a place to be
+ * clipped (`overflow-hidden`): the blobs are larger than a phone's screen, and the page must
+ * not scroll sideways for them. The blobs sit on logical sides, so they mirror with the page; the
+ * first stands in the corner where the line starts. Decorative, and still under reduced motion.
+ */
+---
+
+<div aria-hidden="true" class="aurora">
+  <span class="aurora-blob -top-[60px] start-[6%] size-[560px] bg-aurora-teal opacity-55"></span>
+  <span class="aurora-blob top-20 end-[6%] size-[520px] bg-aurora-indigo opacity-60 [animation-duration:21s]"></span>
+  <span class="aurora-blob end-[34%] top-[360px] size-[420px] bg-aurora-pink opacity-40 [animation-duration:24s]"></span>
+  <span class="aurora-blob end-[36%] -top-[120px] size-[380px] bg-aurora-sky opacity-45 [animation-duration:19s]"></span>
+  <div class="aurora-grid"></div>
+</div>

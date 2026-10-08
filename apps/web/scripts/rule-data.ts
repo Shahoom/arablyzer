@@ -5,6 +5,7 @@ import {
   type RuleCopy,
   RULES,
   SECTION_HEADINGS,
+  OUTSIDE,
   SERVER_RESPONSE_RULES,
 } from '@arablyzer/rules'
 import { SEVERITY_WEIGHTS } from '@arablyzer/scoring'
@@ -32,6 +33,10 @@ const DESCRIPTION = 160
 export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('render')) return 'render'
   if (rule.needs.includes('crux')) return 'crux'
+  if (rule.needs.includes('safe-browsing')) return 'safeBrowsing'
+  if (rule.needs.includes('knowledge-graph')) return 'knowledgeGraph'
+  if (rule.needs.includes('search')) return 'search'
+  if (rule.needs.some((need) => OUTSIDE[need] !== undefined)) return 'outside'
   if (rule.needs.includes('dns')) return 'dns'
   if (rule.needs.includes('links')) return 'links'
   if (rule.needs.includes('sitemap')) return 'sitemap'
@@ -40,22 +45,58 @@ export function ruleReads(rule: Rule): RuleReads {
   return 'html'
 }
 
+/** The first point of a Markdown section, as a line of text: its markup gone, its code kept. */
+function firstBlock(markdown: string, keepCode: boolean): string {
+  const first = markdown.trim().split(/\n\s*\n|\n(?=\s*(?:[-*]|\d+\.)\s)/)[0] ?? ''
+  return first
+    .replace(/^\s*(?:[-*]|\d+\.)\s+/, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(keepCode ? /\*\*|__/g : /\*\*|__|`/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 /**
  * The first point of a Markdown section as plain text, cut at a word within a meta
  * description's length: a rule's page is described by the first reason it matters.
  */
 export function firstPoint(markdown: string): string {
-  const first = markdown.trim().split(/\n\s*\n|\n(?=\s*(?:[-*]|\d+\.)\s)/)[0] ?? ''
-  const text = first
-    .replace(/^\s*(?:[-*]|\d+\.)\s+/, '')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/\*\*|__|`/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  const text = firstBlock(markdown, false)
   if (text.length <= DESCRIPTION) return text
   const cut = text.slice(0, DESCRIPTION - 1)
   const space = cut.lastIndexOf(' ')
   return `${(space > 0 ? cut.slice(0, space) : cut).replace(/[\s،,:;.]+$/, '')}…`
+}
+
+/**
+ * The same first point with its code in backticks, which is how a rule quotes the example it
+ * judges («`مـحـمـد`», «`١٢٣`»): the knowledge hub shows it in <code>, since a page's own text must
+ * pass the rules that read it (ar-tatweel, ar-digits-mixed), and the text of code is not read by
+ * them. Cut where firstPoint cuts, so that without its backticks it is the description.
+ */
+export function firstPointWithCode(markdown: string): string {
+  const description = firstPoint(markdown)
+  const marked = firstBlock(markdown, true)
+  if (!description.endsWith('…')) return marked
+  const visible = description.length - 1
+  let out = ''
+  let seen = 0
+  let open = false
+  for (let at = 0; at < marked.length; at++) {
+    const character = marked.charAt(at)
+    if (character === '`') {
+      out += character
+      open = !open
+    } else if (seen < visible) {
+      out += character
+      seen++
+    } else {
+      break
+    }
+  }
+  // A span left open is closed; one the cut opened, with nothing in it, is dropped.
+  if (open) out = out.endsWith('`') ? out.slice(0, -1) : `${out}\``
+  return `${out}…`
 }
 
 function copyData(copy: RuleCopy): RuleCopyData {
@@ -63,6 +104,7 @@ function copyData(copy: RuleCopy): RuleCopyData {
   return {
     title: copy.title,
     description: firstPoint(copy.sections.why),
+    summary: firstPointWithCode(copy.sections.why),
     why: html(copy.sections.why),
     fix: html(copy.sections.fix),
     detect: html(copy.sections.detect),

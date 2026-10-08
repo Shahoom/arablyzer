@@ -15,7 +15,7 @@ import {
 } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
 import type { Redirect } from '@arablyzer/report-schema'
-import { reportsOnly, RULES, ruleById } from '@arablyzer/rules'
+import { reportsOnly, RULES, ruleById, TOOL_ONLY } from '@arablyzer/rules'
 import {
   locationOf,
   parseDnsExample,
@@ -41,13 +41,19 @@ const RULES_DIR = fileURLToPath(new URL('../../rules/src/rules/', import.meta.ur
 const fold = (text: string) => text.replace(/\s+/g, ' ').trim()
 
 /**
- * Whether the tool's examples come from its rules' fixtures: a rendered page, or the answers of
- * the page's links, are not in the example's code.
+ * Whether the tool's examples come from its rules' fixtures: a rendered page, the answers of
+ * the page's links, or those of the site's search, are not in the example's code.
  */
 export function fromFixtures(tool: Tool): boolean {
   return tool.rules.some((id) => {
     const needs = ruleById(id)?.needs ?? []
-    return needs.includes('render') || needs.includes('links')
+    return (
+      needs.includes('render') ||
+      needs.includes('links') ||
+      needs.some((need) => TOOL_ONLY.has(need)) ||
+      // A text of 50 words or more is judged, longer than an excerpt of a page.
+      id === 'ai-training-filters'
+    )
   })
 }
 

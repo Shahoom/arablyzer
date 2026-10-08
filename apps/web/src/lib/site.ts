@@ -39,6 +39,7 @@ export const CLOUDTOPIA = 'https://cloudtopia.net'
  */
 export const NAV: readonly { readonly key: keyof SiteStrings['nav']; readonly path: string }[] = [
   { key: 'tools', path: PATHS.tools },
+  { key: 'knowledge', path: PATHS.knowledge },
   { key: 'rules', path: PATHS.rules },
   { key: 'fix', path: PATHS.fix },
 ]

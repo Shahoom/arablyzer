@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server'
 import { localScanner, scanOptionsFrom } from '@arablyzer/scanner'
 import {
+  MemoryHandoff,
   MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
@@ -24,7 +25,14 @@ const store = new MemoryScanStore()
 const queue = new MemoryScanQueue()
 const events = new MemoryScanEvents()
 const limiter = new MemoryRateLimiter()
-const deps = apiDeps(env, { store, queue, events, limiter, inFlight: new MemoryInFlight() })
+const deps = apiDeps(env, {
+  store,
+  queue,
+  events,
+  limiter,
+  inFlight: new MemoryInFlight(),
+  handoff: new MemoryHandoff(),
+})
 const app = createApp(deps)
 const port = Number(env.PORT ?? 8787)
 const server = serve({ fetch: app.fetch, port, hostname: '127.0.0.1' }, (info) => {

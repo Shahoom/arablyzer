@@ -25,6 +25,10 @@ export interface MeasureLimits {
   readonly maxIconCandidates: number
   /** Images drawn on the page, with their natural size. */
   readonly maxImages: number
+  /** Elements whose own text has the Saudi Riyal sign (U+20C1). */
+  readonly maxSigns: number
+  /** Controls whose icon points against their role (next, back). */
+  readonly maxRoleIcons: number
   readonly timeMs: number
 }
 
@@ -88,6 +92,20 @@ export interface Measured {
     readonly box: MeasuredBox
     readonly name: string
   }[]
+  readonly roleIcons: readonly {
+    readonly selector: string
+    readonly box: MeasuredBox
+    readonly role: 'next' | 'prev'
+    readonly pointing: 'left' | 'right'
+    readonly name: string
+    readonly label: string
+  }[]
+  readonly riyalSigns: readonly {
+    readonly selector: string
+    readonly box: MeasuredBox
+    readonly fontFamily: string
+    readonly primaryFamily: string
+  }[]
   readonly images: readonly {
     readonly selector: string
     readonly box: MeasuredBox
@@ -112,6 +130,8 @@ export const MEASURE_LIMITS: MeasureLimits = {
   maxIcons: 20,
   maxIconCandidates: 3_000,
   maxImages: 100,
+  maxSigns: 20,
+  maxRoleIcons: 20,
   timeMs: 5_000,
 }
 
@@ -247,6 +267,8 @@ export function measurePage(limits: MeasureLimits): Measured {
   let tokens = 0
   const seen = new Set<Element>()
   const arrows: { readonly node: Text; readonly index: number; readonly arrow: string }[] = []
+  const riyalSigns: Measured['riyalSigns'][number][] = []
+  const signParents = new Set<Element>()
   // Numbers in groups (+966 50 123 4567, 1 500), and phone numbers written with + and at least
   // 8 digits. A short number after + ("+500 clients") reads as "500+" either way (M1.1 review).
   const numberGroups =
@@ -317,6 +339,24 @@ export function measurePage(limits: MeasureLimits): Measured {
           : getComputedStyle(parent).display.startsWith('inline') &&
             arabicLetter.test(parent.parentElement?.textContent ?? '')
         if (beside) arrows.push({ node: text, index: arrow.index, arrow: arrow[0] })
+      }
+      // The Saudi Riyal sign (Unicode 17): a font that predates it draws an empty box.
+      if (
+        riyalSigns.length < limits.maxSigns &&
+        text.data.includes('\u20c1') &&
+        !signParents.has(parent)
+      ) {
+        signParents.add(parent)
+        const rect = parent.getBoundingClientRect()
+        if (rect.width > 0 || rect.height > 0) {
+          const style = getComputedStyle(parent)
+          riyalSigns.push({
+            selector: selectorOf(parent),
+            box: box(rect),
+            fontFamily: style.fontFamily.slice(0, 500),
+            primaryFamily: primaryFamily(style.fontFamily).slice(0, 200),
+          })
+        }
       }
       if (/[+#0-9\u0660-\u0669\u06F0-\u06F9]/.test(text.data)) {
         let dir = direction.get(parent)
@@ -568,6 +608,237 @@ export function measurePage(limits: MeasureLimits): Measured {
     )
     .map((icon) => icon.fact)
 
+  // Controls whose icon points against their role: a "next" that points right in right-to-left
+  // text, a "back" that points left (docs/design/plans/arabic-native.md §5). Only controls that
+  // say what they are (their label, text, rel or class) and draw an icon that says where it points
+  // (an icon-font class, a Material name, an SVG's name, an arrow character) are judged.
+  const NEXT_ROLE =
+    /(?:^|[^\p{L}])(?:التالي|التالية|التالى|المزيد|next|forward|read more|learn more|continue)(?:$|[^\p{L}])/iu
+  const PREV_ROLE =
+    /(?:^|[^\p{L}])(?:السابق|السابقة|السابقه|رجوع|الرجوع|عودة|العودة|للخلف|back|previous|prev|go back)(?:$|[^\p{L}])/iu
+  const roleOfText = (text: string): 'next' | 'prev' | null => {
+    const next = NEXT_ROLE.test(text)
+    const prev = PREV_ROLE.test(text)
+    return next === prev ? null : next ? 'next' : 'prev'
+  }
+  const roleOfControl = (control: Element): 'next' | 'prev' | null => {
+    const texts = [
+      control.getAttribute('aria-label') ?? '',
+      control.getAttribute('title') ?? '',
+      control.textContent.replace(/\s+/g, ' ').trim(),
+    ]
+    for (const text of texts) {
+      if (text !== '' && text.length <= 40) {
+        const role = roleOfText(text)
+        if (role !== null) return role
+      }
+    }
+    const rel = (control.getAttribute('rel') ?? '').toLowerCase().split(/\s+/)
+    if (rel.includes('next') && !rel.includes('prev')) return 'next'
+    if (rel.includes('prev') && !rel.includes('next')) return 'prev'
+    const words = Array.from(control.classList).flatMap((token) =>
+      token.toLowerCase().split(/[-_]/),
+    )
+    const next = words.includes('next')
+    const prev = words.includes('prev') || words.includes('previous')
+    return next === prev ? null : next ? 'next' : 'prev'
+  }
+  const LEFT_ARROW = new RegExp(
+    `[${String.fromCodePoint(0x2190, 0x21d0, 0x27f5, 0x2b05, 0x2b60, 0x2b98, 0x27f8)}]`,
+    'u',
+  )
+  const NOT_ARROW = new Set([
+    'up',
+    'down',
+    'rotate',
+    'turn',
+    'bracket',
+    'from',
+    'to',
+    'exchange',
+    'repeat',
+    'return',
+    'undo',
+    'redo',
+    'curve',
+    'split',
+    'merge',
+    'between',
+  ])
+  const MATERIAL_LEFT = new Set([
+    'arrow_back',
+    'arrow_back_ios',
+    'arrow_left',
+    'arrow_left_alt',
+    'chevron_left',
+    'navigate_before',
+    'keyboard_arrow_left',
+    'keyboard_double_arrow_left',
+    'west',
+    'first_page',
+  ])
+  /** Which way a name draws: left or right, or null when it is not an arrow, or both ways. */
+  const nameDirection = (words: readonly string[]): 'left' | 'right' | null => {
+    if (!words.some((word) => ICON_SHAPES.has(word) || word === 'long')) return null
+    if (words.some((word) => NOT_ARROW.has(word))) return null
+    const left = words.includes('left') || words.includes('west')
+    const right = words.includes('right') || words.includes('east')
+    return left === right ? null : left ? 'left' : 'right'
+  }
+  interface Pointing {
+    readonly element: Element
+    readonly rect: DOMRect
+    readonly name: string
+    readonly dir: 'left' | 'right'
+    /** An icon font draws by its class; the page may swap what the class draws. */
+    readonly byClass: boolean
+  }
+  const pointingOf = (element: Element): Pointing | null => {
+    const rect = element.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return null
+    for (const token of Array.from(element.classList)) {
+      const lower = token.toLowerCase()
+      if (MATERIAL.test(lower)) {
+        const ligature = element.textContent.trim().toLowerCase()
+        if (MATERIAL_FORWARD.has(ligature) || ligature === 'navigate_next') {
+          return { element, rect, name: ligature, dir: 'right', byClass: false }
+        }
+        if (MATERIAL_LEFT.has(ligature)) {
+          return { element, rect, name: ligature, dir: 'left', byClass: false }
+        }
+        continue
+      }
+      const words = ICON_CLASS.exec(lower)?.[1]?.split('-') ?? []
+      const dir = nameDirection(words)
+      if (dir !== null) return { element, rect, name: token.slice(0, 100), dir, byClass: true }
+    }
+    const named = [
+      element.getAttribute('data-icon'),
+      element.getAttribute('data-lucide'),
+      element.getAttribute('data-feather'),
+      element.tagName.toLowerCase() === 'use'
+        ? (element.getAttribute('href') ?? element.getAttribute('xlink:href'))
+        : null,
+    ]
+    for (const name of named) {
+      if (name === null) continue
+      const words = name
+        .toLowerCase()
+        .replace(/^.*#/, '')
+        .split(/[^a-z0-9]+/)
+      const dir = nameDirection(words)
+      if (dir !== null) return { element, rect, name: name.slice(0, 100), dir, byClass: false }
+    }
+    return null
+  }
+  /**
+   * Whether a stylesheet of the page's own sets what an icon class draws for right-to-left text
+   * (`[dir="rtl"] .fa-arrow-right::before { content: ... }`), so that the class no longer says
+   * where the icon points. Sheets from other origins cannot be read and are taken to do nothing.
+   */
+  const swapsInRtl = (): boolean => {
+    const rtlSelector = /\[dir=["']?rtl|\.rtl\b|:dir\(rtl\)|:lang\(ar/i
+    const iconSelector = /arrow|chevron|angle|caret|left|right|icon/i
+    let seen = 0
+    const search = (rules: CSSRuleList): boolean => {
+      for (const rule of Array.from(rules)) {
+        if (++seen > 20_000) return false
+        if ('cssRules' in rule && !('selectorText' in rule)) {
+          if (search((rule as CSSGroupingRule).cssRules)) return true
+        }
+        if (!('selectorText' in rule)) continue
+        const { selectorText, style } = rule as CSSStyleRule
+        if (
+          rtlSelector.test(selectorText) &&
+          iconSelector.test(selectorText) &&
+          style.getPropertyValue('content') !== ''
+        ) {
+          return true
+        }
+      }
+      return false
+    }
+    for (const sheet of Array.from(document.styleSheets).slice(0, 100)) {
+      try {
+        if (search(sheet.cssRules)) return true
+      } catch {
+        // A sheet of another origin.
+      }
+    }
+    return false
+  }
+  let swaps: boolean | undefined
+  /** Which way an icon is drawn on screen: its name's direction, turned by a mirroring transform; null when a stylesheet may swap what its class draws. */
+  const visualDirection = (icon: Pointing): 'left' | 'right' | null => {
+    if (icon.byClass) {
+      swaps ??= swapsInRtl()
+      if (swaps) return null
+    }
+    const turned = mirrored(icon.element)
+    return (icon.dir === 'right') === turned ? 'left' : 'right'
+  }
+  const roleIcons: Measured['roleIcons'][number][] = []
+  if (body !== null) {
+    const controls = body.querySelectorAll(
+      'a, button, [role="button"], [role="link"], [class*="next" i], [class*="prev" i]',
+    )
+    const count = Math.min(controls.length, limits.maxIconCandidates)
+    for (let i = 0; i < count && roleIcons.length < limits.maxRoleIcons && !late(); i++) {
+      const control = controls[i]
+      if (control === undefined || getComputedStyle(control).direction !== 'rtl') continue
+      const role = roleOfControl(control)
+      if (role === null) continue
+      const found: { pointing: Pointing; visual: 'left' | 'right' }[] = []
+      let unknown = false
+      const candidates = [control, ...Array.from(control.querySelectorAll('*')).slice(0, 12)]
+      for (const element of candidates) {
+        const pointing = pointingOf(element)
+        if (pointing === null) continue
+        const visual = visualDirection(pointing)
+        if (visual === null) unknown = true
+        else found.push({ pointing, visual })
+      }
+      const walker = document.createTreeWalker(control, NodeFilter.SHOW_TEXT)
+      for (
+        let text = walker.nextNode(), n = 0;
+        text !== null && n < 20;
+        text = walker.nextNode(), n++
+      ) {
+        const data = text.textContent ?? ''
+        const index = data.search(new RegExp(`${rightArrow.source}|${LEFT_ARROW.source}`, 'u'))
+        const holder = text.parentElement
+        if (index < 0 || holder === null) continue
+        const char = String.fromCodePoint(data.codePointAt(index) ?? 0)
+        const range = document.createRange()
+        range.setStart(text, index)
+        range.setEnd(text, index + char.length)
+        const dir = LEFT_ARROW.test(char) ? 'left' : 'right'
+        const rect = range.getBoundingClientRect()
+        if (rect.width > 0 && rect.height > 0) {
+          found.push({
+            pointing: { element: holder, rect, name: char, dir, byClass: false },
+            visual: dir,
+          })
+        }
+      }
+      // Right for a "back", and left for a "next", in text that reads from the right.
+      const wrong = role === 'next' ? 'right' : 'left'
+      const first = found[0]
+      if (unknown || first === undefined || !found.every((icon) => icon.visual === wrong)) continue
+      roleIcons.push({
+        selector: selectorOf(first.pointing.element),
+        box: box(first.pointing.rect),
+        role,
+        pointing: first.visual,
+        name: first.pointing.name,
+        label: (control.getAttribute('aria-label') ?? control.textContent)
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 60),
+      })
+    }
+  }
+
   /**
    * The size in pixels of the image file at `url`, when the browser has it at hand; else null. An
    * image chosen by srcset or <picture> gives its size divided by the source's density (a 2x source
@@ -631,6 +902,8 @@ export function measurePage(limits: MeasureLimits): Measured {
     bidi,
     fields,
     directionIcons,
+    riyalSigns,
+    roleIcons,
     images,
     truncated,
   }

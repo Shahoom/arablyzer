@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.6.0"
+    "rulesetVersion": "0.9.0"
   },
   "target": {
     "url": "http://127.0.0.1:30018/",
@@ -59,21 +59,21 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 22,
-    "fail": 2,
+    "pass": 27,
+    "fail": 4,
     "needsReview": 0,
-    "notApplicable": 37,
+    "notApplicable": 41,
     "error": 0,
     "bySeverity": {
-      "critical": 0,
+      "critical": 1,
       "serious": 2,
       "moderate": 0,
       "minor": 0,
-      "info": 0
+      "info": 1
     }
   },
   "score": {
-    "overall": 89,
+    "overall": 82,
     "categories": {
       "ai": 100,
       "ar-content": 100,
@@ -84,16 +84,17 @@
       "index": 100,
       "intl": 100,
       "links": null,
+      "locale": null,
       "onpage": 100,
       "rtl": 100,
       "schema": null,
       "speed": 44,
-      "trust": 100
+      "trust": 33
     },
     "partial": false,
     "rules": {
-      "ran": 61,
-      "total": 61
+      "ran": 72,
+      "total": 79
     }
   },
   "rules": [
@@ -183,6 +184,28 @@
       }
     },
     {
+      "id": "ai-training-filters",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص الصفحة لا يمر من فلاتر جودة بيانات تدريب الذكاء الاصطناعي",
+        "en": "The page's text does not pass the AI training quality filters"
+      }
+    },
+    {
+      "id": "ar-ai-readability",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "نص عربي تقرؤه الآلات قراءة سيئة",
+        "en": "Arabic text that machines read badly"
+      }
+    },
+    {
       "id": "ar-digits-mixed",
       "version": "1.0.0",
       "category": "ar-content",
@@ -224,6 +247,17 @@
       "title": {
         "ar": "خط ويب بلا حروف عربية",
         "en": "Web font without Arabic letters"
+      }
+    },
+    {
+      "id": "ar-font-subset-savings",
+      "version": "1.0.0",
+      "category": "speed",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "خط عربي يحمل أكثر بكثير مما تعرضه الصفحة",
+        "en": "Arabic font carries much more than the page shows"
       }
     },
     {
@@ -296,6 +330,17 @@
       }
     },
     {
+      "id": "brand-name-consistency",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "اسم العلامة مكتوب بطرق مختلفة",
+        "en": "Brand name written in different ways"
+      }
+    },
+    {
       "id": "canonical-conflict",
       "version": "1.0.0",
       "category": "index",
@@ -304,6 +349,17 @@
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
+      }
+    },
+    {
+      "id": "country-fit",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "ملاءمة البلد",
+        "en": "Country fit"
       }
     },
     {
@@ -348,6 +404,17 @@
       "title": {
         "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
         "en": "Slow to show its main content on phones"
+      }
+    },
+    {
+      "id": "dialect-register",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لهجة النص لا تناسب البلد أو بقية الصفحة",
+        "en": "The page's dialect does not fit the country or the rest of the page"
       }
     },
     {
@@ -497,6 +564,17 @@
       }
     },
     {
+      "id": "knowledge-graph-entity",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "info",
+      "status": "fail",
+      "title": {
+        "ar": "العلامة في Knowledge Graph من Google",
+        "en": "Brand in Google's Knowledge Graph"
+      }
+    },
+    {
       "id": "link-broken",
       "version": "1.0.0",
       "category": "links",
@@ -560,6 +638,17 @@
       "title": {
         "ar": "طرق الدفع الخليجية في الصفحة",
         "en": "Gulf payment methods on the page"
+      }
+    },
+    {
+      "id": "platform-detected",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "info",
+      "status": "pass",
+      "title": {
+        "ar": "المنصة التي يعمل عليها الموقع",
+        "en": "Platform detected"
       }
     },
     {
@@ -673,6 +762,17 @@
       }
     },
     {
+      "id": "rtl-icon-role",
+      "version": "1.0.0",
+      "category": "rtl",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "أيقونة تشير عكس وظيفة زرّها",
+        "en": "An icon that points against its button"
+      }
+    },
+    {
       "id": "rtl-mirrored-icons",
       "version": "1.0.0",
       "category": "rtl",
@@ -692,6 +792,28 @@
       "title": {
         "ar": "CSS يحدد الجهات باليمين واليسار",
         "en": "CSS that sets sides by left and right"
+      }
+    },
+    {
+      "id": "safe-browsing-flagged",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "critical",
+      "status": "fail",
+      "title": {
+        "ar": "Google Safe Browsing يصنّف الموقع خطراً",
+        "en": "Google Safe Browsing flags the site"
+      }
+    },
+    {
+      "id": "sar-sign-font",
+      "version": "1.0.0",
+      "category": "ar-render",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "علامة الريال السعودي ناقصة من خط الصفحة",
+        "en": "Saudi Riyal sign missing from the page's font"
       }
     },
     {
@@ -799,6 +921,21 @@
   ],
   "findings": [
     {
+      "ruleId": "safe-browsing-flagged",
+      "severity": "critical",
+      "fingerprint": "ce9fed2f6ec27ec4",
+      "message": {
+        "ar": "يدرج Google Safe Browsing هذا الموقع بين المواقع التي تنشر برمجيات خبيثة (http://127.0.0.1:30018/).",
+        "en": "Google Safe Browsing lists this site as distributing malware (http://127.0.0.1:30018/)."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30018/",
+        "values": {
+          "url": "http://127.0.0.1:30018/"
+        }
+      }
+    },
+    {
       "ruleId": "cwv-inp-poor",
       "severity": "serious",
       "fingerprint": "3a607a55290a8017",
@@ -831,6 +968,26 @@
           "limit": 4,
           "first": "2026-08-30",
           "last": "2026-09-26"
+        }
+      }
+    },
+    {
+      "ruleId": "knowledge-graph-entity",
+      "severity": "info",
+      "fingerprint": "c5930e1e0804ef11",
+      "message": {
+        "ar": "يعرف Knowledge Graph من Google «العروض الكبرى» (سألنا بـ ar)، للعلامة «العروض الكبرى». الأنواع: Organization. الوصف: . ويكيبيديا: .",
+        "en": "Google's Knowledge Graph knows “العروض الكبرى” (asked in ar), for the brand “العروض الكبرى”. Types: Organization. Description: . Wikipedia: ."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30018/",
+        "values": {
+          "brand": "العروض الكبرى",
+          "name": "العروض الكبرى",
+          "lang": "ar",
+          "types": "Organization",
+          "description": "",
+          "wikipedia": ""
         }
       }
     }
@@ -898,6 +1055,334 @@
       "lcp": 5200,
       "inp": 650,
       "cls": 0.05
+    },
+    "platform": {
+      "primary": null,
+      "technologies": []
+    },
+    "knowledgeGraph": {
+      "outcome": "known",
+      "brand": "العروض الكبرى",
+      "entities": [
+        {
+          "lang": "ar",
+          "name": "العروض الكبرى",
+          "types": [
+            "Organization"
+          ],
+          "description": null,
+          "wikipediaUrl": null
+        }
+      ]
+    },
+    "countryFit": {
+      "country": null,
+      "confidence": "unclear",
+      "percent": null,
+      "judged": 0,
+      "signals": [],
+      "items": []
+    },
+    "dialect": {
+      "outcome": "too-little",
+      "words": 8,
+      "label": null,
+      "mix": {
+        "msa": 0,
+        "gulf": 0,
+        "egyptian": 0,
+        "levantine": 0,
+        "maghrebi": 0
+      },
+      "hits": {
+        "msa": 0,
+        "gulf": 0,
+        "egyptian": 0,
+        "levantine": 0,
+        "maghrebi": 0
+      },
+      "headings": null,
+      "markers": [],
+      "country": null,
+      "fits": null
+    },
+    "aiTraining": {
+      "outcome": "too-little",
+      "words": 8,
+      "lines": 2,
+      "passes": false,
+      "checks": [
+        {
+          "group": "language",
+          "id": "language_score",
+          "measured": 1,
+          "threshold": 0.711,
+          "limit": "min",
+          "pass": true,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "dup_line_frac",
+          "measured": 0,
+          "threshold": 0.304,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_2_gram",
+          "measured": 0.264,
+          "threshold": 0.197,
+          "limit": "max",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_3_gram",
+          "measured": 0.377,
+          "threshold": 0.172,
+          "limit": "max",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_4_gram",
+          "measured": 0.509,
+          "threshold": 0.146,
+          "limit": "max",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_5_n_grams",
+          "measured": 0,
+          "threshold": 0.165,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_6_n_grams",
+          "measured": 0,
+          "threshold": 0.153,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_7_n_grams",
+          "measured": 0,
+          "threshold": 0.142,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_8_n_grams",
+          "measured": 0,
+          "threshold": 0.131,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_9_n_grams",
+          "measured": 0,
+          "threshold": 0.12,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_10_n_grams",
+          "measured": 0,
+          "threshold": 0.109,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "line_punct_ratio",
+          "measured": 0.5,
+          "threshold": 0.143,
+          "limit": "min",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "char_dup_ratio",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "list_ratio",
+          "measured": 0.111,
+          "threshold": 0.189,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_short_doc",
+          "measured": 8,
+          "threshold": 50,
+          "limit": "min",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_long_doc",
+          "measured": 8,
+          "threshold": 100000,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_avg_word_length_min",
+          "measured": 5.625,
+          "threshold": 2,
+          "limit": "min",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_avg_word_length_max",
+          "measured": 5.625,
+          "threshold": 9,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_hashes",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_ellipsis",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_bullets",
+          "measured": 0,
+          "threshold": 0.9,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_end_ellipsis",
+          "measured": 0,
+          "threshold": 0.3,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_below_alpha_threshold",
+          "measured": 0.889,
+          "threshold": 0.787,
+          "limit": "min",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_enough_stop_words",
+          "measured": 1,
+          "threshold": 2,
+          "limit": "min",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "c4",
+          "id": "line_kept_ratio",
+          "measured": 0.5,
+          "threshold": 0,
+          "limit": "min",
+          "pass": true,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "c4",
+          "id": "too_few_sentences",
+          "measured": 1,
+          "threshold": 5,
+          "limit": "min",
+          "pass": false,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "c4",
+          "id": "lorem_ipsum_or_curly_bracket",
+          "measured": 0,
+          "threshold": 0,
+          "limit": "max",
+          "pass": true,
+          "applied": false,
+          "proxy": false
+        }
+      ]
     }
   }
 }

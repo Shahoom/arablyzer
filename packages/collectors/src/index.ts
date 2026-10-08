@@ -8,6 +8,47 @@ export {
   type CodePointRange,
 } from './code-points'
 export { collectCrux, type CruxAnswer, type CruxFacts, type CruxInput } from './crux'
+export {
+  collectSafeBrowsing,
+  SAFE_BROWSING_THREATS,
+  type SafeBrowsingAnswer,
+  type SafeBrowsingFacts,
+  type SafeBrowsingThreat,
+} from './safe-browsing'
+export {
+  collectKnowledgeGraph,
+  normalizeName,
+  type KnowledgeGraphAnswer,
+  type KnowledgeGraphEntity,
+  type KnowledgeGraphFacts,
+} from './knowledge-graph'
+export {
+  collectOpenPageRank,
+  type OpenPageRankAnswer,
+  type OpenPageRankFacts,
+} from './open-page-rank'
+export {
+  type LookalikeFacts,
+  type AiAnswer,
+  type AiProviderId,
+  type AiProviderResult,
+  type AiVisibilityFacts,
+  type CruxCountriesFacts,
+  type CruxCountry,
+  type CruxMetric,
+  type OutsideFacts,
+  type PdfFacts,
+  type PdfFile,
+  type PdfIssue,
+  type PdfIssueKind,
+  type PdfOutcome,
+  type SpellingKind,
+  type SuggestFacts,
+  type SuggestTerm,
+  type SuggestVariant,
+  type LookalikeFound,
+  type LookalikeKind,
+} from './outside'
 export { organizationalDomain, txtLookup, type DnsFacts, type TxtLookup } from './dns'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {
@@ -30,6 +71,34 @@ export {
   type TextAlternative,
 } from './html'
 export { fontCoverage, MAX_FONT_DATA } from './font-coverage'
+export {
+  compareProbe,
+  COUNTED_KINDS,
+  findSearch,
+  lossOf,
+  pickNumbers,
+  pickWords,
+  planQueries,
+  plainWord,
+  searchUrl,
+  variantsOf,
+  VARIANT_KINDS,
+  type SearchFacts,
+  type SearchProbe,
+  type SearchQuery,
+  type SearchTarget,
+  type SearchVariantKind,
+  type SearchVariantResult,
+  type SearchVia,
+  type SearchWordResult,
+} from './search'
+export {
+  MAX_SUBSET_INPUT,
+  subsetCharacters,
+  subsetFont,
+  unicodeRangeOf,
+  type FontSubset,
+} from './font-subset'
 export { collectPageIsolated, ISOLATED_HEAP_MB, type IsolatedOptions } from './isolated'
 export { MAX_TEXT_ALTERNATIVES } from './html'
 export { parseLinkHeader, type LinkHeaderEntry } from './link-header'
@@ -76,10 +145,16 @@ export {
   type RenderedElement,
   type RenderedFacts,
   type RenderedFieldFact,
+  type RiyalSignFact,
+  type RoleIconFact,
+  type XrayFacts,
+  type XrayFamily,
+  type XrayWord,
   type StylesheetsFact,
   type UncompressedTextFact,
   type UsedFont,
   type UsedFontsFact,
+  type WebFontFileFact,
 } from './rendered'
 export {
   collectRobots,

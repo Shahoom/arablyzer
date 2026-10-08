@@ -1,5 +1,5 @@
 import type { ToolTag } from '@arablyzer/i18n'
-import { reportsOnly, ruleById, SERVER_RESPONSE_RULES, type Rule } from '@arablyzer/rules'
+import { OUTSIDE, reportsOnly, ruleById, SERVER_RESPONSE_RULES, type Rule } from '@arablyzer/rules'
 import { renderInline, renderMarkdown } from '@arablyzer/seo/markdown'
 import { TOOL_CATEGORIES, TOOL_HEADINGS, TOOLS, type Tool, type ToolCopy } from '@arablyzer/tools'
 import { highlight } from '../src/lib/code'
@@ -32,6 +32,8 @@ export function toolTag(tool: Tool): ToolTag {
   if (needs.includes('render')) return 'render'
   if (needs.includes('crux')) return 'crux'
   if (needs.includes('dns')) return 'dns'
+  if (needs.includes('search')) return 'search'
+  if (needs.some((need) => OUTSIDE[need] !== undefined)) return 'outside'
   if (needs.includes('links')) return 'links'
   if (needs.includes('sitemap')) return 'sitemap'
   const readsRobots = (rule: Rule) => rule.needs.every((need) => need === 'robots')

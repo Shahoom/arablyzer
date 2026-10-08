@@ -1,5 +1,5 @@
 import { scan, type ScanOptions } from '@arablyzer/engine'
-import { RULES, type CollectorId } from '@arablyzer/rules'
+import { OUTSIDE, RULES, type CollectorId } from '@arablyzer/rules'
 import type { Scanner } from '@arablyzer/scanner-client'
 import { toolDefinition } from '@arablyzer/tools/registry'
 import { eventOf } from './events'
@@ -18,7 +18,7 @@ export function localScanner(options: ScanOptions): Scanner {
 
 /**
  * A tool page's scan runs the tool's rules alone (M2.2): a browser only when one of them reads
- * the rendered page, CrUX only when one reads real users' data (the page's URL goes to Google),
+ * the rendered page, CrUX or Safe Browsing only when one reads them (the page's URL goes to Google),
  * and no lab metrics, which the whole scan's report shows. Without a tool, the options as they
  * are.
  */
@@ -40,6 +40,12 @@ export function optionsFor(options: ScanOptions, tool: string | undefined): Scan
   }
   delete tooled.lab
   if (!renders) delete tooled.render
+  else if (tooled.render?.xray === true) tooled.render = { ...tooled.render, xray: false }
   if (!reads('crux')) delete tooled.crux
+  if (!reads('safe-browsing')) delete tooled.safeBrowsing
+  if (!reads('knowledge-graph')) delete tooled.knowledgeGraph
+  // The services beside the site are asked only for a tool whose rule reads one.
+  if (!(Object.keys(OUTSIDE) as CollectorId[]).some(reads)) delete tooled.outside
+  delete tooled.openPageRank
   return tooled
 }

@@ -23,26 +23,43 @@ function isArabicLetter(grapheme: string): boolean {
 }
 
 /**
+ * Arabic text as a browser draws it with letter-spacing it should not apply, as pieces: the
+ * letters, each keeping its joined shape, and `null` where a gap opens between letters that should
+ * touch. A page puts its own element at each `null`, so the gap can open and close (the home
+ * page's WebKit row); `drawnWithLetterSpacing` fills each with a fixed gap. The joiners keep each
+ * shape, so a letter beside a gap is drawn joined, as when the browser spaces it out.
+ */
+export function lettersApart(text: string): (string | null)[] {
+  // Letters with their marks, so a vowel sign stays on its letter.
+  const graphemes = Array.from(GRAPHEMES.segment(text), (part) => part.segment)
+  const pieces: (string | null)[] = []
+  // What the letter after a gap that joins must start with.
+  let before = ''
+  graphemes.forEach((grapheme, index) => {
+    const next = graphemes[index + 1]
+    const apart = next !== undefined && grapheme !== ' ' && next !== ' '
+    const joins =
+      apart &&
+      isArabicLetter(grapheme) &&
+      isArabicLetter(next) &&
+      !JOINS_BEFORE_ONLY.has(letterOf(grapheme)) &&
+      !JOINS_NEITHER.has(letterOf(grapheme)) &&
+      !JOINS_NEITHER.has(letterOf(next))
+    pieces.push(`${before}${grapheme}${joins ? ZWJ : ''}`)
+    before = joins ? ZWJ : ''
+    if (apart) pieces.push(null)
+  })
+  return pieces
+}
+
+/**
  * Arabic text as a browser draws it with letter-spacing it should not apply: every letter keeps
  * its joined shape, and a gap opens between letters that should touch. The joiners keep each
  * shape and the no-break gaps open between letters, so a word stays on one line; lines still
  * break between words.
  */
 export function drawnWithLetterSpacing(text: string): string {
-  // Letters with their marks, so a vowel sign stays on its letter.
-  const graphemes = Array.from(GRAPHEMES.segment(text), (part) => part.segment)
-  let out = ''
-  graphemes.forEach((grapheme, index) => {
-    out += grapheme
-    const next = graphemes[index + 1]
-    if (next === undefined || grapheme === ' ' || next === ' ') return
-    const joins =
-      isArabicLetter(grapheme) &&
-      isArabicLetter(next) &&
-      !JOINS_BEFORE_ONLY.has(letterOf(grapheme)) &&
-      !JOINS_NEITHER.has(letterOf(grapheme)) &&
-      !JOINS_NEITHER.has(letterOf(next))
-    out += joins ? `${ZWJ}${GAP}${ZWJ}` : GAP
-  })
-  return out
+  return lettersApart(text)
+    .map((piece) => piece ?? GAP)
+    .join('')
 }

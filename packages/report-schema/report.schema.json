@@ -498,6 +498,48 @@
         },
         "lab": {
           "$ref": "#/$defs/LabFact"
+        },
+        "platform": {
+          "$ref": "#/$defs/PlatformFact"
+        },
+        "knowledgeGraph": {
+          "$ref": "#/$defs/KnowledgeGraphFact"
+        },
+        "openPageRank": {
+          "$ref": "#/$defs/OpenPageRankFact"
+        },
+        "arabicFonts": {
+          "$ref": "#/$defs/ArabicFontsFact"
+        },
+        "searchTest": {
+          "$ref": "#/$defs/SearchTestFact"
+        },
+        "countryFit": {
+          "$ref": "#/$defs/CountryFitFact"
+        },
+        "dialect": {
+          "$ref": "#/$defs/DialectFact"
+        },
+        "aiTraining": {
+          "$ref": "#/$defs/AiTrainingFact"
+        },
+        "lookalikes": {
+          "$ref": "#/$defs/LookalikeFact"
+        },
+        "cruxCountries": {
+          "$ref": "#/$defs/CruxCountriesFact"
+        },
+        "aiVisibility": {
+          "$ref": "#/$defs/AiVisibilityFact"
+        },
+        "suggest": {
+          "$ref": "#/$defs/SuggestFact"
+        },
+        "pdfs": {
+          "$ref": "#/$defs/PdfFact"
+        },
+        "xray": {
+          "$ref": "#/$defs/XrayFact"
         }
       },
       "additionalProperties": false
@@ -1034,6 +1076,1678 @@
         "requests",
         "performance",
         "metrics"
+      ],
+      "additionalProperties": false
+    },
+    "PlatformFact": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "platform",
+                    "builder",
+                    "plugin",
+                    "service"
+                  ]
+                },
+                "version": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 32
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "confidence": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "kind",
+                "version",
+                "confidence"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "technologies": {
+          "maxItems": 40,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "platform",
+                  "builder",
+                  "plugin",
+                  "service"
+                ]
+              },
+              "version": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "confidence": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "kind",
+              "version",
+              "confidence"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "primary",
+        "technologies"
+      ],
+      "additionalProperties": false
+    },
+    "KnowledgeGraphFact": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "known",
+            "unknown",
+            "no-name"
+          ]
+        },
+        "brand": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entities": {
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "lang": {
+                "type": "string",
+                "enum": [
+                  "ar",
+                  "en"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "types": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "wikipediaUrl": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 2048
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "lang",
+              "name",
+              "types",
+              "description",
+              "wikipediaUrl"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "outcome",
+        "brand",
+        "entities"
+      ],
+      "additionalProperties": false
+    },
+    "OpenPageRankFact": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "referringDomains": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trend": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "rising",
+                "stable",
+                "falling"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asOf": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "domain",
+        "score",
+        "position",
+        "referringDomains",
+        "trend",
+        "asOf"
+      ],
+      "additionalProperties": false
+    },
+    "ArabicFontsFact": {
+      "type": "object",
+      "properties": {
+        "fonts": {
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "family": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "woff2",
+                  "woff",
+                  "ttf",
+                  "otf",
+                  "unknown"
+                ]
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "weight": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 30
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "style": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 30
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "characters": {
+                "type": "string",
+                "maxLength": 1600
+              },
+              "subsetBytes": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "unicodeRange": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 4000
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "family",
+              "url",
+              "format",
+              "bytes",
+              "weight",
+              "style",
+              "characters",
+              "subsetBytes",
+              "unicodeRange"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "fonts"
+      ],
+      "additionalProperties": false
+    },
+    "SearchTestFact": {
+      "type": "object",
+      "properties": {
+        "via": {
+          "type": "string",
+          "enum": [
+            "form",
+            "wordpress",
+            "platform"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "requests": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lost": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "words": {
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "word": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "results": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "first": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "variants": {
+                "maxItems": 12,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "ta-marbuta",
+                        "alef",
+                        "ya",
+                        "tatweel",
+                        "diacritics",
+                        "digits",
+                        "arabizi"
+                      ]
+                    },
+                    "query": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "results": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "first": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "outcome": {
+                      "type": "string",
+                      "enum": [
+                        "same",
+                        "differs",
+                        "lost",
+                        "unanswered"
+                      ]
+                    },
+                    "counted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "query",
+                    "results",
+                    "first",
+                    "outcome",
+                    "counted"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "word",
+              "results",
+              "first",
+              "variants"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "via",
+        "url",
+        "requests",
+        "lost",
+        "total",
+        "words"
+      ],
+      "additionalProperties": false
+    },
+    "CountryFitFact": {
+      "type": "object",
+      "properties": {
+        "country": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "SA",
+                "AE",
+                "EG",
+                "KW",
+                "QA",
+                "BH",
+                "OM",
+                "JO",
+                "MA"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "strong",
+            "thin",
+            "unclear"
+          ]
+        },
+        "percent": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "judged": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "signals": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "domain",
+                  "lang",
+                  "hreflang",
+                  "currency",
+                  "phone"
+                ]
+              },
+              "country": {
+                "type": "string",
+                "enum": [
+                  "SA",
+                  "AE",
+                  "EG",
+                  "KW",
+                  "QA",
+                  "BH",
+                  "OM",
+                  "JO",
+                  "MA"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "kind",
+              "country",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "items": {
+          "maxItems": 10,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "currency",
+                  "phone",
+                  "digits",
+                  "vat",
+                  "hijri",
+                  "lang",
+                  "dialect"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "gap",
+                  "unknown"
+                ]
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "detail"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "country",
+        "confidence",
+        "percent",
+        "judged",
+        "signals",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "DialectFact": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "classified",
+            "too-little"
+          ]
+        },
+        "words": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "msa",
+                "gulf",
+                "egyptian",
+                "levantine",
+                "maghrebi"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mix": {
+          "type": "object",
+          "properties": {
+            "msa": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "gulf": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "egyptian": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "levantine": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "maghrebi": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "msa",
+            "gulf",
+            "egyptian",
+            "levantine",
+            "maghrebi"
+          ],
+          "additionalProperties": false
+        },
+        "hits": {
+          "type": "object",
+          "properties": {
+            "msa": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "gulf": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "egyptian": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "levantine": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maghrebi": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "msa",
+            "gulf",
+            "egyptian",
+            "levantine",
+            "maghrebi"
+          ],
+          "additionalProperties": false
+        },
+        "headings": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "msa",
+                "gulf",
+                "egyptian",
+                "levantine",
+                "maghrebi"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "markers": {
+          "maxItems": 12,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "word": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "dialect": {
+                "type": "string",
+                "enum": [
+                  "msa",
+                  "gulf",
+                  "egyptian",
+                  "levantine",
+                  "maghrebi"
+                ]
+              }
+            },
+            "required": [
+              "word",
+              "dialect"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "country": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "SA",
+                "AE",
+                "EG",
+                "KW",
+                "QA",
+                "BH",
+                "OM",
+                "JO",
+                "MA"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fits": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "outcome",
+        "words",
+        "label",
+        "mix",
+        "hits",
+        "headings",
+        "markers",
+        "country",
+        "fits"
+      ],
+      "additionalProperties": false
+    },
+    "AiTrainingFact": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "tested",
+            "too-little"
+          ]
+        },
+        "words": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "lines": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "passes": {
+          "type": "boolean"
+        },
+        "checks": {
+          "maxItems": 60,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "group": {
+                "type": "string",
+                "enum": [
+                  "language",
+                  "gopher-repetition",
+                  "fineweb-quality",
+                  "gopher-quality",
+                  "c4"
+                ]
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "measured": {
+                "type": "number",
+                "minimum": 0
+              },
+              "threshold": {
+                "type": "number",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "string",
+                "enum": [
+                  "max",
+                  "min"
+                ]
+              },
+              "pass": {
+                "type": "boolean"
+              },
+              "applied": {
+                "type": "boolean"
+              },
+              "proxy": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "group",
+              "id",
+              "measured",
+              "threshold",
+              "limit",
+              "pass",
+              "applied",
+              "proxy"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "outcome",
+        "words",
+        "lines",
+        "passes",
+        "checks"
+      ],
+      "additionalProperties": false
+    },
+    "LookalikeFact": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "candidates": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "asked": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "ct": {
+          "type": "string",
+          "enum": [
+            "checked",
+            "partial",
+            "unavailable"
+          ]
+        },
+        "found": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 253
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "tld",
+                  "arabizi",
+                  "omission",
+                  "doubling",
+                  "transposition",
+                  "neighbour",
+                  "hyphen",
+                  "confusable"
+                ]
+              },
+              "address": {
+                "type": "boolean"
+              },
+              "mail": {
+                "type": "boolean"
+              },
+              "firstSeen": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "certificates": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "recent": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "domain",
+              "kind",
+              "address",
+              "mail",
+              "firstSeen",
+              "certificates",
+              "recent"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "domain",
+        "candidates",
+        "asked",
+        "ct",
+        "found"
+      ],
+      "additionalProperties": false
+    },
+    "CruxCountriesFact": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "month": {
+          "type": "string",
+          "pattern": "^\\d{6}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "countries": {
+          "maxItems": 9,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "country": {
+                "type": "string",
+                "enum": [
+                  "SA",
+                  "AE",
+                  "EG",
+                  "KW",
+                  "QA",
+                  "BH",
+                  "OM",
+                  "JO",
+                  "MA"
+                ]
+              },
+              "found": {
+                "type": "boolean"
+              },
+              "good": {
+                "type": "object",
+                "properties": {
+                  "lcp": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "inp": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cls": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "lcp",
+                  "inp",
+                  "cls"
+                ],
+                "additionalProperties": false
+              },
+              "rank": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "country",
+              "found",
+              "good",
+              "rank"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "origin",
+        "month",
+        "bytes",
+        "countries"
+      ],
+      "additionalProperties": false
+    },
+    "AiVisibilityFact": {
+      "type": "object",
+      "properties": {
+        "brand": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253
+        },
+        "questions": {
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "providers": {
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openai",
+                  "gemini",
+                  "perplexity",
+                  "anthropic"
+                ]
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ok",
+                  "refused",
+                  "limited",
+                  "failed"
+                ]
+              },
+              "answers": {
+                "maxItems": 5,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "question": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 300
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "answered",
+                        "failed"
+                      ]
+                    },
+                    "mentioned": {
+                      "type": "boolean"
+                    },
+                    "cited": {
+                      "type": "boolean"
+                    },
+                    "citations": {
+                      "maxItems": 10,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 300
+                      }
+                    },
+                    "competitors": {
+                      "maxItems": 10,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 253
+                      }
+                    }
+                  },
+                  "required": [
+                    "question",
+                    "status",
+                    "mentioned",
+                    "cited",
+                    "citations",
+                    "competitors"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "provider",
+              "model",
+              "status",
+              "answers"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "brand",
+        "domain",
+        "questions",
+        "calls",
+        "providers"
+      ],
+      "additionalProperties": false
+    },
+    "SuggestFact": {
+      "type": "object",
+      "properties": {
+        "calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "stopped": {
+          "type": "boolean"
+        },
+        "terms": {
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "term": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "written": {
+                "type": "boolean"
+              },
+              "variants": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 60
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "ta-marbuta",
+                        "hamza",
+                        "ya",
+                        "arabizi",
+                        "drop",
+                        "swap"
+                      ]
+                    },
+                    "typed": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "suggestion": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "covered": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "kind",
+                    "typed",
+                    "suggestion",
+                    "covered"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "term",
+              "written",
+              "variants"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "calls",
+        "stopped",
+        "terms"
+      ],
+      "additionalProperties": false
+    },
+    "PdfFact": {
+      "type": "object",
+      "properties": {
+        "linked": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "files": {
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "read",
+                  "robots",
+                  "too-large",
+                  "not-pdf",
+                  "encrypted",
+                  "unreadable",
+                  "failed"
+                ]
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "pages": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "pagesRead": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "language": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "issues": {
+                "maxItems": 6,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "reversed",
+                        "presentation-forms",
+                        "no-unicode-map",
+                        "image-only",
+                        "no-title",
+                        "no-language"
+                      ]
+                    },
+                    "measure": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "example": {
+                      "type": "string",
+                      "maxLength": 60
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "measure",
+                    "example"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "url",
+              "outcome",
+              "bytes",
+              "pages",
+              "pagesRead",
+              "title",
+              "language",
+              "issues"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "linked",
+        "files"
+      ],
+      "additionalProperties": false
+    },
+    "XrayFact": {
+      "type": "object",
+      "properties": {
+        "percent": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "engines": {
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "engine": {
+                "$ref": "#/$defs/Engine"
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "broken": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "viewport": {
+                "type": "object",
+                "properties": {
+                  "width": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  }
+                },
+                "required": [
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
+              },
+              "words": {
+                "maxItems": 40,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "glyph",
+                        "replacement"
+                      ]
+                    },
+                    "box": {
+                      "$ref": "#/$defs/Box"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "kind",
+                    "box"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "image": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 110000,
+                    "pattern": "^data:image\\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "engine",
+              "total",
+              "broken",
+              "truncated",
+              "viewport",
+              "words",
+              "image"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "percent",
+        "engines"
       ],
       "additionalProperties": false
     }
