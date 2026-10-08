@@ -9,8 +9,8 @@ const reports = GOLDEN_NAMES.filter((name) => existsSync(`${REPORTS}${name}.json
   (name) => JSON.parse(readFileSync(`${REPORTS}${name}.json`, 'utf8')) as Report,
 )
 
-/** Rules a whole scan never runs: a tool's scan asks the site's search. */
-const NOT_IN_A_SCAN = RULES.filter((rule) => rule.needs.includes('search')).length
+/** Rules a whole scan never runs: a tool's scan asks the site's search, its PDFs or other services. */
+const NOT_IN_A_SCAN = TOOL_ONLY_RULES.size
 
 /** The rules each report gave this status. */
 function withStatus(...statuses: string[]): Set<string> {
