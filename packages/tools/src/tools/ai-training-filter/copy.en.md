@@ -1,5 +1,5 @@
 ---
-summary: Does your page's text pass the FineWeb-2 quality filters for Arabic that AI training data is cleaned with?
+summary: Does your page's text pass the FineWeb-2 quality filters that clean AI training data?
 ---
 
 # Does your content pass the AI training filters?

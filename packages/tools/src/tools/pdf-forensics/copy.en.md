@@ -1,5 +1,5 @@
 ---
-summary: Can the Arabic PDFs your page links be read? Reversed letters, presentation forms, a font with no Unicode map, picture pages, and the document's title and language.
+summary: Can the Arabic PDFs your page links be read? Reversed letters, unmapped fonts, picture pages.
 ---
 
 # Arabic PDF forensics

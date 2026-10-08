@@ -1,5 +1,5 @@
 ---
-summary: Which look-alikes of your site's domain someone else has registered: typos, digits for letters (Arabizi) and the Arab country suffixes.
+summary: Which look-alikes of your domain has someone else registered: typos, digits, Arab suffixes?
 ---
 
 # Look-alike domain radar

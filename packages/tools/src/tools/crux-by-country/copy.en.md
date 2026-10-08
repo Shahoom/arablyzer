@@ -1,5 +1,5 @@
 ---
-summary: How do visitors in Saudi Arabia, the UAE, Egypt, Kuwait, Qatar, Bahrain, Oman, Jordan and Morocco experience your site's speed? Real Chrome data for each country.
+summary: How do visitors in nine Arab countries experience your site's speed? Real Chrome data.
 ---
 
 # Each country's lens: Chrome data by Arab country

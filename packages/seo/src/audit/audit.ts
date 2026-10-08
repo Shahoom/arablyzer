@@ -54,7 +54,7 @@ export interface ExpectedPage {
  * its rule pages, glossary entries and indexes are lists, code and short lines, which the FineWeb-2
  * filters would drop, rightly. `ai-training-filters` is for the text a visitor's own site publishes.
  */
-const NOT_FOR_SITE_PAGES: ReadonlySet<string> = new Set(['ai-training-filters'])
+export const NOT_FOR_SITE_PAGES: ReadonlySet<string> = new Set(['ai-training-filters'])
 
 /**
  * Rules that judge the server's response rather than the page (SERVER_RESPONSE_RULES), which the

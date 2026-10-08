@@ -1,5 +1,5 @@
 ---
-summary: Which misspellings of your page's main words (ta marbuta, hamza, Arabizi) do people type, and which does your page never write?
+summary: Which misspellings of your page's main words do people type, and which does it never write?
 ---
 
 # Common search misspellings
