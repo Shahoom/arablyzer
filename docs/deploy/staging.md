@@ -1,4 +1,4 @@
-# Staging: Arablyzer on the owner's server, behind Cloudflare Access
+# Staging: Arablyzer on a server of its own, behind Cloudflare
 
 Milestone M2.5 ([issue #26](https://github.com/Shahoom/arablyzer/issues/26); Phase 2 design §5 and §7,
 decision 4): the whole stack on the owner's existing server, protected by Cloudflare Access, and the
@@ -11,11 +11,110 @@ operates the server after. Every step is a command or a setting, and says what t
 > parts depend on the server and its accounts, could not be tried, and are marked **Not tried**.
 > **Deploying waits for the owner's word** (CLAUDE.md, "Ask first").
 
-The kit: this page; [`infra/compose.staging.yaml`](../../infra/compose.staging.yaml), which names the
+The kit: this page; [`infra/deploy-staging.sh`](../../infra/deploy-staging.sh), the one command (§0);
+[`infra/compose.vps.yaml`](../../infra/compose.vps.yaml), the TLS proxy for one VPS behind Cloudflare;
+[`infra/smoke.ts`](../../infra/smoke.ts), the HTTP checks of a site; [`infra/compose.staging.yaml`](../../infra/compose.staging.yaml), which names the
 images by release, for the way back; [`infra/verify-deploy.ts`](../../infra/verify-deploy.ts), which checks
 the isolation on the stack that is deployed; [`infra/README.md`](../../infra/README.md), which has the
 requirements, the databases' roles and the host's firewall rule; and
 [`infra/load/`](../../infra/load/README.md), the load test.
+
+## 0. The short path: one VPS behind Cloudflare, one command
+
+For `staging.arablyzer.com` (production will be `arablyzer.com`, the same way) on **one Linux VPS** whose DNS is on
+Cloudflare. The rest of this page is the detail behind each step, and the acceptance list. Anything that needs
+the owner's account is marked **Owner**; nothing here has deployed anything.
+
+**The layout.** Cloudflare (proxied, SSL/TLS mode **Full (strict)**) reaches `:443` of the VPS, where `tls`
+([`infra/compose.vps.yaml`](../../infra/compose.vps.yaml), Caddy with a Cloudflare Origin CA certificate)
+terminates TLS and passes to `web`, which passes `/api/` to the API. Only `tls` is published on a public
+address; `web` stays on loopback, and Valkey, PostgreSQL, the worker, the scanner and the egress proxy have no
+published port. The visitor's address is `CF-Connecting-IP`, believed only from Cloudflare's ranges (§3.5).
+**Tried:** the Caddyfile validates, `docker compose config` merges the three files, and a throwaway proxy passes
+a Cloudflare peer's `CF-Connecting-IP` as `X-Forwarded-For` and replaces a forged `X-Forwarded-For` with the
+peer's own address when the peer is not Cloudflare. **Not tried:** a VPS, and Cloudflare.
+
+### 0.1 Once, before the first deploy
+
+1. **The VPS.** Ubuntu 24.04 LTS or Debian 13, 8 vCPU and 16 GB as `infra/compose.yaml` assumes (a smaller one:
+   §2.3), 60 GB of disk, Docker Engine 28 or later with Compose v2, `git`, `openssl`, and Node 22.12+ with
+   pnpm 10.32.1 (`corepack enable`) for the checks. Start Docker at boot (§2.1).
+2. **Firewall.** Allow SSH, and 443 **from Cloudflare's ranges alone** (https://www.cloudflare.com/ips/); drop
+   the rest of the input, and add the rule of `infra/README.md`, "The host's firewall" (§2.2). With `ufw`:
+   `for r in $(curl -s https://www.cloudflare.com/ips-v4; echo; curl -s https://www.cloudflare.com/ips-v6; echo); do ufw allow from $r to any port 443 proto tcp; done`,
+   then `ufw allow OpenSSH`, `ufw default deny incoming`, `ufw enable`. Docker publishes ports around `ufw`'s
+   input rules, so check from outside that 443 refuses a machine that is not Cloudflare (§9, C2). Port 80 stays
+   closed: Cloudflare's "Always Use HTTPS" answers it.
+3. **Owner: Cloudflare.** The record `staging` (A, and AAAA if the VPS has one) to the VPS, **proxied**. SSL/TLS
+   mode **Full (strict)**, "Always Use HTTPS" on, and the §3.3 list of what to leave off. An **Origin CA
+   certificate** for `staging.arablyzer.com` (SSL/TLS, Origin Server, create, RSA, 15 years): save the certificate
+   as `infra/certs/origin.pem` and the key as `infra/certs/origin.key` on the VPS. `infra/certs/` is out of git. For
+   production, issue one for `arablyzer.com` and `*.arablyzer.com`. A **Turnstile** widget for the hostname (§3.6).
+   Cloudflare Access in front (§3.1 to §3.2) is the owner's choice for staging: the smoke script sends a service
+   token when `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` are set.
+4. **Owner: the numbers** in §1: the ten limits, the retention days, the Turnstile keys, and the VPS's public
+   IPv4 and IPv6 addresses (`ARABLYZER_DENY_CIDRS`). Optional keys (Google signals, CrUX, BigQuery, AI providers)
+   are listed in `infra/.env.example` with what each costs; leave a key empty and its check says so in the report.
+
+### 0.2 Secrets
+
+- Every secret is a 64-character hex string, one each, never reused: `openssl rand -hex 32` for `ARABLYZER_LIMIT_SECRET`,
+  `ARABLYZER_SCANNER_TOKEN`, `ARABLYZER_PROXY_SECRET`, `VALKEY_PASSWORD`, `POSTGRES_PASSWORD` and
+  `POSTGRES_APP_PASSWORD`. Hex, not base64: they go into connection URLs.
+- They live in `infra/.env` on the VPS, mode 600 (the deploy script sets it), outside git and outside the images, and in
+  the owner's password manager, which is the only other copy. Third-party keys (Turnstile secret, Google, AI
+  providers) are restricted at the provider to the API they serve, and to a spending limit where the provider has one.
+- The Origin CA key (`infra/certs/origin.key`) is as secret as the passwords. Rotating a password: change it in
+  `.env` and run the deploy command; `POSTGRES_APP_PASSWORD` is set on every deploy. Rotating `VALKEY_PASSWORD`
+  restarts the queue, so do it with no scan running.
+- Nothing in this repository holds a value: CI uses test values only (`compose.e2e.yaml`).
+
+### 0.3 First deploy
+
+```bash
+git clone https://github.com/Shahoom/arablyzer.git /opt/arablyzer && cd /opt/arablyzer
+git checkout <the commit the owner named>
+cp infra/.env.example infra/.env && chmod 600 infra/.env   # fill section 1 (and the optional keys you want)
+mkdir infra/certs                                          # then origin.pem and origin.key from Cloudflare
+
+./infra/deploy-staging.sh --check
+```
+
+**That one command** checks Docker, `.env` and the certificate, names the images for the commit, builds, starts
+the eight services of the stack and the TLS proxy with `--wait`, then runs `pnpm verify:deploy` (isolation, §6.1) and
+`pnpm smoke --url $ARABLYZER_SITE` (HTTP, §0.5). It keeps `COMPOSE_FILE`, `ARABLYZER_RELEASE` and
+`ARABLYZER_HOST` in `infra/.env`, so later `docker compose` commands in `infra/` see the same stack. Without
+`--check` it only starts the stack. The first build takes some minutes and several GB (§2.3). Install the checks'
+dependencies first: `pnpm install --frozen-lockfile --filter @arablyzer/infra`.
+
+### 0.4 A smaller shared server
+
+`compose.yaml` is sized for the whole stack with three browsers in one scanner (2,480 MiB of caps), and stays
+the same: do not lower its limits. On a smaller or shared server, run **one browser**: `ARABLYZER_ENGINES=chromium`
+in `infra/.env`. The scanner then starts one browser, not three, so a scan's report has Chromium's results alone, and the
+caps remain as a ceiling. There is one scanner either way (§2.3). The
+peak with one engine **has not been measured**; watch `docker stats` during the acceptance scans (§9, B3) and
+lower the scanner's `mem_limit` only from what they show, in a file of your own beside the three.
+
+### 0.5 The checks, in code
+
+| Command                                   | Needs        | What it asks                                                                                                                                                                       |
+| ----------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm verify:deploy`                      | Docker       | The isolation of the containers: 17 checks (§6.1, §9 B and J).                                                                                                                      |
+| `pnpm smoke --url https://staging.arablyzer.com` | the network  | The site as a visitor sees it: the pages in both languages, 404s, headers, robots.txt, sitemaps, an image, the API's refusals, HTTP to HTTPS (§9 C, D, G, H, I). Starts no scan. |
+| `pnpm load:stack`                         | Docker, a stack on this machine | The load test (§10).                                                                                                                                              |
+
+`pnpm smoke` exits 1 when a check fails; "plain HTTP goes to HTTPS" is a warning, as Cloudflare answers it.
+The unit test of the checks is `pnpm --filter @arablyzer/infra test` (no network, in CI). A whole scan, a tool scan,
+the limits seen from two networks and the owner's sign-off are not scriptable (Turnstile): they stay in §9.
+
+### 0.6 Afterwards
+
+Logs and stopping: §6. **Backups and retention:** §7 (a dump of PostgreSQL, with a restore tried) and
+`ARABLYZER_REPORT_RETENTION_DAYS` (§1; the worker deletes older reports every hour). **Rollback:**
+`./infra/deploy-staging.sh --rollback <the release before>`, from the images kept on the server, with no build
+(§8). **Upgrade:** `git pull` or check out the new commit, back up (§7), and run the deploy command again; a
+change of `ARABLYZER_SITE` or the Turnstile site key rebuilds the pages, and the script always builds.
 
 ## 1. What the owner decides and gives
 
@@ -104,6 +203,8 @@ the acceptance scans** (§9, B3).
 
 ### 2.4 The host's own proxy
 
+On a VPS of its own, `compose.vps.yaml` is this proxy (§0) and this section is not needed. On a shared server:
+
 Something on the server already publishes sites and terminates TLS: Coolify's proxy, nginx, or a Cloudflare
 Tunnel. For Arablyzer it must:
 
@@ -176,7 +277,8 @@ ARABLYZER_TRUSTED_PROXIES=private_ranges <Cloudflare's IPv4 ranges> <Cloudflare'
 ```
 
 Take the ranges from https://www.cloudflare.com/ips/ on the day, separated by spaces: they change now and
-then, and this page does not copy them. Behind a Tunnel the peer is the Tunnel's and the header's last
+then, and this page does not copy them. On the single VPS of §0 the TLS proxy does this reading itself, from `CF-Connecting-IP`, and the site's server
+trusts it as a private address: leave `ARABLYZER_TRUSTED_PROXIES` empty there. Behind a Tunnel the peer is the Tunnel's and the header's last
 address the visitor's, and the default is enough. §9, C5 tests it with two networks.
 
 ### 3.6 Turnstile
@@ -495,6 +597,10 @@ the pages take 100 in Lighthouse**. Each item below says how it is checked. `$si
 site=https://staging.example.com
 auth=(-H "CF-Access-Client-Id: $CF_ID" -H "CF-Access-Client-Secret: $CF_SECRET")
 ```
+
+`pnpm smoke --url $site` (§0.5) runs the HTTP parts of C1 (the pages, not the login), D1 to D4 and D6, G1, H1 to H3 and
+the headers of I1 and I2, for the pages it names; the rest below is done by hand, and the whole list is signed off by
+the owner.
 
 ### A. The release
 

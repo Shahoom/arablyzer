@@ -243,3 +243,10 @@ left, for what it needs first:
 - the API not importing the engine for one constant, or its image keeps Playwright and Lighthouse;
 - the paths the compose file, the stack's test and the checks name (`apps/api/src/server.ts`,
   `packages/store/src/migrate.ts`) becoming the deployed directory's.
+
+## Staging on one VPS behind Cloudflare
+
+`./infra/deploy-staging.sh --check` starts the whole stack with `compose.staging.yaml` (images named by
+release) and `compose.vps.yaml` (a Caddy proxy with a Cloudflare Origin CA certificate from `infra/certs/`),
+then runs `pnpm verify:deploy` and `pnpm smoke --url <ARABLYZER_SITE>`. The runbook, with the prerequisites,
+secrets, backups and rollback, is [docs/deploy/staging.md](../docs/deploy/staging.md), section 0.

@@ -13,3 +13,5 @@ golden-actual/
 .astro/
 # What apps/web/scripts/generate.ts writes before Astro runs.
 apps/web/src/generated/
+# TLS certificate and key for the VPS proxy (infra/compose.vps.yaml): never in git.
+infra/certs/
