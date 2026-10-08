@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.8.0"
+    "rulesetVersion": "0.9.0"
   },
   "target": {
     "url": "http://127.0.0.1:30025/",
@@ -56,7 +56,7 @@
     "pass": 2,
     "fail": 1,
     "needsReview": 0,
-    "notApplicable": 66,
+    "notApplicable": 69,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -87,8 +87,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 69,
-      "total": 70
+      "ran": 72,
+      "total": 79
     }
   },
   "rules": [
@@ -175,6 +175,17 @@
       "title": {
         "ar": "خاصية lang لا تسمّي لغة",
         "en": "lang attribute that names no language"
+      }
+    },
+    {
+      "id": "ai-training-filters",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص الصفحة لا يمر من فلاتر جودة بيانات تدريب الذكاء الاصطناعي",
+        "en": "The page's text does not pass the AI training quality filters"
       }
     },
     {
@@ -313,6 +324,17 @@
       }
     },
     {
+      "id": "brand-name-consistency",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "اسم العلامة مكتوب بطرق مختلفة",
+        "en": "Brand name written in different ways"
+      }
+    },
+    {
       "id": "canonical-conflict",
       "version": "1.0.0",
       "category": "index",
@@ -376,6 +398,17 @@
       "title": {
         "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
         "en": "Slow to show its main content on phones"
+      }
+    },
+    {
+      "id": "dialect-register",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لهجة النص لا تناسب البلد أو بقية الصفحة",
+        "en": "The page's dialect does not fit the country or the rest of the page"
       }
     },
     {

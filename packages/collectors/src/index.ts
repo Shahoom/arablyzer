@@ -27,6 +27,28 @@ export {
   type OpenPageRankAnswer,
   type OpenPageRankFacts,
 } from './open-page-rank'
+export {
+  type LookalikeFacts,
+  type AiAnswer,
+  type AiProviderId,
+  type AiProviderResult,
+  type AiVisibilityFacts,
+  type CruxCountriesFacts,
+  type CruxCountry,
+  type CruxMetric,
+  type OutsideFacts,
+  type PdfFacts,
+  type PdfFile,
+  type PdfIssue,
+  type PdfIssueKind,
+  type PdfOutcome,
+  type SpellingKind,
+  type SuggestFacts,
+  type SuggestTerm,
+  type SuggestVariant,
+  type LookalikeFound,
+  type LookalikeKind,
+} from './outside'
 export { organizationalDomain, txtLookup, type DnsFacts, type TxtLookup } from './dns'
 export { SNIPPET_MAX_LENGTH, type ElementRef, type SourceLocation } from './dom'
 export {

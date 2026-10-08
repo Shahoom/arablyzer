@@ -11,6 +11,8 @@ import { Checks, Findings, type Fixes } from './Findings'
 import { ArabicXray } from './ArabicXray'
 import { BenchmarkSection } from './Benchmark'
 import { CountryFit } from './CountryFit'
+import { AiTraining } from './AiTraining'
+import { Dialect } from './Dialect'
 import { Frame } from './Frame'
 import { GscSection } from './Gsc'
 import { Notices } from './Notices'
@@ -98,6 +100,12 @@ export function ReportView({
       <Findings report={report} fixes={fixes} lang={lang} />
       <Checks report={report} lang={lang} />
       {tool === undefined && <CountryFit report={report} lang={lang} standalone />}
+      {tool === undefined && (
+        <div className="card rounded-card">
+          <Dialect report={report} lang={lang} />
+          <AiTraining report={report} lang={lang} />
+        </div>
+      )}
       {tool === undefined && <ArabicXray report={report} lang={lang} standalone />}
       {tool === undefined && <BenchmarkSection report={report} lang={lang} />}
       {/* Search Console: a whole scan's, not a tool's; hidden unless the site has it on. */}

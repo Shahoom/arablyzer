@@ -1,5 +1,5 @@
 import { scan, type ScanOptions } from '@arablyzer/engine'
-import { RULES, type CollectorId } from '@arablyzer/rules'
+import { OUTSIDE, RULES, type CollectorId } from '@arablyzer/rules'
 import type { Scanner } from '@arablyzer/scanner-client'
 import { toolDefinition } from '@arablyzer/tools/registry'
 import { eventOf } from './events'
@@ -44,6 +44,8 @@ export function optionsFor(options: ScanOptions, tool: string | undefined): Scan
   if (!reads('crux')) delete tooled.crux
   if (!reads('safe-browsing')) delete tooled.safeBrowsing
   if (!reads('knowledge-graph')) delete tooled.knowledgeGraph
+  // The services beside the site are asked only for a tool whose rule reads one.
+  if (!(Object.keys(OUTSIDE) as CollectorId[]).some(reads)) delete tooled.outside
   delete tooled.openPageRank
   return tooled
 }

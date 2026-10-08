@@ -18,7 +18,7 @@ const clean = (value: unknown): string | null => {
   return name.length >= 2 && name.length <= MAX_BRAND ? name : null
 }
 
-function typesOf(node: Record<string, unknown>): string[] {
+export function typesOf(node: Record<string, unknown>): string[] {
   const type = node['@type']
   return (Array.isArray(type) ? (type as unknown[]) : [type]).filter(
     (item): item is string => typeof item === 'string',
@@ -26,7 +26,7 @@ function typesOf(node: Record<string, unknown>): string[] {
 }
 
 /** Every object of a JSON-LD value: its @graph, its arrays and its nested objects, bounded. */
-function* nodes(value: unknown, budget = { left: 500 }): Generator<Record<string, unknown>> {
+export function* nodes(value: unknown, budget = { left: 500 }): Generator<Record<string, unknown>> {
   if (budget.left-- <= 0 || typeof value !== 'object' || value === null) return
   if (Array.isArray(value)) {
     for (const item of value as unknown[]) yield* nodes(item, budget)

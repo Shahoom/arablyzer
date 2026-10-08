@@ -265,6 +265,7 @@ export default defineConfig(
       'apps/web/test/browser/contrast.browser.test.ts',
       'apps/web/test/browser/shared-layer.browser.test.ts',
       'apps/web/test/browser/xray.browser.test.ts',
+      'apps/web/test/browser/native2.browser.test.ts',
     ],
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },

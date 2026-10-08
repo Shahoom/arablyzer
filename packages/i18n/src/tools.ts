@@ -37,6 +37,7 @@ export type ToolTag =
   | 'links'
   | 'sitemap'
   | 'search'
+  | 'outside'
   | 'generator'
 
 /**
@@ -204,6 +205,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       generator: 'مولّد',
       sitemap: 'خريطة الموقع',
       search: 'بحث الموقع',
+      outside: 'خدمات خارجية',
     },
     kinds: { scan: 'فحص صفحتك', paste: 'الصق وجرّب', generator: 'مولّد' },
     home: {
@@ -222,6 +224,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         generator: 'مولّد',
         sitemap: 'يقرأ خرائط الموقع',
         search: 'يسأل بحث الموقع',
+        outside: 'يسأل خدمات خارجية',
       },
     },
     page: {
@@ -336,6 +339,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       generator: 'Generator',
       sitemap: 'Sitemap',
       search: 'Site search',
+      outside: 'Other services',
     },
     kinds: { scan: 'Checks your page', paste: 'Paste and test', generator: 'Generator' },
     home: {
@@ -354,6 +358,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         generator: 'Generator',
         sitemap: 'Reads the sitemaps',
         search: 'Asks the site’s search',
+        outside: 'Asks other services',
       },
     },
     page: {

@@ -700,7 +700,7 @@ describe('checklistOf', () => {
       ['robots', 'done', '404', true],
       ['page', 'done', '200 · text/html', true],
       ['render', 'done', '3 / 3', true],
-      ['rules', 'done', '69 rules', false],
+      ['rules', 'done', '72 rules', false],
     ])
     // The same keys, in the same order, as the steps of a scan running.
     const running = stepsOf(

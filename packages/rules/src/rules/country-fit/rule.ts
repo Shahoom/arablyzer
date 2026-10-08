@@ -10,6 +10,7 @@ type Message =
   | 'gap-vat'
   | 'gap-hijri'
   | 'gap-lang'
+  | 'gap-dialect'
 
 const FIT_MESSAGES = COUNTRIES.map((country) => `fit-${country.toLowerCase()}` as Message)
 
@@ -38,6 +39,7 @@ export const rule = defineRule({
     'gap-vat',
     'gap-hijri',
     'gap-lang',
+    'gap-dialect',
   ],
   appliesTo: (page) => page.html !== null && page.text !== null,
   detect: ({ page }): DetectorFinding<Message>[] => {
@@ -76,6 +78,8 @@ export const rule = defineRule({
           return 'gap-hijri'
         case 'lang':
           return 'gap-lang'
+        case 'dialect':
+          return 'gap-dialect'
       }
     }
     return [

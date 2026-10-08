@@ -450,7 +450,7 @@ export const CountryFitFact = z
     items: z
       .array(
         z.strictObject({
-          id: z.enum(['currency', 'phone', 'digits', 'vat', 'hijri', 'lang']),
+          id: z.enum(['currency', 'phone', 'digits', 'vat', 'hijri', 'lang', 'dialect']),
           status: z.enum(['ok', 'gap', 'unknown']),
           detail: z.string().max(100),
         }),
@@ -459,6 +459,271 @@ export const CountryFitFact = z
   })
   .meta({ id: 'CountryFitFact' })
 export type CountryFitFact = z.infer<typeof CountryFitFact>
+
+const Variety = z.enum(['msa', 'gulf', 'egyptian', 'levantine', 'maghrebi'])
+
+/**
+ * The dialect of the page's Arabic (rule dialect-register): which variety it is written in, from a
+ * compact marker lexicon, and the mix of marker words by variety. `label` is null where the page
+ * has too little Arabic text to judge (`outcome` is then `too-little`). `country` is the country
+ * the page is written for when two kinds of evidence name one, and `fits` whether the dialect is
+ * the speech of that country (null with a Modern Standard text, an unnamed country, or no verdict).
+ * Information, never deducted.
+ */
+export const DialectFact = z
+  .strictObject({
+    outcome: z.enum(['classified', 'too-little']),
+    words: count(),
+    label: Variety.nullable(),
+    /** The share of each variety among all marker words, whole percentages. */
+    mix: z.strictObject({
+      msa: z.number().int().min(0).max(100),
+      gulf: z.number().int().min(0).max(100),
+      egyptian: z.number().int().min(0).max(100),
+      levantine: z.number().int().min(0).max(100),
+      maghrebi: z.number().int().min(0).max(100),
+    }),
+    /** Marker words counted, by variety. */
+    hits: z.strictObject({
+      msa: count(),
+      gulf: count(),
+      egyptian: count(),
+      levantine: count(),
+      maghrebi: count(),
+    }),
+    /** The headings' variety, where they have enough words. */
+    headings: Variety.nullable(),
+    markers: z.array(z.strictObject({ word: z.string().min(1).max(40), dialect: Variety })).max(12),
+    country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']).nullable(),
+    fits: z.boolean().nullable(),
+  })
+  .meta({ id: 'DialectFact' })
+export type DialectFact = z.infer<typeof DialectFact>
+
+/**
+ * The page's text against the quality filters of the FineWeb-2 pipeline for Arabic (rule
+ * ai-training-filters): each check with the value measured, the threshold and whether it passed.
+ * `applied` is false for the language estimate (a proxy for GlotLID) and the C4 reference, which
+ * the pipeline does not use as a verdict. `outcome` is `too-little` for a text under 50 words.
+ */
+export const AiTrainingFact = z
+  .strictObject({
+    outcome: z.enum(['tested', 'too-little']),
+    words: count(),
+    lines: count(),
+    /** Every applied check passed. */
+    passes: z.boolean(),
+    checks: z
+      .array(
+        z.strictObject({
+          group: z.enum([
+            'language',
+            'gopher-repetition',
+            'fineweb-quality',
+            'gopher-quality',
+            'c4',
+          ]),
+          id: z.string().min(1).max(60),
+          measured: z.number().min(0),
+          threshold: z.number().min(0),
+          limit: z.enum(['max', 'min']),
+          pass: z.boolean(),
+          applied: z.boolean(),
+          proxy: z.boolean(),
+        }),
+      )
+      .max(60),
+  })
+  .meta({ id: 'AiTrainingFact' })
+export type AiTrainingFact = z.infer<typeof AiTrainingFact>
+
+/**
+ * The look-alikes of the scanned domain that exist (tool lookalike-domains, rule
+ * lookalike-domains): the candidates generated (typos, Arabizi digit swaps, other suffixes), those
+ * whose A or MX records DoH found, and, from Certificate Transparency, when each one's first
+ * certificate was logged. `ct` says whether the log answered for every name asked.
+ */
+export const LookalikeFact = z
+  .strictObject({
+    domain: z.string().min(1).max(253),
+    candidates: count(),
+    asked: count(),
+    ct: z.enum(['checked', 'partial', 'unavailable']),
+    found: z
+      .array(
+        z.strictObject({
+          domain: z.string().min(1).max(253),
+          kind: z.enum([
+            'tld',
+            'arabizi',
+            'omission',
+            'doubling',
+            'transposition',
+            'neighbour',
+            'hyphen',
+            'confusable',
+          ]),
+          address: z.boolean(),
+          mail: z.boolean(),
+          firstSeen: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .nullable(),
+          certificates: count().nullable(),
+          recent: z.boolean(),
+        }),
+      )
+      .max(100),
+  })
+  .meta({ id: 'LookalikeFact' })
+export type LookalikeFact = z.infer<typeof LookalikeFact>
+
+/**
+ * The PDFs the page links, up to three read (tool pdf-forensics, rules pdf-arabic-text and
+ * pdf-metadata): for each, how it ended and, where it was read, the pages, the document's title and
+ * language and what is wrong with its Arabic. `measure` is a share (0 to 1) or a count by kind.
+ */
+export const PdfFact = z
+  .strictObject({
+    linked: count(),
+    files: z
+      .array(
+        z.strictObject({
+          url: z.string().min(1).max(2048),
+          outcome: z.enum([
+            'read',
+            'robots',
+            'too-large',
+            'not-pdf',
+            'encrypted',
+            'unreadable',
+            'failed',
+          ]),
+          bytes: count(),
+          pages: count(),
+          pagesRead: count(),
+          title: z.string().max(200).nullable(),
+          language: z.string().max(40).nullable(),
+          issues: z
+            .array(
+              z.strictObject({
+                kind: z.enum([
+                  'reversed',
+                  'presentation-forms',
+                  'no-unicode-map',
+                  'image-only',
+                  'no-title',
+                  'no-language',
+                ]),
+                measure: z.number().min(0),
+                example: z.string().max(60),
+              }),
+            )
+            .max(6),
+        }),
+      )
+      .max(3),
+  })
+  .meta({ id: 'PdfFact' })
+export type PdfFact = z.infer<typeof PdfFact>
+
+/**
+ * Which misspellings of the page's key terms people type, by Google's suggestions, and which the
+ * page writes (tool common-misspellings, rule misspellings-uncovered). `typed` is null for a
+ * variant that was not asked about, `stopped` when Google stopped answering before the budget of
+ * calls was spent.
+ */
+export const SuggestFact = z
+  .strictObject({
+    calls: count(),
+    stopped: z.boolean(),
+    terms: z
+      .array(
+        z.strictObject({
+          term: z.string().min(1).max(60),
+          written: z.boolean(),
+          variants: z
+            .array(
+              z.strictObject({
+                text: z.string().min(1).max(60),
+                kind: z.enum(['ta-marbuta', 'hamza', 'ya', 'arabizi', 'drop', 'swap']),
+                typed: z.boolean().nullable(),
+                suggestion: z.string().max(200).nullable(),
+                covered: z.boolean(),
+              }),
+            )
+            .max(20),
+        }),
+      )
+      .max(3),
+  })
+  .meta({ id: 'SuggestFact' })
+export type SuggestFact = z.infer<typeof SuggestFact>
+
+/**
+ * Whether the AI assistants with a key mention or cite the site when asked questions in Arabic made
+ * from the page (tool ai-visibility, rule ai-visibility-gap). Only what was derived is kept: no
+ * answer text. `competitors` are the other domains the answers cite.
+ */
+export const AiVisibilityFact = z
+  .strictObject({
+    brand: z.string().max(100).nullable(),
+    domain: z.string().min(1).max(253),
+    questions: z.array(z.string().min(1).max(300)).max(5),
+    calls: count(),
+    providers: z
+      .array(
+        z.strictObject({
+          provider: z.enum(['openai', 'gemini', 'perplexity', 'anthropic']),
+          model: z.string().min(1).max(80),
+          status: z.enum(['ok', 'refused', 'limited', 'failed']),
+          answers: z
+            .array(
+              z.strictObject({
+                question: z.string().min(1).max(300),
+                status: z.enum(['answered', 'failed']),
+                mentioned: z.boolean(),
+                cited: z.boolean(),
+                citations: z.array(z.string().max(300)).max(10),
+                competitors: z.array(z.string().max(253)).max(10),
+              }),
+            )
+            .max(5),
+        }),
+      )
+      .max(4),
+  })
+  .meta({ id: 'AiVisibilityFact' })
+export type AiVisibilityFact = z.infer<typeof AiVisibilityFact>
+
+/**
+ * The Chrome UX Report by country (tool crux-by-country, rule crux-country-gaps): for the origin,
+ * phones, the share of page loads that are good (LCP up to 2.5 s, INP up to 200 ms, CLS up to
+ * 0.1) in each of the nine Arab countries' BigQuery tables for `month` (yyyymm), and the origin's
+ * popularity rank magnitude there. `bytes` is what BigQuery billed for the scan.
+ */
+export const CruxCountriesFact = z
+  .strictObject({
+    origin: z.string().min(1).max(300),
+    month: z.string().regex(/^\d{6}$/),
+    bytes: count(),
+    countries: z
+      .array(
+        z.strictObject({
+          country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']),
+          found: z.boolean(),
+          good: z.strictObject({
+            lcp: z.number().min(0).max(1).nullable(),
+            inp: z.number().min(0).max(1).nullable(),
+            cls: z.number().min(0).max(1).nullable(),
+          }),
+          rank: count().nullable(),
+        }),
+      )
+      .max(9),
+  })
+  .meta({ id: 'CruxCountriesFact' })
+export type CruxCountriesFact = z.infer<typeof CruxCountriesFact>
 
 /**
  * The Arabic X-ray (docs/design/plans/arabic-native.md §6): in each engine, the Arabic words
@@ -531,6 +796,20 @@ export const Facts = z.strictObject({
   searchTest: SearchTestFact.optional(),
   /** Present when the country fit rule ran on an HTML page. */
   countryFit: CountryFitFact.optional(),
+  /** Present when the dialect rule ran on an Arabic page. */
+  dialect: DialectFact.optional(),
+  /** Present when the AI training filter rule ran on an Arabic page. */
+  aiTraining: AiTrainingFact.optional(),
+  /** Present when the look-alike domains tool ran and DNS answered. */
+  lookalikes: LookalikeFact.optional(),
+  /** Present when the per-country Chrome UX tool ran with BigQuery credentials and BigQuery answered. */
+  cruxCountries: CruxCountriesFact.optional(),
+  /** Present when the AI visibility tool ran with at least one key and an assistant answered. */
+  aiVisibility: AiVisibilityFact.optional(),
+  /** Present when the misspellings tool ran, was switched on, and Google answered. */
+  suggest: SuggestFact.optional(),
+  /** Present when the PDF tool ran on a page that links PDFs. */
+  pdfs: PdfFact.optional(),
   /** Present when a scan asked for the Arabic X-ray and an engine counted Arabic words. */
   xray: XrayFact.optional(),
 })

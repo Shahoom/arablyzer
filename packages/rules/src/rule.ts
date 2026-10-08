@@ -9,6 +9,7 @@ import type {
   KnowledgeGraphFacts,
   RobotsFacts,
   SafeBrowsingFacts,
+  OutsideFacts,
   SearchFacts,
   SitemapFacts,
   SourceLocation,
@@ -36,7 +37,11 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * what Google's Knowledge Graph knows of the page's brand name, which needs an API key too.
  * `search`: the answers of the site's own search to words of the page in their spelling variants
  * (at most 12 requests); asked only in a scan that names its rules, a tool's, never in a whole
- * scan, and only where robots.txt allows.
+ * scan, and only where robots.txt allows. `lookalikes`, `pdfs`, `suggest`, `ai-visibility` and
+ * `crux-countries`: what other services say (DNS and Certificate Transparency, the PDFs the page
+ * links, Google's suggestions, AI assistants, BigQuery); asked only in a scan that names its rules,
+ * and, for the last three, only with their key or switch (docs/design/plans/arabic-native.md §9 to
+ * §14). See OUTSIDE in outside.ts.
  */
 export type CollectorId =
   | 'http'
@@ -55,6 +60,11 @@ export type CollectorId =
   | 'safe-browsing'
   | 'knowledge-graph'
   | 'search'
+  | 'lookalikes'
+  | 'pdfs'
+  | 'suggest'
+  | 'ai-visibility'
+  | 'crux-countries'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -79,6 +89,8 @@ export interface Evidence {
   readonly knowledgeGraph?: KnowledgeGraphFacts
   /** Present when the rule needs `search` and the scan asked the site's search. */
   readonly search?: SearchFacts
+  /** Present when the rule needs `lookalikes`, `pdfs`, `suggest`, `ai-visibility` or `crux-countries`: what the service said, under the key of each need. */
+  readonly outside?: OutsideFacts
   /**
    * Present when the rule needs `dns` and the page is on a public name: the page's organizational
    * domain and each TXT lookup made for it. The rule's own lookup (txtName) answered: when it

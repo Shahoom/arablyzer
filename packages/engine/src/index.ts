@@ -17,6 +17,8 @@ export {
   OPEN_PAGE_RANK_ENDPOINT,
   type OpenPageRankOptions,
 } from './open-page-rank'
+export { type OutsideOptions } from './outside'
+export { parseCredentials } from './bigquery'
 export {
   fetchKnowledgeGraph,
   KNOWLEDGE_GRAPH_ENDPOINT,

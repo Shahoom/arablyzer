@@ -20,6 +20,7 @@ import {
   type RenderedFacts,
   type RobotsFacts,
   type RobotsRule,
+  type OutsideFacts,
   type SearchFacts,
   type SitemapFacts,
 } from '@arablyzer/collectors'
@@ -59,7 +60,17 @@ import {
   brandName,
   crawlerAccess,
   detectPlatforms,
+  dialectOfPage,
+  FINEWEB2,
   fitOf,
+  fitsCountry,
+  OUTSIDE,
+  TOOL_ONLY,
+  inferCountry,
+  isMostlyArabic,
+  readPage,
+  readTraining,
+  trainingText,
   xrayFamilies,
   isPublicUrl,
   matchRobots,
@@ -76,6 +87,7 @@ import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
 import { fetchOpenPageRank, type OpenPageRankOptions } from './open-page-rank'
+import { runOutside, outsideFacts, type OutsideOptions } from './outside'
 import { fetchKnowledgeGraph, type KnowledgeGraphOptions } from './knowledge-graph'
 import { fetchSafeBrowsing, type SafeBrowsingOptions } from './safe-browsing'
 import { lookupDns, txtResolverFor } from './dns'
@@ -214,6 +226,12 @@ export interface ScanOptions {
    * subdomain), is not asked about.
    */
   readonly openPageRank?: OpenPageRankOptions
+  /**
+   * What a tool's scan may ask of other services (look-alike domains, linked PDFs, suggestions, AI
+   * assistants, BigQuery): only those a rule it names needs, and, for the paid or key-gated ones,
+   * only with their key in here. A whole scan asks none of them.
+   */
+  readonly outside?: OutsideOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
   readonly lab?: LabRequest
   /**
@@ -625,6 +643,23 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
           platformId: platformOf(page),
         }).catch((): SearchFacts => ({ outcome: 'not-found' }))
       : undefined
+  // The services beside the site (look-alike domains and the rest): a tool's scan, after all else.
+  const outside = await runOutside({
+    rules,
+    page,
+    hostname: new URL(response.url).hostname,
+    reached,
+    privateAccess: fetched.privateAccess,
+    base: { ...base, policy },
+    siteBase: { ...base, policy: robotsPolicy },
+    allowed: async (to) => {
+      const { read } = await robotsFor(to, robotsPolicy)
+      return !linkOptOut(read.facts, bot)(to)
+    },
+    options: options.outside,
+    dohUrl: options.dohUrl,
+    signal: options.signal,
+  })
   // Some sitemap could not be checked, or robots.txt could not be read, so none is known.
   const sitemapUnread =
     sitemapRead !== undefined &&
@@ -670,6 +705,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       : []),
     ...(dnsSkipped ? [notice('dns-unavailable')] : []),
     ...searchNotices(search),
+    ...outside.notices,
     ...linkNotices(links, bot),
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
@@ -684,6 +720,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     dns: dns?.facts,
     links,
     search,
+    outside: outside.collected,
     sitemap,
     sitemapUnknown: sitemapRead !== undefined && 'failed' in sitemapRead,
   })
@@ -711,7 +748,10 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...openPageRankFacts(openPageRank),
       ...arabicFontsFacts(rendering?.rendered, rules),
       ...searchFacts(search),
+      ...outsideFacts(outside.collected, rules),
       ...countryFitFacts(page, rules),
+      ...dialectFacts(page, rules),
+      ...aiTrainingFacts(page, rules),
       ...xrayFacts(rendering),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
     },
@@ -734,7 +774,7 @@ function chooseRules(
   // The site's search is asked only by a scan that names its rules (a tool's): never in a whole
   // scan, where a dozen requests to every site's search would be a load nobody asked for.
   const named = selectRules(all, ids).filter(
-    (rule) => ids !== undefined || !rule.needs.includes('search'),
+    (rule) => ids !== undefined || !rule.needs.some((need) => TOOL_ONLY.has(need)),
   )
   const needDns = named.filter((rule) => rule.needs.includes('dns'))
   if (!dnsAvailable && ids !== undefined && needDns.length > 0) {
@@ -985,6 +1025,7 @@ interface Collected {
   readonly dns?: DnsFacts | undefined
   readonly links?: LinkFacts | undefined
   readonly search?: SearchFacts | undefined
+  readonly outside?: OutsideFacts | undefined
   readonly sitemap?: SitemapFacts | undefined
   /**
    * The sitemaps were asked for and robots.txt could not be read, so which they are is not known:
@@ -1121,6 +1162,19 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   if (rule.needs.includes('search') && search === undefined) {
     return { status: 'not-applicable', findings: [] }
   }
+  // The services beside the site: not asked (a whole scan, or off without a key), nothing to judge;
+  // asked, with no usable answer, the rule could not check.
+  const outsideNeeded: Record<string, unknown> = {}
+  for (const need of rule.needs) {
+    const key = OUTSIDE[need]
+    if (key === undefined) continue
+    const answer = collected.outside?.[key]
+    if (answer === undefined) return { status: 'not-applicable', findings: [] }
+    if ('outcome' in answer && answer.outcome === 'failed') {
+      return { status: 'error', error: `${need}-unchecked`, findings: [] }
+    }
+    outsideNeeded[key] = answer
+  }
   // Only for the rules that read them, like the redirects; not asked for, on a local site or
   // without a scan, they leave the rules nothing to judge.
   const sitemap = rule.needs.includes('sitemap') ? collected.sitemap : undefined
@@ -1188,6 +1242,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
     ...(dns === undefined ? {} : { dns }),
     ...(links === undefined ? {} : { links }),
     ...(search === undefined ? {} : { search }),
+    ...(Object.keys(outsideNeeded).length === 0 ? {} : { outside: outsideNeeded }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
@@ -1551,6 +1606,60 @@ function countryFitFacts(page: PageFacts, rules: readonly Rule[]): Facts {
         value: value.slice(0, 100),
       })),
       items: items.map(({ id, status, detail }) => ({ id, status, detail: detail.slice(0, 100) })),
+    },
+  }
+}
+
+/** The dialect of the page's Arabic, for the report; nothing without the rule or Arabic text. */
+function dialectFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (
+    page.html === null ||
+    page.text === null ||
+    !rules.some((rule) => rule.id === 'dialect-register')
+  ) {
+    return {}
+  }
+  if (!isMostlyArabic(page)) return {}
+  const dialect = dialectOfPage(page.text.segments)
+  const { whole } = dialect
+  const inferred = inferCountry(readPage(page))
+  const country = inferred.confidence === 'strong' ? inferred.country : null
+  return {
+    dialect: {
+      outcome: whole.label === null ? 'too-little' : 'classified',
+      words: whole.words,
+      label: whole.label,
+      mix: { ...whole.mix },
+      hits: { ...whole.hits },
+      headings: dialect.headings?.label ?? null,
+      markers: whole.seen.map(({ word, dialect: name }) => ({ word, dialect: name })),
+      country,
+      fits:
+        country === null || whole.label === null || whole.label === 'msa'
+          ? null
+          : fitsCountry(whole.label, country),
+    },
+  }
+}
+
+/** The page's text against the FineWeb-2 filters for Arabic; nothing without the rule or Arabic text. */
+function aiTrainingFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+  if (
+    page.html === null ||
+    page.text === null ||
+    !isMostlyArabic(page) ||
+    !rules.some((rule) => rule.id === 'ai-training-filters')
+  ) {
+    return {}
+  }
+  const reading = readTraining(trainingText(page))
+  return {
+    aiTraining: {
+      outcome: reading.words < FINEWEB2.minDocWords ? 'too-little' : 'tested',
+      words: reading.words,
+      lines: reading.lines,
+      passes: reading.passes,
+      checks: reading.checks.map((item) => ({ ...item })),
     },
   }
 }

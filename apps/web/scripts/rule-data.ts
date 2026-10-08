@@ -5,6 +5,7 @@ import {
   type RuleCopy,
   RULES,
   SECTION_HEADINGS,
+  OUTSIDE,
   SERVER_RESPONSE_RULES,
 } from '@arablyzer/rules'
 import { SEVERITY_WEIGHTS } from '@arablyzer/scoring'
@@ -35,6 +36,7 @@ export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('safe-browsing')) return 'safeBrowsing'
   if (rule.needs.includes('knowledge-graph')) return 'knowledgeGraph'
   if (rule.needs.includes('search')) return 'search'
+  if (rule.needs.some((need) => OUTSIDE[need] !== undefined)) return 'outside'
   if (rule.needs.includes('dns')) return 'dns'
   if (rule.needs.includes('links')) return 'links'
   if (rule.needs.includes('sitemap')) return 'sitemap'

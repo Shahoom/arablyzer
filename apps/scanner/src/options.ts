@@ -1,6 +1,6 @@
 import { networkIsolated } from '@arablyzer/browser/engines'
 import { dohUrlFrom, serverPolicy } from '@arablyzer/egress'
-import type { ScanOptions } from '@arablyzer/engine'
+import { parseCredentials, type OutsideOptions, type ScanOptions } from '@arablyzer/engine'
 import type { Engine } from '@arablyzer/report-schema'
 
 const ENGINES: readonly Engine[] = ['chromium', 'firefox', 'webkit']
@@ -17,6 +17,59 @@ const ENGINES: readonly Engine[] = ['chromium', 'firefox', 'webkit']
  * read in a thread with a heap of its own, and a clock that ends it wherever it is (H1 of the
  * pre-launch review): a page too much for it is too complex, and never the end of this process.
  */
+/**
+ * What the tools that ask other services may use (docs/design/plans/arabic-native.md §9 to §14):
+ * the look-alike domains and the PDFs need nothing; Google's suggestions only when the operator
+ * turns them on with ARABLYZER_SUGGEST=1.
+ */
+export function outsideFrom(
+  env: Readonly<Record<string, string | undefined>>,
+): OutsideOptions | undefined {
+  const outside: { -readonly [K in keyof OutsideOptions]: OutsideOptions[K] } = {}
+  if (env.ARABLYZER_SUGGEST?.trim() === '1') outside.suggest = {}
+  const key = (name: string) => env[name]?.trim() ?? ''
+  const keys = {
+    ...(key('ARABLYZER_OPENAI_KEY') === '' ? {} : { openai: key('ARABLYZER_OPENAI_KEY') }),
+    ...(key('ARABLYZER_GEMINI_KEY') === '' ? {} : { gemini: key('ARABLYZER_GEMINI_KEY') }),
+    ...(key('ARABLYZER_PERPLEXITY_KEY') === ''
+      ? {}
+      : { perplexity: key('ARABLYZER_PERPLEXITY_KEY') }),
+    ...(key('ARABLYZER_ANTHROPIC_KEY') === '' ? {} : { anthropic: key('ARABLYZER_ANTHROPIC_KEY') }),
+  }
+  if (Object.keys(keys).length > 0) {
+    const models = {
+      ...(key('ARABLYZER_OPENAI_MODEL') === '' ? {} : { openai: key('ARABLYZER_OPENAI_MODEL') }),
+      ...(key('ARABLYZER_GEMINI_MODEL') === '' ? {} : { gemini: key('ARABLYZER_GEMINI_MODEL') }),
+      ...(key('ARABLYZER_ANTHROPIC_MODEL') === ''
+        ? {}
+        : { anthropic: key('ARABLYZER_ANTHROPIC_MODEL') }),
+    }
+    outside.aiVisibility = { keys, ...(Object.keys(models).length === 0 ? {} : { models }) }
+  }
+  const credentials = key('ARABLYZER_BIGQUERY_CREDENTIALS')
+  const project = key('ARABLYZER_BIGQUERY_PROJECT')
+  if ((credentials === '') !== (project === '')) {
+    throw new Error(
+      'ARABLYZER_BIGQUERY_CREDENTIALS and ARABLYZER_BIGQUERY_PROJECT are set together or not at all',
+    )
+  }
+  if (credentials !== '') {
+    const parsed = parseCredentials(credentials)
+    if (parsed === null) {
+      throw new Error(
+        'ARABLYZER_BIGQUERY_CREDENTIALS must be a service account key (JSON, or base64 of it)',
+      )
+    }
+    const maxBytes = Number(key('ARABLYZER_BIGQUERY_MAX_BYTES'))
+    outside.cruxCountries = {
+      credentials: parsed,
+      project,
+      ...(Number.isFinite(maxBytes) && maxBytes > 0 ? { maxBytes } : {}),
+    }
+  }
+  return Object.keys(outside).length === 0 ? undefined : outside
+}
+
 export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>>): ScanOptions {
   const listed = (env.ARABLYZER_ENGINES ?? ENGINES.join(','))
     .split(',')
@@ -49,6 +102,7 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
       ? {}
       : { safeBrowsing: { apiKey: safeBrowsingKey } }),
     ...(kgKey === undefined || kgKey === '' ? {} : { knowledgeGraph: { apiKey: kgKey } }),
+    ...(outsideFrom(env) === undefined ? {} : { outside: outsideFrom(env) }),
     // Always given, so a whole scan says when the key is missing.
     openPageRank: { apiKey: oprKey === '' ? undefined : oprKey },
   }

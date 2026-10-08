@@ -66,6 +66,10 @@ The page shows Gregorian dates and no Hijri date, which readers here expect besi
 
 The page's language tag is «{seen}», the region of another country than the one this page is for.
 
+### gap-dialect
+
+The page's text leans to a dialect other than the one of the country this page is for ({seen}).
+
 ## Why it matters
 
 - A visitor decides in seconds whether a site is for them. Prices in the wrong currency, a phone number nobody can dial, digits the country does not use and a missing tax statement each say «not for you», and none of it shows in a speed or SEO score.

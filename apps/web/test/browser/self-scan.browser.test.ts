@@ -4,7 +4,13 @@ import { createPolicy } from '@arablyzer/egress'
 import { scan } from '@arablyzer/engine'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
 import type { Engine, Report } from '@arablyzer/report-schema'
-import { builtPages, isKnownGap, isNoindexPage, representativePages } from '@arablyzer/seo/audit'
+import {
+  builtPages,
+  isKnownGap,
+  isNoindexPage,
+  NOT_FOR_SITE_PAGES,
+  representativePages,
+} from '@arablyzer/seo/audit'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 // The site scanned by Arablyzer, in its three engines, as a visitor's scan would (M2.1 plan §3,
@@ -53,7 +59,11 @@ function problems(report: Report) {
   return (
     report.rules
       .filter(
-        (rule) => (rule.status === 'fail' || rule.status === 'error') && !SERVER_RULES.has(rule.id),
+        (rule) =>
+          (rule.status === 'fail' || rule.status === 'error') &&
+          !SERVER_RULES.has(rule.id) &&
+          // Rules the site audit leaves out too: prose-corpus rules, for a visitor's own text.
+          !NOT_FOR_SITE_PAGES.has(rule.id),
       )
       // A rule that failed only for gaps the site knows it has: the self-audit's own list.
       .filter((rule) => {

@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.8.0"
+    "rulesetVersion": "0.9.0"
   },
   "target": {
     "url": "http://127.0.0.1:30003/",
@@ -82,15 +82,15 @@
   },
   "summary": {
     "pass": 26,
-    "fail": 5,
+    "fail": 6,
     "needsReview": 0,
-    "notApplicable": 38,
+    "notApplicable": 40,
     "error": 0,
     "bySeverity": {
       "critical": 0,
       "serious": 1,
       "moderate": 1,
-      "minor": 2,
+      "minor": 3,
       "info": 1
     }
   },
@@ -98,7 +98,7 @@
     "overall": 90,
     "categories": {
       "ai": 100,
-      "ar-content": 100,
+      "ar-content": 90,
       "ar-render": 100,
       "commerce": 0,
       "crawl": 100,
@@ -115,8 +115,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 69,
-      "total": 70
+      "ran": 72,
+      "total": 79
     }
   },
   "rules": [
@@ -203,6 +203,17 @@
       "title": {
         "ar": "خاصية lang لا تسمّي لغة",
         "en": "lang attribute that names no language"
+      }
+    },
+    {
+      "id": "ai-training-filters",
+      "version": "1.0.0",
+      "category": "ai",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص الصفحة لا يمر من فلاتر جودة بيانات تدريب الذكاء الاصطناعي",
+        "en": "The page's text does not pass the AI training quality filters"
       }
     },
     {
@@ -341,6 +352,17 @@
       }
     },
     {
+      "id": "brand-name-consistency",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "minor",
+      "status": "fail",
+      "title": {
+        "ar": "اسم العلامة مكتوب بطرق مختلفة",
+        "en": "Brand name written in different ways"
+      }
+    },
+    {
       "id": "canonical-conflict",
       "version": "1.0.0",
       "category": "index",
@@ -404,6 +426,17 @@
       "title": {
         "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
         "en": "Slow to show its main content on phones"
+      }
+    },
+    {
+      "id": "dialect-register",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لهجة النص لا تناسب البلد أو بقية الصفحة",
+        "en": "The page's dialect does not fit the country or the rest of the page"
       }
     },
     {
@@ -922,7 +955,7 @@
         "selector": "body > main > p:nth-of-type(2) > a",
         "snippet": "<a href=\"https://wa.me/+968 9123-4567\">",
         "location": {
-          "line": 30,
+          "line": 31,
           "column": 10
         },
         "values": {
@@ -945,7 +978,7 @@
         "selector": "body > main > p:nth-of-type(3) > a",
         "snippet": "<a href=\"https://wa.me/0501234567\">",
         "location": {
-          "line": 31,
+          "line": 32,
           "column": 10
         },
         "values": {
@@ -960,20 +993,20 @@
       "severity": "moderate",
       "fingerprint": "aa62ed6a2fe46a5d",
       "message": {
-        "ar": "في كتلة JSON-LD رقم 1، قيمة price مكتوبة «١٢٫٥٠٠» في السطر 14، وSchema.org يطلب الأرقام 0–9 وحدها، مع النقطة للكسر العشري.",
-        "en": "In JSON-LD block 1, price is written as «١٢٫٥٠٠» on line 14; Schema.org asks for the digits 0–9 only, with a full stop for the decimal point."
+        "ar": "في كتلة JSON-LD رقم 1، قيمة price مكتوبة «١٢٫٥٠٠» في السطر 15، وSchema.org يطلب الأرقام 0–9 وحدها، مع النقطة للكسر العشري.",
+        "en": "In JSON-LD block 1, price is written as «١٢٫٥٠٠» on line 15; Schema.org asks for the digits 0–9 only, with a full stop for the decimal point."
       },
       "evidence": {
         "url": "http://127.0.0.1:30003/",
         "selector": "head > script",
         "snippet": "\"offers\": { \"@type\": \"Offer\", \"price\": \"١٢٫٥٠٠\", \"priceCurrency\": \"ر.ع.\" }",
         "location": {
-          "line": 14,
+          "line": 15,
           "column": 48
         },
         "values": {
           "block": 1,
-          "line": 14,
+          "line": 15,
           "property": "price",
           "price": "١٢٫٥٠٠"
         }
@@ -984,21 +1017,40 @@
       "severity": "moderate",
       "fingerprint": "4dcab993ed58aa02",
       "message": {
-        "ar": "في كتلة JSON-LD رقم 1، العملة مكتوبة «ر.ع.» في السطر 14، وهي ليست رمزاً من ثلاثة أحرف حسب ISO 4217 مثل OMR أو SAR.",
-        "en": "In JSON-LD block 1, the currency is written as «ر.ع.» on line 14, which is not a three-letter ISO 4217 code such as OMR or SAR."
+        "ar": "في كتلة JSON-LD رقم 1، العملة مكتوبة «ر.ع.» في السطر 15، وهي ليست رمزاً من ثلاثة أحرف حسب ISO 4217 مثل OMR أو SAR.",
+        "en": "In JSON-LD block 1, the currency is written as «ر.ع.» on line 15, which is not a three-letter ISO 4217 code such as OMR or SAR."
       },
       "evidence": {
         "url": "http://127.0.0.1:30003/",
         "selector": "head > script",
         "snippet": "…s\": { \"@type\": \"Offer\", \"price\": \"١٢٫٥٠٠\", \"priceCurrency\": \"ر.ع.\" }",
         "location": {
-          "line": 14,
+          "line": 15,
           "column": 75
         },
         "values": {
           "block": 1,
-          "line": 14,
+          "line": 15,
           "currency": "ر.ع."
+        }
+      }
+    },
+    {
+      "ruleId": "brand-name-consistency",
+      "severity": "minor",
+      "fingerprint": "b31034427add6449",
+      "message": {
+        "ar": "اسم العلامة نفسه مكتوب بإملاءين: «متجر الواحه» في og:site_name و«متجر الواحة» في title. الفرق في الهمزة أو التاء المربوطة أو الألف المقصورة أو التشكيل، وليس في الاسم.",
+        "en": "The same brand name is spelled two ways: «متجر الواحه» in og:site_name and «متجر الواحة» in title. The difference is in the hamza, ta marbuta, alef maqsura or diacritics, not in the name."
+      },
+      "evidence": {
+        "url": "http://127.0.0.1:30003/",
+        "snippet": "متجر الواحه / متجر الواحة",
+        "values": {
+          "first": "متجر الواحه",
+          "firstSource": "og:site_name",
+          "second": "متجر الواحة",
+          "secondSource": "title"
         }
       }
     },
@@ -1062,7 +1114,7 @@
         "url": "http://127.0.0.1:30003/",
         "selector": "body > main > ul > li:nth-of-type(1) > span > bdi",
         "location": {
-          "line": 24
+          "line": 25
         },
         "values": {
           "price": "12.50 ر.ع.",
@@ -1197,6 +1249,312 @@
           "id": "lang",
           "status": "unknown",
           "detail": "ar"
+        },
+        {
+          "id": "dialect",
+          "status": "unknown",
+          "detail": ""
+        }
+      ]
+    },
+    "dialect": {
+      "outcome": "too-little",
+      "words": 30,
+      "label": null,
+      "mix": {
+        "msa": 0,
+        "gulf": 0,
+        "egyptian": 0,
+        "levantine": 0,
+        "maghrebi": 0
+      },
+      "hits": {
+        "msa": 0,
+        "gulf": 0,
+        "egyptian": 0,
+        "levantine": 0,
+        "maghrebi": 0
+      },
+      "headings": null,
+      "markers": [],
+      "country": null,
+      "fits": null
+    },
+    "aiTraining": {
+      "outcome": "too-little",
+      "words": 34,
+      "lines": 6,
+      "passes": false,
+      "checks": [
+        {
+          "group": "language",
+          "id": "language_score",
+          "measured": 1,
+          "threshold": 0.711,
+          "limit": "min",
+          "pass": true,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "dup_line_frac",
+          "measured": 0,
+          "threshold": 0.304,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_2_gram",
+          "measured": 0.107,
+          "threshold": 0.197,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_3_gram",
+          "measured": 0.161,
+          "threshold": 0.172,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "top_4_gram",
+          "measured": 0.134,
+          "threshold": 0.146,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_5_n_grams",
+          "measured": 0,
+          "threshold": 0.165,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_6_n_grams",
+          "measured": 0,
+          "threshold": 0.153,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_7_n_grams",
+          "measured": 0,
+          "threshold": 0.142,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_8_n_grams",
+          "measured": 0,
+          "threshold": 0.131,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_9_n_grams",
+          "measured": 0,
+          "threshold": 0.12,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-repetition",
+          "id": "duplicated_10_n_grams",
+          "measured": 0,
+          "threshold": 0.109,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "line_punct_ratio",
+          "measured": 0.5,
+          "threshold": 0.143,
+          "limit": "min",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "char_dup_ratio",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "fineweb-quality",
+          "id": "list_ratio",
+          "measured": 0.116,
+          "threshold": 0.189,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_short_doc",
+          "measured": 34,
+          "threshold": 50,
+          "limit": "min",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_long_doc",
+          "measured": 34,
+          "threshold": 100000,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_avg_word_length_min",
+          "measured": 3.294,
+          "threshold": 2,
+          "limit": "min",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_avg_word_length_max",
+          "measured": 3.294,
+          "threshold": 9,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_hashes",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_ellipsis",
+          "measured": 0,
+          "threshold": 0.1,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_bullets",
+          "measured": 0,
+          "threshold": 0.9,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_too_many_end_ellipsis",
+          "measured": 0,
+          "threshold": 0.3,
+          "limit": "max",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_below_alpha_threshold",
+          "measured": 0.651,
+          "threshold": 0.787,
+          "limit": "min",
+          "pass": false,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "gopher-quality",
+          "id": "gopher_enough_stop_words",
+          "measured": 3,
+          "threshold": 2,
+          "limit": "min",
+          "pass": true,
+          "applied": true,
+          "proxy": false
+        },
+        {
+          "group": "c4",
+          "id": "line_kept_ratio",
+          "measured": 0.5,
+          "threshold": 0,
+          "limit": "min",
+          "pass": true,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "c4",
+          "id": "too_few_sentences",
+          "measured": 7,
+          "threshold": 5,
+          "limit": "min",
+          "pass": true,
+          "applied": false,
+          "proxy": true
+        },
+        {
+          "group": "c4",
+          "id": "lorem_ipsum_or_curly_bracket",
+          "measured": 0,
+          "threshold": 0,
+          "limit": "max",
+          "pass": true,
+          "applied": false,
+          "proxy": false
         }
       ]
     }

@@ -7,6 +7,13 @@ import type { ComponentChildren } from 'preact'
 import { ArabicXray } from './report/ArabicXray'
 import { Bidi } from './report/Bidi'
 import { CountryFit } from './report/CountryFit'
+import { AiTraining } from './report/AiTraining'
+import { CruxCountries } from './report/CruxCountries'
+import { Dialect } from './report/Dialect'
+import { AiVisibility } from './report/AiVisibility'
+import { Lookalikes } from './report/Lookalikes'
+import { Pdfs } from './report/Pdfs'
+import { Suggest } from './report/Suggest'
 import { Evidence } from './report/Evidence'
 import { FontSlimmer } from './report/FontSlimmer'
 import { SearchTest } from './report/SearchTest'
@@ -238,6 +245,13 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
       )}
       <SearchTest report={report} lang={lang} />
       <CountryFit report={report} lang={lang} />
+      <Dialect report={report} lang={lang} />
+      <AiTraining report={report} lang={lang} />
+      <Lookalikes report={report} lang={lang} />
+      <Pdfs report={report} lang={lang} />
+      <Suggest report={report} lang={lang} />
+      <AiVisibility report={report} lang={lang} />
+      <CruxCountries report={report} lang={lang} />
       <ArabicXray report={report} lang={lang} />
       {/* Nothing was checked on a page the site refused to send, or asked us not to check. */}
       {verdict !== 'blocked' && verdict !== 'opted-out' && (
