@@ -1,5 +1,12 @@
 export { MemoryAccountData } from './accounts'
-export type { AccountData, AddedSite, HistoryEntry, SavedSite, ScanSource } from './accounts'
+export type {
+  AccountData,
+  AddedSite,
+  HistoryEntry,
+  SavedSite,
+  ScanSource,
+  ScorePoint,
+} from './accounts'
 export { MemoryMonitorData, applyAlerts, defaultAlerts } from './monitors'
 export type {
   AlertsPatch,

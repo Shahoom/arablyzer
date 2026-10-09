@@ -32,6 +32,7 @@ import { mountAccounts, planOf, type AccountsDeps, type AccountUser } from './ac
 import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
 import { hashDeleteToken, newDeleteToken } from './ids'
+import { mountCompare } from './compare'
 import { mountCrawls } from './crawls'
 import { mountMonitors } from './monitors'
 import { noMailer } from './monitor/mail'
@@ -356,6 +357,7 @@ export function createApp(deps: ApiDeps): Hono {
         now,
       })
     }
+    mountCompare(app, { access, store: deps.store, now })
     if (deps.accounts.sender !== undefined) {
       mountMonitors(app, {
         access,

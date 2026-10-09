@@ -1,6 +1,13 @@
 import type { ScanState } from '@arablyzer/api-contract'
 import type { Pool } from 'pg'
-import type { AccountData, AddedSite, HistoryEntry, SavedSite, ScanSource } from '../accounts'
+import type {
+  AccountData,
+  AddedSite,
+  HistoryEntry,
+  SavedSite,
+  ScanSource,
+  ScorePoint,
+} from '../accounts'
 
 interface SiteRow {
   id: string
@@ -31,6 +38,16 @@ const entry = (row: HistoryRow): HistoryEntry => ({
   createdAt: row.created_at,
   siteId: row.site_id,
 })
+
+interface PointRow {
+  id: string
+  state: ScanState
+  created_at: Date
+  source: ScanSource
+  score: number | null
+  categories: Record<string, number | null> | null
+  criticals: string[] | null
+}
 
 const HISTORY = `SELECT s.id, s.url, s.state, s.score, s.created_at, a.site_id
   FROM account_scans a JOIN scans s ON s.id = a.scan_id`
@@ -141,6 +158,53 @@ export class PostgresAccountData implements AccountData {
       [userId],
     )
     return new Map(rows.map((row) => [row.site_id ?? '', entry(row)]))
+  }
+
+  async linkedScans(
+    userId: string,
+    scanIds: readonly string[],
+  ): Promise<ReadonlyMap<string, { readonly siteId: string | null; readonly source: ScanSource }>> {
+    if (scanIds.length === 0) return new Map()
+    const { rows } = await this.#pool.query<{
+      scan_id: string
+      site_id: string | null
+      source: ScanSource
+    }>(
+      'SELECT scan_id, site_id, source FROM account_scans WHERE user_id = $1 AND scan_id = ANY($2::text[])',
+      [userId, [...scanIds]],
+    )
+    return new Map(rows.map((row) => [row.scan_id, { siteId: row.site_id, source: row.source }]))
+  }
+
+  async scorePoints(
+    userId: string,
+    siteId: string,
+    since: Date,
+    limit: number,
+  ): Promise<ScorePoint[]> {
+    // The category scores and the critical fingerprints are read out of the report in the
+    // database, so no report travels to the API for a chart.
+    const { rows } = await this.#pool.query<PointRow>(
+      `SELECT * FROM (
+         SELECT s.id, s.state, s.created_at, a.source, s.score,
+                s.report #> '{score,categories}' AS categories,
+                jsonb_path_query_array(s.report, '$.findings[*] ? (@.severity == "critical").fingerprint') AS criticals
+         FROM account_scans a JOIN scans s ON s.id = a.scan_id
+         WHERE a.user_id = $1 AND a.site_id = $2 AND a.source <> 'crawl'
+           AND s.tool IS NULL AND a.created_at >= $3
+         ORDER BY a.created_at DESC, s.id LIMIT $4
+       ) recent ORDER BY created_at, id`,
+      [userId, siteId, since, limit],
+    )
+    return rows.map((row) => ({
+      scanId: row.id,
+      createdAt: row.created_at,
+      source: row.source,
+      state: row.state,
+      score: row.score,
+      categories: row.categories ?? {},
+      criticals: row.criticals ?? [],
+    }))
   }
 
   async eraseUser(userId: string): Promise<void> {

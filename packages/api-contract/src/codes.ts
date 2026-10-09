@@ -581,3 +581,162 @@ export interface CrawlPagesResponse {
 export interface CrawlsResponse {
   readonly crawls: readonly CrawlSummary[]
 }
+
+/**
+ * Comparison and score history (M4.6): two of a person's reports of one site side by side, and a
+ * saved site's scores over the plan's history window. All answer 404 with accounts off, 401
+ * without a session; another person's scan or crawl is a 404, two reports that cannot be compared
+ * (two sites, a tool's scan, one not finished) are a 422 `not-comparable`.
+ */
+export const COMPARE_SCANS_PATH = '/api/compare/scans'
+export const COMPARE_CRAWLS_PATH = '/api/compare/crawls'
+export const siteHistoryPath = (siteId: string): string => `/api/sites/${siteId}/history`
+/** The page that shows a comparison, before the language prefix. */
+export const COMPARE_PAGE_PATH = '/account/compare'
+/** The body of a 422 from the comparison routes. */
+export const NOT_COMPARABLE = 'not-comparable'
+/** The most finding changes one comparison lists (the unchanged ones come last and are cut first). */
+export const MAX_FINDING_CHANGES = 400
+/** The most points and markers one history lists. */
+export const MAX_HISTORY_POINTS = 200
+export const MAX_HISTORY_MARKERS = 60
+
+export type ChangeKind = 'new' | 'fixed' | 'worsened' | 'improved' | 'unchanged'
+export const CHANGE_KINDS: readonly ChangeKind[] = [
+  'new',
+  'worsened',
+  'fixed',
+  'improved',
+  'unchanged',
+]
+export type SeverityName = 'critical' | 'serious' | 'moderate' | 'minor' | 'info'
+export type RenderStatusName = 'rendered' | 'failed' | 'timeout' | 'unavailable' | 'refused'
+
+/** A score before and after: the change is null when either side has none. */
+export interface ScoreChange {
+  readonly before: number | null
+  readonly after: number | null
+  readonly change: number | null
+}
+
+export interface ComparedScan {
+  readonly id: string
+  readonly url: string
+  readonly createdAt: string
+  readonly state: ScanState
+  readonly rulesetVersion: string
+  /** Rules the scan ran, of all in the set: scores of scans that ran different rules do not compare exactly. */
+  readonly rules: { readonly ran: number; readonly total: number }
+}
+
+export interface FindingChange {
+  readonly kind: ChangeKind
+  readonly ruleId: string
+  /** The severity in `head` (in `base` for a fixed finding). */
+  readonly severity: SeverityName
+  readonly before: SeverityName | null
+  readonly after: SeverityName | null
+  /** The selector or address it was found at, or null (a finding of the whole page). */
+  readonly locator: string | null
+  readonly message: Localized
+  /** The engines it was seen in, on the side shown; empty for a finding of the HTML checks. */
+  readonly engines: readonly EngineName[]
+}
+
+export interface CategoryChange extends ScoreChange {
+  readonly category: string
+}
+
+export interface EngineChange {
+  readonly engine: EngineName
+  readonly before: RenderStatusName | null
+  readonly after: RenderStatusName | null
+  /** Findings seen in this engine; null when the engine did not render on that side. */
+  readonly findingsBefore: number | null
+  readonly findingsAfter: number | null
+}
+
+export interface ScanComparison {
+  readonly base: ComparedScan
+  readonly head: ComparedScan
+  readonly overall: ScoreChange
+  readonly categories: readonly CategoryChange[]
+  readonly engines: readonly EngineChange[]
+  /** The scores count the same rules, so their difference is the pages'. */
+  readonly sameRules: boolean
+  readonly counts: Readonly<Record<ChangeKind, number>>
+  readonly changes: readonly FindingChange[]
+  /** Changes beyond the cap, not listed. */
+  readonly omitted: number
+}
+
+export interface CrawlShare {
+  readonly pages: number
+  readonly checked: number
+}
+
+export interface CrawlIssueChange {
+  readonly kind: ChangeKind
+  readonly ruleId: string
+  readonly severity: SeverityName
+  readonly title: Localized
+  readonly rendered: boolean
+  /** The template's address shape, such as `/products/:slug`. */
+  readonly pattern: string
+  readonly templateKind: TemplateKind
+  readonly before: CrawlShare | null
+  readonly after: CrawlShare | null
+}
+
+export interface CrawlTemplateChange {
+  readonly pattern: string
+  readonly kind: TemplateKind
+  readonly before: { readonly found: number; readonly checked: number } | null
+  readonly after: { readonly found: number; readonly checked: number } | null
+  readonly score: ScoreChange
+}
+
+export interface CrawlComparison {
+  readonly base: CrawlSummary
+  readonly head: CrawlSummary
+  readonly score: ScoreChange
+  readonly templates: readonly CrawlTemplateChange[]
+  readonly counts: Readonly<Record<ChangeKind, number>>
+  readonly changes: readonly CrawlIssueChange[]
+  readonly omitted: number
+}
+
+export type MarkerKind = 'score-drop' | 'critical' | 'down'
+
+export interface HistoryPoint {
+  readonly scanId: string
+  readonly at: string
+  readonly source: 'manual' | 'monitor'
+  readonly state: ScanState
+  /** Null for a scan that did not reach the page. */
+  readonly overall: number | null
+  readonly categories: Readonly<Record<string, number | null>>
+}
+
+export interface HistoryMarker {
+  readonly scanId: string
+  readonly at: string
+  readonly kind: MarkerKind
+  /** For a drop: the score before and after; for `critical`: how many new ones. */
+  readonly from?: number
+  readonly to?: number
+  readonly count?: number
+}
+
+export interface SiteHistory {
+  readonly siteId: string
+  readonly url: string
+  /** The plan's history window, in days. */
+  readonly days: number
+  readonly since: string
+  /** Oldest first. */
+  readonly points: readonly HistoryPoint[]
+  readonly markers: readonly HistoryMarker[]
+  /** Whether alerts can be marked at all: monitoring is built into this deployment. */
+  readonly alerts: boolean
+}
