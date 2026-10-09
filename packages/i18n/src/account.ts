@@ -287,6 +287,7 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       'fresh-login-required': 'لحمايتك، ادخل مرة أخرى ثم أعد المحاولة.',
       'plan-limit': 'وصلت إلى الحد الذي تتيحه خطتك من المواقع المحفوظة. احذف موقعاً لتحفظ غيره.',
       'not-found': 'الحسابات غير مفعّلة في هذا الموقع.',
+      conflict: 'عندك زحف عميق يعمل الآن. انتظر انتهاءه أو ألغِه ثم أعد المحاولة.',
       unavailable: 'خدمة الحسابات غير متاحة الآن. أعد المحاولة بعد قليل.',
       network: 'لم نصل إلى الخدمة. تأكد من اتصالك وأعد المحاولة.',
       unverified: 'لم تؤكد Google بريدك الإلكتروني، فلا نستطيع إدخالك به.',
@@ -432,6 +433,8 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       'plan-limit':
         'You have reached the number of saved sites your plan allows. Remove one to save another.',
       'not-found': 'Accounts are not turned on on this site.',
+      conflict:
+        'You already have a deep crawl running. Wait for it to end or cancel it, then try again.',
       unavailable: 'The account service is not available right now. Try again in a moment.',
       network: 'We could not reach the service. Check your connection and try again.',
       unverified: 'Google did not confirm your email address, so we cannot sign you in with it.',

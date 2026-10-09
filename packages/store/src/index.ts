@@ -12,6 +12,20 @@ export type {
   StoredAlerts,
   StoredWebhook,
 } from './monitors'
+export { ACTIVE_STATES, MAX_CRAWL_ROWS, MemoryCrawlData, pickNext, rowCapOf } from './crawls'
+export type {
+  Crawl,
+  CrawlData,
+  CrawlPageRow,
+  CrawlPatch,
+  Found,
+  NewCrawl,
+  PageIssue,
+  PageRecord,
+  PageState,
+  Started,
+  StoredTemplate,
+} from './crawls'
 export { BullMQScanQueue, SCAN_QUEUE, SCAN_WORKER } from './bullmq'
 export {
   connectionUrl,
@@ -29,6 +43,8 @@ export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
 export { PostgresAuthMaintenance, type AuthMaintenance } from './postgres/auth-maintenance'
 export { PostgresAccountData } from './postgres/account-store'
 export { PostgresMonitorData } from './postgres/monitor-store'
+export { PostgresCrawlData } from './postgres/crawl-store'
+export { crawlPages, crawls } from './postgres/crawl-schema'
 export { alertSettings, monitorRuns, monitors } from './postgres/monitor-schema'
 export { authDatabase, authSchema } from './postgres/auth-schema'
 export { scans } from './postgres/schema'

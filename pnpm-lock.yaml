@@ -78,6 +78,9 @@ importers:
       '@arablyzer/scanner':
         specifier: workspace:*
         version: link:../scanner
+      '@arablyzer/scanner-client':
+        specifier: workspace:*
+        version: link:../../packages/scanner-client
       '@arablyzer/store':
         specifier: workspace:*
         version: link:../../packages/store

@@ -25,3 +25,8 @@ export function hashDeleteToken(token: string): string {
 export function newSiteId(): string {
   return randomBytes(16).toString('base64url')
 }
+
+/** A crawl's id: the same shape as a scan's (M4.5). */
+export function newCrawlId(): string {
+  return randomBytes(16).toString('base64url')
+}

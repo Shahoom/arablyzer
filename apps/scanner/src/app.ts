@@ -1,5 +1,8 @@
 import { timingSafeEqual } from 'node:crypto'
+import type { Crawler } from '@arablyzer/engine'
 import {
+  CRAWL_PATH,
+  CrawlRequest,
   MAX_ERROR_LENGTH,
   SCAN_PATH,
   SCANNER_TIMEOUT_MS,
@@ -37,6 +40,12 @@ export interface ScannerDeps {
    * scan that started none has run no page's code in the process, and leaves it as it is.
    */
   readonly onBrowserUsed?: () => void
+  /**
+   * Reads pages for a deep crawl (M4.5): `POST /crawl`, one JSON answer. A page is read without
+   * a browser, so it neither waits for the scan running nor ends the process after it; at most
+   * `MAX_CRAWL_READS` run at once, and a scanner that is about to end its process takes none.
+   */
+  readonly crawler?: Crawler
 }
 
 /**
@@ -50,6 +59,10 @@ const startsBrowser = (event: ScannerEvent) =>
 
 /** A scan request is a URL: 8 KB is ample, and nothing larger is read. */
 const MAX_BODY_BYTES = 8 * 1024
+/** Pages a crawl reads here at once: reading one is light, but the scanner is not the crawl's alone. */
+export const MAX_CRAWL_READS = 2
+/** A crawl read that has not ended by now is stopped: a page's fetch, or a site's sitemaps. */
+const CRAWL_READ_LIMIT_MS = 75_000
 /** Ample: a scan told to stop let go of its browser in 286 ms (M2.1d review). */
 const STOP_GRACE_MS = 30_000
 
@@ -70,6 +83,7 @@ export function createScannerApp(deps: ScannerDeps): Hono {
   let runningSince: number | null = null
   /** Whether a scan that started a browser has ended (`onBrowserUsed`): the scanner takes no other. */
   let retiring = false
+  let reading = 0
   const app = new Hono()
 
   // Up, unless a scan has run past its limit, or a scan that started a browser has ended and the
@@ -158,6 +172,52 @@ export function createScannerApp(deps: ScannerDeps): Hono {
           }
         }
       })
+    },
+  )
+
+  app.post(
+    CRAWL_PATH,
+    bodyLimit({
+      maxSize: MAX_BODY_BYTES,
+      onError: (c) => c.json({ error: 'bad-request' }, 400),
+    }),
+    async (c) => {
+      const given = Buffer.from(c.req.header('authorization') ?? '')
+      if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+        return c.json({ error: 'unauthorized' }, 401)
+      }
+      const { crawler } = deps
+      if (crawler === undefined) return c.json({ error: 'not-found' }, 404)
+      let raw: unknown
+      try {
+        raw = await c.req.json()
+      } catch {
+        return c.json({ error: 'bad-request' }, 400)
+      }
+      const request = CrawlRequest.safeParse(raw)
+      if (!request.success) return c.json({ error: 'bad-request' }, 400)
+      if (retiring || reading >= MAX_CRAWL_READS) return c.json({ error: 'busy' }, 503)
+      reading++
+      const stop = new AbortController()
+      const limit = setTimeout(() => {
+        stop.abort(new Error('The read ran past its limit'))
+      }, CRAWL_READ_LIMIT_MS)
+      try {
+        const answer =
+          request.data.op === 'page'
+            ? await crawler.page(request.data.url, {
+                signal: stop.signal,
+                ...(request.data.anyOrigin === true ? { anyOrigin: true } : {}),
+              })
+            : await crawler.seeds(request.data.url, stop.signal)
+        return c.json(answer)
+      } catch (error) {
+        deps.log?.(`A crawl read could not run: ${message(error)}`)
+        return c.json({ error: 'failed' }, 500)
+      } finally {
+        clearTimeout(limit)
+        reading--
+      }
     },
   )
 

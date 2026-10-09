@@ -160,6 +160,9 @@ REVOKE ALL ON SCHEMA drizzle FROM PUBLIC, ${app}, ${worker};
 REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${app}, ${worker};
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${app}, ${worker};
 GRANT ${APP_PRIVILEGES} ON ALL TABLES IN SCHEMA public TO ${app};
+-- A table's serial column (crawl_pages.seq, M4.5) needs its sequence: the default privilege below
+-- reaches the sequences a later migration makes, this one those the migrations just made.
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ${app};
 -- The worker sees the scans and nothing else; no default privilege is ever given it, so a table a
 -- later migration makes is closed to it until a line here opens it.
 GRANT SELECT, UPDATE, DELETE ON scans TO ${worker};

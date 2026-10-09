@@ -22,9 +22,11 @@ export function startLoop(
     readonly log?: (message: string) => void
     readonly random?: Random
     readonly intervalMs?: number
+    /** What a failed tick is called in the log. */
+    readonly name?: string
   } = {},
 ): Loop {
-  const told = quietly('Monitor', options.log)
+  const told = quietly(options.name ?? 'Monitor', options.log)
   const random = options.random ?? Math.random
   const interval = options.intervalMs ?? TICK_MS
   let stopped = false

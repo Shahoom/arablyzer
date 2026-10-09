@@ -17,7 +17,8 @@ import {
   type Language,
 } from '@arablyzer/api-contract'
 import type { AccountPlan, AuthLimits, PlanCatalog } from '@arablyzer/plans'
-import { quietly, type AccountData, type MonitorData } from '@arablyzer/store'
+import type { CrawlSettings } from './crawl/settings'
+import { quietly, type AccountData, type CrawlData, type MonitorData } from '@arablyzer/store'
 import type { Context, Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { ZodType } from 'zod'
@@ -39,6 +40,9 @@ export interface AccountsDeps {
   readonly plans: PlanCatalog
   /** Monitoring and alerts (M4.3); absent, their routes are not there. */
   readonly monitors?: MonitorData
+  /** Deep crawls (M4.5); absent, their routes are not there. */
+  readonly crawls?: CrawlData
+  readonly crawlSettings?: CrawlSettings
   /** Sends a webhook's messages, for the test button. */
   readonly sender?: WebhookSender
   /** Mail, off until a provider is built. */
@@ -69,12 +73,13 @@ export interface SessionAccess {
   readonly data: AccountData
   readonly plans: PlanCatalog
   readonly monitors: MonitorData | undefined
+  readonly crawls: CrawlData | undefined
 }
 
 /** A request to these routes is a few fields: 8 KB is ample (a Google ID token is under 2 KB). */
 const MAX_BODY_BYTES = 8 * 1024
 
-const STATUS: Readonly<Record<AuthErrorCode, 400 | 401 | 403 | 404 | 429 | 503>> = {
+const STATUS: Readonly<Record<AuthErrorCode, 400 | 401 | 403 | 404 | 409 | 429 | 503>> = {
   'bad-request': 400,
   'rate-limited': 429,
   unauthorized: 401,
@@ -82,6 +87,7 @@ const STATUS: Readonly<Record<AuthErrorCode, 400 | 401 | 403 | 404 | 429 | 503>>
   'fresh-login-required': 403,
   'plan-limit': 403,
   'not-found': 404,
+  conflict: 409,
   unavailable: 503,
 }
 
@@ -410,5 +416,6 @@ export function mountAccounts(
     data,
     plans,
     monitors: deps.accounts.monitors,
+    crawls: deps.accounts.crawls,
   }
 }

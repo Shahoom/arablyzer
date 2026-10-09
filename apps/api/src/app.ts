@@ -32,6 +32,7 @@ import { mountAccounts, planOf, type AccountsDeps, type AccountUser } from './ac
 import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
 import { hashDeleteToken, newDeleteToken } from './ids'
+import { mountCrawls } from './crawls'
 import { mountMonitors } from './monitors'
 import { noMailer } from './monitor/mail'
 import { mountSites } from './sites'
@@ -343,6 +344,18 @@ export function createApp(deps: ApiDeps): Hono {
       now,
       startScan,
     })
+    if (deps.accounts.crawls !== undefined && deps.accounts.crawlSettings !== undefined) {
+      mountCrawls(app, {
+        access,
+        accounts: deps.accounts,
+        crawls: deps.accounts.crawls,
+        store: deps.store,
+        settings: deps.accounts.crawlSettings,
+        origin: deps.origin,
+        log: deps.log,
+        now,
+      })
+    }
     if (deps.accounts.sender !== undefined) {
       mountMonitors(app, {
         access,
