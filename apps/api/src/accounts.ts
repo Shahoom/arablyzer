@@ -16,8 +16,8 @@ import {
   type AuthErrorResponse,
   type Language,
 } from '@arablyzer/api-contract'
-import type { AuthLimits } from '@arablyzer/plans'
-import { quietly } from '@arablyzer/store'
+import type { AccountPlan, AuthLimits, PlanCatalog } from '@arablyzer/plans'
+import { quietly, type AccountData } from '@arablyzer/store'
 import type { Context, Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { ZodType } from 'zod'
@@ -31,6 +31,35 @@ export interface AccountsDeps {
   readonly limits: AuthLimits
   /** Whether the session cookie is `Secure` (and `__Secure-` prefixed): every production site. */
   readonly secureCookies: boolean
+  /** What an account keeps: its saved sites and the scans linked to it (M4.2). */
+  readonly data: AccountData
+  /** The plans' numbers, from the environment (packages/plans). */
+  readonly plans: PlanCatalog
+}
+
+/**
+ * The plan a person is on. Every account is on `account` until subscriptions exist (M4.4), which
+ * will read them here, and nowhere else.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- M4.4 reads the person's subscription here
+export function planOf(plans: PlanCatalog, _userId: string): AccountPlan {
+  return plans.account
+}
+
+/** What the account routes give the rest of the API: who is signed in. */
+export interface SessionAccess {
+  /**
+   * The signed-in person, or null for anyone else: no cookie, a bad one, an expired one, a store
+   * that is down. A scan never fails on this; the request is an anonymous one.
+   */
+  readonly identify: (c: Context) => Promise<AccountUser | null>
+  /** The signed-in person with the cookies to hand on, or the 401 (503) answer to send. */
+  readonly require: (
+    c: Context,
+  ) => Promise<{ readonly user: AccountUser; readonly cookies: readonly string[] } | Response>
+  readonly fail: (c: Context, error: AuthErrorCode, retryAfterSeconds?: number) => Response
+  readonly data: AccountData
+  readonly plans: PlanCatalog
 }
 
 /** A request to these routes is a few fields: 8 KB is ample (a Google ID token is under 2 KB). */
@@ -42,6 +71,7 @@ const STATUS: Readonly<Record<AuthErrorCode, 400 | 401 | 403 | 404 | 429 | 503>>
   unauthorized: 401,
   'invalid-token': 400,
   'fresh-login-required': 403,
+  'plan-limit': 403,
   'not-found': 404,
   unavailable: 503,
 }
@@ -125,8 +155,11 @@ async function call(run: () => Promise<Response>, tell: (error: unknown) => void
  * has (the site's origin, JSON, a size limit, a limit per visitor). The library's own HTTP
  * surface is not exposed, except Google's callback; everything else under /api/auth is a 404.
  */
-export function mountAccounts(app: Hono, deps: ApiDeps & { accounts: AccountsDeps }): void {
-  const { auth, limits, secureCookies } = deps.accounts
+export function mountAccounts(
+  app: Hono,
+  deps: ApiDeps & { accounts: AccountsDeps },
+): SessionAccess {
+  const { auth, limits, secureCookies, data, plans } = deps.accounts
   const now = deps.now ?? (() => new Date())
   const told = quietly('Accounts', deps.log)
   // By its message alone, once in a while: never what the library holds (a profile, a token).
@@ -358,4 +391,14 @@ export function mountAccounts(app: Hono, deps: ApiDeps & { accounts: AccountsDep
     c.header('Set-Cookie', cleared, { append: true })
     return c.body(null, 204)
   })
+  return {
+    identify: async (c) => {
+      const read = await readSession(c)
+      return read.kind === 'user' ? read.user : null
+    },
+    require: signedIn,
+    fail,
+    data,
+    plans,
+  }
 }

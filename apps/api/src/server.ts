@@ -4,6 +4,7 @@ import {
   authSchema,
   BullMQScanQueue,
   POSTGRES_PROTOCOLS,
+  PostgresAccountData,
   PostgresAuthMaintenance,
   PostgresScanStore,
   productionUrl,
@@ -76,6 +77,7 @@ const deps = apiDeps(
         usePlural: true,
       }),
     },
+    accountData: new PostgresAccountData(pool),
   },
   log,
 )

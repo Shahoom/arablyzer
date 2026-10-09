@@ -20,3 +20,8 @@ export function newDeleteToken(): string {
 export function hashDeleteToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
+
+/** A saved site's id: the same shape as a scan's (M4.2). */
+export function newSiteId(): string {
+  return randomBytes(16).toString('base64url')
+}

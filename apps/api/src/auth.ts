@@ -22,6 +22,11 @@ export interface AuthDeps {
   /** Sign-in is Google's alone in M4.1: the OAuth client's id and secret. */
   readonly google: { readonly clientId: string; readonly clientSecret: string }
   readonly production: boolean
+  /**
+   * Run before an account is erased, with its id: deletes what hangs off it that the database
+   * cannot cascade (the scans it kept and their reports, M4.2). A throw stops the erasure.
+   */
+  readonly beforeDelete?: (userId: string) => Promise<void>
   /** Where a problem the library meets is told: never with an address, token or profile. */
   readonly log: (message: string) => void
 }
@@ -65,7 +70,12 @@ export function createAuth(deps: AuthDeps) {
     session: { expiresIn: SESSION_SECONDS, freshAge: FRESH_LOGIN_SECONDS },
     user: {
       additionalFields: USER_FIELDS,
-      deleteUser: { enabled: true },
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async (user) => {
+          await deps.beforeDelete?.(user.id)
+        },
+      },
       // An address Google does not vouch for is no identity: no account and no session.
       validateUserInfo: ({ user }) => {
         if (typeof user.email !== 'string' || user.email === '') return { error: 'email_missing' }

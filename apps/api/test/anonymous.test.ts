@@ -1,6 +1,7 @@
 import { DEFAULT_POLICY } from '@arablyzer/egress'
-import { DEVELOPMENT_AUTH_LIMITS, DEVELOPMENT_LIMITS } from '@arablyzer/plans'
+import { DEVELOPMENT_AUTH_LIMITS, DEVELOPMENT_LIMITS, planCatalogFrom } from '@arablyzer/plans'
 import {
+  MemoryAccountData,
   MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
@@ -41,13 +42,14 @@ function run(accountsOn: boolean) {
     log: () => undefined,
   })
   let count = 0
+  const scans = new MemoryScanStore()
   const app = createApp({
     limits: DEVELOPMENT_LIMITS,
     policy: DEFAULT_POLICY,
     resolver: () => Promise.resolve([{ address: '93.184.215.14', family: 4 }]),
     turnstile: () => Promise.resolve(true),
     limiter: new MemoryRateLimiter(),
-    store: new MemoryScanStore(),
+    store: scans,
     queue: new MemoryScanQueue(),
     events: new MemoryScanEvents(20),
     inFlight: new MemoryInFlight(),
@@ -56,7 +58,15 @@ function run(accountsOn: boolean) {
     newId: () => `scan${String(++count).padStart(18, '0')}`,
     origin: SITE.origin,
     ...(accountsOn
-      ? { accounts: { auth, limits: DEVELOPMENT_AUTH_LIMITS, secureCookies: false } }
+      ? {
+          accounts: {
+            auth,
+            limits: DEVELOPMENT_AUTH_LIMITS,
+            secureCookies: false,
+            data: new MemoryAccountData(scans),
+            plans: planCatalogFrom({}, DEVELOPMENT_LIMITS),
+          },
+        }
       : {}),
   })
   const scan = (cookie?: string) =>

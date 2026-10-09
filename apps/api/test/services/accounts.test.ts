@@ -1,9 +1,10 @@
 import { randomBytes } from 'node:crypto'
 import { DEFAULT_POLICY } from '@arablyzer/egress'
-import { DEVELOPMENT_LIMITS } from '@arablyzer/plans'
+import { DEVELOPMENT_LIMITS, planCatalogFrom } from '@arablyzer/plans'
 import {
   authDatabase,
   authSchema,
+  PostgresAccountData,
   MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
@@ -30,6 +31,8 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
   let pool: pg.Pool
   let drop: () => Promise<void>
   let app: ReturnType<typeof createApp>
+  let accountData: PostgresAccountData
+  let scanStore: PostgresScanStore
 
   beforeAll(async () => {
     const name = `arablyzer_accounts_${randomBytes(6).toString('hex')}`
@@ -48,6 +51,8 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
       await cleanup.end()
     }
     await new PostgresScanStore(pool).migrate()
+    accountData = new PostgresAccountData(pool)
+    scanStore = new PostgresScanStore(pool)
     const auth = createAuth({
       site: SITE,
       secret: 'a'.repeat(40),
@@ -58,6 +63,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
       }),
       google: { clientId: CLIENT_ID, clientSecret: CLIENT_SECRET },
       production: false,
+      beforeDelete: (userId) => accountData.eraseUser(userId),
       log: () => undefined,
     })
     app = createApp({
@@ -66,7 +72,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
       resolver: () => Promise.resolve([]),
       turnstile: () => Promise.resolve(true),
       limiter: new MemoryRateLimiter(),
-      store: new PostgresScanStore(pool),
+      store: scanStore,
       queue: new MemoryScanQueue(),
       events: new MemoryScanEvents(20),
       inFlight: new MemoryInFlight(),
@@ -78,6 +84,8 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
         auth,
         limits: { signIn: { scans: 1000, seconds: 60 } },
         secureCookies: false,
+        data: accountData,
+        plans: planCatalogFrom({}, DEVELOPMENT_LIMITS),
       },
     })
     stubGoogle()
@@ -153,16 +161,34 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
     const response = await oneTap({ sub: 'erase-1', email: 'erase@example.com' })
     const cookie = cookieOf(response)
     const { id } = (await response.json()) as { id: string }
+    // What the person kept: a saved site, and two scans (one of them tied to the site).
+    const saved = await send('POST', '/api/sites', { url: 'https://erase-site.example/' }, cookie)
+    expect(saved.status).toBe(201)
+    for (const [scan, at] of [
+      ['erase-scan-one-000000', new Date()],
+      ['erase-scan-two-000000', new Date()],
+    ] as const) {
+      await scanStore.create({ id: scan, url: 'https://erase-site.example/', createdAt: at })
+      await accountData.link({
+        userId: id,
+        scanId: scan,
+        url: 'https://erase-site.example/',
+        source: 'manual',
+        createdAt: at,
+      })
+    }
+    expect((await send('GET', '/api/account/scans', undefined, cookie)).status).toBe(200)
     expect((await send('DELETE', '/api/account', { confirm: true }, cookie)).status).toBe(204)
     expect((await send('GET', '/api/account', undefined, cookie)).status).toBe(401)
+    expect(await scanStore.get('erase-scan-one-000000')).toBeNull()
     const tables = await pool.query<{ table_name: string }>(
       "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
     )
-    expect(tables.rows.length).toBeGreaterThanOrEqual(5)
+    expect(tables.rows.length).toBeGreaterThanOrEqual(7)
     for (const { table_name: table } of tables.rows) {
       const { rows } = await pool.query(
-        `SELECT count(*)::int AS n FROM "${table}" t WHERE t::text LIKE $1 OR t::text LIKE $2 OR t::text LIKE $3`,
-        [`%${id}%`, '%erase@example.com%', '%erase-1%'],
+        `SELECT count(*)::int AS n FROM "${table}" t WHERE t::text LIKE $1 OR t::text LIKE $2 OR t::text LIKE $3 OR t::text LIKE $4 OR t::text LIKE $5`,
+        [`%${id}%`, '%erase@example.com%', '%erase-1%', '%erase-site.example%', '%erase-scan-%'],
       )
       expect(rows, table).toEqual([{ n: 0 }])
     }

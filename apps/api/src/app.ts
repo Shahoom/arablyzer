@@ -28,10 +28,11 @@ import {
   type StoredEvent,
 } from '@arablyzer/store'
 import { registerFontRoutes, type FontContext } from './fonts'
-import { mountAccounts, type AccountsDeps } from './accounts'
+import { mountAccounts, planOf, type AccountsDeps, type AccountUser } from './accounts'
 import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
 import { hashDeleteToken, newDeleteToken } from './ids'
+import { mountSites } from './sites'
 import { holdPlace } from './places'
 import { parseTarget, resolveTarget } from './target'
 import type { TurnstileCheck } from './turnstile'
@@ -178,6 +179,141 @@ export function createApp(deps: ApiDeps): Hono {
     foreign,
   })
 
+  /**
+   * Accounts (M4.1), when on. The scan route asks it who is signed in; a request without a good
+   * session cookie is an anonymous one, whatever else is wrong with the cookie (Phase 4 design §1.3).
+   */
+  const access =
+    deps.accounts === undefined
+      ? undefined
+      : mountAccounts(app, { ...deps, accounts: deps.accounts })
+
+  /**
+   * Starts a scan. `identity` is the person already known to be signed in (a saved site's scan),
+   * or 'ask': the session is looked up, after the visitor's request is counted and before
+   * Turnstile, which a signed-in person skips: their sign-in was the check, and their own quota
+   * (keyed by the account, not the address) takes the visitor's.
+   */
+  const startScan = async (
+    c: Context,
+    input: { readonly url: string; readonly turnstileToken: string; readonly tool?: string },
+    identity: 'ask' | AccountUser,
+  ): Promise<Response> => {
+    // A tool page sends its tool; the site sends no other.
+    const tool = input.tool
+    if (tool !== undefined && toolDefinition(tool) === undefined) return refuse(c, 'bad-request')
+
+    // What needs no network first; the checks that cost something come after the visitor's
+    // throttle, Turnstile and the visitor's own limit, so the API cannot be used to look up
+    // names, to call Cloudflare without end, or to fill the queue.
+    const parsed = parseTarget(input.url, deps.policy)
+    if (!parsed.ok) return refuse(c, parsed.code)
+    // Without the visitor's address there is no limit to keep, so there is no scan.
+    const address = deps.address(c)
+    if (address === null) return refuse(c, 'unavailable')
+    const at = now()
+    const visitor = deps.connectionKey(address, at)
+    // Cloudflare is asked for every request that gets this far, so a visitor's requests are
+    // counted first, whatever comes of them: past their throttle, it is not asked at all.
+    const attempt = await deps.limiter.take(
+      `attempt:${visitor}`,
+      deps.limits.attempts,
+      at.getTime(),
+    )
+    if (!attempt.ok) return refuse(c, 'rate-limited', attempt.retryAfterSeconds)
+    const user = identity === 'ask' ? ((await access?.identify(c)) ?? null) : identity
+    // Whose limits and place this scan takes: the account's, or the visitor's.
+    let holder = visitor
+    let places = deps.limits.inFlight
+    if (user === null || access === undefined) {
+      if (!(await deps.turnstile(input.turnstileToken))) {
+        return refuse(c, 'turnstile-failed')
+      }
+      const own = await deps.limiter.take(
+        `connection:${visitor}`,
+        deps.limits.perConnection,
+        at.getTime(),
+      )
+      if (!own.ok) return refuse(c, 'rate-limited', own.retryAfterSeconds)
+    } else {
+      const plan = planOf(access.plans, user.id)
+      holder = `account:${user.id}`
+      places = plan.inFlight
+      const own = await deps.limiter.take(holder, plan.scans, at.getTime())
+      if (!own.ok) return refuse(c, 'rate-limited', own.retryAfterSeconds)
+    }
+    // The visitor's network is asked after the visitor, so a request their own limit refuses
+    // takes nothing of the network's.
+    const network = deps.networkKey?.(address, at) ?? null
+    if (network !== null) {
+      const shared = await deps.limiter.take(
+        `network:${network}`,
+        deps.limits.perNetwork,
+        at.getTime(),
+      )
+      if (!shared.ok) return refuse(c, 'rate-limited', shared.retryAfterSeconds)
+    }
+    // The visitor's place comes before any name is looked up: at their cap, they cost the API
+    // nothing more. A place is given back unless the scan is queued.
+    const id = deps.newId()
+    if (!(await holdPlace(deps, holder, id, places, at.getTime()))) {
+      return refuse(c, 'rate-limited')
+    }
+    let queued = false
+    try {
+      const resolved = await resolveTarget(parsed.value, deps.policy, deps.resolver)
+      if (!resolved.ok) return refuse(c, resolved.code)
+      const host = await deps.limiter.take(
+        hostLimitKey(parsed.value.host),
+        deps.limits.perHost,
+        at.getTime(),
+      )
+      if (!host.ok) return refuse(c, 'rate-limited', host.retryAfterSeconds)
+      const ahead = await deps.queue.waiting()
+      if (ahead >= deps.limits.queue) return refuse(c, 'unavailable')
+
+      // Stored and announced before it is queued, so the worker never starts a scan whose
+      // record or first event is not there yet.
+      // Given once, in the answer below, and kept as its hash alone (M5, issue #33).
+      const deleteToken = newDeleteToken()
+      await deps.store.create({
+        id,
+        url: resolved.value,
+        createdAt: at,
+        deleteTokenHash: hashDeleteToken(deleteToken),
+        ...(tool === undefined ? {} : { tool }),
+      })
+      try {
+        // A whole-page scan of a signed-in person is theirs to see again; a tool's is not kept.
+        if (user !== null && access !== undefined && tool === undefined) {
+          await access.data.link({
+            userId: user.id,
+            scanId: id,
+            url: resolved.value,
+            source: 'manual',
+            createdAt: at,
+          })
+        }
+        await deps.events.publish(id, { type: 'queued', ahead })
+        await deps.queue.add({
+          id,
+          url: resolved.value,
+          ...(tool === undefined ? {} : { tool }),
+        })
+      } catch (error) {
+        // Never queued, so never run: the scan fails at once, and says so to any page it has.
+        await deps.store.fail(id, at).catch(() => false)
+        await deps.events.publish(id, { type: 'error' }).catch(() => '')
+        throw error
+      }
+      queued = true
+      const created: CreateScanResponse = { id, deleteToken }
+      return c.json(created, 202)
+    } finally {
+      if (!queued) await deps.inFlight.release(holder, [id]).catch(() => undefined)
+    }
+  }
+
   app.post(
     '/api/scans',
     fromTheSiteJson,
@@ -191,99 +327,21 @@ export function createApp(deps: ApiDeps): Hono {
       }
       const request = CreateScanRequest.safeParse(raw)
       if (!request.success) return refuse(c, 'bad-request')
-      // A tool page sends its tool; the site sends no other.
-      const tool = request.data.tool
-      if (tool !== undefined && toolDefinition(tool) === undefined) return refuse(c, 'bad-request')
-
-      // What needs no network first; the checks that cost something come after the visitor's
-      // throttle, Turnstile and the visitor's own limit, so the API cannot be used to look up
-      // names, to call Cloudflare without end, or to fill the queue.
-      const parsed = parseTarget(request.data.url, deps.policy)
-      if (!parsed.ok) return refuse(c, parsed.code)
-      // Without the visitor's address there is no limit to keep, so there is no scan.
-      const address = deps.address(c)
-      if (address === null) return refuse(c, 'unavailable')
-      const at = now()
-      const visitor = deps.connectionKey(address, at)
-      // Cloudflare is asked for every request that gets this far, so a visitor's requests are
-      // counted first, whatever comes of them: past their throttle, it is not asked at all.
-      const attempt = await deps.limiter.take(
-        `attempt:${visitor}`,
-        deps.limits.attempts,
-        at.getTime(),
-      )
-      if (!attempt.ok) return refuse(c, 'rate-limited', attempt.retryAfterSeconds)
-      if (!(await deps.turnstile(request.data.turnstileToken))) {
-        return refuse(c, 'turnstile-failed')
-      }
-      const own = await deps.limiter.take(
-        `connection:${visitor}`,
-        deps.limits.perConnection,
-        at.getTime(),
-      )
-      if (!own.ok) return refuse(c, 'rate-limited', own.retryAfterSeconds)
-      // The visitor's network is asked after the visitor, so a request their own limit refuses
-      // takes nothing of the network's.
-      const network = deps.networkKey?.(address, at) ?? null
-      if (network !== null) {
-        const shared = await deps.limiter.take(
-          `network:${network}`,
-          deps.limits.perNetwork,
-          at.getTime(),
-        )
-        if (!shared.ok) return refuse(c, 'rate-limited', shared.retryAfterSeconds)
-      }
-      // The visitor's place comes before any name is looked up: at their cap, they cost the API
-      // nothing more. A place is given back unless the scan is queued.
-      const id = deps.newId()
-      if (!(await holdPlace(deps, visitor, id, deps.limits.inFlight, at.getTime()))) {
-        return refuse(c, 'rate-limited')
-      }
-      let queued = false
-      try {
-        const resolved = await resolveTarget(parsed.value, deps.policy, deps.resolver)
-        if (!resolved.ok) return refuse(c, resolved.code)
-        const host = await deps.limiter.take(
-          hostLimitKey(parsed.value.host),
-          deps.limits.perHost,
-          at.getTime(),
-        )
-        if (!host.ok) return refuse(c, 'rate-limited', host.retryAfterSeconds)
-        const ahead = await deps.queue.waiting()
-        if (ahead >= deps.limits.queue) return refuse(c, 'unavailable')
-
-        // Stored and announced before it is queued, so the worker never starts a scan whose
-        // record or first event is not there yet.
-        // Given once, in the answer below, and kept as its hash alone (M5, issue #33).
-        const deleteToken = newDeleteToken()
-        await deps.store.create({
-          id,
-          url: resolved.value,
-          createdAt: at,
-          deleteTokenHash: hashDeleteToken(deleteToken),
-          ...(tool === undefined ? {} : { tool }),
-        })
-        try {
-          await deps.events.publish(id, { type: 'queued', ahead })
-          await deps.queue.add({
-            id,
-            url: resolved.value,
-            ...(tool === undefined ? {} : { tool }),
-          })
-        } catch (error) {
-          // Never queued, so never run: the scan fails at once, and says so to any page it has.
-          await deps.store.fail(id, at).catch(() => false)
-          await deps.events.publish(id, { type: 'error' }).catch(() => '')
-          throw error
-        }
-        queued = true
-        const created: CreateScanResponse = { id, deleteToken }
-        return c.json(created, 202)
-      } finally {
-        if (!queued) await deps.inFlight.release(visitor, [id]).catch(() => undefined)
-      }
+      return startScan(c, request.data, 'ask')
     },
   )
+
+  if (access !== undefined && deps.accounts !== undefined) {
+    mountSites(app, {
+      access,
+      accounts: deps.accounts,
+      origin: deps.origin,
+      policy: deps.policy,
+      log: deps.log,
+      now,
+      startScan,
+    })
+  }
 
   app.get('/api/scans/:id', async (c) => {
     const scan = await findScan(c.req.param('id'))
@@ -450,8 +508,6 @@ export function createApp(deps: ApiDeps): Hono {
     now,
     log: failure,
   })
-
-  if (deps.accounts !== undefined) mountAccounts(app, { ...deps, accounts: deps.accounts })
 
   app.notFound((c) => c.json({ error: 'not-found' }, 404))
   // A store that fails (Valkey or PostgreSQL away) is the service being unavailable, said as

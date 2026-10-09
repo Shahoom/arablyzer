@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { memoryAdapter } from 'better-auth/adapters/memory'
 import { localScanner, scanOptionsFrom } from '@arablyzer/scanner'
 import {
+  MemoryAccountData,
   MemoryHandoff,
   MemoryInFlight,
   MemoryRateLimiter,
@@ -35,6 +36,7 @@ const deps = apiDeps(env, {
   handoff: new MemoryHandoff(),
   // Accounts, when ARABLYZER_ACCOUNTS=on, live in memory here: gone when this process ends.
   auth: { database: memoryAdapter({ user: [], session: [], account: [], verification: [] }) },
+  accountData: new MemoryAccountData(store),
 })
 const app = createApp(deps)
 const port = Number(env.PORT ?? 8787)
