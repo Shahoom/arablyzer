@@ -129,6 +129,18 @@ days, and deletes the scans an account keeps after them (the other scans follow
 `account_scans.scan_id`, so the sweep can tell which scans are kept, and nothing else. Erasing the
 account deletes its sites, its scans and their reports.
 
+**Deep crawl (M4.5).** A person starts a crawl of a saved site on `/account`; the `crawler` service, a third entry of the
+API's image (`apps/api/src/crawl/main.ts`) on the application role, finds the site's pages (its sitemaps first, then its
+internal links), up to `ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES` (50 when empty), one page at a time with
+`ARABLYZER_CRAWL_DELAY_MS` between two (1000 when empty, and the site's own `Crawl-delay` up to 10 s when it asks for more).
+It never fetches or parses a page itself: it asks the scanner (`POST /crawl`, the worker's token, on the `scan` network),
+which reads robots.txt (the `*` group counts, and a file it cannot read keeps the crawler out), fetches through the egress
+proxy, stays on the site's origin and parses in a thread of its own. The pages are grouped into templates, every page
+gets the HTML checks, and `ARABLYZER_CRAWL_REPRESENTATIVES` page(s) of each of the first `ARABLYZER_CRAWL_RENDERED_TEMPLATES`
+templates get the full three-browser scan, through the same queue room, host bucket and in-flight place as a monitor's. One
+crawl at a time per account (the database holds the line); crawls are kept as long as the plan's history days. The worker's role
+reads neither `crawls` nor `crawl_pages`.
+
 **Monitoring and alerts (M4.3).** A person turns monitoring on for a saved site on `/account`; the `monitor`
 service, a second entry of the API's image (`apps/api/src/monitor/main.ts`) on the application role, scans it every
 `ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` days (7 when empty) for up to `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`

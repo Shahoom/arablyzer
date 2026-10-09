@@ -13,8 +13,8 @@ export const SERVICES = ['web', 'api', 'worker', 'scanner', 'egress', 'valkey', 
 export const NODE_SERVICES = ['api', 'worker', 'scanner'] as const
 /** The database's own step: it runs once, and is gone. */
 const ONE_SHOT = ['migrate'] as const
-/** Runs beside the stack with no port and no health check of its own: the monitoring scheduler (M4.3). */
-const BACKGROUND = ['monitor'] as const
+/** Runs beside the stack with no port and no health check of its own: the monitoring scheduler (M4.3) and the deep crawler (M4.5). */
+const BACKGROUND = ['monitor', 'crawler'] as const
 
 /** A name the container's networks do not have: Docker's DNS knows it not, or cannot ask on. */
 const UNRESOLVED = /^(?:ENOTFOUND|EAI_AGAIN)$/
@@ -452,6 +452,8 @@ export function databaseRoles(stack: Stack): string[] {
            'SELECT user_id FROM account_scans',
            'SELECT count(*) FROM monitors',
            'SELECT count(*) FROM monitor_runs',
+           'SELECT count(*) FROM crawls',
+           'SELECT count(*) FROM crawl_pages',
            'SELECT webhook_url FROM alert_settings',
            "INSERT INTO scans (id, url, state, created_at) VALUES ('verify_deploy_probe', 'https://example.com/', 'queued', now())",
            'CREATE TABLE verify_deploy_probe (a integer)',

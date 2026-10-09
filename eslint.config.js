@@ -153,6 +153,7 @@ export default defineConfig(
       'apps/web/src/islands/api.ts',
       'apps/web/src/islands/auth-api.ts',
       'apps/web/src/islands/sites-api.ts',
+      'apps/web/src/islands/crawl-api.ts',
     ],
     rules: {
       'no-restricted-globals': [

@@ -1,10 +1,12 @@
-import type { AccountScan, SiteSummary } from '@arablyzer/api-contract/codes'
+import type { AccountScan, CrawlSummary, SiteSummary } from '@arablyzer/api-contract/codes'
 import { ACCOUNT_UI } from '@arablyzer/i18n/account'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import type { Lang } from '@arablyzer/seo/site'
 import { ExternalLink, Globe, Plus, Trash2, TriangleAlert } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
+import { cancelCrawl, startCrawl } from '../crawl-api'
+import { isActive, POLL_MS } from '../crawl-model'
 import { precheck } from '../scan-request'
 import {
   addSite,
@@ -16,6 +18,8 @@ import {
   type SiteOutcome,
 } from '../sites-api'
 import { dayLabel, reportHref, shortUrl, type SiteProblem } from '../sites-model'
+import CrawlReportCard from './CrawlReportCard'
+import CrawlRow from './CrawlRow'
 import MonitorRow from './MonitorRow'
 
 interface Props {
@@ -31,6 +35,7 @@ interface Data {
   readonly sites: readonly SiteSummary[]
   readonly limit: number
   readonly monitoring: { readonly limit: number; readonly everyDays: number }
+  readonly crawlPages: number
   readonly scans: readonly AccountScan[]
   readonly historyDays: number
 }
@@ -47,6 +52,8 @@ export default function SitesPanel({ lang }: Props) {
   const [data, setData] = useState<Data | 'loading' | 'failed'>('loading')
   const [notice, setNotice] = useState<Notice | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  /** The crawl whose report is open. */
+  const [openCrawl, setOpenCrawl] = useState<string | null>(null)
 
   useEffect(() => {
     let live = true
@@ -62,6 +69,7 @@ export default function SitesPanel({ lang }: Props) {
         sites: sites.value.sites,
         limit: sites.value.limit,
         monitoring: sites.value.monitoring,
+        crawlPages: sites.value.crawlPages,
         scans: scans.value.scans,
         historyDays: scans.value.historyDays,
       })
@@ -70,6 +78,66 @@ export default function SitesPanel({ lang }: Props) {
       live = false
     }
   }, [])
+
+  // While a crawl goes, the list asks about it: its progress is in the site's summary.
+  const crawling =
+    typeof data !== 'string' && data.sites.some((s) => s.crawl !== null && isActive(s.crawl.state))
+  useEffect(() => {
+    if (!crawling) return
+    const timer = window.setTimeout(() => {
+      void listSites().then((sites) => {
+        if (sites.ok) {
+          setData((current) =>
+            typeof current === 'string' ? current : { ...current, sites: sites.value.sites },
+          )
+        }
+      })
+    }, POLL_MS)
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [crawling, data])
+
+  const setCrawl = (siteId: string | null, crawl: CrawlSummary | null) => {
+    setData((current) =>
+      typeof current === 'string'
+        ? current
+        : {
+            ...current,
+            sites: current.sites.map((kept) =>
+              kept.id === siteId || (kept.crawl !== null && kept.crawl.id === crawl?.id)
+                ? { ...kept, crawl }
+                : kept,
+            ),
+          },
+    )
+  }
+
+  async function onStartCrawl(site: SiteSummary) {
+    if (busy !== null) return
+    setNotice(null)
+    setBusy(`crawl:${site.id}`)
+    const started = await startCrawl(site.id)
+    setBusy(null)
+    if (!started.ok) {
+      fail(started)
+      return
+    }
+    setCrawl(site.id, started.value)
+  }
+
+  async function onCancelCrawl(site: SiteSummary) {
+    if (busy !== null || site.crawl === null) return
+    setNotice(null)
+    setBusy(`crawl:${site.id}`)
+    const cancelled = await cancelCrawl(site.crawl.id)
+    setBusy(null)
+    if (!cancelled.ok) {
+      fail(cancelled)
+      return
+    }
+    setCrawl(site.id, cancelled.value)
+  }
 
   const fail = (outcome: Extract<SiteOutcome<unknown>, { ok: false }>) => {
     setNotice({ problem: outcome.problem, ...retry(outcome) })
@@ -310,11 +378,52 @@ export default function SitesPanel({ lang }: Props) {
                   working={busy === `monitor:${site.id}`}
                   onToggle={(target) => void onToggle(target)}
                 />
+                <CrawlRow
+                  lang={lang}
+                  site={site}
+                  cap={data.crawlPages}
+                  busy={busy !== null}
+                  working={busy === `crawl:${site.id}`}
+                  open={site.crawl !== null && openCrawl === site.crawl.id}
+                  onStart={(target) => void onStartCrawl(target)}
+                  onCancel={(target) => void onCancelCrawl(target)}
+                  onToggle={(target) => {
+                    const id = target.crawl?.id ?? null
+                    setOpenCrawl(openCrawl === id ? null : id)
+                  }}
+                />
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      {openCrawl !== null && (
+        <CrawlReportCard
+          key={openCrawl}
+          lang={lang}
+          crawlId={openCrawl}
+          onSummary={(summary) => {
+            setCrawl(null, summary)
+          }}
+          onClose={() => {
+            setOpenCrawl(null)
+          }}
+          onRemoved={(id) => {
+            setOpenCrawl(null)
+            setData((current) =>
+              typeof current === 'string'
+                ? current
+                : {
+                    ...current,
+                    sites: current.sites.map((kept) =>
+                      kept.crawl !== null && kept.crawl.id === id ? { ...kept, crawl: null } : kept,
+                    ),
+                  },
+            )
+          }}
+        />
+      )}
 
       <section
         aria-labelledby="history-title"

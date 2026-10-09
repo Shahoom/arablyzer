@@ -44,17 +44,21 @@ describe('siteProblemOf', () => {
 describe('the shapes the page reads', () => {
   it('accepts what the API sends and refuses the rest', () => {
     const monitoring = { limit: 1, everyDays: 7 }
-    expect(isSitesResponse({ sites: [], limit: 3, monitoring })).toBe(true)
+    expect(isSitesResponse({ sites: [], limit: 3, monitoring, crawlPages: 50 })).toBe(true)
     expect(isSitesResponse({ sites: [], limit: 3 })).toBe(false)
     expect(
       isSitesResponse({
-        sites: [{ id: 'a', url: 'u', createdAt: 'c', lastScan: SCAN, monitor: null }],
+        sites: [{ id: 'a', url: 'u', createdAt: 'c', lastScan: SCAN, monitor: null, crawl: null }],
         limit: 3,
         monitoring,
+        crawlPages: 50,
       }),
     ).toBe(true)
-    expect(isSitesResponse({ sites: [{ id: 'a' }], limit: 3, monitoring })).toBe(false)
-    expect(isSitesResponse({ sites: [], limit: '3', monitoring })).toBe(false)
+    expect(isSitesResponse({ sites: [{ id: 'a' }], limit: 3, monitoring, crawlPages: 50 })).toBe(
+      false,
+    )
+    expect(isSitesResponse({ sites: [], limit: '3', monitoring, crawlPages: 50 })).toBe(false)
+    expect(isSitesResponse({ sites: [], limit: 3, monitoring })).toBe(false)
     expect(isAccountScansResponse({ scans: [SCAN], historyDays: 30 })).toBe(true)
     expect(isAccountScansResponse({ scans: [{ ...SCAN, state: 'weird' }], historyDays: 30 })).toBe(
       false,

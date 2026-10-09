@@ -10,6 +10,7 @@
     "./scan-form": "./src/scan-form.ts",
     "./account": "./src/account.ts",
     "./alerts": "./src/alerts.ts",
+    "./crawl": "./src/crawl.ts",
     "./report": "./src/report.ts",
     "./tools": "./src/tools.ts",
     "./generators": "./src/generators.ts",

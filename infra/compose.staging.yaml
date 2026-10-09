@@ -31,6 +31,9 @@ services:
   monitor:
     image: arablyzer/api:${ARABLYZER_RELEASE:?}
     pull_policy: never
+  crawler:
+    image: arablyzer/api:${ARABLYZER_RELEASE:?}
+    pull_policy: never
   worker:
     image: arablyzer/worker:${ARABLYZER_RELEASE:?}
     pull_policy: never

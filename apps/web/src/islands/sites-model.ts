@@ -14,6 +14,7 @@ import {
 } from '@arablyzer/api-contract/codes'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { problemOf, type AuthProblem } from './auth-model'
+import { isCrawlSummary } from './crawl-model'
 
 /** What a request about saved sites can come to besides success: an account problem, or a URL's. */
 export type SiteProblem =
@@ -87,7 +88,8 @@ export function isSiteSummary(value: unknown): value is SiteSummary {
     typeof v.url === 'string' &&
     typeof v.createdAt === 'string' &&
     (v.lastScan === null || isScan(v.lastScan)) &&
-    (v.monitor === null || isMonitorSummary(v.monitor))
+    (v.monitor === null || isMonitorSummary(v.monitor)) &&
+    (v.crawl === null || isCrawlSummary(v.crawl))
   )
 }
 
@@ -136,6 +138,7 @@ export function isSitesResponse(value: unknown): value is SitesResponse {
   const monitoring = v.monitoring as Record<string, unknown> | null | undefined
   return (
     typeof v.limit === 'number' &&
+    typeof v.crawlPages === 'number' &&
     typeof monitoring === 'object' &&
     monitoring !== null &&
     typeof monitoring.limit === 'number' &&

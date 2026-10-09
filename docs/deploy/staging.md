@@ -330,12 +330,17 @@ for the free account (decided 2026-10), to set as they are on staging:
 | `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`    | empty   | sites monitored; empty is `1`                                                    |
 | `ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` | empty   | days between two scans of a monitored site; empty is `7` (weekly)                |
 | `ARABLYZER_MAIL_PROVIDER`                   | empty   | email alerts: no provider is built yet, so leave it empty (a value stops the API) |
+| `ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES`        | empty   | pages one deep crawl checks; empty is `50`                                       |
+| `ARABLYZER_CRAWL_DELAY_MS`                  | empty   | pause between two pages of a crawl; empty is `1000`                              |
+| `ARABLYZER_CRAWL_REPRESENTATIVES`           | empty   | pages per template scanned in the browsers; empty is `1`                         |
+| `ARABLYZER_CRAWL_RENDERED_TEMPLATES`        | empty   | templates that get any; empty is `10`                                            |
 
 The API refuses to start when the free account would get less than an anonymous visitor, so the anonymous limits
 (`ARABLYZER_LIMIT_CONNECTION_*`, `ARABLYZER_LIMIT_INFLIGHT`) must be no larger than the line above: at most 5 scans a
 day from one visitor and one scan at a time. The `monitor` service (192 MiB, 0.5 CPU, on the API's image) runs
 the scheduler; it starts a monitored site's scan only into the lower half of the queue, and sends the alerts as signed
-webhooks (Slack, Discord or JSON) through the egress proxy.
+webhooks (Slack, Discord or JSON) through the egress proxy. The `crawler` service (192 MiB, 0.5 CPU, the same image)
+runs the deep crawls through the scanner and needs no other way out.
 
 **Given by Cloudflare and Google** (the owner's accounts):
 
