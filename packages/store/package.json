@@ -16,11 +16,11 @@
     "@arablyzer/api-contract": "workspace:*",
     "@arablyzer/plans": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
-    "bullmq": "6.3.9",
+    "bullmq": "6.3.11",
     "drizzle-orm": "0.45.3",
     "ioredis": "5.11.1",
     "ipaddr.js": "^2.5.0",
-    "pg": "8.23.0",
+    "pg": "8.23.1",
     "tldts": "7.4.16"
   },
   "devDependencies": {
