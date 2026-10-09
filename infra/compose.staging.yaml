@@ -1,0 +1,39 @@
+# What staging adds to compose.yaml (M2.5). Nothing about how the stack runs: every cap, network,
+# hardening option and secret is compose.yaml's, so that what is accepted on staging is what runs
+# later on a server of its own. The memory caps add up to 2,480 MiB with the one scanner, inside the
+# 3.5 GB that BUILD-PLAN §18.3.1 gives Arablyzer on the owner's server; the hostname is
+# ARABLYZER_SITE in infra/.env, and the port ARABLYZER_PORT. There is nothing to override there.
+#
+# What a server that is looked after needs, and compose.yaml has no way to give, is a way back. Each
+# image is named by the release it was built for, so the release before stays on the server, and a
+# release that is wrong is replaced by it without building anything or asking a registry for
+# anything (`pull_policy: never`: a name like arablyzer/api is nobody's to fetch).
+#
+#   # in infra/.env, with the settings (docs/deploy/staging.md, §4):
+#   COMPOSE_FILE=compose.yaml:compose.staging.yaml
+#   ARABLYZER_RELEASE=<git rev-parse --short=12 HEAD>
+#   # then, in infra/:
+#   docker compose up --detach --build --wait
+#
+# The way back: set ARABLYZER_RELEASE to the release before, and run the same with --no-build in
+# place of --build (docs/deploy/staging.md, §8). The migrate step has the API's image, and the API's
+# name.
+services:
+  web:
+    image: arablyzer/web:${ARABLYZER_RELEASE:?}
+    pull_policy: never
+  api:
+    image: arablyzer/api:${ARABLYZER_RELEASE:?}
+    pull_policy: never
+  migrate:
+    image: arablyzer/api:${ARABLYZER_RELEASE:?}
+    pull_policy: never
+  worker:
+    image: arablyzer/worker:${ARABLYZER_RELEASE:?}
+    pull_policy: never
+  scanner:
+    image: arablyzer/scanner:${ARABLYZER_RELEASE:?}
+    pull_policy: never
+  egress:
+    image: arablyzer/egress:${ARABLYZER_RELEASE:?}
+    pull_policy: never

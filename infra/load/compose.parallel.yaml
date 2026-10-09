@@ -1,0 +1,20 @@
+# The end-to-end stack beside another one (M2.5). compose.e2e.yaml puts the golden site on a
+# network with a fixed subnet, 93.184.215.0/24, and Docker refuses a second network on the same
+# addresses, so two e2e stacks cannot run at once. This file moves that network, and the golden
+# site's address, to 93.184.216.0/24: the stack it is added to is another one, and needs its own
+# ARABLYZER_DENY_CIDRS (an address of this subnet that nothing holds, 93.184.216.61/32) and its own
+# scan address (--scan-url http://93.184.216.50/). Never for a stack that is deployed.
+#
+#   docker compose --project-name arablyzer-load --env-file load.env \
+#     -f infra/compose.yaml -f infra/compose.e2e.yaml -f infra/load/compose.parallel.yaml up ...
+services:
+  fixture:
+    networks:
+      testnet:
+        ipv4_address: 93.184.216.50
+
+networks:
+  testnet:
+    ipam:
+      config: !override
+        - subnet: 93.184.216.0/24
