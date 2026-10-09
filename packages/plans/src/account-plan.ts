@@ -49,8 +49,8 @@ export const DEVELOPMENT_ACCOUNT_PLAN: AccountPlan = Object.freeze({
 
 const FIELDS = ['SCANS', 'SCAN_SECONDS', 'INFLIGHT', 'SAVED_SITES', 'HISTORY_DAYS'] as const
 /** Read when set, and the design's own numbers when not (also in production): they are not the owner's open ones. */
-const OPTIONAL_FIELDS = ['MONITORED_SITES', 'MONITOR_EVERY_DAYS'] as const
-const name = (plan: PlanId, field: (typeof FIELDS)[number] | (typeof OPTIONAL_FIELDS)[number]) =>
+type OptionalField = 'MONITORED_SITES' | 'MONITOR_EVERY_DAYS'
+const name = (plan: PlanId, field: (typeof FIELDS)[number] | OptionalField) =>
   `ARABLYZER_PLAN_${plan.toUpperCase()}_${field}`
 
 /** The history days alone, for the worker's retention sweep (apps/worker); null with accounts off. */
@@ -65,7 +65,7 @@ export function accountHistoryDaysFrom(env: Env): number | null {
 function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
   const read = reader(env, 'Phase 4 design §2.4')
   // Monitoring's two numbers are optional: unset, the design's (1 site, every 7 days) stand.
-  const readOptional = (field: (typeof OPTIONAL_FIELDS)[number], value: number): number =>
+  const readOptional = (field: OptionalField, value: number): number =>
     (env[name(id, field)]?.trim() ?? '') === '' ? value : read(name(id, field), value)
   return Object.freeze({
     id,

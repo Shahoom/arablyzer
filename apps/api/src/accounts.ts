@@ -17,7 +17,7 @@ import {
   type Language,
 } from '@arablyzer/api-contract'
 import type { AccountPlan, AuthLimits, PlanCatalog } from '@arablyzer/plans'
-import { quietly, type AccountData } from '@arablyzer/store'
+import { quietly, type AccountData, type MonitorData } from '@arablyzer/store'
 import type { Context, Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { ZodType } from 'zod'
@@ -25,6 +25,8 @@ import type { ApiDeps } from './app'
 import type { Auth } from './auth'
 import { SESSION_COOKIE } from './auth'
 import { fromTheSite } from './guards'
+import type { Mailer } from './monitor/mail'
+import type { WebhookSender } from './monitor/webhook'
 
 export interface AccountsDeps {
   readonly auth: Auth
@@ -35,6 +37,12 @@ export interface AccountsDeps {
   readonly data: AccountData
   /** The plans' numbers, from the environment (packages/plans). */
   readonly plans: PlanCatalog
+  /** Monitoring and alerts (M4.3); absent, their routes are not there. */
+  readonly monitors?: MonitorData
+  /** Sends a webhook's messages, for the test button. */
+  readonly sender?: WebhookSender
+  /** Mail, off until a provider is built. */
+  readonly mail?: Mailer
 }
 
 /**
@@ -60,6 +68,7 @@ export interface SessionAccess {
   readonly fail: (c: Context, error: AuthErrorCode, retryAfterSeconds?: number) => Response
   readonly data: AccountData
   readonly plans: PlanCatalog
+  readonly monitors: MonitorData | undefined
 }
 
 /** A request to these routes is a few fields: 8 KB is ample (a Google ID token is under 2 KB). */
@@ -400,5 +409,6 @@ export function mountAccounts(
     fail,
     data,
     plans,
+    monitors: deps.accounts.monitors,
   }
 }

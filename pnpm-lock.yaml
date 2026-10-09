@@ -66,6 +66,9 @@ importers:
       '@arablyzer/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@arablyzer/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@arablyzer/plans':
         specifier: workspace:*
         version: link:../../packages/plans

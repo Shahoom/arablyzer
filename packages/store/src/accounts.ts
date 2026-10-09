@@ -71,6 +71,8 @@ export class MemoryAccountData implements AccountData {
   readonly #scans: MemoryScanStore
   readonly #sites = new Map<string, SavedSite & { userId: string }>()
   readonly #links: MemoryLink[] = []
+  /** Told when a site is removed, so what hangs on it (a monitor) goes too, as the database cascades. */
+  readonly onSiteRemoved = new Set<(siteId: string) => void>()
 
   constructor(scans: MemoryScanStore) {
     this.#scans = scans
@@ -105,6 +107,7 @@ export class MemoryAccountData implements AccountData {
   async removeSite(userId: string, siteId: string): Promise<boolean> {
     if ((await this.site(userId, siteId)) === null) return false
     this.#sites.delete(siteId)
+    for (const listener of this.onSiteRemoved) listener(siteId)
     for (const [index, link] of this.#links.entries()) {
       if (link.siteId === siteId) this.#links[index] = { ...link, siteId: null }
     }

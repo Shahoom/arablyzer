@@ -1,4 +1,5 @@
 export { codeParts, type Copy, type Lang } from './copy'
+export { ALERT_TEXT, type AlertStrings } from './alerts'
 export { ACCOUNT_UI, type AccountProblem, type AccountStrings } from './account'
 export { GENERATORS_UI, type GeneratorsStrings } from './generators'
 export { GUIDES_UI, type GuidesStrings } from './guides'
@@ -20,6 +21,7 @@ export { TOOL_APP, type ToolAppStrings } from './tool-app'
 export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from './tools'
 
 import { ACCOUNT_UI } from './account'
+import { ALERT_TEXT } from './alerts'
 import type { Copy } from './copy'
 import { GENERATORS_UI } from './generators'
 import { GUIDES_UI } from './guides'
@@ -47,4 +49,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'knowledge.ts': KNOWLEDGE_UI,
   'tool-app.ts': TOOL_APP,
   'account.ts': ACCOUNT_UI,
+  'alerts.ts': ALERT_TEXT,
 }

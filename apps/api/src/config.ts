@@ -6,6 +6,8 @@ import {
   EGRESS_PROXY_VARIABLE,
   safeFetch,
   serverPolicy,
+  type EgressPolicy,
+  type Resolver,
 } from '@arablyzer/egress'
 import { USER_AGENT } from '@arablyzer/engine/identity'
 import {
@@ -20,6 +22,7 @@ import {
   type AccountData,
   type Handoff,
   type InFlight,
+  type MonitorData,
   type RateLimiter,
   type ScanEvents,
   type ScanQueue,
@@ -31,6 +34,8 @@ import { createAuth, type AuthDatabase } from './auth'
 import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
 import { googleApi } from './gsc/google'
 import { newScanId } from './ids'
+import { mailerFrom } from './monitor/mail'
+import { webhookSender } from './monitor/webhook'
 import { cloudflareTurnstile, isTurnstileTestSecret, noTurnstile } from './turnstile'
 
 type Env = Readonly<Record<string, string | undefined>>
@@ -47,6 +52,8 @@ export interface Stores {
   readonly auth?: { readonly database: AuthDatabase }
   /** What an account keeps (its sites and scans); needed with accounts on (M4.2). */
   readonly accountData?: AccountData
+  /** What monitoring keeps (M4.3); without it, monitoring and alerts are off. */
+  readonly monitorData?: MonitorData
 }
 
 /**
@@ -173,6 +180,10 @@ export function apiDeps(
     siteUrl,
     database: stores.auth?.database,
     data: stores.accountData,
+    monitors: stores.monitorData,
+    policy,
+    resolver,
+    fetcher: options.fetcher,
     limits,
     log,
   })
@@ -210,6 +221,10 @@ function accountsFrom(
     readonly siteUrl: URL | undefined
     readonly database: AuthDatabase | undefined
     readonly data: AccountData | undefined
+    readonly monitors: MonitorData | undefined
+    readonly policy: EgressPolicy
+    readonly resolver: Resolver
+    readonly fetcher: typeof safeFetch | undefined
     readonly limits: ScanLimits
     readonly log: (message: string) => void
   },
@@ -257,7 +272,10 @@ function accountsFrom(
       google: { clientId, clientSecret },
       production,
       // An account's scans and their reports go with it; the rest cascades in the database.
-      beforeDelete: (userId) => data.eraseUser(userId),
+      beforeDelete: async (userId) => {
+        await data.eraseUser(userId)
+        await options.monitors?.eraseUser(userId)
+      },
       log: options.log,
     }),
     limits: authLimitsFrom(env),
@@ -265,5 +283,16 @@ function accountsFrom(
     data,
     // Production refuses to start without the plan's numbers, as it does without the abuse limits.
     plans: planCatalogFrom(env, options.limits),
+    ...(options.monitors === undefined
+      ? {}
+      : {
+          monitors: options.monitors,
+          sender: webhookSender({
+            policy: options.policy,
+            resolver: options.resolver,
+            ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
+          }),
+          mail: mailerFrom(env),
+        }),
   }
 }

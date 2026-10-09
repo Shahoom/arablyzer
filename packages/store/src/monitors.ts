@@ -1,5 +1,5 @@
 import type { ScanState, WebhookKind } from '@arablyzer/api-contract'
-import type { AccountData } from './accounts'
+import type { MemoryAccountData } from './accounts'
 import type { MemoryScanStore } from './memory'
 
 // What monitoring keeps (M4.3): which saved sites are watched and when each is next scanned, the
@@ -48,6 +48,8 @@ export interface PendingRun {
   readonly url: string
   /** The language of the person's account, for the alert's words. */
   readonly language: 'ar' | 'en' | null
+  /** The account's address, for mail alerts once a provider exists. */
+  readonly email: string
   readonly scheduledFor: Date
   /** Deliveries tried so far. */
   readonly attempts: number
@@ -200,17 +202,29 @@ interface MemoryRun {
 
 /** MonitorData in memory, over the memory scan store and account data, for tests and `pnpm dev`. */
 export class MemoryMonitorData implements MonitorData {
-  readonly #accounts: AccountData
+  readonly #accounts: MemoryAccountData
   readonly #scans: MemoryScanStore
   readonly #monitors = new Map<string, Monitor>()
   readonly #runs: MemoryRun[] = []
   readonly #alerts = new Map<string, StoredAlerts>()
   /** The language of each account, as the users table holds it; tests set it. */
   readonly languages = new Map<string, 'ar' | 'en'>()
+  /** The address of each account; tests set it. */
+  readonly emails = new Map<string, string>()
 
-  constructor(accounts: AccountData, scans: MemoryScanStore) {
+  constructor(accounts: MemoryAccountData, scans: MemoryScanStore) {
     this.#accounts = accounts
     this.#scans = scans
+    accounts.onSiteRemoved.add((siteId) => {
+      this.#monitors.delete(siteId)
+      this.#dropRuns(siteId)
+    })
+  }
+
+  #dropRuns(siteId: string): void {
+    for (let index = this.#runs.length - 1; index >= 0; index--) {
+      if (this.#runs[index]?.siteId === siteId) this.#runs.splice(index, 1)
+    }
   }
 
   monitor(userId: string, siteId: string): Promise<Monitor | null> {
@@ -368,6 +382,7 @@ export class MemoryMonitorData implements MonitorData {
         userId: monitor.userId,
         url: scan.url,
         language: this.languages.get(monitor.userId) ?? null,
+        email: this.emails.get(monitor.userId) ?? `${monitor.userId}@example.invalid`,
         scheduledFor: run.scheduledFor,
         attempts: run.attempts,
         state: scan.state,

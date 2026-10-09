@@ -33,6 +33,11 @@ const monitor = (row: MonitorRow): Monitor => ({
   createdAt: row.created_at,
 })
 
+function requireRow<T>(row: T | undefined): T {
+  if (row === undefined) throw new Error('The statement returned no row')
+  return row
+}
+
 const MONITOR = 'site_id, user_id, every_days, paused, next_run_at, failures, created_at'
 
 interface AlertRow {
@@ -133,7 +138,7 @@ export class PostgresMonitorData implements MonitorData {
         [siteId, userId, input.everyDays, input.nextRunAt, input.createdAt],
       )
       await client.query('COMMIT')
-      return { kind: 'enabled', monitor: monitor(written.rows[0] as MonitorRow) }
+      return { kind: 'enabled', monitor: monitor(requireRow(written.rows[0])) }
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined)
       throw error
@@ -255,12 +260,13 @@ export class PostgresMonitorData implements MonitorData {
       user_id: string
       url: string
       language: 'ar' | 'en' | null
+      email: string
       scheduled_for: Date
       attempts: number
       state: ScanState
       created_at: Date
     }>(
-      `SELECT r.scan_id, r.site_id, m.user_id, s.url, u.language, r.scheduled_for, r.attempts,
+      `SELECT r.scan_id, r.site_id, m.user_id, s.url, u.language, u.email, r.scheduled_for, r.attempts,
               s.state, s.created_at
        FROM monitor_runs r
        JOIN monitors m ON m.site_id = r.site_id
@@ -276,6 +282,7 @@ export class PostgresMonitorData implements MonitorData {
       userId: row.user_id,
       url: row.url,
       language: row.language,
+      email: row.email,
       scheduledFor: row.scheduled_for,
       attempts: row.attempts,
       state: row.state,

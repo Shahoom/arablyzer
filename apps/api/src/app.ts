@@ -32,6 +32,8 @@ import { mountAccounts, planOf, type AccountsDeps, type AccountUser } from './ac
 import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
 import { hashDeleteToken, newDeleteToken } from './ids'
+import { mountMonitors } from './monitors'
+import { noMailer } from './monitor/mail'
 import { mountSites } from './sites'
 import { holdPlace } from './places'
 import { parseTarget, resolveTarget } from './target'
@@ -341,6 +343,20 @@ export function createApp(deps: ApiDeps): Hono {
       now,
       startScan,
     })
+    if (deps.accounts.sender !== undefined) {
+      mountMonitors(app, {
+        access,
+        accounts: deps.accounts,
+        origin: deps.origin,
+        policy: deps.policy,
+        resolver: deps.resolver,
+        limiter: deps.limiter,
+        log: deps.log,
+        now,
+        sender: deps.accounts.sender,
+        mail: deps.accounts.mail ?? noMailer,
+      })
+    }
   }
 
   app.get('/api/scans/:id', async (c) => {

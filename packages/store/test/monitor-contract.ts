@@ -14,6 +14,11 @@ export interface Harness {
   user(id: string): Promise<void>
 }
 
+function must<T>(value: T | undefined): T {
+  if (value === undefined) throw new Error('Expected a value')
+  return value
+}
+
 let counter = 0
 /** An id of 22 characters, so it passes where a scan's or a site's id is checked. */
 export const id = (prefix: string) => `${prefix}${String(++counter)}`.padEnd(22, '_')
@@ -44,9 +49,7 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
       )
       expect(results.filter((r) => r.kind === 'enabled')).toHaveLength(2)
       expect(results.filter((r) => r.kind === 'limit')).toHaveLength(4)
-      const first = sites.find(
-        (_, index) => results[index]?.kind === 'enabled',
-      ) as (typeof sites)[number]
+      const first = must(sites.find((_, index) => results[index]?.kind === 'enabled'))
       expect((await monitors.enable(userId, first.id, input(), 2)).kind).toBe('existing')
       expect(await monitors.pauseExtras(userId, 1)).toBe(1)
       const paused = (await monitors.monitors(userId)).find((m) => m.paused)
@@ -58,15 +61,15 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
     })
 
     it('keeps people apart, and disabling removes only the person’s own', async () => {
-      const { monitors, accounts, user, userId, sites } = await setup(1)
+      const { monitors, accounts, userId, sites, ...h } = await setup(1)
       const other = id('u')
-      await user(other)
+      await h.user(other)
       await accounts.addSite(
         other,
         { id: id('s'), url: 'https://other.example/', createdAt: NOW },
         5,
       )
-      const site = sites[0] as (typeof sites)[number]
+      const site = must(sites[0])
       await monitors.enable(userId, site.id, input(), 1)
       expect(await monitors.monitor(other, site.id)).toBeNull()
       expect(await monitors.disable(other, site.id)).toBe(false)
@@ -95,13 +98,12 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
       const lease = new Date(NOW.getTime() + 600_000)
       const mine = new Set(sites.map((site) => site.id))
       // The store may hold other people's monitors (PostgreSQL's tests share a database): only these count.
-      const ofMine = (due: DueMonitor[]) =>
-        due.filter((c) => mine.has(c.monitor.siteId))
+      const ofMine = (due: DueMonitor[]) => due.filter((c) => mine.has(c.monitor.siteId))
       const [a, b] = await Promise.all([
         monitors.claimDue(NOW, 1000, lease),
         monitors.claimDue(NOW, 1000, lease),
       ])
-      const claimed = [...ofMine(a ?? []), ...ofMine(b ?? [])]
+      const claimed = [...ofMine(a), ...ofMine(b)]
       expect(claimed.map((c) => c.monitor.siteId).sort()).toEqual(
         [sites[0]?.id, sites[1]?.id].sort(),
       )
@@ -119,7 +121,7 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
 
     it('records a run once per slot: the scan becomes the account’s, the next date is set', async () => {
       const { monitors, accounts, scans, userId, sites } = await setup(1)
-      const site = sites[0] as (typeof sites)[number]
+      const site = must(sites[0])
       await monitors.enable(userId, site.id, input(7, at(-1)), 1)
       const scanId = id('r')
       await scans.create({ id: scanId, url: site.url, createdAt: NOW })
@@ -148,7 +150,7 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
   describe('results', () => {
     it('lists the trend oldest first, the runs waiting for a decision, and the scan before one', async () => {
       const { monitors, scans, userId, sites } = await setup(1)
-      const site = sites[0] as (typeof sites)[number]
+      const site = must(sites[0])
       await monitors.enable(userId, site.id, input(7, at(-30)), 1)
       const ids: string[] = []
       for (const [n, score] of [90, 80, null].entries()) {
@@ -190,7 +192,7 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
 
     it('sets a monitor’s health', async () => {
       const { monitors, userId, sites } = await setup(1)
-      const site = sites[0] as (typeof sites)[number]
+      const site = must(sites[0])
       await monitors.enable(userId, site.id, input(), 1)
       await monitors.setHealth(site.id, { failures: 4, paused: true })
       expect(await monitors.monitor(userId, site.id)).toMatchObject({ failures: 4, paused: true })

@@ -17,6 +17,7 @@
     "@arablyzer/collectors": "workspace:*",
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/engine": "workspace:*",
+    "@arablyzer/i18n": "workspace:*",
     "@arablyzer/plans": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/scanner": "workspace:*",

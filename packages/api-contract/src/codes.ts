@@ -210,6 +210,11 @@ export interface SitesResponse {
 export const siteMonitorPath = (id: string): string => `/api/sites/${id}/monitor`
 export const ALERTS_PATH = '/api/account/alerts'
 export const ALERTS_TEST_PATH = '/api/account/alerts/test'
+/** `PUT {enabled}` answers the site's monitor, or null once it is off. */
+export interface MonitorResponse {
+  readonly monitor: MonitorSummary | null
+}
+
 /** How many monitor runs a site's trend shows, oldest first. */
 export const TREND_LENGTH = 8
 /** The score drop, in points, an alert can be set to fire at. */

@@ -4,6 +4,7 @@ import {
   HISTORY_LIMIT,
   SITE_ID_PATTERN,
   SITES_PATH,
+  TREND_LENGTH,
   type AccountScan,
   type AccountScansResponse,
   type SiteSummary,
@@ -11,12 +12,19 @@ import {
   type UrlErrorCode,
 } from '@arablyzer/api-contract'
 import type { EgressPolicy } from '@arablyzer/egress'
-import { quietly, type HistoryEntry, type SavedSite } from '@arablyzer/store'
+import {
+  quietly,
+  type HistoryEntry,
+  type Monitor,
+  type RunPoint,
+  type SavedSite,
+} from '@arablyzer/store'
 import type { Context, Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { planOf, type AccountsDeps, type AccountUser, type SessionAccess } from './accounts'
 import { fromTheSite } from './guards'
 import { newSiteId } from './ids'
+import { monitorSummary } from './monitor/schedule'
 import { parseTarget } from './target'
 
 export interface SitesDeps {
@@ -57,11 +65,17 @@ const scanOf = (entry: HistoryEntry): AccountScan => ({
   siteId: entry.siteId,
 })
 
-const siteOf = (site: SavedSite, last: HistoryEntry | undefined): SiteSummary => ({
+const siteOf = (
+  site: SavedSite,
+  last: HistoryEntry | undefined,
+  monitor: Monitor | undefined,
+  trend: readonly RunPoint[] = [],
+): SiteSummary => ({
   id: site.id,
   url: site.url,
   createdAt: site.createdAt.toISOString(),
   lastScan: last === undefined ? null : scanOf(last),
+  monitor: monitor === undefined ? null : monitorSummary(monitor, trend),
 })
 
 /**
@@ -93,13 +107,26 @@ export function mountSites(app: Hono, deps: SitesDeps): void {
   app.get(SITES_PATH, async (c) => {
     const read = await access.require(c)
     if (read instanceof Response) return read
-    const [sites, latest] = await Promise.all([
+    const { monitors } = access
+    const [sites, latest, watched, trend] = await Promise.all([
       data.sites(read.user.id),
       data.latestPerSite(read.user.id),
+      monitors?.monitors(read.user.id) ?? Promise.resolve([] as Monitor[]),
+      monitors?.trend(read.user.id, TREND_LENGTH) ??
+        Promise.resolve(new Map<string, RunPoint[]>() as ReadonlyMap<string, RunPoint[]>),
     ])
+    const plan = planOf(access.plans, read.user.id)
     const body: SitesResponse = {
-      sites: sites.map((site) => siteOf(site, latest.get(site.id))),
-      limit: planOf(access.plans, read.user.id).savedSites,
+      sites: sites.map((site) =>
+        siteOf(
+          site,
+          latest.get(site.id),
+          watched.find((monitor) => monitor.siteId === site.id),
+          trend.get(site.id),
+        ),
+      ),
+      limit: plan.savedSites,
+      monitoring: { limit: plan.monitoredSites, everyDays: plan.monitorEveryDays },
     }
     return c.json(body)
   })
@@ -126,9 +153,9 @@ export function mountSites(app: Hono, deps: SitesDeps): void {
     if (added.kind === 'limit') {
       return c.json({ error: 'plan-limit', limit: 'savedSites', plan: plan.id }, 403)
     }
-    if (added.kind === 'added') return c.json(siteOf(added.site, undefined), 201)
+    if (added.kind === 'added') return c.json(siteOf(added.site, undefined, undefined), 201)
     const latest = await data.latestPerSite(read.user.id)
-    return c.json(siteOf(added.site, latest.get(added.site.id)))
+    return c.json(siteOf(added.site, latest.get(added.site.id), undefined))
   })
 
   app.delete(`${SITES_PATH}/:id`, fromTheSiteOnly, async (c) => {

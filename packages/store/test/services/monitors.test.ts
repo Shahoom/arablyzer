@@ -102,6 +102,6 @@ describe.skipIf(!hasPostgres)('monitoring, on PostgreSQL', () => {
       'SELECT count(*)::int AS n FROM monitor_runs WHERE scan_id = $1',
       [scanId],
     )
-    expect(rows[0]?.n).toBe(0)
+    expect((rows[0] as { n: number }).n).toBe(0)
   })
 })

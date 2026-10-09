@@ -22,6 +22,7 @@ import {
   type CreateScanRequest as CreateScanRequestShape,
   type CreateScanResponse as CreateScanResponseShape,
   type MonitorPoint as MonitorPointShape,
+  type MonitorResponse as MonitorResponseShape,
   type MonitorSummary as MonitorSummaryShape,
   type ScanErrorResponse as ScanErrorResponseShape,
   type ScanEvent as ScanEventShape,
@@ -198,6 +199,11 @@ export const SitesResponse = z.strictObject({
     everyDays: z.number().int().min(1),
   }),
 }) satisfies z.ZodType<SitesResponseShape>
+
+export const MonitorResponse = z.strictObject({
+  monitor: MonitorSummary.nullable(),
+}) satisfies z.ZodType<MonitorResponseShape>
+export type MonitorResponse = MonitorResponseShape
 
 /** Turn a saved site's monitoring on or off. */
 export const MonitorRequest = z.strictObject({ enabled: z.boolean() })
