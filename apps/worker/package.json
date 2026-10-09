@@ -18,9 +18,9 @@
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/scanner-client": "workspace:*",
     "@arablyzer/store": "workspace:*",
-    "bullmq": "6.3.9",
+    "bullmq": "6.3.11",
     "ioredis": "5.11.1",
-    "pg": "8.23.0"
+    "pg": "8.23.1"
   },
   "devDependencies": {
     "@types/pg": "8.23.1"
