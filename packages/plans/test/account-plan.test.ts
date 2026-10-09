@@ -30,7 +30,32 @@ describe('planCatalogFrom', () => {
       inFlight: 4,
       savedSites: 7,
       historyDays: 30,
+      monitoredSites: 1,
+      monitorEveryDays: 7,
     })
+  })
+
+  it('reads monitoring’s two numbers when set, and keeps the design’s (1 site, every 7 days) when not, in production too', () => {
+    const production = { NODE_ENV: 'production', ...SET }
+    expect(planCatalogFrom(production, DEVELOPMENT_LIMITS).account).toMatchObject({
+      monitoredSites: 1,
+      monitorEveryDays: 7,
+    })
+    const set = {
+      ...production,
+      ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES: '3',
+      ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: '1',
+    }
+    expect(planCatalogFrom(set, DEVELOPMENT_LIMITS).account).toMatchObject({
+      monitoredSites: 3,
+      monitorEveryDays: 1,
+    })
+    expect(() =>
+      planCatalogFrom(
+        { ...production, ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: '0' },
+        DEVELOPMENT_LIMITS,
+      ),
+    ).toThrow(/MONITOR_EVERY_DAYS/)
   })
 
   it.each(Object.keys(SET))('refuses to start in production without %s', (missing) => {

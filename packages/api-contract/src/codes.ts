@@ -152,8 +152,8 @@ export interface AuthErrorResponse {
   readonly plan?: string
 }
 
-/** The limits of a plan an answer can name (Phase 4 design §2.3); M4.3 adds the monitors'. */
-export const PLAN_LIMITS = ['savedSites'] as const
+/** The limits of a plan an answer can name (Phase 4 design §2.3). */
+export const PLAN_LIMITS = ['savedSites', 'monitoredSites', 'monitorEveryDays'] as const
 export type PlanLimit = (typeof PLAN_LIMITS)[number]
 
 /**
@@ -186,12 +186,92 @@ export interface SiteSummary {
   readonly createdAt: string
   /** The newest scan of this site, or null before it was scanned. */
   readonly lastScan: AccountScan | null
+  /** Its monitoring (M4.3), or null when it is not monitored. */
+  readonly monitor: MonitorSummary | null
 }
 
 export interface SitesResponse {
   readonly sites: readonly SiteSummary[]
   /** How many sites the plan lets the account save. */
   readonly limit: number
+  /** What the plan allows of monitoring (M4.3). */
+  readonly monitoring: {
+    /** How many sites may be monitored at once. */
+    readonly limit: number
+    /** The days between two scans of a monitored site. */
+    readonly everyDays: number
+  }
+}
+
+/**
+ * Monitoring and alerts (M4.3): a saved site scanned on the plan's schedule without the person, and
+ * a webhook told when something changes. All of these answer 404 with accounts off, 401 without a session.
+ */
+export const siteMonitorPath = (id: string): string => `/api/sites/${id}/monitor`
+export const ALERTS_PATH = '/api/account/alerts'
+export const ALERTS_TEST_PATH = '/api/account/alerts/test'
+/** How many monitor runs a site's trend shows, oldest first. */
+export const TREND_LENGTH = 8
+/** The score drop, in points, an alert can be set to fire at. */
+export const DROP_THRESHOLD_MIN = 1
+export const DROP_THRESHOLD_MAX = 50
+export const DROP_THRESHOLD_DEFAULT = 10
+/** A webhook's address, as long as an address may be. */
+export const MAX_WEBHOOK_URL_LENGTH = 500
+
+export interface MonitorPoint {
+  readonly scanId: string
+  readonly state: ScanState
+  readonly score: number | null
+  readonly at: string
+}
+
+export interface MonitorSummary {
+  /** Days between two scans. */
+  readonly everyDays: number
+  /** Paused by the plan (a downgrade) or by repeated failures; turn it off and on again to resume. */
+  readonly paused: boolean
+  readonly nextRunAt: string
+  /** Scans in a row that could not run or reach the site. */
+  readonly failures: number
+  /** The last runs, oldest first. */
+  readonly trend: readonly MonitorPoint[]
+}
+
+/** Where an alert goes: the webhook's kind is told from its address, for the format of the message. */
+export const WEBHOOK_KINDS = ['slack', 'discord', 'generic'] as const
+export type WebhookKind = (typeof WEBHOOK_KINDS)[number]
+
+export interface AlertSettings {
+  /** The saved webhook as host and kind only: the address and the secret are never given back. */
+  readonly webhook: {
+    readonly host: string
+    readonly kind: WebhookKind
+    readonly failures: number
+    /** Turned off after repeated failures; a test that succeeds turns it on again. */
+    readonly disabled: boolean
+  } | null
+  /** A drop of this many points or more in the score alerts. */
+  readonly dropThreshold: number
+  readonly onCritical: boolean
+  readonly onDown: boolean
+  readonly weeklySummary: boolean
+  readonly email: {
+    /** Whether the server can send mail at all (ARABLYZER_MAIL_PROVIDER). */
+    readonly available: boolean
+    readonly enabled: boolean
+  }
+}
+
+/** The answer to saving: the settings, and the signing secret once, when one was made. */
+export interface AlertsResponse extends AlertSettings {
+  readonly secret?: string
+}
+
+export interface WebhookTestResponse {
+  readonly ok: boolean
+  /** The status the webhook answered, or null when it could not be reached. */
+  readonly status: number | null
 }
 
 export interface AccountScansResponse {

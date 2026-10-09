@@ -2,24 +2,33 @@ import { z } from 'zod'
 import {
   AUTH_ERROR_CODES,
   DELETE_TOKEN_PATTERN,
+  DROP_THRESHOLD_MAX,
+  DROP_THRESHOLD_MIN,
   MAX_TOOL_SLUG_LENGTH,
+  MAX_WEBHOOK_URL_LENGTH,
   MAX_URL_LENGTH,
   PLAN_LIMITS,
   SCAN_ERROR_CODES,
   SCAN_ID_PATTERN,
   SITE_ID_PATTERN,
   TOOL_SLUG_PATTERN,
+  WEBHOOK_KINDS,
   type AccountScan as AccountScanShape,
   type AccountScansResponse as AccountScansResponseShape,
   type AccountSummary as AccountSummaryShape,
+  type AlertSettings as AlertSettingsShape,
+  type AlertsResponse as AlertsResponseShape,
   type AuthErrorResponse as AuthErrorResponseShape,
   type CreateScanRequest as CreateScanRequestShape,
   type CreateScanResponse as CreateScanResponseShape,
+  type MonitorPoint as MonitorPointShape,
+  type MonitorSummary as MonitorSummaryShape,
   type ScanErrorResponse as ScanErrorResponseShape,
   type ScanEvent as ScanEventShape,
   type ScanSummary as ScanSummaryShape,
   type SiteSummary as SiteSummaryShape,
   type SitesResponse as SitesResponseShape,
+  type WebhookTestResponse as WebhookTestResponseShape,
 } from './codes'
 
 export * from './codes'
@@ -161,16 +170,74 @@ export const AccountScan = z.strictObject({
   createdAt: z.iso.datetime(),
   siteId: z.string().regex(SITE_ID_PATTERN).nullable(),
 }) satisfies z.ZodType<AccountScanShape>
+export const MonitorPoint = z.strictObject({
+  scanId: z.string().regex(SCAN_ID_PATTERN),
+  state: z.enum(['queued', 'running', 'complete', 'partial', 'failed']),
+  score: z.number().int().min(0).max(100).nullable(),
+  at: z.iso.datetime(),
+}) satisfies z.ZodType<MonitorPointShape>
+export const MonitorSummary = z.strictObject({
+  everyDays: z.number().int().min(1),
+  paused: z.boolean(),
+  nextRunAt: z.iso.datetime(),
+  failures: z.number().int().min(0),
+  trend: z.array(MonitorPoint),
+}) satisfies z.ZodType<MonitorSummaryShape>
 export const SiteSummary = z.strictObject({
   id: z.string().regex(SITE_ID_PATTERN),
   url: z.string(),
   createdAt: z.iso.datetime(),
   lastScan: AccountScan.nullable(),
+  monitor: MonitorSummary.nullable(),
 }) satisfies z.ZodType<SiteSummaryShape>
 export const SitesResponse = z.strictObject({
   sites: z.array(SiteSummary),
   limit: z.number().int().min(1),
+  monitoring: z.strictObject({
+    limit: z.number().int().min(1),
+    everyDays: z.number().int().min(1),
+  }),
 }) satisfies z.ZodType<SitesResponseShape>
+
+/** Turn a saved site's monitoring on or off. */
+export const MonitorRequest = z.strictObject({ enabled: z.boolean() })
+
+const dropThreshold = z.number().int().min(DROP_THRESHOLD_MIN).max(DROP_THRESHOLD_MAX)
+/** A webhook's address as typed: checked as an address, then by the egress rules, after this. */
+const webhookUrl = z.string().min(1).max(MAX_WEBHOOK_URL_LENGTH)
+/** Every field is optional: what is not sent is not changed. A null address removes the webhook. */
+export const AlertsRequest = z.strictObject({
+  webhookUrl: webhookUrl.nullable().optional(),
+  rotateSecret: z.boolean().optional(),
+  dropThreshold: dropThreshold.optional(),
+  onCritical: z.boolean().optional(),
+  onDown: z.boolean().optional(),
+  weeklySummary: z.boolean().optional(),
+  email: z.boolean().optional(),
+})
+export type AlertsRequest = z.infer<typeof AlertsRequest>
+export const AlertSettings = z.strictObject({
+  webhook: z
+    .strictObject({
+      host: z.string().min(1),
+      kind: z.enum(WEBHOOK_KINDS),
+      failures: z.number().int().min(0),
+      disabled: z.boolean(),
+    })
+    .nullable(),
+  dropThreshold,
+  onCritical: z.boolean(),
+  onDown: z.boolean(),
+  weeklySummary: z.boolean(),
+  email: z.strictObject({ available: z.boolean(), enabled: z.boolean() }),
+}) satisfies z.ZodType<AlertSettingsShape>
+export const AlertsResponse = AlertSettings.extend({
+  secret: z.string().min(1).optional(),
+}) satisfies z.ZodType<AlertsResponseShape>
+export const WebhookTestResponse = z.strictObject({
+  ok: z.boolean(),
+  status: z.number().int().nullable(),
+}) satisfies z.ZodType<WebhookTestResponseShape>
 export const AccountScansResponse = z.strictObject({
   scans: z.array(AccountScan),
   historyDays: z.number().int().min(1),
@@ -179,3 +246,8 @@ export type AccountScan = AccountScanShape
 export type AccountScansResponse = AccountScansResponseShape
 export type SiteSummary = SiteSummaryShape
 export type SitesResponse = SitesResponseShape
+export type MonitorPoint = MonitorPointShape
+export type MonitorSummary = MonitorSummaryShape
+export type AlertSettings = AlertSettingsShape
+export type AlertsResponse = AlertsResponseShape
+export type WebhookTestResponse = WebhookTestResponseShape

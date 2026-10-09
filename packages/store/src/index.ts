@@ -1,5 +1,17 @@
 export { MemoryAccountData } from './accounts'
 export type { AccountData, AddedSite, HistoryEntry, SavedSite, ScanSource } from './accounts'
+export { MemoryMonitorData, applyAlerts, defaultAlerts } from './monitors'
+export type {
+  AlertsPatch,
+  DueMonitor,
+  Enabled,
+  Monitor,
+  MonitorData,
+  PendingRun,
+  RunPoint,
+  StoredAlerts,
+  StoredWebhook,
+} from './monitors'
 export { BullMQScanQueue, SCAN_QUEUE, SCAN_WORKER } from './bullmq'
 export {
   connectionUrl,
@@ -16,6 +28,8 @@ export { quietly } from './log'
 export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
 export { PostgresAuthMaintenance, type AuthMaintenance } from './postgres/auth-maintenance'
 export { PostgresAccountData } from './postgres/account-store'
+export { PostgresMonitorData } from './postgres/monitor-store'
+export { alertSettings, monitorRuns, monitors } from './postgres/monitor-schema'
 export { authDatabase, authSchema } from './postgres/auth-schema'
 export { scans } from './postgres/schema'
 export { accountScans, sites } from './postgres/site-schema'

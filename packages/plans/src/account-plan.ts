@@ -19,6 +19,10 @@ export interface AccountPlan {
   readonly savedSites: number
   /** How many days the account's scans (and their reports) are kept. */
   readonly historyDays: number
+  /** The saved sites that may be monitored at once (M4.3). */
+  readonly monitoredSites: number
+  /** The fewest days between two scans of a monitored site (M4.3). */
+  readonly monitorEveryDays: number
 }
 
 export interface PlanCatalog {
@@ -38,10 +42,15 @@ export const DEVELOPMENT_ACCOUNT_PLAN: AccountPlan = Object.freeze({
   inFlight: 3,
   savedSites: 5,
   historyDays: 90,
+  // The one pair the design fixes itself: a weekly scan of one site for the free account (§3, §17).
+  monitoredSites: 1,
+  monitorEveryDays: 7,
 })
 
 const FIELDS = ['SCANS', 'SCAN_SECONDS', 'INFLIGHT', 'SAVED_SITES', 'HISTORY_DAYS'] as const
-const name = (plan: PlanId, field: (typeof FIELDS)[number]) =>
+/** Read when set, and the design's own numbers when not (also in production): they are not the owner's open ones. */
+const OPTIONAL_FIELDS = ['MONITORED_SITES', 'MONITOR_EVERY_DAYS'] as const
+const name = (plan: PlanId, field: (typeof FIELDS)[number] | (typeof OPTIONAL_FIELDS)[number]) =>
   `ARABLYZER_PLAN_${plan.toUpperCase()}_${field}`
 
 /** The history days alone, for the worker's retention sweep (apps/worker); null with accounts off. */
@@ -55,6 +64,9 @@ export function accountHistoryDaysFrom(env: Env): number | null {
 
 function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
   const read = reader(env, 'Phase 4 design §2.4')
+  // Monitoring's two numbers are optional: unset, the design's (1 site, every 7 days) stand.
+  const readOptional = (field: (typeof OPTIONAL_FIELDS)[number], value: number): number =>
+    (env[name(id, field)]?.trim() ?? '') === '' ? value : read(name(id, field), value)
   return Object.freeze({
     id,
     scans: Object.freeze({
@@ -64,6 +76,8 @@ function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
     inFlight: read(name(id, 'INFLIGHT'), fallback.inFlight),
     savedSites: read(name(id, 'SAVED_SITES'), fallback.savedSites),
     historyDays: read(name(id, 'HISTORY_DAYS'), fallback.historyDays),
+    monitoredSites: readOptional('MONITORED_SITES', fallback.monitoredSites),
+    monitorEveryDays: readOptional('MONITOR_EVERY_DAYS', fallback.monitorEveryDays),
   })
 }
 
