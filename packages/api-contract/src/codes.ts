@@ -131,6 +131,8 @@ export const AUTH_ERROR_CODES = [
   /** The account's plan allows no more of what was asked (M4.2); the answer names which. */
   'plan-limit',
   'not-found',
+  /** The account already has a deep crawl running (M4.5). */
+  'conflict',
   'unavailable',
 ] as const
 export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[number]
@@ -188,6 +190,8 @@ export interface SiteSummary {
   readonly lastScan: AccountScan | null
   /** Its monitoring (M4.3), or null when it is not monitored. */
   readonly monitor: MonitorSummary | null
+  /** Its newest deep crawl (M4.5), or null before it was crawled. */
+  readonly crawl: CrawlSummary | null
 }
 
 export interface SitesResponse {
@@ -201,6 +205,8 @@ export interface SitesResponse {
     /** The days between two scans of a monitored site. */
     readonly everyDays: number
   }
+  /** The most pages one deep crawl checks on this plan (M4.5). */
+  readonly crawlPages: number
 }
 
 /**
@@ -429,3 +435,149 @@ export type ScanEvent =
   | { readonly type: 'error' }
 
 export const TERMINAL_EVENTS: readonly ScanEvent['type'][] = ['done', 'error']
+
+/**
+ * Deep crawl (M4.5): a saved site's pages found by sitemap and links, grouped into templates (a
+ * product page, an article, a category), the template's representatives scanned in the three
+ * browsers and every page checked on its HTML alone. All answer 404 with accounts off, 401 without a
+ * session; another person's crawl is a 404.
+ */
+export const siteCrawlsPath = (siteId: string): string => `/api/sites/${siteId}/crawls`
+export const crawlPath = (id: string): string => `/api/crawls/${id}`
+export const crawlCancelPath = (id: string): string => `/api/crawls/${id}/cancel`
+export const crawlPagesPath = (id: string): string => `/api/crawls/${id}/pages`
+/** A crawl's id: the same shape as a scan's. */
+export const CRAWL_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/
+/** A template's key inside one crawl: `t1`, `t2`, … */
+export const TEMPLATE_KEY_PATTERN = /^t[1-9][0-9]{0,3}$/
+/** The most pages one answer lists. */
+export const CRAWL_PAGES_LIMIT = 100
+
+export const CRAWL_STATES = [
+  'queued',
+  'running',
+  /** Every page is checked; the representatives are being scanned in the browsers. */
+  'rendering',
+  'done',
+  'failed',
+  'cancelled',
+] as const
+export type CrawlState = (typeof CRAWL_STATES)[number]
+
+/** Why a crawl failed, for the page to word. */
+export const CRAWL_ERRORS = [
+  'unreachable',
+  'blocked-by-robots',
+  'not-html',
+  'scanner-unavailable',
+  'internal',
+] as const
+export type CrawlError = (typeof CRAWL_ERRORS)[number]
+
+/** What a template is for, told from its address; the page words it. */
+export const TEMPLATE_KINDS = [
+  'home',
+  'product',
+  'article',
+  'category',
+  'help',
+  'generic',
+  'standalone',
+] as const
+export type TemplateKind = (typeof TEMPLATE_KINDS)[number]
+
+export interface Localized {
+  readonly ar: string
+  readonly en: string
+}
+
+export interface CrawlSummary {
+  readonly id: string
+  readonly siteId: string | null
+  /** The origin crawled, after the start page's redirects. */
+  readonly origin: string
+  readonly state: CrawlState
+  readonly error: CrawlError | null
+  readonly pagesFound: number
+  readonly pagesChecked: number
+  /** The most pages this crawl checks. */
+  readonly pageCap: number
+  readonly templates: number
+  /** The representatives scanned in browsers so far, and how many are to be. */
+  readonly rendered: { readonly done: number; readonly total: number }
+  readonly createdAt: string
+  readonly finishedAt: string | null
+}
+
+export interface CrawlRepresentative {
+  readonly url: string
+  /** The scan of the page in the browsers (`/r/<id>`), or null before it starts. */
+  readonly scanId: string | null
+  readonly state: ScanState | null
+  readonly score: number | null
+}
+
+export interface CrawlTemplate {
+  readonly key: string
+  readonly kind: TemplateKind
+  /** The address shape, such as `/products/:slug`. */
+  readonly pattern: string
+  /** Pages of the template the crawl found, and how many of them it checked. */
+  readonly found: number
+  readonly checked: number
+  /** The most serious issues on its pages, up to three. */
+  readonly topIssues: readonly string[]
+  readonly representatives: readonly CrawlRepresentative[]
+}
+
+export interface CrawlIssueOnTemplate {
+  readonly template: string
+  /** Pages of the template with the issue, of `checked` pages checked (a rendered issue: of the representatives). */
+  readonly pages: number
+  readonly checked: number
+  readonly examples: readonly string[]
+}
+
+export interface CrawlIssue {
+  readonly ruleId: string
+  readonly severity: 'critical' | 'serious' | 'moderate' | 'minor' | 'info'
+  readonly title: Localized
+  /** Found by the browsers on the representatives, not by the HTML checks on every page. */
+  readonly rendered: boolean
+  /** Pages with the issue across the templates. */
+  readonly pages: number
+  readonly templates: readonly CrawlIssueOnTemplate[]
+}
+
+export interface CrawlReport {
+  readonly crawl: CrawlSummary
+  readonly templates: readonly CrawlTemplate[]
+  readonly issues: readonly CrawlIssue[]
+}
+
+export interface CrawlPageIssue {
+  readonly ruleId: string
+  readonly severity: CrawlIssue['severity']
+  readonly count: number
+}
+
+export interface CrawlPage {
+  readonly url: string
+  readonly depth: number
+  readonly status: number | null
+  readonly state: 'found' | 'checked' | 'blocked' | 'failed'
+  readonly template: string | null
+  readonly title: string | null
+  readonly issues: readonly CrawlPageIssue[]
+  readonly scanId: string | null
+}
+
+export interface CrawlPagesResponse {
+  readonly pages: readonly CrawlPage[]
+  /** The offset to ask for next, or null at the end. */
+  readonly next: number | null
+}
+
+export interface CrawlsResponse {
+  readonly crawls: readonly CrawlSummary[]
+}

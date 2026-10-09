@@ -32,7 +32,21 @@ describe('planCatalogFrom', () => {
       historyDays: 30,
       monitoredSites: 1,
       monitorEveryDays: 7,
+      crawlPages: 50,
     })
+  })
+
+  it('reads the crawl’s page cap when set, and keeps the free plan’s 50 when not, in production too', () => {
+    const production = { NODE_ENV: 'production', ...SET }
+    expect(planCatalogFrom(production, DEVELOPMENT_LIMITS).account.crawlPages).toBe(50)
+    const set = { ...production, ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES: '120' }
+    expect(planCatalogFrom(set, DEVELOPMENT_LIMITS).account.crawlPages).toBe(120)
+    expect(() =>
+      planCatalogFrom(
+        { ...production, ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES: '0' },
+        DEVELOPMENT_LIMITS,
+      ),
+    ).toThrow(/CRAWL_PAGES/)
   })
 
   it('reads monitoring’s two numbers when set, and keeps the design’s (1 site, every 7 days) when not, in production too', () => {

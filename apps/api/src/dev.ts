@@ -1,8 +1,9 @@
 import { serve } from '@hono/node-server'
 import { memoryAdapter } from 'better-auth/adapters/memory'
-import { localScanner, scanOptionsFrom } from '@arablyzer/scanner'
+import { localCrawlClient, localScanner, scanOptionsFrom } from '@arablyzer/scanner'
 import {
   MemoryAccountData,
+  MemoryCrawlData,
   MemoryHandoff,
   MemoryInFlight,
   MemoryMonitorData,
@@ -15,6 +16,7 @@ import { hostLimited, runScan } from '@arablyzer/worker'
 import { createApp } from './app'
 import { apiDeps } from './config'
 import { newScanId } from './ids'
+import { createCrawlRunner } from './crawl/runner'
 import { startLoop } from './monitor/loop'
 import { noMailer } from './monitor/mail'
 import { createScheduler } from './monitor/scheduler'
@@ -31,6 +33,10 @@ if (env.NODE_ENV === 'production') throw new Error('dev.ts runs in development o
 const store = new MemoryScanStore()
 const accountData = new MemoryAccountData(store)
 const monitorData = new MemoryMonitorData(accountData, store)
+const crawlData = new MemoryCrawlData()
+accountData.onSiteRemoved.add((siteId) => {
+  crawlData.dropSite(siteId)
+})
 const queue = new MemoryScanQueue()
 const events = new MemoryScanEvents()
 const limiter = new MemoryRateLimiter()
@@ -45,6 +51,7 @@ const deps = apiDeps(env, {
   auth: { database: memoryAdapter({ user: [], session: [], account: [], verification: [] }) },
   accountData,
   monitorData,
+  crawlData,
 })
 const app = createApp(deps)
 const port = Number(env.PORT ?? 8787)
@@ -88,6 +95,31 @@ if (accounts?.monitors !== undefined && accounts.sender !== undefined) {
       log: console.error,
     }),
     { log: console.error },
+  )
+  stop.signal.addEventListener('abort', () => void loop.stop())
+}
+
+// And the crawler: the same runner, reading pages with the engine in this process.
+if (accounts?.crawls !== undefined && accounts.crawlSettings !== undefined) {
+  const loop = startLoop(
+    createCrawlRunner({
+      crawls: accounts.crawls,
+      accounts: accounts.data,
+      store,
+      queue,
+      events,
+      limiter,
+      inFlight: deps.inFlight,
+      limits: deps.limits,
+      plans: accounts.plans,
+      policy: deps.policy,
+      resolver: deps.resolver,
+      scanner: localCrawlClient(scanOptionsFrom(env)),
+      settings: accounts.crawlSettings,
+      newId: newScanId,
+      log: console.error,
+    }),
+    { log: console.error, intervalMs: 2_000, name: 'Crawler' },
   )
   stop.signal.addEventListener('abort', () => void loop.stop())
 }

@@ -5,6 +5,7 @@ import {
   authDatabase,
   authSchema,
   PostgresAccountData,
+  PostgresCrawlData,
   PostgresMonitorData,
   MemoryInFlight,
   MemoryRateLimiter,
@@ -17,6 +18,7 @@ import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../../src/app'
 import { createAuth } from '../../src/auth'
+import { DEFAULT_CRAWL_SETTINGS } from '../../src/crawl/settings'
 import { CLIENT_ID, CLIENT_SECRET, idToken, stubGoogle } from '../support/google'
 
 // Accounts on PostgreSQL, where uniqueness, cascades and concurrency are the database's: the
@@ -34,6 +36,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
   let app: ReturnType<typeof createApp>
   let accountData: PostgresAccountData
   let monitorData: PostgresMonitorData
+  let crawlData: PostgresCrawlData
   let scanStore: PostgresScanStore
 
   beforeAll(async () => {
@@ -55,6 +58,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
     await new PostgresScanStore(pool).migrate()
     accountData = new PostgresAccountData(pool)
     monitorData = new PostgresMonitorData(pool)
+    crawlData = new PostgresCrawlData(pool)
     scanStore = new PostgresScanStore(pool)
     const auth = createAuth({
       site: SITE,
@@ -69,6 +73,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
       beforeDelete: async (userId) => {
         await accountData.eraseUser(userId)
         await monitorData.eraseUser(userId)
+        await crawlData.eraseUser(userId)
       },
       log: () => undefined,
     })
@@ -93,6 +98,8 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
         data: accountData,
         plans: planCatalogFrom({}, DEVELOPMENT_LIMITS),
         monitors: monitorData,
+        crawls: crawlData,
+        crawlSettings: DEFAULT_CRAWL_SETTINGS,
         sender: { send: () => Promise.resolve({ status: 204, ok: true }) },
       },
     })
@@ -209,10 +216,21 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
       everyDays: 7,
       nextRunAt: new Date(),
     })
+    // A deep crawl of it, with the pages it found and the scan of one of them.
+    const started = await send('POST', `/api/sites/${siteId}/crawls`, undefined, cookie)
+    expect(started.status).toBe(202)
+    const crawlId = ((await started.json()) as { id: string }).id
+    await crawlData.add(
+      crawlId,
+      [{ url: 'https://erase-site.example/page', depth: 1, bucket: '/:leaf' }],
+      100,
+    )
+    await crawlData.setScan(crawlId, 'https://erase-site.example/page', 'erase-scan-run-0000000')
     expect((await send('GET', '/api/account/scans', undefined, cookie)).status).toBe(200)
     expect((await send('DELETE', '/api/account', { confirm: true }, cookie)).status).toBe(204)
     expect((await send('GET', '/api/account', undefined, cookie)).status).toBe(401)
     expect(await scanStore.get('erase-scan-one-000000')).toBeNull()
+    expect(await crawlData.get(crawlId)).toBeNull()
     const tables = await pool.query<{ table_name: string }>(
       "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
     )

@@ -2,7 +2,7 @@ import { serve } from '@hono/node-server'
 import { checkDenyCidrs } from '@arablyzer/egress'
 import { createScannerApp } from './app'
 import { assertIsolated } from './isolation'
-import { localScanner } from './local'
+import { localCrawler, localScanner } from './local'
 import { scanOptionsFrom } from './options'
 import { retireAfterAnswer } from './retire'
 
@@ -35,6 +35,7 @@ if (options.policy?.upstream === undefined) {
 const app = createScannerApp({
   token,
   scanner: localScanner(options),
+  crawler: localCrawler(options),
   log: (text) => {
     console.error(text)
   },

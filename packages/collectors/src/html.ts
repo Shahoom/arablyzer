@@ -13,6 +13,7 @@ import {
   type SourceLocation,
 } from './dom'
 import type { EncodingInfo } from './encoding'
+import { skeletonOf } from './skeleton'
 
 /** <html> or <body>: the elements that carry the page's language and direction. */
 export interface RootElement extends ElementRef {
@@ -150,6 +151,8 @@ export interface HtmlFacts {
    * store's payment logos sit in its footer, after every product image.
    */
   readonly textAlternatives: readonly TextAlternative[]
+  /** The frame of the page, such as `main>article main>section` (skeleton.ts): what a deep crawl groups templates by. */
+  readonly skeleton: string
 }
 
 export interface HtmlOptions {
@@ -319,6 +322,7 @@ export function collectHtml(
     searchForms,
     insecureLoads,
     textAlternatives: [...firstAlternatives, ...lastAlternatives.toArray()],
+    skeleton: skeletonOf(index),
   }
 }
 

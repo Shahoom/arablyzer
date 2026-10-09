@@ -433,3 +433,73 @@ function isEntry(root: Root, element: { readonly local: string; readonly uri: st
     (root.local === 'sitemapindex' && element.local === 'sitemap')
   )
 }
+
+/** The addresses a sitemap lists (M4.5): its `loc` elements, and whether it is an index of sitemaps. */
+export interface SitemapLocs {
+  /** A `sitemapindex`: the addresses are other sitemaps. A text file and a `urlset` list pages. */
+  readonly index: boolean
+  readonly locs: readonly string[]
+  /** There were more than `limit`, or the body was cut. */
+  readonly more: boolean
+}
+
+const ENTITIES: Readonly<Record<string, string>> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&apos;': "'",
+}
+
+/** A `loc` element's text: CDATA unwrapped, the five entities decoded, whitespace trimmed. */
+function locText(raw: string): string {
+  const text = raw.trim()
+  const unwrapped = text.startsWith('<![CDATA[') && text.endsWith(']]>') ? text.slice(9, -3) : text
+  return unwrapped
+    .replace(/&(?:amp|lt|gt|quot|apos);/g, (entity) => ENTITIES[entity] ?? entity)
+    .trim()
+}
+
+/**
+ * The addresses of a sitemap, for a crawl to start from: a text file's lines, or the `loc` of each
+ * `url` (or, in an index, each `sitemap`), up to `limit`. Not a parser of XML: it looks for the
+ * `<loc>` elements the way a crawler that wants addresses does, one scan along the body, linear
+ * in its size, and never throws. A feed's entries are not read. Prefixed names (`<s:loc>`) are
+ * not either; the protocol's own are.
+ */
+export function readSitemapLocs(body: Uint8Array, truncated: boolean, limit: number): SitemapLocs {
+  const text = new TextDecoder('utf-8').decode(body, { stream: truncated })
+  const start = text.search(/[^\t\n\r ]/)
+  if (start === -1) return { index: false, locs: [], more: false }
+  const locs: string[] = []
+  if (text.charAt(start) !== '<') {
+    // The lines are walked, not split: a body of millions of blank lines is not held as an array.
+    for (let from = start; from < text.length;) {
+      let end = text.length
+      for (let at = from; at < text.length; at++) {
+        const code = text.charCodeAt(at)
+        if (code === 10 || code === 13) {
+          end = at
+          break
+        }
+      }
+      const address = text.slice(from, end).trim()
+      from = end + 1
+      if (address === '' || sitemapUrl(address) === null) continue
+      if (locs.length >= limit) return { index: false, locs, more: true }
+      locs.push(address)
+    }
+    return { index: false, locs, more: truncated }
+  }
+  const index = /<sitemapindex[\s>]/.test(text.slice(start, start + 2_000))
+  for (let at = text.indexOf('<loc>'); at !== -1; at = text.indexOf('<loc>', at)) {
+    const end = text.indexOf('</loc>', at + 5)
+    if (end === -1) return { index, locs, more: true }
+    const address = locText(text.slice(at + 5, end))
+    at = end + 6
+    if (address === '' || sitemapUrl(address) === null) continue
+    if (locs.length >= limit) return { index, locs, more: true }
+    locs.push(address)
+  }
+  return { index, locs, more: truncated }
+}

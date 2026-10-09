@@ -20,6 +20,7 @@ import {
 import {
   requireSecret,
   type AccountData,
+  type CrawlData,
   type Handoff,
   type InFlight,
   type MonitorData,
@@ -32,6 +33,7 @@ import type { AccountsDeps } from './accounts'
 import type { ApiDeps } from './app'
 import { createAuth, type AuthDatabase } from './auth'
 import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
+import { crawlSettingsFrom } from './crawl/settings'
 import { googleApi } from './gsc/google'
 import { newScanId } from './ids'
 import { mailerFrom } from './monitor/mail'
@@ -54,6 +56,8 @@ export interface Stores {
   readonly accountData?: AccountData
   /** What monitoring keeps (M4.3); without it, monitoring and alerts are off. */
   readonly monitorData?: MonitorData
+  /** What a deep crawl keeps (M4.5); without it, crawls are off. */
+  readonly crawlData?: CrawlData
 }
 
 /**
@@ -181,6 +185,7 @@ export function apiDeps(
     database: stores.auth?.database,
     data: stores.accountData,
     monitors: stores.monitorData,
+    crawls: stores.crawlData,
     policy,
     resolver,
     fetcher: options.fetcher,
@@ -222,6 +227,7 @@ function accountsFrom(
     readonly database: AuthDatabase | undefined
     readonly data: AccountData | undefined
     readonly monitors: MonitorData | undefined
+    readonly crawls: CrawlData | undefined
     readonly policy: EgressPolicy
     readonly resolver: Resolver
     readonly fetcher: typeof safeFetch | undefined
@@ -275,6 +281,7 @@ function accountsFrom(
       beforeDelete: async (userId) => {
         await data.eraseUser(userId)
         await options.monitors?.eraseUser(userId)
+        await options.crawls?.eraseUser(userId)
       },
       log: options.log,
     }),
@@ -283,6 +290,9 @@ function accountsFrom(
     data,
     // Production refuses to start without the plan's numbers, as it does without the abuse limits.
     plans: planCatalogFrom(env, options.limits),
+    ...(options.crawls === undefined
+      ? {}
+      : { crawls: options.crawls, crawlSettings: crawlSettingsFrom(env) }),
     ...(options.monitors === undefined
       ? {}
       : {

@@ -21,6 +21,7 @@
     "@arablyzer/plans": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/scanner": "workspace:*",
+    "@arablyzer/scanner-client": "workspace:*",
     "@arablyzer/store": "workspace:*",
     "@arablyzer/tools": "workspace:*",
     "@hono/node-server": "2.1.3",

@@ -1,6 +1,6 @@
-import { scan, type ScanOptions } from '@arablyzer/engine'
+import { createCrawler, scan, type Crawler, type ScanOptions } from '@arablyzer/engine'
 import { OUTSIDE, RULES, type CollectorId } from '@arablyzer/rules'
-import type { Scanner } from '@arablyzer/scanner-client'
+import type { CrawlClient, Scanner } from '@arablyzer/scanner-client'
 import { toolDefinition } from '@arablyzer/tools/registry'
 import { eventOf } from './events'
 
@@ -48,4 +48,31 @@ export function optionsFor(options: ScanOptions, tool: string | undefined): Scan
   if (!(Object.keys(OUTSIDE) as CollectorId[]).some(reads)) delete tooled.outside
   delete tooled.openPageRank
   return tooled
+}
+
+/**
+ * The engine's crawler in this process, with the scan's egress rules and the thread that reads a
+ * page's HTML where the scanner reads it (M4.5): no browser, and nothing the scan's keys are for.
+ */
+export function localCrawler(options: ScanOptions): Crawler {
+  return createCrawler({
+    ...(options.policy === undefined ? {} : { policy: options.policy }),
+    ...(options.resolver === undefined ? {} : { resolver: options.resolver }),
+    ...(options.isolateParse === undefined ? {} : { isolateParse: options.isolateParse }),
+  })
+}
+
+/** The crawler in this process, in the shape the API's crawler asks for: `pnpm dev`, where the scanner is not a service. */
+export function localCrawlClient(options: ScanOptions): CrawlClient {
+  const crawler = localCrawler(options)
+  return {
+    page: async (url, pageOptions = {}) => {
+      const result = await crawler.page(url, pageOptions)
+      return { ...result, links: [...result.links], issues: result.issues.map((i) => ({ ...i })) }
+    },
+    seeds: async (origin, signal) => {
+      const result = await crawler.seeds(origin, signal)
+      return { ...result, urls: [...result.urls] }
+    },
+  }
 }

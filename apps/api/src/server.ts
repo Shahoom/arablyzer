@@ -5,6 +5,7 @@ import {
   BullMQScanQueue,
   POSTGRES_PROTOCOLS,
   PostgresAccountData,
+  PostgresCrawlData,
   PostgresAuthMaintenance,
   PostgresMonitorData,
   PostgresScanStore,
@@ -80,6 +81,7 @@ const deps = apiDeps(
     },
     accountData: new PostgresAccountData(pool),
     monitorData: new PostgresMonitorData(pool),
+    crawlData: new PostgresCrawlData(pool),
   },
   log,
 )

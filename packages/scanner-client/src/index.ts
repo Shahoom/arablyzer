@@ -17,3 +17,14 @@ export {
   type ScannerEvent,
   type ScannerLineOut,
 } from './protocol'
+export {
+  CRAWL_PATH,
+  CRAWL_TIMEOUT_MS,
+  CrawlRequest,
+  MAX_CRAWL_LINKS,
+  MAX_CRAWL_SEEDS,
+  PageAnswer,
+  remoteCrawler,
+  SeedsAnswer,
+  type CrawlClient,
+} from './crawl'

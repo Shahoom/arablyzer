@@ -153,6 +153,7 @@ export default defineConfig(
       'apps/web/src/islands/api.ts',
       'apps/web/src/islands/auth-api.ts',
       'apps/web/src/islands/sites-api.ts',
+      'apps/web/src/islands/crawl-api.ts',
     ],
     rules: {
       'no-restricted-globals': [
@@ -180,8 +181,9 @@ export default defineConfig(
   },
   {
     // The worker's one request, to the scanner, on the network the two share alone (M2.1 plan
-    // §5b): not scan traffic, which leaves the scanner through the egress proxy. fetch alone.
-    files: ['packages/scanner-client/src/client.ts'],
+    // §5b): not scan traffic, which leaves the scanner through the egress proxy. fetch alone. The
+    // crawler's (M4.5) is the same request, to the same scanner.
+    files: ['packages/scanner-client/src/client.ts', 'packages/scanner-client/src/crawl.ts'],
     rules: {
       'no-restricted-globals': [
         'error',

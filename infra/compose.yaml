@@ -98,6 +98,10 @@ services:
       # Monitoring (M4.3): both optional, 1 site every 7 days when empty. Mail stays off until a provider exists.
       ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES: ${ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES:-}
       ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS:-}
+      ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES: ${ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES:-}
+      ARABLYZER_CRAWL_DELAY_MS: ${ARABLYZER_CRAWL_DELAY_MS:-}
+      ARABLYZER_CRAWL_REPRESENTATIVES: ${ARABLYZER_CRAWL_REPRESENTATIVES:-}
+      ARABLYZER_CRAWL_RENDERED_TEMPLATES: ${ARABLYZER_CRAWL_RENDERED_TEMPLATES:-}
       ARABLYZER_MAIL_PROVIDER: ${ARABLYZER_MAIL_PROVIDER:-}
       # The accounts library calls Google with Node's own fetch, which reaches the network through
       # the egress proxy by these three (a test shows it: apps/api/test/egress-proxy.test.ts).
@@ -182,6 +186,54 @@ services:
       valkey: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
       egress: { condition: service_healthy }
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.5
+    pids_limit: 128
+
+  # The deep crawler (M4.5): a third entry of the API's image on the application role. It reads a saved
+  # site's pages through the scanner (which fetches under the egress rules and parses in a thread of
+  # its own), so it has no way out of its own and no proxy; it starts the representatives' scans like the
+  # monitor does. With ARABLYZER_ACCOUNTS off it logs that and idles.
+  crawler:
+    <<: *hardened
+    build: { context: .., target: api }
+    init: true
+    tmpfs: [/tmp]
+    command: [node, --import, tsx, apps/api/src/crawl/main.ts]
+    environment:
+      VALKEY_URL: redis://arablyzer:${VALKEY_PASSWORD:?}@valkey:6379
+      DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
+      ARABLYZER_SITE: ${ARABLYZER_SITE:?}
+      ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
+      ARABLYZER_SCANNER_URL: http://scanner:8788
+      ARABLYZER_SCANNER_TOKEN: ${ARABLYZER_SCANNER_TOKEN:?}
+      ARABLYZER_PLAN_ACCOUNT_SCANS: ${ARABLYZER_PLAN_ACCOUNT_SCANS:-}
+      ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS: ${ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS:-}
+      ARABLYZER_PLAN_ACCOUNT_INFLIGHT: ${ARABLYZER_PLAN_ACCOUNT_INFLIGHT:-}
+      ARABLYZER_PLAN_ACCOUNT_SAVED_SITES: ${ARABLYZER_PLAN_ACCOUNT_SAVED_SITES:-}
+      ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS:-}
+      ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES: ${ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES:-}
+      ARABLYZER_CRAWL_DELAY_MS: ${ARABLYZER_CRAWL_DELAY_MS:-}
+      ARABLYZER_CRAWL_REPRESENTATIVES: ${ARABLYZER_CRAWL_REPRESENTATIVES:-}
+      ARABLYZER_CRAWL_RENDERED_TEMPLATES: ${ARABLYZER_CRAWL_RENDERED_TEMPLATES:-}
+      # The same limits as the API's: a representative's scan takes the host's bucket and the queue's room.
+      ARABLYZER_LIMIT_CONNECTION_SCANS: ${ARABLYZER_LIMIT_CONNECTION_SCANS:?}
+      ARABLYZER_LIMIT_CONNECTION_SECONDS: ${ARABLYZER_LIMIT_CONNECTION_SECONDS:?}
+      ARABLYZER_LIMIT_NETWORK_SCANS: ${ARABLYZER_LIMIT_NETWORK_SCANS:?}
+      ARABLYZER_LIMIT_NETWORK_SECONDS: ${ARABLYZER_LIMIT_NETWORK_SECONDS:?}
+      ARABLYZER_LIMIT_ATTEMPT_REQUESTS: ${ARABLYZER_LIMIT_ATTEMPT_REQUESTS:?}
+      ARABLYZER_LIMIT_ATTEMPT_SECONDS: ${ARABLYZER_LIMIT_ATTEMPT_SECONDS:?}
+      ARABLYZER_LIMIT_HOST_SCANS: ${ARABLYZER_LIMIT_HOST_SCANS:?}
+      ARABLYZER_LIMIT_HOST_SECONDS: ${ARABLYZER_LIMIT_HOST_SECONDS:?}
+      ARABLYZER_LIMIT_QUEUE: ${ARABLYZER_LIMIT_QUEUE:?}
+      ARABLYZER_LIMIT_INFLIGHT: ${ARABLYZER_LIMIT_INFLIGHT:?}
+      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
+    networks: [data, scan]
+    depends_on:
+      valkey: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      scanner: { condition: service_healthy }
     mem_limit: 192m
     memswap_limit: 192m
     cpus: 0.5

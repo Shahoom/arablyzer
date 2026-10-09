@@ -84,11 +84,13 @@ describe('what each call comes to', () => {
   it('reads the lists, and refuses an answer that is not one', async () => {
     expect(
       await listSites(
-        answering(json({ sites: [], limit: 3, monitoring: { limit: 1, everyDays: 7 } })).send,
+        answering(
+          json({ sites: [], limit: 3, monitoring: { limit: 1, everyDays: 7 }, crawlPages: 50 }),
+        ).send,
       ),
     ).toEqual({
       ok: true,
-      value: { sites: [], limit: 3, monitoring: { limit: 1, everyDays: 7 } },
+      value: { sites: [], limit: 3, monitoring: { limit: 1, everyDays: 7 }, crawlPages: 50 },
     })
     expect(await listSites(answering(json({ nope: 1 })).send)).toEqual({
       ok: false,

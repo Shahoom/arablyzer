@@ -36,7 +36,7 @@ export type SiteOutcome<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly problem: SiteProblem; readonly retryAfterSeconds?: number }
 
-async function request(
+export async function request(
   send: typeof fetch,
   method: string,
   path: string,
@@ -58,7 +58,7 @@ async function request(
   }
 }
 
-async function jsonOf(response: Response): Promise<unknown> {
+export async function jsonOf(response: Response): Promise<unknown> {
   try {
     return await response.json()
   } catch {
@@ -66,7 +66,7 @@ async function jsonOf(response: Response): Promise<unknown> {
   }
 }
 
-async function read<T>(
+export async function read<T>(
   response: Response | null,
   accept: (value: unknown) => value is T,
 ): Promise<SiteOutcome<T>> {

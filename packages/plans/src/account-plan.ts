@@ -23,6 +23,8 @@ export interface AccountPlan {
   readonly monitoredSites: number
   /** The fewest days between two scans of a monitored site (M4.3). */
   readonly monitorEveryDays: number
+  /** The most pages one deep crawl of a saved site checks (M4.5). */
+  readonly crawlPages: number
 }
 
 export interface PlanCatalog {
@@ -45,11 +47,13 @@ export const DEVELOPMENT_ACCOUNT_PLAN: AccountPlan = Object.freeze({
   // The one pair the design fixes itself: a weekly scan of one site for the free account (§3, §17).
   monitoredSites: 1,
   monitorEveryDays: 7,
+  // The owner's free-plan default for the deep crawl (M4.5): 50 pages, as the task fixed it.
+  crawlPages: 50,
 })
 
 const FIELDS = ['SCANS', 'SCAN_SECONDS', 'INFLIGHT', 'SAVED_SITES', 'HISTORY_DAYS'] as const
 /** Read when set, and the design's own numbers when not (also in production): they are not the owner's open ones. */
-type OptionalField = 'MONITORED_SITES' | 'MONITOR_EVERY_DAYS'
+type OptionalField = 'MONITORED_SITES' | 'MONITOR_EVERY_DAYS' | 'CRAWL_PAGES'
 const name = (plan: PlanId, field: (typeof FIELDS)[number] | OptionalField) =>
   `ARABLYZER_PLAN_${plan.toUpperCase()}_${field}`
 
@@ -78,6 +82,7 @@ function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
     historyDays: read(name(id, 'HISTORY_DAYS'), fallback.historyDays),
     monitoredSites: readOptional('MONITORED_SITES', fallback.monitoredSites),
     monitorEveryDays: readOptional('MONITOR_EVERY_DAYS', fallback.monitorEveryDays),
+    crawlPages: readOptional('CRAWL_PAGES', fallback.crawlPages),
   })
 }
 

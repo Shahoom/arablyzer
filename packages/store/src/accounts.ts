@@ -21,7 +21,7 @@ export interface HistoryEntry {
   readonly siteId: string | null
 }
 
-export type ScanSource = 'manual' | 'monitor'
+export type ScanSource = 'manual' | 'monitor' | 'crawl'
 
 export type AddedSite =
   | { readonly kind: 'added' | 'existing'; readonly site: SavedSite }

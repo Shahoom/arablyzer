@@ -14,6 +14,7 @@ import {
 import type { EgressPolicy } from '@arablyzer/egress'
 import {
   quietly,
+  type Crawl,
   type HistoryEntry,
   type Monitor,
   type RunPoint,
@@ -22,6 +23,7 @@ import {
 import type { Context, Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { planOf, type AccountsDeps, type AccountUser, type SessionAccess } from './accounts'
+import { listedSummary } from './crawls'
 import { fromTheSite } from './guards'
 import { newSiteId } from './ids'
 import { monitorSummary } from './monitor/schedule'
@@ -70,12 +72,14 @@ const siteOf = (
   last: HistoryEntry | undefined,
   monitor: Monitor | undefined,
   trend: readonly RunPoint[] = [],
+  crawl?: Crawl,
 ): SiteSummary => ({
   id: site.id,
   url: site.url,
   createdAt: site.createdAt.toISOString(),
   lastScan: last === undefined ? null : scanOf(last),
   monitor: monitor === undefined ? null : monitorSummary(monitor, trend),
+  crawl: crawl === undefined ? null : listedSummary(crawl),
 })
 
 /**
@@ -107,13 +111,15 @@ export function mountSites(app: Hono, deps: SitesDeps): void {
   app.get(SITES_PATH, async (c) => {
     const read = await access.require(c)
     if (read instanceof Response) return read
-    const { monitors } = access
-    const [sites, latest, watched, trend] = await Promise.all([
+    const { monitors, crawls } = access
+    const [sites, latest, watched, trend, crawled] = await Promise.all([
       data.sites(read.user.id),
       data.latestPerSite(read.user.id),
       monitors?.monitors(read.user.id) ?? Promise.resolve([] as Monitor[]),
       monitors?.trend(read.user.id, TREND_LENGTH) ??
         Promise.resolve(new Map<string, RunPoint[]>() as ReadonlyMap<string, RunPoint[]>),
+      crawls?.latestPerSite(read.user.id) ??
+        Promise.resolve(new Map<string, Crawl>() as ReadonlyMap<string, Crawl>),
     ])
     const plan = planOf(access.plans, read.user.id)
     const body: SitesResponse = {
@@ -123,10 +129,12 @@ export function mountSites(app: Hono, deps: SitesDeps): void {
           latest.get(site.id),
           watched.find((monitor) => monitor.siteId === site.id),
           trend.get(site.id),
+          crawled.get(site.id),
         ),
       ),
       limit: plan.savedSites,
       monitoring: { limit: plan.monitoredSites, everyDays: plan.monitorEveryDays },
+      crawlPages: plan.crawlPages,
     }
     return c.json(body)
   })

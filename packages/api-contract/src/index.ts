@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import {
   AUTH_ERROR_CODES,
+  CRAWL_ERRORS,
+  CRAWL_STATES,
   DELETE_TOKEN_PATTERN,
   DROP_THRESHOLD_MAX,
   DROP_THRESHOLD_MIN,
@@ -20,6 +22,7 @@ import {
   type AlertSettings as AlertSettingsShape,
   type AlertsResponse as AlertsResponseShape,
   type AuthErrorResponse as AuthErrorResponseShape,
+  type CrawlSummary as CrawlSummaryShape,
   type CreateScanRequest as CreateScanRequestShape,
   type CreateScanResponse as CreateScanResponseShape,
   type MonitorPoint as MonitorPointShape,
@@ -185,12 +188,28 @@ export const MonitorSummary = z.strictObject({
   failures: z.number().int().min(0),
   trend: z.array(MonitorPoint),
 }) satisfies z.ZodType<MonitorSummaryShape>
+export const CrawlSummary = z.strictObject({
+  id: z.string().regex(SITE_ID_PATTERN),
+  siteId: z.string().regex(SITE_ID_PATTERN).nullable(),
+  origin: z.string(),
+  state: z.enum(CRAWL_STATES),
+  error: z.enum(CRAWL_ERRORS).nullable(),
+  pagesFound: z.number().int().min(0),
+  pagesChecked: z.number().int().min(0),
+  pageCap: z.number().int().min(1),
+  templates: z.number().int().min(0),
+  rendered: z.strictObject({ done: z.number().int().min(0), total: z.number().int().min(0) }),
+  createdAt: z.iso.datetime(),
+  finishedAt: z.iso.datetime().nullable(),
+}) satisfies z.ZodType<CrawlSummaryShape>
+export type CrawlSummary = CrawlSummaryShape
 export const SiteSummary = z.strictObject({
   id: z.string().regex(SITE_ID_PATTERN),
   url: z.string(),
   createdAt: z.iso.datetime(),
   lastScan: AccountScan.nullable(),
   monitor: MonitorSummary.nullable(),
+  crawl: CrawlSummary.nullable(),
 }) satisfies z.ZodType<SiteSummaryShape>
 export const SitesResponse = z.strictObject({
   sites: z.array(SiteSummary),
@@ -199,6 +218,7 @@ export const SitesResponse = z.strictObject({
     limit: z.number().int().min(1),
     everyDays: z.number().int().min(1),
   }),
+  crawlPages: z.number().int().min(1),
 }) satisfies z.ZodType<SitesResponseShape>
 
 export const MonitorResponse = z.strictObject({

@@ -8,6 +8,7 @@ export default defineConfig({
     './src/postgres/auth-schema.ts',
     './src/postgres/site-schema.ts',
     './src/postgres/monitor-schema.ts',
+    './src/postgres/crawl-schema.ts',
   ],
   out: './drizzle',
 })

@@ -172,7 +172,7 @@ async function fetchSitemap(
 }
 
 /** A gzip file's first bytes (RFC 1952): a `sitemap.xml.gz` served as it is. */
-function isGzip(body: Uint8Array): boolean {
+export function isGzip(body: Uint8Array): boolean {
   return body[0] === 0x1f && body[1] === 0x8b
 }
 
@@ -181,7 +181,7 @@ function isGzip(body: Uint8Array): boolean {
  * grow past the limit; a file cut at the read limit is decompressed as far as it goes. Null when
  * it is not gzip after all.
  */
-async function gunzip(
+export async function gunzip(
   bytes: Uint8Array,
   truncated: boolean,
 ): Promise<{ body: Uint8Array; truncated: boolean } | null> {

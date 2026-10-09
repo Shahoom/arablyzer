@@ -35,7 +35,7 @@ export const accountScans = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
   },
   (table) => [
-    check('account_scans_source', sql`${table.source} IN ('manual', 'monitor')`),
+    check('account_scans_source', sql`${table.source} IN ('manual', 'monitor', 'crawl')`),
     index('account_scans_user_created').on(table.userId, table.createdAt),
     index('account_scans_site').on(table.siteId, table.createdAt),
   ],

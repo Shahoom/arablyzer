@@ -99,6 +99,7 @@ export {
   unicodeRangeOf,
   type FontSubset,
 } from './font-subset'
+export { skeletonOf, skeletonSimilarity, SKELETON_DEPTH, SKELETON_MAX_LENGTH } from './skeleton'
 export { collectPageIsolated, ISOLATED_HEAP_MB, type IsolatedOptions } from './isolated'
 export { MAX_TEXT_ALTERNATIVES } from './html'
 export { parseLinkHeader, type LinkHeaderEntry } from './link-header'
@@ -172,6 +173,7 @@ export {
   collectSitemap,
   isSitemapRefusal,
   readSitemap,
+  readSitemapLocs,
   SITEMAP_LIMIT,
   SITEMAP_MAX_ATTRIBUTES,
   SITEMAP_MAX_DEPTH,
@@ -183,6 +185,7 @@ export {
   type SitemapFacts,
   type SitemapFormat,
   type SitemapInput,
+  type SitemapLocs,
 } from './sitemap'
 export {
   decodeStylesheet,
