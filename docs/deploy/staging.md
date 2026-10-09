@@ -59,13 +59,13 @@ peer's own address when the peer is not Cloudflare. **Not tried:** a VPS, and Cl
 ### 0.2 Secrets
 
 - Every secret is a 64-character hex string, one each, never reused: `openssl rand -hex 32` for `ARABLYZER_LIMIT_SECRET`,
-  `ARABLYZER_SCANNER_TOKEN`, `ARABLYZER_PROXY_SECRET`, `VALKEY_PASSWORD`, `POSTGRES_PASSWORD` and
-  `POSTGRES_APP_PASSWORD`. Hex, not base64: they go into connection URLs.
+  `ARABLYZER_SCANNER_TOKEN`, `ARABLYZER_PROXY_SECRET`, `VALKEY_PASSWORD`, `POSTGRES_PASSWORD`,
+  `POSTGRES_APP_PASSWORD` and `POSTGRES_WORKER_PASSWORD`. Hex, not base64: they go into connection URLs.
 - They live in `infra/.env` on the VPS, mode 600 (the deploy script sets it), outside git and outside the images, and in
   the owner's password manager, which is the only other copy. Third-party keys (Turnstile secret, Google, AI
   providers) are restricted at the provider to the API they serve, and to a spending limit where the provider has one.
 - The Origin CA key (`infra/certs/origin.key`) is as secret as the passwords. Rotating a password: change it in
-  `.env` and run the deploy command; `POSTGRES_APP_PASSWORD` is set on every deploy. Rotating `VALKEY_PASSWORD`
+  `.env` and run the deploy command; `POSTGRES_APP_PASSWORD` and `POSTGRES_WORKER_PASSWORD` are set on every deploy. Rotating `VALKEY_PASSWORD`
   restarts the queue, so do it with no scan running.
 - Nothing in this repository holds a value: CI uses test values only (`compose.e2e.yaml`).
 
@@ -303,12 +303,13 @@ and says which, never its value. **Hex, not base64**: these go into URLs, and a 
 | `ARABLYZER_PROXY_SECRET`  | what the site's server shows the API, so that the API believes `X-Forwarded-For` only from it                                                                                     |
 | `VALKEY_PASSWORD`         | Valkey's one user; rotate it by restarting the API, the worker and Valkey together                                                                                                |
 | `POSTGRES_PASSWORD`       | the bootstrap superuser, which only `migrate` holds. **The image reads it only when it makes the database**: to change it later, run `ALTER ROLE arablyzer PASSWORD '…'` in the running database too |
-| `POSTGRES_APP_PASSWORD`   | `arablyzer_app`, the role the API and the worker use. It is set on every deploy, so changing it rotates it                                                                        |
+| `POSTGRES_APP_PASSWORD`   | `arablyzer_app`, the role the API uses. It is set on every deploy, so changing it rotates it                                                                                      |
+| `POSTGRES_WORKER_PASSWORD` | `arablyzer_worker`, the worker's role: scans only, never the accounts. Set on every deploy like the one above                                                                    |
 
 ```bash
 cd /opt/arablyzer && umask 077 && cp infra/.env.example infra/.env
 for name in ARABLYZER_LIMIT_SECRET ARABLYZER_SCANNER_TOKEN ARABLYZER_PROXY_SECRET \
-            VALKEY_PASSWORD POSTGRES_PASSWORD POSTGRES_APP_PASSWORD; do
+            VALKEY_PASSWORD POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_WORKER_PASSWORD; do
   sed -i.bak "s|^${name}=.*|${name}=$(openssl rand -hex 32)|" infra/.env
 done && rm infra/.env.bak
 ```

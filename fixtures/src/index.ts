@@ -1,3 +1,4 @@
+export { startConnectProbe, type ConnectProbe } from './connect-probe'
 export { FixtureConfig, RouteOverride, SiteConfig } from './config'
 export {
   answerCrux,

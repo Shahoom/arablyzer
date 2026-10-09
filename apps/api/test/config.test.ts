@@ -7,6 +7,7 @@ import {
 } from '@arablyzer/store'
 import { TURNSTILE_ACTION } from '@arablyzer/api-contract'
 import type { FetchResult } from '@arablyzer/egress'
+import { memoryAdapter } from 'better-auth/adapters/memory'
 import { Hono } from 'hono'
 import { describe, expect, it } from 'vitest'
 import { apiDeps } from '../src/config'
@@ -273,5 +274,87 @@ describe('the site server behind the API', () => {
     )
     expect(await addressOf(BEHIND, forwarded)).toBe('none')
     expect(await addressOf(BEHIND, { ...forwarded, [PROXY_SECRET_HEADER]: 'guess' })).toBe('none')
+  })
+})
+
+describe('apiDeps with accounts', () => {
+  const ACCOUNTS = {
+    ...PRODUCTION,
+    ARABLYZER_ACCOUNTS: 'on',
+    ARABLYZER_AUTH_GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com',
+    ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET: 'google-client-secret',
+    BETTER_AUTH_SECRET: 'a-better-auth-secret-of-more-than-thirty-two-characters',
+    ARABLYZER_LIMIT_SIGNIN_REQUESTS: '20',
+    ARABLYZER_LIMIT_SIGNIN_SECONDS: '600',
+    ARABLYZER_EGRESS_PROXY: 'http://egress:4750',
+    NODE_USE_ENV_PROXY: '1',
+    HTTPS_PROXY: 'http://egress:4750',
+  } as const
+  const withAuth = () => ({
+    ...stores(),
+    auth: { database: memoryAdapter({ user: [], session: [], account: [], verification: [] }) },
+  })
+  const minus = (name: keyof typeof ACCOUNTS) =>
+    Object.fromEntries(Object.entries(ACCOUNTS).filter(([key]) => key !== name))
+
+  it('is off unless it is switched on, and then reads none of its settings', () => {
+    expect(apiDeps(PRODUCTION, stores()).accounts).toBeUndefined()
+    expect(
+      apiDeps({ ...PRODUCTION, ARABLYZER_ACCOUNTS: 'off', BETTER_AUTH_SECRET: 'short' }, stores())
+        .accounts,
+    ).toBeUndefined()
+    expect(() => apiDeps({ ...PRODUCTION, ARABLYZER_ACCOUNTS: 'yes' }, stores())).toThrow(
+      /ARABLYZER_ACCOUNTS is on or off/,
+    )
+  })
+
+  it('starts in production with everything set', () => {
+    const deps = apiDeps(ACCOUNTS, withAuth(), () => undefined)
+    expect(deps.accounts?.secureCookies).toBe(true)
+    expect(deps.accounts?.limits.signIn).toEqual({ scans: 20, seconds: 600 })
+  })
+
+  it.each([
+    'ARABLYZER_AUTH_GOOGLE_CLIENT_ID',
+    'ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET',
+    'BETTER_AUTH_SECRET',
+    'ARABLYZER_LIMIT_SIGNIN_REQUESTS',
+    'ARABLYZER_LIMIT_SIGNIN_SECONDS',
+    'ARABLYZER_EGRESS_PROXY',
+    'NODE_USE_ENV_PROXY',
+    'HTTPS_PROXY',
+  ] as const)('refuses to start in production without %s, naming it', (name) => {
+    expect(() => apiDeps(minus(name), withAuth(), () => undefined)).toThrow(new RegExp(name))
+  })
+
+  it('refuses a library proxy that is not the egress proxy, and a short secret', () => {
+    expect(() =>
+      apiDeps({ ...ACCOUNTS, HTTPS_PROXY: 'http://elsewhere:3128' }, withAuth(), () => undefined),
+    ).toThrow(/HTTPS_PROXY must equal/)
+    expect(() =>
+      apiDeps({ ...ACCOUNTS, BETTER_AUTH_SECRET: 'short' }, withAuth(), () => undefined),
+    ).toThrow(/BETTER_AUTH_SECRET/)
+  })
+
+  it("needs a database for accounts, and the site's address", () => {
+    expect(() => apiDeps(ACCOUNTS, stores(), () => undefined)).toThrow(/stores\.auth/)
+    expect(() =>
+      apiDeps({ NODE_ENV: 'development', ARABLYZER_ACCOUNTS: 'on' }, withAuth()),
+    ).toThrow(/ARABLYZER_SITE/)
+  })
+
+  it('takes development without the proxy or a secret', () => {
+    const deps = apiDeps(
+      {
+        NODE_ENV: 'development',
+        ARABLYZER_ACCOUNTS: 'on',
+        ARABLYZER_SITE: 'http://127.0.0.1:8080',
+        ARABLYZER_AUTH_GOOGLE_CLIENT_ID: 'id',
+        ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET: 'secret',
+      },
+      withAuth(),
+      () => undefined,
+    )
+    expect(deps.accounts?.secureCookies).toBe(false)
   })
 })

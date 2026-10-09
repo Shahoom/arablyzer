@@ -1,7 +1,10 @@
 import { serve } from '@hono/node-server'
 import {
+  authDatabase,
+  authSchema,
   BullMQScanQueue,
   POSTGRES_PROTOCOLS,
+  PostgresAuthMaintenance,
   PostgresScanStore,
   productionUrl,
   quietly,
@@ -11,10 +14,12 @@ import {
   ValkeyRateLimiter,
   ValkeyScanEvents,
 } from '@arablyzer/store'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { Redis } from 'ioredis'
 import pg from 'pg'
 import { createApp } from './app'
 import { apiDeps } from './config'
+import { startAuthMaintenance } from './maintenance'
 
 // The API as Compose and staging run it (M2.1 plan §4): PostgreSQL for scans and reports,
 // Valkey for the queue, the events and the limits. It connects to PostgreSQL as a role that can
@@ -55,22 +60,29 @@ pool.on('error', quietly('PostgreSQL', log))
 const store = new PostgresScanStore(pool)
 const queue = new BullMQScanQueue(redis)
 const stopping = new AbortController()
-const app = createApp({
-  ...apiDeps(
-    env,
-    {
-      store,
-      queue,
-      events: new ValkeyScanEvents(redis),
-      limiter: new ValkeyRateLimiter(redis),
-      inFlight: new ValkeyInFlight(redis),
-      handoff: new ValkeyHandoff(redis),
+const deps = apiDeps(
+  env,
+  {
+    store,
+    queue,
+    events: new ValkeyScanEvents(redis),
+    limiter: new ValkeyRateLimiter(redis),
+    inFlight: new ValkeyInFlight(redis),
+    handoff: new ValkeyHandoff(redis),
+    auth: {
+      database: drizzleAdapter(authDatabase(pool), {
+        provider: 'pg',
+        schema: authSchema,
+        usePlural: true,
+      }),
     },
-    log,
-  ),
-  shutdown: stopping.signal,
+  },
   log,
-})
+)
+// Expired sessions and sign-in states are swept hourly, where accounts are on.
+const sweeping =
+  deps.accounts === undefined ? null : startAuthMaintenance(new PostgresAuthMaintenance(pool), log)
+const app = createApp({ ...deps, shutdown: stopping.signal, log })
 const server = serve(
   { fetch: app.fetch, port: Number(env.PORT ?? 8787), hostname: '0.0.0.0' },
   (info) => {
@@ -82,6 +94,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     // Open event streams end now; their pages reconnect to another process, or retry.
     stopping.abort()
+    sweeping?.stop()
     server.close(() => {
       void Promise.all([queue.close(), pool.end()]).finally(() => {
         redis.disconnect()

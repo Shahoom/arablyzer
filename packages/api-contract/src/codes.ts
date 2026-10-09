@@ -99,6 +99,55 @@ export const fontSubsetPath = (id: string, fontUrl: string): string =>
   `/api/reports/${id}/font-subset?font=${encodeURIComponent(fontUrl)}`
 
 /**
+ * Accounts (M4.1): optional, and off unless the deployment turns them on. Sign-in is Google's, by
+ * its "Sign in with Google" button or One Tap; no password exists. With accounts off every route
+ * below answers 404. Bodies are JSON; every answer is `no-store`.
+ */
+export type Language = 'ar' | 'en'
+/** `POST {lang}` answers `{url}`: where to send the browser to sign in with Google (code + PKCE). */
+export const SESSION_GOOGLE_PATH = '/api/session/google'
+/** `POST {credential}`: the ID token One Tap (or the button) gives the page; answers the account. */
+export const SESSION_ONE_TAP_PATH = '/api/session/one-tap'
+/** `DELETE` signs this browser out. */
+export const SESSION_PATH = '/api/session'
+/** `DELETE` signs every browser of the account out. */
+export const SESSIONS_PATH = '/api/sessions'
+/** `GET` the account, `PATCH {language}` changes it, `DELETE {confirm: true}` erases it. */
+export const ACCOUNT_PATH = '/api/account'
+/** Google sends the browser here after consent. The library's own; nothing else of /api/auth is served. */
+export const GOOGLE_CALLBACK_PATH = '/api/auth/callback/google'
+/** The pages: static, never indexed. The English ones are under /en. */
+export const LOGIN_PAGE_PATH = '/login'
+export const ACCOUNT_PAGE_PATH = '/account'
+/** How long after signing in an account may be deleted without signing in again. */
+export const FRESH_LOGIN_SECONDS = 600
+
+export const AUTH_ERROR_CODES = [
+  'bad-request',
+  'rate-limited',
+  'unauthorized',
+  'invalid-token',
+  'fresh-login-required',
+  'not-found',
+  'unavailable',
+] as const
+export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[number]
+
+export interface AccountSummary {
+  readonly id: string
+  readonly email: string
+  readonly name: string
+  /** Null until the account page first sets it from the page's language. */
+  readonly language: Language | null
+  readonly createdAt: string
+}
+
+export interface AuthErrorResponse {
+  readonly error: AuthErrorCode
+  readonly retryAfterSeconds?: number
+}
+
+/**
  * Google Search Console, connected from a finished report (account-free, nothing stored): the
  * paths of its routes, the one-time result's id, and the result the report page shows.
  */

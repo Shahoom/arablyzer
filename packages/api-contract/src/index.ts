@@ -1,11 +1,14 @@
 import { z } from 'zod'
 import {
+  AUTH_ERROR_CODES,
   DELETE_TOKEN_PATTERN,
   MAX_TOOL_SLUG_LENGTH,
   MAX_URL_LENGTH,
   SCAN_ERROR_CODES,
   SCAN_ID_PATTERN,
   TOOL_SLUG_PATTERN,
+  type AccountSummary as AccountSummaryShape,
+  type AuthErrorResponse as AuthErrorResponseShape,
   type CreateScanRequest as CreateScanRequestShape,
   type CreateScanResponse as CreateScanResponseShape,
   type ScanErrorResponse as ScanErrorResponseShape,
@@ -104,3 +107,33 @@ export const ScanSummary = z.strictObject({
   createdAt: z.iso.datetime(),
   tool: toolSlug().optional(),
 }) satisfies z.ZodType<ScanSummaryShape>
+
+const language = z.enum(['ar', 'en'])
+
+/** A Google ID token is a JWT of a few hundred characters; 4,096 is generous and bounded. */
+const CREDENTIAL_MAX = 4096
+
+export const GoogleStartRequest = z.strictObject({ lang: language })
+export const OneTapRequest = z.strictObject({
+  credential: z
+    .string()
+    .min(1)
+    .max(CREDENTIAL_MAX)
+    .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/),
+})
+export const AccountPatch = z.strictObject({ language })
+/** The page has asked the person to confirm: erasure is not undone. */
+export const DeleteAccountRequest = z.strictObject({ confirm: z.literal(true) })
+export const AccountSummary = z.strictObject({
+  id: z.string().min(1),
+  email: z.string().min(1),
+  name: z.string(),
+  language: language.nullable(),
+  createdAt: z.iso.datetime(),
+}) satisfies z.ZodType<AccountSummaryShape>
+export const AuthErrorResponse = z.strictObject({
+  error: z.enum(AUTH_ERROR_CODES),
+  retryAfterSeconds: z.number().int().min(1).optional(),
+}) satisfies z.ZodType<AuthErrorResponseShape>
+export type AccountSummary = AccountSummaryShape
+export type AuthErrorResponse = AuthErrorResponseShape

@@ -12,7 +12,7 @@ import {
 import type { EgressPolicy, Resolver } from '@arablyzer/egress'
 import type { ScanLimits } from '@arablyzer/plans'
 import { toolDefinition } from '@arablyzer/tools/registry'
-import { Hono, type Context, type MiddlewareHandler } from 'hono'
+import { Hono, type Context } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { HTTPException } from 'hono/http-exception'
 import { streamSSE, type SSEStreamingApi } from 'hono/streaming'
@@ -28,6 +28,8 @@ import {
   type StoredEvent,
 } from '@arablyzer/store'
 import { registerFontRoutes, type FontContext } from './fonts'
+import { mountAccounts, type AccountsDeps } from './accounts'
+import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
 import { hashDeleteToken, newDeleteToken } from './ids'
 import { holdPlace } from './places'
@@ -70,6 +72,8 @@ export interface ApiDeps {
    * it, as in development, where the site is served from anywhere, none is asked.
    */
   readonly origin?: string
+  /** Accounts (M4.1); absent, the feature is off and every route of it is a 404. */
+  readonly accounts?: AccountsDeps
   /** Search Console, connected from a report; absent, the feature is off (gsc/routes.ts). */
   readonly gsc?: GscDeps
   /** Another way to fetch the font files of the font slimmer's downloads; tests pass their own. */
@@ -109,11 +113,6 @@ const STATUS: Readonly<Record<ScanErrorCode, 400 | 403 | 422 | 429 | 503>> = {
   'turnstile-failed': 403,
   'rate-limited': 429,
   unavailable: 503,
-}
-
-/** Whether a Content-Type header names JSON: the type alone, in any case, with any parameters. */
-function isJson(contentType: string | undefined): boolean {
-  return contentType?.split(';')[0]?.trim().toLowerCase() === 'application/json'
 }
 
 /** The scan API (M2.1 plan §4): its routes on the stores it is given. */
@@ -171,26 +170,17 @@ export function createApp(deps: ApiDeps): Hono {
     return c.json(body, STATUS[error])
   }
 
-  /**
-   * A scan is started by the site's own form: JSON, from the site's origin. A browser sends
-   * Origin with every POST, and a page on another site can send no JSON type without a preflight,
-   * which the API never answers, so neither check lets such a page spend a visitor's limits or
-   * fill the queue from their browser (security review, issue #30). Both come before the body is
-   * read. Where the site's origin is not known (development), only the type is asked.
-   */
-  const fromTheSite: MiddlewareHandler = async (c, next) => {
-    if (deps.origin !== undefined && c.req.header('origin') !== deps.origin) {
-      // Never with the Origin it sent: that is the sender's to write.
-      foreign(new Error('A scan request did not come from the origin ARABLYZER_SITE names'))
-      return refuse(c, 'bad-request')
-    }
-    if (!isJson(c.req.header('content-type'))) return refuse(c, 'bad-request')
-    await next()
-  }
+  // A scan is started by the site's own form (apps/api/src/guards.ts).
+  const fromTheSiteJson = fromTheSite({
+    origin: deps.origin,
+    json: true,
+    refuse: (c) => refuse(c, 'bad-request'),
+    foreign,
+  })
 
   app.post(
     '/api/scans',
-    fromTheSite,
+    fromTheSiteJson,
     bodyLimit({ maxSize: MAX_BODY_BYTES, onError: (c) => refuse(c, 'bad-request') }),
     async (c) => {
       let raw: unknown
@@ -460,6 +450,8 @@ export function createApp(deps: ApiDeps): Hono {
     now,
     log: failure,
   })
+
+  if (deps.accounts !== undefined) mountAccounts(app, { ...deps, accounts: deps.accounts })
 
   app.notFound((c) => c.json({ error: 'not-found' }, 404))
   // A store that fails (Valkey or PostgreSQL away) is the service being unavailable, said as

@@ -238,6 +238,31 @@ describe('auditBuiltSite', () => {
     expect(auditBuiltSite(wrong, SITE).problems.map((problem) => problem.page)).toEqual(['/404'])
   })
 
+  it('keeps the sign-in and account pages out of search engines and the sitemaps, and out of the pages that stand for the rest', () => {
+    const noindex = '<meta name="robots" content="noindex, nofollow">'
+    const page = (lang: Lang, title: string, robots: string) =>
+      `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head><title>${title}</title>${robots}</head><body><h1>${title}</h1></body></html>`
+    const files = {
+      'index.html': home('ar'),
+      'en/index.html': home('en'),
+      'login.html': page('ar', 'Login', noindex),
+      'en/login.html': page('en', 'Login', noindex),
+      'account.html': page('ar', 'Account', noindex),
+      'en/account.html': page('en', 'Account', noindex),
+    }
+    const dir = build(files)
+    for (const path of ['/login', '/en/login', '/account', '/en/account']) {
+      expect(isNoindexPage(path), path).toBe(true)
+    }
+    expect(isNoindexPage('/login-help')).toBe(false)
+    expect(auditBuiltSite(dir, SITE).problems).toEqual([])
+    expect(representativePages(builtPages(dir)).map((built) => built.path)).toEqual(['/', '/en/'])
+    const indexed = build({ ...files, 'login.html': page('ar', 'Login', '') })
+    expect(auditBuiltSite(indexed, SITE).problems.map((problem) => problem.page)).toEqual([
+      '/login',
+    ])
+  })
+
   it('keeps the report page out of search engines', () => {
     const dir = build({
       'index.html': home('ar'),

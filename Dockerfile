@@ -65,7 +65,9 @@ COPY --from=workspace --chown=arablyzer:arablyzer /arablyzer /arablyzer
 FROM browsers AS site
 ARG ARABLYZER_SITE=https://arablyzer.example
 ARG PUBLIC_TURNSTILE_SITE_KEY=
+ARG PUBLIC_AUTH_GOOGLE_CLIENT_ID=
 RUN ARABLYZER_SITE="$ARABLYZER_SITE" PUBLIC_TURNSTILE_SITE_KEY="$PUBLIC_TURNSTILE_SITE_KEY" \
+    PUBLIC_AUTH_GOOGLE_CLIENT_ID="$PUBLIC_AUTH_GOOGLE_CLIENT_ID" \
     pnpm --filter @arablyzer/web build
 
 # The site's server: the pages, /api to the API, and the headers (infra/Caddyfile). It listens

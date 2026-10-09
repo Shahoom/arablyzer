@@ -14,6 +14,13 @@ import { MIGRATION_LOCK, MIGRATIONS } from './store'
  */
 export const APP_ROLE = 'arablyzer_app'
 export const MIGRATE_ROLE = 'arablyzer_migrate'
+/**
+ * The worker's role (M4.1): it reads, updates and deletes scans (it takes a queued scan, finishes
+ * it, and retention deletes by age) and cannot insert one, nor read a single row of the accounts
+ * tables. A scan's worker runs the browsers' results through code that faces the web; whatever
+ * takes it over must not reach the accounts.
+ */
+export const WORKER_ROLE = 'arablyzer_worker'
 
 /**
  * What the application may do to the tables. `DELETE` is for what the scans' owners are owed:
@@ -29,8 +36,11 @@ const NAME = /^[a-z_][a-z0-9_]{0,62}$/
 export interface ProvisionOptions {
   /** The application role's password, set on every run, so that rotating it is a deploy. */
   readonly appPassword: string
+  /** The worker's, likewise. */
+  readonly workerPassword: string
   readonly appRole?: string
   readonly migrateRole?: string
+  readonly workerRole?: string
 }
 
 /**
@@ -43,18 +53,24 @@ export interface ProvisionOptions {
 export async function migrateDatabase(pool: Pool, options: ProvisionOptions): Promise<void> {
   const app = options.appRole ?? APP_ROLE
   const owner = options.migrateRole ?? MIGRATE_ROLE
-  for (const role of [app, owner]) {
+  const worker = options.workerRole ?? WORKER_ROLE
+  for (const role of [app, owner, worker]) {
     if (!NAME.test(role))
       throw new Error(`A role name is lower case letters, digits and _: ${role}`)
   }
-  if (app === owner) throw new Error('The application and the migration are two roles')
+  if (new Set([app, owner, worker]).size !== 3) {
+    throw new Error('The application, the migration and the worker are three roles')
+  }
   const client = await pool.connect()
   try {
     await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK])
     try {
-      await client.query(rolesSql(app, owner))
+      await client.query(rolesSql(app, owner, worker))
       // Its password is a literal: DDL takes no parameter. It is never in a message here.
       await client.query(`ALTER ROLE ${app} PASSWORD ${client.escapeLiteral(options.appPassword)}`)
+      await client.query(
+        `ALTER ROLE ${worker} PASSWORD ${client.escapeLiteral(options.workerPassword)}`,
+      )
       await client.query(adoptSql(owner))
       await client.query(`SET ROLE ${owner}`)
       try {
@@ -62,7 +78,7 @@ export async function migrateDatabase(pool: Pool, options: ProvisionOptions): Pr
       } finally {
         await client.query('RESET ROLE')
       }
-      await client.query(grantsSql(app, owner))
+      await client.query(grantsSql(app, owner, worker))
     } finally {
       await client.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK])
     }
@@ -72,7 +88,7 @@ export async function migrateDatabase(pool: Pool, options: ProvisionOptions): Pr
 }
 
 /** The two roles, as they should be; and who may connect, and where they may create anything. */
-function rolesSql(app: string, owner: string): string {
+function rolesSql(app: string, owner: string, worker: string): string {
   return `
 DO $$
 BEGIN
@@ -82,18 +98,25 @@ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${app}') THEN
     CREATE ROLE ${app} LOGIN;
   END IF;
-  EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC, ${app}', current_database());
-  EXECUTE format('GRANT CONNECT ON DATABASE %I TO ${app}', current_database());
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${worker}') THEN
+    CREATE ROLE ${worker} LOGIN;
+  END IF;
+  EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC, ${app}, ${worker}', current_database());
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO ${app}, ${worker}', current_database());
   EXECUTE format('GRANT CONNECT, CREATE ON DATABASE %I TO ${owner}', current_database());
 END
 $$;
 ALTER ROLE ${owner} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS INHERIT;
 ALTER ROLE ${app} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS INHERIT;
--- The application is nobody's member: it could become the role that owns the tables.
+ALTER ROLE ${worker} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS INHERIT;
+-- The application and the worker are nobody's members: they could become the role that owns the tables.
 REVOKE ${owner} FROM ${app};
+REVOKE ${owner} FROM ${worker};
+REVOKE ${app} FROM ${worker};
+REVOKE ${worker} FROM ${app};
 GRANT ${owner} TO CURRENT_USER;
-REVOKE ALL ON SCHEMA public FROM PUBLIC, ${app};
-GRANT USAGE ON SCHEMA public TO ${app};
+REVOKE ALL ON SCHEMA public FROM PUBLIC, ${app}, ${worker};
+GRANT USAGE ON SCHEMA public TO ${app}, ${worker};
 GRANT USAGE, CREATE ON SCHEMA public TO ${owner};
 `
 }
@@ -129,14 +152,17 @@ $$;
  * What the application may do: its rights on the tables there are, exactly (a right that crept
  * in is taken back), and on those a later migration makes. It has none in the migrations' schema.
  */
-function grantsSql(app: string, owner: string): string {
+function grantsSql(app: string, owner: string, worker: string): string {
   return `
-REVOKE ALL ON ALL TABLES IN SCHEMA drizzle FROM ${app};
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA drizzle FROM ${app};
-REVOKE ALL ON SCHEMA drizzle FROM PUBLIC, ${app};
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${app};
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${app};
+REVOKE ALL ON ALL TABLES IN SCHEMA drizzle FROM ${app}, ${worker};
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA drizzle FROM ${app}, ${worker};
+REVOKE ALL ON SCHEMA drizzle FROM PUBLIC, ${app}, ${worker};
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM ${app}, ${worker};
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM ${app}, ${worker};
 GRANT ${APP_PRIVILEGES} ON ALL TABLES IN SCHEMA public TO ${app};
+-- The worker sees the scans and nothing else; no default privilege is ever given it, so a table a
+-- later migration makes is closed to it until a line here opens it.
+GRANT SELECT, UPDATE, DELETE ON scans TO ${worker};
 ALTER DEFAULT PRIVILEGES FOR ROLE ${owner} IN SCHEMA public
   GRANT ${APP_PRIVILEGES} ON TABLES TO ${app};
 ALTER DEFAULT PRIVILEGES FOR ROLE ${owner} IN SCHEMA public

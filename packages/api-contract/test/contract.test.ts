@@ -5,11 +5,18 @@ import {
 } from '@arablyzer/egress'
 import { describe, expect, it } from 'vitest'
 import {
+  AccountPatch,
+  AccountSummary,
+  AUTH_ERROR_CODES,
+  AuthErrorResponse,
   CreateScanRequest,
   CreateScanResponse,
   DELETE_TOKEN_PATTERN,
+  DeleteAccountRequest,
+  GoogleStartRequest,
   isScanErrorCode,
   MAX_URL_LENGTH,
+  OneTapRequest,
   reportPath,
   SCAN_ID_PATTERN,
   ScanErrorResponse,
@@ -152,5 +159,43 @@ describe('scan events', () => {
       '/api/scans/AbCdEfGhIjKlMnOpQrSt_-/events',
     )
     expect(reportPath('AbCdEfGhIjKlMnOpQrSt_-')).toBe('/api/reports/AbCdEfGhIjKlMnOpQrSt_-')
+  })
+})
+
+describe('the accounts contract', () => {
+  it('is strict about what the routes take', () => {
+    expect(GoogleStartRequest.safeParse({ lang: 'en' }).success).toBe(true)
+    expect(GoogleStartRequest.safeParse({ lang: 'fr' }).success).toBe(false)
+    expect(
+      GoogleStartRequest.safeParse({ lang: 'ar', callbackURL: 'https://evil.example' }).success,
+    ).toBe(false)
+    expect(AccountPatch.safeParse({ language: 'ar' }).success).toBe(true)
+    expect(AccountPatch.safeParse({ language: 'ar', name: 'x' }).success).toBe(false)
+    expect(DeleteAccountRequest.safeParse({ confirm: true }).success).toBe(true)
+    expect(DeleteAccountRequest.safeParse({ confirm: false }).success).toBe(false)
+    expect(DeleteAccountRequest.safeParse({}).success).toBe(false)
+  })
+
+  it('takes a JWT-shaped credential of bounded size and nothing else', () => {
+    expect(OneTapRequest.safeParse({ credential: 'aaa.bbb.ccc' }).success).toBe(true)
+    expect(OneTapRequest.safeParse({ credential: 'not a token' }).success).toBe(false)
+    expect(OneTapRequest.safeParse({ credential: `${'a'.repeat(4100)}.b.c` }).success).toBe(false)
+    expect(OneTapRequest.safeParse({ credential: 'a.b.c', lang: 'ar' }).success).toBe(false)
+  })
+
+  it('describes an account and an error', () => {
+    const account = {
+      id: 'u1',
+      email: 'ali@example.com',
+      name: 'Ali',
+      language: null,
+      createdAt: '2026-10-01T00:00:00.000Z',
+    }
+    expect(AccountSummary.safeParse(account).success).toBe(true)
+    expect(AccountSummary.safeParse({ ...account, extra: 1 }).success).toBe(false)
+    for (const error of AUTH_ERROR_CODES) {
+      expect(AuthErrorResponse.safeParse({ error }).success).toBe(true)
+    }
+    expect(AuthErrorResponse.safeParse({ error: 'oops' }).success).toBe(false)
   })
 })

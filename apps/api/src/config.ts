@@ -1,8 +1,14 @@
 import { createHmac, randomBytes } from 'node:crypto'
 import { GSC_CALLBACK_PATH, TURNSTILE_ACTION } from '@arablyzer/api-contract'
-import { checkDenyCidrs, defaultResolver, safeFetch, serverPolicy } from '@arablyzer/egress'
+import {
+  checkDenyCidrs,
+  defaultResolver,
+  EGRESS_PROXY_VARIABLE,
+  safeFetch,
+  serverPolicy,
+} from '@arablyzer/egress'
 import { USER_AGENT } from '@arablyzer/engine/identity'
-import { limitsFrom } from '@arablyzer/plans'
+import { accountsModeFrom, authLimitsFrom, limitsFrom } from '@arablyzer/plans'
 import {
   requireSecret,
   type Handoff,
@@ -12,7 +18,9 @@ import {
   type ScanQueue,
   type ScanStore,
 } from '@arablyzer/store'
+import type { AccountsDeps } from './accounts'
 import type { ApiDeps } from './app'
+import { createAuth, type AuthDatabase } from './auth'
 import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
 import { googleApi } from './gsc/google'
 import { newScanId } from './ids'
@@ -28,6 +36,8 @@ export interface Stores {
   readonly inFlight: InFlight
   /** One-time values for the Search Console connection; without it the feature is off. */
   readonly handoff?: Handoff
+  /** Where Better Auth keeps accounts and sessions; needed when ARABLYZER_ACCOUNTS is on. */
+  readonly auth?: { readonly database: AuthDatabase }
 }
 
 /**
@@ -123,7 +133,8 @@ export function apiDeps(
   if (production && (clientId === '') !== (clientSecret === '')) {
     throw new Error('ARABLYZER_GSC_CLIENT_ID and ARABLYZER_GSC_CLIENT_SECRET are set together')
   }
-  const { handoff, ...otherStores } = stores
+  const { handoff, store, queue, events, limiter, inFlight } = stores
+  const otherStores = { store, queue, events, limiter, inFlight }
   const gsc =
     clientId !== '' && clientSecret !== '' && siteUrl !== undefined && handoff !== undefined
       ? {
@@ -147,9 +158,17 @@ export function apiDeps(
     log('Search Console is off: it needs ARABLYZER_SITE and the store for its one-time values.')
   }
 
+  const accounts = accountsFrom(env, {
+    production,
+    siteUrl,
+    database: stores.auth?.database,
+    log,
+  })
+
   return {
     ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
     ...(gsc === undefined ? {} : { gsc }),
+    ...(accounts === undefined ? {} : { accounts }),
     limits: limitsFrom(env),
     policy,
     resolver,
@@ -159,5 +178,70 @@ export function apiDeps(
     connectionKey: (address, now) => connectionKey(address, key, now),
     networkKey: (address, now) => networkKey(address, key, now),
     newId: newScanId,
+  }
+}
+
+/** The variables of sign-in with Google, separate from Search Console's even if the owner uses one client for both. */
+export const AUTH_GOOGLE_CLIENT_ID_VARIABLE = 'ARABLYZER_AUTH_GOOGLE_CLIENT_ID'
+export const AUTH_GOOGLE_CLIENT_SECRET_VARIABLE = 'ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET'
+
+/**
+ * Accounts (M4.1), off unless ARABLYZER_ACCOUNTS=on. On, everything they need must be set, and
+ * the start says which is not: the site's address, Google's client, the library's secret, and, in
+ * production, the egress proxy for the library's own requests to Google (Node's env proxy: the
+ * library uses the global `fetch`, which the API's lint rule keeps everything else off).
+ */
+function accountsFrom(
+  env: Env,
+  options: {
+    readonly production: boolean
+    readonly siteUrl: URL | undefined
+    readonly database: AuthDatabase | undefined
+    readonly log: (message: string) => void
+  },
+): AccountsDeps | undefined {
+  if (accountsModeFrom(env) !== 'on') return undefined
+  const { production, siteUrl, database } = options
+  if (siteUrl === undefined) throw new Error('ARABLYZER_ACCOUNTS=on needs ARABLYZER_SITE')
+  if (database === undefined) {
+    throw new Error('ARABLYZER_ACCOUNTS=on needs a database for accounts (stores.auth)')
+  }
+  const clientId = env[AUTH_GOOGLE_CLIENT_ID_VARIABLE]?.trim() ?? ''
+  const clientSecret = env[AUTH_GOOGLE_CLIENT_SECRET_VARIABLE]?.trim() ?? ''
+  if (clientId === '')
+    throw new Error(`${AUTH_GOOGLE_CLIENT_ID_VARIABLE} must be set with accounts on`)
+  if (clientSecret === '') {
+    throw new Error(`${AUTH_GOOGLE_CLIENT_SECRET_VARIABLE} must be set with accounts on`)
+  }
+  let secret = env.BETTER_AUTH_SECRET?.trim() ?? ''
+  if (production) secret = requireSecret('BETTER_AUTH_SECRET', secret)
+  else if (secret === '') secret = randomBytes(32).toString('base64url')
+  if (production) {
+    const proxy = env[EGRESS_PROXY_VARIABLE]?.trim() ?? ''
+    if (proxy === '') {
+      throw new Error(
+        `${EGRESS_PROXY_VARIABLE} must be set with accounts on: Google is reached through it`,
+      )
+    }
+    if (env.NODE_USE_ENV_PROXY?.trim() !== '1') {
+      throw new Error(
+        'NODE_USE_ENV_PROXY must be 1 with accounts on: the library calls Google through the proxy',
+      )
+    }
+    if (env.HTTPS_PROXY?.trim() !== proxy) {
+      throw new Error(`HTTPS_PROXY must equal ${EGRESS_PROXY_VARIABLE} with accounts on`)
+    }
+  }
+  return {
+    auth: createAuth({
+      site: siteUrl,
+      secret,
+      database,
+      google: { clientId, clientSecret },
+      production,
+      log: options.log,
+    }),
+    limits: authLimitsFrom(env),
+    secureCookies: production,
   }
 }

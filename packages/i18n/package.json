@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./copy": "./src/copy.ts",
     "./scan-form": "./src/scan-form.ts",
+    "./account": "./src/account.ts",
     "./report": "./src/report.ts",
     "./tools": "./src/tools.ts",
     "./generators": "./src/generators.ts",

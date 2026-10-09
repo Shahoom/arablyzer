@@ -166,6 +166,8 @@ export interface HomeStrings {
     readonly kicker: string
     readonly title: string
     readonly items: readonly { readonly question: string; readonly answer: string }[]
+    /** Shown only on a site built with accounts (apps/web, Faq.astro). */
+    readonly accounts: { readonly question: string; readonly answer: string }
   }
   readonly cta: { readonly title: string; readonly text: string; readonly button: string }
 }
@@ -403,6 +405,11 @@ export const HOME: Copy<HomeStrings> = {
             'لأن كل محرّك يرسم العربية بطريقته: في صفحة اختبارنا رسم WebKit وحده تباعد الحروف، ففصل حروفاً يجب أن تتصل. Chromium محرّك Chrome وEdge، وFirefox له محرّكه، وWebKit محرّك Safari، لكننا نشغّله على Linux، فهو قريب من Safari وليس مثله تماماً.',
         },
       ],
+      accounts: {
+        question: 'هل أحتاج إلى حساب؟ وماذا تحفظون إن سجّلت الدخول؟',
+        answer:
+          'لا: الفحص مجاني ولا يحتاج إلى حساب. والدخول اختياري، بحساب Google، ولا توجد كلمة مرور. وإن دخلت نحفظ بريدك واسمك واللغة التي تختارها وكوكي واحداً يُبقيك مسجلاً للدخول، ولا نحفظ شيئاً آخر من حساب Google ولا صورتك. وتحذف الحساب من صفحته فيذهب معه كل ما حفظناه.',
+      },
     },
     cta: {
       title: 'افحص صفحتك الآن',
@@ -600,6 +607,11 @@ export const HOME: Copy<HomeStrings> = {
             'Because each engine draws Arabic its own way: on our test page, only WebKit drew the letter-spacing, pulling apart letters that should join. Chromium is the engine of Chrome and Edge, Firefox has its own, and WebKit is Safari’s; we run it on Linux, so it is close to Safari but not the same.',
         },
       ],
+      accounts: {
+        question: 'Do I need an account? What do you keep if I sign in?',
+        answer:
+          'No: scanning is free and needs none. Signing in is optional, with Google, and there is no password. If you do, we keep your email address, your name, the language you choose, and one cookie that keeps you signed in; nothing else from your Google account, no profile picture. You can delete the account from its page, and everything we kept goes with it.',
+      },
     },
     cta: {
       title: 'Check your page now',
