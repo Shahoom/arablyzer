@@ -36,6 +36,7 @@ export const PATHS = {
   bot: '/bot',
   login: '/login',
   account: '/account',
+  compare: '/account/compare',
   fix: '/fix',
   fixGuide: (slug: string) => `/fix/${slug}`,
   glossary: '/glossary',
