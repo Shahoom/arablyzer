@@ -23,6 +23,8 @@
     "@arablyzer/store": "workspace:*",
     "@arablyzer/tools": "workspace:*",
     "@hono/node-server": "2.1.1",
+    "better-auth": "1.7.6",
+    "drizzle-orm": "0.45.3",
     "hono": "4.13.10",
     "ioredis": "5.11.1",
     "ipaddr.js": "^2.5.0",

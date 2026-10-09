@@ -4,6 +4,17 @@
  * design §7.2).
  */
 
+import { reader, type Env } from './reader'
+
+export {
+  accountsModeFrom,
+  authLimitsFrom,
+  ACCOUNTS_VARIABLE,
+  DEVELOPMENT_AUTH_LIMITS,
+} from './auth-limits'
+export type { AccountsMode, AuthLimits } from './auth-limits'
+export type { Env }
+
 export interface Window {
   /** Scans allowed in the window (for `attempts`, requests). */
   readonly scans: number
@@ -61,28 +72,6 @@ const VARIABLES = {
   queue: 'ARABLYZER_LIMIT_QUEUE',
   inFlight: 'ARABLYZER_LIMIT_INFLIGHT',
 } as const
-
-type Env = Readonly<Record<string, string | undefined>>
-
-/**
- * A reader of the limits' numbers: a whole number of at least 1 from the variable, the
- * development value where it is not set outside production, and a refusal to start where it is
- * not set in production.
- */
-function reader(env: Env): (name: string, fallback: number) => number {
-  const production = env.NODE_ENV === 'production'
-  return (name, fallback) => {
-    const raw = env[name]?.trim()
-    if (raw === undefined || raw === '') {
-      if (production) throw new Error(`${name} must be set in production (Phase 2 design §7.2)`)
-      return fallback
-    }
-    if (!/^\d+$/.test(raw) || Number(raw) < 1 || !Number.isSafeInteger(Number(raw))) {
-      throw new Error(`${name} must be a whole number of at least 1, not ${raw}`)
-    }
-    return Number(raw)
-  }
-}
 
 /**
  * The per-host limit alone, for the worker, which counts the site a scan ends at and needs none of

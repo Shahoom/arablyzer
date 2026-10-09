@@ -12,6 +12,8 @@ export { IN_FLIGHT_TTL_MS, MemoryInFlight, type InFlight, type Place } from './i
 export { MemoryRateLimiter, secondsUntilOne, type RateLimiter, type Taken } from './limits'
 export { quietly } from './log'
 export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
+export { PostgresAuthMaintenance, type AuthMaintenance } from './postgres/auth-maintenance'
+export { authDatabase, authSchema } from './postgres/auth-schema'
 export { scans } from './postgres/schema'
 export {
   APP_ROLE,
