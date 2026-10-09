@@ -3,7 +3,7 @@ module github.com/Shahoom/arablyzer/infra/egress
 go 1.26.0
 
 require (
-	github.com/sirupsen/logrus v1.10.1
+	github.com/sirupsen/logrus v1.10.2
 	github.com/stripe/smokescreen v0.1.0
 )
 
