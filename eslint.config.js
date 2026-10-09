@@ -149,7 +149,11 @@ export default defineConfig(
   {
     // The scan form's one request, to Arablyzer's own API on the same origin: not scan traffic,
     // which leaves the server through the egress proxy alone (M2.1 plan §2). fetch alone.
-    files: ['apps/web/src/islands/api.ts', 'apps/web/src/islands/auth-api.ts'],
+    files: [
+      'apps/web/src/islands/api.ts',
+      'apps/web/src/islands/auth-api.ts',
+      'apps/web/src/islands/sites-api.ts',
+    ],
     rules: {
       'no-restricted-globals': [
         'error',

@@ -119,6 +119,16 @@ these and without the egress proxy for the library's own requests to Google (`NO
 those two pages alone). The email path (a mailed link) is designed (`docs/design/plans/m4.1-accounts.md`)
 and not built.
 
+**Saved sites and history (M4.2).** A signed-in person saves sites on `/account`, scans them in a
+click, and sees their recent scans. Their scans take their own quota (keyed by the account, not the
+address) and skip Turnstile; a bad or expired cookie is an anonymous visitor, never a refusal. The five
+`ARABLYZER_PLAN_ACCOUNT_*` numbers (scans and window, concurrent scans, saved sites, history days) are
+the owner's and must all be set with accounts on; the worker reads `ARABLYZER_ACCOUNTS` and the history
+days, and deletes the scans an account keeps after them (the other scans follow
+`ARABLYZER_REPORT_RETENTION_DAYS`). The worker's role can read one column of the accounts' data,
+`account_scans.scan_id`, so the sweep can tell which scans are kept, and nothing else. Erasing the
+account deletes its sites, its scans and their reports.
+
 ## The server's own addresses
 
 `ARABLYZER_DENY_CIDRS` names the server's own public addresses, which none of the stack's processes

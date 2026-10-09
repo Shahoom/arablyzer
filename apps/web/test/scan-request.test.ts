@@ -70,7 +70,7 @@ describe('readScanStart', () => {
 })
 
 describe('startScan', () => {
-  it('posts the URL and the token as JSON, without cookies', async () => {
+  it('posts the URL and the token as JSON, with the session cookie where there is one', async () => {
     let seen: { url: string; init: RequestInit | undefined } | undefined
     const send = (url: string | URL | Request, init?: RequestInit) => {
       seen = { url: url instanceof Request ? url.url : url.toString(), init }
@@ -80,7 +80,7 @@ describe('startScan', () => {
     expect(started).toEqual({ ok: true, id: 'AbCdEfGhIjKlMnOpQrSt_-' })
     expect(seen?.url).toBe('/api/scans')
     expect(seen?.init?.method).toBe('POST')
-    expect(seen?.init?.credentials).toBe('omit')
+    expect(seen?.init?.credentials).toBe('same-origin')
     const body = seen?.init?.body
     expect(typeof body).toBe('string')
     expect(JSON.parse(body as string)).toEqual({

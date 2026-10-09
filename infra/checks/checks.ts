@@ -446,6 +446,8 @@ export function databaseRoles(stack: Stack): string[] {
            'SELECT count(*) FROM users',
            'SELECT count(*) FROM accounts',
            'SELECT count(*) FROM verifications',
+           'SELECT count(*) FROM sites',
+           'SELECT count(*) FROM account_scans',
            "INSERT INTO scans (id, url, state, created_at) VALUES ('verify_deploy_probe', 'https://example.com/', 'queued', now())",
            'CREATE TABLE verify_deploy_probe (a integer)',
          ]) {

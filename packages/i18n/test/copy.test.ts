@@ -178,7 +178,9 @@ describe('interface copy', () => {
   it('states no number on the account pages: they come from code, as the scan form’s do', () => {
     for (const lang of ['ar', 'en'] as const) {
       for (const [path, text] of leaves(ACCOUNT_UI[lang])) {
-        expect(text, path).not.toMatch(/[0-9\u0660-\u0669]/)
+        // A function of the copy takes its numbers as parameters: the sample ones are the only digits.
+        const own = path.includes('()') ? text.replace(/\b(?:3|18|390)\b/g, '') : text
+        expect(own, path).not.toMatch(/[0-9\u0660-\u0669]/)
       }
     }
   })

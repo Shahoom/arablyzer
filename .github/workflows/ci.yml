@@ -256,6 +256,11 @@ jobs:
             echo "BETTER_AUTH_SECRET=$(secret)"
             echo ARABLYZER_LIMIT_SIGNIN_REQUESTS=20
             echo ARABLYZER_LIMIT_SIGNIN_SECONDS=600
+            echo ARABLYZER_PLAN_ACCOUNT_SCANS=30
+            echo ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS=3600
+            echo ARABLYZER_PLAN_ACCOUNT_INFLIGHT=3
+            echo ARABLYZER_PLAN_ACCOUNT_SAVED_SITES=5
+            echo ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS=90
             # The server's own addresses stand in: an unused address of the test network, and an
             # IPv6 address that nothing holds, which the API, the scanner and the egress proxy all
             # read, and the proxy refuses (the stack's test).

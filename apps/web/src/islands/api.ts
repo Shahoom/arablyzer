@@ -27,7 +27,9 @@ export async function startScan(
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
-      credentials: 'omit',
+      // The session cookie goes along where there is one (M4.2): a signed-in person's scan is the
+      // account's, with its own quota. Without one, nothing is sent and nothing changes.
+      credentials: 'same-origin',
     })
   } catch {
     return { ok: false, error: { code: 'network' } }
