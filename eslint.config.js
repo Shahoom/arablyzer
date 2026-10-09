@@ -205,10 +205,26 @@ export default defineConfig(
   {
     // The stack's end-to-end test asks the stack itself, on the host's port, as a visitor does
     // (M2.1 plan §5b), and runs commands in its containers; so do the checks it shares with the
-    // post-deploy script, and the script.
-    files: ['infra/test/**', 'infra/checks/**', 'infra/verify-deploy.ts'],
+    // post-deploy script, and the script; and the smoke checks, which ask the site over HTTP.
+    files: ['infra/test/**', 'infra/checks/**', 'infra/verify-deploy.ts', 'infra/smoke.ts'],
     rules: {
       ...networkRules({ allowProcesses: true }),
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
+    // The load test asks a stack that runs on this machine, on its published port, as visitors
+    // do (M2.5): `fetch` alone, no socket of its own, and never in CI (infra/load/README.md). Only
+    // the file that hands the global `fetch` to the test: the rest of infra/load/ takes it as an
+    // argument, and keeps the repository's rule.
+    files: ['infra/load/run.ts'],
+    rules: {
       'no-restricted-globals': [
         'error',
         ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({

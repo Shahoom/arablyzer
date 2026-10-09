@@ -214,7 +214,16 @@ pnpm test:stack
 Beside another stack on the same Docker, `COMPOSE_PROJECT_NAME`, `ARABLYZER_PORT` and
 `ARABLYZER_STACK_URL` give the stack a project, a port and an address of its own. The test's own
 network has a fixed subnet, `93.184.215.0/24`, so two stacks with `compose.e2e.yaml` do not run at
-once; one without it runs beside any.
+once (`load/compose.parallel.yaml` moves it, for a load test beside CI's stack); one without it runs
+beside any.
+
+## The load test
+
+`pnpm load:stack` sends the stack that `compose.e2e.yaml` starts, on this machine, what visitors send
+it: the pages, scans from many visitors, the reads of a finished scan, and one visitor that asks for
+more than its limits allow. It prints the p50, p95 and largest time of each kind of answer, and the
+errors. It refuses a target that is not loopback unless `--target` names it, and it does not run in CI:
+[`load/README.md`](load/README.md).
 
 ## Smaller images: not done, and why
 
@@ -234,3 +243,10 @@ left, for what it needs first:
 - the API not importing the engine for one constant, or its image keeps Playwright and Lighthouse;
 - the paths the compose file, the stack's test and the checks name (`apps/api/src/server.ts`,
   `packages/store/src/migrate.ts`) becoming the deployed directory's.
+
+## Staging on one VPS behind Cloudflare
+
+`./infra/deploy-staging.sh --check` starts the whole stack with `compose.staging.yaml` (images named by
+release) and `compose.vps.yaml` (a Caddy proxy with a Cloudflare Origin CA certificate from `infra/certs/`),
+then runs `pnpm verify:deploy` and `pnpm smoke --url <ARABLYZER_SITE>`. The runbook, with the prerequisites,
+secrets, backups and rollback, is [docs/deploy/staging.md](../docs/deploy/staging.md), section 0.

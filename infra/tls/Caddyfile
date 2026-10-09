@@ -1,0 +1,57 @@
+# TLS for a single VPS behind Cloudflare (docs/deploy/staging.md, §0 and §3.3): terminates HTTPS
+# with a Cloudflare Origin CA certificate (SSL/TLS mode "Full (strict)") and passes everything to the
+# site's server, `web`, over the stack's edge network. It keeps no log of visitors and no state.
+{
+	admin off
+	# The certificate is the owner's, from Cloudflare (infra/certs/origin.pem and origin.key): no
+	# ACME, no certificate store, nothing to write.
+	auto_https off
+	# A client that sends no server name, or another (the health check, a probe by address), gets the same
+	# certificate; the Host header still has to be the site's to be answered.
+	default_sni {$ARABLYZER_HOST}
+	fallback_sni {$ARABLYZER_HOST}
+	servers {
+		# Cloudflare's addresses (https://www.cloudflare.com/ips/, set by ARABLYZER_CLOUDFLARE_RANGES in
+		# compose.vps.yaml): from one of them, the visitor is CF-Connecting-IP; from any other peer the
+		# header is not believed, and the peer's own address is the visitor.
+		trusted_proxies static {$ARABLYZER_CLOUDFLARE_RANGES}
+		trusted_proxies_strict
+		client_ip_headers CF-Connecting-IP
+		timeouts {
+			read_header 10s
+			read_body 30s
+			idle 2m
+		}
+	}
+	log default {
+		output stderr
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				request>headers delete
+				request>tls delete
+			}
+		}
+	}
+}
+
+https://:8443 {
+	tls /certs/origin.pem /certs/origin.key
+	@site host {$ARABLYZER_HOST}
+	handle @site {
+		reverse_proxy web:8080 {
+			# One address, the visitor's; the site's server trusts this proxy (a private address) and
+			# gives it to the API with its own secret.
+			header_up X-Forwarded-For {client_ip}
+			# A scan's events are one response that lasts minutes.
+			flush_interval -1
+		}
+	}
+	# Any other Host (a probe by address, another name pointed here): the connection is dropped.
+	handle {
+		abort
+	}
+}
