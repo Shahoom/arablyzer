@@ -16,6 +16,7 @@ import {
   type AccountScan as AccountScanShape,
   type AccountScansResponse as AccountScansResponseShape,
   type AccountSummary as AccountSummaryShape,
+  type AlertsChange,
   type AlertSettings as AlertSettingsShape,
   type AlertsResponse as AlertsResponseShape,
   type AuthErrorResponse as AuthErrorResponseShape,
@@ -220,8 +221,8 @@ export const AlertsRequest = z.strictObject({
   onDown: z.boolean().optional(),
   weeklySummary: z.boolean().optional(),
   email: z.boolean().optional(),
-})
-export type AlertsRequest = z.infer<typeof AlertsRequest>
+}) satisfies z.ZodType<AlertsChange>
+export type AlertsRequest = AlertsChange
 export const AlertSettings = z.strictObject({
   webhook: z
     .strictObject({

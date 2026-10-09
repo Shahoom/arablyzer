@@ -1,14 +1,26 @@
 import {
   ACCOUNT_SCANS_PATH,
+  ALERTS_PATH,
+  ALERTS_TEST_PATH,
+  siteMonitorPath,
   sitePath,
   SITES_PATH,
   siteScansPath,
   type AccountScansResponse,
+  type AlertSettings,
+  type AlertsChange,
+  type AlertsResponse,
+  type MonitorSummary,
   type SiteSummary,
   type SitesResponse,
+  type WebhookTestResponse,
 } from '@arablyzer/api-contract/codes'
 import {
   isAccountScansResponse,
+  isAlertSettings,
+  isAlertsResponse,
+  isMonitorResponse,
+  isTestResponse,
   isSiteSummary,
   isSitesResponse,
   siteProblemOf,
@@ -100,4 +112,35 @@ export async function scanSite(
   send: typeof fetch = fetch,
 ): Promise<SiteOutcome<{ id: string }>> {
   return read(await request(send, 'POST', siteScansPath(id)), isStarted)
+}
+
+/** Turns a saved site's monitoring on (its summary) or off (null). */
+export async function setMonitor(
+  id: string,
+  enabled: boolean,
+  send: typeof fetch = fetch,
+): Promise<SiteOutcome<MonitorSummary | null>> {
+  const outcome = await read(
+    await request(send, 'PUT', siteMonitorPath(id), { enabled }),
+    isMonitorResponse,
+  )
+  return outcome.ok ? { ok: true, value: outcome.value.monitor } : outcome
+}
+
+export async function getAlerts(send: typeof fetch = fetch): Promise<SiteOutcome<AlertSettings>> {
+  return read(await request(send, 'GET', ALERTS_PATH), isAlertSettings)
+}
+
+/** Saves what is given and leaves the rest; the answer carries the signing secret once, when one was made. */
+export async function saveAlerts(
+  change: AlertsChange,
+  send: typeof fetch = fetch,
+): Promise<SiteOutcome<AlertsResponse>> {
+  return read(await request(send, 'PUT', ALERTS_PATH, change), isAlertsResponse)
+}
+
+export async function testAlerts(
+  send: typeof fetch = fetch,
+): Promise<SiteOutcome<WebhookTestResponse>> {
+  return read(await request(send, 'POST', ALERTS_TEST_PATH), isTestResponse)
 }

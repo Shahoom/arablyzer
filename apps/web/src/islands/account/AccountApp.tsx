@@ -17,6 +17,7 @@ import {
 } from '../auth-api'
 import { accountHref, problemFromQuery } from '../auth-model'
 import GoogleSignIn from './GoogleSignIn'
+import AlertsPanel from './AlertsPanel'
 import SitesPanel from './SitesPanel'
 
 interface Props {
@@ -374,6 +375,8 @@ function SignedIn({
       </section>
 
       <SitesPanel lang={lang} />
+
+      <AlertsPanel lang={lang} />
 
       <section
         aria-labelledby="delete-title"

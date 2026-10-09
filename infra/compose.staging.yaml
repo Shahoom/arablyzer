@@ -28,6 +28,9 @@ services:
   migrate:
     image: arablyzer/api:${ARABLYZER_RELEASE:?}
     pull_policy: never
+  monitor:
+    image: arablyzer/api:${ARABLYZER_RELEASE:?}
+    pull_policy: never
   worker:
     image: arablyzer/worker:${ARABLYZER_RELEASE:?}
     pull_policy: never

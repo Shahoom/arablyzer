@@ -95,6 +95,10 @@ services:
       ARABLYZER_PLAN_ACCOUNT_INFLIGHT: ${ARABLYZER_PLAN_ACCOUNT_INFLIGHT:-}
       ARABLYZER_PLAN_ACCOUNT_SAVED_SITES: ${ARABLYZER_PLAN_ACCOUNT_SAVED_SITES:-}
       ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS:-}
+      # Monitoring (M4.3): both optional, 1 site every 7 days when empty. Mail stays off until a provider exists.
+      ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES: ${ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES:-}
+      ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS:-}
+      ARABLYZER_MAIL_PROVIDER: ${ARABLYZER_MAIL_PROVIDER:-}
       # The accounts library calls Google with Node's own fetch, which reaches the network through
       # the egress proxy by these three (a test shows it: apps/api/test/egress-proxy.test.ts).
       NODE_USE_ENV_PROXY: '1'
@@ -135,6 +139,53 @@ services:
     memswap_limit: 256m
     cpus: 1
     pids_limit: 256
+
+  # The monitoring scheduler (M4.3): its own process on the API's image, because it must create
+  # scans and read the accounts, which the worker's role cannot (M4.1). It starts the scans of
+  # monitored sites that are due, only into the lower half of the queue, and sends the alerts (webhooks,
+  # through the egress proxy). With ARABLYZER_ACCOUNTS off it logs that and idles.
+  monitor:
+    <<: *hardened
+    build: { context: .., target: api }
+    init: true
+    tmpfs: [/tmp]
+    command: [node, --import, tsx, apps/api/src/monitor/main.ts]
+    environment:
+      VALKEY_URL: redis://arablyzer:${VALKEY_PASSWORD:?}@valkey:6379
+      DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
+      ARABLYZER_SITE: ${ARABLYZER_SITE:?}
+      ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
+      ARABLYZER_PLAN_ACCOUNT_SCANS: ${ARABLYZER_PLAN_ACCOUNT_SCANS:-}
+      ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS: ${ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS:-}
+      ARABLYZER_PLAN_ACCOUNT_INFLIGHT: ${ARABLYZER_PLAN_ACCOUNT_INFLIGHT:-}
+      ARABLYZER_PLAN_ACCOUNT_SAVED_SITES: ${ARABLYZER_PLAN_ACCOUNT_SAVED_SITES:-}
+      ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS:-}
+      ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES: ${ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES:-}
+      ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS:-}
+      ARABLYZER_MAIL_PROVIDER: ${ARABLYZER_MAIL_PROVIDER:-}
+      # The same limits as the API's: a monitor scan takes the host's bucket and the queue's room.
+      ARABLYZER_LIMIT_CONNECTION_SCANS: ${ARABLYZER_LIMIT_CONNECTION_SCANS:?}
+      ARABLYZER_LIMIT_CONNECTION_SECONDS: ${ARABLYZER_LIMIT_CONNECTION_SECONDS:?}
+      ARABLYZER_LIMIT_NETWORK_SCANS: ${ARABLYZER_LIMIT_NETWORK_SCANS:?}
+      ARABLYZER_LIMIT_NETWORK_SECONDS: ${ARABLYZER_LIMIT_NETWORK_SECONDS:?}
+      ARABLYZER_LIMIT_ATTEMPT_REQUESTS: ${ARABLYZER_LIMIT_ATTEMPT_REQUESTS:?}
+      ARABLYZER_LIMIT_ATTEMPT_SECONDS: ${ARABLYZER_LIMIT_ATTEMPT_SECONDS:?}
+      ARABLYZER_LIMIT_HOST_SCANS: ${ARABLYZER_LIMIT_HOST_SCANS:?}
+      ARABLYZER_LIMIT_HOST_SECONDS: ${ARABLYZER_LIMIT_HOST_SECONDS:?}
+      ARABLYZER_LIMIT_QUEUE: ${ARABLYZER_LIMIT_QUEUE:?}
+      ARABLYZER_LIMIT_INFLIGHT: ${ARABLYZER_LIMIT_INFLIGHT:?}
+      # Webhooks leave through the egress proxy, vetted by the same rules as a scan's address.
+      ARABLYZER_EGRESS_PROXY: http://egress:4750
+      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
+    networks: [edge, data]
+    depends_on:
+      valkey: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      egress: { condition: service_healthy }
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.5
+    pids_limit: 128
 
   # The database's own step, once, before the API and the worker (packages/store/src/migrate.ts):
   # it makes the two roles and the tables, and sets the application role's password. It alone

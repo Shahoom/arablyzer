@@ -268,6 +268,17 @@ export interface AlertSettings {
   }
 }
 
+/** `PUT` to the alerts: every field is optional, and what is not sent is not changed. A null address removes the webhook. */
+export interface AlertsChange {
+  readonly webhookUrl?: string | null
+  readonly rotateSecret?: boolean
+  readonly dropThreshold?: number
+  readonly onCritical?: boolean
+  readonly onDown?: boolean
+  readonly weeklySummary?: boolean
+  readonly email?: boolean
+}
+
 /** The answer to saving: the settings, and the signing secret once, when one was made. */
 export interface AlertsResponse extends AlertSettings {
   readonly secret?: string
