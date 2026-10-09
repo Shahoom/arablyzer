@@ -26,7 +26,11 @@ describe('the accounts tables', () => {
 
   for (const [model, definition] of Object.entries(tables)) {
     it(`${model}: every field the library names is a column, and no other column exists`, () => {
-      const table = authSchema[TABLE_OF[model] as keyof typeof authSchema]
+      const name = TABLE_OF[model]
+      if (name === undefined) throw new Error(`no table for ${model}`)
+      // The store's drizzle-orm and this package's are one version in two peer sets (better-auth
+      // brings kysely to ours): the same tables to the code, two types to the compiler.
+      const table = authSchema[name] as unknown as Parameters<typeof getTableColumns>[0]
       const columns = getTableColumns(table)
       expect(getTableName(table)).toBe(
         definition.modelName === model ? `${model}s` : definition.modelName,

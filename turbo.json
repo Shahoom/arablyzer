@@ -4,7 +4,12 @@
     "build": {
       "cache": false,
       "outputs": ["dist/**"],
-      "passThroughEnv": ["ARABLYZER_SITE", "ARABLYZER_API_ORIGIN", "PUBLIC_TURNSTILE_SITE_KEY"]
+      "passThroughEnv": [
+        "ARABLYZER_SITE",
+        "ARABLYZER_API_ORIGIN",
+        "PUBLIC_TURNSTILE_SITE_KEY",
+        "PUBLIC_AUTH_GOOGLE_CLIENT_ID"
+      ]
     },
     "typecheck": {
       "cache": false

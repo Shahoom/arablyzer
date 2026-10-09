@@ -129,8 +129,8 @@ describe('createAuth', () => {
     const start = await auth.api.signInSocial({
       body: {
         provider: 'google',
-        callbackURL: '/en/account/',
-        errorCallbackURL: '/en/login/',
+        callbackURL: '/en/account',
+        errorCallbackURL: '/en/login',
         disableRedirect: true,
       },
       headers: new Headers(browser),
@@ -161,7 +161,7 @@ describe('createAuth', () => {
       }),
     )
     expect(back.status).toBe(302)
-    expect(new URL(back.headers.get('location') ?? '', SITE).pathname).toBe('/en/account/')
+    expect(new URL(back.headers.get('location') ?? '', SITE).pathname).toBe('/en/account')
     expect(back.headers.getSetCookie().join('\n')).toContain(SESSION_COOKIE)
     const exchanges = google.calls.filter(
       (call) => call.url === 'https://oauth2.googleapis.com/token',

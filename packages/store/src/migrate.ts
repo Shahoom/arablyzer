@@ -1,6 +1,6 @@
 import pg from 'pg'
 import { POSTGRES_PROTOCOLS, productionUrl } from './connection'
-import { APP_ROLE, migrateDatabase } from './postgres/provision'
+import { APP_ROLE, migrateDatabase, WORKER_ROLE } from './postgres/provision'
 import { requireSecret } from './secrets'
 
 // The database's own step, run once by Compose before the API and the worker start, and again by
@@ -18,14 +18,21 @@ const appPassword = requireSecret(
   env.ARABLYZER_APP_DATABASE_PASSWORD,
 )
 
+const workerPassword = requireSecret(
+  'ARABLYZER_WORKER_DATABASE_PASSWORD',
+  env.ARABLYZER_WORKER_DATABASE_PASSWORD,
+)
+
 const pool = new pg.Pool({ connectionString: url, max: 1, connectionTimeoutMillis: 10_000 })
 // A connection closed under it is told, not thrown; the run's own query fails as it should.
 pool.on('error', (error) => {
   console.error(`PostgreSQL: ${error.message}`)
 })
 try {
-  await migrateDatabase(pool, { appPassword })
-  console.log(`The database is up to date, and ${APP_ROLE} may read, write and delete its scans`)
+  await migrateDatabase(pool, { appPassword, workerPassword })
+  console.log(
+    `The database is up to date; ${APP_ROLE} may read, write and delete its scans, and ${WORKER_ROLE} may read, update and delete them`,
+  )
 } finally {
   await pool.end()
 }

@@ -7,8 +7,15 @@ import { database, hasPostgres } from './services'
 const NOW = new Date('2026-09-30T12:00:00.000Z')
 const suffix = randomBytes(4).toString('hex')
 /** Roles are the cluster's, not a database's: these have names of their own, and are dropped. */
-const ROLES = { appRole: `app_${suffix}`, migrateRole: `migrate_${suffix}` }
+const ROLES = {
+  appRole: `app_${suffix}`,
+  migrateRole: `migrate_${suffix}`,
+  workerRole: `worker_${suffix}`,
+}
 const password = () => randomBytes(32).toString('hex')
+const WORKER = password()
+const INSERT =
+  "INSERT INTO scans (id, url, state, created_at) VALUES ($1, 'https://example.com/', 'queued', now())"
 
 /** A pool that connects as one of the roles, to one of the test databases. */
 function as(role: string, secret: string, database: URL): pg.Pool {
@@ -38,7 +45,7 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
   async function provisioned(appPassword: string) {
     const made = await database()
     opened.push(made)
-    await migrateDatabase(made.pool, { appPassword, ...ROLES })
+    await migrateDatabase(made.pool, { workerPassword: WORKER, appPassword, ...ROLES })
     return made
   }
 
@@ -136,6 +143,88 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
     })
   })
 
+  describe('the worker', () => {
+    const secret = password()
+    let admin: pg.Pool
+    let worker: pg.Pool
+    let app: pg.Pool
+    beforeAll(async () => {
+      const made = await provisioned(secret)
+      admin = made.pool
+      worker = as(ROLES.workerRole, WORKER, made.url)
+      app = as(ROLES.appRole, secret, made.url)
+      pools.push(worker, app)
+    })
+
+    it('reads, updates and deletes scans, as a scan is taken, finished and aged out, and inserts none', async () => {
+      const id = 'AbCdEfGhIjKlMnOpQrSt_w'
+      await new PostgresScanStore(app).create({ id, url: 'https://example.com/', createdAt: NOW })
+      const store = new PostgresScanStore(worker)
+      expect(await store.start(id, NOW)).toBe(true)
+      expect(await store.fail(id, NOW)).toBe(true)
+      expect((await store.get(id))?.state).toBe('failed')
+      await expect(worker.query(INSERT, ['AbCdEfGhIjKlMnOpQrSt_x'])).rejects.toThrow(DENIED)
+      await worker.query('DELETE FROM scans WHERE id = $1', [id])
+    })
+
+    it('cannot read one row of the accounts, nor the migrations', async () => {
+      for (const table of [
+        'users',
+        'sessions',
+        'accounts',
+        'verifications',
+        'drizzle.__drizzle_migrations',
+      ]) {
+        await expect(worker.query(`SELECT * FROM ${table} LIMIT 0`), table).rejects.toThrow(DENIED)
+      }
+      await expect(worker.query('DELETE FROM sessions')).rejects.toThrow(DENIED)
+    })
+
+    it('cannot change the schema, empty a table, or become the owner', async () => {
+      await expect(worker.query('CREATE TABLE crept (a integer)')).rejects.toThrow(DENIED)
+      await expect(worker.query('ALTER TABLE scans ADD COLUMN crept integer')).rejects.toThrow(
+        DENIED,
+      )
+      await expect(worker.query('TRUNCATE scans')).rejects.toThrow(DENIED)
+      await expect(worker.query(`SET ROLE ${ROLES.migrateRole}`)).rejects.toThrow(DENIED)
+      await expect(worker.query(`SET ROLE ${ROLES.appRole}`)).rejects.toThrow(DENIED)
+      const { rows } = await worker.query(
+        'SELECT rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls FROM pg_roles WHERE rolname = current_user',
+      )
+      expect(Object.values(rows[0] as Record<string, boolean>)).toEqual([
+        false,
+        false,
+        false,
+        false,
+        false,
+      ])
+    })
+
+    it('does not see a table a later migration makes, which the application does', async () => {
+      await admin.query(`SET ROLE ${ROLES.migrateRole}`)
+      try {
+        await admin.query('CREATE TABLE later_for_app (id text PRIMARY KEY)')
+      } finally {
+        await admin.query('RESET ROLE')
+      }
+      await app.query('SELECT * FROM later_for_app')
+      await expect(worker.query('SELECT * FROM later_for_app')).rejects.toThrow(DENIED)
+    })
+
+    it('is put back when it drifted', async () => {
+      await admin.query(`ALTER ROLE ${ROLES.workerRole} CREATEDB`)
+      await admin.query(`GRANT SELECT ON users TO ${ROLES.workerRole}`)
+      await admin.query(`GRANT INSERT ON scans TO ${ROLES.workerRole}`)
+      await migrateDatabase(admin, { workerPassword: WORKER, appPassword: secret, ...ROLES })
+      await expect(worker.query('SELECT * FROM users LIMIT 0')).rejects.toThrow(DENIED)
+      await expect(worker.query(INSERT, ['AbCdEfGhIjKlMnOpQrSt_y'])).rejects.toThrow(DENIED)
+      const { rows } = await admin.query('SELECT rolcreatedb FROM pg_roles WHERE rolname = $1', [
+        ROLES.workerRole,
+      ])
+      expect(rows).toEqual([{ rolcreatedb: false }])
+    })
+  })
+
   it('run again to the same end, and set the password they are given', async () => {
     const first = password()
     const second = password()
@@ -144,7 +233,7 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
     pools.push(before)
     await before.query('SELECT 1')
     // A second run of the same version changes nothing but the password.
-    await migrateDatabase(pool, { appPassword: second, ...ROLES })
+    await migrateDatabase(pool, { workerPassword: WORKER, appPassword: second, ...ROLES })
     await expect(as(ROLES.appRole, first, url).query('SELECT 1')).rejects.toThrow(
       /password authentication failed/,
     )
@@ -166,7 +255,7 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
     )
     expect(before.rows[0]?.tableowner).not.toBe(ROLES.migrateRole)
 
-    await migrateDatabase(made.pool, { appPassword: secret, ...ROLES })
+    await migrateDatabase(made.pool, { workerPassword: WORKER, appPassword: secret, ...ROLES })
     const owners = await made.pool.query<{ tableowner: string }>(
       "SELECT tableowner FROM pg_tables WHERE tablename IN ('scans', '__drizzle_migrations')",
     )
@@ -186,7 +275,7 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
     await pool.query(`GRANT ${ROLES.migrateRole} TO ${ROLES.appRole}`)
     await pool.query(`GRANT USAGE ON SCHEMA drizzle TO ${ROLES.appRole}`)
     await pool.query(`GRANT SELECT ON drizzle.__drizzle_migrations TO ${ROLES.appRole}`)
-    await migrateDatabase(pool, { appPassword: secret, ...ROLES })
+    await migrateDatabase(pool, { workerPassword: WORKER, appPassword: secret, ...ROLES })
     const app = as(ROLES.appRole, secret, url)
     pools.push(app)
     const { rows } = await app.query<{ rolsuper: boolean; rolcreatedb: boolean }>(
@@ -203,10 +292,20 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
   it('refuses names it would have to quote, and one role for both jobs', async () => {
     const { pool } = await database().then((made) => (opened.push(made), made))
     await expect(
-      migrateDatabase(pool, { appPassword: password(), appRole: 'Bad Role', migrateRole: 'm' }),
+      migrateDatabase(pool, {
+        workerPassword: WORKER,
+        appPassword: password(),
+        appRole: 'Bad Role',
+        migrateRole: 'm',
+      }),
     ).rejects.toThrow(/lower case letters/)
     await expect(
-      migrateDatabase(pool, { appPassword: password(), appRole: 'same', migrateRole: 'same' }),
-    ).rejects.toThrow(/two roles/)
+      migrateDatabase(pool, {
+        workerPassword: WORKER,
+        appPassword: password(),
+        appRole: 'same',
+        migrateRole: 'same',
+      }),
+    ).rejects.toThrow(/three roles/)
   })
 })

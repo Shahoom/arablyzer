@@ -527,8 +527,75 @@ describe('the API', () => {
   })
 })
 
+describe('accounts through the whole stack', () => {
+  // Each request is its own visitor, by X-Forwarded-For as postScan's are, so that the sign-in
+  // limit of one is not spent by another.
+  const post = (path: string, body: unknown, visitor: string) =>
+    fetch(`${SITE}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: ORIGIN, 'x-forwarded-for': visitor },
+      body: JSON.stringify(body),
+    })
+
+  it('serves the sign-in and account pages in both languages, never indexed, with popups allowed for Google', async () => {
+    for (const path of ['/login', '/account', '/en/login', '/en/account']) {
+      const response = await fetch(`${SITE}${path}`)
+      expect(response.status, path).toBe(200)
+      expect(response.headers.get('x-robots-tag'), path).toBe('noindex, nofollow')
+      expect(response.headers.get('cross-origin-opener-policy'), path).toBe(
+        'same-origin-allow-popups',
+      )
+    }
+    // The rest of the site keeps the strict policy.
+    expect((await fetch(`${SITE}/`)).headers.get('cross-origin-opener-policy')).toBe('same-origin')
+  })
+
+  it('answers 401 to nobody, sets no cookie to an anonymous visitor, and keeps scans anonymous', async () => {
+    const account = await fetch(`${SITE}/api/account`, {
+      headers: { 'x-forwarded-for': '198.51.100.31' },
+    })
+    expect(account.status).toBe(401)
+    expect(await account.json()).toEqual({ error: 'unauthorized' })
+    const scan = await postScan('http://10.0.0.1/', '198.51.100.32')
+    expect(scan.headers.getSetCookie()).toEqual([])
+  })
+
+  it('refuses a sign-in that is not from the site, and a credential that is no token', async () => {
+    const foreign = await fetch(`${SITE}/api/session/one-tap`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: 'https://evil.example' },
+      body: JSON.stringify({ credential: 'a.b.c' }),
+    })
+    expect(foreign.status).toBe(400)
+    const forged = await post('/api/session/one-tap', { credential: 'a.b.c' }, '198.51.100.33')
+    expect(forged.status).toBe(400)
+    expect(forged.headers.getSetCookie()).toEqual([])
+  })
+
+  it("sends Google's token exchange through the egress proxy, and a made-up code is no session", async () => {
+    const started = await post('/api/session/google', { lang: 'en' }, '198.51.100.34')
+    expect(started.status).toBe(200)
+    const { url } = (await started.json()) as { url: string }
+    const authorize = new URL(url)
+    expect(authorize.host).toBe('accounts.google.com')
+    expect(authorize.searchParams.get('scope')).toBe('email profile openid')
+    const cookie = started.headers
+      .getSetCookie()
+      .map((line) => line.split(';')[0])
+      .join('; ')
+    const back = await fetch(
+      `${SITE}/api/auth/callback/google?code=made-up&state=${authorize.searchParams.get('state') ?? ''}`,
+      { headers: { cookie, 'x-forwarded-for': '198.51.100.34' }, redirect: 'manual' },
+    )
+    expect(back.status).toBe(302)
+    expect(back.headers.get('location') ?? '').toMatch(/\/en\/login\?error=/)
+    expect(back.headers.getSetCookie().join('\n')).not.toContain('session_token=')
+    expect(compose('logs', '--no-color', 'egress')).toContain('oauth2.googleapis.com')
+  })
+})
+
 describe('the stores', () => {
-  it('give the API and the worker a role that reads, writes and deletes scans and changes nothing else', () => {
+  it('give the API a role that reads, writes and deletes scans and the accounts, and the worker one that reads the scans alone', () => {
     expect(databaseRoles(stack)).toEqual([])
   })
 

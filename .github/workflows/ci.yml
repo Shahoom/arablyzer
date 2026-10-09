@@ -247,6 +247,15 @@ jobs:
             echo "VALKEY_PASSWORD=$(secret)"
             echo "POSTGRES_PASSWORD=$(secret)"
             echo "POSTGRES_APP_PASSWORD=$(secret)"
+            echo "POSTGRES_WORKER_PASSWORD=$(secret)"
+            # Accounts on, with a Google client that is made up: nothing signs in here, but the
+            # API starts with all its settings and the pages are built with the sign-in button.
+            echo ARABLYZER_ACCOUNTS=on
+            echo ARABLYZER_AUTH_GOOGLE_CLIENT_ID=stack-test.apps.googleusercontent.com
+            echo ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET=stack-test-secret
+            echo "BETTER_AUTH_SECRET=$(secret)"
+            echo ARABLYZER_LIMIT_SIGNIN_REQUESTS=20
+            echo ARABLYZER_LIMIT_SIGNIN_SECONDS=600
             # The server's own addresses stand in: an unused address of the test network, and an
             # IPv6 address that nothing holds, which the API, the scanner and the egress proxy all
             # read, and the proxy refuses (the stack's test).

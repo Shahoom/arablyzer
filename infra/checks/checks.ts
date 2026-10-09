@@ -19,6 +19,7 @@ const UNRESOLVED = /^(?:ENOTFOUND|EAI_AGAIN)$/
 
 /** The role the API and the worker connect as, and the one the database's own step makes. */
 const APP_ROLE = 'arablyzer_app'
+const WORKER_ROLE = 'arablyzer_worker'
 
 /** The oldest Docker Engine that gives the internal networks no address for the host. */
 const MIN_ENGINE = 28
@@ -360,7 +361,10 @@ function environment(stack: Stack, service: string): string[] {
 export function databaseRoles(stack: Stack): string[] {
   const problems: string[] = []
   const bootstrap = stack.env('postgres', 'POSTGRES_PASSWORD') ?? ''
-  for (const service of ['api', 'worker']) {
+  for (const [service, role] of [
+    ['api', APP_ROLE],
+    ['worker', WORKER_ROLE],
+  ] as const) {
     const url = stack.env(service, 'DATABASE_URL') ?? ''
     let user = ''
     try {
@@ -368,7 +372,7 @@ export function databaseRoles(stack: Stack): string[] {
     } catch {
       problems.push(`${service}'s DATABASE_URL is not a URL`)
     }
-    if (user !== APP_ROLE) problems.push(`${service} connects as ${user}, not ${APP_ROLE}`)
+    if (user !== role) problems.push(`${service} connects as ${user}, not ${role}`)
   }
   if (bootstrap !== '') {
     for (const service of ['api', 'worker', 'scanner', 'web', 'egress', 'valkey']) {
@@ -421,6 +425,49 @@ export function databaseRoles(stack: Stack): string[] {
   if (tried.reads !== true) problems.push(`${APP_ROLE} cannot read the scans`)
   for (const [statement, outcome] of Object.entries(tried)) {
     if (outcome === 'allowed') problems.push(`${APP_ROLE} may run: ${statement}`)
+  }
+  // The worker faces the web's results and reads the scans alone: not one row of the accounts. It
+  // connects from the API's container (which has the driver), with the worker's own URL.
+  const workerUrl = stack.env('worker', 'DATABASE_URL') ?? ''
+  const worker = JSON.parse(
+    stack.inside(
+      'api',
+      `const { createRequire } = require('node:module');
+       const path = require('node:path');
+       const need = createRequire(path.join(process.cwd(), 'apps/api/package.json'));
+       const pg = need('pg');
+       (async () => {
+         const client = new pg.Client({ connectionString: ${JSON.stringify(workerUrl)} });
+         await client.connect();
+         const out = {};
+         for (const sql of [
+           'SELECT count(*) FROM scans',
+           'SELECT count(*) FROM sessions',
+           'SELECT count(*) FROM users',
+           'SELECT count(*) FROM accounts',
+           'SELECT count(*) FROM verifications',
+           "INSERT INTO scans (id, url, state, created_at) VALUES ('verify_deploy_probe', 'https://example.com/', 'queued', now())",
+           'CREATE TABLE verify_deploy_probe (a integer)',
+         ]) {
+           try {
+             await client.query('BEGIN');
+             await client.query(sql);
+             out[sql] = 'allowed';
+           } catch (error) {
+             out[sql] = 'refused';
+           } finally {
+             await client.query('ROLLBACK');
+           }
+         }
+         await client.end();
+         console.log(JSON.stringify(out));
+       })();`,
+    ),
+  ) as Record<string, string>
+  for (const [statement, outcome] of Object.entries(worker)) {
+    const mayRun = statement === 'SELECT count(*) FROM scans'
+    if (mayRun && outcome !== 'allowed') problems.push(`${WORKER_ROLE} cannot read the scans`)
+    if (!mayRun && outcome === 'allowed') problems.push(`${WORKER_ROLE} may run: ${statement}`)
   }
   return problems
 }

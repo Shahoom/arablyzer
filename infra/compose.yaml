@@ -45,6 +45,8 @@ services:
       args:
         ARABLYZER_SITE: ${ARABLYZER_SITE:?}
         PUBLIC_TURNSTILE_SITE_KEY: ${PUBLIC_TURNSTILE_SITE_KEY:?}
+        # Public, built into the sign-in page; empty, no account link or sign-in button is built.
+        PUBLIC_AUTH_GOOGLE_CLIENT_ID: ${ARABLYZER_AUTH_GOOGLE_CLIENT_ID:-}
     # For the host's own proxy, which terminates TLS in front, alone: on loopback unless
     # ARABLYZER_BIND says otherwise. Caddy binds a port above 1024, so it needs no capability.
     ports: ['${ARABLYZER_BIND:-127.0.0.1}:${ARABLYZER_PORT:-8080}:8080']
@@ -80,6 +82,18 @@ services:
       # Search Console, connected from a report: both, or neither (the button is then hidden).
       ARABLYZER_GSC_CLIENT_ID: ${ARABLYZER_GSC_CLIENT_ID:-}
       ARABLYZER_GSC_CLIENT_SECRET: ${ARABLYZER_GSC_CLIENT_SECRET:-}
+      # Accounts (M4.1), off unless ARABLYZER_ACCOUNTS=on; then every line below must be set.
+      ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
+      ARABLYZER_AUTH_GOOGLE_CLIENT_ID: ${ARABLYZER_AUTH_GOOGLE_CLIENT_ID:-}
+      ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET: ${ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET:-}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      ARABLYZER_LIMIT_SIGNIN_REQUESTS: ${ARABLYZER_LIMIT_SIGNIN_REQUESTS:-}
+      ARABLYZER_LIMIT_SIGNIN_SECONDS: ${ARABLYZER_LIMIT_SIGNIN_SECONDS:-}
+      # The accounts library calls Google with Node's own fetch, which reaches the network through
+      # the egress proxy by these three (a test shows it: apps/api/test/egress-proxy.test.ts).
+      NODE_USE_ENV_PROXY: '1'
+      HTTPS_PROXY: http://egress:4750
+      NO_PROXY: 127.0.0.1,localhost
       TURNSTILE_SECRET: ${TURNSTILE_SECRET:?}
       ARABLYZER_LIMIT_SECRET: ${ARABLYZER_LIMIT_SECRET:?}
       ARABLYZER_LIMIT_CONNECTION_SCANS: ${ARABLYZER_LIMIT_CONNECTION_SCANS:?}
@@ -130,6 +144,7 @@ services:
     environment:
       DATABASE_URL: postgres://arablyzer:${POSTGRES_PASSWORD:?}@postgres:5432/arablyzer
       ARABLYZER_APP_DATABASE_PASSWORD: ${POSTGRES_APP_PASSWORD:?}
+      ARABLYZER_WORKER_DATABASE_PASSWORD: ${POSTGRES_WORKER_PASSWORD:?}
     networks: [data]
     depends_on:
       postgres: { condition: service_healthy }
@@ -145,7 +160,8 @@ services:
     tmpfs: [/tmp]
     environment:
       VALKEY_URL: redis://arablyzer:${VALKEY_PASSWORD:?}@valkey:6379
-      DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
+      # Its own role: it reads, updates and deletes scans, and cannot read one row of the accounts.
+      DATABASE_URL: postgres://arablyzer_worker:${POSTGRES_WORKER_PASSWORD:?}@postgres:5432/arablyzer
       ARABLYZER_SCANNER_URL: http://scanner:8788
       ARABLYZER_SCANNER_TOKEN: ${ARABLYZER_SCANNER_TOKEN:?}
       # The site a scan ends at, after its redirects, counts against the per-host limit: the API's

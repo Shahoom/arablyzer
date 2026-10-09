@@ -85,6 +85,18 @@
 		file_server
 	}
 
+	# The sign-in and account pages (M4.1), never indexed. Google's button opens its sign-in in a popup
+	# that talks back to the page, which the site-wide Cross-Origin-Opener-Policy: same-origin would
+	# cut: these pages alone allow popups.
+	@auth path /login /account /en/login /en/account
+	handle @auth {
+		header X-Robots-Tag "noindex, nofollow"
+		header Cross-Origin-Opener-Policy "same-origin-allow-popups"
+		root * /srv
+		rewrite * {path}.html
+		file_server
+	}
+
 	# A page is its path's .html file (Astro's build.format 'preserve'): /tools is tools.html,
 	# /tools/rtl-check is tools/rtl-check.html; a directory's page is its index.html.
 	handle {

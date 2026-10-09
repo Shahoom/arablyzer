@@ -19,6 +19,7 @@ export {
   APP_ROLE,
   MIGRATE_ROLE,
   migrateDatabase,
+  WORKER_ROLE,
   type ProvisionOptions,
 } from './postgres/provision'
 export { PostgresScanStore, type PostgresScanStoreOptions } from './postgres/store'

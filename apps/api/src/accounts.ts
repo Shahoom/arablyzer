@@ -285,7 +285,11 @@ export function mountAccounts(app: Hono, deps: ApiDeps & { accounts: AccountsDep
       return c.redirect(`${LOGIN_PAGE_PATH}?error=${limited.error}`, 302)
     }
     try {
-      return await auth.handler(c.req.raw)
+      const answer = await auth.handler(c.req.raw)
+      // The library answers a sign-in with a redirect; anything else is a failure it did not
+      // turn into one, and the browser is better sent back to the sign-in page than shown JSON.
+      if (answer.status >= 300 && answer.status < 400) return answer
+      return c.redirect(`${LOGIN_PAGE_PATH}?error=failed`, 302)
     } catch (thrown) {
       tell(thrown)
       return c.redirect(`${LOGIN_PAGE_PATH}?error=unavailable`, 302)

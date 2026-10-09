@@ -316,7 +316,7 @@ describe("Google's redirect flow", () => {
       { cookie, headers: { origin: '' } },
     )
     expect(back.status).toBe(302)
-    expect(new URL(back.headers.get('location') ?? '', SITE).pathname).toBe('/en/account/')
+    expect(new URL(back.headers.get('location') ?? '', SITE).pathname).toBe('/en/account')
     const session = back.headers
       .getSetCookie()
       .map((line) => line.split(';')[0])
@@ -340,7 +340,7 @@ describe("Google's redirect flow", () => {
     )
     expect(back.status).toBe(302)
     const location = new URL(back.headers.get('location') ?? '', SITE)
-    expect(location.pathname).toBe('/login/')
+    expect(location.pathname).toBe('/login')
     expect(location.searchParams.get('error')).not.toBeNull()
     expect(back.headers.getSetCookie().join('\n')).not.toContain('session_token=ey')
     expect(tables.session).toHaveLength(0)
@@ -366,6 +366,24 @@ describe("Google's redirect flow", () => {
         })
       ).status,
     ).toBe(400)
+  })
+
+  it('sends a token exchange that came to nothing back to the sign-in page, never shows JSON', async () => {
+    stubGoogle('not-a-token')
+    const { send } = setup()
+    const started = await send('POST', '/api/session/google', { body: { lang: 'ar' } })
+    const { url } = (await started.json()) as { url: string }
+    const cookie = started.headers
+      .getSetCookie()
+      .map((line) => line.split(';')[0])
+      .join('; ')
+    const back = await send(
+      'GET',
+      `/api/auth/callback/google?code=abc&state=${new URL(url).searchParams.get('state') ?? ''}`,
+      { cookie, headers: { origin: '' } },
+    )
+    expect(back.status).toBe(302)
+    expect(back.headers.get('location')).toContain('/login?error=')
   })
 
   it('counts the callback against the visitor, and sends them back to sign in', async () => {
