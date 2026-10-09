@@ -40,6 +40,7 @@ const SAVED = {
   createdAt: SOON,
   lastScan: LAST,
   monitor: null,
+  crawl: null,
 }
 const MONITOR = {
   everyDays: 7,
@@ -179,6 +180,7 @@ async function open(base: FixtureSite, scenario: Scenario) {
             sites: scenario.sites ?? [],
             limit: scenario.limit ?? 3,
             monitoring: scenario.monitoring ?? { limit: 1, everyDays: 7 },
+            crawlPages: 50,
           }),
         )
       }
@@ -195,6 +197,7 @@ async function open(base: FixtureSite, scenario: Scenario) {
               createdAt: SOON,
               lastScan: null,
               monitor: null,
+              crawl: null,
             },
             201,
           ),
