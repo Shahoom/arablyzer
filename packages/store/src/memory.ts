@@ -4,6 +4,7 @@ import type { Report } from '@arablyzer/report-schema'
 import type {
   Deletion,
   NewScan,
+  RetentionScope,
   ScanEvents,
   ScanJob,
   ScanQueue,
@@ -18,6 +19,8 @@ export class MemoryScanStore implements ScanStore {
   readonly #scans = new Map<string, ScanRecord>()
   /** The deletion tokens' hashes, apart from the scans: a scan is never given with one. */
   readonly #hashes = new Map<string, string>()
+  /** The scans an account keeps (MemoryAccountData marks them); the global sweep leaves these. */
+  readonly linked = new Set<string>()
 
   create(scan: NewScan): Promise<void> {
     if (this.#scans.has(scan.id)) return Promise.reject(new Error(`Scan ${scan.id} exists`))
@@ -68,21 +71,25 @@ export class MemoryScanStore implements ScanStore {
     if (stored === undefined || given.length !== kept.length || !timingSafeEqual(given, kept)) {
       return Promise.resolve('forbidden')
     }
-    this.#scans.delete(id)
-    this.#hashes.delete(id)
+    this.purge([id])
     return Promise.resolve('deleted')
   }
 
-  deleteOlderThan(before: Date): Promise<number> {
-    let deleted = 0
-    for (const [id, scan] of this.#scans) {
-      if (scan.createdAt < before) {
-        this.#scans.delete(id)
-        this.#hashes.delete(id)
-        deleted++
-      }
+  deleteOlderThan(before: Date, scope: RetentionScope = 'unlinked'): Promise<number> {
+    const old = [...this.#scans.values()].filter(
+      (scan) => scan.createdAt < before && this.linked.has(scan.id) === (scope === 'linked'),
+    )
+    this.purge(old.map((scan) => scan.id))
+    return Promise.resolve(old.length)
+  }
+
+  /** Removes scans and what is kept of them (erasure of an account, retention). */
+  purge(ids: Iterable<string>): void {
+    for (const id of ids) {
+      this.#scans.delete(id)
+      this.#hashes.delete(id)
+      this.linked.delete(id)
     }
-    return Promise.resolve(deleted)
   }
 
   states(ids: readonly string[]): Promise<ReadonlyMap<string, ScanState>> {

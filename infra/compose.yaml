@@ -89,6 +89,12 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
       ARABLYZER_LIMIT_SIGNIN_REQUESTS: ${ARABLYZER_LIMIT_SIGNIN_REQUESTS:-}
       ARABLYZER_LIMIT_SIGNIN_SECONDS: ${ARABLYZER_LIMIT_SIGNIN_SECONDS:-}
+      # The free account's numbers (M4.2): all five are read, and all must be set, with accounts on.
+      ARABLYZER_PLAN_ACCOUNT_SCANS: ${ARABLYZER_PLAN_ACCOUNT_SCANS:-}
+      ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS: ${ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS:-}
+      ARABLYZER_PLAN_ACCOUNT_INFLIGHT: ${ARABLYZER_PLAN_ACCOUNT_INFLIGHT:-}
+      ARABLYZER_PLAN_ACCOUNT_SAVED_SITES: ${ARABLYZER_PLAN_ACCOUNT_SAVED_SITES:-}
+      ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS:-}
       # The accounts library calls Google with Node's own fetch, which reaches the network through
       # the egress proxy by these three (a test shows it: apps/api/test/egress-proxy.test.ts).
       NODE_USE_ENV_PROXY: '1'
@@ -170,6 +176,9 @@ services:
       ARABLYZER_LIMIT_HOST_SECONDS: ${ARABLYZER_LIMIT_HOST_SECONDS:?}
       # Days reports are kept: the owner's number, and unset (empty) keeps them all.
       ARABLYZER_REPORT_RETENTION_DAYS: ${ARABLYZER_REPORT_RETENTION_DAYS:-}
+      # With accounts on, the scans an account keeps are deleted after the plan's history days.
+      ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
+      ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS:-}
     networks: [data, scan]
     depends_on:
       api: { condition: service_healthy }

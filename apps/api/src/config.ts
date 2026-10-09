@@ -8,9 +8,16 @@ import {
   serverPolicy,
 } from '@arablyzer/egress'
 import { USER_AGENT } from '@arablyzer/engine/identity'
-import { accountsModeFrom, authLimitsFrom, limitsFrom } from '@arablyzer/plans'
+import {
+  accountsModeFrom,
+  authLimitsFrom,
+  limitsFrom,
+  planCatalogFrom,
+  type ScanLimits,
+} from '@arablyzer/plans'
 import {
   requireSecret,
+  type AccountData,
   type Handoff,
   type InFlight,
   type RateLimiter,
@@ -38,6 +45,8 @@ export interface Stores {
   readonly handoff?: Handoff
   /** Where Better Auth keeps accounts and sessions; needed when ARABLYZER_ACCOUNTS is on. */
   readonly auth?: { readonly database: AuthDatabase }
+  /** What an account keeps (its sites and scans); needed with accounts on (M4.2). */
+  readonly accountData?: AccountData
 }
 
 /**
@@ -158,10 +167,13 @@ export function apiDeps(
     log('Search Console is off: it needs ARABLYZER_SITE and the store for its one-time values.')
   }
 
+  const limits = limitsFrom(env)
   const accounts = accountsFrom(env, {
     production,
     siteUrl,
     database: stores.auth?.database,
+    data: stores.accountData,
+    limits,
     log,
   })
 
@@ -169,7 +181,7 @@ export function apiDeps(
     ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
     ...(gsc === undefined ? {} : { gsc }),
     ...(accounts === undefined ? {} : { accounts }),
-    limits: limitsFrom(env),
+    limits,
     policy,
     resolver,
     turnstile,
@@ -197,14 +209,19 @@ function accountsFrom(
     readonly production: boolean
     readonly siteUrl: URL | undefined
     readonly database: AuthDatabase | undefined
+    readonly data: AccountData | undefined
+    readonly limits: ScanLimits
     readonly log: (message: string) => void
   },
 ): AccountsDeps | undefined {
   if (accountsModeFrom(env) !== 'on') return undefined
-  const { production, siteUrl, database } = options
+  const { production, siteUrl, database, data } = options
   if (siteUrl === undefined) throw new Error('ARABLYZER_ACCOUNTS=on needs ARABLYZER_SITE')
   if (database === undefined) {
     throw new Error('ARABLYZER_ACCOUNTS=on needs a database for accounts (stores.auth)')
+  }
+  if (data === undefined) {
+    throw new Error('ARABLYZER_ACCOUNTS=on needs a store for sites and scans (stores.accountData)')
   }
   const clientId = env[AUTH_GOOGLE_CLIENT_ID_VARIABLE]?.trim() ?? ''
   const clientSecret = env[AUTH_GOOGLE_CLIENT_SECRET_VARIABLE]?.trim() ?? ''
@@ -239,9 +256,14 @@ function accountsFrom(
       database,
       google: { clientId, clientSecret },
       production,
+      // An account's scans and their reports go with it; the rest cascades in the database.
+      beforeDelete: (userId) => data.eraseUser(userId),
       log: options.log,
     }),
     limits: authLimitsFrom(env),
     secureCookies: production,
+    data,
+    // Production refuses to start without the plan's numbers, as it does without the abuse limits.
+    plans: planCatalogFrom(env, options.limits),
   }
 }

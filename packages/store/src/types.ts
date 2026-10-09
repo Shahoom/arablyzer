@@ -28,6 +28,9 @@ export interface NewScan {
   readonly deleteTokenHash?: string
 }
 
+/** Whose scans a retention sweep deletes: those no account keeps, or those an account keeps. */
+export type RetentionScope = 'unlinked' | 'linked'
+
 /** What `delete` did: deleted it, refused the hash, or found no such scan. */
 export type Deletion = 'deleted' | 'forbidden' | 'missing'
 
@@ -56,9 +59,11 @@ export interface ScanStore {
   delete(id: string, tokenHash: string): Promise<Deletion>
   /**
    * Deletes the scans created before the time, in any state, with their reports (retention,
-   * issue #33): a scan created at the time is kept. The number deleted.
+   * issue #33): a scan created at the time is kept. The number deleted. `scope` says whose: the
+   * scans no account keeps (the default, ARABLYZER_REPORT_RETENTION_DAYS), or those an account
+   * keeps, which only the plan's history days delete (M4.2).
    */
-  deleteOlderThan(before: Date): Promise<number>
+  deleteOlderThan(before: Date, scope?: RetentionScope): Promise<number>
 }
 
 /** What the worker is given: the scan and its page, and nothing else. */

@@ -1,3 +1,5 @@
+export { MemoryAccountData } from './accounts'
+export type { AccountData, AddedSite, HistoryEntry, SavedSite, ScanSource } from './accounts'
 export { BullMQScanQueue, SCAN_QUEUE, SCAN_WORKER } from './bullmq'
 export {
   connectionUrl,
@@ -13,8 +15,10 @@ export { MemoryRateLimiter, secondsUntilOne, type RateLimiter, type Taken } from
 export { quietly } from './log'
 export { MemoryScanEvents, MemoryScanQueue, MemoryScanStore } from './memory'
 export { PostgresAuthMaintenance, type AuthMaintenance } from './postgres/auth-maintenance'
+export { PostgresAccountData } from './postgres/account-store'
 export { authDatabase, authSchema } from './postgres/auth-schema'
 export { scans } from './postgres/schema'
+export { accountScans, sites } from './postgres/site-schema'
 export {
   APP_ROLE,
   MIGRATE_ROLE,
@@ -27,6 +31,7 @@ export { MIN_SECRET_LENGTH, requireSecret } from './secrets'
 export type {
   Deletion,
   NewScan,
+  RetentionScope,
   ScanEvents,
   ScanJob,
   ScanQueue,

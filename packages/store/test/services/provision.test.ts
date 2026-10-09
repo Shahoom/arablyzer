@@ -173,10 +173,17 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
         'sessions',
         'accounts',
         'verifications',
+        'sites',
+        'account_scans',
         'drizzle.__drizzle_migrations',
       ]) {
         await expect(worker.query(`SELECT * FROM ${table} LIMIT 0`), table).rejects.toThrow(DENIED)
       }
+      // Of the links it may read which scans an account keeps (retention), and not whose.
+      await worker.query('SELECT scan_id FROM account_scans LIMIT 0')
+      await expect(worker.query('SELECT user_id FROM account_scans LIMIT 0')).rejects.toThrow(
+        DENIED,
+      )
       await expect(worker.query('DELETE FROM sessions')).rejects.toThrow(DENIED)
     })
 

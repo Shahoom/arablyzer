@@ -1,5 +1,6 @@
-import type { AuthErrorCode } from '@arablyzer/api-contract/codes'
+import type { AuthErrorCode, ScanState } from '@arablyzer/api-contract/codes'
 import type { Copy } from './copy'
+import { arabicCount, DAYS_DURATION, englishCount } from './plural'
 
 /** What can go wrong in the sign-in and account pages: the API's codes, and the page's own. */
 export type AccountProblem =
@@ -59,6 +60,33 @@ export interface AccountStrings {
     readonly done: string
     readonly doneDetail: string
   }
+  /** Saved sites and the history (M4.2): numbers come from the API's answers, never from here. */
+  readonly sites: {
+    readonly title: string
+    readonly lead: string
+    /** «2 of 5»: the sites saved and the plan's limit. */
+    readonly count: (used: number, limit: number) => string
+    readonly addLabel: string
+    readonly addPlaceholder: string
+    readonly add: string
+    readonly adding: string
+    readonly empty: string
+    readonly scanNow: string
+    readonly scanning: string
+    readonly removeLabel: (url: string) => string
+    readonly remove: string
+    readonly notScanned: string
+    readonly lastScan: string
+    readonly score: string
+    readonly noScore: string
+    readonly openReport: string
+    readonly historyTitle: string
+    /** «We keep your scans for 90 days, then delete them.» */
+    readonly historyLead: (days: number) => string
+    readonly historyEmpty: string
+    readonly states: Readonly<Record<ScanState, string>>
+    readonly loading: string
+  }
   readonly problems: Readonly<Record<AccountProblem, string>>
 }
 
@@ -70,7 +98,7 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       title: 'تسجيل الدخول',
       lead: 'الدخول اختياري. الفحص يبقى مجانياً وبلا حساب. ندخلك بحساب Google، فلا توجد كلمة مرور تُنشئها أو تنساها.',
       keeps:
-        'نحفظ بريدك واسمك واللغة التي تختارها، وكوكي واحداً يُبقيك مسجلاً للدخول. لا نحفظ كلمة مرور ولا صورة شخصية ولا أي شيء آخر من حساب Google. وتستطيع حذف حسابك في أي وقت.',
+        'نحفظ بريدك واسمك واللغة التي تختارها، والمواقع التي تحفظها، وفحوصك وأنت مسجّل الدخول مع تقاريرها، وكوكي واحداً يُبقيك مسجلاً للدخول. لا نحفظ كلمة مرور ولا صورة شخصية ولا أي شيء آخر من حساب Google. وتستطيع حذف حسابك في أي وقت.',
       preparing: 'نجهّز زر Google…',
       fallback: 'تعذّر تحميل زر Google هنا، فادخل من صفحة Google نفسها.',
       google: 'تسجيل الدخول باستخدام Google',
@@ -91,12 +119,12 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       signedOut: 'سجّلت خروجك.',
       loading: 'نفتح حسابك…',
       pageTitle: 'حسابك — Arablyzer',
-      pageDescription: 'حسابك في Arablyzer: بريدك ولغتك، والخروج وحذف الحساب.',
+      pageDescription: 'حسابك في Arablyzer: مواقعك المحفوظة وفحوصك الأخيرة، والخروج وحذف الحساب.',
       unavailable: 'الحسابات غير مفعّلة في هذا الموقع. الفحص يعمل كالمعتاد بلا حساب.',
     },
     delete: {
       title: 'حذف الحساب',
-      text: 'يمحو هذا حسابك وجلساتك والبريد والاسم اللذين حفظناهما، ولا يمكن التراجع عنه. التقارير التي أنشأتها بالفحص غير مرتبطة بحسابك وتبقى كما هي.',
+      text: 'يمحو هذا حسابك وجلساتك والبريد والاسم اللذين حفظناهما، ومواقعك المحفوظة، وفحوصك التي أجريتها وأنت مسجّل الدخول مع تقاريرها. لا يمكن التراجع عن ذلك. أما فحوصك بلا تسجيل دخول فغير مرتبطة بحسابك وتبقى كما هي.',
       open: 'حذف الحساب…',
       confirm: 'احذف حسابي نهائياً',
       cancel: 'إلغاء',
@@ -106,12 +134,43 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       done: 'حُذف حسابك.',
       doneDetail: 'لم يبقَ عندنا شيء عنك.',
     },
+    sites: {
+      title: 'مواقعك',
+      lead: 'احفظ مواقعك لتفحصها من هنا بضغطة واحدة، وتجد فحوصها الأخيرة ودرجاتها.',
+      count: (used, limit) => `المحفوظ ${used} من أصل ${limit}`,
+      addLabel: 'رابط الموقع',
+      addPlaceholder: 'https://example.com',
+      add: 'احفظ الموقع',
+      adding: 'نحفظ الموقع…',
+      empty: 'لم تحفظ موقعاً بعد.',
+      scanNow: 'افحص الآن',
+      scanning: 'نبدأ الفحص…',
+      removeLabel: (url) => `احذف ${url} من مواقعك`,
+      remove: 'احذف',
+      notScanned: 'لم يُفحص بعد',
+      lastScan: 'آخر فحص',
+      score: 'الدرجة',
+      noScore: 'بلا درجة',
+      openReport: 'افتح التقرير',
+      historyTitle: 'فحوصك الأخيرة',
+      historyLead: (days) => `نحتفظ بفحوصك لمدة ${arabicCount(days, DAYS_DURATION)}، ثم نحذفها.`,
+      historyEmpty: 'لم تفحص شيئاً وأنت مسجّل الدخول بعد.',
+      states: {
+        queued: 'في الانتظار',
+        running: 'يعمل الآن',
+        complete: 'اكتمل',
+        partial: 'اكتمل جزئياً',
+        failed: 'تعذّر',
+      },
+      loading: 'نفتح مواقعك…',
+    },
     problems: {
       'bad-request': 'تعذّر قراءة الطلب. حدّث الصفحة وأعد المحاولة.',
       'rate-limited': 'محاولات كثيرة.',
       unauthorized: 'لم تسجّل الدخول.',
       'invalid-token': 'لم نقبل ردّ Google. أعد المحاولة.',
       'fresh-login-required': 'لحمايتك، ادخل مرة أخرى ثم أعد المحاولة.',
+      'plan-limit': 'وصلت إلى الحد الذي تتيحه خطتك من المواقع المحفوظة. احذف موقعاً لتحفظ غيره.',
       'not-found': 'الحسابات غير مفعّلة في هذا الموقع.',
       unavailable: 'خدمة الحسابات غير متاحة الآن. أعد المحاولة بعد قليل.',
       network: 'لم نصل إلى الخدمة. تأكد من اتصالك وأعد المحاولة.',
@@ -126,7 +185,7 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       title: 'Sign in',
       lead: 'Signing in is optional. Scans stay free and need no account. You sign in with Google, so there is no password to make or lose.',
       keeps:
-        'We keep your email address, your name, the language you choose, and one cookie that keeps you signed in. We keep no password, no profile picture and nothing else from your Google account. You can delete your account at any time.',
+        'We keep your email address, your name, the language you choose, the sites you save, the scans you run while signed in with their reports, and one cookie that keeps you signed in. We keep no password, no profile picture and nothing else from your Google account. You can delete your account at any time.',
       preparing: 'Getting the Google button ready…',
       fallback: 'Google’s button could not load here, so sign in on Google’s own page.',
       google: 'Sign in with Google',
@@ -148,12 +207,12 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       loading: 'Opening your account…',
       pageTitle: 'Your account — Arablyzer',
       pageDescription:
-        'Your Arablyzer account: your email and language, signing out and deleting it.',
+        'Your Arablyzer account: your saved sites and recent scans, signing out and deleting it.',
       unavailable: 'Accounts are not turned on on this site. Scanning works as usual without one.',
     },
     delete: {
       title: 'Delete account',
-      text: 'This erases your account, your sessions, and the email address and name we kept. It cannot be undone. Reports from scans you ran are not tied to your account and stay as they are.',
+      text: 'This erases your account, your sessions, the email address and name we kept, your saved sites, and the scans you ran while signed in, with their reports. It cannot be undone. Scans you ran without signing in are not tied to your account and stay as they are.',
       open: 'Delete account…',
       confirm: 'Delete my account for good',
       cancel: 'Cancel',
@@ -163,12 +222,45 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       done: 'Your account was deleted.',
       doneDetail: 'We keep nothing about you.',
     },
+    sites: {
+      title: 'Your sites',
+      lead: 'Save your sites to scan them from here in one click, and see their latest scans and scores.',
+      count: (used, limit) => `${used} of ${limit} saved`,
+      addLabel: 'Site URL',
+      addPlaceholder: 'https://example.com',
+      add: 'Save site',
+      adding: 'Saving the site…',
+      empty: 'You have not saved a site yet.',
+      scanNow: 'Scan now',
+      scanning: 'Starting the scan…',
+      removeLabel: (url) => `Remove ${url} from your sites`,
+      remove: 'Remove',
+      notScanned: 'Not scanned yet',
+      lastScan: 'Last scan',
+      score: 'Score',
+      noScore: 'No score',
+      openReport: 'Open the report',
+      historyTitle: 'Your recent scans',
+      historyLead: (days) =>
+        `We keep your scans for ${englishCount(days, 'day', 'days')}, then delete them.`,
+      historyEmpty: 'You have not scanned anything while signed in yet.',
+      states: {
+        queued: 'Waiting',
+        running: 'Running',
+        complete: 'Done',
+        partial: 'Partly done',
+        failed: 'Failed',
+      },
+      loading: 'Opening your sites…',
+    },
     problems: {
       'bad-request': 'We could not read that request. Reload the page and try again.',
       'rate-limited': 'Too many attempts.',
       unauthorized: 'You are not signed in.',
       'invalid-token': 'Google’s answer was not accepted. Try again.',
       'fresh-login-required': 'To keep you safe, sign in again, then try again.',
+      'plan-limit':
+        'You have reached the number of saved sites your plan allows. Remove one to save another.',
       'not-found': 'Accounts are not turned on on this site.',
       unavailable: 'The account service is not available right now. Try again in a moment.',
       network: 'We could not reach the service. Check your connection and try again.',

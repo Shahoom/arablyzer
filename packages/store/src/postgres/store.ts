@@ -1,13 +1,14 @@
 import { fileURLToPath } from 'node:url'
 import type { ScanState } from '@arablyzer/api-contract'
 import type { Report } from '@arablyzer/report-schema'
-import { and, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
+import { and, eq, exists, inArray, lt, notExists, sql, type SQL } from 'drizzle-orm'
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import type { PgUpdateSetSource } from 'drizzle-orm/pg-core'
 import type { Pool } from 'pg'
-import type { Deletion, NewScan, ScanRecord, ScanStore } from '../types'
+import type { Deletion, NewScan, RetentionScope, ScanRecord, ScanStore } from '../types'
 import { scans } from './schema'
+import { accountScans } from './site-schema'
 
 export const MIGRATIONS = fileURLToPath(new URL('../../drizzle/', import.meta.url))
 /** The advisory lock the migration holds, so API processes that start together migrate once. */
@@ -116,7 +117,14 @@ export class PostgresScanStore implements ScanStore {
     return row === undefined ? 'missing' : 'forbidden'
   }
 
-  async deleteOlderThan(before: Date): Promise<number> {
+  async deleteOlderThan(before: Date, scope: RetentionScope = 'unlinked'): Promise<number> {
+    // Whose scans: those an account keeps are told apart by the link's scan id alone, the one
+    // column of that table the worker's role can read.
+    const kept = this.#db
+      .select({ id: accountScans.scanId })
+      .from(accountScans)
+      .where(eq(accountScans.scanId, scans.id))
+    const whose = scope === 'linked' ? exists(kept) : notExists(kept)
     // In batches, so no one statement holds the reports of a table's worth of scans: the first
     // sweep after retention is set may find years of them.
     let deleted = 0
@@ -124,7 +132,7 @@ export class PostgresScanStore implements ScanStore {
       const oldest = this.#db
         .select({ id: scans.id })
         .from(scans)
-        .where(lt(scans.createdAt, before))
+        .where(and(lt(scans.createdAt, before), whose))
         .limit(this.#deleteBatch)
       const rows = await this.#db
         .delete(scans)

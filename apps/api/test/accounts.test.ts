@@ -1,6 +1,12 @@
 import { DEFAULT_POLICY } from '@arablyzer/egress'
-import { DEVELOPMENT_AUTH_LIMITS, DEVELOPMENT_LIMITS, type AuthLimits } from '@arablyzer/plans'
 import {
+  DEVELOPMENT_AUTH_LIMITS,
+  DEVELOPMENT_LIMITS,
+  planCatalogFrom,
+  type AuthLimits,
+} from '@arablyzer/plans'
+import {
+  MemoryAccountData,
   MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
@@ -26,10 +32,13 @@ function setup(options: { limits?: AuthLimits; address?: string | null; accounts
     production: false,
     log: () => undefined,
   })
+  const scans = new MemoryScanStore()
   const accounts: AccountsDeps = {
     auth,
     limits: options.limits ?? DEVELOPMENT_AUTH_LIMITS,
     secureCookies: false,
+    data: new MemoryAccountData(scans),
+    plans: planCatalogFrom({}, DEVELOPMENT_LIMITS),
   }
   const address = options.address === undefined ? '203.0.113.9' : options.address
   const logged: string[] = []
@@ -39,7 +48,7 @@ function setup(options: { limits?: AuthLimits; address?: string | null; accounts
     resolver: () => Promise.resolve([]),
     turnstile: () => Promise.resolve(true),
     limiter: new MemoryRateLimiter(),
-    store: new MemoryScanStore(),
+    store: scans,
     queue: new MemoryScanQueue(),
     events: new MemoryScanEvents(20),
     inFlight: new MemoryInFlight(),

@@ -17,6 +17,7 @@ import {
 } from '../auth-api'
 import { accountHref, problemFromQuery } from '../auth-model'
 import GoogleSignIn from './GoogleSignIn'
+import SitesPanel from './SitesPanel'
 
 interface Props {
   lang: Language
@@ -371,6 +372,8 @@ function SignedIn({
           </button>
         </div>
       </section>
+
+      <SitesPanel lang={lang} />
 
       <section
         aria-labelledby="delete-title"

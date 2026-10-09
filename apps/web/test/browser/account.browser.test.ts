@@ -24,6 +24,17 @@ const json = (value: unknown, status = 200) => ({
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify(value),
 })
+const SOON = '2026-10-09T12:00:00.000Z'
+const SITE_ID = 'AAAAAAAAAAAAAAAAAAAAAA'
+const LAST = {
+  id: 'BBBBBBBBBBBBBBBBBBBBBB',
+  url: 'https://example.com/',
+  state: 'complete',
+  score: 82,
+  createdAt: SOON,
+  siteId: SITE_ID,
+}
+const SAVED = { id: SITE_ID, url: 'https://example.com/', createdAt: SOON, lastScan: LAST }
 const ACCOUNT = {
   id: 'u1',
   email: 'ali@example.com',
@@ -78,6 +89,13 @@ interface Scenario {
   google: boolean
   deleteStatus?: number
   deleteBody?: unknown
+  /** The saved sites and their plan's limit, and the history (M4.2). */
+  sites?: unknown[]
+  limit?: number
+  scans?: unknown[]
+  /** What adding a site answers, in place of a created site. */
+  addStatus?: number
+  addBody?: unknown
 }
 
 /** A context whose requests to the site's API and to Google are answered by the scenario. */
@@ -123,6 +141,29 @@ async function open(base: FixtureSite, scenario: Scenario) {
         return scenario.deleteStatus === undefined || scenario.deleteStatus === 204
           ? route.fulfill({ status: 204 })
           : route.fulfill(json(scenario.deleteBody, scenario.deleteStatus))
+      }
+      if (url.pathname === '/api/sites' && request.method() === 'GET') {
+        return route.fulfill(json({ sites: scenario.sites ?? [], limit: scenario.limit ?? 3 }))
+      }
+      if (url.pathname === '/api/sites' && request.method() === 'POST') {
+        if (scenario.addStatus !== undefined) {
+          return route.fulfill(json(scenario.addBody, scenario.addStatus))
+        }
+        const asked = (JSON.parse(request.postData() ?? '{}') as { url: string }).url
+        return route.fulfill(
+          json({ id: 'NNNNNNNNNNNNNNNNNNNNNN', url: asked, createdAt: SOON, lastScan: null }, 201),
+        )
+      }
+      if (url.pathname.startsWith('/api/sites/') && request.method() === 'DELETE') {
+        return route.fulfill({ status: 204 })
+      }
+      if (url.pathname.endsWith('/scans') && request.method() === 'POST') {
+        return route.fulfill(
+          json({ id: 'SSSSSSSSSSSSSSSSSSSSSS', deleteToken: 'T'.repeat(43) }, 202),
+        )
+      }
+      if (url.pathname === '/api/account/scans') {
+        return route.fulfill(json({ scans: scenario.scans ?? [], historyDays: 30 }))
       }
       if (url.pathname === '/api/session/one-tap') return route.fulfill(json(ACCOUNT))
       if (url.pathname === '/api/session/google') {
@@ -263,6 +304,95 @@ describe('the account page, in Chromium', () => {
       tab.getByRole('button', { name: 'Sign in again' }).click(),
     ])
     expect(seen.some((call) => call.path === '/api/session/google')).toBe(true)
+    await close()
+  })
+})
+
+describe('saved sites and the history, in Chromium', () => {
+  it('lists the sites with their last score and the history with report links', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab.getByRole('heading', { name: 'Your sites' }).waitFor({ timeout: 15_000 })
+    await tab.getByText('1 of 3 saved').waitFor()
+    await tab.getByText('Score 82').first().waitFor()
+    await tab.getByText('We keep your scans for 30 days, then delete them.').waitFor()
+    const reports = await tab.locator('a[href="/en/r/BBBBBBBBBBBBBBBBBBBBBB"]').count()
+    expect(reports).toBeGreaterThanOrEqual(2)
+    // Targets are 44 px; the page draws no style attribute (the CSP forbids them).
+    for (const name of ['Scan now', 'Save site']) {
+      expect(
+        (await tab.getByRole('button', { name, exact: true }).boundingBox())?.height,
+      ).toBeGreaterThanOrEqual(44)
+    }
+    expect(await tab.locator('main [style]').count()).toBe(0)
+    await close()
+  })
+
+  it('says the same in Arabic, right to left, with the address left to right', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+    })
+    await tab.goto(base.url('/account'))
+    await tab.getByRole('heading', { name: 'مواقعك' }).waitFor({ timeout: 15_000 })
+    await tab.getByText('المحفوظ 1 من أصل 3').waitFor()
+    await tab.getByText('الدرجة 82').first().waitFor()
+    expect(await tab.locator('bdi[dir="ltr"]').first().textContent()).toBe('example.com')
+    await close()
+  })
+
+  it('saves a site, removes one, and scans one into its report', async () => {
+    const { tab, seen, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab.getByLabel('Site URL').fill('new.example.org')
+    await tab.getByRole('button', { name: 'Save site' }).click()
+    await tab.getByText('2 of 3 saved').waitFor()
+    await tab.getByText('new.example.org').waitFor()
+    const added = seen.find((call) => call.method === 'POST' && call.path === '/api/sites')
+    expect(JSON.parse(added?.body ?? '{}')).toEqual({ url: 'https://new.example.org/' })
+    await tab.getByRole('button', { name: 'Remove example.com from your sites' }).click()
+    await tab.getByText('1 of 3 saved').waitFor()
+    expect(
+      seen.some((call) => call.method === 'DELETE' && call.path === `/api/sites/${SITE_ID}`),
+    ).toBe(true)
+    await Promise.all([
+      tab.waitForURL('**/en/r/SSSSSSSSSSSSSSSSSSSSSS'),
+      tab.getByRole('button', { name: 'Scan now' }).click(),
+    ])
+    const scans = seen.filter((call) => call.method === 'POST' && call.path.endsWith('/scans'))
+    expect(scans).toHaveLength(1)
+    // No Turnstile token is asked of a signed-in person.
+    expect(scans[0]?.body).toBeNull()
+    await close()
+  })
+
+  it('says why a site was not saved: the plan’s limit, and an address that is not one', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      addStatus: 403,
+      addBody: { error: 'plan-limit', limit: 'savedSites', plan: 'account' },
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab.getByLabel('Site URL').fill('other.example.org')
+    await tab.getByRole('button', { name: 'Save site' }).click()
+    await tab.getByText('You have reached the number of saved sites your plan allows').waitFor()
+    await tab.getByLabel('Site URL').fill('http://')
+    await tab.getByRole('button', { name: 'Save site' }).click()
+    await tab.getByText('That is not a full URL').waitFor()
     await close()
   })
 })

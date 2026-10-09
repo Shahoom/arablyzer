@@ -4,9 +4,13 @@ import {
   DELETE_TOKEN_PATTERN,
   MAX_TOOL_SLUG_LENGTH,
   MAX_URL_LENGTH,
+  PLAN_LIMITS,
   SCAN_ERROR_CODES,
   SCAN_ID_PATTERN,
+  SITE_ID_PATTERN,
   TOOL_SLUG_PATTERN,
+  type AccountScan as AccountScanShape,
+  type AccountScansResponse as AccountScansResponseShape,
   type AccountSummary as AccountSummaryShape,
   type AuthErrorResponse as AuthErrorResponseShape,
   type CreateScanRequest as CreateScanRequestShape,
@@ -14,6 +18,8 @@ import {
   type ScanErrorResponse as ScanErrorResponseShape,
   type ScanEvent as ScanEventShape,
   type ScanSummary as ScanSummaryShape,
+  type SiteSummary as SiteSummaryShape,
+  type SitesResponse as SitesResponseShape,
 } from './codes'
 
 export * from './codes'
@@ -134,6 +140,42 @@ export const AccountSummary = z.strictObject({
 export const AuthErrorResponse = z.strictObject({
   error: z.enum(AUTH_ERROR_CODES),
   retryAfterSeconds: z.number().int().min(1).optional(),
+  limit: z.enum(PLAN_LIMITS).optional(),
+  plan: z.string().min(1).optional(),
 }) satisfies z.ZodType<AuthErrorResponseShape>
 export type AccountSummary = AccountSummaryShape
 export type AuthErrorResponse = AuthErrorResponseShape
+
+/** A site to save: checked as a scan's address is, by the egress package, after this. */
+export const AddSiteRequest = z.strictObject({
+  url: z
+    .string()
+    .min(1)
+    .max(MAX_URL_LENGTH * 2),
+})
+export const AccountScan = z.strictObject({
+  id: z.string().regex(SCAN_ID_PATTERN),
+  url: z.string(),
+  state: z.enum(['queued', 'running', 'complete', 'partial', 'failed']),
+  score: z.number().int().min(0).max(100).nullable(),
+  createdAt: z.iso.datetime(),
+  siteId: z.string().regex(SITE_ID_PATTERN).nullable(),
+}) satisfies z.ZodType<AccountScanShape>
+export const SiteSummary = z.strictObject({
+  id: z.string().regex(SITE_ID_PATTERN),
+  url: z.string(),
+  createdAt: z.iso.datetime(),
+  lastScan: AccountScan.nullable(),
+}) satisfies z.ZodType<SiteSummaryShape>
+export const SitesResponse = z.strictObject({
+  sites: z.array(SiteSummary),
+  limit: z.number().int().min(1),
+}) satisfies z.ZodType<SitesResponseShape>
+export const AccountScansResponse = z.strictObject({
+  scans: z.array(AccountScan),
+  historyDays: z.number().int().min(1),
+}) satisfies z.ZodType<AccountScansResponseShape>
+export type AccountScan = AccountScanShape
+export type AccountScansResponse = AccountScansResponseShape
+export type SiteSummary = SiteSummaryShape
+export type SitesResponse = SitesResponseShape

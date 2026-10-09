@@ -64,3 +64,12 @@ export const MINUTES_GENITIVE: ArabicForms = {
   few: '{n} دقائق',
   many: '{n} دقيقة',
 }
+
+/** Days as a length of time after «لمدة»: «لمدة يوم واحد»، «لمدة 3 أيام»، «لمدة 90 يوماً». */
+export const DAYS_DURATION: ArabicForms = {
+  one: 'يوم واحد',
+  two: 'يومين',
+  few: '{n} أيام',
+  many: '{n} يوماً',
+  other: '{n} يوم',
+}

@@ -128,6 +128,8 @@ export const AUTH_ERROR_CODES = [
   'unauthorized',
   'invalid-token',
   'fresh-login-required',
+  /** The account's plan allows no more of what was asked (M4.2); the answer names which. */
+  'plan-limit',
   'not-found',
   'unavailable',
 ] as const
@@ -145,6 +147,57 @@ export interface AccountSummary {
 export interface AuthErrorResponse {
   readonly error: AuthErrorCode
   readonly retryAfterSeconds?: number
+  /** Only with plan-limit: which limit, and the plan whose it is. */
+  readonly limit?: PlanLimit
+  readonly plan?: string
+}
+
+/** The limits of a plan an answer can name (Phase 4 design §2.3); M4.3 adds the monitors'. */
+export const PLAN_LIMITS = ['savedSites'] as const
+export type PlanLimit = (typeof PLAN_LIMITS)[number]
+
+/**
+ * Saved sites and the account's scans (M4.2). A saved site is an address the person chose to scan
+ * again; the history lists the scans made while signed in, with the report each one opens
+ * (`/r/<id>`). All of these answer 404 with accounts off, and 401 without a session.
+ */
+export const SITES_PATH = '/api/sites'
+export const siteScansPath = (id: string): string => `/api/sites/${id}/scans`
+export const sitePath = (id: string): string => `/api/sites/${id}`
+export const ACCOUNT_SCANS_PATH = '/api/account/scans'
+/** A saved site's id: the same shape as a scan's, 16 random bytes in base64url. */
+export const SITE_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/
+/** The most scans the history lists at once. */
+export const HISTORY_LIMIT = 50
+
+export interface AccountScan {
+  readonly id: string
+  readonly url: string
+  readonly state: ScanState
+  /** The overall score of a finished whole-page scan; null otherwise. */
+  readonly score: number | null
+  readonly createdAt: string
+  readonly siteId: string | null
+}
+
+export interface SiteSummary {
+  readonly id: string
+  readonly url: string
+  readonly createdAt: string
+  /** The newest scan of this site, or null before it was scanned. */
+  readonly lastScan: AccountScan | null
+}
+
+export interface SitesResponse {
+  readonly sites: readonly SiteSummary[]
+  /** How many sites the plan lets the account save. */
+  readonly limit: number
+}
+
+export interface AccountScansResponse {
+  readonly scans: readonly AccountScan[]
+  /** How many days the plan keeps them. */
+  readonly historyDays: number
 }
 
 /**

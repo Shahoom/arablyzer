@@ -1,4 +1,5 @@
 import {
+  MemoryAccountData,
   MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
@@ -289,11 +290,20 @@ describe('apiDeps with accounts', () => {
     ARABLYZER_EGRESS_PROXY: 'http://egress:4750',
     NODE_USE_ENV_PROXY: '1',
     HTTPS_PROXY: 'http://egress:4750',
+    ARABLYZER_PLAN_ACCOUNT_SCANS: '30',
+    ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS: '3600',
+    ARABLYZER_PLAN_ACCOUNT_INFLIGHT: '3',
+    ARABLYZER_PLAN_ACCOUNT_SAVED_SITES: '5',
+    ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: '90',
   } as const
-  const withAuth = () => ({
-    ...stores(),
-    auth: { database: memoryAdapter({ user: [], session: [], account: [], verification: [] }) },
-  })
+  const withAuth = () => {
+    const base = stores()
+    return {
+      ...base,
+      auth: { database: memoryAdapter({ user: [], session: [], account: [], verification: [] }) },
+      accountData: new MemoryAccountData(base.store),
+    }
+  }
   const minus = (name: keyof typeof ACCOUNTS) =>
     Object.fromEntries(Object.entries(ACCOUNTS).filter(([key]) => key !== name))
 
@@ -312,6 +322,13 @@ describe('apiDeps with accounts', () => {
     const deps = apiDeps(ACCOUNTS, withAuth(), () => undefined)
     expect(deps.accounts?.secureCookies).toBe(true)
     expect(deps.accounts?.limits.signIn).toEqual({ scans: 20, seconds: 600 })
+    expect(deps.accounts?.plans.account).toMatchObject({ savedSites: 5, historyDays: 90 })
+  })
+
+  it('needs the store for sites and scans', () => {
+    const { auth, ...rest } = withAuth()
+    expect(() => apiDeps(ACCOUNTS, { ...rest, auth }, () => undefined)).not.toThrow()
+    expect(() => apiDeps(ACCOUNTS, { ...stores(), auth }, () => undefined)).toThrow(/accountData/)
   })
 
   it.each([
@@ -323,6 +340,11 @@ describe('apiDeps with accounts', () => {
     'ARABLYZER_EGRESS_PROXY',
     'NODE_USE_ENV_PROXY',
     'HTTPS_PROXY',
+    'ARABLYZER_PLAN_ACCOUNT_SCANS',
+    'ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS',
+    'ARABLYZER_PLAN_ACCOUNT_INFLIGHT',
+    'ARABLYZER_PLAN_ACCOUNT_SAVED_SITES',
+    'ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS',
   ] as const)('refuses to start in production without %s, naming it', (name) => {
     expect(() => apiDeps(minus(name), withAuth(), () => undefined)).toThrow(new RegExp(name))
   })

@@ -147,3 +147,55 @@ describe('startRetention', () => {
     retention.stop()
   })
 })
+
+describe('startRetention with accounts', () => {
+  it('keeps the scans an account keeps past the global days, and deletes them after the plan’s', async () => {
+    const store = await storeWith(5, 40, 100)
+    store.linked.add(idOf(40))
+    store.linked.add(idOf(100))
+    const logged: string[] = []
+    vi.useFakeTimers({ now: NOW })
+    const retention = startRetention(
+      {
+        ARABLYZER_REPORT_RETENTION_DAYS: '30',
+        ARABLYZER_ACCOUNTS: 'on',
+        ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: '90',
+      },
+      { store, log: (message) => logged.push(message) },
+    )
+    await vi.advanceTimersByTimeAsync(0)
+    // Past the global days but kept by an account: still there. Past the plan's days: gone.
+    expect(await store.get(idOf(40))).not.toBeNull()
+    expect(await store.get(idOf(100))).toBeNull()
+    expect(await store.get(idOf(5))).not.toBeNull()
+    expect(logged.join('\n')).toMatch(/Scans an account keeps are deleted after 90 days/)
+    retention.stop()
+  })
+
+  it('sweeps the accounts’ scans alone where the global number is unset', async () => {
+    const store = await storeWith(400, 100)
+    store.linked.add(idOf(100))
+    vi.useFakeTimers({ now: NOW })
+    const retention = startRetention(
+      { ARABLYZER_ACCOUNTS: 'on', ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: '90' },
+      { store, log: () => undefined },
+    )
+    await vi.advanceTimersByTimeAsync(0)
+    expect(await store.get(idOf(100))).toBeNull()
+    expect(await store.get(idOf(400))).not.toBeNull()
+    retention.stop()
+  })
+
+  it('does not look for account scans with accounts off', async () => {
+    const store = await storeWith(100)
+    store.linked.add(idOf(100))
+    vi.useFakeTimers({ now: NOW })
+    const retention = startRetention(
+      { ARABLYZER_REPORT_RETENTION_DAYS: '30' },
+      { store, log: () => undefined },
+    )
+    await vi.advanceTimersByTimeAsync(0)
+    expect(await store.get(idOf(100))).not.toBeNull()
+    retention.stop()
+  })
+})

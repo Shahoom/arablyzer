@@ -13,6 +13,8 @@ export {
   DEVELOPMENT_AUTH_LIMITS,
 } from './auth-limits'
 export type { AccountsMode, AuthLimits } from './auth-limits'
+export { accountHistoryDaysFrom, DEVELOPMENT_ACCOUNT_PLAN, planCatalogFrom } from './account-plan'
+export type { AccountPlan, PlanCatalog, PlanId } from './account-plan'
 export type { Env }
 
 export interface Window {
