@@ -51,7 +51,11 @@
 		# Both are enforced together, and this one says only that no site frames Arablyzer.
 		Content-Security-Policy "frame-ancestors 'none'"
 		Referrer-Policy strict-origin-when-cross-origin
-		Cross-Origin-Opener-Policy same-origin
+		# Same-origin, but for the sign-in and account pages (M4.1), whose Google button opens its
+		# sign-in in a popup that talks back to the page, which same-origin would cut: each route
+		# imports this with its own, since a header set inside a route is overwritten by one set
+		# outside, which wraps it.
+		Cross-Origin-Opener-Policy {args[0]}
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		-Server
 	}
@@ -59,9 +63,9 @@
 
 :{$PORT:8080} {
 	encode zstd gzip
-	import security
 
 	handle /api/* {
+		import security same-origin
 		reverse_proxy api:8787 {
 			# One address, the visitor's, which the API counts its limits by (§14).
 			header_up X-Forwarded-For {client_ip}
@@ -79,19 +83,18 @@
 	# file by its name goes to /r/ or /en/r/ first, as every page's does (below).
 	@report path_regexp report ^/(en/)?r/(?:[A-Za-z0-9_-]{22}/?)?$
 	handle @report {
+		import security same-origin
 		header X-Robots-Tag "noindex, nofollow"
 		root * /srv
 		rewrite * /{re.report.1}r/index.html
 		file_server
 	}
 
-	# The sign-in and account pages (M4.1), never indexed. Google's button opens its sign-in in a popup
-	# that talks back to the page, which the site-wide Cross-Origin-Opener-Policy: same-origin would
-	# cut: these pages alone allow popups.
+	# The sign-in and account pages (M4.1), never indexed, and allowing the popup Google's button opens.
 	@auth path /login /account /en/login /en/account
 	handle @auth {
+		import security same-origin-allow-popups
 		header X-Robots-Tag "noindex, nofollow"
-		header Cross-Origin-Opener-Policy "same-origin-allow-popups"
 		root * /srv
 		rewrite * {path}.html
 		file_server
@@ -100,6 +103,7 @@
 	# A page is its path's .html file (Astro's build.format 'preserve'): /tools is tools.html,
 	# /tools/rtl-check is tools/rtl-check.html; a directory's page is its index.html.
 	handle {
+		import security same-origin
 		root * /srv
 		# Each page has one address (§6.5): its file's name, or a slash after it, goes there for
 		# good, with the query: /index.html is /, /en/index is /en/, /tools.html and /tools/ are
@@ -119,7 +123,7 @@
 	}
 
 	handle_errors {
-		import security
+		import security same-origin
 		# An address with no page: the 404 page of its language (M2.4b), with the 404 status. It
 		# is never indexed, and says so in its <head>.
 		@missing expression `{err.status_code} == 404`
