@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
-import { addSite, listScans, listSites, removeSite, scanSite } from '../src/islands/sites-api'
+import {
+  addSite,
+  getAlerts,
+  listScans,
+  listSites,
+  removeSite,
+  saveAlerts,
+  scanSite,
+  setMonitor,
+  testAlerts,
+} from '../src/islands/sites-api'
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -36,6 +46,28 @@ describe('what each call sends', () => {
       '/api/sites/abc/scans',
       undefined,
     ],
+    [
+      'setMonitor',
+      (send: typeof fetch) => setMonitor('abc', true, send),
+      'PUT',
+      '/api/sites/abc/monitor',
+      { enabled: true },
+    ],
+    ['getAlerts', (send: typeof fetch) => getAlerts(send), 'GET', '/api/account/alerts', undefined],
+    [
+      'saveAlerts',
+      (send: typeof fetch) => saveAlerts({ dropThreshold: 5 }, send),
+      'PUT',
+      '/api/account/alerts',
+      { dropThreshold: 5 },
+    ],
+    [
+      'testAlerts',
+      (send: typeof fetch) => testAlerts(send),
+      'POST',
+      '/api/account/alerts/test',
+      undefined,
+    ],
   ])('%s', async (_name, call, method, path, body) => {
     const { send, calls } = answering(json({}, 500))
     await call(send)
@@ -50,9 +82,13 @@ describe('what each call sends', () => {
 
 describe('what each call comes to', () => {
   it('reads the lists, and refuses an answer that is not one', async () => {
-    expect(await listSites(answering(json({ sites: [], limit: 3 })).send)).toEqual({
+    expect(
+      await listSites(
+        answering(json({ sites: [], limit: 3, monitoring: { limit: 1, everyDays: 7 } })).send,
+      ),
+    ).toEqual({
       ok: true,
-      value: { sites: [], limit: 3 },
+      value: { sites: [], limit: 3, monitoring: { limit: 1, everyDays: 7 } },
     })
     expect(await listSites(answering(json({ nope: 1 })).send)).toEqual({
       ok: false,

@@ -129,6 +129,19 @@ days, and deletes the scans an account keeps after them (the other scans follow
 `account_scans.scan_id`, so the sweep can tell which scans are kept, and nothing else. Erasing the
 account deletes its sites, its scans and their reports.
 
+**Monitoring and alerts (M4.3).** A person turns monitoring on for a saved site on `/account`; the `monitor`
+service, a second entry of the API's image (`apps/api/src/monitor/main.ts`) on the application role, scans it every
+`ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` days (7 when empty) for up to `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`
+sites (1 when empty), and checks both on every run. It is not the worker: the worker's role reads no account and
+inserts no scan (M4.1). It starts scans only while the queue holds less than half of `ARABLYZER_LIMIT_QUEUE`, takes
+the host's bucket and the person's place like any scan, and sends the alerts the person asked for (a score drop beyond
+their threshold, a new critical finding, a scan that failed, and an optional weekly summary) to the webhook they
+pasted, as Slack, Discord or generic JSON, signed with `X-Arablyzer-Signature` (HMAC-SHA256), through the egress proxy.
+A delivery is retried after 1 min, 5 min, 30 min, 2 h and 6 h; five failures in a row turn the webhook off until a test
+reaches it. Email is behind an interface that is off: `ARABLYZER_MAIL_PROVIDER` stays empty until one is built. With
+accounts off the service logs that and idles. The recommended free-plan numbers are in `.env.example` and
+`docs/deploy/staging.md` §4.
+
 ## The server's own addresses
 
 `ARABLYZER_DENY_CIDRS` names the server's own public addresses, which none of the stack's processes

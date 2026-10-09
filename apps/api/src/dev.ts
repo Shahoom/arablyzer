@@ -5,6 +5,7 @@ import {
   MemoryAccountData,
   MemoryHandoff,
   MemoryInFlight,
+  MemoryMonitorData,
   MemoryRateLimiter,
   MemoryScanEvents,
   MemoryScanQueue,
@@ -13,6 +14,10 @@ import {
 import { hostLimited, runScan } from '@arablyzer/worker'
 import { createApp } from './app'
 import { apiDeps } from './config'
+import { newScanId } from './ids'
+import { startLoop } from './monitor/loop'
+import { noMailer } from './monitor/mail'
+import { createScheduler } from './monitor/scheduler'
 
 // `pnpm --filter @arablyzer/api dev`: the API and one worker in this process, on the stores in
 // memory, so the site's form scans locally with nothing else installed (M2.1 plan §4). With
@@ -24,6 +29,8 @@ const env: Readonly<Record<string, string | undefined>> = {
 if (env.NODE_ENV === 'production') throw new Error('dev.ts runs in development only')
 
 const store = new MemoryScanStore()
+const accountData = new MemoryAccountData(store)
+const monitorData = new MemoryMonitorData(accountData, store)
 const queue = new MemoryScanQueue()
 const events = new MemoryScanEvents()
 const limiter = new MemoryRateLimiter()
@@ -36,7 +43,8 @@ const deps = apiDeps(env, {
   handoff: new MemoryHandoff(),
   // Accounts, when ARABLYZER_ACCOUNTS=on, live in memory here: gone when this process ends.
   auth: { database: memoryAdapter({ user: [], session: [], account: [], verification: [] }) },
-  accountData: new MemoryAccountData(store),
+  accountData,
+  monitorData,
 })
 const app = createApp(deps)
 const port = Number(env.PORT ?? 8787)
@@ -57,6 +65,32 @@ void (async () => {
     await runScan(job, { store, events, scanner, log: console.error })
   }
 })()
+
+// With accounts on, monitoring runs here too: the same scheduler, on the memory stores.
+const accounts = deps.accounts
+if (accounts?.monitors !== undefined && accounts.sender !== undefined) {
+  const loop = startLoop(
+    createScheduler({
+      monitors: accounts.monitors,
+      store,
+      queue,
+      events,
+      limiter,
+      inFlight: deps.inFlight,
+      limits: deps.limits,
+      plans: accounts.plans,
+      policy: deps.policy,
+      resolver: deps.resolver,
+      sender: accounts.sender,
+      mail: accounts.mail ?? noMailer,
+      origin: `http://127.0.0.1:${String(port)}`,
+      newId: newScanId,
+      log: console.error,
+    }),
+    { log: console.error },
+  )
+  stop.signal.addEventListener('abort', () => void loop.stop())
+}
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {

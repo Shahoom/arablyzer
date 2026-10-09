@@ -317,6 +317,26 @@ done && rm infra/.env.bak
 **Tried.** Keep a copy of the file in the owner's password manager. A lost `POSTGRES_PASSWORD` can be reset
 from inside the container, whose local socket is trusted, but that is one more step on a bad day.
 
+**Accounts, plan numbers and monitoring** (only with `ARABLYZER_ACCOUNTS=on`). The owner's recommended numbers
+for the free account (decided 2026-10), to set as they are on staging:
+
+| Variable                                    | Value   | What it is                                                                       |
+| ------------------------------------------- | ------- | -------------------------------------------------------------------------------- |
+| `ARABLYZER_PLAN_ACCOUNT_SCANS`              | `5`     | scans a signed-in person may start in the window                                 |
+| `ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS`       | `86400` | the window: a day                                                                |
+| `ARABLYZER_PLAN_ACCOUNT_INFLIGHT`           | `1`     | scans queued or running at once                                                  |
+| `ARABLYZER_PLAN_ACCOUNT_SAVED_SITES`        | `3`     | sites a person may save                                                          |
+| `ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS`       | `5`     | days their scans and reports are kept                                            |
+| `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`    | empty   | sites monitored; empty is `1`                                                    |
+| `ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` | empty   | days between two scans of a monitored site; empty is `7` (weekly)                |
+| `ARABLYZER_MAIL_PROVIDER`                   | empty   | email alerts: no provider is built yet, so leave it empty (a value stops the API) |
+
+The API refuses to start when the free account would get less than an anonymous visitor, so the anonymous limits
+(`ARABLYZER_LIMIT_CONNECTION_*`, `ARABLYZER_LIMIT_INFLIGHT`) must be no larger than the line above: at most 5 scans a
+day from one visitor and one scan at a time. The `monitor` service (192 MiB, 0.5 CPU, on the API's image) runs
+the scheduler; it starts a monitored site's scan only into the lower half of the queue, and sends the alerts as signed
+webhooks (Slack, Discord or JSON) through the egress proxy.
+
 **Given by Cloudflare and Google** (the owner's accounts):
 
 | Variable                    | Secret | What it is                                                                                                       |

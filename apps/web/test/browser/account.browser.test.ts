@@ -34,7 +34,35 @@ const LAST = {
   createdAt: SOON,
   siteId: SITE_ID,
 }
-const SAVED = { id: SITE_ID, url: 'https://example.com/', createdAt: SOON, lastScan: LAST }
+const SAVED = {
+  id: SITE_ID,
+  url: 'https://example.com/',
+  createdAt: SOON,
+  lastScan: LAST,
+  monitor: null,
+}
+const MONITOR = {
+  everyDays: 7,
+  paused: false,
+  nextRunAt: '2026-10-16T12:00:00.000Z',
+  failures: 0,
+  trend: [
+    { scanId: 'CCCCCCCCCCCCCCCCCCCCCC', state: 'complete', score: 90, at: SOON },
+    { scanId: 'DDDDDDDDDDDDDDDDDDDDDD', state: 'complete', score: 82, at: SOON },
+  ],
+}
+const ALERTS = {
+  webhook: null,
+  dropThreshold: 10,
+  onCritical: true,
+  onDown: true,
+  weeklySummary: false,
+  email: { available: false, enabled: false },
+}
+const HOOK_ALERTS = {
+  ...ALERTS,
+  webhook: { host: 'hooks.slack.com', kind: 'slack', failures: 0, disabled: false },
+}
 const ACCOUNT = {
   id: 'u1',
   email: 'ali@example.com',
@@ -93,6 +121,9 @@ interface Scenario {
   sites?: unknown[]
   limit?: number
   scans?: unknown[]
+  /** What monitoring answers: the monitoring numbers, and the alerts as saved. */
+  monitoring?: { limit: number; everyDays: number }
+  alerts?: unknown
   /** What adding a site answers, in place of a created site. */
   addStatus?: number
   addBody?: unknown
@@ -143,7 +174,13 @@ async function open(base: FixtureSite, scenario: Scenario) {
           : route.fulfill(json(scenario.deleteBody, scenario.deleteStatus))
       }
       if (url.pathname === '/api/sites' && request.method() === 'GET') {
-        return route.fulfill(json({ sites: scenario.sites ?? [], limit: scenario.limit ?? 3 }))
+        return route.fulfill(
+          json({
+            sites: scenario.sites ?? [],
+            limit: scenario.limit ?? 3,
+            monitoring: scenario.monitoring ?? { limit: 1, everyDays: 7 },
+          }),
+        )
       }
       if (url.pathname === '/api/sites' && request.method() === 'POST') {
         if (scenario.addStatus !== undefined) {
@@ -151,8 +188,30 @@ async function open(base: FixtureSite, scenario: Scenario) {
         }
         const asked = (JSON.parse(request.postData() ?? '{}') as { url: string }).url
         return route.fulfill(
-          json({ id: 'NNNNNNNNNNNNNNNNNNNNNN', url: asked, createdAt: SOON, lastScan: null }, 201),
+          json(
+            {
+              id: 'NNNNNNNNNNNNNNNNNNNNNN',
+              url: asked,
+              createdAt: SOON,
+              lastScan: null,
+              monitor: null,
+            },
+            201,
+          ),
         )
+      }
+      if (url.pathname.endsWith('/monitor') && request.method() === 'PUT') {
+        const { enabled } = JSON.parse(request.postData() ?? '{}') as { enabled: boolean }
+        return route.fulfill(json({ monitor: enabled ? MONITOR : null }))
+      }
+      if (url.pathname === '/api/account/alerts' && request.method() === 'GET') {
+        return route.fulfill(json(scenario.alerts ?? ALERTS))
+      }
+      if (url.pathname === '/api/account/alerts' && request.method() === 'PUT') {
+        return route.fulfill(json({ ...HOOK_ALERTS, secret: 'S'.repeat(43) }))
+      }
+      if (url.pathname === '/api/account/alerts/test') {
+        return route.fulfill(json({ ok: true, status: 204 }))
       }
       if (url.pathname.startsWith('/api/sites/') && request.method() === 'DELETE') {
         return route.fulfill({ status: 204 })
@@ -393,6 +452,96 @@ describe('saved sites and the history, in Chromium', () => {
     await tab.getByLabel('Site URL').fill('http://')
     await tab.getByRole('button', { name: 'Save site' }).click()
     await tab.getByText('That is not a full URL').waitFor()
+    await close()
+  })
+})
+
+describe('monitoring and alerts, in Chromium', () => {
+  it('turns monitoring on for a site, with the next scan and the last scores, and off again', async () => {
+    const { tab, seen, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab.getByText('Not monitored').waitFor({ timeout: 15_000 })
+    await tab.getByText('0 of 1 monitored').waitFor()
+    const on = tab.getByRole('button', { name: 'Monitor this site' })
+    expect((await on.boundingBox())?.height).toBeGreaterThanOrEqual(44)
+    await on.click()
+    await tab.getByText('Scanned automatically every 7 days').waitFor()
+    await tab.getByText('Next scan:').waitFor()
+    await tab.getByRole('img', { name: 'Latest scores, oldest first: 90, 82' }).waitFor()
+    const put = seen.find((call) => call.method === 'PUT' && call.path.endsWith('/monitor'))
+    expect(JSON.parse(put?.body ?? '{}')).toEqual({ enabled: true })
+    expect(await tab.locator('main [style]').count()).toBe(0)
+    await tab.getByRole('button', { name: 'Stop monitoring' }).click()
+    await tab.getByText('Not monitored').waitFor()
+    await close()
+  })
+
+  it('says why a second site cannot be monitored at the plan’s one', async () => {
+    const { tab, seen, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [
+        { ...SAVED, monitor: MONITOR },
+        { ...SAVED, id: 'EEEEEEEEEEEEEEEEEEEEEE', url: 'https://other.example/', monitor: null },
+      ],
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab.getByRole('button', { name: 'Monitor this site' }).click()
+    await tab.getByText('Your plan monitors 1 site.').waitFor()
+    expect(seen.some((call) => call.method === 'PUT' && call.path.endsWith('/monitor'))).toBe(false)
+    await close()
+  })
+
+  it('saves a webhook, shows its secret once, and sends a test', async () => {
+    const { tab, seen, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab.getByRole('heading', { name: 'Alerts' }).waitFor({ timeout: 15_000 })
+    await tab.getByLabel('Webhook address').fill('https://hooks.slack.com/services/T0/B0/xyz')
+    await tab.getByRole('button', { name: 'Save alerts' }).click()
+    await tab.getByText('Sending to hooks.slack.com (Slack)').waitFor()
+    await tab.getByText('S'.repeat(43)).waitFor()
+    const saved = seen.find((call) => call.method === 'PUT' && call.path === '/api/account/alerts')
+    expect(JSON.parse(saved?.body ?? '{}')).toEqual({
+      webhookUrl: 'https://hooks.slack.com/services/T0/B0/xyz',
+      dropThreshold: 10,
+      onCritical: true,
+      onDown: true,
+      weeklySummary: false,
+    })
+    // The address is not kept in the page: the field is empty again.
+    expect(await tab.getByLabel('Webhook address').inputValue()).toBe('')
+    await tab.getByRole('button', { name: 'I copied it' }).click()
+    expect(await tab.getByText('S'.repeat(43)).count()).toBe(0)
+    await tab.getByRole('button', { name: 'Send a test' }).click()
+    await tab.getByText('Test sent. Check your channel.').waitFor()
+    for (const name of ['Save alerts', 'Send a test']) {
+      expect(
+        (await tab.getByRole('button', { name, exact: true }).boundingBox())?.height,
+      ).toBeGreaterThanOrEqual(44)
+    }
+    expect(await tab.locator('main [style]').count()).toBe(0)
+    await close()
+  })
+
+  it('says the same in Arabic, right to left', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [{ ...SAVED, monitor: MONITOR }],
+      alerts: HOOK_ALERTS,
+    })
+    await tab.goto(base.url('/account'))
+    await tab.getByRole('heading', { name: 'التنبيهات' }).waitFor({ timeout: 15_000 })
+    await tab.getByText('نفحصه تلقائياً كل 7 أيام').waitFor()
+    await tab.getByText('نرسل إلى hooks.slack.com (Slack)').waitFor()
     await close()
   })
 })

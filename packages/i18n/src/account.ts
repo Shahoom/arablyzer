@@ -1,6 +1,6 @@
 import type { AuthErrorCode, ScanState } from '@arablyzer/api-contract/codes'
 import type { Copy } from './copy'
-import { arabicCount, DAYS_DURATION, englishCount } from './plural'
+import { arabicCount, DAYS_DURATION, englishCount, type ArabicForms } from './plural'
 
 /** What can go wrong in the sign-in and account pages: the API's codes, and the page's own. */
 export type AccountProblem =
@@ -12,6 +12,17 @@ export type AccountProblem =
   | 'cancelled'
   /** Anything else that ended a sign-in without an account. */
   | 'failed'
+
+/** «every 3 days» in Arabic: after «كل» the day is singular for one, then as a count. */
+const DAYS_EVERY: ArabicForms = { ...DAYS_DURATION, one: 'يوم', two: 'يومين' }
+/** «1 site», «3 sites». */
+const SITES_COUNT: ArabicForms = {
+  one: 'موقعاً واحداً',
+  two: 'موقعين',
+  few: '{n} مواقع',
+  many: '{n} موقعاً',
+  other: '{n} موقع',
+}
 
 export interface AccountStrings {
   /** The header's link to the account page. */
@@ -85,6 +96,57 @@ export interface AccountStrings {
     readonly historyLead: (days: number) => string
     readonly historyEmpty: string
     readonly states: Readonly<Record<ScanState, string>>
+    readonly loading: string
+  }
+  /** Monitoring a saved site (M4.3): numbers come from the API's answers. */
+  readonly monitor: {
+    readonly off: string
+    readonly on: (everyDays: number) => string
+    readonly nextRun: (date: string) => string
+    readonly enable: string
+    readonly enabling: string
+    readonly disable: string
+    readonly disabling: string
+    readonly paused: string
+    readonly failing: string
+    readonly limitReached: (limit: number) => string
+    readonly count: (used: number, limit: number) => string
+    readonly trendTitle: string
+    /** The alternative text of the little chart: the last scores, oldest first. */
+    readonly trendLabel: (scores: string) => string
+    readonly noScore: string
+  }
+  /** Where alerts go (M4.3). */
+  readonly alerts: {
+    readonly title: string
+    readonly lead: string
+    readonly webhookLabel: string
+    readonly webhookPlaceholder: string
+    readonly webhookHint: string
+    readonly httpsOnly: string
+    readonly save: string
+    readonly saving: string
+    readonly saved: string
+    readonly sendingTo: (host: string, kind: string) => string
+    readonly kinds: Readonly<Record<'slack' | 'discord' | 'generic', string>>
+    readonly disabled: string
+    readonly failures: (count: number) => string
+    readonly remove: string
+    readonly removing: string
+    readonly test: string
+    readonly testing: string
+    readonly testOk: string
+    readonly testFailed: (status: number | null) => string
+    readonly rotate: string
+    readonly secretTitle: string
+    readonly secretLead: string
+    readonly secretDone: string
+    readonly thresholdBefore: string
+    readonly thresholdAfter: string
+    readonly onCritical: string
+    readonly onDown: string
+    readonly weeklySummary: string
+    readonly email: string
     readonly loading: string
   }
   readonly problems: Readonly<Record<AccountProblem, string>>
@@ -163,6 +225,59 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
         failed: 'تعذّر',
       },
       loading: 'نفتح مواقعك…',
+    },
+    monitor: {
+      off: 'غير مراقَب',
+      on: (days) => `نفحصه تلقائياً كل ${arabicCount(days, DAYS_EVERY)}`,
+      nextRun: (date) => `الفحص التالي: ${date}`,
+      enable: 'راقب هذا الموقع',
+      enabling: 'نفعّل المراقبة…',
+      disable: 'أوقف المراقبة',
+      disabling: 'نوقف المراقبة…',
+      paused: 'المراقبة متوقفة. أوقفها ثم شغّلها من جديد لتستأنف.',
+      failing: 'تعذّر الوصول إلى الموقع في آخر فحص.',
+      limitReached: (limit) =>
+        `خطتك تراقب ${arabicCount(limit, SITES_COUNT)}. أوقف مراقبة موقع آخر لتراقب هذا.`,
+      count: (used, limit) => `المراقَب ${used} من أصل ${limit}`,
+      trendTitle: 'آخر النتائج',
+      trendLabel: (scores) => `آخر الدرجات، من الأقدم: ${scores}`,
+      noScore: 'بلا درجة',
+    },
+    alerts: {
+      title: 'التنبيهات',
+      lead: 'نرسل رسالة إلى رابط webhook الذي تلصقه هنا عندما تنخفض درجة موقع تراقبه، أو تظهر مشكلة حرجة جديدة، أو يتعذّر فحصه. يعمل مع Slack وDiscord وأي خدمة تستقبل JSON.',
+      webhookLabel: 'عنوان webhook',
+      webhookPlaceholder: 'https://hooks.slack.com/services/…',
+      webhookHint: 'الصق العنوان من Slack أو Discord أو من خدمتك. لا نعرضه بعد الحفظ.',
+      httpsOnly: 'نقبل عناوين https وحدها.',
+      save: 'احفظ التنبيهات',
+      saving: 'نحفظ…',
+      saved: 'حُفظت التنبيهات.',
+      sendingTo: (host, kind) => `نرسل إلى ${host} (${kind})`,
+      kinds: { slack: 'Slack', discord: 'Discord', generic: 'JSON عام' },
+      disabled: 'أُوقف هذا العنوان بعد فشل متكرر. أرسل رسالة تجريبية لتعيده.',
+      failures: (count) => `فشل ${count} من آخر الإرسالات.`,
+      remove: 'احذف العنوان',
+      removing: 'نحذف العنوان…',
+      test: 'أرسل رسالة تجريبية',
+      testing: 'نرسل…',
+      testOk: 'أُرسلت الرسالة التجريبية. تفقّد قناتك.',
+      testFailed: (status) =>
+        status === null
+          ? 'لم نصل إلى العنوان. تأكد منه وأعد المحاولة.'
+          : `ردّ العنوان بالرمز ${status} ولم يقبل الرسالة.`,
+      rotate: 'مفتاح توقيع جديد',
+      secretTitle: 'مفتاح التوقيع',
+      secretLead:
+        'تحمل كل رسالة ترويسة X-Arablyzer-Signature موقّعة بهذا المفتاح كما في الصيغة أدناه، والوقت في ترويسة X-Arablyzer-Timestamp. انسخ المفتاح الآن، فلن نعرضه مرة أخرى.',
+      secretDone: 'نسخته',
+      thresholdBefore: 'نبّهني إذا انخفضت الدرجة',
+      thresholdAfter: 'نقطة أو أكثر',
+      onCritical: 'مشاكل حرجة جديدة',
+      onDown: 'تعذّر فحص الموقع',
+      weeklySummary: 'ملخص أسبوعي',
+      email: 'البريد الإلكتروني',
+      loading: 'نفتح التنبيهات…',
     },
     problems: {
       'bad-request': 'تعذّر قراءة الطلب. حدّث الصفحة وأعد المحاولة.',
@@ -252,6 +367,61 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
         failed: 'Failed',
       },
       loading: 'Opening your sites…',
+    },
+    monitor: {
+      off: 'Not monitored',
+      on: (days) => `Scanned automatically every ${englishCount(days, 'day', 'days')}`,
+      nextRun: (date) => `Next scan: ${date}`,
+      enable: 'Monitor this site',
+      enabling: 'Turning monitoring on…',
+      disable: 'Stop monitoring',
+      disabling: 'Stopping monitoring…',
+      paused: 'Monitoring is paused. Turn it off and on again to resume.',
+      failing: 'The last scan could not reach the site.',
+      limitReached: (limit) =>
+        `Your plan monitors ${englishCount(limit, 'site', 'sites')}. Stop monitoring another to monitor this one.`,
+      count: (used, limit) => `${used} of ${limit} monitored`,
+      trendTitle: 'Latest results',
+      trendLabel: (scores) => `Latest scores, oldest first: ${scores}`,
+      noScore: 'No score',
+    },
+    alerts: {
+      title: 'Alerts',
+      lead: 'We send a message to the webhook you paste here when the score of a site you monitor drops, a new critical issue appears, or a scan fails. It works with Slack, Discord and any service that takes JSON.',
+      webhookLabel: 'Webhook address',
+      webhookPlaceholder: 'https://hooks.slack.com/services/…',
+      webhookHint:
+        'Paste the address from Slack, Discord or your own service. We never show it again after saving.',
+      httpsOnly: 'We accept https addresses only.',
+      save: 'Save alerts',
+      saving: 'Saving…',
+      saved: 'Alerts saved.',
+      sendingTo: (host, kind) => `Sending to ${host} (${kind})`,
+      kinds: { slack: 'Slack', discord: 'Discord', generic: 'generic JSON' },
+      disabled:
+        'This address was turned off after repeated failures. Send a test to turn it on again.',
+      failures: (count) => `${englishCount(count, 'recent delivery', 'recent deliveries')} failed.`,
+      remove: 'Remove the address',
+      removing: 'Removing the address…',
+      test: 'Send a test',
+      testing: 'Sending…',
+      testOk: 'Test sent. Check your channel.',
+      testFailed: (status) =>
+        status === null
+          ? 'We could not reach the address. Check it and try again.'
+          : `The address answered ${status} and did not accept the message.`,
+      rotate: 'New signing secret',
+      secretTitle: 'Signing secret',
+      secretLead:
+        'Every message carries an X-Arablyzer-Signature header, signed with this secret as in the formula below, and the time in X-Arablyzer-Timestamp. Copy the secret now; we will not show it again.',
+      secretDone: 'I copied it',
+      thresholdBefore: 'Alert me when the score drops by',
+      thresholdAfter: 'points or more',
+      onCritical: 'New critical findings',
+      onDown: 'The site cannot be scanned',
+      weeklySummary: 'Weekly summary',
+      email: 'Email',
+      loading: 'Opening alerts…',
     },
     problems: {
       'bad-request': 'We could not read that request. Reload the page and try again.',

@@ -6,6 +6,7 @@ import {
   POSTGRES_PROTOCOLS,
   PostgresAccountData,
   PostgresAuthMaintenance,
+  PostgresMonitorData,
   PostgresScanStore,
   productionUrl,
   quietly,
@@ -78,6 +79,7 @@ const deps = apiDeps(
       }),
     },
     accountData: new PostgresAccountData(pool),
+    monitorData: new PostgresMonitorData(pool),
   },
   log,
 )

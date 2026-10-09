@@ -36,6 +36,13 @@
       "when": 1791550177567,
       "tag": "0004_sites",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791559324527,
+      "tag": "0005_monitors",
+      "breakpoints": true
     }
   ]
 }

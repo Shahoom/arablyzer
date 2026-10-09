@@ -7,6 +7,7 @@ export default defineConfig({
     './src/postgres/schema.ts',
     './src/postgres/auth-schema.ts',
     './src/postgres/site-schema.ts',
+    './src/postgres/monitor-schema.ts',
   ],
   out: './drizzle',
 })

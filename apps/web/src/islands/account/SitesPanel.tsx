@@ -6,8 +6,17 @@ import { ExternalLink, Globe, Plus, Trash2, TriangleAlert } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { precheck } from '../scan-request'
-import { addSite, listScans, listSites, removeSite, scanSite, type SiteOutcome } from '../sites-api'
+import {
+  addSite,
+  listScans,
+  listSites,
+  removeSite,
+  scanSite,
+  setMonitor,
+  type SiteOutcome,
+} from '../sites-api'
 import { dayLabel, reportHref, shortUrl, type SiteProblem } from '../sites-model'
+import MonitorRow from './MonitorRow'
 
 interface Props {
   lang: Lang
@@ -21,6 +30,7 @@ interface Notice {
 interface Data {
   readonly sites: readonly SiteSummary[]
   readonly limit: number
+  readonly monitoring: { readonly limit: number; readonly everyDays: number }
   readonly scans: readonly AccountScan[]
   readonly historyDays: number
 }
@@ -51,6 +61,7 @@ export default function SitesPanel({ lang }: Props) {
       setData({
         sites: sites.value.sites,
         limit: sites.value.limit,
+        monitoring: sites.value.monitoring,
         scans: scans.value.scans,
         historyDays: scans.value.historyDays,
       })
@@ -67,6 +78,9 @@ export default function SitesPanel({ lang }: Props) {
   const message = (n: Notice): string => {
     const wait = n.retryAfterSeconds === undefined ? '' : ` ${form.retryAfter(n.retryAfterSeconds)}`
     if (n.problem === 'empty') return form.errors.empty
+    if (n.problem === 'monitor-limit') {
+      return typeof data === 'string' ? '' : t.monitor.limitReached(data.monitoring.limit)
+    }
     if (n.problem in form.errors && n.problem !== 'network') {
       return `${form.errors[n.problem as keyof typeof form.errors]}${wait}`
     }
@@ -113,6 +127,35 @@ export default function SitesPanel({ lang }: Props) {
       typeof current === 'string'
         ? current
         : { ...current, sites: current.sites.filter((kept) => kept.id !== site.id) },
+    )
+  }
+
+  async function onToggle(site: SiteSummary) {
+    if (busy !== null || typeof data === 'string') return
+    const used = data.sites.filter((kept) => kept.monitor !== null && !kept.monitor.paused).length
+    if (site.monitor === null && used >= data.monitoring.limit) {
+      setNotice({ problem: 'monitor-limit' })
+      return
+    }
+    setNotice(null)
+    setBusy(`monitor:${site.id}`)
+    const changed = await setMonitor(site.id, site.monitor === null)
+    setBusy(null)
+    if (!changed.ok) {
+      // At the plan's limit, whatever the page counted: the same words as before the request.
+      if (changed.problem === 'plan-limit') setNotice({ problem: 'monitor-limit' })
+      else fail(changed)
+      return
+    }
+    setData((current) =>
+      typeof current === 'string'
+        ? current
+        : {
+            ...current,
+            sites: current.sites.map((kept) =>
+              kept.id === site.id ? { ...kept, monitor: changed.value } : kept,
+            ),
+          },
     )
   }
 
@@ -170,7 +213,13 @@ export default function SitesPanel({ lang }: Props) {
             {s.title}
           </h2>
           <p className="m-0 text-body text-ink-2">{s.lead}</p>
-          <p className="m-0 text-meta text-ink-2">{s.count(data.sites.length, data.limit)}</p>
+          <p className="m-0 text-meta text-ink-2">
+            {s.count(data.sites.length, data.limit)} ·{' '}
+            {t.monitor.count(
+              data.sites.filter((kept) => kept.monitor !== null && !kept.monitor.paused).length,
+              data.monitoring.limit,
+            )}
+          </p>
         </div>
 
         <form noValidate onSubmit={(event) => void onAdd(event)} className="flex flex-col gap-3">
@@ -207,54 +256,60 @@ export default function SitesPanel({ lang }: Props) {
         ) : (
           <ul className="m-0 flex list-none flex-col gap-3 p-0">
             {data.sites.map((site) => (
-              <li
-                key={site.id}
-                className="flex flex-col gap-3 rounded-xl border border-line p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 flex-col gap-1">
-                  <bdi dir="ltr" className="text-body font-semibold break-all text-ink">
-                    {shortUrl(site.url)}
-                  </bdi>
-                  <p className="m-0 text-small text-ink-2">
-                    {site.lastScan === null ? (
-                      s.notScanned
-                    ) : (
-                      <>
-                        {s.lastScan}: {dayLabel(site.lastScan.createdAt, lang)} ·{' '}
-                        {site.lastScan.score === null
-                          ? s.states[site.lastScan.state]
-                          : `${s.score} ${site.lastScan.score}`}
-                        {' · '}
-                        <a
-                          className="font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
-                          href={reportHref(lang, site.lastScan.id)}
-                        >
-                          {s.openReport}
-                        </a>
-                      </>
-                    )}
-                  </p>
+              <li key={site.id} className="flex flex-col gap-3 rounded-xl border border-line p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <bdi dir="ltr" className="text-body font-semibold break-all text-ink">
+                      {shortUrl(site.url)}
+                    </bdi>
+                    <p className="m-0 text-small text-ink-2">
+                      {site.lastScan === null ? (
+                        s.notScanned
+                      ) : (
+                        <>
+                          {s.lastScan}: {dayLabel(site.lastScan.createdAt, lang)} ·{' '}
+                          {site.lastScan.score === null
+                            ? s.states[site.lastScan.state]
+                            : `${s.score} ${site.lastScan.score}`}
+                          {' · '}
+                          <a
+                            className="font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
+                            href={reportHref(lang, site.lastScan.id)}
+                          >
+                            {s.openReport}
+                          </a>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-white"
+                      disabled={busy !== null}
+                      onClick={() => void onScan(site)}
+                    >
+                      {busy === `scan:${site.id}` ? s.scanning : s.scanNow}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost"
+                      aria-label={s.removeLabel(shortUrl(site.url))}
+                      disabled={busy !== null}
+                      onClick={() => void onRemove(site)}
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                      {s.remove}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="btn-white"
-                    disabled={busy !== null}
-                    onClick={() => void onScan(site)}
-                  >
-                    {busy === `scan:${site.id}` ? s.scanning : s.scanNow}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    aria-label={s.removeLabel(shortUrl(site.url))}
-                    disabled={busy !== null}
-                    onClick={() => void onRemove(site)}
-                  >
-                    <Trash2 size={16} aria-hidden="true" />
-                    {s.remove}
-                  </button>
-                </div>
+                <MonitorRow
+                  lang={lang}
+                  site={site}
+                  busy={busy !== null}
+                  working={busy === `monitor:${site.id}`}
+                  onToggle={(target) => void onToggle(target)}
+                />
               </li>
             ))}
           </ul>

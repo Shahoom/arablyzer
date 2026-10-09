@@ -13,6 +13,8 @@ export const SERVICES = ['web', 'api', 'worker', 'scanner', 'egress', 'valkey', 
 export const NODE_SERVICES = ['api', 'worker', 'scanner'] as const
 /** The database's own step: it runs once, and is gone. */
 const ONE_SHOT = ['migrate'] as const
+/** Runs beside the stack with no port and no health check of its own: the monitoring scheduler (M4.3). */
+const BACKGROUND = ['monitor'] as const
 
 /** A name the container's networks do not have: Docker's DNS knows it not, or cannot ask on. */
 const UNRESOLVED = /^(?:ENOTFOUND|EAI_AGAIN)$/
@@ -56,7 +58,7 @@ export function servicesUp(stack: Stack): string[] {
 /** Read-only, unprivileged, with caps on CPU, processes, memory and logs; an init where Node runs. */
 export function containersHardened(stack: Stack): string[] {
   const problems: string[] = []
-  for (const service of [...SERVICES, ...ONE_SHOT]) {
+  for (const service of [...SERVICES, ...ONE_SHOT, ...BACKGROUND]) {
     const { HostConfig: config } = stack.inspect(service)
     const say = (what: string) => problems.push(`${service} ${what}`)
     if (!config.ReadonlyRootfs) say('has a writable root filesystem')
@@ -74,7 +76,7 @@ export function containersHardened(stack: Stack): string[] {
       say('has no cap on its log')
     }
   }
-  for (const service of [...NODE_SERVICES, ...ONE_SHOT]) {
+  for (const service of [...NODE_SERVICES, ...ONE_SHOT, ...BACKGROUND]) {
     if (stack.inspect(service).HostConfig.Init !== true) problems.push(`${service} has no init`)
   }
   return problems
@@ -448,6 +450,9 @@ export function databaseRoles(stack: Stack): string[] {
            'SELECT count(*) FROM verifications',
            'SELECT count(*) FROM sites',
            'SELECT user_id FROM account_scans',
+           'SELECT count(*) FROM monitors',
+           'SELECT count(*) FROM monitor_runs',
+           'SELECT webhook_url FROM alert_settings',
            "INSERT INTO scans (id, url, state, created_at) VALUES ('verify_deploy_probe', 'https://example.com/', 'queued', now())",
            'CREATE TABLE verify_deploy_probe (a integer)',
          ]) {
