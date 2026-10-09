@@ -189,6 +189,7 @@ services:
     mem_limit: 192m
     memswap_limit: 192m
     cpus: 0.5
+    pids_limit: 128
 
   # The deep crawler (M4.5): a third entry of the API's image on the application role. It reads a saved
   # site's pages through the scanner (which fetches under the egress rules and parses in a thread of
