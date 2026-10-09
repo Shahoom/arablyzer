@@ -163,6 +163,10 @@ GRANT ${APP_PRIVILEGES} ON ALL TABLES IN SCHEMA public TO ${app};
 -- The worker sees the scans and nothing else; no default privilege is ever given it, so a table a
 -- later migration makes is closed to it until a line here opens it.
 GRANT SELECT, UPDATE, DELETE ON scans TO ${worker};
+-- The one column of the accounts' data it may read: which scans an account keeps, so the retention
+-- sweep leaves them to the plan's days. Not whose they are. (The delete of a scan cascades into
+-- account_scans as the table's owner, which needs no right of its own.)
+GRANT SELECT (scan_id) ON account_scans TO ${worker};
 ALTER DEFAULT PRIVILEGES FOR ROLE ${owner} IN SCHEMA public
   GRANT ${APP_PRIVILEGES} ON TABLES TO ${app};
 ALTER DEFAULT PRIVILEGES FOR ROLE ${owner} IN SCHEMA public
