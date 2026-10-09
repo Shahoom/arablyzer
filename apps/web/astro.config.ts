@@ -74,6 +74,13 @@ export default defineConfig({
         access: 'public',
         optional: true,
       }),
+      // Accounts (M4.1): the Google OAuth client's id, public. Unset, no account link is built and
+      // the sign-in page says accounts are off; the site is otherwise the same.
+      PUBLIC_AUTH_GOOGLE_CLIENT_ID: envField.string({
+        context: 'client',
+        access: 'public',
+        optional: true,
+      }),
     },
   },
   fonts: [

@@ -52,11 +52,16 @@ refuses to start with one shorter than 32 characters, and says which, never its 
 
 ## The databases
 
-**PostgreSQL** has three roles. The API and the worker connect as `arablyzer_app`, which can read,
-write and delete the scans (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) and nothing else: no DDL, no other schema, no
+**PostgreSQL** has four roles. The API connects as `arablyzer_app`, which can read,
+write and delete the scans (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) and, with accounts on, keep the accounts
+tables; and nothing else: no DDL, no other schema, no
 `COPY ... PROGRAM`, no temporary table, no extension, and it is no superuser, which the image's
 `POSTGRES_USER` is (a superuser reaches the container's shell with `COPY ... TO PROGRAM`).
-`arablyzer_migrate` owns the tables and cannot log in. `arablyzer` is the bootstrap superuser.
+`arablyzer_worker`, whom the worker connects as, reads, updates and deletes scans and can insert none, and
+cannot read one row of the accounts tables (`users`, `sessions`, `accounts`, `verifications`) or of
+anything a later migration adds, until a line in `grantsSql` opens it: the worker faces the web's results, and
+whatever takes it over must not reach the accounts. `arablyzer_migrate` owns the tables and cannot
+log in. `arablyzer` is the bootstrap superuser.
 Only the one-shot `migrate` service (`packages/store/src/migrate.ts`) connects as it: it makes the
 roles, becomes `arablyzer_migrate` for the migrations, sets the application role's password, and
 stops. Every step can be run again, so a deploy rotates the password, adopts a database that an
@@ -70,6 +75,7 @@ Where the database is not Compose's, run the step by hand, once per release, as 
 ```bash
 DATABASE_URL=postgres://arablyzer:...@host:5432/arablyzer \
 ARABLYZER_APP_DATABASE_PASSWORD=... \
+ARABLYZER_WORKER_DATABASE_PASSWORD=... \
   node --import tsx packages/store/src/migrate.ts
 ```
 
@@ -85,6 +91,33 @@ where the host's `ps` would show it to every user of the host. To look inside:
 docker compose -f infra/compose.yaml exec valkey \
   sh -c 'REDISCLI_AUTH="$VALKEY_PASSWORD" valkey-cli --user arablyzer --no-auth-warning info keyspace'
 ```
+
+## Accounts (optional, off by default)
+
+Sign-in is Google's alone: Google's own "Sign in with Google" button, One Tap where the browser
+offers it, and Google's own page when its script cannot load. No password exists. `ARABLYZER_ACCOUNTS=on`
+turns it on; with it off every account route answers 404 and the site is as it was. What is kept:
+an email address, a name, the language chosen, a session; no IP address, User-Agent, OAuth token or
+picture (`apps/api/src/auth.ts`). Deleting the account erases all of it.
+
+In Google Cloud (APIs and Services, Credentials), an OAuth client of type "Web application", the
+consent screen with the scopes `openid`, `email` and `profile` only:
+
+| | Production | Staging | Local |
+|---|---|---|---|
+| Authorized JavaScript origins | `https://arablyzer.com` | `https://staging.arablyzer.com` | `http://127.0.0.1:8080` |
+| Authorized redirect URIs | `https://arablyzer.com/api/auth/callback/google` | `https://staging.arablyzer.com/api/auth/callback/google` | `http://127.0.0.1:8080/api/auth/callback/google` |
+
+Set `ARABLYZER_AUTH_GOOGLE_CLIENT_ID` and `ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET` (these are not
+Search Console's variables, even if one client serves both), `BETTER_AUTH_SECRET` (32 characters or
+more; changing it signs everyone out) and the two sign-in limits, **then build**: compose passes the
+client id, which is public, to the site's build, and an image built without it has no account link and
+a sign-in page that says accounts are off. With accounts on, the API refuses to start without all of
+these and without the egress proxy for the library's own requests to Google (`NODE_USE_ENV_PROXY=1`,
+`HTTPS_PROXY` equal to `ARABLYZER_EGRESS_PROXY`; compose sets them), and `Caddyfile` lets
+`/login` and `/account` open Google's popup (`Cross-Origin-Opener-Policy: same-origin-allow-popups` on
+those two pages alone). The email path (a mailed link) is designed (`docs/design/plans/m4.1-accounts.md`)
+and not built.
 
 ## The server's own addresses
 

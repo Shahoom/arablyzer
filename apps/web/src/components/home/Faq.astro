@@ -2,6 +2,7 @@
 import { HOME } from '@arablyzer/i18n'
 import type { Lang } from '@arablyzer/seo/site'
 import Plus from '@lucide/astro/icons/plus'
+import { PUBLIC_AUTH_GOOGLE_CLIENT_ID } from 'astro:env/client'
 import Bidi from '../Bidi.astro'
 import SectionIntro from './SectionIntro.astro'
 
@@ -16,13 +17,15 @@ interface Props {
 }
 const { lang } = Astro.props
 const t = HOME[lang].faq
+// The account question is asked only on a site built with accounts.
+const items = (PUBLIC_AUTH_GOOGLE_CLIENT_ID ?? '') === '' ? t.items : [...t.items, t.accounts]
 ---
 
 <section aria-labelledby="faq-title" class="below-fold strip">
   <div class="wrap">
     <SectionIntro kicker={t.kicker} id="faq-title" title={t.title} />
     <div class="mx-auto flex max-w-[800px] flex-col gap-2.5 md:gap-3">
-      {t.items.map((item) => (
+      {items.map((item) => (
         <details class="group card has-[summary:focus-visible]:outline-2 has-[summary:focus-visible]:outline-offset-3 has-[summary:focus-visible]:outline-indigo">
           <summary class="text-body flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-card py-2 font-semibold focus-visible:outline-none md:min-h-16">
             <span>

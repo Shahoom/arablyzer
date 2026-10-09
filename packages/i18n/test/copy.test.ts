@@ -1,7 +1,8 @@
-import { SCAN_ERROR_CODES } from '@arablyzer/api-contract/codes'
+import { AUTH_ERROR_CODES, SCAN_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { DEFAULT_POLICY } from '@arablyzer/egress'
 import { describe, expect, it } from 'vitest'
 import {
+  ACCOUNT_UI,
   ALL_COPY,
   CATEGORIES,
   codeParts,
@@ -163,6 +164,22 @@ describe('interface copy', () => {
     for (const code of SCAN_ERROR_CODES) {
       expect(SCAN_FORM.ar.errors[code]).toBeTruthy()
       expect(SCAN_FORM.en.errors[code]).toBeTruthy()
+    }
+  })
+
+  it('has words for every error the account routes can give, and the page’s own', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      for (const code of [...AUTH_ERROR_CODES, 'network', 'unverified', 'cancelled', 'failed']) {
+        expect(ACCOUNT_UI[lang].problems[code as keyof typeof ACCOUNT_UI.ar.problems]).toBeTruthy()
+      }
+    }
+  })
+
+  it('states no number on the account pages: they come from code, as the scan form’s do', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      for (const [path, text] of leaves(ACCOUNT_UI[lang])) {
+        expect(text, path).not.toMatch(/[0-9\u0660-\u0669]/)
+      }
     }
   })
 

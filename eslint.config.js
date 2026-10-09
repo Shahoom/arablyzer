@@ -149,7 +149,7 @@ export default defineConfig(
   {
     // The scan form's one request, to Arablyzer's own API on the same origin: not scan traffic,
     // which leaves the server through the egress proxy alone (M2.1 plan §2). fetch alone.
-    files: ['apps/web/src/islands/api.ts'],
+    files: ['apps/web/src/islands/api.ts', 'apps/web/src/islands/auth-api.ts'],
     rules: {
       'no-restricted-globals': [
         'error',
@@ -266,6 +266,8 @@ export default defineConfig(
       'apps/web/test/browser/shared-layer.browser.test.ts',
       'apps/web/test/browser/xray.browser.test.ts',
       'apps/web/test/browser/native2.browser.test.ts',
+      // The sign-in and account pages (M4.1): built with an OAuth client id by the test itself.
+      'apps/web/test/browser/account.browser.test.ts',
     ],
     rules: networkRules({ allowProcesses: true, allow: ['playwright-core'] }),
   },

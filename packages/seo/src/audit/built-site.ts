@@ -61,9 +61,14 @@ function isNotFound(page: string): boolean {
   return /^(?:\/en)?\/404$/.test(page)
 }
 
-/** Pages search engines must not index: a user's report, and the 404 page. */
+/** The sign-in and account pages (M4.1): for the person signed in alone, never indexed. */
+function isAccountPage(page: string): boolean {
+  return /^(?:\/en)?\/(?:login|account)$/.test(page)
+}
+
+/** Pages search engines must not index: a user's report, the 404 page, and the account pages. */
 export function isNoindexPage(page: string): boolean {
-  return isReport(page) || isNotFound(page)
+  return isReport(page) || isNotFound(page) || isAccountPage(page)
 }
 
 /** A tool's page, /tools/<slug>: the tool page template of BUILD-PLAN §6.1 applies whole. */
@@ -226,7 +231,8 @@ function ogImageProblems(
 ): PageProblem[] {
   const problems: PageProblem[] = []
   for (const page of pages) {
-    if (isNotFound(page.path)) continue
+    // Neither the 404 page nor the account pages are shared as links.
+    if (isNotFound(page.path) || isAccountPage(page.path)) continue
     const image = /<meta property="og:image" content="([^"]+)"/.exec(html(page))?.[1]
     const problem = (message: string) => {
       problems.push({ page: page.path, check: 'og-image', message })

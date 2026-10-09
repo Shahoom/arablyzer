@@ -1,7 +1,8 @@
 ---
-import { SITE } from '@arablyzer/i18n'
+import { ACCOUNT_UI, SITE } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import Menu from '@lucide/astro/icons/menu'
+import { PUBLIC_AUTH_GOOGLE_CLIENT_ID } from 'astro:env/client'
 import X from '@lucide/astro/icons/x'
 import { NAV, otherLang, scanFormHref } from '../lib/site'
 import Logo from './Logo.astro'
@@ -39,6 +40,11 @@ const sections = NAV.map((item) => {
 // On the home page the scan box is the first thing on the screen, and the button would only jump
 // to it within the page: with no script to shut it, the sheet would stay open over the box. The
 // sheet there lists the sections alone.
+// A link to the account page only where the site is built with accounts: a plain link, no request.
+const account =
+  (PUBLIC_AUTH_GOOGLE_CLIENT_ID ?? '') === ''
+    ? null
+    : { href: localePath(lang, PATHS.account), label: ACCOUNT_UI[lang].link }
 const scanInSheet = path !== PATHS.home
 // Arabic text in the chrome is regular or semibold, the two weights of Plex Arabic the page
 // preloads (the current section is the semibold one): any other weight is another 45 KB font file,
@@ -87,6 +93,11 @@ const row = `text-ink hover:bg-surface-2 hover:text-ink ${marked}`
         <span class="sm:hidden">{o.short}</span>
         <span class="hidden sm:inline">{o.label}</span>
       </a>
+      {account && (
+        <a href={account.href} class="btn-ghost hidden lg:inline-flex">
+          {account.label}
+        </a>
+      )}
       <a href={scanFormHref(lang)} class="btn-grad btn-sm hidden lg:inline-flex">
         {t.scanCta}
       </a>
@@ -114,6 +125,16 @@ const row = `text-ink hover:bg-surface-2 hover:text-ink ${marked}`
                   </a>
                 </li>
               ))}
+              {account && (
+                <li>
+                  <a
+                    href={account.href}
+                    class:list={['flex h-12 items-center rounded-lg px-3 text-body', row]}
+                  >
+                    {account.label}
+                  </a>
+                </li>
+              )}
             </ul>
           </nav>
           {scanInSheet && (

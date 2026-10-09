@@ -1,0 +1,44 @@
+---
+import { ACCOUNT_UI } from '@arablyzer/i18n/account'
+import { PATHS, type Lang } from '@arablyzer/seo/site'
+import AccountApp from '../../islands/account/AccountApp'
+import Page from '../../layouts/Page.astro'
+
+// The sign-in page and the account page (M4.1; the same island decides what it shows). Static,
+// never indexed, and with the one place that talks to Google: its script, frame and styles are
+// allowed on these two pages alone, below, and the island loads them only for a visitor who is
+// not signed in.
+interface Props {
+  lang: Lang
+  page: 'login' | 'account'
+}
+const { lang, page } = Astro.props
+const t = ACCOUNT_UI[lang]
+const copy = page === 'login' ? t.login : t.account
+
+Astro.csp?.insertScriptResource('https://accounts.google.com/gsi/client')
+Astro.csp?.insertStyleResource('https://accounts.google.com/gsi/style')
+// Google's button and One Tap draw in their own frame and talk to their own address. A page's
+// own directive replaces the site's of the same name, so each keeps what the site allows.
+Astro.csp?.insertDirective("connect-src 'self' https://accounts.google.com/gsi/")
+Astro.csp?.insertDirective(
+  'frame-src https://challenges.cloudflare.com https://accounts.google.com/gsi/',
+)
+---
+
+<Page
+  lang={lang}
+  path={page === 'login' ? PATHS.login : PATHS.account}
+  title={copy.pageTitle}
+  description={copy.pageDescription}
+  noindex
+>
+  <section class="relative isolate">
+    <div aria-hidden="true" class="page-wash"></div>
+    <div class="wrap pt-5 pb-12 lg:pt-10 lg:pb-20">
+      <div class="mx-auto w-full max-w-[560px]">
+        <AccountApp client:load lang={lang} page={page} />
+      </div>
+    </div>
+  </section>
+</Page>
