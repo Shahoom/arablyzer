@@ -12,6 +12,10 @@
     "./strings": "./src/strings.ts",
     "./audit": "./src/audit/index.ts",
     "./markdown": "./src/markdown.ts",
+    "./article": "./src/article.ts",
+    "./dates": "./src/dates.ts",
+    "./feed": "./src/feed.ts",
+    "./llms": "./src/llms.ts",
     "./sitemap": "./src/sitemap.ts"
   },
   "scripts": {

@@ -19,6 +19,8 @@
     "./pages": "./src/pages.ts",
     "./guides": "./src/guides.ts",
     "./knowledge": "./src/knowledge.ts",
+    "./blog": "./src/blog.ts",
+    "./versus": "./src/versus.ts",
     "./tool-app": "./src/tool-app.ts",
     "./native": "./src/native.ts",
     "./native2": "./src/native2.ts"

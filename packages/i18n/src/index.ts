@@ -1,6 +1,7 @@
 export { codeParts, type Copy, type Lang } from './copy'
 export { ALERT_TEXT, type AlertStrings } from './alerts'
 export { ACCOUNT_UI, type AccountProblem, type AccountStrings } from './account'
+export { BLOG_TAGS, BLOG_UI, type BlogStrings, type BlogTag } from './blog'
 export { COMPARE_UI, type CompareStrings } from './compare'
 export { CRAWL_UI, type CrawlStrings } from './crawl'
 export { GENERATORS_UI, type GeneratorsStrings } from './generators'
@@ -21,9 +22,19 @@ export { SCAN_FORM, type FormProblem, type ScanFormStrings } from './scan-form'
 export { SITE, type SiteStrings } from './site'
 export { TOOL_APP, type ToolAppStrings } from './tool-app'
 export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from './tools'
+export {
+  VERSUS_SLUGS,
+  VERSUS_UI,
+  type Mark,
+  type VersusCell,
+  type VersusPage,
+  type VersusSlug,
+  type VersusStrings,
+} from './versus'
 
 import { ACCOUNT_UI } from './account'
 import { ALERT_TEXT } from './alerts'
+import { BLOG_UI } from './blog'
 import { COMPARE_UI } from './compare'
 import { CRAWL_UI } from './crawl'
 import type { Copy } from './copy'
@@ -38,6 +49,7 @@ import { SCAN_FORM } from './scan-form'
 import { SITE } from './site'
 import { TOOL_APP } from './tool-app'
 import { TOOLS_UI } from './tools'
+import { VERSUS_UI } from './versus'
 
 /** Every set of interface copy, by the file it lives in, for the review check. */
 export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
@@ -56,4 +68,6 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'alerts.ts': ALERT_TEXT,
   'crawl.ts': CRAWL_UI,
   'compare.ts': COMPARE_UI,
+  'blog.ts': BLOG_UI,
+  'versus.ts': VERSUS_UI,
 }

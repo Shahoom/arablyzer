@@ -1,5 +1,5 @@
 import { escapeHtml } from './html'
-import { alternates, pageUrl, type Site } from './site'
+import { alternates, pageUrl, type Lang, type Site } from './site'
 
 // Sitemaps (BUILD-PLAN §6.5): an index and one sitemap per section, every page in both languages,
 // each naming its alternates as its <head> does, so Google finds the pairs from either side.
@@ -9,10 +9,23 @@ export interface SitemapPage {
   readonly path: string
   /** YYYY-MM-DD, when the page has a date of its own (a tool's last update). */
   readonly lastmod?: string
+  /**
+   * The languages the page exists in; both when unset. A blog article with no translation is in
+   * one: it is listed once, and names no alternate that is not there.
+   */
+  readonly langs?: readonly Lang[]
 }
 
 /** The sections, each one sitemap, in the order the index lists them. */
-export const SITEMAP_SECTIONS = ['pages', 'tools', 'rules', 'fix', 'glossary'] as const
+export const SITEMAP_SECTIONS = [
+  'pages',
+  'tools',
+  'rules',
+  'fix',
+  'glossary',
+  'blog',
+  'compare',
+] as const
 export type SitemapSection = (typeof SITEMAP_SECTIONS)[number]
 
 /** Where a section's sitemap is, on the site: /sitemaps/tools.xml. */
@@ -28,14 +41,15 @@ export function sitemapXml(site: Site, pages: readonly SitemapPage[]): string {
     if (page.lastmod !== undefined && !DATE.test(page.lastmod)) {
       throw new TypeError(`A sitemap date is YYYY-MM-DD: ${page.lastmod}`)
     }
-    const links = alternates(site, page.path)
+    const langs = page.langs ?? (['ar', 'en'] as const)
+    const links = alternates(site, page.path, langs)
       .map(
         (alternate) =>
           `<xhtml:link rel="alternate" hreflang="${alternate.hreflang}" href="${escapeHtml(alternate.href)}"/>`,
       )
       .join('')
     const lastmod = page.lastmod === undefined ? '' : `<lastmod>${page.lastmod}</lastmod>`
-    return (['ar', 'en'] as const).map(
+    return langs.map(
       (lang) =>
         `<url><loc>${escapeHtml(pageUrl(site, lang, page.path))}</loc>${lastmod}${links}</url>`,
     )

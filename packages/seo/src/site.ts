@@ -42,6 +42,11 @@ export const PATHS = {
   glossary: '/glossary',
   term: (slug: string) => `/glossary/${slug}`,
   rule: (id: string) => `/rules/${id}`,
+  blog: '/blog',
+  post: (slug: string) => `/blog/${slug}`,
+  blogTag: (tag: string) => `/blog/tag/${tag}`,
+  comparisons: '/compare',
+  versus: (slug: string) => `/compare/${slug}`,
 } as const
 
 /** Arabic at the root, English under /en. */
@@ -60,12 +65,21 @@ export interface Alternate {
   readonly href: string
 }
 
-/** hreflang for a page in both languages; x-default is the Arabic page (BUILD-PLAN §6.5). */
-export function alternates(site: Site, path: string): Alternate[] {
-  const ar = pageUrl(site, 'ar', path)
+/**
+ * hreflang for a page in both languages; x-default is the Arabic page (BUILD-PLAN §6.5). A page
+ * that exists in one language only (an article with no translation) names `langs`: it declares
+ * itself and an x-default, and never a page that is not there.
+ */
+export function alternates(
+  site: Site,
+  path: string,
+  langs: readonly Lang[] = ['ar', 'en'],
+): Alternate[] {
+  const found = (['ar', 'en'] as const).filter((lang) => langs.includes(lang))
+  const first = found[0]
+  if (first === undefined) throw new TypeError('A page is in at least one language')
   return [
-    { hreflang: 'ar', href: ar },
-    { hreflang: 'en', href: pageUrl(site, 'en', path) },
-    { hreflang: 'x-default', href: ar },
+    ...found.map((lang) => ({ hreflang: lang, href: pageUrl(site, lang, path) })),
+    { hreflang: 'x-default' as const, href: pageUrl(site, first, path) },
   ]
 }

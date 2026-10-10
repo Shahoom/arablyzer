@@ -4,7 +4,7 @@ import { toolBySlug, type CodeExample, type Tool } from '@arablyzer/tools'
 import { formatDate } from './dates'
 import { renderHead } from './head'
 import { escapeHtml } from './html'
-import { breadcrumbList, webApplication } from './json-ld'
+import { breadcrumbList, faqPage, webApplication } from './json-ld'
 import { renderInline, renderMarkdown } from './markdown'
 import { alternates, localePath, pageUrl, PATHS, type Lang, type Site } from './site'
 import { ogImagePath } from './sitemap'
@@ -53,6 +53,16 @@ export function renderToolPage(tool: Tool, lang: Lang, site: Site): string {
         ...trail.map((step) => ({ name: step.name, url: pageUrl(site, lang, step.path) })),
         { name: copy.title, url },
       ]),
+      ...(copy.faq.length === 0
+        ? []
+        : [
+            faqPage(
+              copy.faq.map((entry) => ({
+                question: renderInline(entry.question),
+                answer: renderMarkdown(entry.answer),
+              })),
+            ),
+          ]),
     ],
   })
 

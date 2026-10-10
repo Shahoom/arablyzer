@@ -82,7 +82,11 @@ describe('renderToolPage', () => {
     const scripts = [...ar.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map(
       (match) => JSON.parse(match[1] ?? '') as Record<string, unknown>,
     )
-    expect(scripts.map((data) => data['@type'])).toEqual(['WebApplication', 'BreadcrumbList'])
+    expect(scripts.map((data) => data['@type'])).toEqual([
+      'WebApplication',
+      'BreadcrumbList',
+      'FAQPage',
+    ])
     expect(scripts[0]).toMatchObject({
       name: 'فحص RTL واتجاه الصفحة',
       url: 'https://arablyzer.example/tools/rtl-check',
