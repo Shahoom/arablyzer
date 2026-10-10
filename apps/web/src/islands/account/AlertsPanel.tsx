@@ -7,7 +7,7 @@ import {
 import { ACCOUNT_UI } from '@arablyzer/i18n/account'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import type { Lang } from '@arablyzer/seo/site'
-import { BellRing, KeyRound, Send, TriangleAlert } from 'lucide-preact'
+import { KeyRound, Send, TriangleAlert } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { getAlerts, saveAlerts, testAlerts, type SiteOutcome } from '../sites-api'
@@ -202,8 +202,7 @@ export default function AlertsPanel({ lang }: Props) {
       className="card flex flex-col gap-5 rounded-card p-card"
     >
       <div className="flex flex-col gap-2">
-        <h2 id="alerts-title" className="heading-2 m-0 flex items-center gap-2">
-          <BellRing aria-hidden="true" size={22} className="shrink-0 text-brand-ink" />
+        <h2 id="alerts-title" className="heading-2 m-0">
           {a.title}
         </h2>
         <p className="m-0 text-body text-ink-2">{a.lead}</p>

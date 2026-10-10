@@ -87,7 +87,7 @@ const link =
           class="inline-flex items-center gap-2.5 self-start text-ink hover:text-ink"
         >
           <Logo size={28} />
-          <span lang="en" dir="ltr" class="text-lg font-bold">
+          <span lang="en" dir="ltr" class="text-lg font-semibold">
             Arablyzer
           </span>
         </a>
@@ -135,13 +135,17 @@ const link =
         {t.footer.designed} {t.footer.reportsPrivate}
       </span>
       <span>
-        {t.footer.license} · {t.footer.builtBy}{' '}
-        <a href={CLOUDTOPIA} class="underline underline-offset-4 hover:text-ink">
-          {t.footer.cloudtopia}
-        </a>
+        {t.footer.license}
+        <span class="ms-3">
+          {t.footer.builtBy}{' '}
+          <a href={CLOUDTOPIA} class="underline underline-offset-4 hover:text-ink">
+            {t.footer.cloudtopia}
+          </a>
+        </span>
       </span>
       <span dir="ltr" lang="en" class="font-mono text-xs">
-        {bot} · rules {RULESET_VERSION}
+        {bot}
+        <span class="ms-3">rules {RULESET_VERSION}</span>
       </span>
     </div>
   </div>

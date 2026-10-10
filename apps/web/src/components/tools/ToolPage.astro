@@ -4,7 +4,7 @@ import { breadcrumbList, faqPage, webApplication } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
-import Plus from '@lucide/astro/icons/plus'
+import ChevronDown from '@lucide/astro/icons/chevron-down'
 import X from '@lucide/astro/icons/x'
 import HreflangGenerator from '../../islands/generators/HreflangGenerator'
 import RobotsTester from '../../islands/generators/RobotsTester'
@@ -72,9 +72,12 @@ const contents = [
 // Its focus ring is drawn inside the button: the card clips whatever is drawn outside it.
 const toggle =
   'group heading-3 flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 px-card py-3 text-start text-ink focus-visible:outline-offset-[-3px]'
-const plus =
-  'grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-ink-2 transition-[transform,background-color] duration-200 group-aria-expanded:rotate-45 group-aria-expanded:bg-indigo-soft group-aria-expanded:text-indigo-ink'
-const accordion = 'card overflow-hidden'
+const chevron =
+  'shrink-0 text-ink-3 transition-transform duration-200 group-aria-expanded:rotate-180 group-aria-expanded:text-brand-ink'
+// The questions are one list with a hairline between rows, as the home page's are; the methodology
+// is a one-row list of its own.
+const accordion = 'kb-list'
+const row = 'border-t border-line first:border-t-0'
 // The links of a row of the page's small print: a 44 px target.
 const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 hover:text-brand-ink'
 ---
@@ -180,7 +183,7 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
       {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
 
       <ToolSection id="checks" title={headings.checks}>
-        <div class="card p-card">
+        <div>
           <ul class="checks m-0 flex list-none flex-col gap-3 p-0">
             {copy.checks.map((item) => (
               <li class="flex items-start gap-3">
@@ -226,15 +229,15 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
       </ToolSection>
 
       <ToolSection id="fix" title={headings.fix}>
-        <div class="card p-card">
+        <div>
           <div class="prose-fix prose-tool text-body text-ink-2" set:html={copy.fix} />
         </div>
       </ToolSection>
 
       <ToolSection id="faq" title={headings.faq}>
-        <div class="flex flex-col gap-3">
+        <div class={accordion}>
           {copy.faq.map((entry, index) => (
-            <div class={accordion} data-accordion>
+            <div class={row} data-accordion>
               <h3 class="m-0">
                 <button
                   type="button"
@@ -244,9 +247,7 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
                   class={toggle}
                 >
                   <span set:html={entry.question} />
-                  <span aria-hidden="true" class={plus}>
-                    <Plus size={16} stroke-width={2.2} />
-                  </span>
+                  <ChevronDown size={18} stroke-width={2} aria-hidden="true" class={chevron} />
                 </button>
               </h3>
               <div
@@ -329,9 +330,7 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
               class={toggle}
             >
               <span>{t.page.measure}</span>
-              <span aria-hidden="true" class={plus}>
-                <Plus size={16} stroke-width={2.2} />
-              </span>
+              <ChevronDown size={18} stroke-width={2} aria-hidden="true" class={chevron} />
             </button>
           </h2>
           <div id="about-panel" class="flex flex-col gap-3 px-card pb-4">

@@ -1,21 +1,14 @@
 ---
-import { HOME } from '@arablyzer/i18n'
+import { HOME, TOOLS_UI } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import ArrowDown from '@lucide/astro/icons/arrow-down'
 import Check from '@lucide/astro/icons/check'
-import FileText from '@lucide/astro/icons/file-text'
-import Gauge from '@lucide/astro/icons/gauge'
-import MessageCircle from '@lucide/astro/icons/message-circle'
-import ShieldCheck from '@lucide/astro/icons/shield-check'
-import Sparkles from '@lucide/astro/icons/sparkles'
-import TextCursorInput from '@lucide/astro/icons/text-cursor-input'
-import Type from '@lucide/astro/icons/type'
 import X from '@lucide/astro/icons/x'
 import { lettersApart } from '../../lib/arabic'
 import { ENGINE_DOT } from '../../lib/engines'
 import { BENTO_TOOLS, gauge, VITALS, type Vital } from '../../lib/home'
 import { ENGINE_NAMES, SHOWCASE } from '../../lib/showcase'
-import { toolData } from '../../lib/tool-data'
+import { CATEGORY_STYLE, toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
 import BentoTile from './BentoTile.astro'
 import SectionIntro from './SectionIntro.astro'
@@ -41,10 +34,15 @@ const t = HOME[lang].bento
 const s = SHOWCASE
 
 /** A tile's tool: where its tile links, and what a screen reader calls it. */
-const tool = (slug: (typeof BENTO_TOOLS)[keyof typeof BENTO_TOOLS]) => ({
-  href: localePath(lang, PATHS.tool(slug)),
-  title: toolData(slug).copy[lang].title,
-})
+const tool = (slug: (typeof BENTO_TOOLS)[keyof typeof BENTO_TOOLS]) => {
+  const { category, copy } = toolData(slug)
+  // The tile wears its tool's category: the colour of its dot and its name, the directory's own.
+  return {
+    href: localePath(lang, PATHS.tool(slug)),
+    title: copy[lang].title,
+    category: { name: TOOLS_UI[lang].categories[category].name, dot: CATEGORY_STYLE[category].dot },
+  }
+}
 const links = {
   engines: tool(BENTO_TOOLS.engines),
   forms: tool(BENTO_TOOLS.forms),
@@ -97,13 +95,7 @@ const row =
 
 <section aria-labelledby="bento-title" class="below-fold strip">
   <div class="wrap">
-    <SectionIntro
-      kicker={t.kicker}
-      id="bento-title"
-      title={t.title}
-      lead={t.lead}
-      phoneLead={false}
-    />
+    <SectionIntro id="bento-title" title={t.title} lead={t.lead} phoneLead={false} />
 
     <div class="grid gap-2.5 md:auto-rows-[minmax(250px,auto)] md:grid-cols-2 md:gap-card xl:grid-cols-4">
       <BentoTile
@@ -111,11 +103,10 @@ const row =
         title={t.engines.title}
         href={links.engines.href}
         tool={links.engines.title}
-        tone="teal"
+        category={links.engines.category}
         featured
-        class="mb-1 bg-[linear-gradient(160deg,#ffffff_40%,#f0fdfa)] md:col-span-2 md:mb-0 xl:row-span-2"
+        class="mb-1 md:col-span-2 md:mb-0 xl:row-span-2"
       >
-        <Type slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <p class="text-small m-0 text-ink-2">
           <Bidi text={t.engines.text} lang={lang} />
         </p>
@@ -181,11 +172,10 @@ const row =
         title={t.forms.title}
         href={links.forms.href}
         tool={links.forms.title}
-        tone="pink"
+        category={links.forms.category}
         example={t.example}
         class="md:col-span-2"
       >
-        <TextCursorInput slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <p class="text-small m-0 text-ink-2">
           <Bidi text={t.forms.text} lang={lang} />
         </p>
@@ -217,10 +207,9 @@ const row =
         title={t.whatsapp.title}
         href={links.whatsapp.href}
         tool={links.whatsapp.title}
-        tone="green"
+        category={links.whatsapp.category}
         example={t.example}
       >
-        <MessageCircle slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <div class="mt-auto flex flex-col items-stretch gap-2">
           <span
             dir="ltr"
@@ -248,10 +237,9 @@ const row =
         title={t.ai.title}
         href={links.ai.href}
         tool={links.ai.title}
-        tone="indigo"
+        category={links.ai.category}
         example={t.example}
       >
-        <Sparkles slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <ul class="m-0 mt-auto flex list-none flex-col gap-2 p-0">
           {AI.map((bot) => (
             <li class={row}>
@@ -271,11 +259,10 @@ const row =
         title={t.speed.title}
         href={links.speed.href}
         tool={links.speed.title}
-        tone="amber"
+        category={links.speed.category}
         example={t.example}
         class="md:col-span-2"
       >
-        <Gauge slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <p class="text-small m-0 text-ink-2">
           <Bidi text={t.speed.text} lang={lang} />
         </p>
@@ -317,10 +304,9 @@ const row =
         title={t.trust.title}
         href={links.trust.href}
         tool={links.trust.title}
-        tone="emerald"
+        category={links.trust.category}
         example={t.example}
       >
-        <ShieldCheck slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <ul class="m-0 mt-auto flex list-none flex-col gap-2 p-0">
           {TRUST.map((check) => (
             <li class={row}>
@@ -340,10 +326,9 @@ const row =
         title={t.robots.title}
         href={links.robots.href}
         tool={links.robots.title}
-        tone="blue"
+        category={links.robots.category}
         example={t.example}
       >
-        <FileText slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <div class="mt-auto flex flex-col gap-2.5">
           <pre
             dir="ltr"

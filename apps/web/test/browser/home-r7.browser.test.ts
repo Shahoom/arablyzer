@@ -615,7 +615,7 @@ describe.each(ENGINES)('the home page in %s', (engine) => {
     })
 
     it.skipIf(engine === 'webkit')(
-      'shows a question’s focus ring around its card, which does not clip it',
+      'draws a question’s focus ring inside its row, since the list clips what is outside it',
       async () => {
         const tab = await open('ar', 390, { flat: true })
         // Tab to the first question: whatever comes before it on the page is not this test's.
@@ -629,16 +629,19 @@ describe.each(ENGINES)('the home page in %s', (engine) => {
           if (onQuestion) break
         }
         const ring = await tab.evaluate(() => {
-          const card = document.activeElement?.closest('details')
-          if (card === null || card === undefined) return null
-          const style = getComputedStyle(card)
+          const summary = document.activeElement?.closest('summary')
+          if (summary === null || summary === undefined) return null
+          const style = getComputedStyle(summary)
+          const list = summary.closest('.kb-list')
           return {
             outline: style.outlineStyle,
             width: style.outlineWidth,
-            overflow: style.overflow,
+            offset: style.outlineOffset,
+            // The list clips what is drawn outside its rows: the ring must be inside the row.
+            clipped: list !== null && getComputedStyle(list).overflow === 'hidden',
           }
         })
-        expect(ring).toEqual({ outline: 'solid', width: '2px', overflow: 'visible' })
+        expect(ring).toEqual({ outline: 'solid', width: '2px', offset: '-3px', clipped: true })
         await done(tab)
       },
     )

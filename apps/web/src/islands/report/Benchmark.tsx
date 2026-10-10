@@ -71,10 +71,8 @@ export function BenchmarkSection({
                         {show(metric, value)}
                       </span>
                     </strong>
-                    {' · '}
-                    {t.bands[BANDS[bandOf(value, at)]]}
-                    {' · '}
-                    {t.median(show(metric, at.p50))}
+                    <span className="ms-3">{t.bands[BANDS[bandOf(value, at)]]}</span>
+                    <span className="ms-3">{t.median(show(metric, at.p50))}</span>
                   </span>
                 </li>
               )

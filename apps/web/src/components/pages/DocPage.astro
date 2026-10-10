@@ -27,6 +27,8 @@ interface Props {
   /** A step between the home page and this one: the page's section, such as the glossary. */
   parent?: { readonly name: string; readonly href: string }
   asideFirst?: boolean
+  /** An article: the reading column (PageColumns' `reading`). */
+  reading?: boolean
   /** What an article adds to its head (Page.astro): the languages it is in and its dates. */
   langs?: readonly Lang[]
   switchPath?: string
@@ -43,6 +45,7 @@ const {
   breadcrumbLabel,
   parent,
   asideFirst = false,
+  reading = false,
   langs,
   switchPath,
   article,
@@ -73,7 +76,7 @@ const {
       <slot name="head" />
     </div>
   </section>
-  <PageColumns asideFirst={asideFirst} class:list={[HEAD.bodyTop, 'pb-section']}>
+  <PageColumns asideFirst={asideFirst} reading={reading} class:list={[HEAD.bodyTop, 'pb-section']}>
     <Fragment slot="aside">
       <slot name="aside" />
     </Fragment>

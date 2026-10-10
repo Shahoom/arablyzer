@@ -11,6 +11,7 @@ import X from '@lucide/astro/icons/x'
 import { HEAD } from '../../lib/heads'
 import { scanFormHref, siteOf } from '../../lib/site'
 import Bidi from '../Bidi.astro'
+import Logo from '../Logo.astro'
 import DocHeading from '../DocHeading.astro'
 import Related from '../guides/Related.astro'
 import Contents from '../pages/Contents.astro'
@@ -45,6 +46,15 @@ const jsonLd = [
   ]),
 ]
 const icons = { yes: Check, partial: Minus, no: X, unknown: CircleQuestionMark } as const
+// A mark is a small disc in the meaning's colour: a word always says it as well (t.marks).
+const tone = {
+  yes: 'bg-pass-soft text-pass',
+  partial: 'bg-moderate-soft text-moderate',
+  no: 'bg-critical-soft text-critical-ink',
+  unknown: 'bg-surface-2 text-ink-2',
+} as const
+const head =
+  'text-start text-meta font-semibold md:border-b md:border-line md:bg-surface-2 md:px-5 md:py-3'
 const sections = [
   { id: 'table', title: p.tableTitle },
   { id: 'pick-them', title: p.pickThem(them.name) },
@@ -55,7 +65,7 @@ const others = VERSUS_SLUGS.filter((other) => other !== slug).map((other) => ({
   href: localePath(lang, PATHS.versus(other)),
   title: t.hub.row(t.pages[other].name),
 }))
-const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
+const prose = 'prose-fix prose-tool prose-article doc-links'
 ---
 
 <DocPage
@@ -69,19 +79,20 @@ const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
   parent={{ name: t.hub.title, href: localePath(lang, PATHS.comparisons) }}
 >
   <Fragment slot="head">
-    <span class="kick self-start">{p.kicker}</span>
+    <span class="topic self-start">
+      <span aria-hidden="true" class="size-2 rounded-full bg-brand"></span>
+      {p.kicker}
+    </span>
     <h1 class={HEAD.page}>
       <Bidi text={p.heading(them.name)} lang={lang} />
     </h1>
     <p class={HEAD.lead}>
       <Bidi text={them.summary} lang={lang} />
     </p>
-    <p class="m-0 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-small text-ink-2">
-      <span class="flex flex-wrap items-baseline gap-x-2">
+    <p class="meta-row m-0 text-small text-ink-2">
+      <span>
         <Bidi text={p.checkedOn(them.name)} lang={lang} />
-        <time datetime={them.checked} class="tabular-nums">
-          {formatDate(them.checked, lang)}
-        </time>
+        <time datetime={them.checked}>{formatDate(them.checked, lang)}</time>
       </span>
       <a
         href={them.url}
@@ -91,10 +102,10 @@ const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
         <Bidi text={p.visit(them.name)} lang={lang} />
       </a>
     </p>
-    <Contents variant="inline" label={p.tableTitle} sections={sections} />
+    <Contents variant="inline" label={p.contents} sections={sections} />
   </Fragment>
   <div slot="aside" class="flex flex-col gap-3">
-    <Contents label={p.tableTitle} sections={sections} />
+    <Contents label={p.contents} sections={sections} />
     <Related
       lang={lang}
       groups={[{ id: 'others-title', title: p.otherComparisons, links: others }]}
@@ -103,89 +114,87 @@ const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
 
   <section id="table" aria-labelledby="table-title" class="flex scroll-mt-6 flex-col gap-4">
     <DocHeading id="table-title" title={p.tableTitle} />
-    {/* One table at every width: from md its three columns, below md each row a card with its two
-        cells labelled, so that a phone never scrolls sideways to compare. */}
-    <table role="table" class="block w-full border-collapse text-small md:table">
-      <caption class="sr-only">{p.tableCaption(them.name)}</caption>
-      <thead role="rowgroup" class="sr-only md:table-header-group md:not-sr-only">
-        <tr role="row" class="md:table-row">
-          <th
-            scope="col"
-            role="columnheader"
-            class="px-0 pb-2 text-start font-semibold text-ink md:pe-3"
-          >
-            {p.feature}
-          </th>
-          <th
-            scope="col"
-            role="columnheader"
-            class="px-0 pb-2 text-start font-semibold text-ink md:px-3"
-          >
-            Arablyzer
-          </th>
-          <th
-            scope="col"
-            role="columnheader"
-            class="px-0 pb-2 text-start font-semibold text-ink md:ps-3"
-          >
-            <Bidi text={them.name} lang={lang} />
-          </th>
-        </tr>
-      </thead>
-      <tbody role="rowgroup" class="block md:table-row-group">
-        {t.rows.map((row, index) => {
-          const cells = [
-            { who: 'Arablyzer', cell: row.us },
-            { who: them.name, cell: them.them[index] ?? row.us },
-          ]
-          return (
-            <tr
-              role="row"
-              class="mb-3 block rounded-card border border-line bg-surface p-3 md:mb-0 md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0"
+    {/* One table at every width: from md its three columns in a card, our column on a faint teal
+        ground, below md each row a card with its two cells labelled, so that a phone never scrolls
+        sideways to compare. */}
+    <div class="md:card md:overflow-hidden">
+      <table role="table" class="block w-full border-collapse text-small md:table">
+        <caption class="sr-only">{p.tableCaption(them.name)}</caption>
+        <thead role="rowgroup" class="sr-only md:table-header-group md:not-sr-only">
+          <tr role="row" class="md:table-row">
+            <th scope="col" role="columnheader" class:list={[head, 'text-ink-2 md:w-[26%]']}>
+              {p.feature}
+            </th>
+            <th
+              scope="col"
+              role="columnheader"
+              class:list={[head, 'text-ink md:bg-brand-soft md:text-brand-ink']}
             >
-              <th
-                scope="row"
-                role="rowheader"
-                class="block pb-2 text-start font-semibold text-ink md:table-cell md:border-t md:border-line md:py-3 md:pe-3 md:align-top"
+              <span class="inline-flex items-center gap-2">
+                <Logo size={24} />
+                Arablyzer
+              </span>
+            </th>
+            <th scope="col" role="columnheader" class:list={[head, 'text-ink']}>
+              <Bidi text={them.name} lang={lang} />
+            </th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup" class="block md:table-row-group md:[&_tr:last-child>*]:border-b-0">
+          {t.rows.map((row, index) => {
+            const cells = [
+              { who: 'Arablyzer', cell: row.us },
+              { who: them.name, cell: them.them[index] ?? row.us },
+            ]
+            return (
+              <tr
+                role="row"
+                class="mb-3 block rounded-card border border-line bg-surface p-3 md:mb-0 md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0"
               >
-                <Bidi text={row.feature} lang={lang} />
-              </th>
-              {cells.map(({ who, cell }, side) => {
-                const Icon = icons[cell.mark]
-                return (
-                  <td
-                    role="cell"
-                    class:list={[
-                      'block py-1 align-top md:table-cell md:border-t md:border-line md:py-3',
-                      side === 0 ? 'md:px-3' : 'md:ps-3',
-                    ]}
-                  >
-                    <span class="mb-0.5 block text-meta font-semibold text-ink-2 md:hidden">
-                      <Bidi text={who} lang={lang} />
-                    </span>
-                    <span class="flex items-start gap-2">
-                      <Icon
-                        size={16}
-                        stroke-width={2.2}
-                        aria-hidden="true"
-                        class:list={[
-                          'mt-[3px] shrink-0',
-                          cell.mark === 'yes' ? 'text-brand-ink' : 'text-ink-2',
-                        ]}
-                      />
-                      <span class="min-w-0 text-ink-2">
-                        <span class="font-semibold text-ink">{t.marks[cell.mark]}.</span>{' '}
-                        <Bidi text={cell.text} lang={lang} />
+                <th
+                  scope="row"
+                  role="rowheader"
+                  class="block pb-2 text-start font-semibold text-ink md:table-cell md:border-b md:border-line md:px-5 md:py-4 md:align-top"
+                >
+                  <Bidi text={row.feature} lang={lang} />
+                </th>
+                {cells.map(({ who, cell }, side) => {
+                  const Icon = icons[cell.mark]
+                  return (
+                    <td
+                      role="cell"
+                      class:list={[
+                        'block border-t border-line py-2 align-top md:table-cell md:border-t-0 md:border-b md:px-5 md:py-4',
+                        side === 0 && 'md:bg-brand-soft/35',
+                      ]}
+                    >
+                      <span class="mb-1 block text-meta font-semibold text-ink-2 md:hidden">
+                        <Bidi text={who} lang={lang} />
                       </span>
-                    </span>
-                  </td>
-                )
-              })}
-            </tr>
-          )
-        })}
-      </tbody>
-    </table>
+                      <span class="flex items-start gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          class:list={[
+                            'mt-0.5 grid size-5 shrink-0 place-items-center rounded-full',
+                            tone[cell.mark],
+                          ]}
+                        >
+                          <Icon size={12} stroke-width={2.6} />
+                        </span>
+                        <span class="min-w-0 text-ink-2">
+                          <span class="font-semibold text-ink">{t.marks[cell.mark]}.</span>{' '}
+                          <Bidi text={cell.text} lang={lang} />
+                        </span>
+                      </span>
+                    </td>
+                  )
+                })}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section id="pick-them" aria-labelledby="pick-them-title" class="flex scroll-mt-6 flex-col gap-4">

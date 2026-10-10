@@ -44,7 +44,7 @@ function Mark({
           className="h-10 max-w-[10rem] rounded-lg bg-white object-contain p-1"
         />
       )}
-      <span className="text-body font-bold">{name === '' ? t.previewEmpty : name}</span>
+      <span className="text-body font-semibold">{name === '' ? t.previewEmpty : name}</span>
       {credit && <span className="ms-auto text-meta opacity-90">{t.credit}</span>}
     </div>
   )

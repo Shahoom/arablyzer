@@ -242,7 +242,7 @@ function ScoreTable({
               <th scope="row" className="py-2 pe-3 text-start font-normal">
                 {row.label}
                 {row.note !== undefined && (
-                  <span className="text-meta text-ink-2"> · {row.note}</span>
+                  <span className="ms-2 text-meta text-ink-2">{row.note}</span>
                 )}
               </th>
               <td className="py-2 pe-3 tabular-nums" dir="ltr">
@@ -421,7 +421,6 @@ function ScanView({ lang, data }: { lang: Lang; data: ScanComparison }) {
                         {side.state === null ? t.engines.notRun : t.engines.states[side.state]}
                         {side.seen !== null && (
                           <span className="text-ink-2">
-                            {' · '}
                             {t.engines.findings}:{' '}
                             <span dir="ltr" className="tabular-nums">
                               {side.seen}
@@ -468,7 +467,8 @@ function ScanView({ lang, data }: { lang: Lang; data: ScanComparison }) {
               )}
               {item.engines.length > 0 && (
                 <span className="text-meta text-ink-2">
-                  {t.changes.seenIn}: {item.engines.map((e) => t.engines.names[e]).join(' · ')}
+                  {t.changes.seenIn}:{' '}
+                  {item.engines.map((e) => t.engines.names[e]).join(lang === 'ar' ? '، ' : ', ')}
                 </span>
               )}
             </>
@@ -540,10 +540,10 @@ function CrawlView({ lang, data }: { lang: Lang; data: CrawlComparison }) {
                   <th scope="row" className="py-2 pe-3 text-start font-semibold">
                     {named(row)}
                     {row.before === null && (
-                      <span className="text-meta text-ink-2"> · {t.crawl.appeared}</span>
+                      <span className="ms-2 text-meta text-ink-2">{t.crawl.appeared}</span>
                     )}
                     {row.after === null && (
-                      <span className="text-meta text-ink-2"> · {t.crawl.gone}</span>
+                      <span className="ms-2 text-meta text-ink-2">{t.crawl.gone}</span>
                     )}
                   </th>
                   <td className="py-2 pe-3">
@@ -589,8 +589,7 @@ function CrawlView({ lang, data }: { lang: Lang; data: CrawlComparison }) {
               <span className="text-small text-ink-2">
                 {t.score.before}:{' '}
                 {item.before === null ? '–' : t.crawl.share(item.before.pages, item.before.checked)}
-                {' · '}
-                {t.score.after}:{' '}
+                {lang === 'ar' ? '،' : ','} {t.score.after}:{' '}
                 {item.after === null ? '–' : t.crawl.share(item.after.pages, item.after.checked)}
               </span>
             </>

@@ -1,16 +1,16 @@
 ---
 import { HOME } from '@arablyzer/i18n'
 import type { Lang } from '@arablyzer/seo/site'
-import Plus from '@lucide/astro/icons/plus'
+import ChevronDown from '@lucide/astro/icons/chevron-down'
 import { PUBLIC_AUTH_GOOGLE_CLIENT_ID } from 'astro:env/client'
 import Bidi from '../Bidi.astro'
-import SectionIntro from './SectionIntro.astro'
 
 /**
  * The questions, each an accordion (<details>), as the home page has always had them; the answers
- * are in the HTML whether a question is open or not. Each is a card (M2.6 R7) whose summary is the
- * whole of its first row: 56 px on a phone, so that a thumb finds it. The focus ring is the card's
- * (its own radius, drawn outside it: a card that clips its content would cut the ring off).
+ * are in the HTML whether a question is open or not. R8: from lg the heading stands at the start
+ * of the line and the questions beside it, one list with a hairline between rows (not a card for
+ * each), each summary the whole of its row, 56 px on a phone so that a thumb finds it. The focus
+ * ring is drawn inside the row, since the list clips its rows.
  */
 interface Props {
   lang: Lang
@@ -22,21 +22,23 @@ const items = (PUBLIC_AUTH_GOOGLE_CLIENT_ID ?? '') === '' ? t.items : [...t.item
 ---
 
 <section aria-labelledby="faq-title" class="below-fold strip">
-  <div class="wrap">
-    <SectionIntro kicker={t.kicker} id="faq-title" title={t.title} />
-    <div class="mx-auto flex max-w-[800px] flex-col gap-2.5 md:gap-3">
-      {items.map((item) => (
-        <details class="group card has-[summary:focus-visible]:outline-2 has-[summary:focus-visible]:outline-offset-3 has-[summary:focus-visible]:outline-indigo">
-          <summary class="text-body flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-card py-2 font-semibold focus-visible:outline-none md:min-h-16">
+  <div class="wrap lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
+    <h2 id="faq-title" class="heading-2 m-0 mb-5 max-w-[16ch] md:mb-8 lg:mb-0">
+      {t.title}
+    </h2>
+    <div class="kb-list">
+      {items.map((item, index) => (
+        <details class:list={['group', index > 0 && 'border-t border-line']}>
+          <summary class="text-body flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-card py-2 font-semibold hover:bg-bg focus-visible:outline-offset-[-3px] md:min-h-16">
             <span>
               <Bidi text={item.question} lang={lang} />
             </span>
-            <span
+            <ChevronDown
+              size={18}
+              stroke-width={2}
               aria-hidden="true"
-              class="grid size-8 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-ink-2 transition-[transform,background-color] duration-200 group-open:rotate-45 group-open:bg-indigo-soft group-open:text-indigo-ink"
-            >
-              <Plus size={16} stroke-width={1.8} />
-            </span>
+              class="shrink-0 text-ink-3 transition-transform duration-200 group-open:rotate-180 group-open:text-brand-ink"
+            />
           </summary>
           <p class="text-body m-0 max-w-[70ch] px-card pb-card text-ink-2">
             <Bidi text={item.answer} lang={lang} />

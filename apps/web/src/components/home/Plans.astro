@@ -7,14 +7,12 @@ import { scanFormHref } from '../../lib/site'
 import SectionIntro from './SectionIntro.astro'
 
 /**
- * The plans: the free one, with what is true today, and the paid ones, marked «قريباً» with what
- * the FAQ already says they are for (monitoring many sites every day, crawling whole sites). There
- * is no price anywhere: the owner has not set one (M2.6 plan §4). The free plan is the one with the
- * gradient edge, because it is the one that can be used.
- *
- * On a phone (M2.6 R7) the three are compact cards one after the other, and the section's lead,
- * which says what the note under the cards says, is for md and up; the paid cards' dashed
- * «قريباً» foot, which repeats their tag, comes with the three columns from lg.
+ * The plans (R8): the free one, which can be used today, as the card; the two paid ones, which are
+ * announced and have no price, as two plain entries beside it on the ground, one under the other.
+ * Three cards of the same size said they were three of the same thing; they are not. The free
+ * plan has a solid brand edge (a gradient edge is the home box's ring, and the buttons'). Every
+ * line is from the registries and the FAQ: monitoring many sites every day, crawling whole sites,
+ * and no price anywhere, since the owner has not set one (M2.6 plan §4).
  */
 interface Props {
   lang: Lang
@@ -22,22 +20,16 @@ interface Props {
 const { lang } = Astro.props
 const t = HOME[lang].plans
 const counts = homeCounts()
-const card = 'card p-card flex flex-col gap-3 md:gap-4'
 const point = 'flex items-start gap-2.5'
 const tick = 'mt-[5px] shrink-0 text-brand'
+const later = [t.monitoring, t.crawl]
 ---
 
 <section id="plans" aria-labelledby="plans-title" class="below-fold strip">
   <div class="wrap">
-    <SectionIntro
-      kicker={t.kicker}
-      id="plans-title"
-      title={t.title}
-      lead={t.lead}
-      phoneLead={false}
-    />
-    <div class="grid items-stretch gap-3 lg:grid-cols-3 lg:gap-card">
-      <article class:list={[card, 'free']}>
+    <SectionIntro id="plans-title" title={t.title} lead={t.lead} phoneLead={false} />
+    <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-12">
+      <article class="card flex flex-col gap-3 border-2 border-brand p-card md:gap-4">
         <div class="flex items-center justify-between gap-2">
           <h3 class="heading-3 m-0">{t.free.name}</h3>
           <span class="sev sev-pass">{t.free.tag}</span>
@@ -51,50 +43,32 @@ const tick = 'mt-[5px] shrink-0 text-brand'
             </li>
           ))}
         </ul>
-        <a href={scanFormHref(lang)} class="btn-grad btn-lg mt-1 w-full lg:mt-auto">
+        <a href={scanFormHref(lang)} class="btn-grad btn-lg mt-1 w-full">
           {t.free.cta}
         </a>
       </article>
 
-      <article class={card}>
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="heading-3 m-0">{t.monitoring.name}</h3>
-          <span class="sev bg-indigo-soft text-indigo-ink">{t.soon}</span>
-        </div>
-        <p class="text-body m-0 hidden text-ink-2 md:block">{t.monitoring.text}</p>
-        <ul class="text-small m-0 flex list-none flex-col gap-2 p-0 text-ink-2">
-          {[...t.monitoring.points, t.includesFree].map((item) => (
-            <li class={point}>
-              <Check size={16} stroke-width={2} aria-hidden="true" class={tick} />
-              {item}
-            </li>
-          ))}
-        </ul>
-        <p class="text-small m-0 mt-auto hidden rounded-xl border border-dashed border-line-2 py-3 text-center font-semibold text-ink-2 lg:block">
-          {t.soon}
-        </p>
-      </article>
-
-      <article class={card}>
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="heading-3 m-0">{t.crawl.name}</h3>
-          <span class="sev bg-indigo-soft text-indigo-ink">{t.soon}</span>
-        </div>
-        <p class="text-body m-0 hidden text-ink-2 md:block">{t.crawl.text}</p>
-        <ul class="text-small m-0 flex list-none flex-col gap-2 p-0 text-ink-2">
-          {[...t.crawl.points, t.includesFree].map((item) => (
-            <li class={point}>
-              <Check size={16} stroke-width={2} aria-hidden="true" class={tick} />
-              {item}
-            </li>
-          ))}
-        </ul>
-        <p class="text-small m-0 mt-auto hidden rounded-xl border border-dashed border-line-2 py-3 text-center font-semibold text-ink-2 lg:block">
-          {t.soon}
-        </p>
-      </article>
+      <div class="flex flex-col divide-y divide-line">
+        {later.map((plan) => (
+          <article class="flex flex-col gap-2.5 py-5 first:pt-0 last:pb-0 lg:first:pt-1">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="heading-3 m-0">{plan.name}</h3>
+              <span class="sev bg-indigo-soft text-indigo-ink">{t.soon}</span>
+            </div>
+            <p class="text-body m-0 hidden text-ink-2 md:block">{plan.text}</p>
+            <ul class="text-small m-0 flex list-none flex-col gap-2 p-0 text-ink-2">
+              {[...plan.points, t.includesFree].map((item) => (
+                <li class={point}>
+                  <Check size={16} stroke-width={2} aria-hidden="true" class={tick} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
     </div>
-    <p class="text-small m-0 mt-4 text-center text-ink-2 md:mt-5">{t.note}</p>
+    <p class="text-small m-0 mt-6 text-ink-2 md:mt-8">{t.note}</p>
   </div>
 </section>
 
@@ -113,14 +87,5 @@ const tick = 'mt-[5px] shrink-0 text-brand'
     .strip {
       contain-intrinsic-size: auto 481px;
     }
-  }
-  /* The free plan's edge: a gradient border drawn with two backgrounds, a white padding box over
-     the gradient's border box. */
-  .free {
-    border: 2px solid transparent;
-    background:
-      linear-gradient(#fff, #fff) padding-box,
-      linear-gradient(135deg, #007d88, #6366f1, #a855f7) border-box;
-    box-shadow: 0 30px 60px -30px rgb(79 70 229 / 0.5);
   }
 </style>

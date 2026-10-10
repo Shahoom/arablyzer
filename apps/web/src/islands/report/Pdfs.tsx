@@ -40,10 +40,14 @@ export function Pdfs({ report, lang }: { report: Report; lang: Lang }) {
               <span className="text-small text-ink-2">{t.outcomes[file.outcome]}</span>
             ) : (
               <>
-                <span className="text-meta text-ink-3">
-                  {t.pages(file.pagesRead, file.pages)} · {t.titleLabel}:{' '}
-                  {file.title === null ? '·' : <Revealed text={file.title} />} · {t.languageLabel}:{' '}
-                  <span dir="ltr">{file.language ?? '·'}</span>
+                <span className="meta-row text-meta text-ink-3">
+                  <span>{t.pages(file.pagesRead, file.pages)}</span>
+                  <span>
+                    {t.titleLabel}: {file.title === null ? '–' : <Revealed text={file.title} />}
+                  </span>
+                  <span>
+                    {t.languageLabel}: <span dir="ltr">{file.language ?? '–'}</span>
+                  </span>
                 </span>
                 {file.issues.length === 0 ? (
                   <span className="flex items-center gap-2 text-small">

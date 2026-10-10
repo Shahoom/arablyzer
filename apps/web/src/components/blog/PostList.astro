@@ -1,27 +1,51 @@
 ---
 import { BLOG_UI } from '@arablyzer/i18n'
-import { formatDate } from '@arablyzer/seo/dates'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import type { Post } from '../../lib/blog'
 import Bidi from '../Bidi.astro'
+import PostMeta from './PostMeta.astro'
 
 /**
- * The articles as compact rows in one card (M2.6 R7): the title at 16 px, the summary at 14, and
- * the date and the reading time as meta text; the whole row is the link, as the glossary's rows
- * are.
+ * The articles as rows of one list (M2.6 R7, R8): the title at 16 px, the summary at 14, and the
+ * first topic, the date and the reading time as one line of meta text; the whole row is the link,
+ * as the glossary's rows are. With `featured`, the newest article is set apart above the list at
+ * the size of a section's heading, with no box round it, so that the page has a first thing to read
+ * and not a column of equals.
  */
 interface Props {
   lang: Lang
   posts: readonly Post[]
   /** The list's accessible name. */
   label: string
+  featured?: boolean
 }
-const { lang, posts, label } = Astro.props
-const a = BLOG_UI[lang].article
+const { lang, posts, label, featured = false } = Astro.props
+const t = BLOG_UI[lang]
+const a = t.article
+const [first, ...rest] = posts
+const lead = featured && first !== undefined ? first : undefined
+const rows = lead === undefined ? posts : rest
 ---
 
+{lead !== undefined && (
+  <article class="group relative flex flex-col gap-3 border-b border-line pb-8">
+    <span class="topic">{a.latest}</span>
+    <h2 class="heading-2 m-0 max-w-[30ch]">
+      <a
+        href={localePath(lang, PATHS.post(lead.slug))}
+        class="text-ink after:absolute after:inset-0 hover:text-brand-ink focus-visible:outline-offset-8"
+      >
+        <Bidi text={lead.title} lang={lang} />
+      </a>
+    </h2>
+    <p class="text-body m-0 max-w-[60ch] text-ink-2 lg:text-[1.0625rem]">
+      <Bidi text={lead.summary} lang={lang} />
+    </p>
+    <PostMeta lang={lang} post={lead} />
+  </article>
+)}
 <ul aria-label={label} class="kb-list m-0 list-none p-0">
-  {posts.map((post) => (
+  {rows.map((post) => (
     <li>
       <a href={localePath(lang, PATHS.post(post.slug))} class="kb-row group">
         <span class="flex min-w-0 flex-1 flex-col gap-1">
@@ -31,10 +55,7 @@ const a = BLOG_UI[lang].article
           <span class="line-clamp-2 text-small text-ink-2">
             <Bidi text={post.summary} lang={lang} />
           </span>
-          <span class="flex flex-wrap items-center gap-x-3 text-meta text-ink-2">
-            <time datetime={post.date}>{formatDate(post.date, lang)}</time>
-            <span>{a.readingTime(post.minutes)}</span>
-          </span>
+          <PostMeta lang={lang} post={post} class="mt-0.5" />
         </span>
         <span
           aria-hidden="true"

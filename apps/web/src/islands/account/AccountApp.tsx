@@ -172,7 +172,10 @@ export default function AccountApp({ lang, page }: Props) {
 
   if (view.kind === 'loading') {
     return (
-      <section className="card flex flex-col gap-4 rounded-card p-card" aria-busy="true">
+      <section
+        className="card mx-auto flex w-full max-w-[560px] flex-col gap-4 rounded-card p-card"
+        aria-busy="true"
+      >
         <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
           {page === 'login' ? t.login.title : t.account.title}
         </h1>
@@ -185,7 +188,7 @@ export default function AccountApp({ lang, page }: Props) {
 
   if (view.kind === 'off') {
     return (
-      <section className="card flex flex-col gap-4 rounded-card p-card">
+      <section className="card mx-auto flex w-full max-w-[560px] flex-col gap-4 rounded-card p-card">
         <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
           {page === 'login' ? t.login.title : t.account.title}
         </h1>
@@ -196,7 +199,7 @@ export default function AccountApp({ lang, page }: Props) {
 
   if (view.kind === 'deleted') {
     return (
-      <section className="card flex flex-col gap-4 rounded-card p-card">
+      <section className="card mx-auto flex w-full max-w-[560px] flex-col gap-4 rounded-card p-card">
         <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
           {t.delete.done}
         </h1>
@@ -209,7 +212,7 @@ export default function AccountApp({ lang, page }: Props) {
 
   if (view.kind === 'out') {
     return (
-      <section className="card flex flex-col gap-5 rounded-card p-card">
+      <section className="card mx-auto flex w-full max-w-[560px] flex-col gap-5 rounded-card p-card">
         <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
           {t.login.title}
         </h1>
@@ -318,144 +321,166 @@ function SignedIn({
     [t.account.name, <bdi>{account.name === '' ? '—' : account.name}</bdi>],
   ]
   return (
-    <div className="flex flex-col gap-4">
-      <section className="card flex flex-col gap-5 rounded-card p-card">
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <header className="flex flex-col gap-2">
         <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
           {t.account.title}
         </h1>
         <p className="lead m-0">{t.account.lead}</p>
-        <dl className="m-0 grid grid-cols-1 gap-x-6 gap-y-3 text-body sm:grid-cols-[max-content_1fr]">
-          {rows.map(([label, value]) => (
-            <div key={label} className="contents">
-              <dt className="text-ink-2">{label}</dt>
-              <dd className="m-0 min-w-0 font-semibold break-words text-ink">{value}</dd>
-            </div>
-          ))}
-          <dt className="text-ink-2">{t.account.language}</dt>
-          <dd className="m-0">
-            <div role="group" aria-label={t.account.languageHint} className="flex flex-wrap gap-2">
-              {(['ar', 'en'] as const).map((language) => (
-                <button
-                  key={language}
-                  type="button"
-                  lang={language}
-                  aria-pressed={account.language === language}
-                  disabled={busy}
-                  onClick={() => void onLanguage(language)}
-                  className="btn-white aria-pressed:border-indigo aria-pressed:bg-indigo-soft aria-pressed:text-indigo-ink"
-                >
-                  {language === 'ar' ? 'العربية' : 'English'}
-                </button>
+      </header>
+      <div className="page-columns">
+        <aside aria-labelledby="details-title" className="page-aside page-aside-sticky">
+          <section className="card flex flex-col gap-4 p-card">
+            <h2 id="details-title" className="heading-3 m-0">
+              {t.account.details}
+            </h2>
+            <dl className="m-0 grid grid-cols-[max-content_1fr] items-baseline gap-x-6 gap-y-3 text-small lg:grid-cols-1 lg:gap-y-1">
+              {rows.map(([label, value]) => (
+                <div key={label} className="contents">
+                  <dt className="text-ink-2">{label}</dt>
+                  <dd className="m-0 min-w-0 font-semibold break-words text-ink lg:pb-3">
+                    {value}
+                  </dd>
+                </div>
               ))}
-            </div>
-          </dd>
-        </dl>
-        {alert}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn-white"
-            disabled={busy}
-            onClick={() => {
-              onLeave(false)
-            }}
-          >
-            <LogOut size={16} aria-hidden="true" />
-            {t.account.signOut}
-          </button>
-          <button
-            type="button"
-            className="btn-white"
-            disabled={busy}
-            onClick={() => {
-              onLeave(true)
-            }}
-          >
-            {t.account.signOutEverywhere}
-          </button>
-        </div>
-      </section>
-
-      <SitesPanel lang={lang} />
-
-      <AlertsPanel lang={lang} />
-
-      <PdfPanel lang={lang} />
-
-      <BrandPanel lang={lang} />
-
-      <section
-        aria-labelledby="delete-title"
-        className="card flex flex-col gap-4 rounded-card p-card"
-      >
-        <h2 id="delete-title" className="heading-3 m-0">
-          {t.delete.title}
-        </h2>
-        <p className="m-0 text-small text-ink-2">{t.delete.text}</p>
-        {stage === 'idle' && (
-          <div>
-            <button
-              type="button"
-              className="btn-white"
-              disabled={busy}
-              onClick={() => {
-                setStage('confirm')
-              }}
-            >
-              <Trash2 size={16} aria-hidden="true" />
-              {t.delete.open}
-            </button>
-          </div>
-        )}
-        {stage === 'confirm' && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                void onDelete().then((outcome) => {
-                  if (outcome === 'fresh') setStage('fresh')
-                })
-              }
-              className="btn-white border-critical-ink text-critical-ink hover:bg-critical-soft"
-            >
-              <Trash2 size={16} aria-hidden="true" />
-              {busy ? t.delete.working : t.delete.confirm}
-            </button>
-            <button
-              type="button"
-              className="btn-ghost"
-              disabled={busy}
-              onClick={() => {
-                setStage('idle')
-              }}
-            >
-              {t.delete.cancel}
-            </button>
-          </div>
-        )}
-        {stage === 'fresh' && (
-          <>
-            <p role="alert" className="m-0 text-small text-ink-2">
-              {t.delete.freshNeeded}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn-grad" disabled={busy} onClick={onSignInAgain}>
-                {t.delete.signInAgain}
+              <dt className="text-ink-2">{t.account.language}</dt>
+              <dd className="m-0">
+                <div
+                  role="group"
+                  aria-label={t.account.languageHint}
+                  className="flex flex-wrap gap-2"
+                >
+                  {(['ar', 'en'] as const).map((language) => (
+                    <button
+                      key={language}
+                      type="button"
+                      lang={language}
+                      aria-pressed={account.language === language}
+                      disabled={busy}
+                      onClick={() => void onLanguage(language)}
+                      className="btn-white aria-pressed:border-indigo aria-pressed:bg-indigo-soft aria-pressed:text-indigo-ink"
+                    >
+                      {language === 'ar' ? 'العربية' : 'English'}
+                    </button>
+                  ))}
+                </div>
+              </dd>
+            </dl>
+            {alert}
+            <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+              <button
+                type="button"
+                className="btn-white"
+                disabled={busy}
+                onClick={() => {
+                  onLeave(false)
+                }}
+              >
+                <LogOut size={16} aria-hidden="true" />
+                {t.account.signOut}
               </button>
               <button
                 type="button"
-                className="btn-ghost"
+                className="btn-white"
+                disabled={busy}
                 onClick={() => {
-                  setStage('idle')
+                  onLeave(true)
                 }}
               >
-                {t.delete.cancel}
+                {t.account.signOutEverywhere}
               </button>
             </div>
-          </>
-        )}
-      </section>
+          </section>
+        </aside>
+
+        <div className="page-main flex flex-col gap-4 lg:gap-6">
+          <SitesPanel lang={lang} />
+
+          <AlertsPanel lang={lang} />
+
+          <PdfPanel lang={lang} />
+
+          <BrandPanel lang={lang} />
+
+          <section
+            aria-labelledby="delete-title"
+            className="card flex flex-col gap-4 rounded-card p-card"
+          >
+            <h2 id="delete-title" className="heading-2 m-0">
+              {t.delete.title}
+            </h2>
+            <p className="m-0 text-small text-ink-2">{t.delete.text}</p>
+            {stage === 'idle' && (
+              <div>
+                <button
+                  type="button"
+                  className="btn-white"
+                  disabled={busy}
+                  onClick={() => {
+                    setStage('confirm')
+                  }}
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  {t.delete.open}
+                </button>
+              </div>
+            )}
+            {stage === 'confirm' && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void onDelete().then((outcome) => {
+                      if (outcome === 'fresh') setStage('fresh')
+                    })
+                  }
+                  className="btn-white border-critical-ink text-critical-ink hover:bg-critical-soft"
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  {busy ? t.delete.working : t.delete.confirm}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    setStage('idle')
+                  }}
+                >
+                  {t.delete.cancel}
+                </button>
+              </div>
+            )}
+            {stage === 'fresh' && (
+              <>
+                <p role="alert" className="m-0 text-small text-ink-2">
+                  {t.delete.freshNeeded}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn-grad"
+                    disabled={busy}
+                    onClick={onSignInAgain}
+                  >
+                    {t.delete.signInAgain}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => {
+                      setStage('idle')
+                    }}
+                  >
+                    {t.delete.cancel}
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      </div>
     </div>
   )
 }

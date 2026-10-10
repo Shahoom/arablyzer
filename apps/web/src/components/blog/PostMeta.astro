@@ -1,0 +1,30 @@
+---
+import { BLOG_UI } from '@arablyzer/i18n'
+import { formatDate } from '@arablyzer/seo/dates'
+import type { Lang } from '@arablyzer/seo/site'
+import { TAG_DOT, type Post } from '../../lib/blog'
+
+/**
+ * What a list says about an article in one line of meta text: its first topic (a dot in the topic's
+ * colour and its name), its date and its reading time. The facts are parted by a gap, not a glyph.
+ */
+interface Props {
+  lang: Lang
+  post: Post
+  class?: string
+}
+const { lang, post, class: className } = Astro.props
+const t = BLOG_UI[lang]
+const topic = post.tags[0]
+---
+
+<span class:list={['meta-row text-meta text-ink-2', className]}>
+  {topic !== undefined && (
+    <span>
+      <i aria-hidden="true" class:list={['size-2 self-center rounded-full', TAG_DOT[topic]]} />
+      {t.tags[topic].name}
+    </span>
+  )}
+  <time datetime={post.date}>{formatDate(post.date, lang)}</time>
+  <span>{t.article.readingTime(post.minutes)}</span>
+</span>

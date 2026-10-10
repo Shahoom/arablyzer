@@ -34,7 +34,7 @@ export function Progress({
       const run = progress.engines[engine]
       if (run.state === 'waiting') return false
       return `${engine} ${run.version ?? ''}  ${run.state}${
-        run.requests === null ? '' : ` · ${run.requests} requests`
+        run.requests === null ? '' : `  ${run.requests} requests`
       }`
     }),
     progress.rules !== null && `rules  ${progress.rules}`,

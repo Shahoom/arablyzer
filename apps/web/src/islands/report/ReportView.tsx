@@ -184,12 +184,9 @@ function Meta({ report, lang, tool }: { report: Report; lang: Lang; tool: ToolRe
     </span>,
   ].filter((part) => part !== false)
   return (
-    <p className="m-0 text-meta text-ink-2">
+    <p className="meta-row m-0 text-meta text-ink-2">
       {parts.map((part, index) => (
-        <Fragment key={index}>
-          {index > 0 && ' · '}
-          {part}
-        </Fragment>
+        <Fragment key={index}>{part}</Fragment>
       ))}
     </p>
   )

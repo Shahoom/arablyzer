@@ -6,7 +6,8 @@ import { scanFormHref } from '../../lib/site'
 /**
  * The closing call to action: a band in the brand's gradient with a field of dots, and a button
  * that goes back up to the scan box (there is one form on the page, and it is that one). Its
- * heading is the scale's `heading-2` like every other section's (M2.6 R7), in white.
+ * heading is the scale's `heading-2` like every other section's (M2.6 R7), in white. R8: words at
+ * the start of the line and the button across from them, not a centred stack.
  */
 interface Props {
   lang: Lang
@@ -16,12 +17,14 @@ const t = HOME[lang].cta
 ---
 
 <section aria-labelledby="cta-title" class="wrap below-fold strip">
-  <div class="final relative isolate flex flex-col items-center gap-3 overflow-hidden rounded-[24px] bg-[#00727c] bg-(image:--gradient-band) px-5 py-9 text-center text-white md:gap-4 md:rounded-[32px] md:px-8 md:py-14">
-    <h2 id="cta-title" class="heading-2 m-0">
-      {t.title}
-    </h2>
-    <p class="text-body m-0 text-white/90">{t.text}</p>
-    <a href={scanFormHref(lang)} class="btn-light btn-lg mt-1">
+  <div class="final relative isolate flex flex-col items-start gap-5 overflow-hidden rounded-[24px] bg-[#00727c] bg-(image:--gradient-band) px-5 py-8 text-white md:flex-row md:items-center md:justify-between md:gap-10 md:rounded-[32px] md:px-10 md:py-12">
+    <div class="flex flex-col gap-2">
+      <h2 id="cta-title" class="heading-2 m-0">
+        {t.title}
+      </h2>
+      <p class="text-body m-0 max-w-[52ch] text-white/90">{t.text}</p>
+    </div>
+    <a href={scanFormHref(lang)} class="btn-light btn-lg shrink-0">
       {t.button}
     </a>
   </div>
@@ -46,7 +49,7 @@ const t = HOME[lang].cta
     z-index: -1;
     background-image: radial-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1px);
     background-size: 22px 22px;
-    mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000, transparent 75%);
+    mask-image: radial-gradient(ellipse 70% 90% at 50% 50%, #000, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 90% at 50% 50%, #000, transparent 80%);
   }
 </style>
