@@ -122,8 +122,7 @@ describe('the PDF requests', () => {
       await askPdf({ kind: 'scan', id: 'a' }, 'ar', respond(202, { nonsense: true }) as never),
     ).toEqual({ ok: false, problem: 'unavailable' })
     expect(
-      await askPdf({ kind: 'scan', id: 'a' }, 'ar', (() =>
-        Promise.reject(new Error('down')))),
+      await askPdf({ kind: 'scan', id: 'a' }, 'ar', () => Promise.reject(new Error('down'))),
     ).toEqual({ ok: false, problem: 'network' })
     expect(await deletePdf('x', respond(404, { error: 'not-found' }) as never)).toEqual({
       ok: false,
