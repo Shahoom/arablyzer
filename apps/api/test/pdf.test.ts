@@ -112,7 +112,7 @@ function setup(options: { accounts?: boolean; env?: Record<string, string> } = {
         ...(cookie === undefined ? {} : { cookie }),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-      ...(raw === undefined ? {} : { body: raw.bytes }),
+      ...(raw === undefined ? {} : { body: new Uint8Array(raw.bytes) }),
     })
   const signIn = async (sub: string) => {
     stubGoogle(idToken({ sub, email: `${sub}@example.com` }))

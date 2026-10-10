@@ -52,10 +52,8 @@ export function fixBlocks(markdown: string): FixBlock[] {
     const item = LIST_ITEM.exec(line.trim())
     if (item !== null) {
       const ordered = /^\d/.test(line.trim())
-      if (list === null || list.ordered !== ordered) {
-        flush()
-        list = { ordered, items: [] }
-      }
+      if (list !== null && list.ordered !== ordered) flush()
+      list ??= { ordered, items: [] }
       list.items.push(plain(item[1] ?? ''))
     } else if (list !== null && /^\s+\S/.test(line)) {
       // A continuation of the last list item.

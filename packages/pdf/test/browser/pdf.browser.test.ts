@@ -80,7 +80,7 @@ function lines(items: readonly { str: string; transform: number[] }[]): string[]
  * spaces are left out of the comparison, since a gap between two letters that do not join reads as one.
  */
 const logical = (line: string): string =>
-  [...line.normalize('NFKC').replaceAll(' ', '')].reverse().join('')
+  Array.from(line.normalize('NFKC').replaceAll(' ', '')).reverse().join('')
 
 const raw = (pdf: Uint8Array): string => Buffer.from(pdf).toString('latin1')
 
@@ -117,7 +117,7 @@ describe('the PDF of a golden report', () => {
     // (pdf.js reads its Arabic titles back in its own word order, so they are not compared here.)
     const titles = (entries: { title: string; items: unknown[] }[]): string[] =>
       entries.flatMap((entry) => [entry.title, ...titles(entry.items as never)])
-    const outline = titles((await loaded.getOutline()) ?? [])
+    const outline = titles(await loaded.getOutline())
     expect(outline.length).toBeGreaterThanOrEqual(8)
     expect(outline.some((title) => title.includes('الملخص'))).toBe(true)
 

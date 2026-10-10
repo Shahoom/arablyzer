@@ -90,7 +90,7 @@ describe('the PDF answers', () => {
 describe('the PDF requests', () => {
   it('asks in JSON with the session, and reads a refusal by its code', async () => {
     const send = respond(202, JOB)
-    const made = await askPdf({ kind: 'scan', id: 'a'.repeat(22) }, 'ar', send as never)
+    const made = await askPdf({ kind: 'scan', id: 'a'.repeat(22) }, 'ar', send)
     expect(made).toMatchObject({ ok: true })
     expect(send).toHaveBeenCalledWith(
       '/api/pdf',
@@ -103,19 +103,19 @@ describe('the PDF requests', () => {
     const limit = await askPdf(
       { kind: 'scan', id: 'a'.repeat(22) },
       'ar',
-      respond(403, { error: 'plan-limit' }) as never,
+      respond(403, { error: 'plan-limit' }),
     )
     expect(limit).toEqual({ ok: false, problem: 'plan-limit' })
     const conflict = await askPdf(
       { kind: 'scan', id: 'a'.repeat(22) },
       'ar',
-      respond(409, { error: 'conflict' }) as never,
+      respond(409, { error: 'conflict' }),
     )
     expect(conflict).toEqual({ ok: false, problem: 'conflict' })
     const pair = await askPdf(
       { kind: 'scan', id: 'a'.repeat(22) },
       'ar',
-      respond(422, { error: 'not-comparable' }) as never,
+      respond(422, { error: 'not-comparable' }),
     )
     expect(pair).toEqual({ ok: false, problem: 'not-found' })
     expect(
@@ -123,7 +123,7 @@ describe('the PDF requests', () => {
     ).toEqual({ ok: false, problem: 'unavailable' })
     expect(
       await askPdf({ kind: 'scan', id: 'a' }, 'ar', (() =>
-        Promise.reject(new Error('down'))) as never),
+        Promise.reject(new Error('down')))),
     ).toEqual({ ok: false, problem: 'network' })
     expect(await deletePdf('x', respond(404, { error: 'not-found' }) as never)).toEqual({
       ok: false,
@@ -136,7 +136,7 @@ describe('the PDF requests', () => {
 
   it('sends a logo’s bytes as they are and carries the reason a logo was refused', async () => {
     const send = respond(400, { error: 'bad-request', logo: 'too-large' })
-    const result = await uploadLogo(new Blob([new Uint8Array([1, 2, 3])]), send as never)
+    const result = await uploadLogo(new Blob([new Uint8Array([1, 2, 3])]), send)
     expect(result).toEqual({ ok: false, problem: 'bad-request', logo: 'too-large' })
     const [, init] = send.mock.calls[0] as unknown as [string, RequestInit]
     expect(init.method).toBe('PUT')

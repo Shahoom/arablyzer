@@ -107,7 +107,7 @@ describe.skipIf(!hasPostgres)('PDF export and the brand, on PostgreSQL', () => {
         `SELECT count(*)::int AS n FROM ${table} WHERE user_id = $1`,
         [userId],
       )
-      expect(rows[0]?.n, table).toBe(0)
+      expect((rows[0] as { n: number }).n, table).toBe(0)
     }
   })
 })

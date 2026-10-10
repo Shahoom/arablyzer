@@ -296,7 +296,8 @@ export class MemoryPdfData implements PdfData {
 }
 
 const view = (stored: Stored): PdfJob => {
-  const { file: _omitted, ...job } = stored
-  void _omitted
-  return job
+  // The job as a caller sees it: the file's bytes are read through `file()`, never carried here.
+  const job: Record<string, unknown> = { ...stored }
+  delete job.file
+  return job as unknown as PdfJob
 }
