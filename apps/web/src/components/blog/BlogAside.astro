@@ -1,0 +1,63 @@
+---
+import { BLOG_UI, type BlogTag } from '@arablyzer/i18n'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import { feedPath } from '../../lib/feeds'
+
+/**
+ * The aside of the blog's index and tag pages: from lg, the tags as a vertical list with their
+ * counts (the chips of a phone, as the tools index's categories are), and always the two feeds.
+ */
+interface Props {
+  lang: Lang
+  tags: readonly { readonly tag: BlogTag; readonly count: number }[]
+  current: BlogTag | 'all'
+  total: number
+}
+const { lang, tags, current, total } = Astro.props
+const t = BLOG_UI[lang]
+const link = 'kb-link text-ink-2 hover:text-ink lg:[--kb-link-h-lg:34px]'
+const marked = 'aria-[current=page]:bg-indigo-soft aria-[current=page]:text-indigo-ink'
+---
+
+<div class="flex flex-col gap-3">
+  {tags.length > 0 && (
+    <nav aria-labelledby="tags-title" class="kb-box hidden flex-col gap-0.5 p-3 lg:flex">
+      <h2 id="tags-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+        {t.tagsLabel}
+      </h2>
+      <a
+        href={localePath(lang, PATHS.blog)}
+        class:list={[link, marked]}
+        aria-current={current === 'all' ? 'page' : undefined}
+      >
+        <span>{t.allArticles}</span>
+        <span aria-hidden="true" class="text-meta tabular-nums">
+          {total}
+        </span>
+      </a>
+      {tags.map(({ tag, count }) => (
+        <a
+          href={localePath(lang, PATHS.blogTag(tag))}
+          class:list={[link, marked]}
+          aria-current={current === tag ? 'page' : undefined}
+        >
+          <span>{t.tags[tag].name}</span>
+          <span aria-hidden="true" class="text-meta tabular-nums">
+            {count}
+          </span>
+        </a>
+      ))}
+    </nav>
+  )}
+  <nav aria-labelledby="feeds-title" class="kb-box flex flex-col gap-0.5 p-3">
+    <h2 id="feeds-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+      {t.feeds.label}
+    </h2>
+    <a href={feedPath(lang, 'rss')} class={link}>
+      {t.feeds.rss}
+    </a>
+    <a href={feedPath(lang, 'atom')} class={link}>
+      {t.feeds.atom}
+    </a>
+  </nav>
+</div>

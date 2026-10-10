@@ -1,11 +1,12 @@
 ---
-import { RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
+import { BLOG_UI, RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList, techArticle } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
 import X from '@lucide/astro/icons/x'
 import Page from '../../layouts/Page.astro'
+import { postsAbout } from '../../lib/blog'
 import { GUIDES_DATA } from '../../lib/guide-data'
 import { HEAD } from '../../lib/heads'
 import { LIBRARY_DATA, ruleData } from '../../lib/rule-data'
@@ -35,6 +36,7 @@ const site = siteOf(Astro.site)
 const path = PATHS.rule(id)
 const url = pageUrl(site, lang, path)
 const libraryPath = localePath(lang, PATHS.rules)
+const articles = await postsAbout('rules', id, lang)
 const category = TOOLS_UI[lang].categories[rule.category].name
 const tools = [
   ...rule.tools.map((slug) => ({
@@ -167,6 +169,7 @@ const facts = [
           { id: 'near-title', title: t.page.near, links: near },
           { id: 'guides-title', title: t.page.guides, links: guides },
           { id: 'terms-title', title: t.page.terms, links: terms },
+          { id: 'articles-title', title: BLOG_UI[lang].relatedArticles.title, links: articles },
         ]}
       />
     </div>

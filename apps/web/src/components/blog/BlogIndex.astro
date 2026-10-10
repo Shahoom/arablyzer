@@ -1,0 +1,92 @@
+---
+import { BLOG_UI, type BlogTag } from '@arablyzer/i18n'
+import { breadcrumbList, itemList } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import Page from '../../layouts/Page.astro'
+import { postsIn, postsWithTag, tagsIn } from '../../lib/blog'
+import { feedLinks } from '../../lib/feeds'
+import { HEAD } from '../../lib/heads'
+import { siteOf } from '../../lib/site'
+import Bidi from '../Bidi.astro'
+import PageColumns from '../PageColumns.astro'
+import PageHead from '../PageHead.astro'
+import BlogAside from './BlogAside.astro'
+import PostList from './PostList.astro'
+import TagChips from './TagChips.astro'
+
+// The blog's index (M6) and a tag's page, one template: the head, the tag chips (a phone) or the
+// tag list (from lg, in the aside), and the articles as compact rows. A tag's page is the same
+// list narrowed to the tag, with a sentence of its own under the heading.
+
+interface Props {
+  lang: Lang
+  tag?: BlogTag
+}
+const { lang, tag } = Astro.props
+const t = BLOG_UI[lang]
+const site = siteOf(Astro.site)
+const all = await postsIn(lang)
+const tags = await tagsIn(lang)
+const posts = tag === undefined ? all : await postsWithTag(lang, tag)
+const path = tag === undefined ? PATHS.blog : PATHS.blogTag(tag)
+const url = pageUrl(site, lang, path)
+const name = tag === undefined ? t.title : t.tags[tag].name
+const title = tag === undefined ? t.meta.title : `${t.tagPage.title(name)} — Arablyzer`
+const description =
+  tag === undefined ? t.meta.description : t.tagPage.description(name, posts.length)
+// A tag's page is in the other language only if a translated article has the tag at least twice.
+const twinTags = await tagsIn(lang === 'ar' ? 'en' : 'ar')
+const twin = tag === undefined || twinTags.some((entry) => entry.tag === tag)
+const trail = [
+  { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+  { name: t.title, url: pageUrl(site, lang, PATHS.blog) },
+  ...(tag === undefined ? [] : [{ name, url }]),
+]
+const jsonLd = [
+  breadcrumbList(trail),
+  itemList(
+    posts.map((post) => ({
+      name: post.title,
+      url: pageUrl(site, lang, PATHS.post(post.slug)),
+    })),
+  ),
+]
+---
+
+<Page
+  lang={lang}
+  path={path}
+  title={title}
+  description={description}
+  jsonLd={jsonLd}
+  langs={twin ? ['ar', 'en'] : [lang]}
+  switchPath={twin ? path : PATHS.blog}
+  feeds={feedLinks(site, lang)}
+>
+  <PageHead
+    lang={lang}
+    breadcrumb={{
+      label: t.breadcrumb,
+      current: name,
+      steps: tag === undefined ? [] : [{ name: t.title, href: localePath(lang, PATHS.blog) }],
+    }}
+    title={tag === undefined ? t.title : t.tagPage.title(name)}
+  >
+    <Bidi slot="lead" text={tag === undefined ? t.lead : t.tags[tag].description} lang={lang} />
+  </PageHead>
+
+  <PageColumns class:list={[HEAD.bodyTop, 'pb-section']}>
+    <Fragment slot="aside">
+      <BlogAside lang={lang} tags={tags} current={tag ?? 'all'} total={all.length} />
+    </Fragment>
+    <div class="flex flex-col gap-4">
+      <TagChips lang={lang} tags={tags} current={tag ?? 'all'} />
+      {lang === 'en' && tag === undefined && (
+        <p class="m-0 text-small text-ink-2">{t.translationNote}</p>
+      )}
+      <p class="m-0 text-small text-ink-2">{t.count(posts.length)}</p>
+      <PostList lang={lang} posts={posts} label={name} />
+    </div>
+  </PageColumns>
+</Page>

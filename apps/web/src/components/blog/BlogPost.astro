@@ -1,0 +1,209 @@
+---
+import { BLOG_UI } from '@arablyzer/i18n'
+import { blogPosting, breadcrumbList } from '@arablyzer/seo/json-ld'
+import { formatDate } from '@arablyzer/seo/dates'
+import { titleText } from '@arablyzer/seo/article'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { ogImagePath } from '@arablyzer/seo/sitemap'
+import { STRINGS } from '@arablyzer/seo/strings'
+import { feedLinks } from '../../lib/feeds'
+import { HEAD } from '../../lib/heads'
+import { fixGuideData, termData } from '../../lib/guide-data'
+import { neighbours, postBySlug, translationOf } from '../../lib/blog'
+import { ruleData } from '../../lib/rule-data'
+import { siteOf } from '../../lib/site'
+import { toolData } from '../../lib/tool-data'
+import Bidi from '../Bidi.astro'
+import DocHeading from '../DocHeading.astro'
+import Related from '../guides/Related.astro'
+import Contents from '../pages/Contents.astro'
+import DocPage from '../pages/DocPage.astro'
+
+// An article of the blog (M6): the trail, the title, the byline and the lead over the faint tint
+// of a page's head; then the sections in the main column and, beside them, the contents and the
+// pages the article is about (tools, rules, guides, terms, other articles) in the aside. The
+// document kind of M2.6 R7: DocPage on PageColumns.
+
+interface Props {
+  lang: Lang
+  slug: string
+}
+const { lang, slug } = Astro.props
+const post = await postBySlug(lang, slug)
+const twin = await translationOf(post)
+const { previous, next } = await neighbours(post)
+const t = BLOG_UI[lang]
+const a = t.article
+const site = siteOf(Astro.site)
+const path = PATHS.post(slug)
+const url = pageUrl(site, lang, path)
+const langs: readonly Lang[] = twin === undefined ? [lang] : ['ar', 'en']
+const other = lang === 'ar' ? 'en' : 'ar'
+
+const jsonLd = [
+  blogPosting({
+    headline: post.title,
+    description: post.description,
+    url,
+    origin: site.origin,
+    lang,
+    published: post.date,
+    modified: post.lastmod,
+    author: post.author,
+    image: `${site.origin}${ogImagePath(localePath(lang, path))}`,
+    keywords: post.tags.map((tag) => t.tags[tag].name),
+    wordCount: post.words,
+  }),
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.title, url: pageUrl(site, lang, PATHS.blog) },
+    { name: post.title, url },
+  ]),
+]
+
+const sections = post.sections.map((section) => ({
+  id: section.id,
+  title: titleText(section.title),
+}))
+const href = (kind: string, id: string) =>
+  localePath(
+    lang,
+    kind === 'tool'
+      ? PATHS.tool(id)
+      : kind === 'rule'
+        ? PATHS.rule(id)
+        : kind === 'fix'
+          ? PATHS.fixGuide(id)
+          : PATHS.term(id),
+  )
+const tools = post.tools.map((id) => ({
+  href: href('tool', id),
+  title: toolData(id).copy[lang].title,
+}))
+const rules = post.rules.map((id) => ({
+  href: href('rule', id),
+  title: ruleData(id).copy[lang].title,
+}))
+const fix = post.fix.map((id) => ({ href: href('fix', id), title: fixGuideData(id).message[lang] }))
+const terms = post.terms.map((id) => ({
+  href: href('term', id),
+  title: termData(id).copy[lang].title,
+}))
+const related = await Promise.all(
+  post.related.map(async (id) => ({
+    href: localePath(lang, PATHS.post(id)),
+    title: (await postBySlug(lang, id)).title,
+  })),
+)
+const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
+const pagerCard = 'kb-box group flex flex-col gap-1 p-4 text-ink hover:text-ink'
+---
+
+<DocPage
+  lang={lang}
+  path={path}
+  title={`${post.title} — Arablyzer`}
+  description={post.description}
+  jsonLd={jsonLd}
+  crumb={post.title}
+  breadcrumbLabel={t.breadcrumb}
+  parent={{ name: t.title, href: localePath(lang, PATHS.blog) }}
+  langs={langs}
+  switchPath={twin === undefined ? PATHS.blog : path}
+  article={{
+    published: post.date,
+    modified: post.lastmod,
+    tags: post.tags.map((tag) => t.tags[tag].name),
+  }}
+  feeds={feedLinks(site, lang)}
+>
+  <Fragment slot="head">
+    <span class="kick self-start">{t.tags[post.tags[0] ?? 'search'].name}</span>
+    <h1 class={HEAD.page}>
+      <Bidi text={post.title} lang={lang} />
+    </h1>
+    <p class={HEAD.lead}>
+      <Bidi text={post.summary} lang={lang} />
+    </p>
+    <p class="m-0 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-small text-ink-2">
+      <span class="flex flex-wrap items-baseline gap-x-2">
+        {a.by}
+        <span class="font-semibold text-ink">
+          <Bidi text={post.author} lang={lang} />
+        </span>
+      </span>
+      <span class="flex flex-wrap items-baseline gap-x-2">
+        {a.published}
+        <time datetime={post.date} class="tabular-nums">
+          {formatDate(post.date, lang)}
+        </time>
+      </span>
+      {post.updated !== undefined && post.updated !== post.date && (
+        <span class="flex flex-wrap items-baseline gap-x-2">
+          {a.updated}
+          <time datetime={post.updated} class="tabular-nums">
+            {formatDate(post.updated, lang)}
+          </time>
+        </span>
+      )}
+      <span>{a.readingTime(post.minutes)}</span>
+      {twin !== undefined && (
+        <a
+          href={localePath(other, path)}
+          lang={other}
+          hreflang={other}
+          class="font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
+        >
+          {t.article.otherLanguage}
+        </a>
+      )}
+    </p>
+    <Contents variant="inline" label={a.contents} sections={sections} />
+  </Fragment>
+  <div slot="aside" class="flex flex-col gap-3">
+    <Contents label={a.contents} sections={sections} />
+    <Related
+      lang={lang}
+      groups={[
+        { id: 'tools-title', title: a.tools, links: tools },
+        { id: 'rules-title', title: a.rules, links: rules },
+        { id: 'guides-title', title: a.guides, links: fix },
+        { id: 'terms-title', title: a.terms, links: terms },
+        { id: 'related-title', title: a.related, links: related },
+      ]}
+    />
+  </div>
+  {post.intro !== '' && <div class={prose} set:html={post.intro} />}
+  {post.sections.map((section) => (
+    <section
+      id={section.id}
+      aria-labelledby={`${section.id}-title`}
+      class="flex scroll-mt-6 flex-col gap-4"
+    >
+      <DocHeading id={`${section.id}-title`} title={titleText(section.title)} />
+      <div class={prose} set:html={section.html} />
+    </section>
+  ))}
+  {(previous !== undefined || next !== undefined) && (
+    <nav aria-label={a.pager} class="grid gap-3 sm:grid-cols-2">
+      {previous !== undefined ? (
+        <a href={localePath(lang, PATHS.post(previous.slug))} class={pagerCard}>
+          <span class="text-meta text-ink-2">{a.previous}</span>
+          <span class="text-body font-semibold group-hover:text-brand-ink">
+            <Bidi text={previous.title} lang={lang} />
+          </span>
+        </a>
+      ) : (
+        <span class="hidden sm:block" />
+      )}
+      {next !== undefined && (
+        <a href={localePath(lang, PATHS.post(next.slug))} class={pagerCard}>
+          <span class="text-meta text-ink-2">{a.next}</span>
+          <span class="text-body font-semibold group-hover:text-brand-ink">
+            <Bidi text={next.title} lang={lang} />
+          </span>
+        </a>
+      )}
+    </nav>
+  )}
+</DocPage>

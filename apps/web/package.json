@@ -6,13 +6,14 @@
   "type": "module",
   "scripts": {
     "dev": "tsx scripts/generate.ts && astro dev",
-    "build": "tsx scripts/generate.ts && astro build && tsx scripts/og-images.ts && tsx scripts/indexnow.ts --write-key",
+    "build": "tsx scripts/generate.ts && astro build && tsx scripts/og-images.ts && tsx scripts/indexnow.ts --write-key --on-build",
     "preview": "astro preview",
     "typecheck": "tsx scripts/generate.ts && astro check && tsc --noEmit",
     "test": "vitest run --exclude \"test/browser/**\"",
     "test:browser": "vitest run test/browser",
     "lighthouse": "tsx scripts/lighthouse.ts",
     "generate": "tsx scripts/generate.ts",
+    "copy:review": "tsx scripts/check-blog-review.ts",
     "indexnow": "tsx scripts/indexnow.ts --submit"
   },
   "dependencies": {

@@ -255,7 +255,15 @@ export function blogPosting(options: {
     datePublished: options.published,
     dateModified: options.modified,
     author: { '@type': 'Organization', name: options.author, url: options.origin },
-    publisher: { '@id': organizationId(options.origin) },
+    // In full, not by reference alone: the Organization node is on the home page, and a page's
+    // markup is read by itself.
+    publisher: {
+      '@type': 'Organization',
+      '@id': organizationId(options.origin),
+      name: 'Arablyzer',
+      url: `${options.origin}/`,
+      logo: { '@type': 'ImageObject', url: `${options.origin}/favicon.svg` },
+    },
     image: [options.image],
     keywords: options.keywords.join(', '),
     wordCount: options.wordCount,

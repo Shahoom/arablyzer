@@ -1,8 +1,9 @@
 ---
-import { GUIDES_UI } from '@arablyzer/i18n'
+import { BLOG_UI, GUIDES_UI } from '@arablyzer/i18n'
 import { breadcrumbList, techArticle } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
+import { postsAbout } from '../../lib/blog'
 import { HEAD } from '../../lib/heads'
 import { fixGuideData } from '../../lib/guide-data'
 import { ruleData } from '../../lib/rule-data'
@@ -29,6 +30,7 @@ const site = siteOf(Astro.site)
 const path = PATHS.fixGuide(slug)
 const url = pageUrl(site, lang, path)
 const other = lang === 'ar' ? 'en' : 'ar'
+const articles = await postsAbout('fix', slug, lang)
 const jsonLd = [
   techArticle({ headline: copy.title, description: copy.description, url, lang }),
   breadcrumbList([
@@ -97,6 +99,7 @@ const sections = copy.sections.map((section) => ({ id: section.key, title: secti
         { id: 'tools-title', title: t.tools, links: tools },
         { id: 'rules-title', title: t.rules, links: rules },
         { id: 'related-title', title: t.related, links: related },
+        { id: 'articles-title', title: BLOG_UI[lang].relatedArticles.title, links: articles },
       ]}
     />
   </div>

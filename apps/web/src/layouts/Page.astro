@@ -1,6 +1,6 @@
 ---
 import { SITE } from '@arablyzer/i18n'
-import { renderHead } from '@arablyzer/seo/head'
+import { renderHead, type FeedLink, type OpenGraph } from '@arablyzer/seo/head'
 import type { JsonLd } from '@arablyzer/seo/json-ld'
 import { alternates, localePath, pageUrl, type Lang } from '@arablyzer/seo/site'
 import { ogImagePath } from '@arablyzer/seo/sitemap'
@@ -29,8 +29,31 @@ interface Props {
    * an address that has none (404), served at every such address.
    */
   noindex?: boolean
+  /**
+   * The languages the page is in, when it is not both: an article with no translation names its
+   * own, and declares no alternate that is not there (hreflang points at pages that exist).
+   */
+  langs?: readonly Lang[]
+  /** Where the other language's link goes, when it is not this page's twin (SiteHeader.astro). */
+  switchPath?: string
+  /** An article's Open Graph type and dates. */
+  article?: OpenGraph['article']
+  /** Feeds the page offers, as `<link rel="alternate">`. */
+  feeds?: readonly FeedLink[]
 }
-const { lang, path, title, description, jsonLd = [], report = false, noindex = false } = Astro.props
+const {
+  lang,
+  path,
+  title,
+  description,
+  jsonLd = [],
+  report = false,
+  noindex = false,
+  langs,
+  switchPath,
+  article,
+  feeds,
+} = Astro.props
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, path)
 // One source for <head>, shared with the templates the self-audit has checked since Phase 0.
@@ -54,9 +77,16 @@ const head =
         title,
         description,
         canonical: url,
-        alternates: alternates(site, path),
+        alternates: alternates(site, path, langs),
         jsonLd,
-        openGraph: { title, description, url, image },
+        feeds,
+        openGraph: {
+          title,
+          description,
+          url,
+          image,
+          ...(article === undefined ? {} : { type: 'article' as const, article }),
+        },
       })
 ---
 
@@ -98,11 +128,11 @@ const head =
     >
       {SITE[lang].skipToContent}
     </a>
-    <SiteHeader lang={lang} path={path} keepId={report} />
+    <SiteHeader lang={lang} path={path} keepId={report} switchPath={switchPath} />
     <main id="main" class="flex flex-col">
       <slot />
     </main>
-    <SiteFooter lang={lang} path={path} keepId={report} />
+    <SiteFooter lang={lang} path={path} keepId={report} switchPath={switchPath} />
     {report && <script>
       // The same report in the other language: /r/{id} and /en/r/{id}.
       const id = window.location.pathname.split('/').filter(Boolean).at(-1) ?? ''

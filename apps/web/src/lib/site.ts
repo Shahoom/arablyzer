@@ -42,6 +42,7 @@ export const NAV: readonly { readonly key: keyof SiteStrings['nav']; readonly pa
   { key: 'knowledge', path: PATHS.knowledge },
   { key: 'rules', path: PATHS.rules },
   { key: 'fix', path: PATHS.fix },
+  { key: 'blog', path: PATHS.blog },
 ]
 
 /** The home page's scan form, which the header's call to action goes to. */

@@ -13,8 +13,10 @@ interface Props {
   path: string
   /** On a report page, the other language's link gets the report's ID (Page.astro). */
   keepId?: boolean
+  /** Where the other language's link goes when it is not this page's twin (SiteHeader.astro). */
+  switchPath?: string
 }
-const { lang, path, keepId = false } = Astro.props
+const { lang, path, keepId = false, switchPath = path } = Astro.props
 const t = SITE[lang]
 const other = otherLang(lang)
 // The bot's product token, as sites see it in their logs: "ArablyzerBot/1.0".
@@ -42,6 +44,7 @@ const columns = [
     links: [
       { href: scanFormHref(lang), label: t.footer.scan },
       { href: localePath(lang, PATHS.tools), label: t.nav.tools },
+      { href: localePath(lang, PATHS.comparisons), label: t.footer.compare },
     ],
   },
   { id: 'footer-tools', title: t.footer.popularTools, links: popular },
@@ -112,7 +115,7 @@ const link =
               {column.id === 'footer-about' && (
                 <li>
                   <a
-                    href={localePath(other, path)}
+                    href={localePath(other, switchPath)}
                     data-keep-id={keepId ? '' : undefined}
                     lang={other}
                     hreflang={other}

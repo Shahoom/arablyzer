@@ -338,7 +338,12 @@ describe('the JSON-LD of the site and its articles', () => {
       datePublished: '2026-10-10',
       dateModified: '2026-10-11',
       author: { '@type': 'Organization', name: 'فريق Arablyzer' },
-      publisher: { '@id': 'https://arablyzer.example/#organization' },
+      publisher: {
+        '@type': 'Organization',
+        '@id': 'https://arablyzer.example/#organization',
+        name: 'Arablyzer',
+        logo: { url: 'https://arablyzer.example/favicon.svg' },
+      },
       image: ['https://arablyzer.example/og/blog/x.png'],
       keywords: 'الخطوط, النص العربي',
       wordCount: 1000,

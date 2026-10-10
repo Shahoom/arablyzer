@@ -1,8 +1,9 @@
 ---
-import { GUIDES_UI } from '@arablyzer/i18n'
+import { BLOG_UI, GUIDES_UI } from '@arablyzer/i18n'
 import { breadcrumbList, definedTerm } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
+import { postsAbout } from '../../lib/blog'
 import { HEAD } from '../../lib/heads'
 import { fixGuideData, termData } from '../../lib/guide-data'
 import { ruleData } from '../../lib/rule-data'
@@ -29,6 +30,7 @@ const site = siteOf(Astro.site)
 const path = PATHS.term(slug)
 const url = pageUrl(site, lang, path)
 const glossaryUrl = pageUrl(site, lang, PATHS.glossary)
+const articles = await postsAbout('terms', slug, lang)
 const jsonLd = [
   definedTerm({
     name: copy.title,
@@ -108,6 +110,7 @@ const sections = copy.sections.map((section) => ({ id: section.key, title: secti
         { id: 'rules-title', title: t.rules, links: rules },
         { id: 'guides-title', title: t.guides, links: guides },
         { id: 'related-title', title: t.related, links: related },
+        { id: 'articles-title', title: BLOG_UI[lang].relatedArticles.title, links: articles },
       ]}
     />
   </div>

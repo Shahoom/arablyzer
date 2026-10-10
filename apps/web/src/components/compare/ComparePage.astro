@@ -1,0 +1,214 @@
+---
+import { VERSUS_SLUGS, VERSUS_UI, type VersusSlug } from '@arablyzer/i18n'
+import { formatDate } from '@arablyzer/seo/dates'
+import { applicationList, breadcrumbList } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import Check from '@lucide/astro/icons/check'
+import CircleQuestionMark from '@lucide/astro/icons/circle-question-mark'
+import Minus from '@lucide/astro/icons/minus'
+import X from '@lucide/astro/icons/x'
+import { HEAD } from '../../lib/heads'
+import { scanFormHref, siteOf } from '../../lib/site'
+import Bidi from '../Bidi.astro'
+import DocHeading from '../DocHeading.astro'
+import Related from '../guides/Related.astro'
+import Contents from '../pages/Contents.astro'
+import DocPage from '../pages/DocPage.astro'
+
+// A comparison with one other tool (M6): the same rows for every tool, our cell and theirs, then
+// when to pick each. The page says what the other tool's cell is made of (its own public pages,
+// read on the day named) and never fills a gap with a guess: a page that is silent reads "not
+// stated".
+
+interface Props {
+  lang: Lang
+  slug: VersusSlug
+}
+const { lang, slug } = Astro.props
+const t = VERSUS_UI[lang]
+const p = t.page
+const them = t.pages[slug]
+const site = siteOf(Astro.site)
+const path = PATHS.versus(slug)
+const url = pageUrl(site, lang, path)
+const home = pageUrl(site, lang, PATHS.home)
+const jsonLd = [
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: home },
+    { name: t.hub.title, url: pageUrl(site, lang, PATHS.comparisons) },
+    { name: p.heading(them.name), url },
+  ]),
+  applicationList([
+    { name: 'Arablyzer', url: home, description: t.meta.description, free: true },
+    { name: them.name, url: them.url, description: them.tagline },
+  ]),
+]
+const icons = { yes: Check, partial: Minus, no: X, unknown: CircleQuestionMark } as const
+const sections = [
+  { id: 'table', title: p.tableTitle },
+  { id: 'pick-them', title: p.pickThem(them.name) },
+  { id: 'pick-us', title: p.pickUs },
+  { id: 'method', title: p.method },
+]
+const others = VERSUS_SLUGS.filter((other) => other !== slug).map((other) => ({
+  href: localePath(lang, PATHS.versus(other)),
+  title: t.hub.row(t.pages[other].name),
+}))
+const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
+---
+
+<DocPage
+  lang={lang}
+  path={path}
+  title={`${p.title(them.name)} — Arablyzer`}
+  description={p.description(them.name)}
+  jsonLd={jsonLd}
+  crumb={p.heading(them.name)}
+  breadcrumbLabel={p.breadcrumb}
+  parent={{ name: t.hub.title, href: localePath(lang, PATHS.comparisons) }}
+>
+  <Fragment slot="head">
+    <span class="kick self-start">{p.kicker}</span>
+    <h1 class={HEAD.page}>
+      <Bidi text={p.heading(them.name)} lang={lang} />
+    </h1>
+    <p class={HEAD.lead}>
+      <Bidi text={them.summary} lang={lang} />
+    </p>
+    <p class="m-0 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-small text-ink-2">
+      <span class="flex flex-wrap items-baseline gap-x-2">
+        <Bidi text={p.checkedOn(them.name)} lang={lang} />
+        <time datetime={them.checked} class="tabular-nums">
+          {formatDate(them.checked, lang)}
+        </time>
+      </span>
+      <a
+        href={them.url}
+        rel="noopener"
+        class="font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
+      >
+        <Bidi text={p.visit(them.name)} lang={lang} />
+      </a>
+    </p>
+    <Contents variant="inline" label={p.tableTitle} sections={sections} />
+  </Fragment>
+  <div slot="aside" class="flex flex-col gap-3">
+    <Contents label={p.tableTitle} sections={sections} />
+    <Related
+      lang={lang}
+      groups={[{ id: 'others-title', title: p.otherComparisons, links: others }]}
+    />
+  </div>
+
+  <section id="table" aria-labelledby="table-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="table-title" title={p.tableTitle} />
+    {/* One table at every width: from md its three columns, below md each row a card with its two
+        cells labelled, so that a phone never scrolls sideways to compare. */}
+    <table class="block w-full border-collapse text-small md:table">
+      <caption class="sr-only">{p.tableCaption(them.name)}</caption>
+      <thead class="sr-only md:table-header-group md:not-sr-only">
+        <tr class="md:table-row">
+          <th scope="col" class="px-0 pb-2 text-start font-semibold text-ink md:pe-3">
+            {p.feature}
+          </th>
+          <th scope="col" class="px-0 pb-2 text-start font-semibold text-ink md:px-3">
+            Arablyzer
+          </th>
+          <th scope="col" class="px-0 pb-2 text-start font-semibold text-ink md:ps-3">
+            <Bidi text={them.name} lang={lang} />
+          </th>
+        </tr>
+      </thead>
+      <tbody class="block md:table-row-group">
+        {t.rows.map((row, index) => {
+          const cells = [
+            { who: 'Arablyzer', cell: row.us },
+            { who: them.name, cell: them.them[index] ?? row.us },
+          ]
+          return (
+            <tr class="mb-3 block rounded-card border border-line bg-surface p-3 md:mb-0 md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0">
+              <th
+                scope="row"
+                class="block pb-2 text-start font-semibold text-ink md:table-cell md:border-t md:border-line md:py-3 md:pe-3 md:align-top"
+              >
+                <Bidi text={row.feature} lang={lang} />
+              </th>
+              {cells.map(({ who, cell }, side) => {
+                const Icon = icons[cell.mark]
+                return (
+                  <td
+                    class:list={[
+                      'block py-1 align-top md:table-cell md:border-t md:border-line md:py-3',
+                      side === 0 ? 'md:px-3' : 'md:ps-3',
+                    ]}
+                  >
+                    <span class="mb-0.5 block text-meta font-semibold text-ink-2 md:hidden">
+                      <Bidi text={who} lang={lang} />
+                    </span>
+                    <span class="flex items-start gap-2">
+                      <Icon
+                        size={16}
+                        stroke-width={2.2}
+                        aria-hidden="true"
+                        class:list={[
+                          'mt-[3px] shrink-0',
+                          cell.mark === 'yes' ? 'text-brand-ink' : 'text-ink-2',
+                        ]}
+                      />
+                      <span class="min-w-0 text-ink-2">
+                        <span class="font-semibold text-ink">{t.marks[cell.mark]}.</span>{' '}
+                        <Bidi text={cell.text} lang={lang} />
+                      </span>
+                    </span>
+                  </td>
+                )
+              })}
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  </section>
+
+  <section id="pick-them" aria-labelledby="pick-them-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="pick-them-title" title={p.pickThem(them.name)} />
+    <div class={prose}>
+      <ul>
+        {them.pickThem.map((line) => (
+          <li>
+            <Bidi text={line} lang={lang} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section id="pick-us" aria-labelledby="pick-us-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="pick-us-title" title={p.pickUs} />
+    <div class={prose}>
+      <ul>
+        {them.pickUs.map((line) => (
+          <li>
+            <Bidi text={line} lang={lang} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section id="method" aria-labelledby="method-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="method-title" title={p.method} />
+    <div class={prose}>
+      <p>
+        <Bidi text={p.methodBody} lang={lang} />
+      </p>
+      <p>
+        {p.tryItLead}{' '}
+        <a href={scanFormHref(lang)} class="font-semibold">
+          {p.tryIt}
+        </a>
+      </p>
+    </div>
+  </section>
+</DocPage>

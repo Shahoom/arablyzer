@@ -1,4 +1,5 @@
 ---
+import type { FeedLink, OpenGraph } from '@arablyzer/seo/head'
 import type { JsonLd } from '@arablyzer/seo/json-ld'
 import type { Lang } from '@arablyzer/seo/site'
 import { HEAD } from '../../lib/heads'
@@ -26,6 +27,11 @@ interface Props {
   /** A step between the home page and this one: the page's section, such as the glossary. */
   parent?: { readonly name: string; readonly href: string }
   asideFirst?: boolean
+  /** What an article adds to its head (Page.astro): the languages it is in and its dates. */
+  langs?: readonly Lang[]
+  switchPath?: string
+  article?: OpenGraph['article']
+  feeds?: readonly FeedLink[]
 }
 const {
   lang,
@@ -37,10 +43,24 @@ const {
   breadcrumbLabel,
   parent,
   asideFirst = false,
+  langs,
+  switchPath,
+  article,
+  feeds,
 } = Astro.props
 ---
 
-<Page lang={lang} path={path} title={title} description={description} jsonLd={jsonLd}>
+<Page
+  lang={lang}
+  path={path}
+  title={title}
+  description={description}
+  jsonLd={jsonLd}
+  langs={langs}
+  switchPath={switchPath}
+  article={article}
+  feeds={feeds}
+>
   <section class="relative isolate border-b border-line">
     <div aria-hidden="true" class="page-wash"></div>
     <div class:list={['wrap flex flex-col gap-4 lg:gap-5', HEAD.padding]}>

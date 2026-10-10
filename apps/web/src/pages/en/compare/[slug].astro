@@ -1,0 +1,12 @@
+---
+import { VERSUS_SLUGS } from '@arablyzer/i18n'
+import ComparePage from '../../../components/compare/ComparePage.astro'
+
+export function getStaticPaths() {
+  return VERSUS_SLUGS.map((slug) => ({ params: { slug } }))
+}
+
+const { slug } = Astro.params
+---
+
+<ComparePage lang="en" slug={slug} />

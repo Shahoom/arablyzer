@@ -1,0 +1,13 @@
+---
+import type { BlogTag } from '@arablyzer/i18n'
+import BlogIndex from '../../../../components/blog/BlogIndex.astro'
+import { tagsIn } from '../../../../lib/blog'
+
+export async function getStaticPaths() {
+  return (await tagsIn('en')).map(({ tag }) => ({ params: { tag } }))
+}
+
+const tag = Astro.params.tag as BlogTag
+---
+
+<BlogIndex lang="en" tag={tag} />

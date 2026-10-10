@@ -1,0 +1,42 @@
+---
+import { BLOG_UI, type BlogTag } from '@arablyzer/i18n'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+
+/**
+ * The tag filter (M2.6 R7a): a row of chips that scrolls sideways on a phone and wraps from md.
+ * Each is a link, to the blog's page or to a tag's, and the current one is told by aria-current,
+ * not by colour alone. Below lg only: from lg the same links are a list in the aside.
+ */
+interface Props {
+  lang: Lang
+  tags: readonly { readonly tag: BlogTag; readonly count: number }[]
+  current: BlogTag | 'all'
+}
+const { lang, tags, current } = Astro.props
+const t = BLOG_UI[lang]
+const pressed =
+  'aria-[current=page]:border-[#a5b4fc] aria-[current=page]:bg-indigo-soft aria-[current=page]:text-indigo-ink'
+---
+
+{tags.length > 0 && (
+  <nav aria-label={t.tagsLabel} class="lg:hidden">
+    <div class="scroll-row">
+      <a
+        href={localePath(lang, PATHS.blog)}
+        class:list={['chip', pressed]}
+        aria-current={current === 'all' ? 'page' : undefined}
+      >
+        {t.allArticles}
+      </a>
+      {tags.map(({ tag }) => (
+        <a
+          href={localePath(lang, PATHS.blogTag(tag))}
+          class:list={['chip', pressed]}
+          aria-current={current === tag ? 'page' : undefined}
+        >
+          {t.tags[tag].name}
+        </a>
+      ))}
+    </div>
+  </nav>
+)}
