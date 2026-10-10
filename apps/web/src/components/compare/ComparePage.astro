@@ -105,31 +105,47 @@ const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
     <DocHeading id="table-title" title={p.tableTitle} />
     {/* One table at every width: from md its three columns, below md each row a card with its two
         cells labelled, so that a phone never scrolls sideways to compare. */}
-    <table class="block w-full border-collapse text-small md:table">
+    <table role="table" class="block w-full border-collapse text-small md:table">
       <caption class="sr-only">{p.tableCaption(them.name)}</caption>
-      <thead class="sr-only md:table-header-group md:not-sr-only">
-        <tr class="md:table-row">
-          <th scope="col" class="px-0 pb-2 text-start font-semibold text-ink md:pe-3">
+      <thead role="rowgroup" class="sr-only md:table-header-group md:not-sr-only">
+        <tr role="row" class="md:table-row">
+          <th
+            scope="col"
+            role="columnheader"
+            class="px-0 pb-2 text-start font-semibold text-ink md:pe-3"
+          >
             {p.feature}
           </th>
-          <th scope="col" class="px-0 pb-2 text-start font-semibold text-ink md:px-3">
+          <th
+            scope="col"
+            role="columnheader"
+            class="px-0 pb-2 text-start font-semibold text-ink md:px-3"
+          >
             Arablyzer
           </th>
-          <th scope="col" class="px-0 pb-2 text-start font-semibold text-ink md:ps-3">
+          <th
+            scope="col"
+            role="columnheader"
+            class="px-0 pb-2 text-start font-semibold text-ink md:ps-3"
+          >
             <Bidi text={them.name} lang={lang} />
           </th>
         </tr>
       </thead>
-      <tbody class="block md:table-row-group">
+      <tbody role="rowgroup" class="block md:table-row-group">
         {t.rows.map((row, index) => {
           const cells = [
             { who: 'Arablyzer', cell: row.us },
             { who: them.name, cell: them.them[index] ?? row.us },
           ]
           return (
-            <tr class="mb-3 block rounded-card border border-line bg-surface p-3 md:mb-0 md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0">
+            <tr
+              role="row"
+              class="mb-3 block rounded-card border border-line bg-surface p-3 md:mb-0 md:table-row md:rounded-none md:border-0 md:bg-transparent md:p-0"
+            >
               <th
                 scope="row"
+                role="rowheader"
                 class="block pb-2 text-start font-semibold text-ink md:table-cell md:border-t md:border-line md:py-3 md:pe-3 md:align-top"
               >
                 <Bidi text={row.feature} lang={lang} />
@@ -138,6 +154,7 @@ const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
                 const Icon = icons[cell.mark]
                 return (
                   <td
+                    role="cell"
                     class:list={[
                       'block py-1 align-top md:table-cell md:border-t md:border-line md:py-3',
                       side === 0 ? 'md:px-3' : 'md:ps-3',
