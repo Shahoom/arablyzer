@@ -20,6 +20,7 @@ import {
   type SiteOutcome,
 } from '../sites-api'
 import { dayLabel, reportHref, shortUrl, type SiteProblem } from '../sites-model'
+import PdfDownload from '../pdf/PdfDownload'
 import CrawlReportCard from './CrawlReportCard'
 import CrawlRow from './CrawlRow'
 import MonitorRow from './MonitorRow'
@@ -477,6 +478,14 @@ export default function SitesPanel({ lang }: Props) {
                       {s.openReport}
                       <ExternalLink size={14} aria-hidden="true" />
                     </a>
+                    {(scan.state === 'complete' || scan.state === 'partial') && (
+                      <PdfDownload
+                        lang={lang}
+                        ask={{ kind: 'scan', id: scan.id }}
+                        what={shortUrl(scan.url)}
+                        className="flex flex-col gap-1"
+                      />
+                    )}
                   </div>
                 </li>
               )

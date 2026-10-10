@@ -30,3 +30,8 @@ export function newSiteId(): string {
 export function newCrawlId(): string {
   return randomBytes(16).toString('base64url')
 }
+
+/** A PDF's id: the same shape as a scan's. */
+export function newPdfId(): string {
+  return newCrawlId()
+}

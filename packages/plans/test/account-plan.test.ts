@@ -33,7 +33,36 @@ describe('planCatalogFrom', () => {
       monitoredSites: 1,
       monitorEveryDays: 7,
       crawlPages: 50,
+      pdfPerMonth: 3,
+      whiteLabel: false,
+      whiteLabelCredit: true,
     })
+  })
+
+  it('gives the free account three PDFs a month and no white-label, in production too, and reads the variables', () => {
+    const production = { NODE_ENV: 'production', ...SET }
+    const free = planCatalogFrom(production, DEVELOPMENT_LIMITS).account
+    expect([free.pdfPerMonth, free.whiteLabel, free.whiteLabelCredit]).toEqual([3, false, true])
+    const set = {
+      ...production,
+      ARABLYZER_PLAN_ACCOUNT_PDF_PER_MONTH: '20',
+      ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL: 'on',
+      ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL_CREDIT: 'off',
+    }
+    const paid = planCatalogFrom(set, DEVELOPMENT_LIMITS).account
+    expect([paid.pdfPerMonth, paid.whiteLabel, paid.whiteLabelCredit]).toEqual([20, true, false])
+    expect(() =>
+      planCatalogFrom(
+        { ...production, ARABLYZER_PLAN_ACCOUNT_PDF_PER_MONTH: '0' },
+        DEVELOPMENT_LIMITS,
+      ),
+    ).toThrow(/PDF_PER_MONTH/)
+    expect(() =>
+      planCatalogFrom(
+        { ...production, ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL: 'maybe' },
+        DEVELOPMENT_LIMITS,
+      ),
+    ).toThrow(/WHITE_LABEL must be on or off/)
   })
 
   it('reads the crawl’s page cap when set, and keeps the free plan’s 50 when not, in production too', () => {

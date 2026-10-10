@@ -99,6 +99,9 @@ services:
       ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES: ${ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES:-}
       ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS:-}
       ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES: ${ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES:-}
+      ARABLYZER_PLAN_ACCOUNT_PDF_PER_MONTH: ${ARABLYZER_PLAN_ACCOUNT_PDF_PER_MONTH:-}
+      ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL: ${ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL:-}
+      ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL_CREDIT: ${ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL_CREDIT:-}
       ARABLYZER_CRAWL_DELAY_MS: ${ARABLYZER_CRAWL_DELAY_MS:-}
       ARABLYZER_CRAWL_REPRESENTATIVES: ${ARABLYZER_CRAWL_REPRESENTATIVES:-}
       ARABLYZER_CRAWL_RENDERED_TEMPLATES: ${ARABLYZER_CRAWL_RENDERED_TEMPLATES:-}
@@ -232,6 +235,49 @@ services:
     networks: [data, scan]
     depends_on:
       valkey: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      scanner: { condition: service_healthy }
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.5
+    pids_limit: 128
+
+  # The PDF job (M4.7): a fourth entry of the API's image on the application role. It builds the document
+  # of a report a person asked a PDF of and sends it to the scanner, whose browser draws it (no network,
+  # no script); it holds no browser and has no way out of its own. With ARABLYZER_ACCOUNTS off it logs
+  # that and idles.
+  pdf:
+    <<: *hardened
+    build: { context: .., target: api }
+    init: true
+    tmpfs: [/tmp]
+    command: [node, --import, tsx, apps/api/src/pdf/main.ts]
+    environment:
+      DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
+      ARABLYZER_SITE: ${ARABLYZER_SITE:?}
+      ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
+      ARABLYZER_SCANNER_URL: http://scanner:8788
+      ARABLYZER_SCANNER_TOKEN: ${ARABLYZER_SCANNER_TOKEN:?}
+      ARABLYZER_PLAN_ACCOUNT_SCANS: ${ARABLYZER_PLAN_ACCOUNT_SCANS:-}
+      ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS: ${ARABLYZER_PLAN_ACCOUNT_SCAN_SECONDS:-}
+      ARABLYZER_PLAN_ACCOUNT_INFLIGHT: ${ARABLYZER_PLAN_ACCOUNT_INFLIGHT:-}
+      ARABLYZER_PLAN_ACCOUNT_SAVED_SITES: ${ARABLYZER_PLAN_ACCOUNT_SAVED_SITES:-}
+      ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS:-}
+      ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL: ${ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL:-}
+      ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL_CREDIT: ${ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL_CREDIT:-}
+      # planCatalogFrom checks the plans against the abuse limits, so it reads the same limits as the API.
+      ARABLYZER_LIMIT_CONNECTION_SCANS: ${ARABLYZER_LIMIT_CONNECTION_SCANS:?}
+      ARABLYZER_LIMIT_CONNECTION_SECONDS: ${ARABLYZER_LIMIT_CONNECTION_SECONDS:?}
+      ARABLYZER_LIMIT_NETWORK_SCANS: ${ARABLYZER_LIMIT_NETWORK_SCANS:?}
+      ARABLYZER_LIMIT_NETWORK_SECONDS: ${ARABLYZER_LIMIT_NETWORK_SECONDS:?}
+      ARABLYZER_LIMIT_ATTEMPT_REQUESTS: ${ARABLYZER_LIMIT_ATTEMPT_REQUESTS:?}
+      ARABLYZER_LIMIT_ATTEMPT_SECONDS: ${ARABLYZER_LIMIT_ATTEMPT_SECONDS:?}
+      ARABLYZER_LIMIT_HOST_SCANS: ${ARABLYZER_LIMIT_HOST_SCANS:?}
+      ARABLYZER_LIMIT_HOST_SECONDS: ${ARABLYZER_LIMIT_HOST_SECONDS:?}
+      ARABLYZER_LIMIT_QUEUE: ${ARABLYZER_LIMIT_QUEUE:?}
+      ARABLYZER_LIMIT_INFLIGHT: ${ARABLYZER_LIMIT_INFLIGHT:?}
+    networks: [data, scan]
+    depends_on:
       migrate: { condition: service_completed_successfully }
       scanner: { condition: service_healthy }
     mem_limit: 192m

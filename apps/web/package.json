@@ -24,6 +24,7 @@
     "@arablyzer/generators": "workspace:*",
     "@arablyzer/guides": "workspace:*",
     "@arablyzer/i18n": "workspace:*",
+    "@arablyzer/pdf": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/rules": "workspace:*",
     "@arablyzer/scoring": "workspace:*",

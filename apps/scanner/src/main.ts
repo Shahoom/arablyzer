@@ -2,7 +2,7 @@ import { serve } from '@hono/node-server'
 import { checkDenyCidrs } from '@arablyzer/egress'
 import { createScannerApp } from './app'
 import { assertIsolated } from './isolation'
-import { localCrawler, localScanner } from './local'
+import { localCrawler, localPdf, localScanner } from './local'
 import { scanOptionsFrom } from './options'
 import { retireAfterAnswer } from './retire'
 
@@ -36,6 +36,7 @@ const app = createScannerApp({
   token,
   scanner: localScanner(options),
   crawler: localCrawler(options),
+  pdf: localPdf(),
   log: (text) => {
     console.error(text)
   },

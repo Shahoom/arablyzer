@@ -123,6 +123,17 @@ export default defineConfig(
     rules: networkRules({ allowProcesses: false, allow: ['playwright-core'] }),
   },
   {
+    // M4.7: the fonts are found by the packages that hold them (`require.resolve`), which is all
+    // `module` is used for; the file spawns nothing and opens no socket.
+    files: ['packages/pdf/src/fonts.ts'],
+    rules: networkRules({ allowProcesses: true }),
+  },
+  {
+    // The PDF's browser test traps a local port to show the page never asks it for anything.
+    files: ['packages/pdf/test/**'],
+    rules: { 'no-restricted-imports': 'off' },
+  },
+  {
     // That suite serves hostile pages and traps local services, so its tests open sockets.
     files: ['packages/browser/test/**'],
     rules: { 'no-restricted-imports': 'off' },
@@ -155,6 +166,9 @@ export default defineConfig(
       'apps/web/src/islands/sites-api.ts',
       'apps/web/src/islands/crawl-api.ts',
       'apps/web/src/islands/compare-api.ts',
+      // M4.7: the PDF and brand requests, and the shared report's brand: the same origin.
+      'apps/web/src/islands/pdf-api.ts',
+      'apps/web/src/islands/report/BrandBar.tsx',
     ],
     rules: {
       'no-restricted-globals': [
@@ -184,7 +198,12 @@ export default defineConfig(
     // The worker's one request, to the scanner, on the network the two share alone (M2.1 plan
     // §5b): not scan traffic, which leaves the scanner through the egress proxy. fetch alone. The
     // crawler's (M4.5) is the same request, to the same scanner.
-    files: ['packages/scanner-client/src/client.ts', 'packages/scanner-client/src/crawl.ts'],
+    files: [
+      'packages/scanner-client/src/client.ts',
+      'packages/scanner-client/src/crawl.ts',
+      // M4.7: the PDF job's request, to the same scanner.
+      'packages/scanner-client/src/pdf.ts',
+    ],
     rules: {
       'no-restricted-globals': [
         'error',

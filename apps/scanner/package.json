@@ -17,6 +17,7 @@
     "@arablyzer/browser": "workspace:*",
     "@arablyzer/egress": "workspace:*",
     "@arablyzer/engine": "workspace:*",
+    "@arablyzer/pdf": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/rules": "workspace:*",
     "@arablyzer/scanner-client": "workspace:*",

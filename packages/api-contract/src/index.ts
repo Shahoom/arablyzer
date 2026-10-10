@@ -142,6 +142,24 @@ export const OneTapRequest = z.strictObject({
     .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/),
 })
 export const AccountPatch = z.strictObject({ language })
+/** What a PDF is asked for (M4.7): one report, or two to compare (the earlier first). */
+const reportId = z.string().regex(/^[A-Za-z0-9_-]{22}$/)
+export const PdfRequest = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('scan'), id: reportId, language }),
+  z.strictObject({ kind: z.literal('crawl'), id: reportId, language }),
+  z.strictObject({ kind: z.literal('compare-scans'), base: reportId, head: reportId, language }),
+  z.strictObject({ kind: z.literal('compare-crawls'), base: reportId, head: reportId, language }),
+])
+export type PdfRequest = z.infer<typeof PdfRequest>
+/** The brand's text fields; the logo goes up on its own route, as bytes. */
+export const BrandPatch = z.strictObject({
+  name: z.string().max(60),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullable(),
+})
+export type BrandPatch = z.infer<typeof BrandPatch>
 /** The page has asked the person to confirm: erasure is not undone. */
 export const DeleteAccountRequest = z.strictObject({ confirm: z.literal(true) })
 export const AccountSummary = z.strictObject({

@@ -160,6 +160,14 @@ export class PostgresAccountData implements AccountData {
     return new Map(rows.map((row) => [row.site_id ?? '', entry(row)]))
   }
 
+  async ownerOf(scanId: string): Promise<string | null> {
+    const { rows } = await this.#pool.query<{ user_id: string }>(
+      'SELECT user_id FROM account_scans WHERE scan_id = $1',
+      [scanId],
+    )
+    return rows[0]?.user_id ?? null
+  }
+
   async linkedScans(
     userId: string,
     scanIds: readonly string[],
