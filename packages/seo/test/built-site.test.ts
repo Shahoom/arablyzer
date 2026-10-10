@@ -511,11 +511,11 @@ describe('auditBuiltSite on the blog', () => {
       'compare/one.html': page('ar', '/compare/one'),
       'compare/two.html': page('ar', '/compare/two'),
     })
+    // The tag pages are the index's component: only the index is measured.
     expect(representativePages(builtPages(dir)).map((built) => built.path)).toEqual([
       '/',
       '/blog',
       '/blog/a',
-      '/blog/tag/x',
       '/compare',
       '/compare/one',
       '/en/',

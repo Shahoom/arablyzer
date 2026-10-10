@@ -123,6 +123,14 @@ export function isBlogTag(page: string): boolean {
   return /^(?:\/en)?\/blog\/tag\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
 }
 
+/**
+ * The blog's index and its tag pages: one component (a list of articles) with other words, so
+ * the slow checks measure the first of them in each language, the index.
+ */
+function isBlogList(page: string): boolean {
+  return /^(?:\/en)?\/blog(?:\/tag\/[a-z0-9]+(?:-[a-z0-9]+)*)?$/.test(page)
+}
+
 /** A comparison with another tool, /compare/<slug>. */
 function isCompare(page: string): boolean {
   return /^(?:\/en)?\/compare\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(page)
@@ -133,7 +141,7 @@ function isCompare(page: string): boolean {
  * pages that is missing here is measured page by page, as the guides and the glossary were until
  * Lighthouse's CI job timed out on them: add each new one.
  */
-const TEMPLATES = [isTool, isRule, isGuide, isTerm, isBlogPost, isBlogTag, isCompare] as const
+const TEMPLATES = [isTool, isRule, isGuide, isTerm, isBlogPost, isBlogList, isCompare] as const
 
 /**
  * The pages that stand for the rest, for the checks too slow to run on every page (Lighthouse,
