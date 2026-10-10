@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +14,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 // seconds), since the default build has none and these pages then say accounts are off.
 const WEB = fileURLToPath(new URL('../../', import.meta.url))
 const DIST = path.join(WEB, 'dist')
+const GOLDEN_REPORT = path.join(WEB, '../../fixtures/golden/reports/07-checkout-form.json')
 const CLIENT_ID = 'browser-test.apps.googleusercontent.com'
 const run = promisify(execFile)
 
@@ -25,6 +26,24 @@ const json = (value: unknown, status = 200) => ({
   body: JSON.stringify(value),
 })
 const SOON = '2026-10-09T12:00:00.000Z'
+const PNG_BYTES = Uint8Array.from(
+  Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  ),
+)
+const PDF_JOB = {
+  id: 'PPPPPPPPPPPPPPPPPPPPPP',
+  kind: 'scan',
+  subject: 'BBBBBBBBBBBBBBBBBBBBBB',
+  base: null,
+  language: 'en',
+  state: 'queued',
+  error: null,
+  bytes: null,
+  createdAt: '2026-10-09T12:00:00.000Z',
+  finishedAt: null,
+}
 const SITE_ID = 'AAAAAAAAAAAAAAAAAAAAAA'
 const LAST = {
   id: 'BBBBBBBBBBBBBBBBBBBBBB',
@@ -128,6 +147,14 @@ interface Scenario {
   /** A saved site's score history, and what the comparison routes answer (M4.6). */
   history?: unknown
   compare?: { status: number; body: unknown }
+  /** White-label (M4.7): the brand as saved, and whether the plan has it; and the PDF a click asks for. */
+  brand?: { available: boolean; name: string; color: string | null; hasLogo: boolean }
+  pdf?: { status: number; body: unknown }
+  /** A shared report page (M4.7): the scan, and the brand its account has, if any. */
+  report?: {
+    id: string
+    brand: { name: string; color: string | null; hasLogo: boolean; credit: boolean } | null
+  }
   /** What adding a site answers, in place of a created site. */
   addStatus?: number
   addBody?: unknown
@@ -161,6 +188,19 @@ async function open(base: FixtureSite, scenario: Scenario) {
       })
     }
     if (url.origin !== base.origin) return route.abort('blockedbyclient')
+    if (
+      scenario.report !== undefined &&
+      (url.pathname === `/r/${scenario.report.id}` ||
+        url.pathname === `/en/r/${scenario.report.id}`)
+    ) {
+      return route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+        body: await readFile(
+          path.join(built, url.pathname.startsWith('/en/') ? 'en' : '.', 'r', 'index.html'),
+        ),
+      })
+    }
     if (url.pathname.startsWith('/api/')) {
       seen.push({ method: request.method(), path: url.pathname, body: request.postData() })
       if (url.pathname === '/api/account' && request.method() === 'GET') {
@@ -209,6 +249,109 @@ async function open(base: FixtureSite, scenario: Scenario) {
       if (url.pathname.endsWith('/monitor') && request.method() === 'PUT') {
         const { enabled } = JSON.parse(request.postData() ?? '{}') as { enabled: boolean }
         return route.fulfill(json({ monitor: enabled ? MONITOR : null }))
+      }
+      if (scenario.report !== undefined && url.pathname.startsWith('/api/scans/')) {
+        return route.fulfill(
+          json({
+            id: scenario.report.id,
+            url: 'http://store.example/checkout',
+            state: 'complete',
+            createdAt: SOON,
+          }),
+        )
+      }
+      if (scenario.report !== undefined && url.pathname === `/api/reports/${scenario.report.id}`) {
+        return route.fulfill(json(JSON.parse(await readFile(GOLDEN_REPORT, 'utf8'))))
+      }
+      if (
+        scenario.report !== undefined &&
+        url.pathname === `/api/reports/${scenario.report.id}/brand`
+      ) {
+        return route.fulfill(
+          scenario.report.brand === null
+            ? json({ error: 'not-found' }, 404)
+            : json(scenario.report.brand),
+        )
+      }
+      if (scenario.report !== undefined && url.pathname.endsWith('/brand/logo')) {
+        return route.fulfill({
+          status: 200,
+          headers: { 'content-type': 'image/png' },
+          body: Buffer.from(PNG_BYTES),
+        })
+      }
+      if (url.pathname === '/api/account/brand' && scenario.brand !== undefined) {
+        const settings = (over: object = {}) => ({
+          ...scenario.brand,
+          logoType: scenario.brand?.hasLogo === true ? 'image/png' : null,
+          credit: true,
+          colorFallback: false,
+          updatedAt: SOON,
+          ...over,
+        })
+        if (request.method() === 'PUT') {
+          const sent = JSON.parse(request.postData() ?? '{}') as {
+            name: string
+            color: string | null
+          }
+          return route.fulfill(json(settings({ ...sent, colorFallback: sent.color === '#ffff00' })))
+        }
+        return route.fulfill(json(settings()))
+      }
+      if (url.pathname === '/api/account/brand/logo' && scenario.brand !== undefined) {
+        if (request.method() === 'GET') {
+          return route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'image/png' },
+            body: Buffer.from(PNG_BYTES),
+          })
+        }
+        if (request.method() === 'PUT') {
+          const sent = request.postDataBuffer()
+          return route.fulfill(
+            sent?.subarray(0, 4).toString('hex') === '89504e47'
+              ? json({
+                  ...scenario.brand,
+                  hasLogo: true,
+                  logoType: 'image/png',
+                  credit: true,
+                  colorFallback: false,
+                  updatedAt: SOON,
+                })
+              : json({ error: 'bad-request', logo: 'type' }, 400),
+          )
+        }
+        return route.fulfill(
+          json({
+            ...scenario.brand,
+            hasLogo: false,
+            logoType: null,
+            credit: true,
+            colorFallback: false,
+            updatedAt: SOON,
+          }),
+        )
+      }
+      if (
+        url.pathname === '/api/pdf' &&
+        request.method() === 'POST' &&
+        scenario.pdf !== undefined
+      ) {
+        return route.fulfill(json(scenario.pdf.body, scenario.pdf.status))
+      }
+      if (
+        url.pathname.startsWith('/api/pdf/') &&
+        request.method() === 'GET' &&
+        scenario.pdf !== undefined
+      ) {
+        return route.fulfill(
+          json({
+            ...(scenario.pdf.body as object),
+            state: 'done',
+            bytes: 90_000,
+            finishedAt: SOON,
+          }),
+        )
       }
       if (url.pathname === '/api/account/alerts' && request.method() === 'GET') {
         return route.fulfill(json(scenario.alerts ?? ALERTS))
@@ -747,6 +890,145 @@ describe('monitoring and alerts, in Chromium', () => {
     await tab.getByRole('heading', { name: 'التنبيهات' }).waitFor({ timeout: 15_000 })
     await tab.getByText('نفحصه تلقائياً كل 7 أيام').waitFor()
     await tab.getByText('نرسل إلى hooks.slack.com (Slack)').waitFor()
+    await close()
+  })
+})
+
+describe('PDF export and white-label, in Chromium', () => {
+  it('saves a company name, colour and logo, warns of a colour too faint for white text, and previews the mark', async () => {
+    const { tab, seen, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      brand: { available: true, name: '', color: null, hasLogo: false },
+    })
+    await tab.goto(base.url('/en/account'))
+    const form = tab.getByRole('region', { name: 'Your brand on reports' })
+    await form.waitFor({ timeout: 15_000 })
+    const name = form.getByLabel('Company name')
+    await name.fill('Noor Marketing')
+    // A faint colour: the form says Arablyzer's colour is used instead.
+    await form.getByLabel('Brand colour').fill('#ffff00')
+    await form.getByText(/too faint on this colour/).waitFor()
+    await form.getByLabel('Brand colour').fill('#0b3d2e')
+    expect(await form.getByText(/too faint on this colour/).count()).toBe(0)
+    // The logo goes up as its own bytes, and a file that is not a picture is turned down.
+    await form
+      .locator('input[type=file]')
+      .setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from(PNG_BYTES) })
+    await form.getByText('Your brand is saved.').waitFor()
+    await form.getByRole('img', { name: /logo/ }).first().waitFor()
+    await form.locator('input[type=file]').setInputFiles({
+      name: 'logo.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+    })
+    await form.getByText('Only PNG, JPEG and WebP are accepted.').waitFor()
+    await form.getByRole('button', { name: 'Save' }).click()
+    await form.getByText('Your brand is saved.').waitFor()
+    const put = seen.filter((call) => call.method === 'PUT' && call.path === '/api/account/brand')
+    expect(JSON.parse(put.at(-1)?.body ?? '{}')).toEqual({
+      name: 'Noor Marketing',
+      color: '#0b3d2e',
+    })
+    // The preview wears the colour through the style object (the page's policy allows no style attribute in markup).
+    const preview = form.locator('div.bg-\\(--brand\\)')
+    expect(await preview.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(
+      'rgb(11, 61, 46)',
+    )
+    expect(await preview.textContent()).toContain('Noor Marketing')
+    for (const control of await form.locator('button').all()) {
+      expect((await control.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43)
+    }
+    expect(
+      await tab.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true)
+    await close()
+  })
+
+  it('says a plan without white-label has none, and shows no form', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      brand: { available: false, name: '', color: null, hasLogo: false },
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab
+      .getByText('Your own brand is not included in your current plan.')
+      .waitFor({ timeout: 15_000 })
+    expect(await tab.getByLabel('Company name').count()).toBe(0)
+    await close()
+  })
+
+  it('asks for the PDF of a scan, waits for it, and offers the file', async () => {
+    const { tab, seen, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+      pdf: { status: 202, body: PDF_JOB },
+    })
+    await tab.goto(base.url('/en/account'))
+    const button = tab
+      .getByRole('button', { name: /Download example.com\/ as a PDF|Download .* as a PDF/ })
+      .first()
+    await button.waitFor({ timeout: 15_000 })
+    expect((await button.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(43)
+    await button.click()
+    const link = tab.getByRole('link', { name: 'Download the file' })
+    await link.waitFor({ timeout: 15_000 })
+    expect(await link.getAttribute('href')).toBe(`/api/pdf/${PDF_JOB.id}/file`)
+    const asked = seen.filter((call) => call.method === 'POST' && call.path === '/api/pdf')
+    expect(asked).toHaveLength(1)
+    expect(JSON.parse(asked[0]?.body ?? '{}')).toEqual({
+      kind: 'scan',
+      id: LAST.id,
+      language: 'en',
+    })
+    await close()
+  })
+
+  it('shows a shared report the company’s mark, and the Download PDF button to a signed-in visitor', async () => {
+    const id = 'SharedSharedSharedSh_0'
+    const brand = { name: 'Noor Marketing', color: '#0b3d2e', hasLogo: true, credit: true }
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      report: { id, brand },
+    })
+    await tab.goto(base.url(`/en/r/${id}`))
+    const bar = tab.locator('[data-brand-bar]')
+    await bar.waitFor({ timeout: 15_000 })
+    expect(await bar.textContent()).toContain('Noor Marketing')
+    expect(await bar.textContent()).toContain('by Arablyzer')
+    expect(await bar.getByRole('img', { name: 'Noor Marketing logo' }).count()).toBe(1)
+    expect(await bar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(11, 61, 46)')
+    await tab.getByRole('button', { name: /as a PDF/ }).waitFor({ timeout: 15_000 })
+    await close()
+    // A report whose account has no brand shows none; a visitor who is not signed in gets no PDF button.
+    const plain = await open(site, { account: null, google: true, report: { id, brand: null } })
+    await plain.tab.goto(plain.base.url(`/en/r/${id}`))
+    await plain.tab.getByRole('link', { name: 'Scan again' }).waitFor({ timeout: 15_000 })
+    expect(await plain.tab.locator('[data-brand-bar]').count()).toBe(0)
+    expect(await plain.tab.getByRole('button', { name: /as a PDF/ }).count()).toBe(0)
+    await plain.close()
+  })
+
+  it('says the month’s limit plainly when the plan’s PDFs are used up', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+      pdf: { status: 403, body: { error: 'plan-limit', limit: 'pdfPerMonth', plan: 'account' } },
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab
+      .getByRole('button', { name: /as a PDF/ })
+      .first()
+      .click()
+    await tab
+      .getByText('You have reached your plan’s PDF limit for this month.')
+      .waitFor({ timeout: 15_000 })
     await close()
   })
 })

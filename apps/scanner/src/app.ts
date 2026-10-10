@@ -1,9 +1,11 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { Crawler } from '@arablyzer/engine'
+import { MAX_DOCUMENT_BYTES, PdfDocument } from '@arablyzer/pdf/model'
 import {
   CRAWL_PATH,
   CrawlRequest,
   MAX_ERROR_LENGTH,
+  PDF_RENDER_PATH,
   SCAN_PATH,
   SCANNER_TIMEOUT_MS,
   ScanRequest,
@@ -46,6 +48,11 @@ export interface ScannerDeps {
    * `MAX_CRAWL_READS` run at once, and a scanner that is about to end its process takes none.
    */
   readonly crawler?: Crawler
+  /**
+   * Draws a PDF (M4.7): `POST /pdf`, a document as JSON in and the file out. It starts a browser, so
+   * it is a scan's equal here: it takes the one slot, and the process ends after it (`onBrowserUsed`).
+   */
+  readonly pdf?: (document: PdfDocument, signal: AbortSignal) => Promise<Uint8Array>
 }
 
 /**
@@ -63,6 +70,8 @@ const MAX_BODY_BYTES = 8 * 1024
 export const MAX_CRAWL_READS = 2
 /** A crawl read that has not ended by now is stopped: a page's fetch, or a site's sitemaps. */
 const CRAWL_READ_LIMIT_MS = 75_000
+/** How long a PDF may take before it is stopped (the browser's own limit is shorter). */
+const PDF_LIMIT_MS = 75_000
 /** Ample: a scan told to stop let go of its browser in 286 ms (M2.1d review). */
 const STOP_GRACE_MS = 30_000
 
@@ -217,6 +226,58 @@ export function createScannerApp(deps: ScannerDeps): Hono {
       } finally {
         clearTimeout(limit)
         reading--
+      }
+    },
+  )
+
+  app.post(
+    PDF_RENDER_PATH,
+    bodyLimit({
+      maxSize: MAX_DOCUMENT_BYTES,
+      onError: (c) => c.json({ error: 'bad-request' }, 413),
+    }),
+    async (c) => {
+      const given = Buffer.from(c.req.header('authorization') ?? '')
+      if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+        return c.json({ error: 'unauthorized' }, 401)
+      }
+      const { pdf } = deps
+      if (pdf === undefined) return c.json({ error: 'not-found' }, 404)
+      let raw: unknown
+      try {
+        raw = await c.req.json()
+      } catch {
+        return c.json({ error: 'bad-request' }, 400)
+      }
+      const document = PdfDocument.safeParse(raw)
+      if (!document.success) return c.json({ error: 'bad-request' }, 400)
+      if (retiring) return c.json({ error: 'restarting' }, 503)
+      if (runningSince !== null) return c.json({ error: 'busy' }, 503)
+      runningSince = Date.now()
+      const stop = new AbortController()
+      const limit = setTimeout(() => {
+        stop.abort(new Error('The PDF ran past its limit'))
+      }, PDF_LIMIT_MS)
+      try {
+        const bytes = await pdf(document.data, stop.signal)
+        return c.body(Buffer.from(bytes), 200, { 'content-type': 'application/pdf' })
+      } catch (error) {
+        deps.log?.(`A PDF could not be drawn: ${message(error)}`)
+        return message(error) === 'too-large'
+          ? c.json({ error: 'too-large' }, 413)
+          : c.json({ error: 'failed' }, 500)
+      } finally {
+        clearTimeout(limit)
+        runningSince = null
+        // A browser ran, with a scanned site's words in its page: the process ends after the answer.
+        if (deps.onBrowserUsed !== undefined) {
+          retiring = true
+          try {
+            deps.onBrowserUsed()
+          } catch (error) {
+            deps.log?.(`The scanner could not end its process: ${message(error)}`)
+          }
+        }
       }
     },
   )

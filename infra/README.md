@@ -129,6 +129,20 @@ days, and deletes the scans an account keeps after them (the other scans follow
 `account_scans.scan_id`, so the sweep can tell which scans are kept, and nothing else. Erasing the
 account deletes its sites, its scans and their reports.
 
+**PDF export and white-label (M4.7).** A signed-in person presses «Download PDF» on a page report, a crawl report or a
+comparison; the API only queues the job (`pdf_jobs`, one active per account by a partial unique index, and the month's
+allowance `ARABLYZER_PLAN_ACCOUNT_PDF_PER_MONTH`, 3 when empty, counted in `pdf_usage`). The `pdf` service, a fourth entry of
+the API's image (`apps/api/src/pdf/main.ts`), builds the document from the report and sends it to the scanner
+(`POST /pdf`, the worker's token), whose Chromium draws it with `page.pdf`: A4, right to left for Arabic, the site's own
+fonts embedded, selectable text, a tagged structure and an outline. The browser has no network (every request is refused and
+its proxy is a closed port) and the page's policy has no script. A PDF is a browser scan's equal for the scanner: it takes the
+one slot and the scanner restarts after it. The file (at most 8 MB, 60 s) is kept in PostgreSQL as long as the report it is
+of and the plan's history days, then deleted; it goes with the account. White-label is off unless
+`ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL=on`: the account then sets a company name, a colour (white text must reach 4.5:1 on
+it, or Arablyzer's colour is used) and a PNG, JPEG or WebP logo (checked by its bytes, 200 KB, metadata removed, stored in
+PostgreSQL), which replace Arablyzer's mark on its PDFs and on its shared report pages. `ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL_CREDIT=off`
+takes away the small «by Arablyzer» line.
+
 **Deep crawl (M4.5).** A person starts a crawl of a saved site on `/account`; the `crawler` service, a third entry of the
 API's image (`apps/api/src/crawl/main.ts`) on the application role, finds the site's pages (its sitemaps first, then its
 internal links), up to `ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES` (50 when empty), one page at a time with

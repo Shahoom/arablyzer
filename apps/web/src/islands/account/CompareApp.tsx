@@ -17,6 +17,7 @@ import type { ComponentChildren } from 'preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { compareCrawls, compareScans, type CompareProblem } from '../compare-api'
 import { readQuery, signed, toneOf, type Tone } from '../compare-model'
+import PdfDownload from '../pdf/PdfDownload'
 import { templateLabel } from '../crawl-model'
 import { SeverityPill } from '../report/ui'
 import { dayLabel, reportHref, shortUrl } from '../sites-model'
@@ -145,6 +146,16 @@ export default function CompareApp({ lang }: Props) {
   return (
     <div className="flex flex-col gap-6">
       {head}
+      <PdfDownload
+        lang={lang}
+        ask={
+          view.kind === 'scan'
+            ? { kind: 'compare-scans', base: view.data.base.id, head: view.data.head.id }
+            : { kind: 'compare-crawls', base: view.data.base.id, head: view.data.head.id }
+        }
+        what={shortUrl(view.kind === 'scan' ? view.data.head.url : view.data.head.origin)}
+        className="flex flex-col gap-2 self-start"
+      />
       {view.kind === 'scan' ? (
         <ScanView lang={lang} data={view.data} />
       ) : (

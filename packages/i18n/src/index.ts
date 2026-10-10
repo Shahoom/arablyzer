@@ -4,6 +4,7 @@ export { ACCOUNT_UI, type AccountProblem, type AccountStrings } from './account'
 export { BLOG_TAGS, BLOG_UI, type BlogStrings, type BlogTag } from './blog'
 export { COMPARE_UI, type CompareStrings } from './compare'
 export { CRAWL_UI, type CrawlStrings } from './crawl'
+export { PDF_UI, type PdfStrings } from './pdf'
 export { GENERATORS_UI, type GeneratorsStrings } from './generators'
 export { GUIDES_UI, type GuidesStrings } from './guides'
 export { HERO_TOOLS, HOME, type HeroTool, type HomeStrings } from './home'
@@ -37,6 +38,7 @@ import { ALERT_TEXT } from './alerts'
 import { BLOG_UI } from './blog'
 import { COMPARE_UI } from './compare'
 import { CRAWL_UI } from './crawl'
+import { PDF_UI } from './pdf'
 import type { Copy } from './copy'
 import { GENERATORS_UI } from './generators'
 import { GUIDES_UI } from './guides'
@@ -70,4 +72,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'compare.ts': COMPARE_UI,
   'blog.ts': BLOG_UI,
   'versus.ts': VERSUS_UI,
+  'pdf.ts': PDF_UI,
 }

@@ -73,6 +73,8 @@ export interface AccountData {
     userId: string,
     scanIds: readonly string[],
   ): Promise<ReadonlyMap<string, { readonly siteId: string | null; readonly source: ScanSource }>>
+  /** Whose scan this is (the account that keeps it), or null for an anonymous one. */
+  ownerOf(scanId: string): Promise<string | null>
   /**
    * The whole-page scans of the person's site made since the time, oldest first: the `limit` most
    * recent when there are more. Crawl scans and tool scans are not in it.
@@ -183,6 +185,10 @@ export class MemoryAccountData implements AccountData {
       if (entry.siteId !== null && !latest.has(entry.siteId)) latest.set(entry.siteId, entry)
     }
     return latest
+  }
+
+  ownerOf(scanId: string): Promise<string | null> {
+    return Promise.resolve(this.#links.find((link) => link.scanId === scanId)?.userId ?? null)
   }
 
   linkedScans(

@@ -6,6 +6,7 @@ import {
   POSTGRES_PROTOCOLS,
   PostgresAccountData,
   PostgresCrawlData,
+  PostgresPdfData,
   PostgresAuthMaintenance,
   PostgresMonitorData,
   PostgresScanStore,
@@ -82,6 +83,7 @@ const deps = apiDeps(
     accountData: new PostgresAccountData(pool),
     monitorData: new PostgresMonitorData(pool),
     crawlData: new PostgresCrawlData(pool),
+    pdfData: new PostgresPdfData(pool),
   },
   log,
 )

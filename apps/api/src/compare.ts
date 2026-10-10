@@ -7,12 +7,12 @@ import {
   SCAN_ID_PATTERN,
   SITE_ID_PATTERN,
 } from '@arablyzer/api-contract'
-import type { ScanStore } from '@arablyzer/store'
+import type { Crawl, CrawlData, ScanStore } from '@arablyzer/store'
 import type { Context, Hono } from 'hono'
 import { planOf, type SessionAccess } from './accounts'
 import { compareCrawls } from './compare/crawls'
 import { siteHistory } from './compare/history'
-import { compareScans, isComparable } from './compare/scans'
+import { compareScans, isComparable, type Comparable } from './compare/scans'
 import { reportOf } from './crawls'
 
 export interface CompareDeps {
@@ -22,6 +22,47 @@ export interface CompareDeps {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Why two reports are not compared: not the caller's (or not there), or not of one site / not finished. */
+export type PairProblem = 'not-found' | 'not-comparable'
+
+/** Two of the person's scans of one site that ended with a report (also what a comparison PDF reads). */
+export async function comparableScans(
+  access: SessionAccess,
+  store: ScanStore,
+  userId: string,
+  baseId: string,
+  headId: string,
+): Promise<{ readonly base: Comparable; readonly head: Comparable } | PairProblem> {
+  const linked = await access.data.linkedScans(userId, [baseId, headId])
+  const [base, head] = await Promise.all([store.get(baseId), store.get(headId)])
+  const baseLink = linked.get(baseId)
+  const headLink = linked.get(headId)
+  if (baseLink === undefined || headLink === undefined || base === null || head === null) {
+    return 'not-found'
+  }
+  if (!isComparable(base) || !isComparable(head)) return 'not-comparable'
+  const sameSite =
+    base.url === head.url || (baseLink.siteId !== null && baseLink.siteId === headLink.siteId)
+  return sameSite ? { base, head } : 'not-comparable'
+}
+
+/** Two of the person's finished crawls of one site. */
+export async function comparableCrawls(
+  crawls: CrawlData,
+  userId: string,
+  baseId: string,
+  headId: string,
+): Promise<{ readonly base: Crawl; readonly head: Crawl } | PairProblem> {
+  const [base, head] = await Promise.all([crawls.get(baseId), crawls.get(headId)])
+  if (base === null || head === null || base.userId !== userId || head.userId !== userId) {
+    return 'not-found'
+  }
+  if (base.state !== 'done' || head.state !== 'done') return 'not-comparable'
+  const sameSite =
+    base.origin === head.origin || (base.siteId !== null && base.siteId === head.siteId)
+  return sameSite ? { base, head } : 'not-comparable'
+}
 
 /**
  * Comparing two reports and a site's score history (M4.6). Read-only and behind the session; what
@@ -45,17 +86,10 @@ export function mountCompare(app: Hono, deps: CompareDeps): void {
     const ids = idsOf(c, SCAN_ID_PATTERN)
     if (ids === null) return access.fail(c, 'bad-request')
     const [baseId, headId] = ids
-    const linked = await access.data.linkedScans(read.user.id, ids)
-    const [base, head] = await Promise.all([store.get(baseId), store.get(headId)])
-    const baseLink = linked.get(baseId)
-    const headLink = linked.get(headId)
-    if (baseLink === undefined || headLink === undefined || base === null || head === null) {
-      return access.fail(c, 'not-found')
-    }
-    if (!isComparable(base) || !isComparable(head)) return notComparable(c)
-    const sameSite =
-      base.url === head.url || (baseLink.siteId !== null && baseLink.siteId === headLink.siteId)
-    if (!sameSite) return notComparable(c)
+    const pair = await comparableScans(access, store, read.user.id, baseId, headId)
+    if (pair === 'not-found') return access.fail(c, 'not-found')
+    if (pair === 'not-comparable') return notComparable(c)
+    const { base, head } = pair
     return c.json(compareScans(base, head))
   })
 
@@ -66,21 +100,10 @@ export function mountCompare(app: Hono, deps: CompareDeps): void {
       if (read instanceof Response) return read
       const ids = idsOf(c, CRAWL_ID_PATTERN)
       if (ids === null) return access.fail(c, 'bad-request')
-      const [base, head] = await Promise.all(ids.map((id) => crawls.get(id)))
-      if (
-        base === undefined ||
-        head === undefined ||
-        base === null ||
-        head === null ||
-        base.userId !== read.user.id ||
-        head.userId !== read.user.id
-      ) {
-        return access.fail(c, 'not-found')
-      }
-      if (base.state !== 'done' || head.state !== 'done') return notComparable(c)
-      const sameSite =
-        base.origin === head.origin || (base.siteId !== null && base.siteId === head.siteId)
-      if (!sameSite) return notComparable(c)
+      const pair = await comparableCrawls(crawls, read.user.id, ids[0], ids[1])
+      if (pair === 'not-found') return access.fail(c, 'not-found')
+      if (pair === 'not-comparable') return notComparable(c)
+      const { base, head } = pair
       const [was, is] = await Promise.all([
         reportOf(base, crawls, store),
         reportOf(head, crawls, store),

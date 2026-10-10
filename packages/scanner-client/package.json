@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/pdf": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
     "zod": "^4.6.5"
   }

@@ -34,6 +34,7 @@ import { registerGscRoutes, type GscDeps } from './gsc/routes'
 import { hashDeleteToken, newDeleteToken } from './ids'
 import { mountCompare } from './compare'
 import { mountCrawls } from './crawls'
+import { mountPdf } from './pdf'
 import { mountMonitors } from './monitors'
 import { noMailer } from './monitor/mail'
 import { mountSites } from './sites'
@@ -358,6 +359,18 @@ export function createApp(deps: ApiDeps): Hono {
       })
     }
     mountCompare(app, { access, store: deps.store, now })
+    if (deps.accounts.pdfs !== undefined) {
+      mountPdf(app, {
+        access,
+        accounts: deps.accounts,
+        pdfs: deps.accounts.pdfs,
+        crawls: deps.accounts.crawls,
+        store: deps.store,
+        origin: deps.origin,
+        log: deps.log,
+        now,
+      })
+    }
     if (deps.accounts.sender !== undefined) {
       mountMonitors(app, {
         access,
