@@ -1,5 +1,6 @@
 import type { AccountScan, CrawlSummary, SiteSummary } from '@arablyzer/api-contract/codes'
 import { ACCOUNT_UI } from '@arablyzer/i18n/account'
+import { COMPARE_UI } from '@arablyzer/i18n/compare'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import type { Lang } from '@arablyzer/seo/site'
 import { ExternalLink, Globe, Plus, Trash2, TriangleAlert } from 'lucide-preact'
@@ -7,6 +8,7 @@ import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { cancelCrawl, startCrawl } from '../crawl-api'
 import { isActive, POLL_MS } from '../crawl-model'
+import { compareHref, previousScanOf } from '../compare-model'
 import { precheck } from '../scan-request'
 import {
   addSite,
@@ -21,6 +23,7 @@ import { dayLabel, reportHref, shortUrl, type SiteProblem } from '../sites-model
 import CrawlReportCard from './CrawlReportCard'
 import CrawlRow from './CrawlRow'
 import MonitorRow from './MonitorRow'
+import ScoreHistory from './ScoreHistory'
 
 interface Props {
   lang: Lang
@@ -49,6 +52,7 @@ export default function SitesPanel({ lang }: Props) {
   const t = ACCOUNT_UI[lang]
   const s = t.sites
   const form = SCAN_FORM[lang]
+  const compare = COMPARE_UI[lang].links
   const [data, setData] = useState<Data | 'loading' | 'failed'>('loading')
   const [notice, setNotice] = useState<Notice | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -392,6 +396,7 @@ export default function SitesPanel({ lang }: Props) {
                     setOpenCrawl(openCrawl === id ? null : id)
                   }}
                 />
+                <ScoreHistory lang={lang} siteId={site.id} />
               </li>
             ))}
           </ul>
@@ -439,29 +444,43 @@ export default function SitesPanel({ lang }: Props) {
           <p className="m-0 text-body text-ink-2">{s.historyEmpty}</p>
         ) : (
           <ul className="m-0 flex list-none flex-col p-0">
-            {data.scans.map((scan) => (
-              <li
-                key={scan.id}
-                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line py-3 first:border-t-0"
-              >
-                <div className="flex min-w-0 flex-col gap-1">
-                  <bdi dir="ltr" className="text-small font-semibold break-all text-ink">
-                    {shortUrl(scan.url)}
-                  </bdi>
-                  <span className="text-meta text-ink-2">
-                    {dayLabel(scan.createdAt, lang)} · {s.states[scan.state]}
-                    {scan.score !== null && ` · ${s.score} ${scan.score}`}
-                  </span>
-                </div>
-                <a
-                  className="inline-flex min-h-11 items-center gap-1 text-small font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
-                  href={reportHref(lang, scan.id)}
+            {data.scans.map((scan, index) => {
+              const previous = previousScanOf(data.scans, index)
+              return (
+                <li
+                  key={scan.id}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-line py-3 first:border-t-0"
                 >
-                  {s.openReport}
-                  <ExternalLink size={14} aria-hidden="true" />
-                </a>
-              </li>
-            ))}
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <bdi dir="ltr" className="text-small font-semibold break-all text-ink">
+                      {shortUrl(scan.url)}
+                    </bdi>
+                    <span className="text-meta text-ink-2">
+                      {dayLabel(scan.createdAt, lang)} · {s.states[scan.state]}
+                      {scan.score !== null && ` · ${s.score} ${scan.score}`}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4">
+                    {previous !== null && (
+                      <a
+                        className="inline-flex min-h-11 items-center text-small font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
+                        href={compareHref(lang, 'scan', previous.id, scan.id)}
+                        aria-label={compare.previousScanLabel(dayLabel(previous.createdAt, lang))}
+                      >
+                        {compare.previousScan}
+                      </a>
+                    )}
+                    <a
+                      className="inline-flex min-h-11 items-center gap-1 text-small font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
+                      href={reportHref(lang, scan.id)}
+                    >
+                      {s.openReport}
+                      <ExternalLink size={14} aria-hidden="true" />
+                    </a>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>

@@ -153,6 +153,46 @@ describe.skipIf(!hasPostgres)('sites and the scans an account keeps, on PostgreS
     expect(rows).toEqual([{ n: 0 }])
   })
 
+  it("reads a site's score points and the links of a person's scans out of the reports", async () => {
+    await app.query("DELETE FROM sites WHERE user_id = 'u3'")
+    const own = { id: 'pts-site'.padEnd(22, '0'), url: 'https://points.example/', createdAt: NOW }
+    await data.addSite('u3', own, 5)
+    const made = async (n: number, days: number, source: 'manual' | 'monitor') => {
+      const id = `pts-${n}`.padEnd(22, '_')
+      await scans.create({ id, url: own.url, createdAt: AGO(days) })
+      await scans.start(id, AGO(days))
+      await scans.finish(
+        id,
+        {
+          scan: { status: 'complete' },
+          score: { overall: 60 + n, categories: { speed: 50 + n, rtl: null } },
+          findings: [{ severity: 'critical', fingerprint: `${n}`.repeat(16) }],
+        } as never,
+        AGO(days),
+      )
+      await data.link({ userId: 'u3', scanId: id, url: own.url, source, createdAt: AGO(days) })
+      return id
+    }
+    const a = await made(1, 40, 'manual')
+    const b = await made(2, 5, 'monitor')
+    const c = await made(3, 1, 'manual')
+    const points = await data.scorePoints('u3', own.id, AGO(30), 10)
+    expect(points.map((p) => [p.scanId, p.source, p.score])).toEqual([
+      [b, 'monitor', 62],
+      [c, 'manual', 63],
+    ])
+    expect(points[0]).toMatchObject({
+      categories: { speed: 52, rtl: null },
+      criticals: ['2222222222222222'],
+    })
+    expect((await data.scorePoints('u3', own.id, AGO(60), 2)).map((p) => p.scanId)).toEqual([b, c])
+    expect(await data.scorePoints('u1', own.id, AGO(60), 10)).toEqual([])
+    const kept = await data.linkedScans('u3', [a, 'x'.repeat(22)])
+    expect([...kept.keys()]).toEqual([a])
+    expect(await data.linkedScans('u1', [a])).toEqual(new Map())
+    expect(await data.linkedScans('u3', [])).toEqual(new Map())
+  })
+
   it('erases the scans of an account, and its sites and links go with the account', async () => {
     await data.eraseUser('u2')
     expect(await scans.get('kept-newer'.padEnd(22, '_'))).toBeNull()

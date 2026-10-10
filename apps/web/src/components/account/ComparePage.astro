@@ -1,0 +1,26 @@
+---
+import { COMPARE_UI } from '@arablyzer/i18n/compare'
+import { PATHS, type Lang } from '@arablyzer/seo/site'
+import CompareApp from '../../islands/account/CompareApp'
+import Page from '../../layouts/Page.astro'
+
+// The comparison of two reports of a site (M4.6): a static shell for the signed-in person alone,
+// never indexed. The island reads which two reports from the address and asks the API; it loads
+// nothing from Google, so the page adds no source to the site's policy.
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = COMPARE_UI[lang].page
+---
+
+<Page lang={lang} path={PATHS.compare} title={t.title} description={t.description} noindex>
+  <section class="relative isolate">
+    <div aria-hidden="true" class="page-wash"></div>
+    <div class="wrap pt-5 pb-12 lg:pt-10 lg:pb-20">
+      <div class="mx-auto w-full max-w-[860px]">
+        <CompareApp client:load lang={lang} />
+      </div>
+    </div>
+  </section>
+</Page>

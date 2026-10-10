@@ -4,6 +4,7 @@ import {
   SITE_ID_PATTERN,
   TEMPLATE_KEY_PATTERN,
   type CrawlPagesResponse,
+  type CrawlReport,
   type CrawlsResponse,
 } from '@arablyzer/api-contract'
 import { quietly, type Crawl, type CrawlData, type ScanStore } from '@arablyzer/store'
@@ -37,6 +38,30 @@ export const plannedOf = (crawl: Crawl): number =>
 export function listedSummary(crawl: Crawl) {
   const total = plannedOf(crawl)
   return summaryOf(crawl, { done: crawl.state === 'done' ? total : 0, total })
+}
+
+/** A crawl's report, computed from its rows and the scans of its representatives. */
+export async function reportOf(
+  crawl: Crawl,
+  crawls: CrawlData,
+  store: ScanStore,
+): Promise<CrawlReport> {
+  if (crawl.templates.length === 0) {
+    return { crawl: summaryOf(crawl, { done: 0, total: 0 }), templates: [], issues: [] }
+  }
+  const rows = await crawls.pages(crawl.id)
+  const scans = new Map<string, ScanFact>()
+  for (const row of rows) {
+    if (row.scanId === null) continue
+    const scan = await store.get(row.scanId)
+    if (scan !== null) {
+      scans.set(row.scanId, {
+        state: scan.state,
+        score: scan.tool === null && scan.report !== null ? scan.report.score.overall : null,
+      })
+    }
+  }
+  return buildReport(crawl, rows, scans)
 }
 
 /**
@@ -100,22 +125,7 @@ export function mountCrawls(app: Hono, deps: CrawlsDeps): void {
     const crawl = await owned(c, read.user.id)
     if (crawl === null) return access.fail(c, 'not-found')
     // Until the pages are grouped there is nothing to tell but the progress, and no row is read.
-    if (crawl.templates.length === 0) {
-      return c.json({ crawl: summaryOf(crawl, { done: 0, total: 0 }), templates: [], issues: [] })
-    }
-    const rows = await crawls.pages(crawl.id)
-    const scans = new Map<string, ScanFact>()
-    for (const row of rows) {
-      if (row.scanId === null) continue
-      const scan = await deps.store.get(row.scanId)
-      if (scan !== null) {
-        scans.set(row.scanId, {
-          state: scan.state,
-          score: scan.tool === null && scan.report !== null ? scan.report.score.overall : null,
-        })
-      }
-    }
-    return c.json(buildReport(crawl, rows, scans))
+    return c.json(await reportOf(crawl, crawls, deps.store))
   })
 
   app.get('/api/crawls/:id/pages', async (c) => {

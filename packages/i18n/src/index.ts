@@ -1,6 +1,7 @@
 export { codeParts, type Copy, type Lang } from './copy'
 export { ALERT_TEXT, type AlertStrings } from './alerts'
 export { ACCOUNT_UI, type AccountProblem, type AccountStrings } from './account'
+export { COMPARE_UI, type CompareStrings } from './compare'
 export { CRAWL_UI, type CrawlStrings } from './crawl'
 export { GENERATORS_UI, type GeneratorsStrings } from './generators'
 export { GUIDES_UI, type GuidesStrings } from './guides'
@@ -23,6 +24,7 @@ export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from
 
 import { ACCOUNT_UI } from './account'
 import { ALERT_TEXT } from './alerts'
+import { COMPARE_UI } from './compare'
 import { CRAWL_UI } from './crawl'
 import type { Copy } from './copy'
 import { GENERATORS_UI } from './generators'
@@ -53,4 +55,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'account.ts': ACCOUNT_UI,
   'alerts.ts': ALERT_TEXT,
   'crawl.ts': CRAWL_UI,
+  'compare.ts': COMPARE_UI,
 }

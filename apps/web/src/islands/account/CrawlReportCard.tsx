@@ -6,10 +6,13 @@ import type {
   CrawlTemplate,
 } from '@arablyzer/api-contract/codes'
 import { ACCOUNT_UI } from '@arablyzer/i18n/account'
+import { COMPARE_UI } from '@arablyzer/i18n/compare'
 import { CRAWL_UI } from '@arablyzer/i18n/crawl'
 import type { Lang } from '@arablyzer/seo/site'
 import { ExternalLink, Layers, Trash2, TriangleAlert, X } from 'lucide-preact'
 import { useEffect, useState } from 'preact/hooks'
+import { listCrawls } from '../compare-api'
+import { compareHref } from '../compare-model'
 import { cancelCrawl, deleteCrawl, getCrawl, getCrawlPages } from '../crawl-api'
 import {
   ISSUES_SHOWN,
@@ -71,6 +74,27 @@ export default function CrawlReportCard({ lang, crawlId, onSummary, onClose, onR
     }
     // The report of one crawl: asked again only when another is opened.
   }, [crawlId])
+
+  // The crawl before this one, when this one is done and there was an earlier one that is: what
+  // «compare with the previous crawl» opens.
+  const [previous, setPrevious] = useState<string | null>(null)
+  const done = typeof report !== 'string' && report.crawl.state === 'done' ? report.crawl : null
+  const doneId = done?.id
+  const doneSite = done?.siteId
+  useEffect(() => {
+    if (doneId === undefined || doneSite === undefined || doneSite === null) return
+    let live = true
+    void listCrawls(doneSite).then((got) => {
+      if (!live || !got.ok) return
+      const list = got.value.crawls
+      const at = list.findIndex((crawl) => crawl.id === doneId)
+      const older = at < 0 ? undefined : list.slice(at + 1).find((crawl) => crawl.state === 'done')
+      setPrevious(older?.id ?? null)
+    })
+    return () => {
+      live = false
+    }
+  }, [doneId, doneSite])
 
   async function onCancel() {
     setBusy('cancel')
@@ -155,6 +179,11 @@ export default function CrawlReportCard({ lang, crawlId, onSummary, onClose, onR
     <section aria-labelledby="crawl-title" className="card flex flex-col gap-6 rounded-card p-card">
       {header}
       {alert}
+      {previous !== null && (
+        <a className="btn-white self-start" href={compareHref(lang, 'crawl', previous, crawl.id)}>
+          {COMPARE_UI[lang].links.previousCrawl}
+        </a>
+      )}
 
       <div className="flex flex-col gap-3 rounded-xl border border-line p-4">
         <p className="m-0 text-small text-ink-2">

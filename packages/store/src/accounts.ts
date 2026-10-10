@@ -23,6 +23,19 @@ export interface HistoryEntry {
 
 export type ScanSource = 'manual' | 'monitor' | 'crawl'
 
+/** One scan of a saved site as the score history draws it (M4.6). */
+export interface ScorePoint {
+  readonly scanId: string
+  readonly createdAt: Date
+  readonly source: ScanSource
+  readonly state: ScanState
+  /** The overall score; null when the scan did not reach the page or has no report. */
+  readonly score: number | null
+  readonly categories: Readonly<Record<string, number | null>>
+  /** The fingerprints of its critical findings, for the alert that says "a new critical". */
+  readonly criticals: readonly string[]
+}
+
 export type AddedSite =
   | { readonly kind: 'added' | 'existing'; readonly site: SavedSite }
   /** The account keeps as many sites as its plan allows. */
@@ -55,6 +68,16 @@ export interface AccountData {
   history(userId: string, limit: number): Promise<HistoryEntry[]>
   /** The newest scan of each saved site, by site id. */
   latestPerSite(userId: string): Promise<ReadonlyMap<string, HistoryEntry>>
+  /** Which of these scans the person keeps, with the site and the way each was made. */
+  linkedScans(
+    userId: string,
+    scanIds: readonly string[],
+  ): Promise<ReadonlyMap<string, { readonly siteId: string | null; readonly source: ScanSource }>>
+  /**
+   * The whole-page scans of the person's site made since the time, oldest first: the `limit` most
+   * recent when there are more. Crawl scans and tool scans are not in it.
+   */
+  scorePoints(userId: string, siteId: string, since: Date, limit: number): Promise<ScorePoint[]>
   /** Deletes the scans the account keeps, with their reports (before the account itself goes). */
   eraseUser(userId: string): Promise<void>
 }
@@ -63,6 +86,7 @@ interface MemoryLink {
   readonly userId: string
   readonly scanId: string
   readonly siteId: string | null
+  readonly source: ScanSource
   readonly createdAt: Date
 }
 
@@ -126,6 +150,7 @@ export class MemoryAccountData implements AccountData {
       userId: link.userId,
       scanId: link.scanId,
       siteId: site?.id ?? null,
+      source: link.source,
       createdAt: link.createdAt,
     })
     this.#scans.linked.add(link.scanId)
@@ -158,6 +183,55 @@ export class MemoryAccountData implements AccountData {
       if (entry.siteId !== null && !latest.has(entry.siteId)) latest.set(entry.siteId, entry)
     }
     return latest
+  }
+
+  linkedScans(
+    userId: string,
+    scanIds: readonly string[],
+  ): Promise<ReadonlyMap<string, { readonly siteId: string | null; readonly source: ScanSource }>> {
+    const kept = new Map<string, { siteId: string | null; source: ScanSource }>()
+    for (const link of this.#links) {
+      if (link.userId === userId && scanIds.includes(link.scanId)) {
+        kept.set(link.scanId, { siteId: link.siteId, source: link.source })
+      }
+    }
+    return Promise.resolve(kept)
+  }
+
+  async scorePoints(
+    userId: string,
+    siteId: string,
+    since: Date,
+    limit: number,
+  ): Promise<ScorePoint[]> {
+    const points: ScorePoint[] = []
+    const mine = this.#links
+      .filter(
+        (link) =>
+          link.userId === userId &&
+          link.siteId === siteId &&
+          link.source !== 'crawl' &&
+          link.createdAt >= since,
+      )
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    for (const link of mine) {
+      const scan = await this.#scans.get(link.scanId)
+      if (scan === null) continue
+      if (scan.tool !== null) continue
+      points.push({
+        scanId: scan.id,
+        createdAt: scan.createdAt,
+        source: link.source,
+        state: scan.state,
+        score: scan.report?.score.overall ?? null,
+        categories: { ...(scan.report?.score.categories ?? {}) },
+        criticals:
+          scan.report?.findings
+            .filter((finding) => finding.severity === 'critical')
+            .map((finding) => finding.fingerprint) ?? [],
+      })
+    }
+    return points.slice(-limit)
   }
 
   eraseUser(userId: string): Promise<void> {

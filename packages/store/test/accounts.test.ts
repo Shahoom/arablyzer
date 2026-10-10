@@ -1,3 +1,4 @@
+import type { Report } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
 import { MemoryAccountData, MemoryScanStore } from '../src/index'
 
@@ -79,5 +80,52 @@ describe('MemoryAccountData', () => {
     expect(await scans.deleteOlderThan(AGO(30), 'linked')).toBe(1)
     expect(await scans.get('anon')).not.toBeNull()
     expect(await scans.get('kept')).toBeNull()
+  })
+
+  it("tells which scans a person keeps, and lists a site's whole-page scans oldest first inside the window", async () => {
+    const { data, scans } = setup()
+    await data.addSite('a', { id: 's1', url: URL1, createdAt: NOW }, 2)
+    const report = (overall: number, categories: Report['score']['categories']) =>
+      ({
+        scan: { status: 'complete' },
+        score: { overall, categories },
+        findings: [
+          { severity: 'critical', fingerprint: 'aaaaaaaaaaaaaaaa' },
+          { severity: 'minor', fingerprint: 'bbbbbbbbbbbbbbbb' },
+        ],
+      }) as unknown as Report
+    for (const [id, days, source, score] of [
+      ['old', 40, 'manual', 50],
+      ['one', 3, 'monitor', 70],
+      ['two', 1, 'manual', 80],
+    ] as const) {
+      await scans.create({ id, url: URL1, createdAt: AGO(days) })
+      await scans.start(id, AGO(days))
+      await scans.finish(id, report(score, { speed: score - 10 }), AGO(days))
+      await data.link({ userId: 'a', scanId: id, url: URL1, source, createdAt: AGO(days) })
+    }
+    await scans.create({ id: 'tool', url: URL1, createdAt: AGO(2), tool: 'hreflang' })
+    await data.link({ userId: 'a', scanId: 'tool', url: URL1, source: 'manual', createdAt: AGO(2) })
+    await scans.create({ id: 'other', url: URL1, createdAt: AGO(2) })
+    await data.link({
+      userId: 'b',
+      scanId: 'other',
+      url: URL1,
+      source: 'manual',
+      createdAt: AGO(2),
+    })
+
+    const points = await data.scorePoints('a', 's1', AGO(30), 10)
+    expect(points.map((p) => [p.scanId, p.source, p.score])).toEqual([
+      ['one', 'monitor', 70],
+      ['two', 'manual', 80],
+    ])
+    expect(points[0]).toMatchObject({ categories: { speed: 60 }, criticals: ['aaaaaaaaaaaaaaaa'] })
+    expect((await data.scorePoints('a', 's1', AGO(30), 1)).map((p) => p.scanId)).toEqual(['two'])
+    expect(await data.scorePoints('b', 's1', AGO(30), 10)).toEqual([])
+
+    const kept = await data.linkedScans('a', ['one', 'other', 'nope'])
+    expect([...kept.keys()]).toEqual(['one'])
+    expect(kept.get('one')).toEqual({ siteId: 's1', source: 'monitor' })
   })
 })

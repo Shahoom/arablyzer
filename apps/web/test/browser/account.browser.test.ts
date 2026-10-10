@@ -125,6 +125,9 @@ interface Scenario {
   /** What monitoring answers: the monitoring numbers, and the alerts as saved. */
   monitoring?: { limit: number; everyDays: number }
   alerts?: unknown
+  /** A saved site's score history, and what the comparison routes answer (M4.6). */
+  history?: unknown
+  compare?: { status: number; body: unknown }
   /** What adding a site answers, in place of a created site. */
   addStatus?: number
   addBody?: unknown
@@ -223,6 +226,10 @@ async function open(base: FixtureSite, scenario: Scenario) {
         return route.fulfill(
           json({ id: 'SSSSSSSSSSSSSSSSSSSSSS', deleteToken: 'T'.repeat(43) }, 202),
         )
+      }
+      if (url.pathname.endsWith('/history')) return route.fulfill(json(scenario.history))
+      if (url.pathname.startsWith('/api/compare/')) {
+        return route.fulfill(json(scenario.compare?.body, scenario.compare?.status ?? 200))
       }
       if (url.pathname === '/api/account/scans') {
         return route.fulfill(json({ scans: scenario.scans ?? [], historyDays: 30 }))
@@ -456,6 +463,201 @@ describe('saved sites and the history, in Chromium', () => {
     await tab.getByRole('button', { name: 'Save site' }).click()
     await tab.getByText('That is not a full URL').waitFor()
     await close()
+  })
+})
+
+const point = (n: number, overall: number | null, speed: number | null, source = 'manual') => ({
+  scanId: String(n).repeat(22),
+  at: `2026-10-0${String(n)}T12:00:00.000Z`,
+  source,
+  state: overall === null ? 'failed' : 'complete',
+  overall,
+  categories: speed === null ? {} : { speed, rtl: 90 },
+})
+const HISTORY = {
+  siteId: SITE_ID,
+  url: 'https://example.com/',
+  days: 30,
+  since: '2026-09-09T12:00:00.000Z',
+  alerts: true,
+  points: [point(1, 90, 80), point(3, 72, 55, 'monitor'), point(5, null, null, 'monitor')],
+  markers: [
+    {
+      scanId: '3'.repeat(22),
+      at: '2026-10-03T12:00:00.000Z',
+      kind: 'score-drop',
+      from: 90,
+      to: 72,
+    },
+    { scanId: '5'.repeat(22), at: '2026-10-05T12:00:00.000Z', kind: 'down' },
+  ],
+}
+const OLDER = {
+  ...LAST,
+  id: 'EEEEEEEEEEEEEEEEEEEEEE',
+  score: 70,
+  createdAt: '2026-10-01T12:00:00.000Z',
+}
+const COMPARISON = {
+  base: {
+    id: OLDER.id,
+    url: 'https://example.com/',
+    createdAt: OLDER.createdAt,
+    state: 'complete',
+    rulesetVersion: '1.0.0',
+    rules: { ran: 40, total: 40 },
+  },
+  head: {
+    id: LAST.id,
+    url: 'https://example.com/',
+    createdAt: SOON,
+    state: 'complete',
+    rulesetVersion: '1.0.0',
+    rules: { ran: 40, total: 40 },
+  },
+  overall: { before: 70, after: 82, change: 12 },
+  categories: [{ category: 'speed', before: 60, after: 75, change: 15 }],
+  engines: [
+    {
+      engine: 'chromium',
+      before: 'rendered',
+      after: 'rendered',
+      findingsBefore: 2,
+      findingsAfter: 1,
+    },
+  ],
+  sameRules: true,
+  counts: { new: 1, fixed: 1, worsened: 0, improved: 0, unchanged: 1 },
+  changes: [
+    {
+      kind: 'new',
+      ruleId: 'img-alt',
+      severity: 'serious',
+      before: null,
+      after: 'serious',
+      locator: 'main > img.hero',
+      message: { ar: 'صورة بلا نص بديل', en: 'Image without alt text' },
+      engines: ['chromium'],
+    },
+    {
+      kind: 'fixed',
+      ruleId: 'title-length',
+      severity: 'minor',
+      before: 'minor',
+      after: null,
+      locator: null,
+      message: { ar: 'عنوان طويل', en: 'Title too long' },
+      engines: [],
+    },
+    {
+      kind: 'unchanged',
+      ruleId: 'h1-missing',
+      severity: 'moderate',
+      before: 'moderate',
+      after: 'moderate',
+      locator: null,
+      message: { ar: 'لا H1', en: 'No H1' },
+      engines: [],
+    },
+  ],
+  omitted: 0,
+}
+
+describe('score history and comparison, in Chromium', () => {
+  it('draws a site’s scores with its alert marks and the same numbers as a table, in both directions', async () => {
+    for (const [path, show, label] of [
+      [
+        '/en/account',
+        'Show the score chart',
+        'Chart of the scores of https://example.com/ over time',
+      ],
+      ['/account', 'اعرض مخطط الدرجات', 'مخطط درجات https://example.com/ عبر الزمن'],
+    ] as const) {
+      const { tab, base, close } = await open(site, {
+        account: ACCOUNT,
+        google: true,
+        sites: [SAVED],
+        history: HISTORY,
+      })
+      await tab.goto(base.url(path))
+      const toggle = tab.getByRole('button', { name: show })
+      await toggle.waitFor({ timeout: 15_000 })
+      expect((await toggle.boundingBox())?.height).toBeGreaterThanOrEqual(44)
+      await toggle.click()
+      await tab.getByRole('img', { name: label }).waitFor()
+      // The overall line, one dot per scored scan, and a mark per alert.
+      expect(await tab.locator('main svg[role="img"] circle').count()).toBe(2)
+      expect(await tab.locator('main svg[role="img"] g[aria-hidden] > path').count()).toBe(2)
+      // The oldest scan sits at the start edge: left in English, right in Arabic.
+      const xs = await tab
+        .locator('main svg[role="img"] circle')
+        .evaluateAll((all) => all.map((c) => Number(c.getAttribute('cx'))))
+      expect((xs[0] ?? 0) < (xs[1] ?? 0)).toBe(path === '/en/account')
+      // A category line is switched on from a chip that says whether it is pressed.
+      const chip = tab.locator('main button.chip[aria-pressed]').first()
+      expect(await chip.getAttribute('aria-pressed')).toBe('false')
+      expect((await chip.boundingBox())?.height).toBeGreaterThanOrEqual(44)
+      await chip.click()
+      expect(await chip.getAttribute('aria-pressed')).toBe('true')
+      expect(await tab.locator('main svg[role="img"] circle').count()).toBe(4)
+      // The table holds every value; nothing overflows the phone, and no style attribute is drawn.
+      await tab.locator('main button[aria-controls$="-table"]').click()
+      expect(await tab.locator('main table tbody tr').count()).toBe(3)
+      expect(
+        await tab.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true)
+      expect(await tab.locator('main [style]').count()).toBe(0)
+      await close()
+    }
+  })
+
+  it('offers «compare with the previous scan» beside a scan that has an older one, and shows the comparison', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST, OLDER],
+      compare: { status: 200, body: COMPARISON },
+    })
+    await tab.goto(base.url('/en/account'))
+    const link = tab.getByRole('link', { name: /Compare with the scan of/ })
+    await link.waitFor({ timeout: 15_000 })
+    expect(await link.count()).toBe(1)
+    expect(await link.getAttribute('href')).toBe(
+      `/en/account/compare?type=scan&base=${OLDER.id}&head=${LAST.id}`,
+    )
+    await link.click()
+    await tab.getByRole('heading', { name: 'Compare two reports' }).waitFor()
+    await tab.getByText('Image without alt text').waitFor()
+    await tab.getByText('Title too long').waitFor()
+    await tab.getByText('+12').first().waitFor()
+    // The unchanged stay folded until asked.
+    expect(await tab.getByText('No H1').count()).toBe(0)
+    await tab.getByRole('button', { name: /Show the unchanged/ }).click()
+    await tab.getByText('No H1').waitFor()
+    expect(
+      await tab.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true)
+    expect(await tab.locator('main [style]').count()).toBe(0)
+    await close()
+  })
+
+  it('says plainly when two reports cannot be compared, and for a link that is not two ids', async () => {
+    const refused = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      compare: { status: 422, body: { error: 'not-comparable' } },
+    })
+    await refused.tab.goto(
+      refused.base.url(`/account/compare?type=scan&base=${OLDER.id}&head=${LAST.id}`),
+    )
+    await refused.tab.getByText('لا نستطيع مقارنة هذين التقريرين').waitFor({ timeout: 15_000 })
+    await refused.close()
+    const bad = await open(site, { account: ACCOUNT, google: true })
+    await bad.tab.goto(bad.base.url('/en/account/compare?type=scan&base=a&head=b'))
+    await bad.tab.getByText('The comparison failed').waitFor({ timeout: 15_000 })
+    expect(bad.seen.filter((call) => call.path.startsWith('/api/compare/'))).toHaveLength(0)
+    await bad.close()
   })
 })
 

@@ -249,9 +249,18 @@ describe('auditBuiltSite', () => {
       'en/login.html': page('en', 'Login', noindex),
       'account.html': page('ar', 'Account', noindex),
       'en/account.html': page('en', 'Account', noindex),
+      'account/compare.html': page('ar', 'Compare', noindex),
+      'en/account/compare.html': page('en', 'Compare', noindex),
     }
     const dir = build(files)
-    for (const path of ['/login', '/en/login', '/account', '/en/account']) {
+    for (const path of [
+      '/login',
+      '/en/login',
+      '/account',
+      '/en/account',
+      '/account/compare',
+      '/en/account/compare',
+    ]) {
       expect(isNoindexPage(path), path).toBe(true)
     }
     expect(isNoindexPage('/login-help')).toBe(false)
