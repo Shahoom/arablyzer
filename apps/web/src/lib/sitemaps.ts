@@ -1,5 +1,7 @@
-import { PATHS } from '@arablyzer/seo/site'
+import { VERSUS_SLUGS, VERSUS_UI } from '@arablyzer/i18n'
+import { PATHS, type Lang } from '@arablyzer/seo/site'
 import type { SitemapPage, SitemapSection } from '@arablyzer/seo/sitemap'
+import { allPosts, postsIn, tagsIn, type Post } from './blog'
 import { GUIDES_DATA } from './guide-data'
 import { LIBRARY_DATA } from './rule-data'
 import { TOOLS_DATA } from './tool-data'
@@ -19,7 +21,7 @@ const PAGES: readonly string[] = [
   PATHS.bot,
 ]
 
-export function sitemapPages(section: SitemapSection): SitemapPage[] {
+export async function sitemapPages(section: SitemapSection): Promise<SitemapPage[]> {
   switch (section) {
     case 'pages':
       return PAGES.map((path) => ({ path }))
@@ -40,5 +42,52 @@ export function sitemapPages(section: SitemapSection): SitemapPage[] {
         path: PATHS.term(term.slug),
         lastmod: term.updated,
       }))
+    case 'blog':
+      return blogPages()
+    case 'compare':
+      return [
+        { path: PATHS.comparisons },
+        ...VERSUS_SLUGS.map((slug) => ({
+          path: PATHS.versus(slug),
+          lastmod: VERSUS_UI.ar.pages[slug].checked,
+        })),
+      ]
   }
+}
+
+const newest = (posts: readonly Post[]) =>
+  posts
+    .map((post) => post.lastmod)
+    .sort()
+    .at(-1)
+
+/**
+ * The blog: its index, each Arabic article (in English too only where it is translated, with the
+ * date of the later of the two), and each tag page. The dates are the articles' own: a page is
+ * as new as the last article it lists.
+ */
+async function blogPages(): Promise<SitemapPage[]> {
+  const posts = await allPosts()
+  const arabic = await postsIn('ar')
+  const english = new Set((await postsIn('en')).map((post) => post.slug))
+  const englishTags = new Set((await tagsIn('en')).map(({ tag }) => tag))
+  const pages: SitemapPage[] = [{ path: PATHS.blog, lastmod: newest(posts) }]
+  for (const post of arabic) {
+    const twin = posts.find((one) => one.lang === 'en' && one.slug === post.slug)
+    const langs: readonly Lang[] = english.has(post.slug) ? ['ar', 'en'] : ['ar']
+    pages.push({
+      path: PATHS.post(post.slug),
+      lastmod: newest(twin === undefined ? [post] : [post, twin]),
+      langs,
+    })
+  }
+  for (const { tag } of await tagsIn('ar')) {
+    const tagged = posts.filter((post) => post.tags.includes(tag))
+    pages.push({
+      path: PATHS.blogTag(tag),
+      lastmod: newest(tagged),
+      langs: englishTags.has(tag) ? ['ar', 'en'] : ['ar'],
+    })
+  }
+  return pages
 }

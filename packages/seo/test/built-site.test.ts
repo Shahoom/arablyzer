@@ -2,8 +2,15 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { auditBuiltSite, builtPages, isNoindexPage, representativePages } from '../src/audit/index'
+import {
+  auditBuiltSite,
+  builtPages,
+  isBlogPost,
+  isNoindexPage,
+  representativePages,
+} from '../src/audit/index'
 import { renderHead } from '../src/head'
+import { blogPosting, breadcrumbList } from '../src/json-ld'
 import { alternates, localePath, pageUrl, PREVIEW_SITE, type Lang } from '../src/site'
 import { ogImagePath } from '../src/sitemap'
 
@@ -39,6 +46,18 @@ function build(
     `<sitemapindex><sitemap><loc>${SITE.origin}/sitemaps/pages.xml</loc></sitemap></sitemapindex>`,
   )
   write('sitemaps/pages.xml', `<urlset>${urls.join('')}</urlset>`)
+  // The files beside the pages: robots.txt, llms.txt, and the blog's feeds (one entry for each
+  // article the fixture has, in each language).
+  write('robots.txt', `User-agent: *\nDisallow: /api/\n\nSitemap: ${SITE.origin}/sitemap.xml\n`)
+  write('llms.txt', `# Arablyzer\n\n> A fixture site.\n\n- [Home](${SITE.origin}/)\n`)
+  for (const lang of ['ar', 'en'] as const) {
+    const posts = pages.filter((built) => built.lang === lang && isBlogPost(built.path))
+    const prefix = lang === 'en' ? '/en' : ''
+    const list = (tag: string) =>
+      posts.map((built) => `<${tag}><link>${SITE.origin}${built.path}</link></${tag}>`).join('')
+    write(`${prefix}/blog/feed.xml`.slice(1), `<rss><channel>${list('item')}</channel></rss>`)
+    write(`${prefix}/blog/atom.xml`.slice(1), `<feed>${list('entry')}</feed>`)
+  }
   for (const html of Object.values(files)) {
     const image = /<meta property="og:image" content="([^"]+)"/.exec(html)?.[1]
     if (image?.startsWith(`${SITE.origin}/`) === true) write(new URL(image).pathname, 'png')
@@ -342,6 +361,164 @@ describe('auditBuiltSite on the sitemaps and the Open Graph images', () => {
         check: 'og-image',
         message: 'the og:image https://arablyzer.example/og/en/index.png is not in the build',
       },
+    ])
+  })
+})
+
+describe('auditBuiltSite on the blog', () => {
+  const pair = { 'index.html': home('ar'), 'en/index.html': home('en') }
+
+  /** An article as the site writes one: its head, a BlogPosting, a trail, a date. */
+  function post(
+    lang: Lang,
+    slug: string,
+    options: { translated?: boolean; posting?: boolean; langs?: readonly Lang[] } = {},
+  ) {
+    const { translated = false, posting = true } = options
+    const articlePath = `/blog/${slug}`
+    const url = pageUrl(SITE, lang, articlePath)
+    const { title, body } = TEXT[lang]
+    const head = renderHead({
+      title,
+      description: body,
+      canonical: url,
+      alternates: alternates(
+        SITE,
+        articlePath,
+        options.langs ?? (translated ? ['ar', 'en'] : ['ar']),
+      ),
+      jsonLd: [
+        ...(posting
+          ? [
+              blogPosting({
+                headline: title,
+                description: body,
+                url,
+                origin: SITE.origin,
+                lang,
+                published: '2026-10-10',
+                modified: '2026-10-10',
+                author: 'Arablyzer',
+                image: `${SITE.origin}${ogImagePath(localePath(lang, articlePath))}`,
+                keywords: ['k'],
+                wordCount: 1000,
+              }),
+            ]
+          : []),
+        breadcrumbList([
+          { name: 'Home', url: pageUrl(SITE, lang, '/') },
+          { name: 'Blog', url: pageUrl(SITE, lang, '/blog') },
+          { name: title, url },
+        ]),
+      ],
+      openGraph: {
+        type: 'article',
+        title,
+        description: body,
+        url,
+        article: { published: '2026-10-10', modified: '2026-10-10', tags: [] },
+        image: {
+          url: `${SITE.origin}${ogImagePath(localePath(lang, articlePath))}`,
+          alt: title,
+          width: 1200,
+          height: 630,
+        },
+      },
+    })
+    return `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head>${head}</head><body><main><h1>${title}</h1><p>${body}</p><p><time datetime="2026-10-10">10 October 2026</time></p></main></body></html>`
+  }
+
+  const problemsOf = (dir: string) =>
+    auditBuiltSite(dir, SITE).problems.map((problem) => `${problem.check}: ${problem.message}`)
+
+  it('lets an article stand alone in Arabic, naming itself and an x-default and nothing else', () => {
+    const dir = build({
+      ...pair,
+      'blog/only-arabic.html': post('ar', 'only-arabic'),
+      'blog/both.html': post('ar', 'both', { translated: true }),
+      'en/blog/both.html': post('en', 'both', { translated: true }),
+    })
+    expect(problemsOf(dir)).toEqual([])
+  })
+
+  it('refuses an article that names a translation that is not there', () => {
+    const dir = build({
+      ...pair,
+      'blog/promises.html': post('ar', 'promises', { translated: true }),
+    })
+    expect(problemsOf(dir).join('\n')).toMatch(/hreflang: unexpected hreflang="en"/)
+  })
+
+  it('refuses an English article that has no Arabic original', () => {
+    const dir = build({
+      ...pair,
+      'en/blog/orphan.html': post('en', 'orphan', { langs: ['en'] }),
+    })
+    expect(problemsOf(dir).join('\n')).toMatch(/no Arabic page \/blog\/orphan/)
+  })
+
+  it('refuses an article that hides its language when it has no translation', () => {
+    const dir = build({
+      ...pair,
+      'blog/lonely.html': post('ar', 'lonely', { translated: false }).replace(
+        '</head>',
+        `<link rel="alternate" hreflang="en" href="${SITE.origin}/en/blog/lonely"></head>`,
+      ),
+    })
+    expect(problemsOf(dir).join('\n')).toMatch(/hreflang: unexpected hreflang="en"/)
+  })
+
+  it('wants a BlogPosting in an article', () => {
+    const dir = build({ ...pair, 'blog/plain.html': post('ar', 'plain', { posting: false }) })
+    expect(problemsOf(dir).join('\n')).toMatch(/json-ld: needs one BlogPosting, found 0/)
+  })
+
+  it('wants robots.txt to name the sitemap and to leave reports open to be read', () => {
+    const dir = build(pair)
+    writeFileSync(path.join(dir, 'robots.txt'), 'User-agent: *\nDisallow: /r/\n')
+    const problems = problemsOf(dir).join('\n')
+    expect(problems).toMatch(/robots: robots.txt does not name the sitemap index/)
+    expect(problems).toMatch(/Disallow: \/r\/ would keep crawlers from reading the noindex/)
+    rmSync(path.join(dir, 'robots.txt'))
+    expect(problemsOf(dir).join('\n')).toMatch(/robots: no robots.txt/)
+  })
+
+  it('wants an llms.txt whose links all exist, and a feed entry for each article', () => {
+    const dir = build({ ...pair, 'blog/a.html': post('ar', 'a') })
+    expect(problemsOf(dir)).toEqual([])
+    writeFileSync(
+      path.join(dir, 'llms.txt'),
+      `# Arablyzer\n\n> Summary.\n\n- [Gone](${SITE.origin}/blog/gone)\n- [Here](${SITE.origin}/blog/feed.xml)\n`,
+    )
+    writeFileSync(path.join(dir, 'blog/feed.xml'), '<rss><channel></channel></rss>')
+    rmSync(path.join(dir, 'en/blog/atom.xml'))
+    const problems = problemsOf(dir).join('\n')
+    expect(problems).toMatch(/llms: links to \/blog\/gone, which the build did not write/)
+    expect(problems).not.toMatch(/\/blog\/feed\.xml, which/)
+    expect(problems).toMatch(/feed: the RSS feed has 0 entries for 1 articles/)
+    expect(problems).toMatch(/feed: no Atom feed/)
+  })
+
+  it('counts the blog’s pages as templates: only the first of each is measured', () => {
+    const dir = build({
+      ...pair,
+      'blog.html': page('ar', '/blog'),
+      'blog/a.html': post('ar', 'a'),
+      'blog/b.html': post('ar', 'b'),
+      'blog/tag/x.html': page('ar', '/blog/tag/x'),
+      'blog/tag/y.html': page('ar', '/blog/tag/y'),
+      'compare.html': page('ar', '/compare'),
+      'compare/one.html': page('ar', '/compare/one'),
+      'compare/two.html': page('ar', '/compare/two'),
+    })
+    // The tag pages are the index's component: only the index is measured.
+    expect(representativePages(builtPages(dir)).map((built) => built.path)).toEqual([
+      '/',
+      '/blog',
+      '/blog/a',
+      '/compare',
+      '/compare/one',
+      '/en/',
     ])
   })
 })

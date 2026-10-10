@@ -23,8 +23,13 @@ interface Props {
   path: string
   /** On a report page, the other language's link gets the report's ID (Page.astro). */
   keepId?: boolean
+  /**
+   * Where the other language's link goes, when it is not this page's twin: an article with no
+   * translation sends it to the other language's articles. A path as PATHS gives it.
+   */
+  switchPath?: string
 }
-const { lang, path, keepId = false } = Astro.props
+const { lang, path, keepId = false, switchPath = path } = Astro.props
 const t = SITE[lang]
 const other = otherLang(lang)
 const o = SITE[lang].otherLang
@@ -83,7 +88,7 @@ const row = `text-ink hover:bg-surface-2 hover:text-ink ${marked}`
     </nav>
     <div class="ms-auto flex items-center gap-1 lg:gap-2">
       <a
-        href={localePath(other, path)}
+        href={localePath(other, switchPath)}
         data-keep-id={keepId ? '' : undefined}
         lang={other}
         hreflang={other}

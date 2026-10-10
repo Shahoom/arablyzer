@@ -27,6 +27,9 @@ export type AuditCheck =
   | 'content'
   | 'sitemap'
   | 'og-image'
+  | 'robots'
+  | 'feed'
+  | 'llms'
 
 export interface AuditProblem {
   readonly check: AuditCheck
@@ -42,7 +45,11 @@ export interface ExpectedPage {
   readonly lang: Lang
   /** The page's own URL, which its canonical must name. */
   readonly url: string
-  readonly alternates: { readonly ar: string; readonly en: string }
+  /**
+   * The page's own URL in each language it is in. A page in one language names that one alone
+   * (a blog article with no translation): its hreflang set is itself and an x-default.
+   */
+  readonly alternates: { readonly ar?: string; readonly en?: string }
   /** The site's origin: links to it must point to known pages. */
   readonly origin: string
   /** Paths of the pages the site has, in both languages. */
@@ -182,6 +189,7 @@ export function auditToolPage(html: string, expected: ExpectedPage): AuditProble
   checkCanonical(tags, expected.url, problem)
   for (const message of hreflangProblems(tags, expected.alternates)) problem('hreflang', message)
   checkJsonLd(tags, expected, problem)
+  checkFaqPage(tags, problem)
 
   for (const meta of [...metas(tags, 'robots'), ...metas(tags, 'googlebot')]) {
     if (isNoindex(meta)) {
@@ -359,6 +367,26 @@ export function auditPair(
   const problems: PageProblem[] = []
   for (const { html, expected } of [ar, en]) {
     for (const found of auditToolPage(html, expected))
+      problems.push({ page: expected.url, ...found })
+  }
+  if (!sameAlternates(ar.html, en.html)) {
+    problems.push({
+      page: `${ar.expected.url} ↔ ${en.expected.url}`,
+      check: 'reciprocal',
+      message: 'the two pages do not declare the same hreflang alternates',
+    })
+  }
+  return problems
+}
+
+/** Both languages of an article: each audited as an article, and each naming the other. */
+export function auditBlogPostPair(
+  ar: { readonly html: string; readonly expected: ExpectedPage },
+  en: { readonly html: string; readonly expected: ExpectedPage },
+): PageProblem[] {
+  const problems: PageProblem[] = []
+  for (const { html, expected } of [ar, en]) {
+    for (const found of auditBlogPostPage(html, expected))
       problems.push({ page: expected.url, ...found })
   }
   if (!sameAlternates(ar.html, en.html)) {
@@ -578,11 +606,11 @@ function alternateLinks(
 }
 
 function hreflangProblems(tags: readonly Tag[], alternates: ExpectedPage['alternates']): string[] {
-  const expected: Readonly<Record<string, string>> = {
-    ar: alternates.ar,
-    en: alternates.en,
-    'x-default': alternates.ar,
-  }
+  const expected: Record<string, string> = {}
+  if (alternates.ar !== undefined) expected.ar = alternates.ar
+  if (alternates.en !== undefined) expected.en = alternates.en
+  const first = alternates.ar ?? alternates.en
+  if (first !== undefined) expected['x-default'] = first
   const links = alternateLinks(tags)
   const problems: string[] = []
   for (const [hreflang, href] of Object.entries(expected)) {
@@ -632,6 +660,108 @@ function ofType(things: readonly Thing[], ...types: string[]): Thing[] {
   return things.filter(({ node }) =>
     [node['@type']].flat().some((type) => types.includes(String(type))),
   )
+}
+
+/**
+ * A tool page's FAQ as FAQPage JSON-LD: one Question for each question the page shows, with the
+ * text of its answer. Google asks that the markup match the page; a count that differs means the
+ * markup and the page have drifted.
+ */
+function checkFaqPage(tags: readonly Tag[], problem: Report): void {
+  const things = jsonLdThings(tags, () => undefined)
+  const pages = ofType(things, 'FAQPage')
+  const faq = tags.find((tag) => tag.name === 'section' && tag.attr('id') === 'faq')
+  const shown =
+    faq === undefined
+      ? 0
+      : tags.filter((tag) => tag.name === 'h3' && tag !== faq && isWithin(tag.node, faq.node))
+          .length
+  if (shown === 0) return
+  const [page] = pages
+  if (pages.length !== 1 || page === undefined) {
+    problem('json-ld', `needs one FAQPage for its ${shown} questions, found ${pages.length}`)
+    return
+  }
+  if (!isSchemaOrg(page.context))
+    problem('json-ld', 'the FAQPage needs "@context": "https://schema.org"')
+  const questions = [page.node.mainEntity].flat().filter(isObject)
+  const answered = questions.filter(
+    (question) =>
+      question['@type'] === 'Question' &&
+      typeof question.name === 'string' &&
+      question.name.trim() !== '' &&
+      isObject(question.acceptedAnswer) &&
+      typeof question.acceptedAnswer.text === 'string' &&
+      question.acceptedAnswer.text.trim() !== '',
+  )
+  if (answered.length !== shown || questions.length !== shown) {
+    problem(
+      'json-ld',
+      `the FAQPage has ${answered.length} questions with answers, the page shows ${shown}`,
+    )
+  }
+}
+
+/**
+ * An article of the blog, in either language: every page's parts, then a BlogPosting with the
+ * fields a search result and a feed read (headline, author, both dates, image, language, url),
+ * dates that are real and ordered, and a breadcrumb.
+ */
+export function auditBlogPostPage(html: string, expected: ExpectedPage): AuditProblem[] {
+  const problems = auditPage(html, expected)
+  const problem = (check: AuditCheck, message: string) => {
+    problems.push({ check, message })
+  }
+  const tags = tagsOf(html)
+  const things = jsonLdThings(tags, () => undefined)
+  const posts = ofType(things, 'BlogPosting')
+  const [post] = posts
+  if (posts.length !== 1 || post === undefined) {
+    problem('json-ld', `needs one BlogPosting, found ${posts.length}`)
+  } else {
+    const { node } = post
+    if (!isSchemaOrg(post.context))
+      problem('json-ld', 'the BlogPosting needs "@context": "https://schema.org"')
+    for (const field of ['headline', 'description', 'image'] as const) {
+      const value = [node[field]].flat()[0]
+      if (typeof value !== 'string' || value.trim() === '')
+        problem('json-ld', `the BlogPosting needs a ${field}`)
+    }
+    if (node.url !== expected.url) problem('json-ld', `the BlogPosting url must be ${expected.url}`)
+    if (typeof node.inLanguage !== 'string' || node.inLanguage.toLowerCase() !== expected.lang) {
+      problem('json-ld', `the BlogPosting inLanguage must be "${expected.lang}"`)
+    }
+    const author = node.author
+    if (!isObject(author) || typeof author.name !== 'string' || author.name.trim() === '') {
+      problem('json-ld', 'the BlogPosting needs an author with a name')
+    }
+    const published = node.datePublished
+    const modified = node.dateModified
+    if (
+      typeof published !== 'string' ||
+      typeof modified !== 'string' ||
+      !isDate(published) ||
+      !isDate(modified)
+    ) {
+      problem('json-ld', 'the BlogPosting needs a real datePublished and dateModified')
+    } else if (modified < published) {
+      problem('json-ld', 'the BlogPosting was modified before it was published')
+    }
+    const og = metaProperty(tags, 'og:type')
+    if (og !== 'article') problem('json-ld', `og:type must be "article", not "${og ?? ''}"`)
+  }
+  checkBreadcrumb(things, expected, problem)
+  if (!tags.some((tag) => tag.name === 'time' && isDate(tag.attr('datetime') ?? ''))) {
+    problem('content', 'an article shows its date in a <time datetime>')
+  }
+  return problems
+}
+
+function metaProperty(tags: readonly Tag[], property: string): string | null {
+  const tag = tags.find(
+    (candidate) => candidate.name === 'meta' && candidate.attr('property') === property,
+  )
+  return tag?.attr('content') ?? null
 }
 
 function checkJsonLd(tags: readonly Tag[], expected: ExpectedPage, problem: Report): void {

@@ -1,6 +1,6 @@
 ---
-import { TOOLS_UI } from '@arablyzer/i18n'
-import { breadcrumbList, webApplication } from '@arablyzer/seo/json-ld'
+import { BLOG_UI, TOOLS_UI } from '@arablyzer/i18n'
+import { breadcrumbList, faqPage, webApplication } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
 import Check from '@lucide/astro/icons/check'
@@ -13,6 +13,7 @@ import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
 import ToolApp from '../../islands/ToolApp'
 import ToolResult from '../../islands/ToolResult'
 import Page from '../../layouts/Page.astro'
+import { postsAbout } from '../../lib/blog'
 import { HEAD } from '../../lib/heads'
 import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
 import { CATEGORY_STYLE, TOOLS_DATA, toolData } from '../../lib/tool-data'
@@ -46,7 +47,10 @@ const jsonLd = [
     { name: t.directory.title, url: pageUrl(site, lang, PATHS.tools) },
     { name: copy.title, url },
   ]),
+  // The questions the page shows, as the page shows them: Google asks that the two match.
+  ...(copy.faq.length > 0 ? [faqPage(copy.faq)] : []),
 ]
+const articles = await postsAbout('tools', slug, lang)
 // What the tool's island is given: its name for the label of its box, and its category's colour.
 const boxed = { lang, tool: slug, title: copy.title, dot }
 // A tool that checks a page is a small box (the address and its button) that sits in the aside of
@@ -279,6 +283,25 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
             ))}
           </ul>
         </div>
+        {articles.length > 0 && (
+          <nav aria-labelledby="articles-title" class="flex flex-col gap-3 pt-2">
+            <h3 id="articles-title" class="heading-3 m-0">
+              {BLOG_UI[lang].relatedArticles.title}
+            </h3>
+            <ul class="card m-0 flex list-none flex-col divide-y divide-line overflow-hidden p-0">
+              {articles.map((article) => (
+                <li>
+                  <a
+                    href={article.href}
+                    class="bidi-whole block px-card py-3 text-body font-semibold hover:text-brand-ink"
+                  >
+                    <Bidi text={article.title} lang={lang} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
         {tool.related.length > 0 && (
           <nav aria-labelledby="near-title" class="flex flex-col gap-3 pt-2">
             <h3 id="near-title" class="heading-3 m-0">

@@ -67,6 +67,12 @@ describe('pageText and kickerOf', () => {
     // The knowledge hub's card says what the section is called in the header.
     expect(kickerOf({ path: '/knowledge', file: '', lang: 'ar' }).kicker).toBe('المعرفة')
     expect(kickerOf({ path: '/en/knowledge', file: '', lang: 'en' }).kicker).toBe('Knowledge')
+    // The blog and the comparisons: an article, a tag and an index say the section's name.
+    expect(kickerOf({ path: '/blog/some-article', file: '', lang: 'ar' }).kicker).toBe('المقالات')
+    expect(kickerOf({ path: '/en/blog/tag/fonts', file: '', lang: 'en' }).kicker).toBe('Articles')
+    expect(kickerOf({ path: '/blog', file: '', lang: 'ar' }).kicker).toBe('المقالات')
+    expect(kickerOf({ path: '/compare/shipwork', file: '', lang: 'ar' }).kicker).toBe('مقارنات')
+    expect(kickerOf({ path: '/en/compare', file: '', lang: 'en' }).kicker).toBe('Comparisons')
     expect(() => kickerOf({ path: '/somewhere', file: '', lang: 'ar' })).toThrow(/add one/)
   })
 })

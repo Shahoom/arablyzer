@@ -1,0 +1,46 @@
+---
+import { BLOG_UI } from '@arablyzer/i18n'
+import { formatDate } from '@arablyzer/seo/dates'
+import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
+import type { Post } from '../../lib/blog'
+import Bidi from '../Bidi.astro'
+
+/**
+ * The articles as compact rows in one card (M2.6 R7): the title at 16 px, the summary at 14, and
+ * the date and the reading time as meta text; the whole row is the link, as the glossary's rows
+ * are.
+ */
+interface Props {
+  lang: Lang
+  posts: readonly Post[]
+  /** The list's accessible name. */
+  label: string
+}
+const { lang, posts, label } = Astro.props
+const a = BLOG_UI[lang].article
+---
+
+<ul aria-label={label} class="kb-list m-0 list-none p-0">
+  {posts.map((post) => (
+    <li>
+      <a href={localePath(lang, PATHS.post(post.slug))} class="kb-row group">
+        <span class="flex min-w-0 flex-1 flex-col gap-1">
+          <span class="min-w-0 text-body font-semibold group-hover:text-brand-ink">
+            <Bidi text={post.title} lang={lang} />
+          </span>
+          <span class="line-clamp-2 text-small text-ink-2">
+            <Bidi text={post.summary} lang={lang} />
+          </span>
+          <span class="flex flex-wrap items-center gap-x-3 text-meta text-ink-2">
+            <time datetime={post.date}>{formatDate(post.date, lang)}</time>
+            <span>{a.readingTime(post.minutes)}</span>
+          </span>
+        </span>
+        <span
+          aria-hidden="true"
+          class="chev-end hidden shrink-0 self-center text-ink-3 group-hover:text-brand-ink sm:block"
+        ></span>
+      </a>
+    </li>
+  ))}
+</ul>

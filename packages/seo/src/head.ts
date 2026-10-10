@@ -4,6 +4,14 @@ import type { Alternate } from './site'
 
 /** What a link preview shows, with the image the site's build draws for the page (§6.5). */
 export interface OpenGraph {
+  /** "article" for a blog post, with `article`; "website" (the default) for every other page. */
+  readonly type?: 'website' | 'article'
+  readonly article?: {
+    /** YYYY-MM-DD. */
+    readonly published: string
+    readonly modified: string
+    readonly tags: readonly string[]
+  }
   readonly title: string
   readonly description: string
   /** None for a page that serves many links, as a report's does: the preview uses the link. */
@@ -16,6 +24,13 @@ export interface OpenGraph {
   }
 }
 
+/** A feed a page offers to readers, as `<link rel="alternate" type=…>`. */
+export interface FeedLink {
+  readonly kind: 'rss' | 'atom'
+  readonly title: string
+  readonly href: string
+}
+
 export interface HeadOptions {
   readonly title: string
   readonly description?: string
@@ -25,6 +40,7 @@ export interface HeadOptions {
   readonly robots?: string
   readonly jsonLd?: readonly JsonLd[]
   readonly openGraph?: OpenGraph
+  readonly feeds?: readonly FeedLink[]
 }
 
 /** The contents of <head>, one element per line. */
@@ -49,14 +65,21 @@ export function renderHead(options: HeadOptions): string {
     )
   }
   if (options.openGraph !== undefined) {
-    const { title, description, url } = options.openGraph
+    const { title, description, url, article } = options.openGraph
     lines.push(
-      '<meta property="og:type" content="website">',
+      `<meta property="og:type" content="${options.openGraph.type ?? 'website'}">`,
       '<meta property="og:site_name" content="Arablyzer">',
       `<meta property="og:title" content="${escapeHtml(title)}">`,
       `<meta property="og:description" content="${escapeHtml(description)}">`,
     )
     if (url !== undefined) lines.push(`<meta property="og:url" content="${escapeHtml(url)}">`)
+    if (article !== undefined) {
+      lines.push(
+        `<meta property="article:published_time" content="${escapeHtml(article.published)}">`,
+        `<meta property="article:modified_time" content="${escapeHtml(article.modified)}">`,
+        ...article.tags.map((tag) => `<meta property="article:tag" content="${escapeHtml(tag)}">`),
+      )
+    }
     const { image } = options.openGraph
     if (image !== undefined) {
       lines.push(
@@ -67,6 +90,12 @@ export function renderHead(options: HeadOptions): string {
         '<meta name="twitter:card" content="summary_large_image">',
       )
     }
+  }
+  for (const feed of options.feeds ?? []) {
+    const type = feed.kind === 'rss' ? 'application/rss+xml' : 'application/atom+xml'
+    lines.push(
+      `<link rel="alternate" type="${type}" title="${escapeHtml(feed.title)}" href="${escapeHtml(feed.href)}">`,
+    )
   }
   for (const data of options.jsonLd ?? []) lines.push(jsonLdScript(data))
   return lines.join('\n')

@@ -7,7 +7,7 @@ export function getStaticPaths() {
   return SITEMAP_SECTIONS.map((section) => ({ params: { section } }))
 }
 
-export const GET: APIRoute = ({ params, site }) =>
-  new Response(sitemapXml(siteOf(site), sitemapPages(params.section as SitemapSection)), {
+export const GET: APIRoute = async ({ params, site }) =>
+  new Response(sitemapXml(siteOf(site), await sitemapPages(params.section as SitemapSection)), {
     headers: { 'content-type': 'application/xml; charset=utf-8' },
   })

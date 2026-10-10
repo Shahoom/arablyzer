@@ -55,7 +55,7 @@ afterAll(async () => {
 const LANGS = ['ar', 'en'] as const
 const prefixOf = (lang: (typeof LANGS)[number]) => (lang === 'ar' ? '' : '/en')
 /** The header's sections, in order, as NAV lists them (apps/web/src/lib/site.ts). */
-const SECTIONS = ['/tools', '/knowledge', '/rules', '/fix']
+const SECTIONS = ['/tools', '/knowledge', '/rules', '/fix', '/blog']
 /** Below lg the header has a menu; from lg it has the sections. */
 const BELOW_LG = [320, 360, 390, 768, 1023]
 const FROM_LG = [1024, 1440]
@@ -241,12 +241,10 @@ describe.each(ENGINES)('the shared layer in %s', (engine) => {
           expect(found?.height, `${where}: the bar`).toBe(64)
           expect(found?.sticky, where).toBe('sticky')
           expect(found?.row.every(Boolean), `${where}: one row`).toBe(true)
-          expect(found?.links, `${where}: the sections`).toBe(4)
+          expect(found?.links, `${where}: the sections`).toBe(SECTIONS.length)
           expect(found?.current, `${where}: the tools' section is marked`).toEqual([
             'true',
-            null,
-            null,
-            null,
+            ...SECTIONS.slice(1).map(() => null),
           ])
           expect(found?.scan, `${where}: the small scan button`).toBe(40)
           expect(found?.menu, `${where}: no menu button`).toBe(false)

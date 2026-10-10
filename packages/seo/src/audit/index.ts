@@ -1,4 +1,6 @@
 export {
+  auditBlogPostPage,
+  auditBlogPostPair,
   auditBuiltPair,
   auditPage,
   auditPair,
@@ -17,7 +19,10 @@ export {
 export { auditSite, sampleReport, type RenderedPage, type SiteAudit } from './site'
 export {
   auditBuiltSite,
+  builtFiles,
   builtPages,
+  isBlogPost,
+  isBlogTag,
   isNoindexPage,
   representativePages,
   type BuiltPage,

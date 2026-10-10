@@ -1,8 +1,9 @@
 ---
 import { HOME } from '@arablyzer/i18n'
-import { webApplication } from '@arablyzer/seo/json-ld'
-import { pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { organization, softwareApplication, webSite } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import Page from '../../layouts/Page.astro'
+import { feedLinks } from '../../lib/feeds'
 import { CLOUDTOPIA, siteOf } from '../../lib/site'
 import Bento from './Bento.astro'
 import Counts from './Counts.astro'
@@ -24,18 +25,34 @@ interface Props {
 }
 const { lang } = Astro.props
 const t = HOME[lang]
-const url = pageUrl(siteOf(Astro.site), lang, PATHS.home)
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, PATHS.home)
+// The publisher once (every page of the site points at it by its @id), the site with the search it
+// really has (the knowledge hub reads ?q=), and the product: only markup the page can show.
 const jsonLd = [
-  {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
+  organization({
+    name: 'Arablyzer',
+    url: pageUrl(site, 'ar', PATHS.home),
+    origin: site.origin,
+    logo: `${site.origin}/favicon.svg`,
+    description: HOME.en.meta.description,
+    parent: { name: 'CloudTopia', url: CLOUDTOPIA },
+  }),
+  webSite({
     name: 'Arablyzer',
     url,
-    inLanguage: lang,
+    origin: site.origin,
+    lang,
     description: t.meta.description,
-    publisher: { '@type': 'Organization', name: 'CloudTopia', url: CLOUDTOPIA },
-  },
-  webApplication({ name: 'Arablyzer', description: t.meta.description, url, lang }),
+    searchUrl: `${site.origin}${localePath(lang, PATHS.knowledge)}?q={search_term_string}`,
+  }),
+  softwareApplication({
+    name: 'Arablyzer',
+    description: t.meta.description,
+    url,
+    origin: site.origin,
+    lang,
+  }),
 ]
 ---
 
@@ -45,6 +62,7 @@ const jsonLd = [
   title={t.meta.title}
   description={t.meta.description}
   jsonLd={jsonLd}
+  feeds={feedLinks(site, lang)}
 >
   <Hero lang={lang} />
   <div class="flex flex-col gap-section pt-4 pb-section md:pt-6">

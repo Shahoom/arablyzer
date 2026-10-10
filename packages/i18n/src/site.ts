@@ -22,6 +22,7 @@ export interface SiteStrings {
     readonly knowledge: string
     readonly rules: string
     readonly fix: string
+    readonly blog: string
   }
   /** The header's call to action, to the scan form: free, and said so. */
   readonly scanCta: string
@@ -41,6 +42,8 @@ export interface SiteStrings {
     readonly scan: string
     readonly github: string
     readonly methodology: string
+    /** The product column's link to the comparison pages. */
+    readonly compare: string
     readonly bot: string
     readonly glossary: string
     readonly license: string
@@ -61,7 +64,13 @@ export const SITE: Copy<SiteStrings> = {
     statusBar: 'أدوات مجانية وبلا تسجيل · الكود مفتوح المصدر',
     navLabel: 'أقسام الموقع',
     menu: 'القائمة',
-    nav: { tools: 'الأدوات', knowledge: 'المعرفة', rules: 'مكتبة القواعد', fix: 'أدلة الإصلاح' },
+    nav: {
+      tools: 'الأدوات',
+      knowledge: 'المعرفة',
+      rules: 'مكتبة القواعد',
+      fix: 'أدلة الإصلاح',
+      blog: 'المقالات',
+    },
     scanCta: 'افحص مجاناً',
     otherLang: { label: 'English', short: 'EN' },
     footer: {
@@ -74,6 +83,7 @@ export const SITE: Copy<SiteStrings> = {
       scan: 'الفحص',
       github: 'الكود على GitHub',
       methodology: 'المنهجية',
+      compare: 'مقارنات',
       bot: 'ArablyzerBot وكيف تمنعه',
       glossary: 'المسرد',
       license: 'مفتوح المصدر بترخيص AGPL-3.0',
@@ -90,7 +100,13 @@ export const SITE: Copy<SiteStrings> = {
     statusBar: 'Free tools, no sign-up · Open source',
     navLabel: 'Site sections',
     menu: 'Menu',
-    nav: { tools: 'Tools', knowledge: 'Knowledge', rules: 'Rule library', fix: 'Fix guides' },
+    nav: {
+      tools: 'Tools',
+      knowledge: 'Knowledge',
+      rules: 'Rule library',
+      fix: 'Fix guides',
+      blog: 'Articles',
+    },
     scanCta: 'Scan free',
     otherLang: { label: 'العربية', short: 'العربية' },
     footer: {
@@ -104,6 +120,7 @@ export const SITE: Copy<SiteStrings> = {
       scan: 'Scan',
       github: 'The code on GitHub',
       methodology: 'Methodology',
+      compare: 'Comparisons',
       bot: 'ArablyzerBot, and how to block it',
       glossary: 'Glossary',
       license: 'Open source under AGPL-3.0',

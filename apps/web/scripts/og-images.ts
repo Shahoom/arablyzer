@@ -60,6 +60,9 @@ export function kickerOf(page: BuiltPage): Pick<Card, 'kicker' | 'kickerCode'> {
   }
   if (/^\/fix\/[a-z0-9-]+$/.test(arabic)) return { kicker: 'Search Console', kickerCode: true }
   if (/^\/glossary\/[a-z0-9-]+$/.test(arabic)) return { kicker: GUIDES_UI[lang].glossary.title }
+  // An article, a tag's page and a comparison: the section's name, as the header gives it.
+  if (/^\/blog\/(?:tag\/)?[a-z0-9-]+$/.test(arabic)) return { kicker: SITE[lang].nav.blog }
+  if (/^\/compare\/[a-z0-9-]+$/.test(arabic)) return { kicker: SITE[lang].footer.compare }
   const rule = /^\/rules\/([a-z0-9-]+)$/.exec(arabic)?.[1]
   if (rule !== undefined) {
     if (!LIBRARY_DATA.rules.some((candidate) => candidate.id === rule))
@@ -77,6 +80,10 @@ export function kickerOf(page: BuiltPage): Pick<Card, 'kicker' | 'kickerCode'> {
       return { kicker: 'Search Console', kickerCode: true }
     case '/glossary':
       return { kicker: SITE[lang].footer.glossary }
+    case '/blog':
+      return { kicker: SITE[lang].nav.blog }
+    case '/compare':
+      return { kicker: SITE[lang].footer.compare }
     case '/methodology':
       return { kicker: SITE[lang].footer.methodology }
     case '/bot':

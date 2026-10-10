@@ -523,3 +523,27 @@ describe('auditReportPage', () => {
     ).toEqual(['canonical'])
   })
 })
+
+describe('auditToolPage on the FAQPage', () => {
+  const faq =
+    /<script type="application\/ld\+json">\n\{\n {2}"@context": "https:\/\/schema.org",\n {2}"@type": "FAQPage"[\s\S]*?<\/script>\n/
+
+  it('wants a FAQPage when the page shows questions', () => {
+    const problems = auditToolPage(edit(AR, faq, ''), EXPECTED.ar)
+    expect(problems).toContainEqual({
+      check: 'json-ld',
+      message: 'needs one FAQPage for its 1 questions, found 0',
+    })
+  })
+
+  it('wants a question in the markup for each question the page shows', () => {
+    const extra = edit(
+      AR,
+      '<h3>ما هذه الصفحة؟</h3><p>نموذج للاختبار فقط.</p>',
+      '<h3>ما هذه الصفحة؟</h3><p>نموذج للاختبار فقط.</p><h3>سؤال ثانٍ؟</h3><p>جواب ثانٍ.</p>',
+    )
+    expect(auditToolPage(extra, EXPECTED.ar).map((problem) => problem.message)).toContain(
+      'the FAQPage has 1 questions with answers, the page shows 2',
+    )
+  })
+})

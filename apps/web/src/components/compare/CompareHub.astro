@@ -1,0 +1,72 @@
+---
+import { VERSUS_SLUGS, VERSUS_UI } from '@arablyzer/i18n'
+import { breadcrumbList, itemList } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import Page from '../../layouts/Page.astro'
+import { HEAD } from '../../lib/heads'
+import { siteOf } from '../../lib/site'
+import Bidi from '../Bidi.astro'
+import PageHead from '../PageHead.astro'
+
+// The comparisons' index (M6): one row for each tool Arablyzer is set beside, with the line that
+// tool calls itself. The rows are the pages' own, so the index cannot drift from them.
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = VERSUS_UI[lang]
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, PATHS.comparisons)
+const jsonLd = [
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.hub.title, url },
+  ]),
+  itemList(
+    VERSUS_SLUGS.map((slug) => ({
+      name: t.hub.row(t.pages[slug].name),
+      url: pageUrl(site, lang, PATHS.versus(slug)),
+    })),
+  ),
+]
+---
+
+<Page
+  lang={lang}
+  path={PATHS.comparisons}
+  title={t.meta.title}
+  description={t.meta.description}
+  jsonLd={jsonLd}
+>
+  <PageHead
+    lang={lang}
+    breadcrumb={{ label: t.hub.breadcrumb, current: t.hub.title }}
+    title={t.hub.title}
+  >
+    <Bidi slot="lead" text={t.hub.lead} lang={lang} />
+  </PageHead>
+  <div class:list={['wrap max-w-[760px]', HEAD.bodyTop, 'pb-section']}>
+    <ul class="kb-list m-0 list-none p-0">
+      {VERSUS_SLUGS.map((slug) => (
+        <li>
+          <a href={localePath(lang, PATHS.versus(slug))} class="kb-row group">
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="min-w-0 text-body font-semibold group-hover:text-brand-ink">
+                <Bidi text={t.hub.row(t.pages[slug].name)} lang={lang} />
+              </span>
+              <span class="line-clamp-2 text-small text-ink-2">
+                <Bidi text={t.pages[slug].tagline} lang={lang} />
+              </span>
+            </span>
+            <span
+              aria-hidden="true"
+              class="chev-end hidden shrink-0 self-center text-ink-3 group-hover:text-brand-ink sm:block"
+            ></span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Page>
