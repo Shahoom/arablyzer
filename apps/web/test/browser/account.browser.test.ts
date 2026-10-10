@@ -594,7 +594,7 @@ describe('score history and comparison, in Chromium', () => {
         .evaluateAll((all) => all.map((c) => Number(c.getAttribute('cx'))))
       expect((xs[0] ?? 0) < (xs[1] ?? 0)).toBe(path === '/en/account')
       // A category line is switched on from a chip that says whether it is pressed.
-      const chip = tab.locator('main button[aria-pressed]').first()
+      const chip = tab.locator('main button.chip[aria-pressed]').first()
       expect(await chip.getAttribute('aria-pressed')).toBe('false')
       expect((await chip.boundingBox())?.height).toBeGreaterThanOrEqual(44)
       await chip.click()

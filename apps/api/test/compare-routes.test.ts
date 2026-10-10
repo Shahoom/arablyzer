@@ -371,6 +371,33 @@ describe('GET /api/sites/:id/history', () => {
     expect(body.markers).toMatchObject([{ kind: 'score-drop', from: 90, to: 70 }])
   })
 
+  it('finds nothing of a person once the account is erased', async () => {
+    const t = setup()
+    const { cookie, userId } = await t.signIn('ali')
+    const siteId = await t.addSite(cookie)
+    const a = await t.keep(userId, 'a', 5, reportOf(70))
+    const b = await t.keep(userId, 'b', 1, reportOf(80))
+    expect(
+      (await t.send('GET', `/api/compare/scans?base=${a}&head=${b}`, undefined, cookie)).status,
+    ).toBe(200)
+    expect((await t.send('DELETE', '/api/account', { confirm: true }, cookie)).status).toBe(204)
+    // The session is gone with the account, and no scan is left to compare for the id.
+    expect((await t.send('GET', `/api/sites/${siteId}/history`, undefined, cookie)).status).toBe(
+      401,
+    )
+    expect(
+      (await t.send('GET', `/api/compare/scans?base=${a}&head=${b}`, undefined, cookie)).status,
+    ).toBe(401)
+    const again = await t.signIn('ali')
+    expect(
+      (await t.send('GET', `/api/compare/scans?base=${a}&head=${b}`, undefined, again.cookie))
+        .status,
+    ).toBe(404)
+    expect(
+      (await t.send('GET', `/api/sites/${siteId}/history`, undefined, again.cookie)).status,
+    ).toBe(404)
+  })
+
   it('has no markers without monitoring, and is a 404 for a site that is not the person’s', async () => {
     const t = setup({ monitoring: false })
     const ali = await t.signIn('ali')
