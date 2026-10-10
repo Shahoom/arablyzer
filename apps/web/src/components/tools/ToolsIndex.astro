@@ -54,7 +54,7 @@ const jsonLd = [
 // A category's button in the vertical list of a wide screen: a row that is pressed or not. Forced
 // colours drop the tint, so a pressed row is told by an edge, as a pressed chip is.
 const row =
-  'flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 text-start text-small text-ink-2 hover:bg-surface-2 hover:text-ink aria-pressed:bg-indigo-soft aria-pressed:text-indigo-ink forced-colors:aria-pressed:border-2 forced-colors:aria-pressed:border-[Highlight]'
+  'flex h-9 w-full cursor-pointer items-center gap-3 rounded-lg px-3 text-start text-small text-ink-2 hover:bg-surface-2 hover:text-ink aria-pressed:bg-indigo-soft aria-pressed:text-indigo-ink forced-colors:aria-pressed:border-2 forced-colors:aria-pressed:border-[Highlight]'
 ---
 
 <Page
@@ -73,7 +73,7 @@ const row =
     <div slot="end" class="flex w-full shrink-0 flex-col gap-2 lg:w-[480px]">
       <div
         role="search"
-        class="flex h-12 items-center gap-2.5 rounded-xl border border-field bg-white px-3.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo"
+        class="flex h-12 items-center gap-3 rounded-xl border border-field bg-white px-4 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo"
       >
         <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
         <label for="tools-search" class="sr-only">
@@ -93,7 +93,7 @@ const row =
         </span>
         <a
           href={localePath(lang, PATHS.knowledge)}
-          class="inline-flex min-h-11 items-center gap-1.5 font-semibold text-brand-ink underline-offset-4 hover:text-ink hover:underline"
+          class="inline-flex min-h-11 items-center gap-2 font-semibold text-brand-ink underline-offset-4 hover:text-ink hover:underline"
         >
           {KNOWLEDGE_UI[lang].searchAll}
           <Next size={16} stroke-width={2} aria-hidden="true" />
@@ -128,7 +128,7 @@ const row =
             </button>
           ))}
         </div>
-        <div class="hidden flex-col gap-0.5 lg:flex">
+        <div class="hidden flex-col gap-1 lg:flex">
           <button type="button" class={row} aria-pressed="true" data-filter="all">
             <span class="min-w-0 grow">{t.directory.all}</span>
             <span aria-hidden="true" class="text-meta text-ink-2 tabular-nums">
@@ -203,11 +203,7 @@ const row =
           </ul>
         </section>
       ))}
-      <p
-        id="tools-none"
-        hidden
-        class="m-0 rounded-card border border-dashed border-field p-card text-center text-body text-ink-2"
-      >
+      <p id="tools-none" hidden class="empty-state m-0 text-body">
         {t.directory.none}
       </p>
     </div>

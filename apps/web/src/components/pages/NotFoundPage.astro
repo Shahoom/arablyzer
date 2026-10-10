@@ -26,9 +26,8 @@ const links = [
 ---
 
 <Page lang={lang} path={PATHS.home} title={`${t.title} — Arablyzer`} description={t.text} noindex>
-  <section class="relative isolate">
-    <div aria-hidden="true" class="page-wash"></div>
-    <div class="wrap grid items-center gap-8 pt-8 pb-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] lg:gap-20 lg:pt-20 lg:pb-24">
+  <section>
+    <div class="wrap grid grid-cols-[minmax(0,1fr)] items-center gap-8 pt-8 pb-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] lg:gap-20 lg:pt-20 lg:pb-24">
       <div class="flex flex-col gap-5">
         <h1 class={HEAD.page}>{t.title}</h1>
         <p class="lead m-0">{t.text}</p>
@@ -72,7 +71,7 @@ const links = [
       {/* A drawing, not content: a page of lines, one of them not there, and the beam reading it. */}
       <div
         aria-hidden="true"
-        class="reading-beam card order-first flex flex-col gap-2.5 p-card md:gap-3 lg:order-none lg:p-6"
+        class="reading-beam card order-first flex flex-col gap-3 p-card md:gap-3 lg:order-none lg:p-6"
       >
         <span class="h-2.5 w-2/5 rounded-full bg-line-2"></span>
         <span class="mt-1 hidden h-2 w-full rounded-full bg-line md:block"></span>

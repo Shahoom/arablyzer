@@ -366,7 +366,7 @@ function ScanView({ lang, data }: { lang: Lang; data: ScanComparison }) {
                 href={reportHref(lang, scan.id)}
               >
                 {t.reports.openReport}
-                <ExternalLink aria-hidden="true" size={14} />
+                <ExternalLink aria-hidden="true" size={14} className="rtl:-scale-x-100" />
               </a>
             </div>
           ))}

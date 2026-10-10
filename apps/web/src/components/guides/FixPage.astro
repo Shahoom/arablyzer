@@ -66,7 +66,8 @@ const sections = copy.sections.map((section) => ({ id: section.key, title: secti
   parent={{ name: t.title, href: localePath(lang, PATHS.fix) }}
 >
   <Fragment slot="head">
-    <span class="kick self-start">
+    <span class="topic self-start">
+      <span aria-hidden="true" class="size-2 rounded-full bg-cat-index"></span>
       <Bidi text={t.source} lang={lang} />
     </span>
     <h1 class={HEAD.page}>

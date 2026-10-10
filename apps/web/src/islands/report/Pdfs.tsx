@@ -57,7 +57,7 @@ export function Pdfs({ report, lang }: { report: Report; lang: Lang }) {
                 ) : (
                   <ul className="m-0 flex list-none flex-col gap-2 p-0">
                     {file.issues.map((issue) => (
-                      <li key={issue.kind} className="flex flex-col gap-0.5 text-small">
+                      <li key={issue.kind} className="flex flex-col gap-1 text-small">
                         <span className="flex flex-wrap items-center gap-2 font-semibold">
                           <TriangleAlert
                             size={14}

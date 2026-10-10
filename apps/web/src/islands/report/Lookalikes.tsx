@@ -33,7 +33,7 @@ export function Lookalikes({ report, lang }: { report: Report; lang: Lang }) {
                 {item.domain}
               </span>
               <span className="text-ink-2">{t.kinds[item.kind]}</span>
-              <span className="flex flex-wrap gap-1.5">
+              <span className="flex flex-wrap gap-2">
                 {item.address && <span className="chip">{t.address}</span>}
                 {item.mail && <span className="chip">{t.mail}</span>}
               </span>
@@ -49,7 +49,7 @@ export function Lookalikes({ report, lang }: { report: Report; lang: Lang }) {
                 )}
               </span>
               {item.recent && (
-                <span className="rounded-full bg-serious-soft px-2.5 py-0.5 text-meta text-serious">
+                <span className="rounded-full bg-serious-soft px-3 py-0.5 text-meta text-serious">
                   {t.fresh}
                 </span>
               )}

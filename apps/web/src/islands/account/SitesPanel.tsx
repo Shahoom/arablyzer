@@ -327,7 +327,7 @@ export default function SitesPanel({ lang }: Props) {
         {alert}
 
         {data.sites.length === 0 ? (
-          <p className="m-0 text-body text-ink-2">{s.empty}</p>
+          <p className="empty-state m-0 text-body">{s.empty}</p>
         ) : (
           <ul className="m-0 flex list-none flex-col divide-y divide-line p-0">
             {data.sites.map((site) => (
@@ -482,7 +482,7 @@ export default function SitesPanel({ lang }: Props) {
                       href={reportHref(lang, scan.id)}
                     >
                       {s.openReport}
-                      <ExternalLink size={14} aria-hidden="true" />
+                      <ExternalLink size={14} aria-hidden="true" className="rtl:-scale-x-100" />
                     </a>
                     {(scan.state === 'complete' || scan.state === 'partial') && (
                       <PdfDownload

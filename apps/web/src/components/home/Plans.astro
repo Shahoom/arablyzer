@@ -20,7 +20,7 @@ interface Props {
 const { lang } = Astro.props
 const t = HOME[lang].plans
 const counts = homeCounts()
-const point = 'flex items-start gap-2.5'
+const point = 'flex items-start gap-3'
 const tick = 'mt-[5px] shrink-0 text-brand'
 const later = [t.monitoring, t.crawl]
 ---
@@ -50,7 +50,7 @@ const later = [t.monitoring, t.crawl]
 
       <div class="flex flex-col divide-y divide-line">
         {later.map((plan) => (
-          <article class="flex flex-col gap-2.5 py-5 first:pt-0 last:pb-0 lg:first:pt-1">
+          <article class="flex flex-col gap-3 py-5 first:pt-0 last:pb-0 lg:first:pt-1">
             <div class="flex items-center justify-between gap-2">
               <h3 class="heading-3 m-0">{plan.name}</h3>
               <span class="sev bg-indigo-soft text-indigo-ink">{t.soon}</span>

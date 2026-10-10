@@ -219,7 +219,7 @@ export const HOME: Copy<HomeStrings> = {
       source: 'مثال من صفحة اختبار',
       outOf: 'من 100',
       tally: (failed, passed) =>
-        `${failed === 0 ? 'لم تفشل أي قاعدة' : `فشلت ${arabicCount(failed, RULES_NOMINATIVE)}`} · نجحت ${arabicCount(passed, RULES_NOMINATIVE)}`,
+        `${failed === 0 ? 'لم تفشل أي قاعدة' : `فشلت ${arabicCount(failed, RULES_NOMINATIVE)}`}، ونجحت ${arabicCount(passed, RULES_NOMINATIVE)}`,
       categories: 'درجة كل فئة',
       found: 'ما وجدناه',
       element: 'العنصر',
@@ -441,7 +441,7 @@ export const HOME: Copy<HomeStrings> = {
       source: 'From one of our test pages',
       outOf: 'out of 100',
       tally: (failed, passed) =>
-        `${failed === 0 ? 'No rule failed' : `${englishCount(failed, 'rule', 'rules')} failed`} · ${passed} passed`,
+        `${failed === 0 ? 'No rule failed' : `${englishCount(failed, 'rule', 'rules')} failed`}, ${passed} passed`,
       categories: 'Score by category',
       found: 'What we found',
       element: 'Element',

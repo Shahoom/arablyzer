@@ -70,7 +70,7 @@ const jsonLd = [
       {terms.map((term) => (
         <li>
           <a href={localePath(lang, PATHS.term(term.slug))} class="kb-row group">
-            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="flex min-w-0 flex-1 flex-col gap-1">
               <span class="flex items-baseline justify-between gap-3">
                 <span class="min-w-0 text-body font-semibold group-hover:text-brand-ink">
                   <Bidi text={term.copy[lang].title} lang={lang} />

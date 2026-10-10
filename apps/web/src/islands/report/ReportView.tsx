@@ -88,7 +88,7 @@ export function ReportView({
               className="flex items-start gap-3 rounded-xl bg-moderate-soft p-3 forced-colors:border md:px-4"
             >
               <TriangleAlert aria-hidden="true" size={16} className="mt-1 shrink-0 text-moderate" />
-              <div className="flex min-w-0 flex-col gap-0.5 text-small">
+              <div className="flex min-w-0 flex-col gap-1 text-small">
                 <strong className="text-ink">{t.states.partial.title}</strong>
                 <span className="text-ink-2">
                   {/* A tool's result has no score to speak of, nor has a scan that missed the page. */}

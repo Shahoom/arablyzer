@@ -127,7 +127,7 @@ function ProgressBox({
             {t.thread.stepOf(at, steps.length)}
           </span>
         </div>
-        <ol aria-hidden="true" className="m-0 flex list-none gap-1.5 p-0">
+        <ol aria-hidden="true" className="m-0 flex list-none gap-2 p-0">
           {steps.map((step) => (
             <li key={step.key} className={`h-1.5 flex-1 rounded-full ${SEGMENT[step.state]}`} />
           ))}

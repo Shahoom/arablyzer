@@ -479,7 +479,7 @@ function TemplateCard({
                     href={reportHref(lang, rep.scanId)}
                   >
                     {t.openReport}
-                    <ExternalLink size={14} aria-hidden="true" />
+                    <ExternalLink size={14} aria-hidden="true" className="rtl:-scale-x-100" />
                   </a>
                 )}
               </li>
@@ -583,7 +583,7 @@ function TemplatePages({
                 rel="noopener noreferrer"
               >
                 {t.openPage}
-                <ExternalLink size={14} aria-hidden="true" />
+                <ExternalLink size={14} aria-hidden="true" className="rtl:-scale-x-100" />
               </a>
             </div>
           </li>

@@ -99,7 +99,7 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
     <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col">
       <label
         htmlFor={inputId}
-        className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-0.5 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo md:bg-transparent md:px-2 md:pt-1.5 md:pb-0"
+        className="flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-0.5 text-ink-2 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo md:bg-transparent md:px-2 md:pt-2 md:pb-0"
       >
         <Link size={20} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
         <span className="sr-only">{t.label}</span>
@@ -128,22 +128,22 @@ export default function ScanForm({ lang, inputId, scope, enginesLabel }: Props) 
       {/* On a phone the button comes right after the field and what a scan runs is one line of
           small print under it; from sm, the chips are on the start side of the row and the button
           on the end side (the DOM keeps the chips first, the button's `order` moves it). */}
-      <div className="mt-2.5 flex flex-col gap-2.5 sm:mt-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-        <div className="order-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 px-1 text-meta text-ink-2 sm:order-none sm:gap-2 sm:px-0">
-          <span className="inline-flex items-center gap-1.5 whitespace-nowrap sm:h-[34px] sm:gap-2 sm:rounded-[10px] sm:bg-surface-2 sm:px-3">
+      <div className="mt-3 flex flex-col gap-3 sm:mt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="order-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 px-1 text-meta text-ink-2 sm:order-none sm:gap-2 sm:px-0">
+          <span className="inline-flex items-center gap-2 whitespace-nowrap sm:h-[34px] sm:gap-2 sm:rounded-[10px] sm:bg-surface-2 sm:px-3">
             <b className="hidden font-semibold text-ink sm:inline">{scope.label}</b>
             <span>{scope.detail}</span>
           </span>
           <ul
             aria-label={enginesLabel}
-            className="m-0 flex min-w-0 list-none flex-wrap items-center gap-x-3 gap-y-0.5 p-0 sm:gap-2"
+            className="m-0 flex min-w-0 list-none flex-wrap items-center gap-x-3 gap-y-1 p-0 sm:gap-2"
           >
             {ENGINE_ORDER.map((engine) => (
               <li
                 key={engine}
                 lang="en"
                 dir="ltr"
-                className="inline-flex items-center gap-1.5 sm:h-[34px] sm:rounded-[10px] sm:border sm:border-line sm:px-2.5"
+                className="inline-flex items-center gap-2 sm:engine-chip"
               >
                 <i aria-hidden="true" className={`size-2 rounded-full ${ENGINE_DOT[engine]}`} />
                 {ENGINE_NAMES[engine]}

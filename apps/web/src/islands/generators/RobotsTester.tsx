@@ -128,7 +128,7 @@ export default function RobotsTester({
             className={`card flex flex-col gap-2 border-2 p-card ${result.allowed ? 'border-pass' : 'border-serious'}`}
           >
             <p
-              className={`heading-3 m-0 flex items-center gap-2.5 ${result.allowed ? 'text-pass' : 'text-serious'}`}
+              className={`heading-3 m-0 flex items-center gap-3 ${result.allowed ? 'text-pass' : 'text-serious'}`}
             >
               <span
                 className={`grid size-7 shrink-0 place-items-center rounded-full ${result.allowed ? 'bg-pass-soft' : 'bg-serious-soft'}`}
@@ -147,7 +147,7 @@ export default function RobotsTester({
               ) : (
                 <>
                   {t.rule}{' '}
-                  <code dir="ltr" className="rounded-md bg-surface-2 px-1.5 font-mono">
+                  <code dir="ltr" className="rounded-md bg-surface-2 px-2 font-mono">
                     {result.rule.text}
                   </code>{' '}
                   {t.line(result.rule.line)}

@@ -15,8 +15,7 @@ const t = COMPARE_UI[lang].page
 ---
 
 <Page lang={lang} path={PATHS.compare} title={t.title} description={t.description} noindex>
-  <section class="relative isolate">
-    <div aria-hidden="true" class="page-wash"></div>
+  <section>
     <div class="wrap pt-5 pb-12 lg:pt-10 lg:pb-20">
       <div class="mx-auto w-full max-w-[860px]">
         <CompareApp client:load lang={lang} />

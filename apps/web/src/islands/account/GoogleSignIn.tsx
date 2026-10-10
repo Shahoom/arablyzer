@@ -126,7 +126,7 @@ export default function GoogleSignIn({
             type="button"
             onClick={onRedirect}
             disabled={disabled}
-            className="inline-flex h-11 w-full max-w-[360px] cursor-pointer items-center justify-center gap-2.5 rounded-md border border-[#747775] bg-white px-3 text-[14px] font-semibold text-[#1f1f1f] hover:bg-[#f2f2f2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 w-full max-w-[360px] cursor-pointer items-center justify-center gap-3 rounded-md border border-[#747775] bg-white px-3 text-[14px] font-semibold text-[#1f1f1f] hover:bg-[#f2f2f2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo disabled:cursor-not-allowed disabled:opacity-60"
           >
             <GoogleG />
             <span>{t.google}</span>

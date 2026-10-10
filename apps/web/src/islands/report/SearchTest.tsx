@@ -61,7 +61,7 @@ export function SearchTest({ report, lang }: { report: Report; lang: Lang }) {
                     {variant.results === null ? '·' : t.found(variant.results)}
                   </span>
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-meta ${
+                    className={`rounded-full px-3 py-0.5 text-meta ${
                       variant.counted ? OUTCOME_STYLE[variant.outcome] : 'bg-surface-2 text-ink-2'
                     }`}
                   >

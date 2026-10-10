@@ -49,14 +49,9 @@ export function Evidence({ finding, lang }: { finding: Finding; lang: Lang }) {
           {engines !== undefined && engines.length > 0 && (
             <div className="grid items-start gap-1 sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)] sm:gap-x-4">
               <dt className="text-meta text-ink-2 sm:pt-1">{t.seenIn}</dt>
-              <dd className="m-0 flex flex-wrap gap-1.5">
+              <dd className="m-0 flex flex-wrap gap-2">
                 {engines.map((engine) => (
-                  <span
-                    key={engine}
-                    dir="ltr"
-                    lang="en"
-                    className="inline-flex h-7 items-center gap-1.5 rounded-full bg-surface-2 px-2.5 text-meta text-ink-2"
-                  >
+                  <span key={engine} dir="ltr" lang="en" className="engine-chip">
                     <EngineDot engine={engine} />
                     {ENGINE_LABEL[engine]}
                   </span>

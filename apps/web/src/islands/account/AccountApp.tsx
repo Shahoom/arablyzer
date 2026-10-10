@@ -376,7 +376,7 @@ function SignedIn({
                   onLeave(false)
                 }}
               >
-                <LogOut size={16} aria-hidden="true" />
+                <LogOut size={16} aria-hidden="true" className="rtl:-scale-x-100" />
                 {t.account.signOut}
               </button>
               <button

@@ -227,7 +227,7 @@ export default function AlertsPanel({ lang }: Props) {
               disabled={busy !== null}
               onClick={() => void onTest()}
             >
-              <Send size={16} aria-hidden="true" />
+              <Send size={16} aria-hidden="true" className="rtl:-scale-x-100" />
               {busy === 'test' ? a.testing : a.test}
             </button>
             <button

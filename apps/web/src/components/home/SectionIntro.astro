@@ -1,7 +1,7 @@
 ---
 /**
- * The head of a section of the home page (R8): the heading at the start of the line and, from lg,
- * its lead across from it at the end. No pill above and nothing centred: a heading in the scale's
+ * The head of a section of the home page (R8): the heading at the start of the line and its lead
+ * under it. No pill above and nothing centred: a heading in the scale's
  * `heading-2` (22 px on a phone, 28 from lg), solid ink and semibold, with nothing drawn before
  * it. A lead that only repeats what the section shows is for a larger screen (`phoneLead={false}`):
  * a phone has the heading alone.
@@ -17,13 +17,13 @@ const { id, title, lead, phoneLead = true } = Astro.props
 ---
 
 <div class="section-head">
-  <h2 id={id} class="heading-2 m-0 max-w-[24ch] lg:max-w-[28ch]">
+  <h2 id={id} class="heading-2 m-0 max-w-[32ch]">
     {title}
   </h2>
   {lead !== undefined && (
     <p
       class:list={[
-        'text-body m-0 max-w-[52ch] text-ink-2 lg:max-w-[44ch] lg:text-[1.0625rem]',
+        'text-body m-0 max-w-[60ch] text-ink-2 lg:text-[1.0625rem]',
         !phoneLead && 'hidden md:block',
       ]}
     >

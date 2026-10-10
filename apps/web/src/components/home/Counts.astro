@@ -33,11 +33,11 @@ const stats = [
 ---
 
 <section aria-label={t.label} class="wrap below-fold strip">
-  <ul class="m-0 grid list-none grid-cols-2 gap-px border-y border-line bg-line p-0 md:grid-cols-6 lg:grid-cols-5">
+  <ul class="ledger grid-cols-2 md:grid-cols-6 lg:grid-cols-5">
     {stats.map((stat, index) => (
       <li
         class:list={[
-          'flex min-h-16 items-center justify-center gap-2.5 bg-bg px-card py-3 lg:min-h-0 lg:flex-col lg:items-start lg:gap-1 lg:py-6',
+          'ledger-cell flex min-h-16 items-center justify-center gap-3 px-card py-3 lg:min-h-0 lg:flex-col lg:items-start lg:gap-1 lg:py-6',
           // Two columns on a phone with the last tile across both, three tiles over two on a
           // tablet, five in a row on a desktop.
           index === stats.length - 1 && 'col-span-2',

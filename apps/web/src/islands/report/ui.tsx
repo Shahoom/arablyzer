@@ -2,6 +2,7 @@ import type { EngineName } from '@arablyzer/api-contract/codes'
 import type { Severity } from '@arablyzer/report-schema'
 import { STRINGS } from '@arablyzer/seo/strings'
 import type { Lang } from '@arablyzer/seo/site'
+import { ENGINE_DOT } from '../../lib/engines'
 
 const SEVERITY_TONE: Readonly<Record<Severity, string>> = {
   critical: 'sev-critical',
@@ -41,13 +42,6 @@ export function SeverityCount({
 }
 
 export const ENGINE_LABEL = { chromium: 'Chromium', firefox: 'Firefox', webkit: 'WebKit' } as const
-
-/** Each engine's colour, as a dot beside its name: the name says which, the dot only adorns it. */
-const ENGINE_DOT: Readonly<Record<EngineName, string>> = {
-  chromium: 'bg-blue',
-  firefox: 'bg-cat-prices',
-  webkit: 'bg-cat-fonts',
-}
 
 export function EngineDot({ engine }: { engine: EngineName }) {
   return (

@@ -46,7 +46,7 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
       href={localePath(lang, PATHS.tools)}
       class="relative inline-flex h-8 items-center gap-2 rounded-full border border-white/95 bg-white/70 ps-1 pe-3 text-meta text-ink-2 shadow backdrop-blur-[8px] after:absolute after:inset-x-0 after:-inset-y-2 hover:text-ink md:h-[34px]"
     >
-      <b class="inline-flex h-6 items-center gap-1.5 rounded-full bg-[#00727c] bg-(image:--gradient-btn) px-2.5 text-meta font-semibold text-white md:h-[26px]">
+      <b class="inline-flex h-6 items-center gap-2 rounded-full bg-[#00727c] bg-(image:--gradient-btn) px-3 text-meta font-semibold text-white md:h-[26px]">
         <Sparkles size={14} stroke-width={2} aria-hidden="true" />
         {t.pill.count(counts.tools)}
       </b>
@@ -68,7 +68,7 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
     <div id="scan" class="relative mt-1 w-full max-w-[800px] md:mt-2">
       <div aria-hidden="true" class="scan-glow"></div>
       <div class="scan-ring">
-        <div class="rounded-[24px] bg-white p-3.5 pb-3 text-start md:p-4 md:pb-3.5">
+        <div class="rounded-[24px] bg-white p-4 pb-3 text-start md:p-4 md:pb-4">
           {/* When the browser is idle, or after half a second at most, as the tool pages' form. */}
           <ScanForm
             client:idle={{ timeout: 500 }}
@@ -106,7 +106,7 @@ const chips = HERO_TOOL_SLUGS.map((slug) => ({
 
     <ul class="m-0 flex list-none flex-wrap justify-center gap-x-5 gap-y-1 p-0 text-meta text-ink-2 md:text-small">
       {t.promises.map((promise) => (
-        <li class="inline-flex items-center gap-1.5">
+        <li class="inline-flex items-center gap-2">
           <Check size={16} stroke-width={2.2} aria-hidden="true" class="shrink-0 text-brand" />
           {promise}
         </li>

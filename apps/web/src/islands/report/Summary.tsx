@@ -139,9 +139,9 @@ export function Summary({ report, lang, tool }: { report: Report; lang: Lang; to
     <section aria-labelledby="summary-title" className="card flex flex-col gap-3 p-card">
       <div className="flex items-center gap-4">
         {!tool && <ScoreRing score={overall} lang={lang} />}
-        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
           {(shown.length > 0 || counts.review > 0) && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {shown.map((severity) => (
                 <SeverityCount
                   key={severity}

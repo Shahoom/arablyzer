@@ -61,7 +61,7 @@ export function BenchmarkSection({
             {rows.map(([metric, value]) => {
               const at = benchmark.metrics[metric]
               return (
-                <li key={metric} className="flex min-w-0 flex-col gap-0.5">
+                <li key={metric} className="flex min-w-0 flex-col gap-1">
                   <span className="text-small text-ink">
                     {t.metrics[metric as keyof typeof t.metrics]}
                   </span>

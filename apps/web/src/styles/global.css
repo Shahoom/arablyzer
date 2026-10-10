@@ -73,6 +73,14 @@
   --color-pass: #047857;
   --color-pass-soft: #e7f6ef;
 
+  /*
+   * The three browsers, one dot colour each wherever the site names them (the hero's box, the bento,
+   * the report): blue, orange and sky. A dot only adorns the name beside it.
+   */
+  --color-engine-chromium: #2563eb;
+  --color-engine-firefox: #ea580c;
+  --color-engine-webkit: #0ea5e9;
+
   /* The aurora's blobs, behind the hero: light, never under text that matters. */
   --color-aurora-teal: #5eead4;
   --color-aurora-indigo: #a5b4fc;
@@ -334,7 +342,7 @@
   justify-content: center;
   gap: 0.5rem;
   height: var(--btn-h, 44px);
-  padding-inline: var(--btn-px, 18px);
+  padding-inline: var(--btn-px, 20px);
   border: 1px solid var(--color-line);
   border-radius: var(--btn-r, var(--radius-md));
   background-color: var(--color-white);
@@ -359,7 +367,7 @@
   justify-content: center;
   gap: 0.5rem;
   height: var(--btn-h, 44px);
-  padding-inline: var(--btn-px, 14px);
+  padding-inline: var(--btn-px, 16px);
   border-radius: var(--btn-r, var(--radius-md));
   color: var(--color-ink);
   font-size: var(--btn-fs, 0.9375rem);
@@ -381,7 +389,7 @@
   justify-content: center;
   gap: 0.5rem;
   height: var(--btn-h, 44px);
-  padding-inline: var(--btn-px, 18px);
+  padding-inline: var(--btn-px, 20px);
   border-radius: var(--btn-r, var(--radius-md));
   background-color: var(--color-white);
   color: var(--color-navy);
@@ -405,7 +413,7 @@
   justify-content: center;
   gap: 0.5rem;
   height: var(--btn-h, 44px);
-  padding-inline: var(--btn-px, 18px);
+  padding-inline: var(--btn-px, 20px);
   border: 1px solid rgb(255 255 255 / 0.25);
   border-radius: var(--btn-r, var(--radius-md));
   color: var(--color-white);
@@ -434,7 +442,7 @@
  */
 @utility btn-sm {
   --btn-h: 40px;
-  --btn-px: 14px;
+  --btn-px: 16px;
   --btn-fs: 0.875rem;
   --btn-shadow: 0 4px 12px -6px rgb(79 70 229 / 0.5);
   --btn-shadow-hover: 0 6px 14px -6px rgb(79 70 229 / 0.55);
@@ -453,7 +461,7 @@
   gap: 0.5rem;
   /* 40 px for a thumb, 36 px for a pointer. */
   height: 40px;
-  padding-inline: 14px;
+  padding-inline: 16px;
   border: 1px solid rgb(205 213 223 / 0.9);
   border-radius: 999px;
   background-color: rgb(255 255 255 / 0.8);
@@ -492,7 +500,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  height: 30px;
+  height: 32px;
   padding-inline: 12px;
   border-radius: 999px;
   background-color: var(--color-indigo-soft);
@@ -1072,26 +1080,6 @@
 }
 
 /*
- * The tint behind an inner page's head (M2.6 R7a): one faint light at the top, in the corner where
- * the line starts (--reading), and nothing else: the aurora belongs to the home page's hero. It
- * is 240 px tall whatever the page's head does, so a long head or a result under it never
- * stretches it. Small text on it is ink-2, never the quieter ink-3.
- */
-@utility page-wash {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: 0;
-  height: 240px;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(
-    640px 200px at calc(50% + var(--reading) * 40%) 0%,
-    rgb(94 234 212 / 0.16),
-    transparent 72%
-  );
-}
-
-/*
  * Links inside a document's prose (the rules', guides', glossary's and methodology's text) are the
  * brand's teal, underlined as the prose utilities underline them, and ink when hovered.
  */
@@ -1313,7 +1301,7 @@
   justify-content: space-between;
   gap: 12px;
   min-height: var(--kb-link-h, 44px);
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   line-height: var(--lh-small);
@@ -1338,7 +1326,7 @@
   gap: 12px;
   width: 100%;
   min-height: 44px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   border: 0;
   border-radius: var(--radius-md);
   background-color: transparent;
@@ -1398,6 +1386,25 @@
 }
 
 /*
+ * A row of figures that is not a row of cards (the home page's counts, the hub's directories): the
+ * grid's 1 px gap shows the band's own colour, so each cell is parted from the next by a hairline,
+ * and the band is ruled above and below. A cell is the page's ground, so a link in it can take the
+ * surface colour when it is hovered. Put `ledger` on the grid and `ledger-cell` on its items.
+ */
+@utility ledger {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block: 1px solid var(--color-line);
+  background-color: var(--color-line);
+}
+@utility ledger-cell {
+  background-color: var(--color-bg);
+}
+
+/*
  * The tag or category above a title: a dot in its colour and its name, quiet text, no pill. A link
  * when the tag has a page of its own. (The pill, `kick`, stays for a state: «قريباً», «مثال».)
  */
@@ -1416,8 +1423,8 @@
 }
 
 /*
- * A section's head on the home page: the heading at the start of the line and, from lg, its lead
- * across from it at the end, on the heading's last baseline. No pill above, nothing centred.
+ * A section's head on the home page: the heading at the start of the line and its lead under it,
+ * both at the start (R8: no pill above, nothing centred). The measure of each is set by the page.
  */
 @utility section-head {
   display: flex;
@@ -1426,12 +1433,6 @@
   margin-bottom: 24px;
   @media (min-width: 48rem) {
     margin-bottom: 32px;
-  }
-  @media (min-width: 64rem) {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 64px;
   }
 }
 
@@ -1542,4 +1543,59 @@
     color: var(--color-ink-2);
     font-size: 0.8125rem;
   }
+}
+
+/*
+ * An empty state (R8): what a search, a list or a page says when it has nothing to show. A dashed
+ * edge, the words at the start of the line, and the site's one drawing: a few lines of text, the
+ * last of them not there (dashed). The drawing is the box's own `::before`, so a state in an
+ * island and one in a page are the same; it takes the line's side from --reading and is not read
+ * by a screen reader. `[hidden]` still hides it: the lists show it from script.
+ */
+@utility empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: var(--card-pad);
+  border: 1px dashed var(--color-line-2);
+  border-radius: var(--card-radius);
+  color: var(--color-ink-2);
+  &[hidden] {
+    display: none;
+  }
+  &::before {
+    content: '';
+    flex: none;
+    width: 88px;
+    height: 26px;
+    margin-bottom: 4px;
+    background:
+      linear-gradient(var(--color-line-2), var(--color-line-2)) calc(50% + 50% * var(--reading)) 0 /
+        100% 6px no-repeat,
+      linear-gradient(var(--color-line), var(--color-line)) calc(50% + 50% * var(--reading)) 10px /
+        72% 6px no-repeat,
+      repeating-linear-gradient(90deg, var(--color-line-2) 0 6px, transparent 6px 10px)
+        calc(50% + 50% * var(--reading)) 20px / 52% 6px no-repeat;
+  }
+}
+
+/*
+ * A browser's name with its dot (R8): the same pill wherever the three are listed, on the home
+ * page's box and in a report's evidence. 28 px, a hairline, the name in the quiet ink; the dot is
+ * `size-2 rounded-full` with `bg-engine-*`. Read left to right whatever the page: a name is Latin.
+ */
+@utility engine-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding-inline: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background-color: var(--color-white);
+  color: var(--color-ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  white-space: nowrap;
 }
