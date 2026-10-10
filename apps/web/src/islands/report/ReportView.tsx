@@ -13,7 +13,9 @@ import { BenchmarkSection } from './Benchmark'
 import { CountryFit } from './CountryFit'
 import { AiTraining } from './AiTraining'
 import { Dialect } from './Dialect'
+import { BrandBar } from './BrandBar'
 import { Frame } from './Frame'
+import PdfDownload from '../pdf/PdfDownload'
 import { GscSection } from './Gsc'
 import { Notices } from './Notices'
 import { ReadLine } from './ReadLine'
@@ -64,55 +66,58 @@ export function ReportView({
     </div>
   )
   return (
-    <Frame
-      url={url}
-      href={url}
-      meta={<Meta report={report} lang={lang} tool={tool} />}
-      head={<Headline report={report} lang={lang} />}
-      aside={
-        <>
-          <Summary report={report} lang={lang} tool={tool !== undefined} />
-          {more('aside')}
-        </>
-      }
-    >
-      <div className="flex flex-col gap-3">
-        <ReadLine report={report} lang={lang} />
-        {report.scan.status === 'partial' && (
-          <div
-            role="note"
-            className="flex items-start gap-3 rounded-xl bg-moderate-soft p-3 forced-colors:border md:px-4"
-          >
-            <TriangleAlert aria-hidden="true" size={16} className="mt-1 shrink-0 text-moderate" />
-            <div className="flex min-w-0 flex-col gap-0.5 text-small">
-              <strong className="text-ink">{t.states.partial.title}</strong>
-              <span className="text-ink-2">
-                {/* A tool's result has no score to speak of, nor has a scan that missed the page. */}
-                {tool === undefined && report.score.overall !== null
-                  ? t.states.partial.text
-                  : t.states.partial.tool}
-              </span>
+    <>
+      {tool === undefined && <BrandBar id={id} lang={lang} />}
+      <Frame
+        url={url}
+        href={url}
+        meta={<Meta report={report} lang={lang} tool={tool} />}
+        head={<Headline report={report} lang={lang} />}
+        aside={
+          <>
+            <Summary report={report} lang={lang} tool={tool !== undefined} />
+            {more('aside')}
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          <ReadLine report={report} lang={lang} />
+          {report.scan.status === 'partial' && (
+            <div
+              role="note"
+              className="flex items-start gap-3 rounded-xl bg-moderate-soft p-3 forced-colors:border md:px-4"
+            >
+              <TriangleAlert aria-hidden="true" size={16} className="mt-1 shrink-0 text-moderate" />
+              <div className="flex min-w-0 flex-col gap-0.5 text-small">
+                <strong className="text-ink">{t.states.partial.title}</strong>
+                <span className="text-ink-2">
+                  {/* A tool's result has no score to speak of, nor has a scan that missed the page. */}
+                  {tool === undefined && report.score.overall !== null
+                    ? t.states.partial.text
+                    : t.states.partial.tool}
+                </span>
+              </div>
             </div>
+          )}
+          <Notices notices={report.scan.notices} lang={lang} id="notices-title" />
+        </div>
+        <Findings report={report} fixes={fixes} lang={lang} />
+        <Checks report={report} lang={lang} />
+        {tool === undefined && <CountryFit report={report} lang={lang} standalone />}
+        {tool === undefined && (
+          <div className="card rounded-card">
+            <Dialect report={report} lang={lang} />
+            <AiTraining report={report} lang={lang} />
           </div>
         )}
-        <Notices notices={report.scan.notices} lang={lang} id="notices-title" />
-      </div>
-      <Findings report={report} fixes={fixes} lang={lang} />
-      <Checks report={report} lang={lang} />
-      {tool === undefined && <CountryFit report={report} lang={lang} standalone />}
-      {tool === undefined && (
-        <div className="card rounded-card">
-          <Dialect report={report} lang={lang} />
-          <AiTraining report={report} lang={lang} />
-        </div>
-      )}
-      {tool === undefined && <ArabicXray report={report} lang={lang} standalone />}
-      {tool === undefined && <BenchmarkSection report={report} lang={lang} />}
-      {/* Search Console: a whole scan's, not a tool's; hidden unless the site has it on. */}
-      {tool === undefined && <GscSection id={id} lang={lang} />}
-      {more('main')}
-      <ScanDock lang={lang} tool={tool?.slug} />
-    </Frame>
+        {tool === undefined && <ArabicXray report={report} lang={lang} standalone />}
+        {tool === undefined && <BenchmarkSection report={report} lang={lang} />}
+        {/* Search Console: a whole scan's, not a tool's; hidden unless the site has it on. */}
+        {tool === undefined && <GscSection id={id} lang={lang} />}
+        {more('main')}
+        <ScanDock lang={lang} tool={tool?.slug} />
+      </Frame>
+    </>
   )
 }
 
@@ -236,6 +241,15 @@ function Actions({
           <Braces size={16} aria-hidden="true" />
           <span dir="ltr">{t.json}</span>
         </a>
+        {tool === undefined && (
+          <PdfDownload
+            lang={lang}
+            ask={{ kind: 'scan', id }}
+            what={report.target.finalUrl ?? report.target.url}
+            gate
+            className="col-span-2 flex flex-col gap-2"
+          />
+        )}
       </div>
       <p className="m-0 flex items-center gap-2 text-meta text-ink-2">
         <EyeOff size={16} aria-hidden="true" className="shrink-0" />

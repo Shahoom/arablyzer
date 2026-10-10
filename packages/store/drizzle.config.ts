@@ -9,6 +9,7 @@ export default defineConfig({
     './src/postgres/site-schema.ts',
     './src/postgres/monitor-schema.ts',
     './src/postgres/crawl-schema.ts',
+    './src/postgres/pdf-schema.ts',
   ],
   out: './drizzle',
 })

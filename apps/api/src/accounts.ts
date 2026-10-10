@@ -18,7 +18,13 @@ import {
 } from '@arablyzer/api-contract'
 import type { AccountPlan, AuthLimits, PlanCatalog } from '@arablyzer/plans'
 import type { CrawlSettings } from './crawl/settings'
-import { quietly, type AccountData, type CrawlData, type MonitorData } from '@arablyzer/store'
+import {
+  quietly,
+  type AccountData,
+  type CrawlData,
+  type MonitorData,
+  type PdfData,
+} from '@arablyzer/store'
 import type { Context, Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { ZodType } from 'zod'
@@ -43,6 +49,8 @@ export interface AccountsDeps {
   /** Deep crawls (M4.5); absent, their routes are not there. */
   readonly crawls?: CrawlData
   readonly crawlSettings?: CrawlSettings
+  /** PDF export and white-label (M4.7); absent, their routes are not there. */
+  readonly pdfs?: PdfData
   /** Sends a webhook's messages, for the test button. */
   readonly sender?: WebhookSender
   /** Mail, off until a provider is built. */

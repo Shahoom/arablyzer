@@ -25,6 +25,12 @@ export interface AccountPlan {
   readonly monitorEveryDays: number
   /** The most pages one deep crawl of a saved site checks (M4.5). */
   readonly crawlPages: number
+  /** The PDF exports one account may make in a calendar month (M4.7). */
+  readonly pdfPerMonth: number
+  /** Whether the account may put its own name, colour and logo on its PDFs and shared reports (M4.7). */
+  readonly whiteLabel: boolean
+  /** With white-label: whether a small "by Arablyzer" line stays under the company's mark. */
+  readonly whiteLabelCredit: boolean
 }
 
 export interface PlanCatalog {
@@ -49,11 +55,21 @@ export const DEVELOPMENT_ACCOUNT_PLAN: AccountPlan = Object.freeze({
   monitorEveryDays: 7,
   // The owner's free-plan default for the deep crawl (M4.5): 50 pages, as the task fixed it.
   crawlPages: 50,
+  // M4.7: three PDF exports a month for the free account, and no white-label until a plan has it.
+  pdfPerMonth: 3,
+  whiteLabel: false,
+  whiteLabelCredit: true,
 })
 
 const FIELDS = ['SCANS', 'SCAN_SECONDS', 'INFLIGHT', 'SAVED_SITES', 'HISTORY_DAYS'] as const
 /** Read when set, and the design's own numbers when not (also in production): they are not the owner's open ones. */
-type OptionalField = 'MONITORED_SITES' | 'MONITOR_EVERY_DAYS' | 'CRAWL_PAGES'
+type OptionalField =
+  | 'MONITORED_SITES'
+  | 'MONITOR_EVERY_DAYS'
+  | 'CRAWL_PAGES'
+  | 'PDF_PER_MONTH'
+  | 'WHITE_LABEL'
+  | 'WHITE_LABEL_CREDIT'
 const name = (plan: PlanId, field: (typeof FIELDS)[number] | OptionalField) =>
   `ARABLYZER_PLAN_${plan.toUpperCase()}_${field}`
 
@@ -64,6 +80,15 @@ export function accountHistoryDaysFrom(env: Env): number | null {
     name('account', 'HISTORY_DAYS'),
     DEVELOPMENT_ACCOUNT_PLAN.historyDays,
   )
+}
+
+/** An on/off variable: `on`/`off` (also 1/0, true/false); unset keeps the fallback, anything else is a mistake. */
+function readSwitch(env: Env, variable: string, fallback: boolean): boolean {
+  const raw = env[variable]?.trim().toLowerCase() ?? ''
+  if (raw === '') return fallback
+  if (['on', '1', 'true'].includes(raw)) return true
+  if (['off', '0', 'false'].includes(raw)) return false
+  throw new Error(`${variable} must be on or off, not ${raw}`)
 }
 
 function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
@@ -83,6 +108,9 @@ function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
     monitoredSites: readOptional('MONITORED_SITES', fallback.monitoredSites),
     monitorEveryDays: readOptional('MONITOR_EVERY_DAYS', fallback.monitorEveryDays),
     crawlPages: readOptional('CRAWL_PAGES', fallback.crawlPages),
+    pdfPerMonth: readOptional('PDF_PER_MONTH', fallback.pdfPerMonth),
+    whiteLabel: readSwitch(env, name(id, 'WHITE_LABEL'), fallback.whiteLabel),
+    whiteLabelCredit: readSwitch(env, name(id, 'WHITE_LABEL_CREDIT'), fallback.whiteLabelCredit),
   })
 }
 

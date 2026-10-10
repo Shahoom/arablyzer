@@ -13,8 +13,8 @@ export const SERVICES = ['web', 'api', 'worker', 'scanner', 'egress', 'valkey', 
 export const NODE_SERVICES = ['api', 'worker', 'scanner'] as const
 /** The database's own step: it runs once, and is gone. */
 const ONE_SHOT = ['migrate'] as const
-/** Runs beside the stack with no port and no health check of its own: the monitoring scheduler (M4.3) and the deep crawler (M4.5). */
-const BACKGROUND = ['monitor', 'crawler'] as const
+/** Runs beside the stack with no port and no health check of its own: the monitoring scheduler (M4.3), the deep crawler (M4.5) and the PDF job (M4.7). */
+const BACKGROUND = ['monitor', 'crawler', 'pdf'] as const
 
 /** A name the container's networks do not have: Docker's DNS knows it not, or cannot ask on. */
 const UNRESOLVED = /^(?:ENOTFOUND|EAI_AGAIN)$/

@@ -13,6 +13,7 @@ import { ExternalLink, Layers, Trash2, TriangleAlert, X } from 'lucide-preact'
 import { useEffect, useState } from 'preact/hooks'
 import { listCrawls } from '../compare-api'
 import { compareHref } from '../compare-model'
+import PdfDownload from '../pdf/PdfDownload'
 import { cancelCrawl, deleteCrawl, getCrawl, getCrawlPages } from '../crawl-api'
 import {
   ISSUES_SHOWN,
@@ -179,11 +180,20 @@ export default function CrawlReportCard({ lang, crawlId, onSummary, onClose, onR
     <section aria-labelledby="crawl-title" className="card flex flex-col gap-6 rounded-card p-card">
       {header}
       {alert}
-      {previous !== null && (
-        <a className="btn-white self-start" href={compareHref(lang, 'crawl', previous, crawl.id)}>
-          {COMPARE_UI[lang].links.previousCrawl}
-        </a>
-      )}
+      <div className="flex flex-wrap items-start gap-3">
+        {previous !== null && (
+          <a className="btn-white self-start" href={compareHref(lang, 'crawl', previous, crawl.id)}>
+            {COMPARE_UI[lang].links.previousCrawl}
+          </a>
+        )}
+        {crawl.state === 'done' && (
+          <PdfDownload
+            lang={lang}
+            ask={{ kind: 'crawl', id: crawl.id }}
+            what={shortUrl(crawl.origin)}
+          />
+        )}
+      </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-line p-4">
         <p className="m-0 text-small text-ink-2">

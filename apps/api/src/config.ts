@@ -21,6 +21,7 @@ import {
   requireSecret,
   type AccountData,
   type CrawlData,
+  type PdfData,
   type Handoff,
   type InFlight,
   type MonitorData,
@@ -58,6 +59,8 @@ export interface Stores {
   readonly monitorData?: MonitorData
   /** What a deep crawl keeps (M4.5); without it, crawls are off. */
   readonly crawlData?: CrawlData
+  /** What PDF export and white-label keep (M4.7); without it, they are off. */
+  readonly pdfData?: PdfData
 }
 
 /**
@@ -186,6 +189,7 @@ export function apiDeps(
     data: stores.accountData,
     monitors: stores.monitorData,
     crawls: stores.crawlData,
+    pdfs: stores.pdfData,
     policy,
     resolver,
     fetcher: options.fetcher,
@@ -228,6 +232,7 @@ function accountsFrom(
     readonly data: AccountData | undefined
     readonly monitors: MonitorData | undefined
     readonly crawls: CrawlData | undefined
+    readonly pdfs: PdfData | undefined
     readonly policy: EgressPolicy
     readonly resolver: Resolver
     readonly fetcher: typeof safeFetch | undefined
@@ -282,6 +287,7 @@ function accountsFrom(
         await data.eraseUser(userId)
         await options.monitors?.eraseUser(userId)
         await options.crawls?.eraseUser(userId)
+        await options.pdfs?.eraseUser(userId)
       },
       log: options.log,
     }),
@@ -293,6 +299,7 @@ function accountsFrom(
     ...(options.crawls === undefined
       ? {}
       : { crawls: options.crawls, crawlSettings: crawlSettingsFrom(env) }),
+    ...(options.pdfs === undefined ? {} : { pdfs: options.pdfs }),
     ...(options.monitors === undefined
       ? {}
       : {

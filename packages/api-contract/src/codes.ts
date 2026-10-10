@@ -148,6 +148,8 @@ export interface AccountSummary {
 
 export interface AuthErrorResponse {
   readonly error: AuthErrorCode
+  /** With a refused logo (M4.7): why. */
+  readonly logo?: LogoProblem
   readonly retryAfterSeconds?: number
   /** Only with plan-limit: which limit, and the plan whose it is. */
   readonly limit?: PlanLimit
@@ -155,7 +157,13 @@ export interface AuthErrorResponse {
 }
 
 /** The limits of a plan an answer can name (Phase 4 design §2.3). */
-export const PLAN_LIMITS = ['savedSites', 'monitoredSites', 'monitorEveryDays'] as const
+export const PLAN_LIMITS = [
+  'savedSites',
+  'monitoredSites',
+  'monitorEveryDays',
+  'pdfPerMonth',
+  'whiteLabel',
+] as const
 export type PlanLimit = (typeof PLAN_LIMITS)[number]
 
 /**
@@ -739,4 +747,84 @@ export interface SiteHistory {
   readonly markers: readonly HistoryMarker[]
   /** Whether alerts can be marked at all: monitoring is built into this deployment. */
   readonly alerts: boolean
+}
+
+/**
+ * PDF export and white-label (M4.7). A signed-in person asks for a PDF of one of their reports (a
+ * page report, a crawl report, or a comparison); a job renders it in the scanner's browser, and the
+ * file is kept as long as the plan keeps history. White-label puts the account's own name, colour
+ * and logo in place of Arablyzer's mark, on the PDF and on the shared report page. All answer 404
+ * with accounts off and 401 without a session; another person's report or PDF is a 404.
+ */
+export const PDF_PATH = '/api/pdf'
+export const pdfPath = (id: string): string => `/api/pdf/${id}`
+export const pdfFilePath = (id: string): string => `/api/pdf/${id}/file`
+export const PDF_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/
+export const BRAND_PATH = '/api/account/brand'
+export const BRAND_LOGO_PATH = '/api/account/brand/logo'
+/** The brand a shared report shows, and its logo: public, by the report's id. */
+export const reportBrandPath = (scanId: string): string => `/api/reports/${scanId}/brand`
+export const reportBrandLogoPath = (scanId: string): string => `/api/reports/${scanId}/brand/logo`
+
+export const PDF_KINDS = ['scan', 'crawl', 'compare-scans', 'compare-crawls'] as const
+export type PdfKind = (typeof PDF_KINDS)[number]
+export const PDF_STATES = ['queued', 'running', 'done', 'failed', 'expired'] as const
+export type PdfState = (typeof PDF_STATES)[number]
+/** Why a PDF could not be made, for the page to word. */
+export const PDF_ERRORS = ['too-large', 'timeout', 'scanner-unavailable', 'internal'] as const
+export type PdfError = (typeof PDF_ERRORS)[number]
+
+/** The most a PDF may weigh, and the logo's weight and size (M4.7). */
+export const MAX_PDF_BYTES = 8 * 1024 * 1024
+export const MAX_LOGO_BYTES = 200 * 1024
+export const MAX_LOGO_PIXELS = 2048
+export const MAX_BRAND_NAME = 60
+export const LOGO_PROBLEMS = ['too-large', 'type', 'dimensions', 'corrupt'] as const
+export type LogoProblem = (typeof LOGO_PROBLEMS)[number]
+export const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const
+export type LogoType = (typeof LOGO_TYPES)[number]
+
+export interface PdfSummary {
+  readonly id: string
+  readonly kind: PdfKind
+  /** The report it is of: the scan or crawl (the later one, for a comparison). */
+  readonly subject: string
+  /** For a comparison, the earlier report. */
+  readonly base: string | null
+  readonly language: Language
+  readonly state: PdfState
+  readonly error: PdfError | null
+  readonly bytes: number | null
+  readonly createdAt: string
+  readonly finishedAt: string | null
+}
+
+export interface PdfsResponse {
+  readonly pdfs: readonly PdfSummary[]
+  /** The exports the plan allows a month, and how many this month has used. */
+  readonly allowance: { readonly perMonth: number; readonly used: number }
+}
+
+/** The account's brand settings as the settings form reads them. */
+export interface BrandSettings {
+  /** Whether the plan has white-label at all; off, the form is not shown. */
+  readonly available: boolean
+  readonly name: string
+  /** `#rrggbb`, or null for Arablyzer's own. */
+  readonly color: string | null
+  readonly hasLogo: boolean
+  readonly logoType: LogoType | null
+  /** Whether the line "by Arablyzer" stays under the company's mark. */
+  readonly credit: boolean
+  /** When the chosen colour fails the contrast check, the colour used instead; otherwise null. */
+  readonly colorFallback: boolean
+  readonly updatedAt: string | null
+}
+
+/** The brand a shared report shows: name and colour; the logo has its own address. */
+export interface ReportBrand {
+  readonly name: string
+  readonly color: string | null
+  readonly hasLogo: boolean
+  readonly credit: boolean
 }

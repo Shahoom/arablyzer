@@ -1,0 +1,33 @@
+{
+  "name": "@arablyzer/pdf",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./html": "./src/html.ts",
+    "./model": "./src/model.ts",
+    "./contrast": "./src/contrast.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --exclude \"test/browser/**\"",
+    "test:browser": "vitest run test/browser"
+  },
+  "dependencies": {
+    "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/i18n": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/rules": "workspace:*",
+    "@fontsource/dm-sans": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "5.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@arablyzer/browser": "workspace:*",
+    "pdfjs-dist": "6.3.289",
+    "playwright-core": "1.63.0"
+  }
+}

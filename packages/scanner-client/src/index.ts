@@ -28,3 +28,4 @@ export {
   SeedsAnswer,
   type CrawlClient,
 } from './crawl'
+export { PDF_RENDER_PATH, PDF_RENDER_TIMEOUT_MS, remotePdf, type PdfRenderer } from './pdf'

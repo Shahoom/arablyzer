@@ -69,6 +69,9 @@ importers:
       '@arablyzer/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@arablyzer/pdf':
+        specifier: workspace:*
+        version: link:../../packages/pdf
       '@arablyzer/plans':
         specifier: workspace:*
         version: link:../../packages/plans
@@ -139,6 +142,9 @@ importers:
       '@arablyzer/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@arablyzer/pdf':
+        specifier: workspace:*
+        version: link:../../packages/pdf
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../../packages/report-schema
@@ -188,6 +194,9 @@ importers:
       '@arablyzer/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@arablyzer/pdf':
+        specifier: workspace:*
+        version: link:../../packages/pdf
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../../packages/report-schema
@@ -504,6 +513,43 @@ importers:
         specifier: workspace:*
         version: link:../../fixtures
 
+  packages/pdf:
+    dependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
+      '@arablyzer/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../rules
+      '@fontsource/dm-sans':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/ibm-plex-mono':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/ibm-plex-sans-arabic':
+        specifier: 5.3.0
+        version: 5.3.0
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@arablyzer/browser':
+        specifier: workspace:*
+        version: link:../browser
+      pdfjs-dist:
+        specifier: 6.3.289
+        version: 6.3.289
+      playwright-core:
+        specifier: 1.63.0
+        version: 1.63.0
+
   packages/plans: {}
 
   packages/report-schema:
@@ -543,6 +589,9 @@ importers:
       '@arablyzer/api-contract':
         specifier: workspace:*
         version: link:../api-contract
+      '@arablyzer/pdf':
+        specifier: workspace:*
+        version: link:../pdf
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../report-schema

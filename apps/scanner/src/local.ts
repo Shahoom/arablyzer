@@ -1,4 +1,7 @@
+import { renderPdf } from '@arablyzer/browser'
 import { createCrawler, scan, type Crawler, type ScanOptions } from '@arablyzer/engine'
+import { renderHtml } from '@arablyzer/pdf'
+import type { PdfDocument } from '@arablyzer/pdf/model'
 import { OUTSIDE, RULES, type CollectorId } from '@arablyzer/rules'
 import type { CrawlClient, Scanner } from '@arablyzer/scanner-client'
 import { toolDefinition } from '@arablyzer/tools/registry'
@@ -75,4 +78,9 @@ export function localCrawlClient(options: ScanOptions): CrawlClient {
       return { ...result, urls: [...result.urls] }
     },
   }
+}
+
+/** Draws a PDF in this process's Chromium (M4.7): the document becomes a page, the page a file. */
+export function localPdf(): (document: PdfDocument, signal: AbortSignal) => Promise<Uint8Array> {
+  return (document, signal) => renderPdf(renderHtml(document), { signal })
 }
