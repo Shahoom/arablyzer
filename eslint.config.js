@@ -168,6 +168,8 @@ export default defineConfig(
       'apps/web/src/islands/compare-api.ts',
       // M4.7: the PDF and brand requests, and the shared report's brand: the same origin.
       'apps/web/src/islands/pdf-api.ts',
+      // M5.1: the API keys' requests, the same origin.
+      'apps/web/src/islands/keys-api.ts',
       'apps/web/src/islands/report/BrandBar.tsx',
     ],
     rules: {

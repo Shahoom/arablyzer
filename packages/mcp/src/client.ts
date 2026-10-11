@@ -84,13 +84,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     } catch {
       throw new ApiError('unavailable', 'The Arablyzer API could not be reached.', 503)
     }
-    const text = await response.text()
-    let parsed: unknown = null
-    try {
-      parsed = text === '' ? null : JSON.parse(text)
-    } catch {
-      parsed = null
-    }
+    const parsed = parseJson(await response.text())
     if (!response.ok) {
       const failure = V1Error.safeParse(parsed)
       if (failure.success) {
@@ -114,7 +108,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         'The API answered in a shape this client does not know.',
         502,
       )
-    return parsed.data as z.infer<T>
+    return parsed.data
   }
   const query = (limit?: number, cursor?: string) => {
     const parts = [
@@ -124,10 +118,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
     return parts.length === 0 ? '' : `?${parts.join('&')}`
   }
   const pageOf = <T extends z.ZodType>(schema: T, value: unknown): Page<z.infer<T>> => {
-    const page = read(many(schema), value) as {
-      data: z.infer<T>[]
-      meta: { nextCursor: string | null }
-    }
+    const page = read(many(schema), value)
     return { data: page.data, nextCursor: page.meta.nextCursor }
   }
 
@@ -163,5 +154,13 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       return read(one(V1RuleDetail), await call('GET', `/api/v1/rules/${encodeURIComponent(id)}`))
         .data
     },
+  }
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return text === '' ? null : JSON.parse(text)
+  } catch {
+    return null
   }
 }

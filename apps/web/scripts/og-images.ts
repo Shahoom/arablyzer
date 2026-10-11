@@ -88,6 +88,8 @@ export function kickerOf(page: BuiltPage): Pick<Card, 'kicker' | 'kickerCode'> {
       return { kicker: SITE[lang].footer.methodology }
     case '/bot':
       return { kicker: 'ArablyzerBot', kickerCode: true }
+    case '/developers':
+      return { kicker: 'API · MCP', kickerCode: true }
     case '/':
       return { kicker: SITE[lang].statusBar }
     case '/r/':

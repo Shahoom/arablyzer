@@ -54,7 +54,8 @@ const issues = z
   .optional()
   .describe(`How many distinct problems to list, worst first (default ${String(DEFAULT_ISSUES)}).`)
 
-type Result = {
+interface Result {
+  [key: string]: unknown
   content: { type: 'text'; text: string }[]
   structuredContent?: Record<string, unknown>
   isError?: boolean

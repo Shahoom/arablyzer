@@ -1,0 +1,304 @@
+---
+import { DEVELOPERS_UI, PAGES_UI, RULES_UI } from '@arablyzer/i18n'
+import { breadcrumbList } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import { HEAD } from '../../lib/heads'
+import { siteOf } from '../../lib/site'
+import DocHeading from '../DocHeading.astro'
+import Related from '../guides/Related.astro'
+import Rich from '../Rich.astro'
+import Contents from './Contents.astro'
+import DocPage from './DocPage.astro'
+
+// The developers' page (M5.1): the API, its limits and errors, the OpenAPI document, and the MCP
+// server. Every code sample is English and left to right; the words around it are in the page's
+// language. Nothing here is a number the deployment decides: the quota is the account's own.
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = DEVELOPERS_UI[lang]
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, PATHS.developers)
+const origin = site.origin
+const sections = [
+  { id: 'key', title: t.key.title },
+  { id: 'auth', title: t.auth.title },
+  { id: 'quickstart', title: t.quickstart.title },
+  { id: 'endpoints', title: t.endpoints.title },
+  { id: 'limits', title: t.limits.title },
+  { id: 'errors', title: t.errors.title },
+  { id: 'spec', title: t.spec.title },
+  { id: 'mcp', title: t.mcp.title },
+] as const
+const jsonLd = [
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.title, url },
+  ]),
+]
+const related = [
+  {
+    id: 'related-title',
+    title: t.related,
+    links: [
+      { href: localePath(lang, PATHS.rules), title: RULES_UI[lang].library.title },
+      { href: localePath(lang, PATHS.bot), title: PAGES_UI[lang].bot.title },
+    ],
+  },
+]
+
+const text = 'm-0 text-body text-ink-2'
+const list = 'm-0 flex flex-col gap-3 ps-5 text-body text-ink-2 marker:text-ink-3'
+const code =
+  'm-0 overflow-x-auto rounded-card bg-navy px-4 py-3 text-start font-mono text-meta text-panel-soft md:text-small'
+const sub = 'm-0 text-small font-semibold text-ink'
+const cell = 'border-b border-line px-3 py-2 text-start align-top'
+
+const header = 'Authorization: Bearer arb_…'
+const curl = `curl -sS -X POST ${origin}/api/v1/scans \\
+  -H "Authorization: Bearer $ARABLYZER_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://example.com/"}'
+
+# the answer: { "data": { "id": "<scan id>", "state": "queued", … } }
+curl -sS ${origin}/api/v1/scans/<scan id> -H "Authorization: Bearer $ARABLYZER_API_KEY"
+curl -sS ${origin}/api/v1/scans/<scan id>/report -H "Authorization: Bearer $ARABLYZER_API_KEY"`
+const js = `const base = '${origin}/api/v1'
+const headers = {
+  Authorization: \`Bearer \${process.env.ARABLYZER_API_KEY}\`,
+  'Content-Type': 'application/json',
+}
+
+const started = await fetch(\`\${base}/scans\`, {
+  method: 'POST',
+  headers,
+  body: JSON.stringify({ url: 'https://example.com/' }),
+}).then((r) => r.json())
+
+let scan = started.data
+while (scan.state === 'queued' || scan.state === 'running') {
+  await new Promise((resolve) => setTimeout(resolve, 3000))
+  scan = (await fetch(\`\${base}/scans/\${scan.id}\`, { headers }).then((r) => r.json())).data
+}
+
+const { data: report } = await fetch(\`\${base}/scans/\${scan.id}/report\`, { headers }).then((r) => r.json())
+console.log(report.score.overall, report.summary.bySeverity)`
+const stdio = `{
+  "mcpServers": {
+    "arablyzer": {
+      "command": "node",
+      "args": ["--import", "tsx", "/path/to/arablyzer/packages/mcp/src/stdio.ts"],
+      "env": {
+        "ARABLYZER_API_URL": "${origin}",
+        "ARABLYZER_API_KEY": "arb_…"
+      }
+    }
+  }
+}`
+const http = `{
+  "mcpServers": {
+    "arablyzer": {
+      "type": "http",
+      "url": "${origin}/mcp",
+      "headers": { "Authorization": "Bearer arb_…" }
+    }
+  }
+}`
+---
+
+<DocPage
+  lang={lang}
+  path={PATHS.developers}
+  title={t.meta.title}
+  description={t.meta.description}
+  jsonLd={jsonLd}
+  crumb={t.title}
+  breadcrumbLabel={t.breadcrumb}
+>
+  <Fragment slot="head">
+    <h1 class={HEAD.page}>
+      <Rich text={t.title} lang={lang} />
+    </h1>
+    <p class={HEAD.lead}>
+      <Rich text={t.intro} lang={lang} />
+    </p>
+    <Contents variant="inline" label={t.contents} sections={sections} />
+  </Fragment>
+  <div slot="aside" class="flex flex-col gap-3">
+    <Contents label={t.contents} sections={sections} />
+    <Related lang={lang} groups={related} />
+  </div>
+
+  <section id="key" aria-labelledby="key-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="key-title" title={t.key.title} />
+    <p class={text}>{t.key.lead}</p>
+    <ol class:list={[list, 'list-decimal']}>
+      {t.key.steps.map((step) => (
+        <li>
+          <Rich text={step} lang={lang} />
+        </li>
+      ))}
+    </ol>
+    <p class={text}>
+      <a href={localePath(lang, PATHS.account)} class="underline underline-offset-4 hover:text-ink">
+        {t.key.open}
+      </a>
+    </p>
+  </section>
+
+  <section id="auth" aria-labelledby="auth-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="auth-title" title={t.auth.title} />
+    <p class={text}>
+      <Rich text={t.auth.lead} lang={lang} />
+    </p>
+    <pre dir="ltr" tabindex="0" class={code}>{header}</pre>
+    <ul class={list}>
+      {t.auth.notes.map((note) => (
+        <li>
+          <Rich text={note} lang={lang} />
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section
+    id="quickstart"
+    aria-labelledby="quickstart-title"
+    class="flex scroll-mt-6 flex-col gap-4"
+  >
+    <DocHeading id="quickstart-title" title={t.quickstart.title} />
+    <p class={text}>{t.quickstart.lead}</p>
+    <p class={sub} dir="ltr" lang="en">
+      {t.quickstart.curl}
+    </p>
+    <pre dir="ltr" tabindex="0" class={code}>{curl}</pre>
+    <p class={sub} dir="ltr" lang="en">
+      {t.quickstart.js}
+    </p>
+    <pre dir="ltr" tabindex="0" class={code}>{js}</pre>
+    <p class={text}>
+      <Rich text={t.quickstart.reads} lang={lang} />
+    </p>
+  </section>
+
+  <section id="endpoints" aria-labelledby="endpoints-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="endpoints-title" title={t.endpoints.title} />
+    <p class={text}>
+      <Rich text={t.endpoints.lead} lang={lang} />
+    </p>
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse text-small text-ink-2">
+        <thead>
+          <tr class="text-ink">
+            {t.endpoints.columns.map((name) => (
+              <th scope="col" class={`${cell} font-semibold`}>
+                {name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {t.endpoints.rows.map((row) => (
+            <tr>
+              <td class={cell} dir="ltr">
+                <code class="font-mono">{row.method}</code>
+              </td>
+              <td class={cell} dir="ltr">
+                <code class="font-mono">/api/v1{row.path}</code>
+              </td>
+              <td class={cell}>
+                <Rich text={row.what} lang={lang} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="limits" aria-labelledby="limits-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="limits-title" title={t.limits.title} />
+    <ul class={list}>
+      {t.limits.items.map((item) => (
+        <li>
+          <Rich text={item} lang={lang} />
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section id="errors" aria-labelledby="errors-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="errors-title" title={t.errors.title} />
+    <p class={text}>
+      <Rich text={t.errors.lead} lang={lang} />
+    </p>
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse text-small text-ink-2">
+        <thead>
+          <tr class="text-ink">
+            {t.errors.columns.map((name) => (
+              <th scope="col" class={`${cell} font-semibold`}>
+                {name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {t.errors.rows.map(([name, status, meaning]) => (
+            <tr>
+              <td class={cell} dir="ltr">
+                <code class="font-mono">{name}</code>
+              </td>
+              <td class={cell} dir="ltr">
+                {status}
+              </td>
+              <td class={cell}>
+                <Rich text={meaning} lang={lang} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="spec" aria-labelledby="spec-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="spec-title" title={t.spec.title} />
+    <p class={text}>{t.spec.lead}</p>
+    <pre dir="ltr" tabindex="0" class={code}>{`${origin}/api/v1/openapi.json`}</pre>
+  </section>
+
+  <section id="mcp" aria-labelledby="mcp-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="mcp-title" title={t.mcp.title} />
+    <p class={text}>{t.mcp.lead}</p>
+    <ul class={list}>
+      {t.mcp.tools.map(([name, what]) => (
+        <li>
+          <code class="font-mono" dir="ltr">
+            {name}
+          </code>
+          : {what}
+        </li>
+      ))}
+    </ul>
+    <p class={text}>
+      <Rich text={t.mcp.resources} lang={lang} />
+    </p>
+    <p class={text}>{t.mcp.stdio}</p>
+    <pre dir="ltr" tabindex="0" class={code}>{stdio}</pre>
+    <p class={text}>
+      <Rich text={t.mcp.http} lang={lang} />
+    </p>
+    <pre dir="ltr" tabindex="0" class={code}>{http}</pre>
+    <ul class={list}>
+      {t.mcp.notes.map((note) => (
+        <li>
+          <Rich text={note} lang={lang} />
+        </li>
+      ))}
+    </ul>
+  </section>
+</DocPage>

@@ -20,7 +20,12 @@ const textOf = (result: unknown): string =>
 const textOfContent = (read: { contents: object[] }): string =>
   (read.contents[0] as { text: string }).text
 const dataOf = (result: unknown) =>
-  (result as { structuredContent: Record<string, any> }).structuredContent
+  (result as { structuredContent: Record<string, unknown> }).structuredContent
+interface Listed {
+  tools: { slug: string }[]
+  count: number
+}
+const listed = (result: unknown) => dataOf(result) as unknown as Listed
 
 describe('the MCP server', () => {
   it('offers the four tools and says what Arablyzer is', async () => {
@@ -53,7 +58,7 @@ describe('the MCP server', () => {
       arguments: { url: 'https://example.com/', max_issues: 3 },
     })
     expect(result.isError).toBeFalsy()
-    const data = dataOf(result)
+    const data = dataOf(result) as unknown as { issues: { ruleId: string }[] }
     expect(data).toMatchObject({
       scanId: ID,
       state: 'complete',
@@ -65,11 +70,7 @@ describe('the MCP server', () => {
       rules: { passed: 60, failed: 6, needsReview: 2, errored: 1 },
       moreIssues: 3,
     })
-    expect(data.issues.map((issue: { ruleId: string }) => issue.ruleId)).toEqual([
-      'rtl-direction',
-      'img-alt',
-      'lang',
-    ])
+    expect(data.issues.map((issue) => issue.ruleId)).toEqual(['rtl-direction', 'img-alt', 'lang'])
     expect(data.issues[1]).toMatchObject({
       occurrences: 2,
       example: { selector: 'img.a' },
@@ -173,19 +174,16 @@ describe('the MCP server', () => {
 
   it('lists the tools that run on a page, filtered by a word', async () => {
     const mcp = await connect(fakeClient())
-    const all = dataOf(await mcp.callTool({ name: 'list_tools', arguments: {} }))
-    expect(all.tools.map((tool: { slug: string }) => tool.slug)).toEqual([
-      'robots-check',
-      'rtl-check',
-    ])
-    const every = dataOf(
+    const all = listed(await mcp.callTool({ name: 'list_tools', arguments: {} }))
+    expect(all.tools.map((tool) => tool.slug)).toEqual(['robots-check', 'rtl-check'])
+    const every = listed(
       await mcp.callTool({ name: 'list_tools', arguments: { runnable_only: false } }),
     )
     expect(every.count).toBe(3)
-    const some = dataOf(await mcp.callTool({ name: 'list_tools', arguments: { query: 'RTL' } }))
-    expect(some.tools.map((tool: { slug: string }) => tool.slug)).toEqual(['rtl-check'])
-    const arabic = dataOf(
-      await mcp.callTool({ name: 'list_tools', arguments: { query: 'أداة robots' } }),
+    const some = listed(await mcp.callTool({ name: 'list_tools', arguments: { query: 'RTL' } }))
+    expect(some.tools.map((tool) => tool.slug)).toEqual(['rtl-check'])
+    const arabic = listed(
+      await mcp.callTool({ name: 'list_tools', arguments: { query: 'أداة rtl' } }),
     )
     expect(arabic.count).toBe(1)
   })
@@ -204,7 +202,7 @@ describe('the rule library as resources', () => {
       ]),
     )
     const index = await mcp.readResource({ uri: 'arablyzer://rules' })
-    expect(JSON.parse(textOfContent(index)).map((rule: { id: string }) => rule.id)).toEqual([
+    expect((JSON.parse(textOfContent(index)) as { id: string }[]).map((rule) => rule.id)).toEqual([
       'img-alt',
       'rtl-direction',
     ])

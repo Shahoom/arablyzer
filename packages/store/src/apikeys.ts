@@ -56,8 +56,15 @@ export class MemoryApiKeyData implements ApiKeyData {
   create(key: NewApiKey, limit: number): Promise<KeyCreated> {
     const mine = [...this.#keys.values()].filter((kept) => kept.userId === key.userId)
     if (mine.length >= limit) return Promise.resolve({ kind: 'limit' })
-    const { hash: _hash, ...record } = key
-    const stored: Stored = { ...record, lastUsedAt: null, hash: key.hash }
+    const stored: Stored = {
+      id: key.id,
+      userId: key.userId,
+      name: key.name,
+      prefix: key.prefix,
+      createdAt: key.createdAt,
+      lastUsedAt: null,
+      hash: key.hash,
+    }
     this.#keys.set(key.id, stored)
     return Promise.resolve({ kind: 'created', key: record_(stored) })
   }
@@ -100,7 +107,14 @@ export class MemoryApiKeyData implements ApiKeyData {
   }
 }
 
+/** What leaves the store of a key: everything but the hash. */
 function record_(key: Stored): ApiKeyRecord {
-  const { hash: _hash, ...rest } = key
-  return rest
+  return {
+    id: key.id,
+    userId: key.userId,
+    name: key.name,
+    prefix: key.prefix,
+    createdAt: key.createdAt,
+    lastUsedAt: key.lastUsedAt,
+  }
 }

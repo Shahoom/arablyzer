@@ -64,7 +64,9 @@
 :{$PORT:8080} {
 	encode zstd gzip
 
-	handle /api/* {
+	# The API, and the MCP endpoint (M5.1), which is the API's: the same proxy, address and secret.
+	@api path /api/* /mcp
+	handle @api {
 		import security same-origin
 		reverse_proxy api:8787 {
 			# One address, the visitor's, which the API counts its limits by (§14).

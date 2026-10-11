@@ -34,6 +34,7 @@ export const PATHS = {
   rules: '/rules',
   methodology: '/methodology',
   bot: '/bot',
+  developers: '/developers',
   login: '/login',
   account: '/account',
   compare: '/account/compare',
