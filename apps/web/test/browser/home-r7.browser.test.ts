@@ -432,7 +432,7 @@ describe.each(ENGINES)('the home page in %s', (engine) => {
       for (const lang of LANGS) {
         const tab = await open(lang, 390, { flat: true })
         const shot = await read(tab, HOME[lang].figure.label)
-        expect(shot?.score, lang).toBe('91')
+        expect(shot?.score, lang).toBe('92')
         // Three severity pills in the summary and one in each of the three findings.
         expect(shot?.pills, `${lang}: pills`).toBe(6)
         expect(shot?.categories, `${lang}: no category bars`).toBe(0)

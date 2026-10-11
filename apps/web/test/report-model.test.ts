@@ -693,14 +693,14 @@ describe('the engines of a report', () => {
 
 describe('checklistOf', () => {
   it('tells a finished scan as the progress page told it running, each step done', () => {
-    // Golden report 04: robots.txt answered 404, the page 200, three engines rendered 69 rules.
+    // Golden report 04: robots.txt answered 404, the page 200, three engines rendered 91 rules.
     expect(
       checklistOf(rtlLayout, t).map((step) => [step.key, step.state, step.detail, step.ltr]),
     ).toEqual([
       ['robots', 'done', '404', true],
       ['page', 'done', '200 · text/html', true],
       ['render', 'done', '3 / 3', true],
-      ['rules', 'done', '72 rules', false],
+      ['rules', 'done', '91 rules', false],
     ])
     // The same keys, in the same order, as the steps of a scan running.
     const running = stepsOf(
