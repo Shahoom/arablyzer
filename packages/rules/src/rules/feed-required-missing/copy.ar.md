@@ -49,4 +49,4 @@ reviewed: false
 ## المراجع
 
 - [مركز مساعدة Google Merchant Center: مواصفات بيانات المنتج](https://support.google.com/merchants/answer/7052112)
-- [مركز مساعدة Google Merchant Center: بيانات المنتج المطلوبة](https://support.google.com/merchants/answer/188494)
+- [مركز مساعدة Google Merchant Center: مواصفات بيانات المنتج (الإصدار الأقدم)](https://support.google.com/merchants/answer/188494)

@@ -33,13 +33,18 @@ import { rule as feedFileUnreadable } from './rules/feed-file-unreadable/rule'
 import { rule as feedRequiredMissing } from './rules/feed-required-missing/rule'
 import { rule as feedTextQuality } from './rules/feed-text-quality/rule'
 import { rule as feedValuesInvalid } from './rules/feed-values-invalid/rule'
+import { rule as formAddressArabicRejected } from './rules/form-address-arabic-rejected/rule'
 import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
+import { rule as formAutocompleteMissing } from './rules/form-autocomplete-missing/rule'
 import { rule as formLabelMissing } from './rules/form-label-missing/rule'
 import { rule as formPhoneDirection } from './rules/form-phone-direction/rule'
 import { rule as frameProtectionMissing } from './rules/frame-protection-missing/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
+import { rule as hreflangLangMismatch } from './rules/hreflang-lang-mismatch/rule'
+import { rule as hreflangSetInvalid } from './rules/hreflang-set-invalid/rule'
+import { rule as hreflangXDefaultMissing } from './rules/hreflang-x-default-missing/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
 import { rule as httpsMissing } from './rules/https-missing/rule'
 import { rule as imageFormatLegacy } from './rules/image-format-legacy/rule'
@@ -47,6 +52,7 @@ import { rule as jsOnlyContent } from './rules/js-only-content/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
 import { rule as knowledgeGraphEntity } from './rules/knowledge-graph-entity/rule'
 import { rule as linkBroken } from './rules/link-broken/rule'
+import { rule as localBusinessInvalid } from './rules/local-business-invalid/rule'
 import { rule as lookalikeDomains } from './rules/lookalike-domains/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as misspellingsUncovered } from './rules/misspellings-uncovered/rule'
@@ -54,11 +60,15 @@ import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as paymentMethods } from './rules/payment-methods/rule'
-import { rule as priceDecimals } from './rules/price-decimals/rule'
-import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
 import { rule as pdfArabicText } from './rules/pdf-arabic-text/rule'
 import { rule as pdfMetadata } from './rules/pdf-metadata/rule'
 import { rule as platformDetected } from './rules/platform-detected/rule'
+import { rule as policyPagesMissing } from './rules/policy-pages-missing/rule'
+import { rule as priceDecimals } from './rules/price-decimals/rule'
+import { rule as productAvailabilityInvalid } from './rules/product-availability-invalid/rule'
+import { rule as productOfferInvalid } from './rules/product-offer-invalid/rule'
+import { rule as productRatingInvalid } from './rules/product-rating-invalid/rule'
+import { rule as productRequiredMissing } from './rules/product-required-missing/rule'
 import { rule as redirectChain } from './rules/redirect-chain/rule'
 import { rule as redirectTemporary } from './rules/redirect-temporary/rule'
 import { rule as referrerPolicyMissing } from './rules/referrer-policy-missing/rule'
@@ -81,6 +91,7 @@ import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as tlsExpiring } from './rules/tls-expiring/rule'
 import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
+import { rule as whatsappTextEncoding } from './rules/whatsapp-text-encoding/rule'
 import { rule as xContentTypeOptionsMissing } from './rules/x-content-type-options-missing/rule'
 
 export { RULESET_VERSION } from './version'
@@ -127,13 +138,18 @@ export const RULES: readonly Rule[] = [
   feedRequiredMissing,
   feedTextQuality,
   feedValuesInvalid,
+  formAddressArabicRejected,
   formArabicDigitsRejected,
   formArabicNameRejected,
+  formAutocompleteMissing,
   formLabelMissing,
   formPhoneDirection,
   frameProtectionMissing,
   h1Missing,
   hreflangInvalidCode,
+  hreflangLangMismatch,
+  hreflangSetInvalid,
+  hreflangXDefaultMissing,
   hstsMissing,
   httpsMissing,
   imageFormatLegacy,
@@ -141,6 +157,7 @@ export const RULES: readonly Rule[] = [
   jsonldSyntaxError,
   knowledgeGraphEntity,
   linkBroken,
+  localBusinessInvalid,
   lookalikeDomains,
   metaDescriptionMissing,
   misspellingsUncovered,
@@ -151,8 +168,12 @@ export const RULES: readonly Rule[] = [
   pdfArabicText,
   pdfMetadata,
   platformDetected,
+  policyPagesMissing,
   priceDecimals,
+  productAvailabilityInvalid,
   productOfferInvalid,
+  productRatingInvalid,
+  productRequiredMissing,
   redirectChain,
   redirectTemporary,
   referrerPolicyMissing,
@@ -175,6 +196,7 @@ export const RULES: readonly Rule[] = [
   tlsExpiring,
   viewportMissing,
   whatsappLinkFormat,
+  whatsappTextEncoding,
   xContentTypeOptionsMissing,
 ]
 

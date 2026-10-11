@@ -70,5 +70,5 @@ The file is text, but its first row is not a list of product attributes: Merchan
 ## References
 
 - [Google Merchant Center Help: Product data specification](https://support.google.com/merchants/answer/7052112)
-- [Google Merchant Center Help: Feed file formats](https://support.google.com/merchants/answer/160567)
+- [Google Merchant Center Help](https://support.google.com/merchants/)
 - [W3C: Extensible Markup Language (XML) 1.0](https://www.w3.org/TR/xml/)

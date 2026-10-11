@@ -63,4 +63,4 @@
 
 - [Google Merchant Center Help: Title](https://support.google.com/merchants/answer/6324415)
 - [Google Merchant Center Help: Description](https://support.google.com/merchants/answer/6324468)
-- [Google Merchant Center Help: Editorial requirements](https://support.google.com/merchants/answer/6149970)
+- [Google Merchant Center Help](https://support.google.com/merchants/)

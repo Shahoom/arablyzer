@@ -45,4 +45,4 @@ We do not check optional attributes, per-country requirements or whether a link 
 ## References
 
 - [Google Merchant Center Help: Product data specification](https://support.google.com/merchants/answer/7052112)
-- [Google Merchant Center Help: Required product data](https://support.google.com/merchants/answer/188494)
+- [Google Merchant Center Help: Product data specification (earlier edition)](https://support.google.com/merchants/answer/188494)

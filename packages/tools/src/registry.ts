@@ -13,6 +13,7 @@ import { definition as arabicSuggest } from './tools/arabic-suggest/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
 import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
+import { definition as checkoutFormCheck } from './tools/checkout-form-check/tool'
 import { definition as commonMisspellings } from './tools/common-misspellings/tool'
 import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
 import { definition as countryFit } from './tools/country-fit/tool'
@@ -31,6 +32,7 @@ import { definition as indexabilityCheck } from './tools/indexability-check/tool
 import { definition as jsRenderingCheck } from './tools/js-rendering-check/tool'
 import { definition as languageCheck } from './tools/language-check/tool'
 import { definition as letterSpacingCheck } from './tools/letter-spacing-check/tool'
+import { definition as localBusinessCheck } from './tools/local-business-check/tool'
 import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
 import { definition as lookalikeDomains } from './tools/lookalike-domains/tool'
 import { definition as mirroredIconsCheck } from './tools/mirrored-icons-check/tool'
@@ -39,8 +41,10 @@ import { definition as paymentMethodsDetector } from './tools/payment-methods-de
 import { definition as pdfForensics } from './tools/pdf-forensics/tool'
 import { definition as phoneFormatCheck } from './tools/phone-format-check/tool'
 import { definition as platformCheck } from './tools/platform-check/tool'
+import { definition as policyPagesCheck } from './tools/policy-pages-check/tool'
 import { definition as priceFormatCheck } from './tools/price-format-check/tool'
 import { definition as productPageCheck } from './tools/product-page-check/tool'
+import { definition as productSchemaCheck } from './tools/product-schema-check/tool'
 import { definition as redirectChainCheck } from './tools/redirect-chain-check/tool'
 import { definition as robotsCheck } from './tools/robots-check/tool'
 import { definition as robotsTester } from './tools/robots-tester/tool'
@@ -52,12 +56,14 @@ import { definition as securityHeaders } from './tools/security-headers/tool'
 import { definition as serpSampler } from './tools/serp-sampler/tool'
 import { definition as sitemapCheck } from './tools/sitemap-check/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
+import { definition as storeHreflangCheck } from './tools/store-hreflang-check/tool'
 import { definition as structuredDataCheck } from './tools/structured-data-check/tool'
 import { definition as tatweelCheck } from './tools/tatweel-check/tool'
 import { definition as titleMetaCheck } from './tools/title-meta-check/tool'
 import { definition as tlsCheck } from './tools/tls-check/tool'
 import { definition as whatsappLinkCheck } from './tools/whatsapp-link-check/tool'
 import { definition as whatsappLinkGenerator } from './tools/whatsapp-link-generator/tool'
+import { definition as whatsappMessageCheck } from './tools/whatsapp-message-check/tool'
 
 /**
  * Every tool without its page's copy, sorted by slug: what the API checks a tool's slug against,
@@ -78,6 +84,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   bidiIsolationCheck,
   brokenLinks,
   canonicalCheck,
+  checkoutFormCheck,
   commonMisspellings,
   coreWebVitals,
   countryFit,
@@ -96,6 +103,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   jsRenderingCheck,
   languageCheck,
   letterSpacingCheck,
+  localBusinessCheck,
   logicalCssCheck,
   lookalikeDomains,
   mirroredIconsCheck,
@@ -104,8 +112,10 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   pdfForensics,
   phoneFormatCheck,
   platformCheck,
+  policyPagesCheck,
   priceFormatCheck,
   productPageCheck,
+  productSchemaCheck,
   redirectChainCheck,
   robotsCheck,
   robotsTester,
@@ -117,12 +127,14 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   serpSampler,
   sitemapCheck,
   socialPreview,
+  storeHreflangCheck,
   structuredDataCheck,
   tatweelCheck,
   titleMetaCheck,
   tlsCheck,
   whatsappLinkCheck,
   whatsappLinkGenerator,
+  whatsappMessageCheck,
 ]
 
 export function toolDefinition(slug: string): ToolDefinition | undefined {

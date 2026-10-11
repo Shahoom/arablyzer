@@ -74,5 +74,5 @@ reviewed: false
 ## المراجع
 
 - [مركز مساعدة Google Merchant Center: مواصفات بيانات المنتج](https://support.google.com/merchants/answer/7052112)
-- [مركز مساعدة Google Merchant Center: صيغ ملفات الخلاصة](https://support.google.com/merchants/answer/160567)
+- [مركز مساعدة Google Merchant Center](https://support.google.com/merchants/)
 - [W3C: Extensible Markup Language (XML) 1.0](https://www.w3.org/TR/xml/)

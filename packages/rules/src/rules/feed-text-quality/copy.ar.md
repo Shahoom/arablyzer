@@ -67,4 +67,4 @@ reviewed: false
 
 - [مركز مساعدة Google Merchant Center: العنوان](https://support.google.com/merchants/answer/6324415)
 - [مركز مساعدة Google Merchant Center: الوصف](https://support.google.com/merchants/answer/6324468)
-- [مركز مساعدة Google Merchant Center: المتطلبات التحريرية](https://support.google.com/merchants/answer/6149970)
+- [مركز مساعدة Google Merchant Center](https://support.google.com/merchants/)

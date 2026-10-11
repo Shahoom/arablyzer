@@ -452,3 +452,16 @@ export function renderedEvidence(
 export function applies(rule: Rule, evidence: Evidence): boolean {
   return rule.appliesTo(evidence.page, evidence)
 }
+
+/** A page whose JSON-LD is these objects, one script each (M6.1). */
+export function ldPage(...blocks: unknown[]): PageFacts {
+  const scripts = blocks
+    .map(
+      (block) =>
+        `<script type="application/ld+json">${typeof block === 'string' ? block : JSON.stringify(block)}</script>`,
+    )
+    .join('\n')
+  return htmlPage(
+    `<!doctype html><html lang="ar"><head>${scripts}</head><body><p>x</p></body></html>`,
+  )
+}
