@@ -105,7 +105,7 @@ export function EngineCards({ report, lang }: { report: Report; lang: Lang }) {
               {flagged
                 ? t.engines.alone
                 : state === 'rendered'
-                  ? `${t.progress.engine.rendered} · ${t.engines.requests(run.requests.total)}`
+                  ? `${t.progress.engine.rendered}${lang === 'ar' ? '،' : ','} ${t.engines.requests(run.requests.total)}`
                   : t.progress.engine[state]}
             </span>
           </li>

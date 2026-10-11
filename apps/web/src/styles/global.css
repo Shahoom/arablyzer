@@ -73,6 +73,14 @@
   --color-pass: #047857;
   --color-pass-soft: #e7f6ef;
 
+  /*
+   * The three browsers, one dot colour each wherever the site names them (the hero's box, the bento,
+   * the report): blue, orange and sky. A dot only adorns the name beside it.
+   */
+  --color-engine-chromium: #2563eb;
+  --color-engine-firefox: #ea580c;
+  --color-engine-webkit: #0ea5e9;
+
   /* The aurora's blobs, behind the hero: light, never under text that matters. */
   --color-aurora-teal: #5eead4;
   --color-aurora-indigo: #a5b4fc;
@@ -334,7 +342,7 @@
   justify-content: center;
   gap: 0.5rem;
   height: var(--btn-h, 44px);
-  padding-inline: var(--btn-px, 18px);
+  padding-inline: var(--btn-px, 20px);
   border: 1px solid var(--color-line);
   border-radius: var(--btn-r, var(--radius-md));
   background-color: var(--color-white);
@@ -359,7 +367,7 @@
   justify-content: center;
   gap: 0.5rem;
   height: var(--btn-h, 44px);
-  padding-inline: var(--btn-px, 14px);
+  padding-inline: var(--btn-px, 16px);
   border-radius: var(--btn-r, var(--radius-md));
   color: var(--color-ink);
   font-size: var(--btn-fs, 0.9375rem);
@@ -381,7 +389,7 @@
   justify-content: center;
   gap: 0.5rem;
   height: var(--btn-h, 44px);
-  padding-inline: var(--btn-px, 18px);
+  padding-inline: var(--btn-px, 20px);
   border-radius: var(--btn-r, var(--radius-md));
   background-color: var(--color-white);
   color: var(--color-navy);
@@ -405,7 +413,7 @@
   justify-content: center;
   gap: 0.5rem;
   height: var(--btn-h, 44px);
-  padding-inline: var(--btn-px, 18px);
+  padding-inline: var(--btn-px, 20px);
   border: 1px solid rgb(255 255 255 / 0.25);
   border-radius: var(--btn-r, var(--radius-md));
   color: var(--color-white);
@@ -434,7 +442,7 @@
  */
 @utility btn-sm {
   --btn-h: 40px;
-  --btn-px: 14px;
+  --btn-px: 16px;
   --btn-fs: 0.875rem;
   --btn-shadow: 0 4px 12px -6px rgb(79 70 229 / 0.5);
   --btn-shadow-hover: 0 6px 14px -6px rgb(79 70 229 / 0.55);
@@ -453,7 +461,7 @@
   gap: 0.5rem;
   /* 40 px for a thumb, 36 px for a pointer. */
   height: 40px;
-  padding-inline: 14px;
+  padding-inline: 16px;
   border: 1px solid rgb(205 213 223 / 0.9);
   border-radius: 999px;
   background-color: rgb(255 255 255 / 0.8);
@@ -465,15 +473,15 @@
   backdrop-filter: blur(6px);
   cursor: pointer;
   transition:
-    transform 0.15s ease,
     border-color 0.15s ease,
-    background-color 0.15s ease;
+    background-color 0.15s ease,
+    color 0.15s ease;
   @media (min-width: 48rem) {
     height: 36px;
   }
   &:hover {
-    transform: translateY(-1px);
     border-color: var(--color-line-2);
+    background-color: var(--color-white);
     color: var(--color-ink);
   }
   &[aria-pressed='true'] {
@@ -492,7 +500,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  height: 30px;
+  height: 32px;
   padding-inline: 12px;
   border-radius: 999px;
   background-color: var(--color-indigo-soft);
@@ -561,7 +569,7 @@
     transform 0.25s ease,
     box-shadow 0.25s ease;
   &:hover {
-    transform: translateY(-4px);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
   }
 }
@@ -1072,26 +1080,6 @@
 }
 
 /*
- * The tint behind an inner page's head (M2.6 R7a): one faint light at the top, in the corner where
- * the line starts (--reading), and nothing else: the aurora belongs to the home page's hero. It
- * is 240 px tall whatever the page's head does, so a long head or a result under it never
- * stretches it. Small text on it is ink-2, never the quieter ink-3.
- */
-@utility page-wash {
-  position: absolute;
-  inset-inline: 0;
-  inset-block-start: 0;
-  height: 240px;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(
-    640px 200px at calc(50% + var(--reading) * 40%) 0%,
-    rgb(94 234 212 / 0.16),
-    transparent 72%
-  );
-}
-
-/*
  * Links inside a document's prose (the rules', guides', glossary's and methodology's text) are the
  * brand's teal, underlined as the prose utilities underline them, and ink when hovered.
  */
@@ -1313,7 +1301,7 @@
   justify-content: space-between;
   gap: 12px;
   min-height: var(--kb-link-h, 44px);
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   line-height: var(--lh-small);
@@ -1338,7 +1326,7 @@
   gap: 12px;
   width: 100%;
   min-height: 44px;
-  padding: 6px 12px;
+  padding: 8px 12px;
   border: 0;
   border-radius: var(--radius-md);
   background-color: transparent;
@@ -1359,4 +1347,255 @@
       outline: 2px solid Highlight;
     }
   }
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* R8: the craft pass. What the pages share that R7 left each of them to draw by hand.         */
+/* ------------------------------------------------------------------------------------------ */
+
+/*
+ * Digits that line up. A column of scores, dates and counts is set in tabular figures, so that
+ * 111 and 888 are as wide as each other and a number that counts up does not shake its neighbours.
+ */
+@layer base {
+  table,
+  time,
+  output,
+  [data-count] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/*
+ * Facts about a thing on one line (an article's author, its date and its reading time; a row's
+ * date and state). They are parted by a gap and nothing else: no «·» between them, which reads as
+ * a separator someone forgot to style. Size and colour are the page's (`text-meta`, `text-ink-2`).
+ */
+@utility meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 20px;
+  row-gap: 2px;
+  font-variant-numeric: tabular-nums;
+  & > * {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.375rem;
+  }
+}
+
+/*
+ * A row of figures that is not a row of cards (the home page's counts, the hub's directories): the
+ * grid's 1 px gap shows the band's own colour, so each cell is parted from the next by a hairline,
+ * and the band is ruled above and below. A cell is the page's ground, so a link in it can take the
+ * surface colour when it is hovered. Put `ledger` on the grid and `ledger-cell` on its items.
+ */
+@utility ledger {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block: 1px solid var(--color-line);
+  background-color: var(--color-line);
+}
+@utility ledger-cell {
+  background-color: var(--color-bg);
+}
+
+/*
+ * The tag or category above a title: a dot in its colour and its name, quiet text, no pill. A link
+ * when the tag has a page of its own. (The pill, `kick`, stays for a state: «قريباً», «مثال».)
+ */
+@utility topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  &:is(a):hover {
+    color: var(--color-ink);
+  }
+}
+
+/*
+ * A section's head on the home page: the heading at the start of the line and its lead under it,
+ * both at the start (R8: no pill above, nothing centred). The measure of each is set by the page.
+ */
+@utility section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  @media (min-width: 48rem) {
+    margin-bottom: 32px;
+  }
+}
+
+/*
+ * The reading column of an article (M6, R8): 680 px of text, narrower than a document's 760, with
+ * the 320 px aside at the far edge. The text starts where the title above it starts. Put on the
+ * element that also has `page-columns`.
+ */
+@utility page-columns-reading {
+  @media (min-width: 64rem) {
+    grid-template-columns: minmax(0, 680px) 320px;
+    justify-content: space-between;
+    column-gap: 56px;
+  }
+}
+
+/*
+ * An article's text. Larger and darker than a document's: 16 px on a phone, 18 px from lg, ink and
+ * not ink-2, with the leading a long read wants (1.85, Arabic 2). The measure is the column's, 680
+ * px, about 65 characters of Latin at this size. It sits on `prose-fix`, which gives the lists,
+ * code, tables and links their base; what is here is what an article adds: the pull-quote (a
+ * `blockquote`), the caption (a `figcaption`), a hairline round inline code, and a rhythm between
+ * blocks.
+ */
+@layer components {
+  .prose-article {
+    --lh-article: 1.85;
+    gap: 1.25rem;
+    color: var(--color-ink);
+    font-size: 1rem;
+    line-height: var(--lh-article);
+  }
+  html[lang='ar'] .prose-article {
+    --lh-article: 2;
+  }
+  @media (min-width: 64rem) {
+    .prose-article {
+      gap: 1.5rem;
+      font-size: 1.125rem;
+    }
+  }
+  .prose-article a {
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in srgb, var(--color-brand-ink) 40%, transparent);
+  }
+  .prose-article a:hover {
+    text-decoration-color: currentColor;
+  }
+  .prose-article ul {
+    list-style: disc;
+  }
+  .prose-article ul,
+  .prose-article ol {
+    gap: 0.625rem;
+    padding-inline-start: 1.5rem;
+  }
+  .prose-article li::marker {
+    color: var(--color-brand);
+  }
+  .prose-article code {
+    border: 1px solid var(--color-line);
+    font-size: 0.82em;
+    padding-block: 0.05rem;
+  }
+  .prose-article pre {
+    padding: 1.125rem 1.25rem;
+    border-radius: 14px;
+    font-size: 0.8125rem;
+    line-height: 1.75;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07);
+  }
+  .prose-article pre code {
+    border: 0;
+    font-size: inherit;
+  }
+  /* The pull-quote: one sentence the article is about, large, with the brand's rule at its start. */
+  .prose-article blockquote {
+    margin: 0.5rem 0;
+    padding-inline-start: 1.25rem;
+    border-inline-start: 3px solid var(--color-brand);
+    font-size: 1.1875rem;
+    font-weight: 600;
+    line-height: 1.7;
+    text-wrap: balance;
+  }
+  @media (min-width: 64rem) {
+    .prose-article blockquote {
+      padding-inline-start: 1.75rem;
+      font-size: 1.5rem;
+    }
+  }
+  .prose-article figure {
+    margin: 0.5rem 0;
+  }
+  .prose-article figcaption {
+    margin-top: 0.625rem;
+    padding-inline-start: 0.75rem;
+    border-inline-start: 2px solid var(--color-line-2);
+    color: var(--color-ink-2);
+    font-size: 0.8125rem;
+    line-height: var(--lh-meta);
+  }
+  .prose-article table {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .prose-article th {
+    color: var(--color-ink-2);
+    font-size: 0.8125rem;
+  }
+}
+
+/*
+ * An empty state (R8): what a search, a list or a page says when it has nothing to show. A dashed
+ * edge, the words at the start of the line, and the site's one drawing: a few lines of text, the
+ * last of them not there (dashed). The drawing is the box's own `::before`, so a state in an
+ * island and one in a page are the same; it takes the line's side from --reading and is not read
+ * by a screen reader. `[hidden]` still hides it: the lists show it from script.
+ */
+@utility empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: var(--card-pad);
+  border: 1px dashed var(--color-line-2);
+  border-radius: var(--card-radius);
+  color: var(--color-ink-2);
+  &[hidden] {
+    display: none;
+  }
+  &::before {
+    content: '';
+    flex: none;
+    width: 88px;
+    height: 26px;
+    margin-bottom: 4px;
+    background:
+      linear-gradient(var(--color-line-2), var(--color-line-2)) calc(50% + 50% * var(--reading)) 0 /
+        100% 6px no-repeat,
+      linear-gradient(var(--color-line), var(--color-line)) calc(50% + 50% * var(--reading)) 10px /
+        72% 6px no-repeat,
+      repeating-linear-gradient(90deg, var(--color-line-2) 0 6px, transparent 6px 10px)
+        calc(50% + 50% * var(--reading)) 20px / 52% 6px no-repeat;
+  }
+}
+
+/*
+ * A browser's name with its dot (R8): the same pill wherever the three are listed, on the home
+ * page's box and in a report's evidence. 28 px, a hairline, the name in the quiet ink; the dot is
+ * `size-2 rounded-full` with `bg-engine-*`. Read left to right whatever the page: a name is Latin.
+ */
+@utility engine-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding-inline: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background-color: var(--color-white);
+  color: var(--color-ink-2);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  white-space: nowrap;
 }

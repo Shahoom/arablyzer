@@ -14,6 +14,7 @@ import { methodologyHref, scanFormHref, siteOf } from '../../lib/site'
 import { toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
 import Breadcrumb from '../Breadcrumb.astro'
+import PageBand from '../PageBand.astro'
 import DocHeading from '../DocHeading.astro'
 import Related from '../guides/Related.astro'
 import PageColumns from '../PageColumns.astro'
@@ -103,46 +104,43 @@ const facts = [
   description={copy.description}
   jsonLd={jsonLd}
 >
-  <section class="relative isolate border-b border-line">
-    <div aria-hidden="true" class="page-wash"></div>
-    <div class:list={['wrap flex flex-col gap-4 lg:gap-5', HEAD.padding]}>
-      <Breadcrumb
-        lang={lang}
-        label={t.page.breadcrumb}
-        steps={[
-          { name: t.library.title, href: libraryPath },
-          { name: category, href: `${libraryPath}#cat-${rule.category}` },
-        ]}
-        current={copy.title}
-      />
-      <h1 class={HEAD.page}>
-        <Bidi text={copy.title} lang={lang} />
-      </h1>
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <code
-          dir="ltr"
-          class="inline-flex h-7 items-center rounded-md bg-navy px-2.5 font-mono text-meta text-panel-text"
-        >
-          {rule.id}
-        </code>
-        <SeverityPill severity={rule.severity} lang={lang} />
-        <ul class="m-0 flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0 text-meta text-ink-2 lg:text-small [&>li+li]:before:me-2 [&>li+li]:before:content-['·']">
-          {facts.map((fact) => (
-            <li>
-              {fact.text}
-              {fact.ltr !== undefined && <span dir="ltr">{fact.ltr}</span>}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <Contents variant="inline" label={t.page.contents} sections={sections} />
+  <PageBand>
+    <Breadcrumb
+      lang={lang}
+      label={t.page.breadcrumb}
+      steps={[
+        { name: t.library.title, href: libraryPath },
+        { name: category, href: `${libraryPath}#cat-${rule.category}` },
+      ]}
+      current={copy.title}
+    />
+    <h1 class={HEAD.page}>
+      <Bidi text={copy.title} lang={lang} />
+    </h1>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <code
+        dir="ltr"
+        class="inline-flex h-7 items-center rounded-md bg-navy px-3 font-mono text-meta text-panel-text"
+      >
+        {rule.id}
+      </code>
+      <SeverityPill severity={rule.severity} lang={lang} />
+      <ul class="meta-row m-0 list-none p-0 text-meta text-ink-2 lg:text-small">
+        {facts.map((fact) => (
+          <li>
+            {fact.text}
+            {fact.ltr !== undefined && <span dir="ltr">{fact.ltr}</span>}
+          </li>
+        ))}
+      </ul>
     </div>
-  </section>
+    <Contents variant="inline" label={t.page.contents} sections={sections} />
+  </PageBand>
 
   <PageColumns class:list={[HEAD.bodyTop, 'pb-section']}>
     <div slot="aside" class="flex flex-col gap-3">
       <Contents label={t.page.contents} sections={sections} />
-      <section aria-labelledby="weight-title" class="kb-box flex flex-col gap-1.5 px-4 py-3">
+      <section aria-labelledby="weight-title" class="kb-box flex flex-col gap-2 px-4 py-3">
         <h2
           id="weight-title"
           class="m-0 flex items-center justify-between gap-3 text-small font-semibold text-ink"

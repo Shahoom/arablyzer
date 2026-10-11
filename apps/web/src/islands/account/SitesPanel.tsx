@@ -286,12 +286,14 @@ export default function SitesPanel({ lang }: Props) {
             {s.title}
           </h2>
           <p className="m-0 text-body text-ink-2">{s.lead}</p>
-          <p className="m-0 text-meta text-ink-2">
-            {s.count(data.sites.length, data.limit)} ·{' '}
-            {t.monitor.count(
-              data.sites.filter((kept) => kept.monitor !== null && !kept.monitor.paused).length,
-              data.monitoring.limit,
-            )}
+          <p className="meta-row m-0 text-meta text-ink-2">
+            <span>{s.count(data.sites.length, data.limit)}</span>
+            <span>
+              {t.monitor.count(
+                data.sites.filter((kept) => kept.monitor !== null && !kept.monitor.paused).length,
+                data.monitoring.limit,
+              )}
+            </span>
           </p>
         </div>
 
@@ -325,35 +327,36 @@ export default function SitesPanel({ lang }: Props) {
         {alert}
 
         {data.sites.length === 0 ? (
-          <p className="m-0 text-body text-ink-2">{s.empty}</p>
+          <p className="empty-state m-0 text-body">{s.empty}</p>
         ) : (
-          <ul className="m-0 flex list-none flex-col gap-3 p-0">
+          <ul className="m-0 flex list-none flex-col divide-y divide-line p-0">
             {data.sites.map((site) => (
-              <li key={site.id} className="flex flex-col gap-3 rounded-xl border border-line p-4">
+              <li key={site.id} className="flex flex-col gap-3 py-5 first:pt-0 last:pb-0">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 flex-col gap-1">
                     <bdi dir="ltr" className="text-body font-semibold break-all text-ink">
                       {shortUrl(site.url)}
                     </bdi>
-                    <p className="m-0 text-small text-ink-2">
-                      {site.lastScan === null ? (
-                        s.notScanned
-                      ) : (
-                        <>
-                          {s.lastScan}: {dayLabel(site.lastScan.createdAt, lang)} ·{' '}
+                    {site.lastScan === null ? (
+                      <p className="m-0 text-small text-ink-2">{s.notScanned}</p>
+                    ) : (
+                      <p className="meta-row m-0 text-small text-ink-2">
+                        <span>
+                          {s.lastScan}: {dayLabel(site.lastScan.createdAt, lang)}
+                        </span>
+                        <span className="font-semibold text-ink">
                           {site.lastScan.score === null
                             ? s.states[site.lastScan.state]
                             : `${s.score} ${site.lastScan.score}`}
-                          {' · '}
-                          <a
-                            className="font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
-                            href={reportHref(lang, site.lastScan.id)}
-                          >
-                            {s.openReport}
-                          </a>
-                        </>
-                      )}
-                    </p>
+                        </span>
+                        <a
+                          className="font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
+                          href={reportHref(lang, site.lastScan.id)}
+                        >
+                          {s.openReport}
+                        </a>
+                      </p>
+                    )}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
                     <button
@@ -436,7 +439,7 @@ export default function SitesPanel({ lang }: Props) {
         className="card flex flex-col gap-4 rounded-card p-card"
       >
         <div className="flex flex-col gap-2">
-          <h2 id="history-title" className="heading-3 m-0">
+          <h2 id="history-title" className="heading-2 m-0">
             {s.historyTitle}
           </h2>
           <p className="m-0 text-small text-ink-2">{s.historyLead(data.historyDays)}</p>
@@ -456,9 +459,12 @@ export default function SitesPanel({ lang }: Props) {
                     <bdi dir="ltr" className="text-small font-semibold break-all text-ink">
                       {shortUrl(scan.url)}
                     </bdi>
-                    <span className="text-meta text-ink-2">
-                      {dayLabel(scan.createdAt, lang)} · {s.states[scan.state]}
-                      {scan.score !== null && ` · ${s.score} ${scan.score}`}
+                    <span className="meta-row text-meta text-ink-2">
+                      <span>{dayLabel(scan.createdAt, lang)}</span>
+                      <span>{s.states[scan.state]}</span>
+                      {scan.score !== null && (
+                        <span className="font-semibold text-ink">{`${s.score} ${scan.score}`}</span>
+                      )}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4">
@@ -476,7 +482,7 @@ export default function SitesPanel({ lang }: Props) {
                       href={reportHref(lang, scan.id)}
                     >
                       {s.openReport}
-                      <ExternalLink size={14} aria-hidden="true" />
+                      <ExternalLink size={14} aria-hidden="true" className="rtl:-scale-x-100" />
                     </a>
                     {(scan.state === 'complete' || scan.state === 'partial') && (
                       <PdfDownload

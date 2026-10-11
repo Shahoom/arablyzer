@@ -88,7 +88,7 @@ export function ScanDock({ lang, tool }: { lang: Lang; tool?: string | undefined
         {t.title}
       </h2>
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-2">
-        <div className="scan-box flex items-center gap-2 p-1.5">
+        <div className="scan-box flex items-center gap-2 p-2">
           <Link2 aria-hidden="true" size={20} className="ms-2 shrink-0 text-ink-3" />
           <label htmlFor="dock-url" className="sr-only">
             {t.label}

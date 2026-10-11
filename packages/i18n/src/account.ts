@@ -50,6 +50,8 @@ export interface AccountStrings {
     readonly name: string
     readonly language: string
     readonly languageHint: string
+    /** The heading of the card with the address, the name and the language. */
+    readonly details: string
     readonly signOut: string
     readonly signOutEverywhere: string
     readonly signedOut: string
@@ -176,6 +178,7 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       name: 'الاسم',
       language: 'اللغة',
       languageHint: 'لغة حسابك.',
+      details: 'بياناتك',
       signOut: 'تسجيل الخروج',
       signOutEverywhere: 'الخروج من كل الأجهزة',
       signedOut: 'سجّلت خروجك.',
@@ -198,7 +201,7 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
     },
     sites: {
       title: 'مواقعك',
-      lead: 'احفظ مواقعك لتفحصها من هنا بضغطة واحدة، وتجد فحوصها الأخيرة ودرجاتها.',
+      lead: 'احفظ مواقعك، وافحصها من هنا، وراجع آخر فحوصها ودرجاتها.',
       count: (used, limit) => `المحفوظ ${used} من أصل ${limit}`,
       addLabel: 'رابط الموقع',
       addPlaceholder: 'https://example.com',
@@ -317,6 +320,7 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       name: 'Name',
       language: 'Language',
       languageHint: 'The language of your account.',
+      details: 'Your details',
       signOut: 'Sign out',
       signOutEverywhere: 'Sign out everywhere',
       signedOut: 'You are signed out.',
@@ -340,7 +344,7 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
     },
     sites: {
       title: 'Your sites',
-      lead: 'Save your sites to scan them from here in one click, and see their latest scans and scores.',
+      lead: 'Save your sites, scan them from here, and see their latest scans and scores.',
       count: (used, limit) => `${used} of ${limit} saved`,
       addLabel: 'Site URL',
       addPlaceholder: 'https://example.com',

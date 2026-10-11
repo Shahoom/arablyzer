@@ -33,6 +33,11 @@ interface Props {
    * room it has, so keep it short. `false` leaves it in the flow, beside the top of the main column.
    */
   sticky?: boolean
+  /**
+   * A reading page (an article): a main column of 680 px and an aside of 320, the pair centred in
+   * the content, in place of 760 and 320 to 360 pushed to its two edges.
+   */
+  reading?: boolean
   /** More classes for the grid, which also has `wrap`: the room above and below it. */
   class?: string
 }
@@ -41,13 +46,14 @@ const {
   asideAs = 'aside',
   asideLabel,
   sticky = true,
+  reading = false,
   class: className,
 } = Astro.props
 const Aside = asideAs
 const aside = ['page-aside', sticky && 'page-aside-sticky']
 ---
 
-<div class:list={['wrap page-columns', className]}>
+<div class:list={['wrap page-columns', reading && 'page-columns-reading', className]}>
   {asideFirst && (
     <Aside class:list={aside} aria-label={asideAs === 'aside' ? asideLabel : undefined}>
       <slot name="aside" />

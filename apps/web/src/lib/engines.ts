@@ -10,11 +10,11 @@ export const ENGINE_NAMES: Readonly<Record<Engine, string>> = {
   webkit: 'WebKit',
 }
 
-/** Each engine's dot, in whole class names for Tailwind to find: blue, orange, sky. */
+/** Each engine's dot, in whole class names for Tailwind to find: blue, orange, sky (global.css tokens). */
 export const ENGINE_DOT: Readonly<Record<Engine, string>> = {
-  chromium: 'bg-[#2563eb]',
-  firefox: 'bg-[#ea580c]',
-  webkit: 'bg-[#0ea5e9]',
+  chromium: 'bg-engine-chromium',
+  firefox: 'bg-engine-firefox',
+  webkit: 'bg-engine-webkit',
 }
 
 /** In the order a page lists them. */

@@ -6,9 +6,10 @@ import Page from '../../layouts/Page.astro'
 import { HEAD } from '../../lib/heads'
 import { scanFormHref } from '../../lib/site'
 
-// The page for an address that has none (M2.4b; calm in M2.6 R7): Caddy serves it with the 404
-// status, the English one under /en/. Never indexed, and naming no canonical page, since it answers
-// every such address.
+// The page for an address that has none (M2.4b; calm in M2.6 R7, drawn in R8): Caddy serves it with
+// the 404 status, the English one under /en/. Never indexed, and naming no canonical page, since it
+// answers every such address. Its one drawing is the site's own: a page of text lines that the
+// reading beam sweeps, from the start of the line to its end, with one line missing.
 
 interface Props {
   lang: Lang
@@ -25,54 +26,64 @@ const links = [
 ---
 
 <Page lang={lang} path={PATHS.home} title={`${t.title} — Arablyzer`} description={t.text} noindex>
-  <section class="relative isolate">
-    <div aria-hidden="true" class="page-wash"></div>
-    <div class="wrap flex flex-col items-center gap-5 pt-12 pb-16 text-center lg:pt-20 lg:pb-24">
-      {/* A number, not a heading: modest, in one solid colour; the h1 below says it in words. */}
-      <p
-        dir="ltr"
-        class="m-0 text-[3rem] leading-none font-semibold text-brand-ink tabular-nums lg:text-[3.5rem]"
-      >
-        404
-      </p>
-      <h1 class={HEAD.page}>{t.title}</h1>
-      <p class="lead m-0">{t.text}</p>
-      {/* The knowledge hub reads ?q=: the visitor's words go there when this page has no answer. */}
-      <form
-        action={localePath(lang, PATHS.knowledge)}
-        method="get"
-        role="search"
-        class="flex w-full max-w-[560px] flex-col gap-2 text-start"
-      >
-        <label for="not-found-search" class="sr-only">
-          {k.search.label}
-        </label>
-        <div class="flex gap-2">
-          <div class="search-field min-w-0 grow">
-            <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
-            <input
-              id="not-found-search"
-              name="q"
-              type="search"
-              autocomplete="off"
-              placeholder={k.search.placeholder}
-              class="h-full min-w-0 grow border-0 bg-transparent text-body text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
-            />
+  <section>
+    <div class="wrap grid grid-cols-[minmax(0,1fr)] items-center gap-8 pt-8 pb-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,400px)] lg:gap-20 lg:pt-20 lg:pb-24">
+      <div class="flex flex-col gap-5">
+        <h1 class={HEAD.page}>{t.title}</h1>
+        <p class="lead m-0">{t.text}</p>
+        {/* The knowledge hub reads ?q=: the visitor's words go there when this page has no answer. */}
+        <form
+          action={localePath(lang, PATHS.knowledge)}
+          method="get"
+          role="search"
+          class="flex w-full max-w-[560px] flex-col gap-2"
+        >
+          <label for="not-found-search" class="sr-only">
+            {k.search.label}
+          </label>
+          <div class="flex gap-2">
+            <div class="search-field min-w-0 grow">
+              <Search size={20} stroke-width={2} aria-hidden="true" class="shrink-0 text-ink-3" />
+              <input
+                id="not-found-search"
+                name="q"
+                type="search"
+                autocomplete="off"
+                placeholder={k.search.placeholder}
+                class="h-full min-w-0 grow border-0 bg-transparent text-body text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
+              />
+            </div>
+            <button type="submit" class="btn-grad shrink-0">
+              {k.search.submit}
+            </button>
           </div>
-          <button type="submit" class="btn-grad shrink-0">
-            {k.search.submit}
-          </button>
-        </div>
-      </form>
-      <ul class="m-0 flex list-none flex-wrap justify-center gap-2 p-0">
-        {links.map((link) => (
-          <li>
-            <a href={link.href} class="btn-white">
-              {link.label}
-            </a>
-          </li>
-        ))}
-      </ul>
+        </form>
+        <ul class="m-0 flex list-none flex-wrap gap-2 p-0">
+          {links.map((link) => (
+            <li>
+              <a href={link.href} class="btn-white">
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {/* A drawing, not content: a page of lines, one of them not there, and the beam reading it. */}
+      <div
+        aria-hidden="true"
+        class="reading-beam card order-first flex flex-col gap-3 p-card md:gap-3 lg:order-none lg:p-6"
+      >
+        <span class="h-2.5 w-2/5 rounded-full bg-line-2"></span>
+        <span class="mt-1 hidden h-2 w-full rounded-full bg-line md:block"></span>
+        <span class="h-2 w-[86%] rounded-full bg-line"></span>
+        <span class="grid h-9 w-full place-items-center rounded-lg border border-dashed border-line-2">
+          <span dir="ltr" class="text-meta font-semibold text-ink-3 tabular-nums">
+            404
+          </span>
+        </span>
+        <span class="hidden h-2 w-[92%] rounded-full bg-line md:block"></span>
+        <span class="h-2 w-[58%] rounded-full bg-line"></span>
+      </div>
     </div>
   </section>
 </Page>

@@ -1,7 +1,8 @@
 /**
  * How a page's head is drawn, one rule for each kind of page (M2.6 R6, scaled in R7a). The approved
  * artboards centre the home page's hero and nothing else: every other page opens with its trail,
- * heading and lead at the start of the line, over the faint tint of a page's head (`page-wash`).
+ * heading and lead at the start of the line, on a white band ruled by a hairline (R8; the faint
+ * teal tint they had before was a wash, which the home page's hero alone keeps).
  * The classes are written out in full, for Tailwind to find, and kept here so that no two pages of
  * a kind drift apart.
  *

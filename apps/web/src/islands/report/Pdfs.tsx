@@ -40,10 +40,14 @@ export function Pdfs({ report, lang }: { report: Report; lang: Lang }) {
               <span className="text-small text-ink-2">{t.outcomes[file.outcome]}</span>
             ) : (
               <>
-                <span className="text-meta text-ink-3">
-                  {t.pages(file.pagesRead, file.pages)} · {t.titleLabel}:{' '}
-                  {file.title === null ? '·' : <Revealed text={file.title} />} · {t.languageLabel}:{' '}
-                  <span dir="ltr">{file.language ?? '·'}</span>
+                <span className="meta-row text-meta text-ink-3">
+                  <span>{t.pages(file.pagesRead, file.pages)}</span>
+                  <span>
+                    {t.titleLabel}: {file.title === null ? '–' : <Revealed text={file.title} />}
+                  </span>
+                  <span>
+                    {t.languageLabel}: <span dir="ltr">{file.language ?? '–'}</span>
+                  </span>
                 </span>
                 {file.issues.length === 0 ? (
                   <span className="flex items-center gap-2 text-small">
@@ -53,7 +57,7 @@ export function Pdfs({ report, lang }: { report: Report; lang: Lang }) {
                 ) : (
                   <ul className="m-0 flex list-none flex-col gap-2 p-0">
                     {file.issues.map((issue) => (
-                      <li key={issue.kind} className="flex flex-col gap-0.5 text-small">
+                      <li key={issue.kind} className="flex flex-col gap-1 text-small">
                         <span className="flex flex-wrap items-center gap-2 font-semibold">
                           <TriangleAlert
                             size={14}

@@ -15,7 +15,7 @@ export function Rich({ text, lang }: { text: string; lang: Lang }) {
           <code
             key={index}
             dir="ltr"
-            className="rounded-xs bg-surface-2 px-1.5 py-px font-mono text-[0.875em] [overflow-wrap:anywhere]"
+            className="rounded-xs bg-surface-2 px-2 py-px font-mono text-[0.875em] [overflow-wrap:anywhere]"
           >
             {part.text}
           </code>

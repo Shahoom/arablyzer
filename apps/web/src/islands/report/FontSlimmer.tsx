@@ -57,7 +57,7 @@ function FontRow({ font, id, lang }: { font: Font; id: string; lang: Lang }) {
           {font.family}
         </h3>
         <span dir="ltr" className="font-mono text-meta break-all text-ink-3">
-          {font.url.split(/[?#]/)[0]?.split('/').pop()} · {font.format}
+          {font.url.split(/[?#]/)[0]?.split('/').pop()} <span className="ms-2">{font.format}</span>
         </span>
       </div>
       {subset === null ? (

@@ -33,12 +33,9 @@ Astro.csp?.insertDirective(
   description={copy.pageDescription}
   noindex
 >
-  <section class="relative isolate">
-    <div aria-hidden="true" class="page-wash"></div>
+  <section>
     <div class="wrap pt-5 pb-12 lg:pt-10 lg:pb-20">
-      <div class="mx-auto w-full max-w-[560px]">
-        <AccountApp client:load lang={lang} page={page} />
-      </div>
+      <AccountApp client:load lang={lang} page={page} />
     </div>
   </section>
 </Page>

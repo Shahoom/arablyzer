@@ -29,6 +29,15 @@ describe('renderMarkdown', () => {
     )
   })
 
+  it('renders a block quote as one paragraph, joining its lines, with inline markup', () => {
+    expect(renderMarkdown('نص.\n\n> سطر أول\n> **ثانٍ** و`code`\n\nخاتمة.')).toBe(
+      '<p>نص.</p>\n<blockquote><p>سطر أول <strong>ثانٍ</strong> و<code dir="ltr">code</code></p></blockquote>\n<p>خاتمة.</p>',
+    )
+    expect(renderMarkdown('> <b>x</b>')).toBe(
+      '<blockquote><p>&lt;b&gt;x&lt;/b&gt;</p></blockquote>',
+    )
+  })
+
   it('renders tables, with inline markup in the cells', () => {
     expect(
       renderMarkdown('| بدل | استخدم |\n|---|:---:|\n| `,` | `،` |\n| a \\| b | **c** |'),
@@ -47,7 +56,7 @@ describe('renderMarkdown', () => {
 
   it.each([
     ['a heading', '## عنوان', /headings are not allowed/],
-    ['a quote', '> اقتباس', /quotes are not supported/],
+    ['a quote with an empty line inside', '> أول\n>\n> ثانٍ', /one paragraph/],
     ['a table without its separator row', '| a | b |\n| c | d |', /table needs a separator row/],
     ['a table row with too many cells', '| a | b |\n|---|---|\n| c | d | e |', /3 cells, not 2/],
     ['an unclosed code block', '```html\n<p>', /code block is not closed/],

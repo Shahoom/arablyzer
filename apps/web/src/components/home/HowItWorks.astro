@@ -7,9 +7,10 @@ import SectionIntro from './SectionIntro.astro'
 /**
  * Three numbered steps, which are a real sequence (an ordered list). On a phone (M2.6 R7) they are
  * a column: each step's number (40 px) beside its title and words, a thin line joining one number
- * to the next. From md they are three columns, centred under their numbers, and a band of light
- * runs along the line that joins them in the way the text is read, from the start of the line to
- * its end, with the reading beam's keyframes (M2.6 R1); with reduced motion there is no band.
+ * to the next. From md they are three columns at the start of the line under their numbers (R8: not
+ * centred), and a band of light runs along the line that joins them in the way the text is read,
+ * from the start of the line to its end, with the reading beam's keyframes (M2.6 R1); with reduced
+ * motion there is no band. A number is an outlined disc: the gradient is for actions.
  */
 interface Props {
   lang: Lang
@@ -20,24 +21,24 @@ const t = HOME[lang].how
 
 <section aria-labelledby="how-title" class="below-fold strip">
   <div class="wrap">
-    <SectionIntro kicker={t.kicker} id="how-title" title={t.title} />
+    <SectionIntro id="how-title" title={t.title} />
     <div class="relative">
       <div
         aria-hidden="true"
-        class="track absolute inset-x-[16%] top-[23px] hidden h-0.5 overflow-hidden rounded-sm bg-line md:block"
+        class="track absolute inset-x-0 top-[23px] hidden h-0.5 overflow-hidden rounded-sm bg-line md:block"
       ></div>
       <ol class="m-0 grid list-none gap-4 p-0 md:grid-cols-3 md:gap-5" role="list">
         {t.steps.map((step, index) => (
-          <li class="step relative z-10 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 md:flex md:flex-col md:items-center md:gap-3 md:px-3 md:text-center">
+          <li class="step relative z-10 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 md:flex md:flex-col md:items-start md:gap-4 md:pe-6">
             <span
               aria-hidden="true"
-              class="grid size-10 place-items-center rounded-xl bg-[#00727c] bg-(image:--gradient-btn) text-[1.125rem] font-semibold text-white shadow-[0_10px_20px_-10px_rgb(79_70_229/0.6)] md:size-12 md:rounded-2xl md:text-[1.25rem]"
+              class="grid size-10 place-items-center rounded-full border-2 border-brand bg-bg text-[1.0625rem] font-semibold text-brand-ink tabular-nums md:size-12 md:text-[1.25rem]"
             >
               {index + 1}
             </span>
             <div class="min-w-0">
               <h3 class="heading-3 m-0">{step.title}</h3>
-              <p class="text-small m-0 mt-1 max-w-[40ch] text-ink-2 md:mx-auto md:max-w-[34ch]">
+              <p class="text-small m-0 mt-1 max-w-[40ch] text-ink-2 md:max-w-[34ch]">
                 <Bidi text={step.text} lang={lang} />
               </p>
             </div>
@@ -52,16 +53,16 @@ const t = HOME[lang].how
   /* The browser's placeholder until the section is laid out: its measured height on a phone, a
      tablet and a desktop (the real height is remembered once it has been drawn). */
   .strip {
-    contain-intrinsic-size: auto 355px;
+    contain-intrinsic-size: auto 335px;
   }
   @media (min-width: 48rem) {
     .strip {
-      contain-intrinsic-size: auto 262px;
+      contain-intrinsic-size: auto 255px;
     }
   }
   @media (min-width: 64rem) {
     .strip {
-      contain-intrinsic-size: auto 245px;
+      contain-intrinsic-size: auto 215px;
     }
   }
   /* A phone's line from one number to the next: 2 px, in the middle of the 40 px number. */

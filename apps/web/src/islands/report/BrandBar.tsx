@@ -55,7 +55,7 @@ export function BrandBar({ id, lang }: { id: string; lang: Lang }) {
           className="h-10 max-w-[10rem] rounded-lg bg-white object-contain p-1"
         />
       )}
-      <span className="text-body font-bold">{brand.name}</span>
+      <span className="text-body font-semibold">{brand.name}</span>
       {brand.credit && <span className="ms-auto text-meta opacity-90">{t.credit}</span>}
     </div>
   )

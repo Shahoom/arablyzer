@@ -1076,14 +1076,15 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
     }, 60_000)
   })
 
-  describe('the 404 page (M2.6 R7)', () => {
+  describe('the 404 page (M2.6 R7, drawn in R8)', () => {
     it.each(['/404', '/en/404'])(
-      'is calm: a modest number in one colour, a heading, a search and four ways on (%s)',
+      'is calm: a heading, a search and four ways on, beside one drawing (%s)',
       async (path) => {
         for (const width of [390, 1440]) {
           const tab = await open(browser, path, { width, height: width < 600 ? 844 : 900 })
           const found = await tab.evaluate(() => {
-            const number = document.querySelector('main p[dir="ltr"]')
+            // The drawing: a page of lines the reading beam sweeps, one of them missing («404»).
+            const number = document.querySelector('main .reading-beam[aria-hidden="true"]')
             const heading = document.querySelector('main h1')
             const form = document.querySelector('main form[role="search"]')
             const links = [...document.querySelectorAll('main ul a')]
@@ -1091,14 +1092,7 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
               (node) => getComputedStyle(node).webkitTextFillColor === 'rgba(0, 0, 0, 0)',
             )
             return {
-              number:
-                number === null
-                  ? null
-                  : [
-                      number.textContent.trim(),
-                      Number.parseFloat(getComputedStyle(number).fontSize),
-                      getComputedStyle(number).fontWeight,
-                    ],
+              number: number === null ? null : number.textContent.trim(),
               heading:
                 heading === null ? null : Number.parseFloat(getComputedStyle(heading).fontSize),
               align: heading === null ? null : getComputedStyle(heading).textAlign,
@@ -1122,12 +1116,13 @@ describe.each(ENGINES)('the knowledge hub in %s', (engine) => {
             }
           })
           const where = `${path} at ${String(width)}`
-          // «404» is a number, not a heading: 48 px on a phone, 56 from lg, semibold, no gradient.
-          expect(found.number, where).toEqual(['404', width < 1024 ? 48 : 56, '600'])
+          // «404» is in the drawing, not in a heading, and the drawing is hidden from a screen reader.
+          expect(found.number, where).toBe('404')
           expect(found.gradient, `${where}: no gradient`).toBe(0)
           expect(found.scan, `${where}: no ring and no aurora`).toBe(0)
           expect(found.heading, where).toBe(width < 1024 ? 28 : 40)
-          expect(found.align, where).toBe('center')
+          // At the start of the line: right in Arabic, left in English.
+          expect(found.align, where).toBe('start')
           // The hub reads ?q=, so the visitor's words go on there.
           expect(found.form?.[0], where).toBe(`${path.startsWith('/en') ? '/en' : ''}/knowledge`)
           expect(found.form?.[1], where).toBe('q')

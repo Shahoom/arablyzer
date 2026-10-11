@@ -21,8 +21,8 @@ const marked = 'aria-[current=page]:bg-indigo-soft aria-[current=page]:text-indi
 
 <div class="flex flex-col gap-3">
   {tags.length > 0 && (
-    <nav aria-labelledby="tags-title" class="kb-box hidden flex-col gap-0.5 p-3 lg:flex">
-      <h2 id="tags-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+    <nav aria-labelledby="tags-title" class="kb-box hidden flex-col gap-1 p-3 lg:flex">
+      <h2 id="tags-title" class="m-0 px-3 pt-1 pb-2 text-meta font-semibold text-ink-2">
         {t.tagsLabel}
       </h2>
       <a
@@ -49,8 +49,8 @@ const marked = 'aria-[current=page]:bg-indigo-soft aria-[current=page]:text-indi
       ))}
     </nav>
   )}
-  <nav aria-labelledby="feeds-title" class="kb-box flex flex-col gap-0.5 p-3">
-    <h2 id="feeds-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+  <nav aria-labelledby="feeds-title" class="kb-box flex flex-col gap-1 p-3">
+    <h2 id="feeds-title" class="m-0 px-3 pt-1 pb-2 text-meta font-semibold text-ink-2">
       {t.feeds.label}
     </h2>
     <a href={feedPath(lang, 'rss')} class={link}>

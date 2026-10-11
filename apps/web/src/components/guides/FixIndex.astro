@@ -51,7 +51,8 @@ const jsonLd = [
   jsonLd={jsonLd}
 >
   <PageHead lang={lang} breadcrumb={{ label: t.breadcrumb, current: t.title }} title={t.title}>
-    <span slot="kicker" class="kick self-start">
+    <span slot="kicker" class="topic self-start">
+      <span aria-hidden="true" class="size-2 rounded-full bg-cat-index"></span>
       <Bidi text={t.source} lang={lang} />
     </span>
     <Bidi slot="lead" text={t.intro} lang={lang} />
@@ -70,13 +71,13 @@ const jsonLd = [
     <div class="page-aside page-aside-sticky hidden flex-col gap-3 lg:flex">
       {/* Two groups are two things to jump between; one is the page. */}
       {groups.length > 1 && (
-        <nav aria-labelledby="groups-title" class="kb-box flex flex-col gap-0.5 p-3">
-          <h2 id="groups-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+        <nav aria-labelledby="groups-title" class="kb-box flex flex-col gap-1 p-3">
+          <h2 id="groups-title" class="m-0 px-3 pt-1 pb-2 text-meta font-semibold text-ink-2">
             {t.contents}
           </h2>
           {groups.map((group) => (
             <a href={`#group-${group.status}`} class="kb-link text-ink-2 hover:text-ink">
-              <span class="flex items-center gap-2.5">
+              <span class="flex items-center gap-3">
                 <span
                   aria-hidden="true"
                   class:list={['size-2 shrink-0 rounded-full', GUIDE_STATUS_DOT[group.status]]}
@@ -100,7 +101,7 @@ const jsonLd = [
           aria-labelledby={`group-${group.status}-title`}
           class="flex scroll-mt-6 flex-col gap-3"
         >
-          <h2 id={`group-${group.status}-title`} class="heading-2 m-0 flex items-baseline gap-2.5">
+          <h2 id={`group-${group.status}-title`} class="heading-2 m-0 flex items-baseline gap-3">
             {t.groups[group.status]}
             <span dir="ltr" class="text-small font-normal text-ink-2 tabular-nums">
               {group.guides.length}
@@ -114,7 +115,7 @@ const jsonLd = [
                     aria-hidden="true"
                     class:list={['kb-dot', GUIDE_STATUS_DOT[group.status]]}
                   />
-                  <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span class="flex min-w-0 flex-1 flex-col gap-1">
                     <span class="min-w-0 text-body font-semibold group-hover:text-brand-ink">
                       <Bidi text={guide.message[lang]} lang={lang} />
                     </span>

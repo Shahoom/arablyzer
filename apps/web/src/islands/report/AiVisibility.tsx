@@ -64,7 +64,7 @@ export function AiVisibility({ report, lang }: { report: Report; lang: Lang }) {
                     <p className="m-0 text-small text-ink-2">
                       {t.competitors}:{' '}
                       <span dir="ltr" className="font-mono">
-                        {competitors.join(' · ')}
+                        {competitors.join(lang === 'ar' ? '، ' : ', ')}
                       </span>
                     </p>
                   )}

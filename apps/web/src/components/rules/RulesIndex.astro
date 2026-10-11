@@ -102,8 +102,8 @@ const jsonLd = [
   */}
   <div class:list={['wrap page-columns', HEAD.bodyTop, 'pb-section']}>
     <div class="page-aside page-aside-sticky hidden flex-col gap-3 lg:flex">
-      <nav aria-labelledby="categories-title" class="kb-box flex flex-col gap-0.5 p-3">
-        <h2 id="categories-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+      <nav aria-labelledby="categories-title" class="kb-box flex flex-col gap-1 p-3">
+        <h2 id="categories-title" class="m-0 px-3 pt-1 pb-2 text-meta font-semibold text-ink-2">
           {t.library.categories}
         </h2>
         {groups.map((group, index) => (
@@ -112,7 +112,7 @@ const jsonLd = [
               <span aria-hidden="true" class="mx-3 my-1 h-px bg-line" />
             )}
             <a href={`#cat-${group.category}`} class="kb-link text-ink-2 hover:text-ink">
-              <span class="flex items-center gap-2.5">
+              <span class="flex items-center gap-3">
                 <span
                   aria-hidden="true"
                   class:list={['size-2 shrink-0 rounded-full', CATEGORY_STYLE[group.category].dot]}
@@ -154,10 +154,7 @@ const jsonLd = [
           class="flex scroll-mt-6 flex-col gap-3"
         >
           <div class="flex flex-col gap-1">
-            <h2
-              id={`cat-${group.category}-title`}
-              class="heading-2 m-0 flex items-baseline gap-2.5"
-            >
+            <h2 id={`cat-${group.category}-title`} class="heading-2 m-0 flex items-baseline gap-3">
               {categories[group.category].name}
               <span dir="ltr" class="text-small font-normal text-ink-2 tabular-nums">
                 {group.rules.length}
@@ -179,7 +176,7 @@ const jsonLd = [
                       aria-hidden="true"
                       class:list={['kb-dot', CATEGORY_STYLE[group.category].dot]}
                     />
-                    <span class="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-baseline md:justify-between md:gap-4">
+                    <span class="flex min-w-0 flex-1 flex-col gap-1 md:flex-row md:items-baseline md:justify-between md:gap-4">
                       <span class="min-w-0 text-body font-semibold group-hover:text-brand-ink">
                         <Bidi text={rule.copy[lang].title} lang={lang} />
                       </span>
@@ -204,11 +201,7 @@ const jsonLd = [
           </div>
         </section>
       ))}
-      <p
-        id="rules-none"
-        hidden
-        class="m-0 rounded-card border border-dashed border-line-2 bg-white/70 p-card text-small text-ink-2"
-      >
+      <p id="rules-none" hidden class="empty-state m-0 text-small">
         {t.library.none}
       </p>
     </div>

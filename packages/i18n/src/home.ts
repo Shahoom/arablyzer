@@ -83,7 +83,6 @@ export interface HomeStrings {
   }
   /** The bento: what other tools do not see. Tiles that are not data say so (`example`). */
   readonly bento: {
-    readonly kicker: string
     readonly title: string
     readonly lead: string
     readonly example: string
@@ -112,13 +111,11 @@ export interface HomeStrings {
     readonly robots: { readonly title: string; readonly blocks: string }
   }
   readonly how: {
-    readonly kicker: string
     readonly title: string
     readonly steps: readonly [Titled, Titled, Titled]
   }
   /** The dark band on monitoring, which is not built yet (the dashboard is Phase 4). */
   readonly monitoring: {
-    readonly kicker: string
     readonly soon: string
     readonly title: string
     readonly text: string
@@ -137,7 +134,6 @@ export interface HomeStrings {
   }
   /** Plans: free now, with what is true today; paid plans are announced, with no prices. */
   readonly plans: {
-    readonly kicker: string
     readonly title: string
     readonly lead: string
     readonly soon: string
@@ -163,7 +159,6 @@ export interface HomeStrings {
     }
   }
   readonly faq: {
-    readonly kicker: string
     readonly title: string
     readonly items: readonly { readonly question: string; readonly answer: string }[]
     /** Shown only on a site built with accounts (apps/web, Faq.astro). */
@@ -224,7 +219,7 @@ export const HOME: Copy<HomeStrings> = {
       source: 'مثال من صفحة اختبار',
       outOf: 'من 100',
       tally: (failed, passed) =>
-        `${failed === 0 ? 'لم تفشل أي قاعدة' : `فشلت ${arabicCount(failed, RULES_NOMINATIVE)}`} · نجحت ${arabicCount(passed, RULES_NOMINATIVE)}`,
+        `${failed === 0 ? 'لم تفشل أي قاعدة' : `فشلت ${arabicCount(failed, RULES_NOMINATIVE)}`}، ونجحت ${arabicCount(passed, RULES_NOMINATIVE)}`,
       categories: 'درجة كل فئة',
       found: 'ما وجدناه',
       element: 'العنصر',
@@ -281,7 +276,6 @@ export const HOME: Copy<HomeStrings> = {
       }),
     },
     bento: {
-      kicker: 'ما لا تراه الأدوات الأجنبية',
       title: 'كل ما يحتاجه موقع عربي، في فحص واحد',
       lead: 'من اتصال الحروف إلى روابط واتساب وزواحف الذكاء الاصطناعي، بالدليل من صفحتك نفسها.',
       example: 'مثال',
@@ -314,7 +308,6 @@ export const HOME: Copy<HomeStrings> = {
       robots: { title: 'robots.txt والأرشفة', blocks: 'يمنع Googlebot من صفحتك' },
     },
     how: {
-      kicker: 'كيف يعمل',
       title: 'من الرابط إلى الدليل في ثلاث خطوات',
       steps: [
         {
@@ -332,7 +325,6 @@ export const HOME: Copy<HomeStrings> = {
       ],
     },
     monitoring: {
-      kicker: 'لوحة التحكم',
       soon: 'قريباً',
       title: 'راقب مواقعك كل يوم، ونخبرك حين تظهر مشكلة',
       text: 'سنفحص صفحاتك في المتصفحات الثلاثة كل يوم، ونحفظ سجل الدرجة، ونرسل لك ما تغيّر.',
@@ -355,7 +347,6 @@ export const HOME: Copy<HomeStrings> = {
       },
     },
     plans: {
-      kicker: 'الخطط',
       title: 'الفحص مجاني، والمراقبة للمواقع الجادّة',
       lead: 'كل أدوات الصفحة الواحدة مجانية وتبقى كذلك. والخطط المدفوعة للاستخدام الكثيف وحده.',
       soon: 'قريباً',
@@ -381,7 +372,6 @@ export const HOME: Copy<HomeStrings> = {
       },
     },
     faq: {
-      kicker: 'أسئلة شائعة',
       title: 'قبل أن تبدأ',
       items: [
         {
@@ -451,7 +441,7 @@ export const HOME: Copy<HomeStrings> = {
       source: 'From one of our test pages',
       outOf: 'out of 100',
       tally: (failed, passed) =>
-        `${failed === 0 ? 'No rule failed' : `${englishCount(failed, 'rule', 'rules')} failed`} · ${passed} passed`,
+        `${failed === 0 ? 'No rule failed' : `${englishCount(failed, 'rule', 'rules')} failed`}, ${passed} passed`,
       categories: 'Score by category',
       found: 'What we found',
       element: 'Element',
@@ -483,7 +473,6 @@ export const HOME: Copy<HomeStrings> = {
       terms: (count) => englishForm(count, 'glossary term in Arabic', 'glossary terms in Arabic'),
     },
     bento: {
-      kicker: 'What other tools don’t see',
       title: 'Everything an Arabic site needs, in one scan',
       lead: 'From letter joining to WhatsApp links and AI crawlers, with evidence from your own page.',
       example: 'Example',
@@ -516,7 +505,6 @@ export const HOME: Copy<HomeStrings> = {
       robots: { title: 'robots.txt and indexing', blocks: 'Blocks Googlebot from your page' },
     },
     how: {
-      kicker: 'How it works',
       title: 'From a link to evidence in three steps',
       steps: [
         {
@@ -534,7 +522,6 @@ export const HOME: Copy<HomeStrings> = {
       ],
     },
     monitoring: {
-      kicker: 'Dashboard',
       soon: 'Coming soon',
       title: 'Monitor your sites every day, and hear from us when a problem shows up',
       text: 'We will check your pages in all three browsers every day, keep the score’s history, and send you what changed.',
@@ -557,7 +544,6 @@ export const HOME: Copy<HomeStrings> = {
       },
     },
     plans: {
-      kicker: 'Plans',
       title: 'Scanning is free; monitoring is for serious sites',
       lead: 'Every single-page tool is free and stays free. Paid plans are for heavy use only.',
       soon: 'Coming soon',
@@ -583,7 +569,6 @@ export const HOME: Copy<HomeStrings> = {
       },
     },
     faq: {
-      kicker: 'FAQ',
       title: 'Before you start',
       items: [
         {

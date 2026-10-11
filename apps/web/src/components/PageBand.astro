@@ -1,0 +1,22 @@
+---
+import { HEAD } from '../lib/heads'
+
+/**
+ * The band at the head of every inner page (R8): a white ground ruled by a hairline, the page's
+ * wrap, and the room (`HEAD.padding`) and rhythm (16 px, 20 from lg) its trail, heading and lead
+ * keep. Four pages each drew this by hand, and the tint behind it was a wash; it is one place now.
+ * `as="div"` for a page whose audit wants no `section` before its first form (a tool's).
+ */
+interface Props {
+  as?: 'section' | 'div'
+  /** More classes for the wrap: a head with columns of its own sets its gap here. */
+  class?: string
+}
+const { as: Tag = 'section', class: className } = Astro.props
+---
+
+<Tag class="border-b border-line bg-surface">
+  <div class:list={['wrap flex flex-col gap-4 lg:gap-5', HEAD.padding, className]}>
+    <slot />
+  </div>
+</Tag>
