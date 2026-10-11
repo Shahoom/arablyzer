@@ -48,4 +48,16 @@ describe('the developers’ page', () => {
     expect(DEVELOPERS_UI.ar.keys.count(1, 2)).toMatch(/1/)
     expect(DEVELOPERS_UI.reviewed).toBe(false)
   })
+
+  it('has the Action and the extension in both languages, with the same notes and steps', () => {
+    for (const key of ['action', 'extension'] as const) {
+      expect(DEVELOPERS_UI.ar[key].notes).toHaveLength(DEVELOPERS_UI.en[key].notes.length)
+    }
+    expect(DEVELOPERS_UI.ar.extension.steps).toHaveLength(DEVELOPERS_UI.en.extension.steps.length)
+    // The commands and settings named in the prose are the real ones (the integrations' own tests keep those real).
+    const prose = JSON.stringify([DEVELOPERS_UI.en.action, DEVELOPERS_UI.en.extension])
+    for (const word of ['fail_on', 'sarif_dir', 'upload-sarif', 'pnpm ext:build', 'activeTab']) {
+      expect(prose).toContain(word)
+    }
+  })
 })

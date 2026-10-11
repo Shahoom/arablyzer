@@ -58,6 +58,41 @@ jobs:
       - name: Audit the lockfile
         run: pnpm audit --audit-level high
 
+  integrations:
+    # M5.2: the GitHub Action runs its committed bundle, so a change to its source, to
+    # integrations/core or to the strings is not done until `pnpm action:build` has been run and the
+    # new bundle committed. The Chrome extension is built from source here (nothing built is kept in
+    # git); its zip is what the owner uploads to the Chrome Web Store. The tests of both run above.
+    name: Action bundle and Chrome extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: The Action's bundle is the source's
+        run: |
+          pnpm action:build
+          if [ -n "$(git status --porcelain -- integrations/github-action/dist)" ]; then
+            git status --short -- integrations/github-action/dist
+            echo "::error::integrations/github-action/dist is out of date: run pnpm action:build and commit it."
+            exit 1
+          fi
+      - name: Build the Chrome extension
+        run: pnpm ext:build
+      - name: Keep the extension's zip
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: chrome-extension
+          path: integrations/chrome-extension/arablyzer-chrome-extension-*.zip
+          if-no-files-found: error
+          retention-days: 30
+
   browsers:
     # M1.1: the browser SSRF suite and the rendered-facts tests, in every engine (Phase 1 design
     # §6). A missing engine fails the run instead of being skipped.

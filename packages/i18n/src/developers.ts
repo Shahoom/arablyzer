@@ -67,6 +67,19 @@ export interface DevelopersStrings {
     readonly http: string
     readonly notes: readonly string[]
   }
+  readonly action: {
+    readonly title: string
+    readonly lead: string
+    readonly notes: readonly string[]
+    readonly link: string
+  }
+  readonly extension: {
+    readonly title: string
+    readonly lead: string
+    readonly steps: readonly string[]
+    readonly notes: readonly string[]
+    readonly link: string
+  }
   readonly keys: {
     readonly title: string
     readonly lead: string
@@ -252,6 +265,31 @@ export const DEVELOPERS_UI: Copy<DevelopersStrings> = {
         'نقطة النهاية `/mcp` بلا جلسات: كل طلب مستقل، وتردّ بـ JSON.',
         'الشرح الكامل وإعدادات العملاء في `docs/mcp.md` بمستودع المشروع.',
       ],
+    },
+    action: {
+      title: 'إجراء GitHub',
+      lead: 'افحص صفحاتك من خط التكامل المستمر. يستعمل الإجراء الـ API نفسه بمفتاحك: ينتظر الفحص بأدب، ويكتب في ملخص المهمة الدرجة وأسوأ المشكلات، ويفشل الخطوة عند `fail_on`، ويكتب ملف SARIF لتظهر المشكلات في «Code scanning» على GitHub.',
+      notes: [
+        '`fail_on`: `critical` أو `serious` أو `none` (الافتراضي). و`lang`: لغة الملخص ورسائل SARIF، `ar` أو `en`.',
+        'لعدة صفحات استعمل `urls` (حتى عشر). كل صفحة تخصم فحصاً واحداً من حصة حسابك، والصفحة نفسها خلال عشر دقائق لا تخصم شيئاً.',
+        'يُكتب ملف SARIF لكل صفحة في المجلد `sarif_dir`، ويُرفع بـ `github/codeql-action/upload-sarif`. كل قاعدة فيه تشير إلى صفحتها في الموقع.',
+        'مفتاحك سرٌّ من أسرار المستودع، والإجراء لا يطبعه في السجل.',
+      ],
+      link: 'الإجراء ودليله في المستودع',
+    },
+    extension: {
+      title: 'إضافة Chrome',
+      lead: 'افتح أي صفحة واضغط «افحص هذه الصفحة»: ترى درجتها وأسوأ مشكلاتها، وتظهر الدرجة على أيقونة الإضافة. تستعمل الإضافة الـ API بمفتاحك الذي تضعه في صفحة إعداداتها، وبدونه تفتح لك صفحة الفحص في الموقع.',
+      steps: [
+        'ابنِ الإضافة بالأمر `pnpm ext:build` من المستودع، فينتج المجلد `dist`.',
+        'في `chrome://extensions` فعّل «وضع المطوّر»، واضغط «تحميل إضافة غير مضغوطة»، واختر المجلد `dist`.',
+        'افتح إعدادات الإضافة، والصق مفتاح الـ API، واضغط «جرّب المفتاح».',
+      ],
+      notes: [
+        'أذونات قليلة: `activeTab` و`storage`، وإذن الاتصال بخدمة Arablyzer وحدها. ولا خلفية تعمل ولا سكربت يُحقن في الصفحات.',
+        'لا تحليلات ولا شيفرة من الخارج. المُرسَل إلى الخدمة عنوان الصفحة التي تفحصها، لا غير.',
+      ],
+      link: 'الإضافة ودليلها في المستودع',
     },
     keys: {
       title: 'مفاتيح API',
@@ -447,6 +485,31 @@ export const DEVELOPERS_UI: Copy<DevelopersStrings> = {
         'The `/mcp` endpoint has no sessions: each request stands alone, and answers in JSON.',
         'The full guide and client configurations are in `docs/mcp.md` in the project’s repository.',
       ],
+    },
+    action: {
+      title: 'The GitHub Action',
+      lead: 'Scan your pages from your CI. The action uses this same API with your key: it waits for the scan politely, writes the score and the worst problems into the job summary, fails the step at `fail_on`, and writes a SARIF file so the findings appear in “Code scanning” on GitHub.',
+      notes: [
+        '`fail_on` is `critical`, `serious` or `none` (the default). `lang` is the language of the summary and of the SARIF messages, `ar` or `en`.',
+        'Give `urls` for several pages (up to ten). Each page takes one scan from your account’s quota, and the same page within ten minutes takes none.',
+        'A SARIF file per page is written to the folder `sarif_dir`, and uploaded with `github/codeql-action/upload-sarif`. Each rule in it points to its page on this site.',
+        'Your key is a repository secret, and the action never prints it in the log.',
+      ],
+      link: 'The action and its guide in the repository',
+    },
+    extension: {
+      title: 'The Chrome extension',
+      lead: 'Open any page and press “Check this page”: you see its score and its worst problems, and the score shows on the extension’s icon. The extension uses the API with the key you put in its settings page; without one it opens the site’s scan page for you.',
+      steps: [
+        'Build the extension with `pnpm ext:build` in the repository, which makes the `dist` folder.',
+        'In `chrome://extensions`, turn on “Developer mode”, press “Load unpacked”, and choose the `dist` folder.',
+        'Open the extension’s settings, paste your API key, and press “Test the key”.',
+      ],
+      notes: [
+        'Few permissions: `activeTab` and `storage`, and permission to reach the Arablyzer service alone. No background process runs, and no script is injected into pages.',
+        'No analytics and no remote code. The service is sent the address of the page you check, and nothing else.',
+      ],
+      link: 'The extension and its guide in the repository',
     },
     keys: {
       title: 'API keys',
