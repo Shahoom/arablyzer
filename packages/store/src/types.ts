@@ -72,6 +72,8 @@ export interface ScanJob {
   readonly url: string
   /** A tool's slug, when a tool page asked: its rules alone. */
   readonly tool?: string
+  /** The browser engines to render in, from the API (M5.1); left out, every engine the scanner runs. */
+  readonly engines?: readonly ('chromium' | 'firefox' | 'webkit')[]
 }
 
 export interface ScanQueue {

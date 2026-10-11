@@ -36,14 +36,26 @@ const message = (error: unknown) => (error instanceof Error ? error.message : St
  * Anything else is not a scan, and throws.
  */
 export function scanJobOf(data: unknown): ScanJob {
-  const { id, url, tool } = (typeof data === 'object' && data !== null ? data : {}) as Record<
-    string,
-    unknown
-  >
+  const { id, url, tool, engines } = (
+    typeof data === 'object' && data !== null ? data : {}
+  ) as Record<string, unknown>
   if (typeof id !== 'string' || typeof url !== 'string') throw new Error('Not a scan')
   if (tool !== undefined && typeof tool !== 'string') throw new Error('Not a scan')
-  return { id, url, ...(tool === undefined ? {} : { tool }) }
+  if (engines !== undefined && !isEngines(engines)) throw new Error('Not a scan')
+  return {
+    id,
+    url,
+    ...(tool === undefined ? {} : { tool }),
+    ...(engines === undefined ? {} : { engines }),
+  }
 }
+
+const ENGINES: readonly unknown[] = ['chromium', 'firefox', 'webkit']
+const isEngines = (value: unknown): value is NonNullable<ScanJob['engines']> =>
+  Array.isArray(value) &&
+  value.length >= 1 &&
+  value.length <= ENGINES.length &&
+  value.every((engine) => ENGINES.includes(engine))
 
 /**
  * One scan, from the queue to its stored report (M2.1 plan §4): each step the scan reports, from
@@ -105,7 +117,11 @@ async function askScanner(
   for (let wait = RETRY_FIRST_MS; ; wait = Math.min(2 * wait, RETRY_LONGEST_MS)) {
     try {
       return await deps.scanner(
-        { url: job.url, ...(job.tool === undefined ? {} : { tool: job.tool }) },
+        {
+          url: job.url,
+          ...(job.tool === undefined ? {} : { tool: job.tool }),
+          ...(job.engines === undefined ? {} : { engines: [...job.engines] }),
+        },
         publish,
       )
     } catch (error) {

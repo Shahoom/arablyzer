@@ -21,6 +21,12 @@ export const SCAN_PATH = '/scan'
 export const ScanRequest = z.strictObject({
   url: z.string().min(1).max(MAX_URL_LENGTH),
   tool: z.string().max(MAX_TOOL_SLUG_LENGTH).regex(TOOL_SLUG_PATTERN).optional(),
+  /** The engines to render in (M5.1), of those the scanner runs; left out, all of them. */
+  engines: z
+    .array(z.enum(['chromium', 'firefox', 'webkit']))
+    .min(1)
+    .max(3)
+    .optional(),
 })
 export type ScanRequest = z.infer<typeof ScanRequest>
 
