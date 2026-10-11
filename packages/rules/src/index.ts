@@ -7,6 +7,7 @@ import { rule as a11yLinkName } from './rules/a11y-link-name/rule'
 import { rule as a11yValidLang } from './rules/a11y-valid-lang/rule'
 import { rule as aiTrainingFilters } from './rules/ai-training-filters/rule'
 import { rule as aiVisibilityGap } from './rules/ai-visibility-gap/rule'
+import { rule as anchorTextGeneric } from './rules/anchor-text-generic/rule'
 import { rule as arAiReadability } from './rules/ar-ai-readability/rule'
 import { rule as arDigitsMixed } from './rules/ar-digits-mixed/rule'
 import { rule as arFontFallback } from './rules/ar-font-fallback/rule'
@@ -20,7 +21,9 @@ import { rule as arMojibake } from './rules/ar-mojibake/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as botChallenge } from './rules/bot-challenge/rule'
 import { rule as brandNameConsistency } from './rules/brand-name-consistency/rule'
+import { rule as breadcrumbSchemaInvalid } from './rules/breadcrumb-schema-invalid/rule'
 import { rule as canonicalConflict } from './rules/canonical-conflict/rule'
+import { rule as contactLinkInvalid } from './rules/contact-link-invalid/rule'
 import { rule as countryFit } from './rules/country-fit/rule'
 import { rule as cruxCountryGaps } from './rules/crux-country-gaps/rule'
 import { rule as cspMissing } from './rules/csp-missing/rule'
@@ -40,6 +43,7 @@ import { rule as formAutocompleteMissing } from './rules/form-autocomplete-missi
 import { rule as formLabelMissing } from './rules/form-label-missing/rule'
 import { rule as formPhoneDirection } from './rules/form-phone-direction/rule'
 import { rule as frameProtectionMissing } from './rules/frame-protection-missing/rule'
+import { rule as freshnessDateInvalid } from './rules/freshness-date-invalid/rule'
 import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as hreflangLangMismatch } from './rules/hreflang-lang-mismatch/rule'
@@ -57,8 +61,10 @@ import { rule as lookalikeDomains } from './rules/lookalike-domains/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as misspellingsUncovered } from './rules/misspellings-uncovered/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
+import { rule as ogImageInvalid } from './rules/og-image-invalid/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
+import { rule as paginationCanonical } from './rules/pagination-canonical/rule'
 import { rule as paymentMethods } from './rules/payment-methods/rule'
 import { rule as pdfArabicText } from './rules/pdf-arabic-text/rule'
 import { rule as pdfMetadata } from './rules/pdf-metadata/rule'
@@ -85,10 +91,12 @@ import { rule as sarSignFont } from './rules/sar-sign-font/rule'
 import { rule as searchSpellingVariants } from './rules/search-spelling-variants/rule'
 import { rule as sitemapInvalid } from './rules/sitemap-invalid/rule'
 import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
+import { rule as soft404Signals } from './rules/soft-404-signals/rule'
 import { rule as spfMissing } from './rules/spf-missing/rule'
 import { rule as textCompressionMissing } from './rules/text-compression-missing/rule'
 import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as tlsExpiring } from './rules/tls-expiring/rule'
+import { rule as urlParametersLinks } from './rules/url-parameters-links/rule'
 import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 import { rule as whatsappTextEncoding } from './rules/whatsapp-text-encoding/rule'
@@ -112,6 +120,7 @@ export const RULES: readonly Rule[] = [
   a11yValidLang,
   aiTrainingFilters,
   aiVisibilityGap,
+  anchorTextGeneric,
   arAiReadability,
   arDigitsMixed,
   arFontFallback,
@@ -125,7 +134,9 @@ export const RULES: readonly Rule[] = [
   arTatweel,
   botChallenge,
   brandNameConsistency,
+  breadcrumbSchemaInvalid,
   canonicalConflict,
+  contactLinkInvalid,
   countryFit,
   cruxCountryGaps,
   cspMissing,
@@ -145,6 +156,7 @@ export const RULES: readonly Rule[] = [
   formLabelMissing,
   formPhoneDirection,
   frameProtectionMissing,
+  freshnessDateInvalid,
   h1Missing,
   hreflangInvalidCode,
   hreflangLangMismatch,
@@ -162,8 +174,10 @@ export const RULES: readonly Rule[] = [
   metaDescriptionMissing,
   misspellingsUncovered,
   mixedContent,
+  ogImageInvalid,
   ogTagsMissing,
   pageNoindex,
+  paginationCanonical,
   paymentMethods,
   pdfArabicText,
   pdfMetadata,
@@ -190,10 +204,12 @@ export const RULES: readonly Rule[] = [
   searchSpellingVariants,
   sitemapInvalid,
   sitemapMissing,
+  soft404Signals,
   spfMissing,
   textCompressionMissing,
   titleMissing,
   tlsExpiring,
+  urlParametersLinks,
   viewportMissing,
   whatsappLinkFormat,
   whatsappTextEncoding,
