@@ -5,6 +5,7 @@ import {
   authDatabase,
   authSchema,
   PostgresAccountData,
+  PostgresApiKeyData,
   PostgresCrawlData,
   PostgresMonitorData,
   MemoryInFlight,
@@ -19,6 +20,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../../src/app'
 import { createAuth } from '../../src/auth'
 import { DEFAULT_CRAWL_SETTINGS } from '../../src/crawl/settings'
+import { hashApiKey } from '../../src/ids'
 import { CLIENT_ID, CLIENT_SECRET, idToken, stubGoogle } from '../support/google'
 
 // Accounts on PostgreSQL, where uniqueness, cascades and concurrency are the database's: the
@@ -37,6 +39,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
   let accountData: PostgresAccountData
   let monitorData: PostgresMonitorData
   let crawlData: PostgresCrawlData
+  let apiKeyData: PostgresApiKeyData
   let scanStore: PostgresScanStore
 
   beforeAll(async () => {
@@ -59,6 +62,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
     accountData = new PostgresAccountData(pool)
     monitorData = new PostgresMonitorData(pool)
     crawlData = new PostgresCrawlData(pool)
+    apiKeyData = new PostgresApiKeyData(pool)
     scanStore = new PostgresScanStore(pool)
     const auth = createAuth({
       site: SITE,
@@ -74,6 +78,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
         await accountData.eraseUser(userId)
         await monitorData.eraseUser(userId)
         await crawlData.eraseUser(userId)
+        await apiKeyData.eraseUser(userId)
       },
       log: () => undefined,
     })
@@ -100,6 +105,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
         monitors: monitorData,
         crawls: crawlData,
         crawlSettings: DEFAULT_CRAWL_SETTINGS,
+        apiKeys: apiKeyData,
         sender: { send: () => Promise.resolve({ status: 204, ok: true }) },
       },
     })
@@ -226,10 +232,19 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
       100,
     )
     await crawlData.setScan(crawlId, 'https://erase-site.example/page', 'erase-scan-run-0000000')
+    // An API key, whose secret opens the API until the account is erased.
+    const madeKey = await send('POST', '/api/account/keys', { name: 'erase-key' }, cookie)
+    expect(madeKey.status).toBe(201)
+    const { secret } = (await madeKey.json()) as { secret: string }
+    const asKey = () =>
+      app.request('/api/v1/tools?limit=1', { headers: { authorization: `Bearer ${secret}` } })
+    expect((await asKey()).status).toBe(200)
     expect((await send('GET', '/api/account/scans', undefined, cookie)).status).toBe(200)
     expect((await send('DELETE', '/api/account', { confirm: true }, cookie)).status).toBe(204)
     expect((await send('GET', '/api/account', undefined, cookie)).status).toBe(401)
     expect(await scanStore.get('erase-scan-one-000000')).toBeNull()
+    expect((await asKey()).status).toBe(401)
+    expect(await apiKeyData.authenticate(hashApiKey(secret))).toBeNull()
     expect(await crawlData.get(crawlId)).toBeNull()
     const tables = await pool.query<{ table_name: string }>(
       "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'",
@@ -237,7 +252,7 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
     expect(tables.rows.length).toBeGreaterThanOrEqual(10)
     for (const { table_name: table } of tables.rows) {
       const { rows } = await pool.query(
-        `SELECT count(*)::int AS n FROM "${table}" t WHERE t::text LIKE $1 OR t::text LIKE $2 OR t::text LIKE $3 OR t::text LIKE $4 OR t::text LIKE $5 OR t::text LIKE $6`,
+        `SELECT count(*)::int AS n FROM "${table}" t WHERE t::text LIKE $1 OR t::text LIKE $2 OR t::text LIKE $3 OR t::text LIKE $4 OR t::text LIKE $5 OR t::text LIKE $6 OR t::text LIKE $7 OR t::text LIKE $8`,
         [
           `%${id}%`,
           '%erase@example.com%',
@@ -245,6 +260,8 @@ describe.skipIf(databaseUrl === undefined)('accounts on PostgreSQL', () => {
           '%erase-site.example%',
           '%erase-scan-%',
           '%erase-hook%',
+          '%erase-key%',
+          `%${hashApiKey(secret)}%`,
         ],
       )
       expect(rows, table).toEqual([{ n: 0 }])

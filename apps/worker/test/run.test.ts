@@ -367,6 +367,15 @@ describe('scanJobOf', () => {
     })
   })
 
+  it('reads the engines the API asked for, and refuses any it does not know', () => {
+    expect(
+      scanJobOf({ id: ID, url: 'https://example.com/', engines: ['chromium', 'webkit'] }),
+    ).toEqual({ id: ID, url: 'https://example.com/', engines: ['chromium', 'webkit'] })
+    for (const engines of [[], ['ie'], 'chromium', ['chromium', 3]]) {
+      expect(() => scanJobOf({ id: ID, url: 'x', engines })).toThrow('Not a scan')
+    }
+  })
+
   it('refuses what is not a scan', () => {
     for (const data of [null, 'scan', { id: ID }, { url: 'x' }, { id: ID, url: 'x', tool: 3 }]) {
       expect(() => scanJobOf(data)).toThrow('Not a scan')

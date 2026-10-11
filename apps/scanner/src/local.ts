@@ -11,12 +11,26 @@ import { eventOf } from './events'
 export function localScanner(options: ScanOptions): Scanner {
   return (request, onEvent, signal) =>
     scan(request.url, {
-      ...optionsFor(options, request.tool),
+      ...onEngines(optionsFor(options, request.tool), request.engines),
       ...(signal === undefined ? {} : { signal }),
       onProgress: (progress) => {
         onEvent(eventOf(progress))
       },
     })
+}
+
+/**
+ * A scan the API asked to render in some engines only (M5.1): those of them the scanner runs, in its
+ * own order. Asking for engines it has none of is the scan's failure, not a scan of nothing.
+ */
+export function onEngines(
+  options: ScanOptions,
+  engines: readonly string[] | undefined,
+): ScanOptions {
+  if (engines === undefined || options.render === undefined) return options
+  const run = options.render.engines.filter((engine) => engines.includes(engine))
+  if (run.length === 0) throw new Error('None of the engines asked for run on this scanner')
+  return { ...options, render: { ...options.render, engines: run } }
 }
 
 /**

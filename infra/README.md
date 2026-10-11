@@ -143,6 +143,16 @@ it, or Arablyzer's colour is used) and a PNG, JPEG or WebP logo (checked by its 
 PostgreSQL), which replace Arablyzer's mark on its PDFs and on its shared report pages. `ARABLYZER_PLAN_ACCOUNT_WHITE_LABEL_CREDIT=off`
 takes away the small «by Arablyzer» line.
 
+**The public API and the MCP server (M5.1).** A signed-in account makes up to `ARABLYZER_PLAN_ACCOUNT_API_KEYS` keys (2 when
+empty) on `/account`; the secret (`arb_` and 256 random bits) is shown once and only its SHA-256 is kept (`api_keys`, erased with
+the account). `Authorization: Bearer arb_…` opens `/api/v1` (scans, reports, tools, rules, `openapi.json`) and `/mcp`
+(Model Context Protocol, stateless streamable HTTP); the Caddyfile sends both to the API. A scan from the API takes a token
+from the account's own bucket, so there is no second allowance: `ARABLYZER_PLAN_ACCOUNT_API_SCANS` empty lets the API use all of
+it, a number caps the API at that many of the window's scans, `0` closes the API. `ARABLYZER_PLAN_ACCOUNT_API_REQUESTS` (120
+when empty) is each key's requests a minute. With accounts off every `/api/v1` route answers `503 accounts_off`. The MCP server
+calls the API with the caller's own key, in the API's process, so the API's limits and egress rules are the server's; the same
+server runs over stdio from `packages/mcp` (`docs/mcp.md`).
+
 **Deep crawl (M4.5).** A person starts a crawl of a saved site on `/account`; the `crawler` service, a third entry of the
 API's image (`apps/api/src/crawl/main.ts`) on the application role, finds the site's pages (its sitemaps first, then its
 internal links), up to `ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES` (50 when empty), one page at a time with

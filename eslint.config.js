@@ -168,6 +168,8 @@ export default defineConfig(
       'apps/web/src/islands/compare-api.ts',
       // M4.7: the PDF and brand requests, and the shared report's brand: the same origin.
       'apps/web/src/islands/pdf-api.ts',
+      // M5.1: the API keys' requests, the same origin.
+      'apps/web/src/islands/keys-api.ts',
       'apps/web/src/islands/report/BrandBar.tsx',
     ],
     rules: {
@@ -204,6 +206,21 @@ export default defineConfig(
       // M4.7: the PDF job's request, to the same scanner.
       'packages/scanner-client/src/pdf.ts',
     ],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
+    // The MCP server's stdio entry hands the global `fetch` to the client that calls Arablyzer's own
+    // API with the person's key (M5.1): not scan traffic, which leaves the scanner through the
+    // egress proxy. The client takes its fetch as an argument; this is the one place it is given.
+    files: ['packages/mcp/src/stdio.ts'],
     rules: {
       'no-restricted-globals': [
         'error',

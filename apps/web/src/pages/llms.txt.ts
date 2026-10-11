@@ -58,6 +58,11 @@ export const GET: APIRoute = async ({ site: origin }) => {
             url: at(PATHS.bot),
             note: "the scanner's user agent and how to block it",
           },
+          {
+            title: 'API and MCP server',
+            url: at(PATHS.developers),
+            note: 'REST API (OpenAPI 3.1) and a Model Context Protocol server, with an API key from an account',
+          },
         ],
       },
       {

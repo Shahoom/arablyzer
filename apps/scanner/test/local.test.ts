@@ -1,11 +1,12 @@
 import { fileURLToPath } from 'node:url'
 import type { ScanEvent } from '@arablyzer/api-contract'
 import { createPolicy } from '@arablyzer/egress'
+import type { ScanOptions } from '@arablyzer/engine'
 import { serveCrux, serveSite } from '@arablyzer/fixtures'
 import { describe, expect, it } from 'vitest'
 import { RULES } from '@arablyzer/rules'
 import { eventOf } from '../src/events'
-import { localScanner, optionsFor } from '../src/local'
+import { localScanner, onEngines, optionsFor } from '../src/local'
 
 /** The steps the engine sends before it starts a browser, and before Lighthouse. */
 const BROWSER_STEPS: ReadonlySet<string> = new Set(['render-start', 'lab-start'])
@@ -197,5 +198,31 @@ describe('optionsFor', () => {
 
   it('refuses a tool there is none of', () => {
     expect(() => optionsFor({}, 'no-such-tool')).toThrow(/no tool no-such-tool/)
+  })
+})
+
+describe('onEngines', () => {
+  const options = {
+    render: { engines: ['chromium', 'firefox', 'webkit'] },
+  } as unknown as ScanOptions
+
+  it('leaves the options alone without engines asked for, or without a browser', () => {
+    expect(onEngines(options, undefined)).toBe(options)
+    const bare = {} as ScanOptions
+    expect(onEngines(bare, ['chromium'])).toBe(bare)
+  })
+
+  it('runs the engines asked for that the scanner has, in its own order', () => {
+    expect(onEngines(options, ['webkit', 'chromium']).render?.engines).toEqual([
+      'chromium',
+      'webkit',
+    ])
+    const two = { render: { engines: ['chromium', 'firefox'] } } as unknown as ScanOptions
+    expect(onEngines(two, ['firefox', 'webkit']).render?.engines).toEqual(['firefox'])
+  })
+
+  it('fails a scan that asked for engines the scanner does not run', () => {
+    const one = { render: { engines: ['chromium'] } } as unknown as ScanOptions
+    expect(() => onEngines(one, ['webkit'])).toThrow(/None of the engines/)
   })
 })

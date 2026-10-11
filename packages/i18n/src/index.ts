@@ -1,5 +1,11 @@
 export { codeParts, type Copy, type Lang } from './copy'
 export { ALERT_TEXT, type AlertStrings } from './alerts'
+export {
+  DEVELOPERS_UI,
+  DOCUMENTED_CODES,
+  type DevelopersStrings,
+  type KeysProblem,
+} from './developers'
 export { ACCOUNT_UI, type AccountProblem, type AccountStrings } from './account'
 export { BLOG_TAGS, BLOG_UI, type BlogStrings, type BlogTag } from './blog'
 export { COMPARE_UI, type CompareStrings } from './compare'
@@ -38,6 +44,7 @@ import { ALERT_TEXT } from './alerts'
 import { BLOG_UI } from './blog'
 import { COMPARE_UI } from './compare'
 import { CRAWL_UI } from './crawl'
+import { DEVELOPERS_UI } from './developers'
 import { PDF_UI } from './pdf'
 import type { Copy } from './copy'
 import { GENERATORS_UI } from './generators'
@@ -73,4 +80,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'blog.ts': BLOG_UI,
   'versus.ts': VERSUS_UI,
   'pdf.ts': PDF_UI,
+  'developers.ts': DEVELOPERS_UI,
 }

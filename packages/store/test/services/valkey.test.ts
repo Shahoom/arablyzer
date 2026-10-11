@@ -130,6 +130,17 @@ describe.skipIf(!hasValkey)('Valkey', () => {
     expect(taken.filter((result) => result.ok)).toHaveLength(5)
   })
 
+  it('tells the scans a key has left, without taking one', async () => {
+    const window = { scans: 5, seconds: 3600 }
+    const limiter = new ValkeyRateLimiter(redis)
+    const now = Date.parse('2026-09-28T12:00:00Z')
+    expect(await limiter.remaining('connection:left', window, now)).toBe(5)
+    await limiter.take('connection:left', window, now)
+    await limiter.take('connection:left', window, now)
+    expect(await limiter.remaining('connection:left', window, now)).toBe(3)
+    expect(await limiter.remaining('connection:left', window, now)).toBe(3)
+  })
+
   describe('the places a visitor holds', () => {
     const at = Date.parse('2026-09-28T12:00:00Z')
     const key = (visitor: string) => `arablyzer:inflight:${visitor}`

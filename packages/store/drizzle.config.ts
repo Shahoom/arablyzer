@@ -10,6 +10,7 @@ export default defineConfig({
     './src/postgres/monitor-schema.ts',
     './src/postgres/crawl-schema.ts',
     './src/postgres/pdf-schema.ts',
+    './src/postgres/apikey-schema.ts',
   ],
   out: './drizzle',
 })

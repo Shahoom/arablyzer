@@ -86,6 +86,7 @@ export function remoteScanner(
         body: JSON.stringify({
           url: request.url,
           ...(request.tool === undefined ? {} : { tool: request.tool }),
+          ...(request.engines === undefined ? {} : { engines: request.engines }),
         }),
         signal: signal === undefined ? deadline : AbortSignal.any([deadline, signal]),
       })

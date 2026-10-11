@@ -4,6 +4,7 @@ import { localCrawlClient, localScanner, scanOptionsFrom } from '@arablyzer/scan
 import {
   MemoryAccountData,
   MemoryCrawlData,
+  MemoryApiKeyData,
   MemoryPdfData,
   MemoryHandoff,
   MemoryInFlight,
@@ -54,6 +55,7 @@ const deps = apiDeps(env, {
   monitorData,
   crawlData,
   pdfData: new MemoryPdfData(),
+  apiKeyData: new MemoryApiKeyData(),
 })
 const app = createApp(deps)
 const port = Number(env.PORT ?? 8787)

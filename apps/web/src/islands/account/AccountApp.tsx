@@ -19,6 +19,7 @@ import { accountHref, problemFromQuery } from '../auth-model'
 import GoogleSignIn from './GoogleSignIn'
 import AlertsPanel from './AlertsPanel'
 import BrandPanel from './BrandPanel'
+import KeysPanel from './KeysPanel'
 import PdfPanel from './PdfPanel'
 import SitesPanel from './SitesPanel'
 
@@ -401,6 +402,8 @@ function SignedIn({
           <PdfPanel lang={lang} />
 
           <BrandPanel lang={lang} />
+
+          <KeysPanel lang={lang} />
 
           <section
             aria-labelledby="delete-title"

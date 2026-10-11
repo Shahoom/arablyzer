@@ -28,13 +28,16 @@ import {
   type StoredEvent,
 } from '@arablyzer/store'
 import { registerFontRoutes, type FontContext } from './fonts'
-import { mountAccounts, planOf, type AccountsDeps, type AccountUser } from './accounts'
+import { mountAccounts, planOf, type AccountsDeps } from './accounts'
+import { mountApiKeys } from './apikeys'
 import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
 import { hashDeleteToken, newDeleteToken } from './ids'
 import { mountCompare } from './compare'
 import { mountCrawls } from './crawls'
 import { mountPdf } from './pdf'
+import { mountMcp } from './mcp'
+import { mountV1 } from './v1/routes'
 import { mountMonitors } from './monitors'
 import { noMailer } from './monitor/mail'
 import { mountSites } from './sites'
@@ -84,6 +87,16 @@ export interface ApiDeps {
   readonly gsc?: GscDeps
   /** Another way to fetch the font files of the font slimmer's downloads; tests pass their own. */
   readonly fontFetcher?: FontContext['fetcher']
+}
+
+/**
+ * What the public API adds to a scan it starts (M5.1): the engines to render in, if not all, and
+ * the API's share of the account's scans (null = the whole bucket), which makes the answer carry
+ * the account's quota in its headers.
+ */
+export interface StartExtras {
+  readonly engines?: readonly ('chromium' | 'firefox' | 'webkit')[]
+  readonly api?: { readonly cap: number | null }
 }
 
 export interface StreamCaps {
@@ -202,7 +215,8 @@ export function createApp(deps: ApiDeps): Hono {
   const startScan = async (
     c: Context,
     input: { readonly url: string; readonly turnstileToken: string; readonly tool?: string },
-    identity: 'ask' | AccountUser,
+    identity: 'ask' | { readonly id: string },
+    extras: StartExtras = {},
   ): Promise<Response> => {
     // A tool page sends its tool; the site sends no other.
     const tool = input.tool
@@ -244,8 +258,40 @@ export function createApp(deps: ApiDeps): Hono {
       const plan = planOf(access.plans, user.id)
       holder = `account:${user.id}`
       places = plan.inFlight
+      // The API's share is a cap inside the account's bucket, taken first: a scan the cap refuses
+      // costs the website's scans nothing, and one the bucket refuses costs only the API's.
+      const cap = extras.api?.cap ?? null
+      if (cap !== null) {
+        const share = await deps.limiter.take(
+          `api:${holder}`,
+          { scans: cap, seconds: plan.scans.seconds },
+          at.getTime(),
+        )
+        if (!share.ok) return refuse(c, 'rate-limited', share.retryAfterSeconds)
+      }
       const own = await deps.limiter.take(holder, plan.scans, at.getTime())
       if (!own.ok) return refuse(c, 'rate-limited', own.retryAfterSeconds)
+      if (extras.api !== undefined) {
+        const left = await deps.limiter.remaining?.(holder, plan.scans, at.getTime())
+        const capLeft =
+          cap === null
+            ? undefined
+            : await deps.limiter.remaining?.(
+                `api:${holder}`,
+                { scans: cap, seconds: plan.scans.seconds },
+                at.getTime(),
+              )
+        c.header(
+          'X-Scans-Limit',
+          String(cap === null ? plan.scans.scans : Math.min(cap, plan.scans.scans)),
+        )
+        if (left !== undefined) {
+          c.header(
+            'X-Scans-Remaining',
+            String(capLeft === undefined ? left : Math.min(left, capLeft)),
+          )
+        }
+      }
     }
     // The visitor's network is asked after the visitor, so a request their own limit refuses
     // takes nothing of the network's.
@@ -289,8 +335,14 @@ export function createApp(deps: ApiDeps): Hono {
         ...(tool === undefined ? {} : { tool }),
       })
       try {
-        // A whole-page scan of a signed-in person is theirs to see again; a tool's is not kept.
-        if (user !== null && access !== undefined && tool === undefined) {
+        // A whole-page scan of a signed-in person is theirs to see again; a tool's is not kept, nor
+        // is one on chosen engines, whose score would not be comparable with the others (M5.1).
+        if (
+          user !== null &&
+          access !== undefined &&
+          tool === undefined &&
+          extras.engines === undefined
+        ) {
           await access.data.link({
             userId: user.id,
             scanId: id,
@@ -304,6 +356,7 @@ export function createApp(deps: ApiDeps): Hono {
           id,
           url: resolved.value,
           ...(tool === undefined ? {} : { tool }),
+          ...(extras.engines === undefined ? {} : { engines: extras.engines }),
         })
       } catch (error) {
         // Never queued, so never run: the scan fails at once, and says so to any page it has.
@@ -359,6 +412,16 @@ export function createApp(deps: ApiDeps): Hono {
       })
     }
     mountCompare(app, { access, store: deps.store, now })
+    if (deps.accounts.apiKeys !== undefined) {
+      mountApiKeys(app, {
+        access,
+        accounts: deps.accounts,
+        keys: deps.accounts.apiKeys,
+        origin: deps.origin,
+        log: deps.log,
+        now,
+      })
+    }
     if (deps.accounts.pdfs !== undefined) {
       mountPdf(app, {
         access,
@@ -386,6 +449,26 @@ export function createApp(deps: ApiDeps): Hono {
       })
     }
   }
+
+  // The public API (M5.1) is always mounted: with accounts off every route says so.
+  const v1 = mountV1(app, {
+    access,
+    accounts: deps.accounts,
+    keys: deps.accounts?.apiKeys,
+    store: deps.store,
+    limiter: deps.limiter,
+    policy: deps.policy,
+    origin: deps.origin,
+    visitor: (c) => {
+      const address = deps.address(c)
+      return address === null ? null : deps.connectionKey(address, now())
+    },
+    attempts: deps.limits.attempts,
+    log: deps.log,
+    now,
+    startScan,
+  })
+  mountMcp(app, { gate: v1.gate, api: (request, env) => app.fetch(request, env) })
 
   app.get('/api/scans/:id', async (c) => {
     const scan = await findScan(c.req.param('id'))

@@ -45,6 +45,8 @@ export interface SiteStrings {
     /** The product column's link to the comparison pages. */
     readonly compare: string
     readonly bot: string
+    /** The product column's link to the developers' page (M5.1). */
+    readonly developers: string
     readonly glossary: string
     readonly license: string
     readonly builtBy: string
@@ -85,6 +87,7 @@ export const SITE: Copy<SiteStrings> = {
       methodology: 'المنهجية',
       compare: 'مقارنات',
       bot: 'ArablyzerBot وكيف تمنعه',
+      developers: 'للمطوّرين: API وMCP',
       glossary: 'المسرد',
       license: 'مفتوح المصدر بترخيص AGPL-3.0',
       builtBy: 'بناه',
@@ -122,6 +125,7 @@ export const SITE: Copy<SiteStrings> = {
       methodology: 'Methodology',
       compare: 'Comparisons',
       bot: 'ArablyzerBot, and how to block it',
+      developers: 'For developers: API and MCP',
       glossary: 'Glossary',
       license: 'Open source under AGPL-3.0',
       builtBy: 'Built by',

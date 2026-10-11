@@ -16,6 +16,8 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@arablyzer/egress": "workspace:*"
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@seriousme/openapi-schema-validator": "2.11.0"
   }
 }
