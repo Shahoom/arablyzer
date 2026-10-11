@@ -32,6 +32,8 @@ const sections = [
   { id: 'errors', title: t.errors.title },
   { id: 'spec', title: t.spec.title },
   { id: 'mcp', title: t.mcp.title },
+  { id: 'action', title: t.action.title },
+  { id: 'extension', title: t.extension.title },
 ] as const
 const jsonLd = [
   breadcrumbList([
@@ -98,6 +100,25 @@ const stdio = `{
     }
   }
 }`
+// The integrations live in this repository's integrations/ folder (M5.2).
+const REPO = 'https://github.com/Shahoom/arablyzer/tree/main/integrations'
+const workflow = [
+  'permissions:',
+  '  contents: read',
+  '  security-events: write',
+  'steps:',
+  '  - id: arablyzer',
+  '    uses: Shahoom/arablyzer/integrations/github-action@main',
+  '    with:',
+  '      url: https://example.com/',
+  '      api_key: ${{ secrets.ARABLYZER_API_KEY }}',
+  '      fail_on: critical',
+  `      lang: ${lang}`,
+  '  - uses: github/codeql-action/upload-sarif@v4',
+  "    if: always() && steps.arablyzer.outputs.sarif_dir != ''",
+  '    with:',
+  '      sarif_file: ${{ steps.arablyzer.outputs.sarif_dir }}',
+].join('\n')
 const http = `{
   "mcpServers": {
     "arablyzer": {
@@ -300,5 +321,59 @@ const http = `{
         </li>
       ))}
     </ul>
+  </section>
+
+  <section id="action" aria-labelledby="action-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="action-title" title={t.action.title} />
+    <p class={text}>
+      <Rich text={t.action.lead} lang={lang} />
+    </p>
+    <pre dir="ltr" tabindex="0" class={code}>{workflow}</pre>
+    <ul class={list}>
+      {t.action.notes.map((note) => (
+        <li>
+          <Rich text={note} lang={lang} />
+        </li>
+      ))}
+    </ul>
+    <p class={text}>
+      <a
+        href={`${REPO}/github-action`}
+        class="underline underline-offset-4 hover:text-ink"
+        rel="noopener"
+      >
+        {t.action.link}
+      </a>
+    </p>
+  </section>
+
+  <section id="extension" aria-labelledby="extension-title" class="flex scroll-mt-6 flex-col gap-4">
+    <DocHeading id="extension-title" title={t.extension.title} />
+    <p class={text}>
+      <Rich text={t.extension.lead} lang={lang} />
+    </p>
+    <ol class:list={[list, 'list-decimal']}>
+      {t.extension.steps.map((step) => (
+        <li>
+          <Rich text={step} lang={lang} />
+        </li>
+      ))}
+    </ol>
+    <ul class={list}>
+      {t.extension.notes.map((note) => (
+        <li>
+          <Rich text={note} lang={lang} />
+        </li>
+      ))}
+    </ul>
+    <p class={text}>
+      <a
+        href={`${REPO}/chrome-extension`}
+        class="underline underline-offset-4 hover:text-ink"
+        rel="noopener"
+      >
+        {t.extension.link}
+      </a>
+    </p>
   </section>
 </DocPage>

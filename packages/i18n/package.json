@@ -14,6 +14,7 @@
     "./compare": "./src/compare.ts",
     "./pdf": "./src/pdf.ts",
     "./developers": "./src/developers.ts",
+    "./integrations": "./src/integrations.ts",
     "./report": "./src/report.ts",
     "./tools": "./src/tools.ts",
     "./generators": "./src/generators.ts",

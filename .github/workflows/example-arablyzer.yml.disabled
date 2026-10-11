@@ -1,0 +1,38 @@
+# An example of the Arablyzer Action (M5.2). It is not a workflow here: the name ends in .disabled.
+# To use it, copy it to .github/workflows/arablyzer.yml in your repository, keep your API key (from
+# your account page, "API keys") in a secret named ARABLYZER_API_KEY, and change the URL below.
+# Inside this repository the action is `./integrations/github-action`; in another, it is
+# `Shahoom/arablyzer/integrations/github-action@<tag>`.
+name: Arablyzer
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write # upload-sarif writes the alerts to code scanning
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: arablyzer
+        uses: ./integrations/github-action
+        with:
+          url: https://example.com/
+          # urls: |
+          #   https://example.com/ar/
+          #   https://example.com/ar/contact/
+          api_key: ${{ secrets.ARABLYZER_API_KEY }}
+          fail_on: critical
+          lang: ar
+      - name: Show the alerts in code scanning
+        # Even when the check failed: the findings are why.
+        if: always() && steps.arablyzer.outputs.sarif_dir != ''
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: ${{ steps.arablyzer.outputs.sarif_dir }}

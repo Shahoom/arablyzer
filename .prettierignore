@@ -11,3 +11,7 @@ packages/store/drizzle/
 docs/design/v2/
 
 packages/rules/vendor/
+
+# The SARIF 2.1.0 JSON schema, as OASIS published it (MIT, via @microsoft/jest-sarif), and the Action's built bundle (M5.2).
+integrations/github-action/test/sarif-schema-2.1.0.json
+integrations/github-action/dist/

@@ -15,3 +15,7 @@ golden-actual/
 apps/web/src/generated/
 # TLS certificate and key for the VPS proxy (infra/compose.vps.yaml): never in git.
 infra/certs/
+# The GitHub Action runs its committed bundle (M5.2); CI checks that it is up to date.
+!integrations/github-action/dist/
+# What `pnpm ext:build` writes next to dist/ (M5.2): the zip for the Chrome Web Store.
+integrations/chrome-extension/*.zip

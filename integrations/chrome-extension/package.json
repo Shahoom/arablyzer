@@ -1,0 +1,20 @@
+{
+  "name": "@arablyzer/chrome-extension",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Arablyzer for Chrome (Manifest V3): scan the open page through the public API and see the score and the worst problems. `pnpm ext:build` writes dist/ and a zip for the Chrome Web Store.",
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/i18n": "workspace:*",
+    "@arablyzer/integrations-core": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "esbuild": "^0.28.2"
+  }
+}

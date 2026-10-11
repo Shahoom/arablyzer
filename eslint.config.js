@@ -232,6 +232,31 @@ export default defineConfig(
     },
   },
   {
+    // M5.2: the GitHub Action's entry and the Chrome extension's popup and options page hand the
+    // global `fetch` to the client that calls Arablyzer's own API with the person's key: not scan
+    // traffic, which leaves the scanner through the egress proxy. Each takes it as an argument
+    // everywhere else, and these are the only places it is given. fetch alone.
+    files: [
+      'integrations/github-action/src/main.ts',
+      'integrations/chrome-extension/src/popup.ts',
+      'integrations/chrome-extension/src/options.ts',
+    ],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
+    // The extension's pages run in the browser (M5.2).
+    files: ['integrations/chrome-extension/src/**'],
+    languageOptions: { globals: globals.browser },
+  },
+  {
     // IndexNow's one endpoint, asked from the machine that deployed the site, after a deploy
     // (M2.4c): not scan traffic, which leaves the scanner through the egress proxy. fetch alone.
     files: ['apps/web/scripts/indexnow.ts'],
