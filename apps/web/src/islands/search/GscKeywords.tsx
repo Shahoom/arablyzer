@@ -63,7 +63,8 @@ export default function GscKeywords({
   const t = SEARCH_UI[lang].keywords
   const [view, setView] = useState<View>({ kind: 'checking' })
   const [problem, setProblem] = useState(false)
-  const heading = useRef<HTMLHeadingElement>(null)
+  // Where the focus goes when the visitor comes back from Google: the tool, far down a long page.
+  const top = useRef<HTMLDivElement>(null)
   const returned = useRef(false)
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export default function GscKeywords({
   useEffect(() => {
     if (returned.current && view.kind !== 'checking' && view.kind !== 'loading') {
       returned.current = false
-      heading.current?.focus()
+      top.current?.focus()
     }
   }, [view.kind])
 
@@ -124,24 +125,23 @@ export default function GscKeywords({
   }
 
   return (
-    <div className="flex flex-col gap-4" data-tool={tool}>
+    <div ref={top} tabIndex={-1} className="flex flex-col gap-4 outline-none" data-tool={tool}>
       <ToolBox
         title={title}
         dot={dot}
         busy={view.kind === 'loading'}
         note={<ScanNote lang={lang} id="keywords-note" line={t.privacy} keep={[]} />}
       >
-        <h2 ref={heading} tabIndex={-1} className="sr-only outline-none">
-          {title}
-        </h2>
-        {view.kind === 'checking' && (
-          <p role="status" className="m-0 text-small text-ink-2">
-            {SEARCH_UI[lang].common.working}
-          </p>
-        )}
         {view.kind === 'off' && <Notice>{t.off}</Notice>}
-        {view.kind === 'connect' && (
-          <form noValidate onSubmit={onSubmit} className="flex flex-col gap-3">
+        {/* The form is in the page as sent, its button waiting until the API has said the
+            connection is on (the site's audit wants the tool before any section). */}
+        {(view.kind === 'checking' || view.kind === 'connect') && (
+          <form
+            noValidate
+            onSubmit={onSubmit}
+            data-tool-kind="search"
+            className="flex flex-col gap-3"
+          >
             <p className="m-0 text-small text-ink-2">{t.intro}</p>
             <div className="flex flex-col gap-2">
               <label htmlFor="keywords-site" className={LABEL}>
@@ -169,7 +169,7 @@ export default function GscKeywords({
                 {problem ? t.siteProblem : ''}
               </p>
             </div>
-            <button type="submit" className={SUBMIT}>
+            <button type="submit" disabled={view.kind === 'checking'} className={SUBMIT}>
               <Link2 size={18} aria-hidden="true" />
               {t.connect}
             </button>

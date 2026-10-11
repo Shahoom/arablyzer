@@ -1,5 +1,5 @@
 ---
-summary: Type a word and see what Google suggests after it in Arabic: by letter and by question, with a CSV.
+summary: Type a word, see Google's Arabic suggestions by letter and question, and download a CSV.
 ---
 
 # Arabic search suggestions

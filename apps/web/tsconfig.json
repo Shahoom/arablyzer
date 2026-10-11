@@ -5,6 +5,14 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact"
   },
-  "include": [".astro/types.d.ts", "astro.config.ts", "src", "test", "scripts"],
+  // `src` leaves out the folders whose names start with a dot: security.txt lives in one.
+  "include": [
+    ".astro/types.d.ts",
+    "astro.config.ts",
+    "src",
+    "src/pages/.well-known/security.txt.ts",
+    "test",
+    "scripts"
+  ],
   "exclude": ["dist"]
 }

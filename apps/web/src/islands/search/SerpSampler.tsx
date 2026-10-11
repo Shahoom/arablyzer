@@ -115,17 +115,14 @@ export default function SerpSampler({
         busy={busy}
         note={<ScanNote lang={lang} id="serp-note" line={t.caveat} keep={[t.sentOut]} />}
       >
-        {status === 'checking' && (
-          <p role="status" className="m-0 text-small text-ink-2">
-            {common.working}
-          </p>
-        )}
         {status === 'off' && <Notice>{common.off}</Notice>}
         {status === 'unknown' && <Notice role="alert">{common.errors.network}</Notice>}
-        {status === 'on' && (
+        {/* The form is in the page as sent, its button waiting for the API's word on the flag. */}
+        {status !== 'off' && (
           <form
             noValidate
             onSubmit={(event) => void onSubmit(event)}
+            data-tool-kind="search"
             className="flex flex-col gap-3"
           >
             <div className="flex flex-col gap-2">
@@ -167,6 +164,7 @@ export default function SerpSampler({
             </p>
             <button
               type="submit"
+              disabled={status === 'checking'}
               aria-disabled={busy ? true : undefined}
               className={`${SUBMIT} aria-disabled:cursor-wait`}
             >

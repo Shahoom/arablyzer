@@ -1,5 +1,5 @@
 ---
-summary: Type up to 5 queries and see who is in Google's top ten, which are Arabic sites, and whether your domain appears.
+summary: Who ranks in Google's top ten for your queries, which are Arabic sites, and where are you?
 ---
 
 # Who competes with you on Google

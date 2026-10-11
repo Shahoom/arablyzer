@@ -90,6 +90,12 @@ export function kickerOf(page: BuiltPage): Pick<Card, 'kicker' | 'kickerCode'> {
       return { kicker: 'ArablyzerBot', kickerCode: true }
     case '/developers':
       return { kicker: 'API · MCP', kickerCode: true }
+    case '/privacy':
+      return { kicker: SITE[lang].footer.privacy }
+    case '/terms':
+      return { kicker: SITE[lang].footer.terms }
+    case '/security':
+      return { kicker: SITE[lang].footer.security }
     case '/':
       return { kicker: SITE[lang].statusBar }
     case '/r/':

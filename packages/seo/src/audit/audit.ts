@@ -102,8 +102,11 @@ const SECTIONS = ['checks', 'example', 'fix', 'faq', 'links', 'about'] as const
 /** Every rule's id: a tool page lists the rules it runs by them. */
 const RULE_IDS: ReadonlySet<string> = new Set(RULES.map((rule) => rule.id))
 
-/** The kinds of tool whose form takes text or a generator's fields rather than an address. */
-const FIELD_KINDS: ReadonlySet<string> = new Set(['paste', 'generator'])
+/**
+ * The kinds of tool whose form takes text or a generator's fields rather than an address (a search
+ * tool's takes a site, a word or queries).
+ */
+const FIELD_KINDS: ReadonlySet<string> = new Set(['paste', 'generator', 'search'])
 
 /** Inputs that are not a field the visitor fills. */
 const NOT_FIELDS: ReadonlySet<string> = new Set(['hidden', 'submit', 'button', 'reset', 'image'])
