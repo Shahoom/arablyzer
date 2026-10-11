@@ -19,6 +19,8 @@ import { definition as countryFit } from './tools/country-fit/tool'
 import { definition as cruxByCountry } from './tools/crux-by-country/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
+import { definition as feedCheck } from './tools/feed-check/tool'
+import { definition as feedFileCheck } from './tools/feed-file-check/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
 import { definition as gscKeywords } from './tools/gsc-keywords/tool'
 import { definition as headingStructure } from './tools/heading-structure/tool'
@@ -82,6 +84,8 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   cruxByCountry,
   digitsConsistency,
   emailSecurity,
+  feedCheck,
+  feedFileCheck,
   fontFallbackCheck,
   gscKeywords,
   headingStructure,

@@ -3,6 +3,7 @@ import type {
   CruxFacts,
   DnsFacts,
   Engine,
+  FeedFacts,
   LinkFacts,
   PageFacts,
   RenderedFacts,
@@ -41,7 +42,9 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * `crux-countries`: what other services say (DNS and Certificate Transparency, the PDFs the page
  * links, Google's suggestions, AI assistants, BigQuery); asked only in a scan that names its rules,
  * and, for the last three, only with their key or switch (docs/design/plans/arabic-native.md §9 to
- * §14). See OUTSIDE in outside.ts.
+ * §14). See OUTSIDE in outside.ts. `feed`: the page's own body read as a product feed (Google
+ * Merchant Center's RSS, Atom or tab-delimited file) for a tool that checks one: the address the
+ * visitor gives is the feed, nothing else is asked for, and a whole scan never reads it (M6.1).
  */
 export type CollectorId =
   | 'http'
@@ -65,6 +68,7 @@ export type CollectorId =
   | 'suggest'
   | 'ai-visibility'
   | 'crux-countries'
+  | 'feed'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -87,6 +91,8 @@ export interface Evidence {
   readonly safeBrowsing?: SafeBrowsingFacts
   /** Present when the rule needs `knowledge-graph` and Google answered or the page gave no name. */
   readonly knowledgeGraph?: KnowledgeGraphFacts
+  /** Present when the rule needs `feed` and the page answered 2xx: the response read as a feed. */
+  readonly feed?: FeedFacts
   /** Present when the rule needs `search` and the scan asked the site's search. */
   readonly search?: SearchFacts
   /** Present when the rule needs `lookalikes`, `pdfs`, `suggest`, `ai-visibility` or `crux-countries`: what the service said, under the key of each need. */

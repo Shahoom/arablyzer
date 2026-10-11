@@ -169,6 +169,18 @@ export {
   type RobotsTxt,
 } from './robots'
 export {
+  attributeName as feedAttributeName,
+  collectFeed,
+  GOOGLE_NAMESPACE,
+  MAX_FEED_ITEMS,
+  MAX_FEED_VALUE,
+  type FeedFacts,
+  type FeedFormat,
+  type FeedInput,
+  type FeedItem,
+  type FeedUnreadable,
+} from './feed'
+export {
   ATOM_NAMESPACE,
   collectSitemap,
   isSitemapRefusal,

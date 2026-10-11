@@ -203,8 +203,15 @@ export function speaksTo(example: CodeExample, ruleId: string): boolean {
       return reads.includes('dns')
     case 'json':
       return reads.includes('crux')
+    case 'xml':
+      return reads.includes('feed')
     case 'html':
-      return !reads.includes('robots') && !reads.includes('dns') && !reads.includes('crux')
+      return (
+        !reads.includes('robots') &&
+        !reads.includes('dns') &&
+        !reads.includes('crux') &&
+        !reads.includes('feed')
+      )
   }
 }
 
@@ -215,7 +222,7 @@ function fixtureTexts(ruleId: string, kind: 'wrong' | 'right'): string[] {
   const walk = (path: string) => {
     for (const entry of readdirSync(path, { withFileTypes: true })) {
       if (entry.isDirectory()) walk(`${path}${entry.name}/`)
-      else if (/\.(?:html|css|txt)$/.test(entry.name)) {
+      else if (/\.(?:html|css|txt|xml|tsv)$/.test(entry.name)) {
         texts.push(fold(readFileSync(`${path}${entry.name}`, 'utf8')))
       }
     }

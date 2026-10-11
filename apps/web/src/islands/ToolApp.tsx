@@ -28,7 +28,17 @@ interface Props {
    * What the tool reads, which the line under the field says: the page, robots.txt, browsers, DNS
    * records, the page and its links, robots.txt and the sitemaps, or Chrome's data on real visitors.
    */
-  reads: 'html' | 'robots' | 'render' | 'dns' | 'links' | 'sitemap' | 'crux' | 'search' | 'outside'
+  reads:
+    | 'html'
+    | 'robots'
+    | 'render'
+    | 'dns'
+    | 'links'
+    | 'sitemap'
+    | 'feed'
+    | 'crux'
+    | 'search'
+    | 'outside'
   /** The tool's name, for the label of its box, and the colour of its category's dot. */
   title: string
   dot: string

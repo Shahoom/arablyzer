@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>متجر الواحة</title>
+    <link>https://shop.example/</link>
+    <description>منتجات متجر الواحة</description>
+    <item>
+      <g:id>OUD-1</g:id>
+      <title>ROYAL OUD PERFUME 50ML</title>
+      <description>ROYAL OUD PERFUME 50ML</description>
+      <link>https://shop.example/p/oud-1</link>
+      <g:image_link>https://shop.example/img/oud-1.jpg</g:image_link>
+      <g:price>120.00 SAR</g:price>
+      <g:availability>in_stock</g:availability>
+    </item>
+    <item>
+      <g:id>MSK-2</g:id>
+      <title>مســك أبيض شحن مجاني وخصم ٣٠٪ لفترة محدودة</title>
+      <description>مسك أبيض ناعم برائحة هادئة تناسب الاستخدام اليومي.</description>
+      <link>https://shop.example/p/msk-2</link>
+      <g:image_link>https://shop.example/img/msk-2.jpg</g:image_link>
+      <g:price>45.50 SAR</g:price>
+      <g:availability>in_stock</g:availability>
+    </item>
+    <item>
+      <g:id>OUD-3</g:id>
+      <title>Ø¹Ø·Ø± Ø§Ù„Ø¹ÙˆØ¯ Ø§Ù„Ù…Ù„ÙƒÙŠ</title>
+      <description>عطر من خشب العود الطبيعي.</description>
+      <link>https://shop.example/p/oud-3</link>
+      <g:image_link>https://shop.example/img/oud-3.jpg</g:image_link>
+      <g:price>99.00 SAR</g:price>
+      <g:availability>in_stock</g:availability>
+    </item>
+  </channel>
+</rss>

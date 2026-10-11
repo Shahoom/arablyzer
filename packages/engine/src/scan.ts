@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import type { RenderOutcome } from '@arablyzer/browser'
 import type { LabRun } from '@arablyzer/lab'
 import {
+  collectFeed,
   collectPage,
   collectPageIsolated,
   collectRobots,
@@ -15,6 +16,7 @@ import {
   type SafeBrowsingFacts,
   type DnsFacts,
   type Engine,
+  type FeedFacts,
   type LinkFacts,
   type PageFacts,
   type RenderedFacts,
@@ -487,6 +489,12 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
   // A bot challenge in place of the page (M2.3c) is not the page: nothing judges it as one, and
   // no browser and no Lighthouse opens it, where its script could get past it (BUILD-PLAN §13).
   const reached = pageReached(page)
+  // A product feed (M6.1): the address the visitor gave is the file, read as one for the rules that
+  // want it. Nothing else is asked for, and a whole scan never reads it (TOOL_ONLY).
+  const feed: FeedFacts | undefined =
+    reached && rules.some((rule) => rule.needs.includes('feed'))
+      ? collectFeed({ body: response.body })
+      : undefined
   // For the rules that read it, and in the report only then: a scan without them reports as it
   // did before robots.txt came first.
   const robots = rules.some((rule) => rule.needs.includes('robots')) ? robotsRead.facts : undefined
@@ -665,7 +673,14 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     sitemapRead !== undefined &&
     (sitemap === undefined || sitemap.checked.some((check) => check.outcome === 'failed'))
   const notices = [
-    ...pageNotices(page, robots),
+    // A feed is not an HTML page, and the tool that reads it knows: the notice would mislead.
+    ...pageNotices(page, robots).filter((item) => feed === undefined || item.code !== 'not-html'),
+    ...(feed?.kind === 'unreadable' && feed.reason === 'compressed'
+      ? [notice('feed-compressed')]
+      : []),
+    ...(feed?.kind === 'feed' && feed.more
+      ? [notice('feed-partial', { items: String(feed.items.length) })]
+      : []),
     ...(renderSkipped ? [notice('render-skipped')] : []),
     ...(engineSkipped.length > 0
       ? [
@@ -719,6 +734,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     redirects: target.http.redirects,
     dns: dns?.facts,
     links,
+    feed,
     search,
     outside: outside.collected,
     sitemap,
@@ -991,6 +1007,8 @@ export interface EvaluateOptions {
   readonly links?: LinkFacts
   /** The site's search's answers; without them, rules that need `search` do not apply. */
   readonly search?: SearchFacts
+  /** The page read as a product feed; without it, rules that need `feed` do not apply. */
+  readonly feed?: FeedFacts
   /** The site's sitemaps; without them, rules that need them do not apply. */
   readonly sitemap?: SitemapFacts
 }
@@ -1025,6 +1043,7 @@ interface Collected {
   readonly dns?: DnsFacts | undefined
   readonly links?: LinkFacts | undefined
   readonly search?: SearchFacts | undefined
+  readonly feed?: FeedFacts | undefined
   readonly outside?: OutsideFacts | undefined
   readonly sitemap?: SitemapFacts | undefined
   /**
@@ -1162,6 +1181,11 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
   if (rule.needs.includes('search') && search === undefined) {
     return { status: 'not-applicable', findings: [] }
   }
+  // The page read as a product feed (M6.1): not read (a whole scan), nothing to judge.
+  const feed = rule.needs.includes('feed') ? collected.feed : undefined
+  if (rule.needs.includes('feed') && feed === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
   // The services beside the site: not asked (a whole scan, or off without a key), nothing to judge;
   // asked, with no usable answer, the rule could not check.
   const outsideNeeded: Record<string, unknown> = {}
@@ -1242,6 +1266,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
     ...(dns === undefined ? {} : { dns }),
     ...(links === undefined ? {} : { links }),
     ...(search === undefined ? {} : { search }),
+    ...(feed === undefined ? {} : { feed }),
     ...(Object.keys(outsideNeeded).length === 0 ? {} : { outside: outsideNeeded }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),

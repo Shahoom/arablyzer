@@ -24,7 +24,7 @@ const span = (className: string, text: string) =>
  */
 export function highlight(
   code: string,
-  lang: 'html' | 'css' | 'json' | 'robots.txt' | 'http' | 'dns',
+  lang: 'html' | 'css' | 'json' | 'robots.txt' | 'http' | 'dns' | 'xml',
   tone: keyof typeof TONE,
 ): string {
   if (lang === 'dns') {
@@ -102,9 +102,13 @@ export function highlight(
   }
   let out = ''
   let at = 0
+  // A feed's values are the text between its tags: they take the example's colour, as quoted
+  // values do in HTML.
+  const between = (text: string) =>
+    lang === 'xml' && text.trim() !== '' ? span(TONE[tone], text) : escapeHtml(text)
   for (const match of code.matchAll(/<!--[\s\S]*?-->|<[^<>]*>/g)) {
     const index = match.index
-    out += escapeHtml(code.slice(at, index))
+    out += between(code.slice(at, index))
     const tag = match[0]
     if (tag.startsWith('<!--')) {
       out += span(MUTED, tag)
@@ -119,5 +123,5 @@ export function highlight(
     }
     at = index + tag.length
   }
-  return out + escapeHtml(code.slice(at))
+  return out + between(code.slice(at))
 }

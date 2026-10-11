@@ -218,7 +218,7 @@ describe('parseToolCopy', () => {
     [
       'an example in another language',
       AR.replace('```html\n<html lang="en">', '```css\n<html lang="en">'),
-      /code block must be html, robots.txt, http, dns or json/,
+      /code block must be html, robots.txt, http, dns, json or xml/,
     ],
     [
       'a DNS example its test cannot read',

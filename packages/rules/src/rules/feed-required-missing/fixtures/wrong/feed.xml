@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>متجر الواحة</title>
+    <link>https://shop.example/</link>
+    <description>منتجات متجر الواحة</description>
+    <item>
+      <g:id>OUD-1</g:id>
+      <title>عطر العود الملكي 50 مل</title>
+      <link>https://shop.example/p/oud-1</link>
+      <g:price>120.00 SAR</g:price>
+      <g:availability>in_stock</g:availability>
+    </item>
+    <item>
+      <g:id>OUD-1</g:id>
+      <title>مسك أبيض 20 مل</title>
+      <description>مسك أبيض ناعم برائحة هادئة.</description>
+      <link>https://shop.example/p/msk-2</link>
+      <g:image_link>https://shop.example/img/msk-2.jpg</g:image_link>
+      <g:price>45.50 SAR</g:price>
+      <g:availability>in_stock</g:availability>
+    </item>
+  </channel>
+</rss>

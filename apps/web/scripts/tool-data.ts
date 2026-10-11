@@ -38,6 +38,7 @@ export function toolTag(tool: Tool): ToolTag {
   if (needs.some((need) => OUTSIDE[need] !== undefined)) return 'outside'
   if (needs.includes('links')) return 'links'
   if (needs.includes('sitemap')) return 'sitemap'
+  if (needs.includes('feed')) return 'feed'
   const readsRobots = (rule: Rule) => rule.needs.every((need) => need === 'robots')
   // robots.txt, beside what the server answers the bot (ai-access): the card names robots.txt.
   if (

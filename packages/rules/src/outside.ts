@@ -16,9 +16,11 @@ export const OUTSIDE: Readonly<Partial<Record<CollectorId, keyof OutsideFacts>>>
 
 /**
  * The collectors only a tool's scan asks: a dozen requests to every site's search, or a paid API,
- * would be a load nobody asked for.
+ * would be a load nobody asked for; and a product feed, which is the address a tool is given and
+ * not a page of a site (M6.1).
  */
 export const TOOL_ONLY: ReadonlySet<CollectorId> = new Set<CollectorId>([
   'search',
+  'feed',
   ...(Object.keys(OUTSIDE) as CollectorId[]),
 ])

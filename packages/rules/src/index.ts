@@ -29,6 +29,10 @@ import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
 import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
 import { rule as dialectRegister } from './rules/dialect-register/rule'
 import { rule as dmarcMissing } from './rules/dmarc-missing/rule'
+import { rule as feedFileUnreadable } from './rules/feed-file-unreadable/rule'
+import { rule as feedRequiredMissing } from './rules/feed-required-missing/rule'
+import { rule as feedTextQuality } from './rules/feed-text-quality/rule'
+import { rule as feedValuesInvalid } from './rules/feed-values-invalid/rule'
 import { rule as formArabicDigitsRejected } from './rules/form-arabic-digits-rejected/rule'
 import { rule as formArabicNameRejected } from './rules/form-arabic-name-rejected/rule'
 import { rule as formLabelMissing } from './rules/form-label-missing/rule'
@@ -119,6 +123,10 @@ export const RULES: readonly Rule[] = [
   cwvLcpPoor,
   dialectRegister,
   dmarcMissing,
+  feedFileUnreadable,
+  feedRequiredMissing,
+  feedTextQuality,
+  feedValuesInvalid,
   formArabicDigitsRejected,
   formArabicNameRejected,
   formLabelMissing,

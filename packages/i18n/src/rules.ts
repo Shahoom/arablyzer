@@ -18,6 +18,7 @@ export type RuleReads =
   | 'http'
   | 'dns'
   | 'links'
+  | 'feed'
   | 'sitemap'
 
 /** The rule library (BUILD-PLAN §6.2, M2.4): its index and each rule's page, around the copy. */
@@ -106,6 +107,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         dns: 'تقرأ سجلات DNS للنطاق',
         links: 'تطلب روابط الصفحة إلى موقعها',
         sitemap: 'تقرأ robots.txt وخرائط الموقع',
+        feed: 'تقرأ ملف المنتجات الذي تعطيه',
       },
       manual: 'تحتاج مراجعة بشرية',
       example: 'مثال',
@@ -158,6 +160,7 @@ export const RULES_UI: Copy<RulesStrings> = {
         dns: 'Reads the domain’s DNS records',
         links: 'Asks for the page’s links to its site',
         sitemap: 'Reads robots.txt and the sitemaps',
+        feed: 'Reads the product feed you give',
       },
       manual: 'Needs a person’s review',
       example: 'Example',
