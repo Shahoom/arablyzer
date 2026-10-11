@@ -21,6 +21,7 @@
     "@arablyzer/pdf": "workspace:*",
     "@arablyzer/plans": "workspace:*",
     "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/rules": "workspace:*",
     "@arablyzer/scanner": "workspace:*",
     "@arablyzer/scanner-client": "workspace:*",
     "@arablyzer/store": "workspace:*",

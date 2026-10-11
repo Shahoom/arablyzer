@@ -20,6 +20,7 @@ import {
 import {
   requireSecret,
   type AccountData,
+  type ApiKeyData,
   type CrawlData,
   type PdfData,
   type Handoff,
@@ -61,6 +62,8 @@ export interface Stores {
   readonly crawlData?: CrawlData
   /** What PDF export and white-label keep (M4.7); without it, they are off. */
   readonly pdfData?: PdfData
+  /** The account's API keys (M5.1); without it, the API answers 503 `accounts_off`. */
+  readonly apiKeyData?: ApiKeyData
 }
 
 /**
@@ -190,6 +193,7 @@ export function apiDeps(
     monitors: stores.monitorData,
     crawls: stores.crawlData,
     pdfs: stores.pdfData,
+    apiKeys: stores.apiKeyData,
     policy,
     resolver,
     fetcher: options.fetcher,
@@ -233,6 +237,7 @@ function accountsFrom(
     readonly monitors: MonitorData | undefined
     readonly crawls: CrawlData | undefined
     readonly pdfs: PdfData | undefined
+    readonly apiKeys: ApiKeyData | undefined
     readonly policy: EgressPolicy
     readonly resolver: Resolver
     readonly fetcher: typeof safeFetch | undefined
@@ -288,6 +293,7 @@ function accountsFrom(
         await options.monitors?.eraseUser(userId)
         await options.crawls?.eraseUser(userId)
         await options.pdfs?.eraseUser(userId)
+        await options.apiKeys?.eraseUser(userId)
       },
       log: options.log,
     }),
@@ -300,6 +306,7 @@ function accountsFrom(
       ? {}
       : { crawls: options.crawls, crawlSettings: crawlSettingsFrom(env) }),
     ...(options.pdfs === undefined ? {} : { pdfs: options.pdfs }),
+    ...(options.apiKeys === undefined ? {} : { apiKeys: options.apiKeys }),
     ...(options.monitors === undefined
       ? {}
       : {

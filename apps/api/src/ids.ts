@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
+import { API_KEY_PREFIX_LENGTH } from '@arablyzer/api-contract'
 
 /** 16 random bytes in base64url: 22 characters, never guessed (Phase 2 design §3). */
 export function newScanId(): string {
@@ -34,4 +35,27 @@ export function newCrawlId(): string {
 /** A PDF's id: the same shape as a scan's. */
 export function newPdfId(): string {
   return newCrawlId()
+}
+
+/** An API key's id: the same shape as a scan's (M5.1). */
+export function newApiKeyId(): string {
+  return randomBytes(16).toString('base64url')
+}
+
+/**
+ * An API key (M5.1): `arb_` and 256 random bits. The secret is shown once; what is kept is its
+ * SHA-256 (the delete token's reasoning: nothing to stretch or salt in 256 random bits, and a slow
+ * hash would make every request a cost) and the first characters, to tell keys apart.
+ */
+export function newApiKey(): {
+  readonly secret: string
+  readonly prefix: string
+  readonly hash: string
+} {
+  const secret = `arb_${randomBytes(32).toString('base64url')}`
+  return { secret, prefix: secret.slice(0, API_KEY_PREFIX_LENGTH), hash: hashApiKey(secret) }
+}
+
+export function hashApiKey(secret: string): string {
+  return createHash('sha256').update(secret).digest('hex')
 }

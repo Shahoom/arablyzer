@@ -78,6 +78,9 @@ importers:
       '@arablyzer/report-schema':
         specifier: workspace:*
         version: link:../../packages/report-schema
+      '@arablyzer/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
       '@arablyzer/scanner':
         specifier: workspace:*
         version: link:../scanner

@@ -21,6 +21,7 @@ import type { CrawlSettings } from './crawl/settings'
 import {
   quietly,
   type AccountData,
+  type ApiKeyData,
   type CrawlData,
   type MonitorData,
   type PdfData,
@@ -51,6 +52,8 @@ export interface AccountsDeps {
   readonly crawlSettings?: CrawlSettings
   /** PDF export and white-label (M4.7); absent, their routes are not there. */
   readonly pdfs?: PdfData
+  /** API keys (M5.1); absent, there are no keys and the API answers 503 `accounts_off`. */
+  readonly apiKeys?: ApiKeyData
   /** Sends a webhook's messages, for the test button. */
   readonly sender?: WebhookSender
   /** Mail, off until a provider is built. */
