@@ -26,6 +26,10 @@
 !/infra/package.json
 !/infra/Caddyfile
 
+# The integrations (M5.2: the GitHub Action and the Chrome extension) are workspace members, so
+# their package.json files are part of the lockfile; nothing of them runs in an image.
+!/integrations/*/package.json
+
 # Inside what is taken: what a checkout builds or keeps, and the files that hold a secret,
 # whatever the name of the directory they are in.
 **/node_modules
