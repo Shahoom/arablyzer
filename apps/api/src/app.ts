@@ -37,6 +37,7 @@ import { mountCompare } from './compare'
 import { mountCrawls } from './crawls'
 import { mountPdf } from './pdf'
 import { mountMcp } from './mcp'
+import { mountSearch, type SearchDeps } from './search/routes'
 import { mountV1 } from './v1/routes'
 import { mountMonitors } from './monitors'
 import { noMailer } from './monitor/mail'
@@ -85,6 +86,8 @@ export interface ApiDeps {
   readonly accounts?: AccountsDeps
   /** Search Console, connected from a report; absent, the feature is off (gsc/routes.ts). */
   readonly gsc?: GscDeps
+  /** The search tools that ask Google's public pages, each behind its flag (search/routes.ts). */
+  readonly search?: SearchDeps
   /** Another way to fetch the font files of the font slimmer's downloads; tests pass their own. */
   readonly fontFetcher?: FontContext['fetcher']
 }
@@ -220,7 +223,14 @@ export function createApp(deps: ApiDeps): Hono {
   ): Promise<Response> => {
     // A tool page sends its tool; the site sends no other.
     const tool = input.tool
-    if (tool !== undefined && toolDefinition(tool) === undefined) return refuse(c, 'bad-request')
+    if (tool !== undefined) {
+      // A paste tool, a generator and the search tools run in the browser or on the API's own
+      // routes, never as a scan.
+      const definition = toolDefinition(tool)
+      if (definition === undefined || (definition.kind ?? 'scan') !== 'scan') {
+        return refuse(c, 'bad-request')
+      }
+    }
 
     // What needs no network first; the checks that cost something come after the visitor's
     // throttle, Turnstile and the visitor's own limit, so the API cannot be used to look up
@@ -635,6 +645,9 @@ export function createApp(deps: ApiDeps): Hono {
     now,
     log: failure,
   })
+
+  // The suggestion tree and the results sampler (M5.3), each behind its own flag.
+  mountSearch(app, deps, { fromTheSiteJson, refuse }, now)
 
   app.notFound((c) => c.json({ error: 'not-found' }, 404))
   // A store that fails (Valkey or PostgreSQL away) is the service being unavailable, said as

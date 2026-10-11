@@ -88,6 +88,8 @@ export function apiDeps(
     readonly fetcher?: typeof safeFetch
     /** Google's endpoints elsewhere: tests' stand-in. */
     readonly rewriteGoogle?: (url: string) => string
+    /** The pause between questions to Google's public pages; tests pass one that does not wait. */
+    readonly searchSleep?: (ms: number) => Promise<void>
   } = {},
 ): ApiDeps {
   const production = env.NODE_ENV === 'production'
@@ -184,6 +186,14 @@ export function apiDeps(
     log('Search Console is off: it needs ARABLYZER_SITE and the store for its one-time values.')
   }
 
+  // The search tools that ask Google's public pages (M5.3), each off unless the owner says 1.
+  const search = {
+    suggest: env.ARABLYZER_SUGGEST?.trim() === '1',
+    serp: env.ARABLYZER_SERP?.trim() === '1',
+    ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
+    ...(options.searchSleep === undefined ? {} : { sleep: options.searchSleep }),
+  }
+
   const limits = limitsFrom(env)
   const accounts = accountsFrom(env, {
     production,
@@ -204,6 +214,7 @@ export function apiDeps(
   return {
     ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
     ...(gsc === undefined ? {} : { gsc }),
+    ...(search.suggest || search.serp ? { search } : {}),
     ...(accounts === undefined ? {} : { accounts }),
     limits,
     policy,

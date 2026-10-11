@@ -102,7 +102,8 @@ Fourteen features that only make sense for Arabic pages (§1 to §6, then §7 to
 | Feature | Needs | Variable |
 | --- | --- | --- |
 | Look-alike radar, PDF forensics, brand, dialect, AI-training filters | nothing | none |
-| Common misspellings | a decision to accept the endpoint's terms-of-use risk | `ARABLYZER_SUGGEST=1` |
+| Common misspellings, and the suggestion tree tool «اقتراحات البحث العربية» (M5.3, API side) | a decision to accept the endpoint's terms-of-use risk | `ARABLYZER_SUGGEST=1` |
+| Results sampler «من ينافسك في جوجل» (M5.3: Google's results page through the egress proxy, domains only) | a decision to accept the terms-of-use risk, which is larger than the suggest endpoint's | `ARABLYZER_SERP=1` |
 | AI visibility | an API key for each assistant to test, and an eye on the bills | `ARABLYZER_OPENAI_KEY`, `ARABLYZER_GEMINI_KEY`, `ARABLYZER_PERPLEXITY_KEY`, `ARABLYZER_ANTHROPIC_KEY` (optional `…_MODEL`) |
 | Chrome UX by country | a Google Cloud project, a service account with BigQuery Job User, its JSON key | `ARABLYZER_BIGQUERY_CREDENTIALS`, `ARABLYZER_BIGQUERY_PROJECT` (optional `ARABLYZER_BIGQUERY_MAX_BYTES`) |
 

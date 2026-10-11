@@ -138,14 +138,14 @@ export type V1ScanStarted = z.infer<typeof V1ScanStarted>
 export const V1Tool = z
   .strictObject({
     slug: toolSlug(),
-    kind: z.enum(['scan', 'paste', 'generator']),
+    kind: z.enum(['scan', 'paste', 'generator', 'search']),
     category: z.string(),
     title: localized(),
     summary: localized(),
     rules: z.array(z.string()),
     runnable: z.boolean().meta({
       description:
-        'Whether `POST /tools/{slug}/runs` takes it: tools that scan a page. Paste tools and generators run in the visitor’s browser.',
+        'Whether `POST /tools/{slug}/runs` takes it: tools that scan a page. Paste tools and generators run in the visitor’s browser, and search tools (Search Console, Google’s suggestions and results) on the site’s own routes.',
     }),
     updated: z.string(),
   })

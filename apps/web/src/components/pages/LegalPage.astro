@@ -1,0 +1,107 @@
+---
+import { LEGAL_UI, LEGAL_UPDATED } from '@arablyzer/i18n/legal'
+import { breadcrumbList } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import { HEAD } from '../../lib/heads'
+import { siteOf } from '../../lib/site'
+import DocHeading from '../DocHeading.astro'
+import Related from '../guides/Related.astro'
+import Rich from '../Rich.astro'
+import Contents from './Contents.astro'
+import DocPage from './DocPage.astro'
+
+// The privacy policy, the terms and the security page (M5.3): one template for three documents,
+// whose words are LEGAL_UI's. Each section is a heading, its paragraphs and a list.
+
+interface Props {
+  lang: Lang
+  page: 'privacy' | 'terms' | 'security'
+}
+const { lang, page } = Astro.props
+const t = LEGAL_UI[lang]
+const doc = t[page]
+const path = PATHS[page]
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, path)
+const sections = doc.sections.map((section) => ({ id: section.id, title: section.title }))
+const jsonLd = [
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: doc.breadcrumb, url },
+  ]),
+]
+// The other two documents, as the pages that sit beside this one.
+const others = (['privacy', 'terms', 'security'] as const).filter((other) => other !== page)
+const related = [
+  {
+    id: 'related-title',
+    title: t.related,
+    links: others.map((other) => ({
+      href: localePath(lang, PATHS[other]),
+      title: t[other].breadcrumb,
+    })),
+  },
+]
+const text = 'm-0 text-body text-ink-2'
+const list = 'm-0 flex list-disc flex-col gap-3 ps-5 text-body text-ink-2 marker:text-ink-3'
+---
+
+<DocPage
+  lang={lang}
+  path={path}
+  title={doc.meta.title}
+  description={doc.meta.description}
+  jsonLd={jsonLd}
+  crumb={doc.breadcrumb}
+  breadcrumbLabel={doc.breadcrumb}
+>
+  <Fragment slot="head">
+    <h1 class={HEAD.page}>
+      <Rich text={doc.title} lang={lang} />
+    </h1>
+    <p class={HEAD.lead}>
+      <Rich text={doc.intro} lang={lang} />
+    </p>
+    <p class="m-0 text-small text-ink-2">
+      {t.updated}{' '}
+      <time datetime={LEGAL_UPDATED} dir="ltr" class="font-mono">
+        {LEGAL_UPDATED}
+      </time>
+    </p>
+    <Contents variant="inline" label={t.contents} sections={sections} />
+  </Fragment>
+  <div slot="aside" class="flex flex-col gap-3">
+    <Contents label={t.contents} sections={sections} />
+    <Related lang={lang} groups={related} />
+  </div>
+
+  {doc.sections.map((section) => (
+    <section
+      id={section.id}
+      aria-labelledby={`${section.id}-title`}
+      class="flex scroll-mt-6 flex-col gap-4"
+    >
+      <DocHeading id={`${section.id}-title`} title={section.title} />
+      {(section.paragraphs ?? []).map((paragraph) => (
+        <p class={text}>
+          <Rich text={paragraph} lang={lang} />
+        </p>
+      ))}
+      {section.items !== undefined && (
+        <ul class={list}>
+          {section.items.map((item) => (
+            <li>
+              <Rich text={item} lang={lang} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {(section.after ?? []).map((paragraph) => (
+        <p class={text}>
+          <Rich text={paragraph} lang={lang} />
+        </p>
+      ))}
+    </section>
+  ))}
+</DocPage>

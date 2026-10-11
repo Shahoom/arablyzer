@@ -2,12 +2,17 @@ import {
   fontSubsetPath,
   GSC_STATUS_PATH,
   gscResultPath,
+  isScanErrorCode,
   reportPath,
   SCANS_PATH,
   scanPath,
+  SEARCH_STATUS_PATH,
   type CreateScanRequest,
+  type GscKeywordsResult,
   type GscResult,
+  type ScanErrorCode,
   type ScanSummary,
+  type SearchStatus,
 } from '@arablyzer/api-contract/codes'
 import type { Report } from '@arablyzer/report-schema'
 import { readScanStart, type ScanStart } from './scan-request'
@@ -107,6 +112,86 @@ export async function fetchGscResult(
     Array.isArray(value.countries)
     ? { ok: true, value: value as GscResult }
     : { ok: false, reason: 'offline' }
+}
+
+/** The keywords tool's result, which the API gives once like a report's Search Console card. */
+export async function fetchKeywordsResult(
+  id: string,
+  send: typeof fetch = fetch,
+): Promise<Loaded<GscKeywordsResult>> {
+  const loaded = await getJson(gscResultPath(id), send)
+  if (!loaded.ok) return loaded
+  const value = loaded.value as Partial<GscKeywordsResult> | null
+  return typeof value?.period === 'object' &&
+    Array.isArray(value.top) &&
+    Array.isArray(value.opportunities) &&
+    typeof value.scripts === 'object'
+    ? { ok: true, value: value as GscKeywordsResult }
+    : { ok: false, reason: 'offline' }
+}
+
+/** Which of the two Google-page tools the operator has turned on; null if the API did not say. */
+export async function fetchSearchStatus(send: typeof fetch = fetch): Promise<SearchStatus | null> {
+  const loaded = await getJson(SEARCH_STATUS_PATH, send)
+  if (!loaded.ok || typeof loaded.value !== 'object' || loaded.value === null) return null
+  const { suggest, serp } = loaded.value as Partial<SearchStatus>
+  return { suggest: suggest === true, serp: serp === true }
+}
+
+/** Why a search tool's request was not answered: a scan's refusal codes, or no connection at all. */
+export interface SearchError {
+  readonly code: ScanErrorCode | 'network'
+  readonly retryAfterSeconds?: number
+}
+
+export type SearchCall<T> =
+  { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: SearchError }
+
+/**
+ * A POST to one of the Google-page tools (`/api/search/*`): JSON in, JSON out, the same-origin
+ * cookie sent where there is one. A refusal is a scan's: the code, and when to come back.
+ */
+export async function postSearch<T>(
+  path: string,
+  body: unknown,
+  send: typeof fetch = fetch,
+): Promise<SearchCall<T>> {
+  let response: Response
+  try {
+    response = await send(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'same-origin',
+    })
+  } catch {
+    return { ok: false, error: { code: 'network' } }
+  }
+  if (response.ok) {
+    try {
+      return { ok: true, value: (await response.json()) as T }
+    } catch {
+      return { ok: false, error: { code: 'unavailable' } }
+    }
+  }
+  try {
+    const refused = (await response.json()) as { error?: unknown; retryAfterSeconds?: unknown }
+    const code =
+      typeof refused.error === 'string' && isScanErrorCode(refused.error)
+        ? refused.error
+        : 'unavailable'
+    return {
+      ok: false,
+      error: {
+        code,
+        ...(typeof refused.retryAfterSeconds === 'number'
+          ? { retryAfterSeconds: refused.retryAfterSeconds }
+          : {}),
+      },
+    }
+  } catch {
+    return { ok: false, error: { code: 'unavailable' } }
+  }
 }
 
 export type FontDownload =

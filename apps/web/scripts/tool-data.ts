@@ -27,6 +27,8 @@ export function toolRenders(tool: Tool): boolean {
  */
 export function toolTag(tool: Tool): ToolTag {
   if (tool.kind === 'generator') return 'generator'
+  // A search tool reads Google's data: the Search Console connection, or Google's public pages.
+  if (tool.kind === 'search') return tool.slug === 'gsc-keywords' ? 'gsc' : 'google'
   const rules = rulesOf(tool)
   const needs = rules.flatMap((rule) => rule.needs)
   if (needs.includes('render')) return 'render'

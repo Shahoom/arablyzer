@@ -33,6 +33,8 @@ export {
 export { PAGES_UI, type BotNumbers, type PagesStrings } from './pages'
 export { RULES_UI, type RuleReads, type RulesStrings } from './rules'
 export { SCAN_FORM, type FormProblem, type ScanFormStrings } from './scan-form'
+export { LEGAL_UI, LEGAL_UPDATED, type LegalStrings } from './legal'
+export { SEARCH_UI, type SearchStrings } from './search'
 export { SITE, type SiteStrings } from './site'
 export { TOOL_APP, type ToolAppStrings } from './tool-app'
 export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from './tools'
@@ -62,7 +64,9 @@ import { KNOWLEDGE_UI } from './knowledge'
 import { PAGES_UI } from './pages'
 import { REPORT } from './report'
 import { RULES_UI } from './rules'
+import { LEGAL_UI } from './legal'
 import { SCAN_FORM } from './scan-form'
+import { SEARCH_UI } from './search'
 import { SITE } from './site'
 import { TOOL_APP } from './tool-app'
 import { TOOLS_UI } from './tools'
@@ -90,4 +94,6 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'pdf.ts': PDF_UI,
   'developers.ts': DEVELOPERS_UI,
   'integrations.ts': INTEGRATIONS_UI,
+  'search.ts': SEARCH_UI,
+  'legal.ts': LEGAL_UI,
 }

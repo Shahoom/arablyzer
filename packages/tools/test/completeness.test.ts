@@ -18,8 +18,9 @@ describe('every tool', () => {
       expect(TOOL_CATEGORIES).toContain(tool.category)
     })
 
-    it('runs rules that exist, each once', () => {
-      expect(tool.rules.length).toBeGreaterThan(0)
+    it('runs rules that exist, each once (a search tool runs none: its work is on the API)', () => {
+      if (tool.kind === 'search') expect(tool.rules).toEqual([])
+      else expect(tool.rules.length).toBeGreaterThan(0)
       for (const id of tool.rules) expect(ruleById(id), id).toBeDefined()
       expect(new Set(tool.rules).size).toBe(tool.rules.length)
     })

@@ -59,6 +59,21 @@ export const GET: APIRoute = async ({ site: origin }) => {
             note: "the scanner's user agent and how to block it",
           },
           {
+            title: 'Privacy policy',
+            url: at(PATHS.privacy),
+            note: 'what is kept of a scan and an account; Search Console data is read once and never stored',
+          },
+          {
+            title: 'Terms of use',
+            url: at(PATHS.terms),
+            note: 'the service, acceptable use, reports, accounts and API keys',
+          },
+          {
+            title: 'Security',
+            url: at(PATHS.security),
+            note: 'how to report a vulnerability (security@arablyzer.com) and what protects the service',
+          },
+          {
             title: 'API and MCP server',
             url: at(PATHS.developers),
             note: 'REST API (OpenAPI 3.1) and a Model Context Protocol server, with an API key from an account',

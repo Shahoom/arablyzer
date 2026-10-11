@@ -20,6 +20,9 @@ const PAGES: readonly string[] = [
   PATHS.methodology,
   PATHS.bot,
   PATHS.developers,
+  PATHS.privacy,
+  PATHS.terms,
+  PATHS.security,
 ]
 
 export async function sitemapPages(section: SitemapSection): Promise<SitemapPage[]> {

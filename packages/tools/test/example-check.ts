@@ -230,6 +230,12 @@ function fixtureTexts(ruleId: string, kind: 'wrong' | 'right'): string[] {
 export function exampleProblems(tool: Tool, lang: Lang): string[] {
   const { wrong, right } = tool.copy[lang].example
   const problems: string[] = []
+  // A search tool (M5.3) judges nothing: its examples show a page's markup before and after acting
+  // on what the tool shows, and there is no rule to run them through.
+  if (tool.kind === 'search') {
+    if (tool.rules.length > 0) problems.push('a search tool runs no rules')
+    return problems
+  }
   if (fromFixtures(tool)) {
     for (const [kind, example] of [
       ['wrong', wrong],

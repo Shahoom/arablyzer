@@ -1,8 +1,11 @@
 import {
   GSC_CALLBACK_PATH,
+  GSC_KEYWORDS_FLOW,
+  GSC_KEYWORDS_PAGE,
   GSC_RESULT_PATTERN,
   SCAN_ID_PATTERN,
   type GscFailure,
+  type GscKeywordsResult,
   type GscResult,
   type GscStatus,
 } from '@arablyzer/api-contract/codes'
@@ -11,6 +14,7 @@ import type { Handoff, RateLimiter, ScanStore } from '@arablyzer/store'
 import type { Context, Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { GoogleApi } from './google'
+import { collectKeywords, siteUrlOf } from './keywords'
 import {
   authorizationUrl,
   CODE_PATTERN,
@@ -57,7 +61,10 @@ export interface GscContext {
 
 type Lang = 'ar' | 'en'
 
-/** A flow's verifier, and what the callback needs to send the visitor back. */
+/**
+ * A flow's verifier, and what the callback needs to send the visitor back. `report` is a scan's id,
+ * or GSC_KEYWORDS_FLOW for the keywords tool, whose `url` is the site the visitor typed.
+ */
 interface Pending {
   readonly verifier: string
   readonly report: string
@@ -82,9 +89,14 @@ export function registerGscRoutes(app: Hono, context: GscContext): void {
   app.get('/api/gsc/status', (c) => c.json(status))
   if (gsc === undefined) return
 
-  /** The report's page, with what the connection came to: a result's id, or a keyword. */
+  /** The page the visitor came from, with what the connection came to: a result's id, or a keyword. */
   const back = (c: Context, report: string, lang: Lang, outcome: string) =>
-    c.redirect(`${gsc.origin}${lang === 'en' ? '/en' : ''}/r/${report}?gsc=${outcome}`, 302)
+    c.redirect(
+      `${gsc.origin}${lang === 'en' ? '/en' : ''}${
+        report === GSC_KEYWORDS_FLOW ? GSC_KEYWORDS_PAGE : `/r/${report}`
+      }?gsc=${outcome}`,
+      302,
+    )
 
   /** One bucket per visitor for the three routes, from the attempts' window. Null: no address. */
   const limited = async (c: Context): Promise<'unknown' | 'limited' | null> => {
@@ -100,15 +112,23 @@ export function registerGscRoutes(app: Hono, context: GscContext): void {
   }
 
   app.get('/api/gsc/start', async (c) => {
-    const report = c.req.query('report') ?? ''
     const lang: Lang = c.req.query('lang') === 'en' ? 'en' : 'ar'
-    if (!SCAN_ID_PATTERN.test(report)) return c.json({ error: 'bad-request' }, 400)
+    // From a report (its id), or from the keywords tool (the site the visitor typed).
+    const keywords = c.req.query('tool') === GSC_KEYWORDS_FLOW
+    const report = keywords ? GSC_KEYWORDS_FLOW : (c.req.query('report') ?? '')
+    const site = keywords ? siteUrlOf(c.req.query('site') ?? '') : null
+    if (keywords ? site === null : !SCAN_ID_PATTERN.test(report)) {
+      return c.json({ error: 'bad-request' }, 400)
+    }
     const refused = await limited(c)
     if (refused === 'unknown') return c.json({ error: 'unavailable' }, 503)
     if (refused === 'limited') return c.json({ error: 'rate-limited' }, 429)
-    const scan = await context.store.get(report)
-    if (scan?.report == null) return c.notFound()
-    const url = scan.report.target.finalUrl ?? scan.report.target.url
+    let url = site ?? ''
+    if (!keywords) {
+      const scan = await context.store.get(report)
+      if (scan?.report == null) return c.notFound()
+      url = scan.report.target.finalUrl ?? scan.report.target.url
+    }
     const nonce = randomToken(32)
     const pkce = newPkce()
     const pending: Pending = { verifier: pkce.verifier, report, lang, url }
@@ -138,7 +158,11 @@ export function registerGscRoutes(app: Hono, context: GscContext): void {
     // The cookie is the flow's, and used once: whatever comes of it, it goes.
     deleteCookie(c, COOKIE_NAME, { path: '/api/gsc', secure: gsc.secure })
     const state = c.req.query('state') ?? ''
-    if (flow === null || !sameString(state, flow.n) || !SCAN_ID_PATTERN.test(flow.r)) {
+    if (
+      flow === null ||
+      !sameString(state, flow.n) ||
+      !(flow.r === GSC_KEYWORDS_FLOW || SCAN_ID_PATTERN.test(flow.r))
+    ) {
       return c.json({ error: 'bad-request' }, 400)
     }
     // The verifier is read once: a callback sent again finds nothing.
@@ -161,9 +185,12 @@ export function registerGscRoutes(app: Hono, context: GscContext): void {
       redirectUri: gsc.redirectUri,
     })
     if (token === null) return fail('error')
-    let result: GscResult | null
+    let result: GscResult | GscKeywordsResult | null
     try {
-      result = await collect(gsc.google, token, pending.url, now)
+      result =
+        pending.report === GSC_KEYWORDS_FLOW
+          ? await collectKeywords(gsc.google, token, pending.url, now)
+          : await collect(gsc.google, token, pending.url, now)
     } catch (error) {
       // Told by its message alone: nothing it holds is the visitor's, or the token.
       context.log(error instanceof Error ? new Error(error.message) : new Error('GSC failed'))

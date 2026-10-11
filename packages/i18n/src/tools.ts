@@ -38,13 +38,16 @@ export type ToolTag =
   | 'sitemap'
   | 'search'
   | 'outside'
+  | 'gsc'
+  | 'google'
   | 'generator'
 
 /**
  * What a tool takes from the visitor (packages/tools has it too): a page's address, which the
- * scanner checks; a text to paste; or a few fields, from which the tool writes code.
+ * scanner checks; a text to paste; or a few fields, from which the tool writes code; or, for a search
+ * tool (M5.3), a site or a word that Google's data is asked about.
  */
-export type ToolKindName = 'scan' | 'paste' | 'generator'
+export type ToolKindName = 'scan' | 'paste' | 'generator' | 'search'
 
 /** The tools' directory and the tool pages (M2.2), around each tool's own copy. */
 export interface ToolsStrings {
@@ -150,7 +153,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       },
       'search-data': {
         name: 'بيانات البحث',
-        blurb: 'ما تقوله بيانات Search Console عن صفحاتك.',
+        blurb: 'ما يقوله جوجل عن موقعك وعن كلمات الناس: Search Console واقتراحات البحث ونتائجه.',
       },
       speed: {
         name: 'السرعة',
@@ -206,8 +209,10 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       sitemap: 'خريطة الموقع',
       search: 'بحث الموقع',
       outside: 'خدمات خارجية',
+      gsc: 'Search Console',
+      google: 'صفحات جوجل',
     },
-    kinds: { scan: 'فحص صفحتك', paste: 'الصق وجرّب', generator: 'مولّد' },
+    kinds: { scan: 'فحص صفحتك', paste: 'الصق وجرّب', generator: 'مولّد', search: 'يسأل جوجل' },
     home: {
       kicker: 'الأدوات',
       title: 'أدوات مجانية، كل أداة صفحة',
@@ -225,6 +230,8 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         sitemap: 'يقرأ خرائط الموقع',
         search: 'يسأل بحث الموقع',
         outside: 'يسأل خدمات خارجية',
+        gsc: 'يقرأ Search Console',
+        google: 'يسأل صفحات جوجل',
       },
     },
     page: {
@@ -286,7 +293,8 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       },
       'search-data': {
         name: 'Search data',
-        blurb: 'What your Search Console data says about your pages.',
+        blurb:
+          'What Google says about your site and about what people type: Search Console, suggestions and results.',
       },
       speed: {
         name: 'Speed',
@@ -340,8 +348,15 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       sitemap: 'Sitemap',
       search: 'Site search',
       outside: 'Other services',
+      gsc: 'Search Console',
+      google: 'Google’s pages',
     },
-    kinds: { scan: 'Checks your page', paste: 'Paste and test', generator: 'Generator' },
+    kinds: {
+      scan: 'Checks your page',
+      paste: 'Paste and test',
+      generator: 'Generator',
+      search: 'Asks Google',
+    },
     home: {
       kicker: 'Tools',
       title: 'Free tools, each on its own page',
@@ -359,6 +374,8 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         sitemap: 'Reads the sitemaps',
         search: 'Asks the site’s search',
         outside: 'Asks other services',
+        gsc: 'Reads Search Console',
+        google: 'Asks Google’s pages',
       },
     },
     page: {
