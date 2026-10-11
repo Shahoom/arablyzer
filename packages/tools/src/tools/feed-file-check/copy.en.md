@@ -69,6 +69,12 @@ Give the address of your product feed and this tool tells you whether the file c
 4. Escape `&`, `<` and `>` in names and descriptions, or wrap the text in `<![CDATA[ … ]]>`.
 5. When the file reads, check its products with the [Google Merchant feed checker](/en/tools/feed-check).
 
+For example:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+```
+
 ## FAQ
 
 ### My feed is a .gz file. Why was it not checked?

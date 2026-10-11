@@ -71,6 +71,8 @@ describe('ruleReads', () => {
     expect(reads('cwv-lcp-poor')).toBe('crux')
     expect(reads('robots-blocks-googlebot')).toBe('robots')
     expect(reads('sitemap-missing')).toBe('sitemap')
+    expect(reads('feed-values-invalid')).toBe('feed')
+    expect(reads('soft-404-signals')).toBe('http')
     expect(reads('title-missing')).toBe('html')
     // The server's response: its headers, even with a <meta> that counts too, its redirects and
     // its connection; not the page rules that read a header beside the HTML.

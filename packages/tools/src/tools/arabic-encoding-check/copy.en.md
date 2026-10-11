@@ -1,15 +1,15 @@
 ---
-summary: Does your Arabic show as Ù…Ù†ØªØ¬ and ÇáÚÑÈíÉ because the page is read in the wrong encoding?
+summary: Does your Arabic turn into strange Latin symbols because the page is read in the wrong encoding?
 ---
 
 # Arabic encoding (mojibake) checker
 
-Reads the text of a page and finds Arabic that shows as meaningless Latin symbols, such as «Ù…Ù†ØªØ¬» or «ÇáÚÑÈíÉ», because the page was written in one encoding and read in another. It also says which encoding the text was written in and what it said.
+Reads the text of a page and finds Arabic that shows as meaningless Latin symbols, (strings of letters like Ø, Ù and Ç), because the page was written in one encoding and read in another. It also says which encoding the text was written in and what it said.
 
 ## What it checks
 
-- UTF-8 Arabic read as Windows-1252, the commonest case: «Ù…Ù†ØªØ¬» for «منتج».
-- Windows-1256 Arabic (the old Arabic code page) read as Windows-1252: «ÇáÚÑÈíÉ» for «العربية».
+- UTF-8 Arabic read as Windows-1252, the commonest case: `Ù…Ù†ØªØ¬` for «منتج».
+- Windows-1256 Arabic (the old Arabic code page) read as Windows-1252: `ÇáÚÑÈíÉ` for «العربية».
 - That a word counts only when decoding it again gives Arabic letters and no Latin ones, so «Café» and «señor» are left alone.
 - The first run of garbled words in each text, with what it said.
 
@@ -37,9 +37,15 @@ Reads the text of a page and finds Arabic that shows as meaningless Latin symbol
 4. After fixing, clear the page cache.
 5. On Salla, Zid and Shopify, garbled text usually came in through a product import: re-import the file as UTF-8 (in Excel, save as "CSV UTF-8").
 
+For example:
+
+```html
+<meta charset="utf-8" />
+```
+
 ## FAQ
 
-### Why does the text show as Ù…Ù†ØªØ¬?
+### Why does the text show as `Ù…Ù†ØªØ¬`?
 
 Because the bytes are UTF-8 and the program reading them thinks they are Windows-1252 (or Latin-1). Each Arabic letter is two bytes in UTF-8, and each byte shows as one Latin symbol.
 

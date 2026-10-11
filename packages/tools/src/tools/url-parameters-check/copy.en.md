@@ -39,6 +39,12 @@ Reads the links on a page to its own site and finds those that carry a tracking 
 4. Give each page a canonical address without the parameters, so visits that arrive with them are folded into the page.
 5. In the store's apps, find the banner, popup or email-capture app that adds the parameter to its links; it is usually a setting.
 
+For example:
+
+```html
+<link rel="canonical" href="https://shop.example/offers" />
+```
+
 ## FAQ
 
 ### Why not use UTM parameters on internal links?

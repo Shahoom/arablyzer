@@ -13,7 +13,8 @@ const TOKEN: Readonly<Record<ContactPurpose, string>> = {
 
 /**
  * M6.1: a field that asks for a person's name, email, phone, street, city or postal code, with no
- * `autocomplete` that names it (or `off`). Browsers fill such fields from the visitor's saved
+ * `autocomplete` at all (an explicit `off` is a choice, and not judged: the field may be for someone
+ * else's details). Browsers fill such fields from the visitor's saved
  * details when the token says what the field is, and WCAG 2.2 asks for it (1.3.5 Identify Input
  * Purpose, level AA). The token to write is in the message. Only fields whose purpose is clear
  * from their type, name, id or label are judged.
@@ -31,8 +32,8 @@ export const rule = defineRule({
     (page.html?.fields ?? []).flatMap((field) => {
       const purpose = purposeOf(field)
       if (purpose === null) return []
-      const tokens = field.autocomplete.filter((token) => token !== 'off')
-      if (tokens.length > 0 && field.autocomplete[0] !== 'off') return []
+      // An explicit `off` is a choice (a field for someone else's details): it is not judged.
+      if (field.autocomplete.length > 0) return []
       return [
         {
           message: 'missing' as const,

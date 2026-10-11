@@ -52,6 +52,12 @@ Every version must carry the same complete list, itself included. In a store thi
 4. Set each version's `<html lang>` to its language and country.
 5. On Salla, Zid or Shopify, check the store's language and market settings first, then the theme's head; a theme that prints relative addresses needs an update.
 
+For example:
+
+```html
+<link rel="alternate" hreflang="x-default" href="https://shop.example/offers" />
+```
+
 ## FAQ
 
 ### Do I need hreflang for a store with one language and one country?

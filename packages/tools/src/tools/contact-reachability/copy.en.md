@@ -37,6 +37,12 @@ Reads the `tel:` and `mailto:` links of a page and checks that a tap does what i
 4. Show the number with `dir="ltr"` so Arabic text does not reorder its digits.
 5. Write the email address as the mailbox gives it, and test the link on a phone.
 
+For example:
+
+```html
+<a href="tel:+966501234567" dir="ltr">050 123 4567</a>
+```
+
 ## FAQ
 
 ### Do Eastern Arabic digits not work in a `tel:` link?

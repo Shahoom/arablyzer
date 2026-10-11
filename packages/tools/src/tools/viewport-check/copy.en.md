@@ -37,6 +37,12 @@ Reads a page's `<meta name="viewport">` tag and tells you whether phones will la
 4. Do not set `user-scalable=no` or `maximum-scale=1`: they stop visitors who need to zoom.
 5. Test on a phone, and check that nothing scrolls sideways (the right-to-left overflow checker looks for that).
 
+For example:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+```
+
 ## FAQ
 
 ### Does Google care about this?

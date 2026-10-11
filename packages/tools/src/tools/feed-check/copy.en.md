@@ -9,7 +9,7 @@ Give the address of your product feed (an RSS, Atom or tab-separated file) and t
 ## What it checks
 
 - The seven attributes every product needs: `id`, `title`, `description`, `link`, `image_link`, `price` and `availability`, and ids used by more than one product.
-- Availability and condition from Google's lists, so «متوفر» is caught, and prices written as a number, a space and an ISO currency code: `120.00 SAR`, not «١٢٠ ر.س» or `120,50`.
+- Availability and condition from Google's lists, so «متوفر» is caught, and prices written as a number, a space and an ISO currency code: `120.00 SAR`, not `١٢٠ ر.س` or `120,50`.
 - A sale price below the price, links that are full http or https addresses, and GTINs with the right length and check digit.
 - Titles over 150 characters, titles in capitals or with promotional wording, descriptions that repeat the title, Arabic stretched with tatweel and Arabic garbled by a wrong encoding.
 
@@ -58,6 +58,13 @@ Fix the value where the feed is made, not in the file: the platform's Google Sho
 - Titles: product name, brand and what tells it apart, in the order shoppers say them; no offers or capitals.
 
 After fixing, fetch the feed again in Merchant Center and check its diagnostics there too: this tool checks the feed's text, Merchant Center also checks your website.
+
+For example:
+
+```xml
+<g:price>120.00 SAR</g:price>
+<g:availability>in_stock</g:availability>
+```
 
 ## FAQ
 

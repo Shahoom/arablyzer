@@ -8,9 +8,9 @@ Reads an Arabic page's text the way a tokenizer does and finds what makes the sa
 
 ## What it checks
 
-- Tatweel (ـ) between two letters: «الـعـروض» is not «العروض» to a search index.
+- Tatweel (ـ) between two letters: `الـعـروض` is not «العروض» to a search index.
 - Invisible characters inside words: zero-width space, word joiner, a stray byte-order mark, a direction mark between letters.
-- Numbers that mix Arabic-Indic and Latin digits: «٢٠٢4».
+- Numbers that mix Arabic-Indic and Latin digits: `٢٠٢4`.
 - Paragraphs with a mark on nearly every letter (fully vowelled), and letters in presentation forms (U+FB50 to U+FEFF).
 - Pages with little Arabic text whose images carry Arabic sentences in their alt text.
 
@@ -32,10 +32,16 @@ Reads an Arabic page's text the way a tokenizer does and finds what makes the sa
 
 1. Write words plainly, without tatweel; if you want a stretched look, get it from a font or CSS, not from characters in the text (`letter-spacing` breaks Arabic letters apart: never use it).
 2. Search the source for U+200B, U+2060 and U+FEFF and delete them; keep a direction mark between words only.
-3. Use one digit set in a number: «٢٠٢٤» or «2024».
+3. Use one digit set in a number: `٢٠٢٤` or «2024».
 4. Keep full vowelling for the Qur'an and teaching texts; for ordinary pages write plain letters.
 5. Copy Arabic from a word processor or a PDF with care: they can paste presentation-form letters. Retype or normalise to plain letters.
 6. Put text in the page, not in images: an image can have an `alt`, but a paragraph in a picture is invisible to a machine.
+
+For example:
+
+```sh
+grep -rnP "\x{200B}|\x{2060}|\x{FEFF}" src/ templates/
+```
 
 ## FAQ
 
@@ -45,7 +51,7 @@ Not as a penalty. It affects what the machines read: a word with tatweel or a hi
 
 ### Why is tatweel flagged? It is only decoration.
 
-To the eye. To a tokenizer or an index, «الـعـروض» is a different string from «العروض». Use CSS or a font for the look.
+To the eye. To a tokenizer or an index, `الـعـروض` is a different string from «العروض». Use CSS or a font for the look.
 
 ### Is full vowelling always wrong?
 

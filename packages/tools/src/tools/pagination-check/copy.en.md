@@ -38,6 +38,12 @@ Reads a page of a product or article list and checks that its canonical address 
 4. If an infinite scroll loads more products, give the page an address for each chunk as well, so that the products are reachable by link.
 5. Redirect `?page=1` to the address without the parameter.
 
+For example:
+
+```html
+<link rel="canonical" href="https://shop.example/oud?page=2" />
+```
+
 ## FAQ
 
 ### Does Google still use rel prev and next?

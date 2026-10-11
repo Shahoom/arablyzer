@@ -8,7 +8,7 @@ Reads the dates a page states about itself, in its meta tags, its JSON-LD and it
 
 ## What it checks
 
-- That the publication and modification dates in the meta tags (`article:published_time`, `article:modified_time`, `date`) are ISO 8601, such as `2026-10-11`, not «١١‏/١٠‏/٢٠٢٦» or «11 أكتوبر 2026».
+- That the publication and modification dates in the meta tags (`article:published_time`, `article:modified_time`, `date`) are ISO 8601, such as `2026-10-11`, not `١١‏/١٠‏/٢٠٢٦` or «11 أكتوبر 2026».
 - The same for `datePublished`, `dateModified`, `priceValidUntil` and `validThrough` in the JSON-LD.
 - That the last modification is not earlier than the first publication.
 - That the `Last-Modified` header is an HTTP date.
@@ -34,6 +34,12 @@ Reads the dates a page states about itself, in its meta tags, its JSON-LD and it
 3. Let the server send `Last-Modified` as `Thu, 05 Mar 2026 08:00:00 GMT`, or not at all.
 4. Show the dates on the page in text as well; Google compares the markup with what visitors see.
 5. In WordPress, an SEO plugin writes them; check it is not set to print the localised date.
+
+For example:
+
+```html
+<meta property="article:modified_time" content="2026-04-02" />
+```
 
 ## FAQ
 

@@ -93,7 +93,7 @@ const NAME_WORDS = new Set([
 const NAME_TEXT =
   /(?<!\p{L})(?:ال)?اسم(?:ك|كم)?(?!\p{L})|\b(?:full name|first name|last name|your name)\b/iu
 const PHONE_WORDS = new Set(['phone', 'tel', 'telephone', 'mobile', 'whatsapp', 'cell'])
-const PHONE_TEXT = /هاتف|جوال|جوّال|واتساب|\b(?:phone|mobile|telephone|whatsapp)\b/iu
+const PHONE_TEXT = /هاتف|جوال|جوّال|\b(?:phone|mobile|telephone)\b/iu
 const EMAIL_TEXT = /البريد|\b(?:e-?mail)\b/iu
 const POSTAL_WORDS = new Set(['zip', 'postal', 'postcode', 'zipcode'])
 const POSTAL_TEXT = /الرمز البريدي|\b(?:postal code|zip code|post code|zip)\b/iu

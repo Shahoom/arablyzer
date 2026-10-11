@@ -40,6 +40,14 @@ Reads the places a page names its brand, `og:site_name`, the Organization and We
 4. Write ة and ه, ى and ي, and the hamza forms of alef the same way in every place.
 5. On Salla, Zid and Shopify, the store name comes from the store settings and the SEO app; set it once in each and review the logo's alt text.
 
+For example:
+
+```json
+"@type": "Organization",
+"name": "متجر الواحة",
+"alternateName": ["Al Waha Store"]
+```
+
 ## FAQ
 
 ### Why does Google care about the brand's name?

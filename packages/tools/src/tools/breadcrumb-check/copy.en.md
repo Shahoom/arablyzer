@@ -9,7 +9,7 @@ Reads the BreadcrumbList markup on a page and checks that Google can use it to s
 ## What it checks
 
 - That the breadcrumb has items.
-- That each item's `position` is a whole number from 1, written in digits 0–9, not «١».
+- That each item's `position` is a whole number from 1, written in digits 0–9, not `١`.
 - That the positions run 1, 2, 3 in order.
 - That each item has a `name` and, except the last, an `item` address, and that the address is a full one.
 
@@ -55,6 +55,12 @@ Reads the BreadcrumbList markup on a page and checks that Google can use it to s
 4. Keep the trail in the markup the same as the one the page shows.
 5. Check the result in Google's Rich Results Test; on Salla, Zid and Shopify the theme writes the markup, so update it first.
 
+For example:
+
+```json
+{ "@type": "ListItem", "position": 2, "name": "العطور", "item": "https://www.example.com/perfumes" }
+```
+
 ## FAQ
 
 ### Does Google still show breadcrumbs in results?
@@ -67,7 +73,7 @@ No. The last item is the page itself, and Google accepts it without an `item`.
 
 ### Can I use `position` as text, such as "1"?
 
-The check accepts a text of digits 0–9 and a number, and rejects «١» and the like, which Google does not read as a number.
+The check accepts a text of digits 0–9 and a number, and rejects `١` and the like, which Google does not read as a number.
 
 ### Does it check the trail the page shows?
 

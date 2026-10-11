@@ -1,7 +1,7 @@
 import type { ToolDefinition } from '../../tool'
 
 export const definition: ToolDefinition = {
-  slug: 'checkout-form-check',
+  slug: 'arabic-checkout-test',
   category: 'forms',
   rules: [
     'form-arabic-name-rejected',
@@ -9,6 +9,11 @@ export const definition: ToolDefinition = {
     'form-address-arabic-rejected',
     'form-autocomplete-missing',
   ],
-  related: ['arabic-form-test', 'phone-format-check', 'whatsapp-link-check', 'payment-methods-detector'],
+  related: [
+    'arabic-form-test',
+    'phone-format-check',
+    'whatsapp-link-check',
+    'payment-methods-detector',
+  ],
   updated: '2026-10-11',
 }

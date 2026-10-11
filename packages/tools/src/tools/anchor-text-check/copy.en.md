@@ -36,6 +36,12 @@ Reads the links on a page and finds those whose whole text says nothing about wh
 4. Keep the text short: a few words, not a sentence.
 5. In a store theme, the "more" text of a card is a translation string; change it to include the product's name where the theme allows.
 
+For example:
+
+```html
+<a href="/p/dahn" aria-label="المزيد عن دهن العود">المزيد</a>
+```
+
 ## FAQ
 
 ### Is «المزيد» always wrong?

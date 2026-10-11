@@ -9,7 +9,7 @@ Reads the JSON-LD on a product page and checks what Google needs to show it as a
 ## What it checks
 
 - That the product has a `name`, an `image`, and an `offers`, `review` or `aggregateRating` to show beside them.
-- That each offer has a `price` written with digits 0–9 and a full stop (not «١٢٫٥٠٠»), and a `priceCurrency` that is an ISO 4217 code such as `SAR`, not «ر.س».
+- That each offer has a `price` written with digits 0–9 and a full stop (not `١٢٫٥٠٠`), and a `priceCurrency` that is an ISO 4217 code such as `SAR`, not «ر.س».
 - That `availability` is a Schema.org value like `https://schema.org/InStock`, not «متوفر» or “in stock”.
 - That an `aggregateRating` has a numeric `ratingValue` inside its scale and a review count of at least one, in digits 0–9.
 
@@ -72,6 +72,14 @@ The markup is written by the theme or an SEO app, from the product's stored fiel
 5. Name and image: make sure the product has a main image; the theme takes the markup's image from it.
 
 On Salla, Zid and Shopify, update the theme to its current version first and check the product's fields; a custom theme's template may need the change by hand. On WordPress, the SEO plugin writes it.
+
+For example:
+
+```json
+"price": "120.00",
+"priceCurrency": "SAR",
+"availability": "https://schema.org/InStock"
+```
 
 ## FAQ
 

@@ -9,7 +9,7 @@ summary: هل يقرأ Google تاريخ نشر صفحتك وتحديثها، أ
 
 ## ماذا تفحص
 
-- أن تاريخ النشر والتعديل في الوسوم (`article:published_time` و`article:modified_time` و`date`) بصيغة ISO 8601 مثل `2026-10-11`، لا «١١‏/١٠‏/٢٠٢٦» ولا «11 أكتوبر 2026».
+- أن تاريخ النشر والتعديل في الوسوم (`article:published_time` و`article:modified_time` و`date`) بصيغة ISO 8601 مثل `2026-10-11`، لا `١١‏/١٠‏/٢٠٢٦` ولا «11 أكتوبر 2026».
 - الأمر نفسه لـ `datePublished` و`dateModified` و`priceValidUntil` و`validThrough` في JSON-LD.
 - أن آخر تعديل ليس قبل أول نشر.
 - أن ترويسة `Last-Modified` تاريخ HTTP.
@@ -35,6 +35,12 @@ summary: هل يقرأ Google تاريخ نشر صفحتك وتحديثها، أ
 3. دع الخادم يرسل `Last-Modified` هكذا `Thu, 05 Mar 2026 08:00:00 GMT`، أو لا يرسله.
 4. اعرض التواريخ في نص الصفحة أيضاً؛ يقارن Google الوسوم بما يراه الزوار.
 5. في ووردبريس تكتبها إضافة SEO؛ تأكد أنها غير مضبوطة على طباعة التاريخ المحلي.
+
+مثال على الناتج:
+
+```html
+<meta property="article:modified_time" content="2026-04-02" />
+```
 
 ## أسئلة شائعة
 

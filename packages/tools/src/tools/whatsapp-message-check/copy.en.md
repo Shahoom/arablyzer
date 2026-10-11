@@ -35,6 +35,12 @@ Reads the WhatsApp links of a store page, the "order on WhatsApp" and "ask about
 4. For a product button, build the message from the product's name on the server, encoded once; do not leave the placeholder for the browser.
 5. Open the button on a phone and read the chat box: it should show the Arabic message, the number's account and nothing else.
 
+For example:
+
+```html
+<a href="https://wa.me/966501234567?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7">اطلب عبر واتساب</a>
+```
+
 ## FAQ
 
 ### What is the difference from the WhatsApp link checker?

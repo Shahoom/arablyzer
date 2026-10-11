@@ -17,7 +17,7 @@ The Last-Modified header (“{value}”) is not an HTTP date such as Sun, 11 Oct
 ## Why it matters
 
 - Google reads a page's publication and modification dates from its markup, its meta tags and its headers, and shows them in results. A date it cannot parse is dropped, and the page looks undated or stale.
-- Arabic pages write dates for people: «١١‏/١٠‏/٢٠٢٦»، «11 أكتوبر 2026». That is right on the page and unreadable in a meta tag or in JSON-LD, which want ISO 8601 with digits 0–9.
+- Arabic pages write dates for people: `١١‏/١٠‏/٢٠٢٦`، «11 أكتوبر 2026». That is right on the page and unreadable in a meta tag or in JSON-LD, which want ISO 8601 with digits 0–9.
 - A modification earlier than the publication is a mistake in the data, usually a template that prints the wrong field.
 - A wrong `Last-Modified` header makes conditional requests useless or confuses caches.
 

@@ -29,7 +29,7 @@ The `item` “{item}” in JSON-LD block {block} (line {line}) is a relative add
 ## Why it matters
 
 - Google shows a page's trail (الرئيسية › العطور › عطر العود) in its result in place of the address, when the breadcrumb markup is valid. A breadcrumb with an error is not used.
-- Arabic pages write the position in the digits of the text («١»): JSON-LD wants a number, and a position it cannot read ends the list there.
+- Arabic pages write the position in the digits of the text (`١`): JSON-LD wants a number, and a position it cannot read ends the list there.
 - Each item needs a name and a full address; only the last, the page itself, may leave the address out.
 
 ## How to fix

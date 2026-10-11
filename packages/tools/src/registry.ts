@@ -6,6 +6,7 @@ import { definition as aiReadabilityCheck } from './tools/ai-readability-check/t
 import { definition as aiTrainingFilter } from './tools/ai-training-filter/tool'
 import { definition as aiVisibility } from './tools/ai-visibility/tool'
 import { definition as anchorTextCheck } from './tools/anchor-text-check/tool'
+import { definition as arabicCheckoutTest } from './tools/arabic-checkout-test/tool'
 import { definition as arabicEncodingCheck } from './tools/arabic-encoding-check/tool'
 import { definition as arabicFontCheck } from './tools/arabic-font-check/tool'
 import { definition as arabicFontSlimmer } from './tools/arabic-font-slimmer/tool'
@@ -19,7 +20,6 @@ import { definition as breadcrumbCheck } from './tools/breadcrumb-check/tool'
 import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
 import { definition as carouselDirectionCheck } from './tools/carousel-direction-check/tool'
-import { definition as checkoutFormCheck } from './tools/checkout-form-check/tool'
 import { definition as commonMisspellings } from './tools/common-misspellings/tool'
 import { definition as contactReachability } from './tools/contact-reachability/tool'
 import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
@@ -91,6 +91,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   aiTrainingFilter,
   aiVisibility,
   anchorTextCheck,
+  arabicCheckoutTest,
   arabicEncodingCheck,
   arabicFontCheck,
   arabicFontSlimmer,
@@ -104,7 +105,6 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   brokenLinks,
   canonicalCheck,
   carouselDirectionCheck,
-  checkoutFormCheck,
   commonMisspellings,
   contactReachability,
   coreWebVitals,

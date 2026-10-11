@@ -34,7 +34,7 @@
 
 - The title is what a shopper reads in Shopping results, and what Google matches searches to. Over {max} characters it is cut, and the part that matters may be the part cut.
 - Merchant Center asks for titles without promotional text («شحن مجاني»، “free shipping”, “sale”) or all capitals, and descriptions that describe the product rather than repeat its name. Products that break these rules can be disapproved or shown less.
-- Arabic names suffer from two faults of their own: tatweel («مســك») makes the same product a different word to a search, and text saved in a wrong encoding shows as strange Latin letters.
+- Arabic names suffer from two faults of their own: tatweel (`مســك`) makes the same product a different word to a search, and text saved in a wrong encoding shows as strange Latin letters.
 
 ## How to fix
 
@@ -42,7 +42,7 @@
 - Keep offers, prices and shipping out of the title; Merchant Center takes them from the price, sale price and shipping attributes.
 - Write a real description for each product. If the store has none, add one in the store's product fields; do not copy the title.
 - Remove tatweel (ـ) from the names; type the plain letters.
-- If letters look like Ø§Ù„Ø¹, the file is saved in one encoding and read in another: export it as UTF-8.
+- If letters look like `Ø§Ù„Ø¹`, the file is saved in one encoding and read in another: export it as UTF-8.
 
 ```xml
 <title>عطر العود الملكي 50 مل</title>

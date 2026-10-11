@@ -45,6 +45,12 @@ Renders a page in three browsers and finds the images with no text alternative: 
 4. In a store, the product's image alt comes from a field in the product (often "alt text" in the media panel); fill it, or let the theme use the product's name.
 5. Do not stuff the `alt` with keywords: one honest phrase.
 
+For example:
+
+```html
+<img src="/oud.jpg" alt="زجاجة عطر العود الملكي" width="160" height="160" />
+```
+
 ## FAQ
 
 ### Does alt text help SEO?

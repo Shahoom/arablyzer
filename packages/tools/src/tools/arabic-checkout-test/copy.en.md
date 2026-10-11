@@ -49,6 +49,12 @@ Reads the form on a checkout, sign-up or contact page and tests its fields' rule
 4. Test the checkout yourself with an Arabic keyboard: type a name, a district and a phone on your phone.
 5. On Salla, Zid and Shopify the checkout is the platform's, and its fields are not yours to change. If your own form or page has the problem, fix it in the theme or app that makes it; if it is the platform's checkout, report it to the platform with this result.
 
+For example:
+
+```html
+<input id="phone" name="phone" type="tel" autocomplete="tel" pattern="[0-9٠-٩]{8}" />
+```
+
 ## FAQ
 
 ### Why does the tool not type in my form?

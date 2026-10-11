@@ -8,7 +8,7 @@ const found = (fields: string) =>
   detectAll(rule, evidenceOf(page(fields))).map((finding) => finding.values?.token)
 
 describe('form-autocomplete-missing', () => {
-  it('fails the wrong fixture: name and email without a token, and the phone with off', async () => {
+  it('fails the wrong fixture: name, email and phone without a token', async () => {
     const evidence = await fixtureEvidence(rule.id, 'wrong')
     expect(rule.appliesTo(evidence.page)).toBe(true)
     expect(detectAll(rule, evidence).map((finding) => finding.values?.token)).toEqual([
@@ -36,7 +36,6 @@ describe('form-autocomplete-missing', () => {
     ['<input name="address2">', 'street-address'],
     ['<input name="zip">', 'postal-code'],
     ['<input name="postal_code">', 'postal-code'],
-    ['<input type="email" name="e" autocomplete="off">', 'email'],
   ])('%s asks for %s', (field, token) => {
     expect(found(field)).toEqual([token])
   })
@@ -47,6 +46,7 @@ describe('form-autocomplete-missing', () => {
     '<input type="tel" autocomplete="section-b shipping tel">',
     '<input name="city" autocomplete="address-level2">',
     '<input name="first_name" autocomplete="given-name">',
+    '<input type="email" name="e" autocomplete="off">',
   ])('accepts %s', (field) => {
     expect(found(field)).toEqual([])
   })

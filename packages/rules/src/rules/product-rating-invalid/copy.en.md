@@ -25,7 +25,7 @@ The aggregate rating in JSON-LD block {block} (line {line}) counts {value} revie
 ## Why it matters
 
 - Stars beside a product in search results come from its rating markup. Google ignores a rating it cannot read as numbers, and a rating with no review count is not eligible.
-- A store with Arabic numerals in its markup («٤٫٥») shows the right stars on the page and none in Google, because JSON-LD wants digits 0–9 and a full stop.
+- A store with Arabic numerals in its markup (`٤٫٥`) shows the right stars on the page and none in Google, because JSON-LD wants digits 0–9 and a full stop.
 - A rating outside its scale, or an aggregate of zero reviews, is wrong data in the markup, which Google's guidelines tell sites not to give.
 
 ## How to fix

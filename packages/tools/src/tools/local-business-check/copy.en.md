@@ -11,7 +11,7 @@ Reads the LocalBusiness markup on a store, restaurant or clinic page and checks 
 - That the business has a `name` and an `address` with a street, a locality, a region or a postal code.
 - That the `telephone` is in digits 0–9 and starts with the country code (`+968`, `+966`, `+971`).
 - That opening hours use Schema.org's English day names and 24-hour times, not Arabic day names or «ص» and «م».
-- That `geo` coordinates are numbers with a full stop, not «٢٣٫٥٨٨».
+- That `geo` coordinates are numbers with a full stop, not `٢٣٫٥٨٨`.
 
 ## Example
 
@@ -62,6 +62,13 @@ Reads the LocalBusiness markup on a store, restaurant or clinic page and checks 
 3. Give the address as a `PostalAddress` with `streetAddress`, `addressLocality`, `addressRegion` and `addressCountry` (`OM`, `SA`, `AE`).
 4. If you list the business in both languages, give `name` in both with `@language`.
 5. Check the result in Google's Rich Results Test and, in Google Business Profile, keep the same hours: Google compares them.
+
+For example:
+
+```json
+"telephone": "+96891234567",
+"dayOfWeek": ["Saturday", "Sunday"]
+```
 
 ## FAQ
 

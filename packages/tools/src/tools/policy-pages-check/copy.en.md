@@ -49,6 +49,13 @@ Reads a store page and checks that it points at the four policy pages customers 
 4. In Merchant Center, enter the return and shipping policies in the business settings as well; it reads them there.
 5. Have a lawyer read the terms and the privacy policy. The e-commerce rules differ in Saudi Arabia, the UAE, Oman and the other Gulf countries, and this tool cannot tell which apply to you.
 
+For example:
+
+```html
+<a href="/returns">سياسة الاسترجاع</a>
+<a href="/shipping">الشحن والتوصيل</a>
+```
+
 ## FAQ
 
 ### Does Google require these pages?

@@ -39,6 +39,12 @@ Reads the image tags that decide the picture beside a shared link, `og:image` an
 4. After changing it, clear the preview in the app: WhatsApp keeps the old picture for a while, and Facebook's Sharing Debugger refreshes it.
 5. On Salla, Zid and Shopify the theme or the SEO app writes these tags from the product's image; set the main image of each product and the store's default share image in the SEO settings.
 
+For example:
+
+```html
+<meta property="og:image" content="https://www.example.com/images/royal-oud.jpg" />
+```
+
 ## FAQ
 
 ### Why does my link show no picture in WhatsApp?

@@ -2,7 +2,7 @@
 <label for="email">البريد الإلكتروني</label>
 <input id="email" name="email" type="email" />
 <label for="phone">رقم الجوال</label>
-<input id="phone" name="phone" type="tel" autocomplete="off" dir="ltr" />
+<input id="phone" name="phone" type="tel" dir="ltr" />
 ```
 
 ```html right

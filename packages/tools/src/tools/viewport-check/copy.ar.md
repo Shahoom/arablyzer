@@ -38,6 +38,12 @@ summary: هل تطلب صفحتك من الهواتف عرضها هي، أم ت�
 4. لا تضع `user-scalable=no` ولا `maximum-scale=1`: يمنعان من يحتاج التكبير.
 5. جرّب على هاتف وتأكد أن لا شيء يتمرر جانباً (يفحصه فاحص فيض الاتجاه).
 
+مثال على الناتج:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+```
+
 ## أسئلة شائعة
 
 ### هل يهتم Google بهذا؟
