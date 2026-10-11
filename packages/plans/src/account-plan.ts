@@ -85,6 +85,7 @@ type OptionalField =
   | 'WHITE_LABEL'
   | 'WHITE_LABEL_CREDIT'
   | 'API_KEYS'
+  | 'API_SCANS'
   | 'API_REQUESTS'
 const name = (plan: PlanId, field: (typeof FIELDS)[number] | OptionalField) =>
   `ARABLYZER_PLAN_${plan.toUpperCase()}_${field}`

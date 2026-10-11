@@ -53,3 +53,16 @@ describe('secondsUntilOne', () => {
     expect(secondsUntilOne(0.9999, { scans: 10, seconds: 1 })).toBe(1)
   })
 })
+
+describe('MemoryRateLimiter.remaining', () => {
+  it('tells the scans left without taking one', async () => {
+    const limiter = new MemoryRateLimiter()
+    const window = { scans: 3, seconds: 3600 }
+    expect(await limiter.remaining('k', window, 0)).toBe(3)
+    await limiter.take('k', window, 0)
+    await limiter.take('k', window, 0)
+    expect(await limiter.remaining('k', window, 0)).toBe(1)
+    expect(await limiter.remaining('k', window, 0)).toBe(1)
+    expect(await limiter.remaining('k', window, 3_600_000)).toBe(3)
+  })
+})

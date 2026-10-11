@@ -62,6 +62,16 @@ export {
   type PdfJob,
 } from './pdfs'
 export { PostgresPdfData } from './postgres/pdf-store'
+export {
+  KEY_TOUCH_MS,
+  MemoryApiKeyData,
+  type ApiKeyData,
+  type ApiKeyRecord,
+  type KeyCreated,
+  type NewApiKey,
+} from './apikeys'
+export { PostgresApiKeyData } from './postgres/apikey-store'
+export { apiKeys } from './postgres/apikey-schema'
 export { accountBrand, pdfJobs, pdfUsage } from './postgres/pdf-schema'
 export { PostgresCrawlData } from './postgres/crawl-store'
 export { crawlPages, crawls } from './postgres/crawl-schema'

@@ -162,6 +162,14 @@ export class ValkeyRateLimiter implements RateLimiter {
       ? { ok: true }
       : { ok: false, retryAfterSeconds: secondsUntilOne(Number(tokens), window) }
   }
+
+  async remaining(key: string, window: Window, now: number): Promise<number> {
+    const [tokens, updated] = await this.#redis.hmget(`${PREFIX}:limit:${key}`, 'tokens', 'updated')
+    if (tokens === null || updated === null) return window.scans
+    const rate = window.scans / (window.seconds * 1000)
+    const held = Math.min(window.scans, Number(tokens) + Math.max(0, now - Number(updated)) * rate)
+    return Math.floor(held + 1e-9)
+  }
 }
 
 /**

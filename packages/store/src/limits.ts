@@ -9,6 +9,12 @@ export type Taken =
  */
 export interface RateLimiter {
   take(key: string, window: Window, now: number): Promise<Taken>
+  /**
+   * The whole scans a key has left now, without taking one (the API's rate-limit headers, M5.1).
+   * Read apart from `take`, so a count may be a scan behind another request's; a limiter that
+   * cannot tell leaves it out.
+   */
+  remaining?(key: string, window: Window, now: number): Promise<number>
 }
 
 interface Bucket {
@@ -36,6 +42,14 @@ export class MemoryRateLimiter implements RateLimiter {
     }
     this.#buckets.set(key, bucket)
     return Promise.resolve({ ok: false, retryAfterSeconds: secondsUntilOne(bucket.tokens, window) })
+  }
+
+  remaining(key: string, window: Window, now: number): Promise<number> {
+    const bucket = this.#buckets.get(key)
+    if (bucket === undefined) return Promise.resolve(window.scans)
+    const rate = window.scans / (window.seconds * 1000)
+    const tokens = Math.min(window.scans, bucket.tokens + (now - bucket.updated) * rate)
+    return Promise.resolve(Math.floor(tokens + 1e-9))
   }
 
   /** Buckets that have refilled hold nothing worth keeping: each is judged by its own window. */
