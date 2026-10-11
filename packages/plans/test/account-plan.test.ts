@@ -36,7 +36,22 @@ describe('planCatalogFrom', () => {
       pdfPerMonth: 3,
       whiteLabel: false,
       whiteLabelCredit: true,
+      apiKeys: 2,
+      apiScans: null,
+      apiRequests: 120,
     })
+  })
+
+  it('reads the API numbers: keys, a share of the scans (0 closes it), requests', () => {
+    const read = (extra: Record<string, string>) =>
+      planCatalogFrom({ ...SET, ...extra }, DEVELOPMENT_LIMITS).account
+    expect(read({}).apiScans).toBeNull()
+    expect(read({ ARABLYZER_PLAN_ACCOUNT_API_SCANS: '5' }).apiScans).toBe(5)
+    expect(read({ ARABLYZER_PLAN_ACCOUNT_API_SCANS: '0' }).apiScans).toBe(0)
+    expect(read({ ARABLYZER_PLAN_ACCOUNT_API_KEYS: '3' }).apiKeys).toBe(3)
+    expect(read({ ARABLYZER_PLAN_ACCOUNT_API_REQUESTS: '30' }).apiRequests).toBe(30)
+    expect(() => read({ ARABLYZER_PLAN_ACCOUNT_API_SCANS: 'many' })).toThrow(/API_SCANS/)
+    expect(() => read({ ARABLYZER_PLAN_ACCOUNT_API_KEYS: '0' })).toThrow(/API_KEYS/)
   })
 
   it('gives the free account three PDFs a month and no white-label, in production too, and reads the variables', () => {

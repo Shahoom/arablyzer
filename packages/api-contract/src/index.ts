@@ -37,6 +37,8 @@ import {
 } from './codes'
 
 export * from './codes'
+export * from './v1'
+export { buildOpenApi, type OpenApiOptions } from './openapi'
 
 // Each schema below shares its name with the plain type it checks, so either can be imported.
 export type CreateScanRequest = CreateScanRequestShape

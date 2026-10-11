@@ -163,6 +163,10 @@ export const PLAN_LIMITS = [
   'monitorEveryDays',
   'pdfPerMonth',
   'whiteLabel',
+  /** The account holds as many API keys as its plan allows (M5.1). */
+  'apiKeys',
+  /** The plan has no API (M5.1). */
+  'api',
 ] as const
 export type PlanLimit = (typeof PLAN_LIMITS)[number]
 
@@ -828,3 +832,42 @@ export interface ReportBrand {
   readonly hasLogo: boolean
   readonly credit: boolean
 }
+
+/**
+ * API keys (M5.1). A signed-in person makes a few; the secret is shown once, at creation, and the
+ * API keeps only its hash. The keys authenticate `/api/v1/*` and `/mcp` as
+ * `Authorization: Bearer arb_…`; nothing else. These routes are the session's (404 with accounts off).
+ */
+export const API_KEYS_PATH = '/api/account/keys'
+export const apiKeyPath = (id: string): string => `${API_KEYS_PATH}/${id}`
+/** `arb_` and 32 random bytes in base64url. */
+export const API_KEY_PATTERN = /^arb_[A-Za-z0-9_-]{43}$/
+export const API_KEY_ID_PATTERN = /^[A-Za-z0-9_-]{22}$/
+export const MAX_API_KEY_NAME = 40
+/** `arb_` and the first four characters of the secret: what tells a person's keys apart. */
+export const API_KEY_PREFIX_LENGTH = 8
+
+export interface ApiKeySummary {
+  readonly id: string
+  readonly name: string
+  readonly prefix: string
+  readonly createdAt: string
+  /** When the key last authenticated a request (to the hour); null before it was used. */
+  readonly lastUsedAt: string | null
+}
+
+/** `GET`: the account's live keys, how many its plan allows, and whether the plan has an API at all. */
+export interface ApiKeysResponse {
+  readonly keys: readonly ApiKeySummary[]
+  readonly limit: number
+  readonly enabled: boolean
+}
+
+/** `POST {name}` answers 201 with the key and its secret, which is never given again. */
+export interface ApiKeyCreated {
+  readonly key: ApiKeySummary
+  readonly secret: string
+}
+
+/** The Model Context Protocol endpoint, on the same host as the API (stateless streamable HTTP). */
+export const MCP_PATH = '/mcp'

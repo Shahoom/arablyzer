@@ -31,6 +31,16 @@ export interface AccountPlan {
   readonly whiteLabel: boolean
   /** With white-label: whether a small "by Arablyzer" line stays under the company's mark. */
   readonly whiteLabelCredit: boolean
+  /** The API keys the account may hold at once (M5.1). */
+  readonly apiKeys: number
+  /**
+   * How many of the window's scans the API may start (M5.1): a cap inside the account's own
+   * bucket, never a second allowance. Null = the API shares the whole bucket; 0 = this plan has
+   * no API.
+   */
+  readonly apiScans: number | null
+  /** Requests one API key may make per minute, reads included; scans have their own bucket. */
+  readonly apiRequests: number
 }
 
 export interface PlanCatalog {
@@ -59,6 +69,10 @@ export const DEVELOPMENT_ACCOUNT_PLAN: AccountPlan = Object.freeze({
   pdfPerMonth: 3,
   whiteLabel: false,
   whiteLabelCredit: true,
+  // M5.1: two keys, the account's whole scan bucket, and a request budget that polling fits in.
+  apiKeys: 2,
+  apiScans: null,
+  apiRequests: 120,
 })
 
 const FIELDS = ['SCANS', 'SCAN_SECONDS', 'INFLIGHT', 'SAVED_SITES', 'HISTORY_DAYS'] as const
@@ -70,6 +84,8 @@ type OptionalField =
   | 'PDF_PER_MONTH'
   | 'WHITE_LABEL'
   | 'WHITE_LABEL_CREDIT'
+  | 'API_KEYS'
+  | 'API_REQUESTS'
 const name = (plan: PlanId, field: (typeof FIELDS)[number] | OptionalField) =>
   `ARABLYZER_PLAN_${plan.toUpperCase()}_${field}`
 
@@ -89,6 +105,16 @@ function readSwitch(env: Env, variable: string, fallback: boolean): boolean {
   if (['on', '1', 'true'].includes(raw)) return true
   if (['off', '0', 'false'].includes(raw)) return false
   throw new Error(`${variable} must be on or off, not ${raw}`)
+}
+
+/** The API's share of the scans: unset keeps the fallback (null = all of the bucket), 0 closes the API. */
+function readApiScans(env: Env, variable: string, fallback: number | null): number | null {
+  const raw = env[variable]?.trim() ?? ''
+  if (raw === '') return fallback
+  if (!/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+    throw new Error(`${variable} must be a whole number of scans, 0 or more, not ${raw}`)
+  }
+  return Number(raw)
 }
 
 function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
@@ -111,6 +137,9 @@ function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
     pdfPerMonth: readOptional('PDF_PER_MONTH', fallback.pdfPerMonth),
     whiteLabel: readSwitch(env, name(id, 'WHITE_LABEL'), fallback.whiteLabel),
     whiteLabelCredit: readSwitch(env, name(id, 'WHITE_LABEL_CREDIT'), fallback.whiteLabelCredit),
+    apiKeys: readOptional('API_KEYS', fallback.apiKeys),
+    apiScans: readApiScans(env, name(id, 'API_SCANS'), fallback.apiScans),
+    apiRequests: readOptional('API_REQUESTS', fallback.apiRequests),
   })
 }
 
