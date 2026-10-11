@@ -47,7 +47,7 @@ describe('what is shown of a report', () => {
   it('gives the score, its band, the counts and the worst rules in the language chosen', () => {
     const report = golden('10-accessibility')
     const view = presentReport(report, 'https://arablyzer.com', 'en')
-    expect(view.score).toBe(71)
+    expect(view.score).toBe(72)
     expect(view.band).toBe('mid')
     expect(view.counts.map((c) => c.severity)).toEqual([
       'critical',

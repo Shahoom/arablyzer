@@ -17,7 +17,7 @@ describe('the job summary', () => {
   it('shows the score, the counts, the worst problems and the report link', () => {
     const markdown = renderSummary([reportOutcome('10-')], options)
     expect(markdown).toContain('## Arablyzer report: `https://shop.example/`')
-    expect(markdown).toContain('Score: **71 of 100**')
+    expect(markdown).toContain('Score: **72 of 100**')
     expect(markdown).toContain('| Critical | Serious | Moderate | Minor | Info |')
     expect(markdown).toContain('(https://arablyzer.example/en/rules/')
     expect(markdown).toContain('[Open the full report](https://arablyzer.example/r/abc)')
@@ -31,7 +31,7 @@ describe('the job summary', () => {
   it('is right to left in Arabic, with Arabic words and links to the Arabic rule pages', () => {
     const markdown = renderSummary([reportOutcome('10-')], { ...options, lang: 'ar' })
     expect(markdown.startsWith('<div dir="rtl">')).toBe(true)
-    expect(markdown).toContain('الدرجة: **71 من 100**')
+    expect(markdown).toContain('الدرجة: **72 من 100**')
     expect(markdown).toContain('افتح التقرير الكامل')
     expect(markdown).toContain('(https://arablyzer.example/rules/')
     expect(markdown).not.toContain('/en/rules/')

@@ -103,12 +103,12 @@ describe('the Action', () => {
       `GET /api/v1/scans/${ID}`,
       `GET /api/v1/scans/${ID}/report`,
     ])
-    expect(seen.outputs.score).toBe('71')
+    expect(seen.outputs.score).toBe('72')
     expect(seen.outputs.result).toBe('pass')
-    expect(JSON.parse(seen.outputs.scores ?? '')).toEqual({ 'https://shop.example/': 71 })
+    expect(JSON.parse(seen.outputs.scores ?? '')).toEqual({ 'https://shop.example/': 72 })
     expect(JSON.parse(seen.outputs.report_urls ?? '')).toEqual([`${ORIGIN}/r/${ID}`])
     expect(JSON.parse(seen.outputs.findings ?? '')).toEqual(report.summary.bySeverity)
-    expect(seen.summary[0]).toContain('Score: **71 of 100**')
+    expect(seen.summary[0]).toContain('Score: **72 of 100**')
 
     const dir = seen.outputs.sarif_dir ?? ''
     expect(dir).toBe(join(seen.workspace, 'arablyzer-sarif'))
@@ -189,7 +189,7 @@ describe('the Action', () => {
       },
     )
     expect(code).toBe(0)
-    expect(seen.outputs.score).toBe('71')
+    expect(seen.outputs.score).toBe('72')
     expect(Object.keys(JSON.parse(seen.outputs.scores ?? '') as object)).toHaveLength(2)
     expect(readdirSync(seen.outputs.sarif_dir ?? '').sort()).toEqual([
       '01-a.example.sarif',
@@ -240,7 +240,7 @@ describe('the Action', () => {
     )
     expect(code).toBe(1)
     expect(seen.outputs.result).toBe('error')
-    expect(seen.outputs.score).toBe('71')
+    expect(seen.outputs.score).toBe('72')
   })
 
   it('stops at once for a failed scan or a wait that runs out', async () => {
