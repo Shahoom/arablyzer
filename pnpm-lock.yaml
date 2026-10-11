@@ -304,6 +304,63 @@ importers:
 
   infra: {}
 
+  integrations/chrome-extension:
+    devDependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
+      '@arablyzer/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@arablyzer/integrations-core':
+        specifier: workspace:*
+        version: link:../core
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../../packages/report-schema
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+
+  integrations/core:
+    devDependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../../packages/report-schema
+
+  integrations/github-action:
+    devDependencies:
+      '@arablyzer/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
+      '@arablyzer/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
+      '@arablyzer/integrations-core':
+        specifier: workspace:*
+        version: link:../core
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../../packages/report-schema
+      '@arablyzer/seo':
+        specifier: workspace:*
+        version: link:../../packages/seo
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      ajv-draft-04:
+        specifier: ^1.0.0
+        version: 1.0.0(ajv@8.20.0)
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.20.0)
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+
   packages/api-contract:
     dependencies:
       zod:

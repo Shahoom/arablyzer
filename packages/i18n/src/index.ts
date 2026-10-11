@@ -6,6 +6,13 @@ export {
   type DevelopersStrings,
   type KeysProblem,
 } from './developers'
+export {
+  INTEGRATIONS_UI,
+  type ActionStrings,
+  type ExtensionStrings,
+  type IntegrationsStrings,
+  type StartProblem,
+} from './integrations'
 export { ACCOUNT_UI, type AccountProblem, type AccountStrings } from './account'
 export { BLOG_TAGS, BLOG_UI, type BlogStrings, type BlogTag } from './blog'
 export { COMPARE_UI, type CompareStrings } from './compare'
@@ -45,6 +52,7 @@ import { BLOG_UI } from './blog'
 import { COMPARE_UI } from './compare'
 import { CRAWL_UI } from './crawl'
 import { DEVELOPERS_UI } from './developers'
+import { INTEGRATIONS_UI } from './integrations'
 import { PDF_UI } from './pdf'
 import type { Copy } from './copy'
 import { GENERATORS_UI } from './generators'
@@ -81,4 +89,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'versus.ts': VERSUS_UI,
   'pdf.ts': PDF_UI,
   'developers.ts': DEVELOPERS_UI,
+  'integrations.ts': INTEGRATIONS_UI,
 }

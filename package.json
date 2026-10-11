@@ -28,6 +28,8 @@
     "arablyzer": "tsx packages/cli/src/main.ts",
     "copy:review": "pnpm --recursive --no-bail run copy:review",
     "seo:audit": "pnpm --filter @arablyzer/seo run seo:audit",
+    "ext:build": "pnpm --filter @arablyzer/chrome-extension run build",
+    "action:build": "pnpm --filter @arablyzer/github-action run build",
     "site:build": "pnpm --filter @arablyzer/web run build",
     "site:audit": "pnpm --filter @arablyzer/seo run site:audit",
     "benchmark:httparchive": "pnpm --filter @arablyzer/web exec tsx scripts/httparchive-benchmark.ts"

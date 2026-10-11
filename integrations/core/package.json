@@ -1,0 +1,19 @@
+{
+  "name": "@arablyzer/integrations-core",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "What the GitHub Action and the Chrome extension share: a small client for the public API (v1), the polite wait for a scan, and the issue grouping. No runtime dependencies: both integrations bundle it.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@arablyzer/github-action",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "The Arablyzer GitHub Action: scans pages through the public API, writes a job summary and a SARIF file. The action runs the committed dist/, so it needs no install; `pnpm build` rebuilds it and CI checks that it is up to date.",
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@arablyzer/api-contract": "workspace:*",
+    "@arablyzer/i18n": "workspace:*",
+    "@arablyzer/integrations-core": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/seo": "workspace:*",
+    "ajv": "^8.20.0",
+    "ajv-draft-04": "^1.0.0",
+    "ajv-formats": "^3.0.1",
+    "esbuild": "^0.28.2"
+  }
+}
