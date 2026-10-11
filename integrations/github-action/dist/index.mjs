@@ -2,7 +2,41 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
+// ../../packages/i18n/src/plural.ts
+var ARABIC = new Intl.PluralRules("ar");
+var ENGLISH = new Intl.PluralRules("en");
+function arabicCount(count, forms) {
+  const category = ARABIC.select(count);
+  const form = category === "one" ? forms.one : category === "two" ? forms.two : category === "few" ? forms.few : category === "other" && forms.other !== void 0 ? forms.other : forms.many;
+  return form.replaceAll("{n}", String(count));
+}
+function englishForm(count, one, other) {
+  return ENGLISH.select(count) === "one" ? one : other;
+}
+function englishCount(count, one, other) {
+  return `${count} ${englishForm(count, one, other)}`;
+}
+
 // ../../packages/i18n/src/integrations.ts
+var MORE_RULES = {
+  one: "قاعدة أخرى",
+  two: "قاعدتان أخريان",
+  few: "{n} قواعد أخرى",
+  many: "{n} قاعدة أخرى"
+};
+var PLACES = {
+  one: "موضع واحد",
+  two: "موضعان",
+  few: "{n} مواضع",
+  many: "{n} موضعاً",
+  other: "{n} موضع"
+};
+var SECONDS = {
+  one: "ثانية واحدة",
+  two: "ثانيتين",
+  few: "{n} ثوانٍ",
+  many: "{n} ثانية"
+};
 var INTEGRATIONS_UI = {
   reviewed: false,
   ar: {
@@ -21,13 +55,13 @@ var INTEGRATIONS_UI = {
       counts: "المشكلات حسب الخطورة",
       topIssues: "أهم المشكلات",
       columns: ["القاعدة", "الخطورة", "العدد", "مثال"],
-      moreIssues: (more) => `وفي التقرير الكامل ${String(more)} قواعد أخرى.`,
+      moreIssues: (more) => `وفي التقرير الكامل ${arabicCount(more, MORE_RULES)}.`,
       noIssues: "لا مشكلات. أحسنت.",
       fullReport: "افتح التقرير الكامل",
       started: "بدأ الفحص ولم ننتظره (`wait: false`). افتح التقرير عند انتهائه من الرابط أدناه.",
       gate: {
-        passed: (failOn) => `اجتاز الفحص شرط الفشل: لا مشكلات ${failOn} أو أشد.`,
-        failed: (count, failOn) => `فشل الفحص: ${String(count)} من المشكلات ${failOn} أو أشد.`
+        passed: (failOn) => `اجتاز الفحص شرط الفشل: لا نتائج بخطورة ${failOn} أو أشد.`,
+        failed: (count, failOn) => `فشل الفحص: ${String(count)} من النتائج بخطورة ${failOn} أو أشد.`
       },
       errorHeading: "تعذّر الفحص",
       problems: {
@@ -44,7 +78,7 @@ var INTEGRATIONS_UI = {
         scan_failed: "انتهى الفحص بالفشل: لم تُبلَغ الصفحة.",
         bad_response: "ردّت الخدمة بما لا نعرفه. تأكد من `api_url`."
       },
-      retryAfter: (seconds2) => `حاول بعد ${String(seconds2)} ثانية.`,
+      retryAfter: (seconds2) => `حاول بعد ${arabicCount(seconds2, SECONDS)}.`,
       footer: "فُحصت بـ Arablyzer"
     },
     extension: {
@@ -70,8 +104,8 @@ var INTEGRATIONS_UI = {
         },
         topIssues: "أهم المشكلات",
         noIssues: "لا مشكلات ظاهرة. أحسنت.",
-        occurrences: (count) => count === 1 ? "موضع واحد" : `${String(count)} مواضع`,
-        moreIssues: (more) => `و${String(more)} قواعد أخرى في التقرير الكامل`,
+        occurrences: (count) => arabicCount(count, PLACES),
+        moreIssues: (more) => `في التقرير الكامل ${arabicCount(more, MORE_RULES)}`,
         openReport: "افتح التقرير الكامل",
         ruleLink: (title) => `اقرأ عن القاعدة: ${title}`,
         noKeyTitle: "لم تضف مفتاح API بعد",
@@ -80,7 +114,7 @@ var INTEGRATIONS_UI = {
         addKey: "أضف مفتاحاً",
         settings: "الإعدادات",
         unsupported: "لا يمكن فحص هذه الصفحة. افتح صفحة موقع على http أو https.",
-        retryAfter: (seconds2) => `حاول بعد ${String(seconds2)} ثانية.`,
+        retryAfter: (seconds2) => `حاول بعد ${arabicCount(seconds2, SECONDS)}.`,
         noPermission: "لم تُمنح الإضافة إذن الاتصال بهذه الخدمة. افتح الإعدادات واحفظ من جديد.",
         problems: {
           unauthorized: "المفتاح غير صالح أو أُلغي. أضف مفتاحاً جديداً من الإعدادات.",
@@ -151,13 +185,13 @@ var INTEGRATIONS_UI = {
       counts: "Findings by severity",
       topIssues: "The worst problems",
       columns: ["Rule", "Severity", "Count", "Example"],
-      moreIssues: (more) => `${String(more)} more rules are in the full report.`,
+      moreIssues: (more) => `${englishCount(more, "more rule is", "more rules are")} in the full report.`,
       noIssues: "No problems found. Well done.",
       fullReport: "Open the full report",
       started: "The scan was started and not waited for (`wait: false`). Open the report when it finishes, from the link below.",
       gate: {
-        passed: (failOn) => `The check passes: no ${failOn} findings or worse.`,
-        failed: (count, failOn) => `The check fails: ${String(count)} ${failOn} findings or worse.`
+        passed: (failOn) => `The check passes: no findings at ${failOn} severity or worse.`,
+        failed: (count, failOn) => `The check fails: ${englishCount(count, "finding", "findings")} at ${failOn} severity or worse.`
       },
       errorHeading: "The scan did not run",
       problems: {
@@ -200,8 +234,8 @@ var INTEGRATIONS_UI = {
         },
         topIssues: "The worst problems",
         noIssues: "No problems found. Well done.",
-        occurrences: (count) => count === 1 ? "1 place" : `${String(count)} places`,
-        moreIssues: (more) => `and ${String(more)} more rules in the full report`,
+        occurrences: (count) => englishCount(count, "place", "places"),
+        moreIssues: (more) => `${englishCount(more, "more rule", "more rules")} in the full report`,
         openReport: "Open the full report",
         ruleLink: (title) => `Read about the rule: ${title}`,
         noKeyTitle: "No API key yet",

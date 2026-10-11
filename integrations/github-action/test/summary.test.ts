@@ -39,9 +39,9 @@ describe('the job summary', () => {
 
   it('says whether the check passed, with the gate', () => {
     const failed = renderSummary([reportOutcome('10-', 2)], { ...options, failOn: 'serious' })
-    expect(failed).toContain('**The check fails: 2 serious findings or worse.**')
+    expect(failed).toContain('**The check fails: 2 findings at serious severity or worse.**')
     const passed = renderSummary([reportOutcome('01-')], { ...options, failOn: 'critical' })
-    expect(passed).toContain('**The check passes: no critical findings or worse.**')
+    expect(passed).toContain('**The check passes: no findings at critical severity or worse.**')
     expect(passed).toContain('No problems found')
     expect(renderSummary([reportOutcome('10-')], options)).not.toContain('The check')
   })

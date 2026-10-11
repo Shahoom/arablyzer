@@ -54,4 +54,34 @@ describe('the integrations’ copy (the Action and the Chrome extension)', () =>
       expect(INTEGRATIONS_UI[lang].extension.popup.scoreOf(72)).toContain('72')
     }
   })
+
+  it('counts in Arabic as Arabic does, and in English in the singular for one', () => {
+    const ar = INTEGRATIONS_UI.ar
+    expect([1, 2, 5, 12].map(ar.extension.popup.occurrences)).toEqual([
+      'موضع واحد',
+      'موضعان',
+      '5 مواضع',
+      '12 موضعاً',
+    ])
+    expect([1, 2, 7, 15].map(ar.action.moreIssues)).toEqual([
+      'وفي التقرير الكامل قاعدة أخرى.',
+      'وفي التقرير الكامل قاعدتان أخريان.',
+      'وفي التقرير الكامل 7 قواعد أخرى.',
+      'وفي التقرير الكامل 15 قاعدة أخرى.',
+    ])
+    expect([1, 2, 30].map(ar.action.retryAfter)).toEqual([
+      'حاول بعد ثانية واحدة.',
+      'حاول بعد ثانيتين.',
+      'حاول بعد 30 ثانية.',
+    ])
+    const en = INTEGRATIONS_UI.en
+    expect([1, 3].map(en.extension.popup.occurrences)).toEqual(['1 place', '3 places'])
+    expect([1, 3].map(en.action.moreIssues)).toEqual([
+      '1 more rule is in the full report.',
+      '3 more rules are in the full report.',
+    ])
+    expect(en.action.gate.failed(1, 'serious')).toBe(
+      'The check fails: 1 finding at serious severity or worse.',
+    )
+  })
 })

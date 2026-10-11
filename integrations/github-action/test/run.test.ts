@@ -123,7 +123,7 @@ describe('the Action', () => {
     const failing = await run({ url: 'https://shop.example/', fail_on: 'critical' }, happy())
     expect(failing.code).toBe(1)
     expect(failing.seen.outputs.result).toBe('fail')
-    expect(failing.seen.errors[0]).toContain('2 critical findings or worse')
+    expect(failing.seen.errors[0]).toContain('2 findings at critical severity or worse')
 
     const clean = structuredClone(report)
     clean.summary.bySeverity = { critical: 0, serious: 0, moderate: 1, minor: 0, info: 0 }
