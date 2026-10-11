@@ -82,6 +82,10 @@ services:
       # Search Console, connected from a report: both, or neither (the button is then hidden).
       ARABLYZER_GSC_CLIENT_ID: ${ARABLYZER_GSC_CLIENT_ID:-}
       ARABLYZER_GSC_CLIENT_SECRET: ${ARABLYZER_GSC_CLIENT_SECRET:-}
+      # The search tools that ask Google's public pages (M5.3), each off unless 1: the suggestion
+      # tree (the same flag the scanner reads for the misspellings tool) and the results sampler.
+      ARABLYZER_SUGGEST: ${ARABLYZER_SUGGEST:-}
+      ARABLYZER_SERP: ${ARABLYZER_SERP:-}
       # Accounts (M4.1), off unless ARABLYZER_ACCOUNTS=on; then every line below must be set.
       ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
       ARABLYZER_AUTH_GOOGLE_CLIENT_ID: ${ARABLYZER_AUTH_GOOGLE_CLIENT_ID:-}

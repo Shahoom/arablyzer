@@ -379,6 +379,153 @@ export interface GscResult {
   readonly partial: boolean
 }
 
+/**
+ * «كلماتك في جوجل» (M5.3): the same account-free connection, started from a tool page instead of a
+ * report. The visitor types the site; the flow's `report` slot holds this word, and the result,
+ * read once like the report's, is the site's queries shaped for the tool.
+ */
+export const GSC_KEYWORDS_FLOW = 'keywords'
+/** Where the visitor is sent back to: the tool's own page, with `?gsc=` as on a report. */
+export const GSC_KEYWORDS_PAGE = '/tools/gsc-keywords'
+export const gscKeywordsStartPath = (site: string, lang: 'ar' | 'en'): string =>
+  `${GSC_START_PATH}?tool=${GSC_KEYWORDS_FLOW}&site=${encodeURIComponent(site)}&lang=${lang}`
+
+/** The positions that count as «فرص قريبة»: page two, and the edge of page one and of page three. */
+export const OPPORTUNITY_POSITIONS = { from: 8, to: 20 } as const
+/** The fewest impressions in the 28 days for a query to be named an opportunity. */
+export const OPPORTUNITY_MIN_IMPRESSIONS = 5
+
+/** What a query is written in: Arabic letters alone, Latin alone, both, or neither (digits). */
+export const KEYWORD_SCRIPTS = ['arabic', 'latin', 'mixed', 'other'] as const
+export type KeywordScript = (typeof KEYWORD_SCRIPTS)[number]
+
+export interface GscScriptShare {
+  readonly queries: number
+  readonly clicks: number
+  readonly impressions: number
+}
+
+/** Queries that are one word spelled in more than one way (hamza, ta marbuta, ya), with their sum. */
+export interface GscVariantGroup {
+  readonly clicks: number
+  readonly impressions: number
+  /** The spellings, the most shown first; at most four. */
+  readonly spellings: readonly GscRow[]
+}
+
+export interface GscKeywordsResult {
+  readonly property: { readonly siteUrl: string; readonly kind: 'domain' | 'prefix' } | null
+  readonly period: { readonly start: string; readonly end: string }
+  readonly totals: GscMetrics | null
+  /** How many queries Google gave (at most 1,000, the most clicked first). */
+  readonly analysed: number
+  /** The 1,000 cap was reached: the list is the top of a longer one. */
+  readonly truncated: boolean
+  /** The 50 with the most clicks. */
+  readonly top: readonly GscRow[]
+  /** Positions 8 to 20 with at least five impressions, the most shown first (at most 50). */
+  readonly opportunities: readonly GscRow[]
+  readonly scripts: Readonly<Record<KeywordScript, GscScriptShare>>
+  readonly variants: readonly GscVariantGroup[]
+  /** Something Google would not give: the rest is shown, and the page says so. */
+  readonly partial: boolean
+}
+
+/**
+ * The two search tools that ask Google's public pages (M5.3): the suggestion tree and the results
+ * sampler. Each is behind its own flag (ARABLYZER_SUGGEST, ARABLYZER_SERP), off by default; off,
+ * its route is a 404 and `status` says so. Both take a Turnstile token and one scan of the
+ * visitor's quota for a request, answer the errors of a scan (`ScanErrorResponse`), and cache
+ * what Google said for a day.
+ */
+export const SEARCH_STATUS_PATH = '/api/search/status'
+export const SEARCH_SUGGEST_PATH = '/api/search/suggest'
+export const SEARCH_SERP_PATH = '/api/search/serp'
+
+export interface SearchStatus {
+  readonly suggest: boolean
+  readonly serp: boolean
+}
+
+/** The longest seed or query, in characters. */
+export const SEARCH_TERM_MAX = 60
+export const SUGGEST_SEED_MAX_WORDS = 4
+/** Queries in one request of the results sampler: one scan's worth. */
+export const SERP_MAX_QUERIES = 5
+
+export interface SuggestRequest {
+  readonly seed: string
+  readonly turnstileToken: string
+}
+
+/** Where a suggestion came from: the word itself, a question word before it, or a letter after it. */
+export const SUGGEST_KINDS = ['seed', 'question', 'letter'] as const
+export type SuggestKind = (typeof SUGGEST_KINDS)[number]
+
+export interface SuggestGroup {
+  readonly kind: SuggestKind
+  /** The question word or the letter that was added; empty for the seed. */
+  readonly trigger: string
+  /** Suggestions this group is the first to give, in Google's order. */
+  readonly suggestions: readonly string[]
+}
+
+export interface SuggestResponse {
+  readonly seed: string
+  readonly groups: readonly SuggestGroup[]
+  /** Distinct suggestions in all the groups. */
+  readonly total: number
+  /** How many of the questions asked of Google it answered. */
+  readonly answered: number
+  readonly asked: number
+  /** Why it stopped before the end, if it did: Google stopped answering, or the time ran out. */
+  readonly stopped: 'unreadable' | 'time' | null
+}
+
+export interface SerpRequest {
+  /** One to SERP_MAX_QUERIES queries. */
+  readonly queries: readonly string[]
+  /** The visitor's own domain, to find in the results. */
+  readonly domain?: string
+  readonly turnstileToken: string
+}
+
+/** Why a query gave no list: Google asked for a check, or its page was not one we can read. */
+export type SerpOutcome = 'ok' | 'blocked' | 'unreadable' | 'failed'
+
+/** What the sampler says of an organic result: its domain and whether it is an Arabic site. */
+export interface SerpResult {
+  /** 1 to 10, among the organic results. */
+  readonly position: number
+  readonly domain: string
+  readonly arabic: boolean
+  /** What said so: the result's title in Arabic letters, or an Arab country's domain suffix. */
+  readonly signals: readonly ('title' | 'tld')[]
+}
+
+export interface SerpQuery {
+  readonly query: string
+  readonly outcome: SerpOutcome
+  readonly results: readonly SerpResult[]
+  /** The visitor's domain's best position among them; null when absent or not asked. */
+  readonly you: number | null
+}
+
+/** A domain that is in the results of more than one query. */
+export interface SerpRival {
+  readonly domain: string
+  readonly queries: number
+  readonly best: number
+  readonly arabic: boolean
+}
+
+export interface SerpResponse {
+  readonly queries: readonly SerpQuery[]
+  readonly rivals: readonly SerpRival[]
+  /** The domain looked for, folded (no scheme, no www.); null when none was given. */
+  readonly domain: string | null
+}
+
 export type EngineName = 'chromium' | 'firefox' | 'webkit'
 
 /** Where a scan is: waiting, running, or finished the way its report says. */

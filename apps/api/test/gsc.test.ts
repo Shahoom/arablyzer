@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto'
-import { GSC_RESULT_PATTERN, type GscResult } from '@arablyzer/api-contract'
+import {
+  GSC_RESULT_PATTERN,
+  type GscKeywordsResult,
+  type GscResult,
+  type GscRow,
+} from '@arablyzer/api-contract'
 import { DEFAULT_POLICY, type safeFetch, type SafeFetchOptions } from '@arablyzer/egress'
 import { DEVELOPMENT_LIMITS } from '@arablyzer/plans'
 import type { Report } from '@arablyzer/report-schema'
@@ -15,6 +20,7 @@ import { describe, expect, it } from 'vitest'
 import { createApp } from '../src/app'
 import { apiDeps } from '../src/config'
 import { googleApi } from '../src/gsc/google'
+import { analyseQueries, scriptOfQuery, siteUrlOf, spellingKey } from '../src/gsc/keywords'
 import { newPkce, signFlow, verifyFlow } from '../src/gsc/oauth'
 import { pickProperty, periodOf, shapeInspection, shapeRows, shapeTotals } from '../src/gsc/shape'
 
@@ -173,6 +179,8 @@ function setup(
     tokenStatus?: number
     analyticsStatus?: number
     off?: boolean
+    /** The rows Search Analytics gives for the query dimension. */
+    queryRows?: unknown[]
   } = {},
 ) {
   const calls: Call[] = []
@@ -210,7 +218,9 @@ function setup(
       const rows =
         body.dimensions === undefined
           ? [row]
-          : [{ keys: [body.dimensions[0] === 'query' ? 'متجر' : 'x'], ...row }]
+          : body.dimensions[0] === 'query' && options.queryRows !== undefined
+            ? options.queryRows
+            : [{ keys: [body.dimensions[0] === 'query' ? 'متجر' : 'x'], ...row }]
       return Promise.resolve(answer(options.analyticsStatus ?? 200, { rows }))
     }
     if (url.startsWith('https://searchconsole.googleapis.com/v1/urlInspection')) {
@@ -271,7 +281,16 @@ function setup(
   }
   const callback = (query: string, cookie: string) =>
     app.request(`/api/gsc/callback?${query}`, { headers: { cookie } })
-  return { app, calls, seed, start, callback, logged, handoff }
+  /** The keywords tool's flow: the site typed on the tool's page instead of a report. */
+  const startKeywords = async (site: string, lang = 'ar') => {
+    const response = await app.request(
+      `/api/gsc/start?tool=keywords&site=${encodeURIComponent(site)}&lang=${lang}`,
+    )
+    const location = new URL(response.headers.get('location') ?? 'about:blank')
+    const cookie = (response.headers.get('set-cookie') ?? '').split(';')[0] ?? ''
+    return { response, location, cookie }
+  }
+  return { app, calls, seed, start, startKeywords, callback, logged, handoff }
 }
 
 describe('Search Console routes', () => {
@@ -482,5 +501,204 @@ describe('googleApi', () => {
         redirectUri: 'r',
       }),
     ).toBeNull()
+  })
+})
+
+const row = (key: string, impressions: number, position: number, clicks = 0): GscRow => ({
+  key,
+  clicks,
+  impressions,
+  ctr: impressions === 0 ? 0 : clicks / impressions,
+  position,
+})
+const wire = (r: GscRow) => ({
+  keys: [r.key],
+  clicks: r.clicks,
+  impressions: r.impressions,
+  ctr: r.ctr,
+  position: r.position,
+})
+
+describe('the keywords tool: the site typed and the queries read', () => {
+  it('takes the site as a host name, however it was typed, and nothing else', () => {
+    expect(siteUrlOf('https://www.Example.com/ar/products?x=1')).toBe('https://www.example.com/')
+    expect(siteUrlOf('sc-domain:example.com')).toBe('https://example.com/')
+    expect(siteUrlOf('  shop.example.com ')).toBe('https://shop.example.com/')
+    expect(siteUrlOf('موقع.السعودية')).toBe('https://xn--4gbrim.xn--mgberp4a5d4ar/')
+    expect(siteUrlOf('متجر.example.com')).toBe('https://xn--pgbep1f.example.com/')
+    for (const bad of [
+      '',
+      'localhost',
+      '10.0.0.1',
+      '[::1]',
+      'user@example.com',
+      'example.com:8080',
+      'exa mple.com',
+      'example.c',
+      '-a.example.com',
+    ]) {
+      expect(siteUrlOf(bad), bad).toBeNull()
+    }
+  })
+
+  it('says what a query is written in, by its letters', () => {
+    expect(scriptOfQuery('متجر الكتروني')).toBe('arabic')
+    expect(scriptOfQuery('seo tools')).toBe('latin')
+    expect(scriptOfQuery('ايفون 15 برو')).toBe('arabic')
+    expect(scriptOfQuery('سعر iphone 15')).toBe('mixed')
+    expect(scriptOfQuery('2026 ١٢٣')).toBe('other')
+  })
+
+  it('folds the spellings of one Arabic word to one key', () => {
+    const key = spellingKey('أحذية رياضية')
+    expect(spellingKey('احذيه رياضيه')).toBe(key)
+    expect(spellingKey('إحذية  رياضيّة')).toBe(key)
+    expect(spellingKey('مَتْجَر')).toBe(spellingKey('متجر'))
+    expect(spellingKey('Shoes')).toBe('shoes')
+    expect(spellingKey('كتب')).not.toBe(spellingKey('كتاب'))
+  })
+
+  it('finds the page-two queries, the scripts’ shares and the split spellings', () => {
+    const rows = [
+      row('متجر أحذية', 900, 3.1, 80),
+      row('احذية رياضية', 400, 9.4, 3),
+      row('أحذية رياضية', 300, 11.2, 2),
+      row('shoes online', 200, 15, 1),
+      row('سعر ايفون 15', 150, 21, 0),
+      row('كيف اختار حذاء', 60, 8, 0),
+      row('حذاء', 4, 12, 0),
+      row('2026', 10, 7.9, 0),
+    ]
+    const result = analyseQueries(rows)
+    expect(result.top.map((r) => r.key)).toEqual(rows.map((r) => r.key))
+    // Page two (8 to 20) with five impressions at least: the most shown first.
+    expect(result.opportunities.map((r) => r.key)).toEqual([
+      'احذية رياضية',
+      'أحذية رياضية',
+      'shoes online',
+      'كيف اختار حذاء',
+    ])
+    expect(result.scripts.arabic).toEqual({ queries: 6, clicks: 85, impressions: 1814 })
+    expect(result.scripts.latin).toEqual({ queries: 1, clicks: 1, impressions: 200 })
+    expect(result.scripts.other.queries).toBe(1)
+    expect(result.scripts.mixed.queries).toBe(0)
+    expect(result.variants).toHaveLength(1)
+    expect(result.variants[0]).toMatchObject({ clicks: 5, impressions: 700 })
+    expect(result.variants[0]?.spellings.map((r) => r.key)).toEqual([
+      'احذية رياضية',
+      'أحذية رياضية',
+    ])
+  })
+
+  it('refuses a start with no usable site, or for a report it was not given', async () => {
+    const { startKeywords, app } = setup()
+    expect((await startKeywords('')).response.status).toBe(400)
+    expect((await startKeywords('localhost')).response.status).toBe(400)
+    expect((await app.request('/api/gsc/start?tool=keywords')).status).toBe(400)
+    expect((await app.request('/api/gsc/start?tool=other')).status).toBe(400)
+  })
+
+  it('runs the flow from the tool page, reads the queries once, and sends the visitor back there', async () => {
+    const queryRows = [
+      row('متجر أحذية', 900, 3.1, 80),
+      row('احذية رياضية', 400, 9.4, 3),
+      row('أحذية رياضية', 300, 11.2, 2),
+      row('shoes', 100, 14, 0),
+    ].map(wire)
+    const { app, calls, startKeywords, callback, logged } = setup({
+      queryRows,
+      sites: { siteEntry: [entry('sc-domain:example.com')] },
+    })
+    const { response, location, cookie } = await startKeywords('https://www.example.com/ar/', 'en')
+    expect(response.status).toBe(302)
+    expect(location.origin).toBe('https://accounts.google.com')
+    expect(location.searchParams.get('scope')).toBe(
+      'https://www.googleapis.com/auth/webmasters.readonly',
+    )
+    const back = await callback(`code=4%2Fc&state=${location.searchParams.get('state')}`, cookie)
+    const to = new URL(back.headers.get('location') ?? '')
+    expect(to.origin).toBe(SITE)
+    expect(to.pathname).toBe('/en/tools/gsc-keywords')
+    const rid = to.searchParams.get('gsc') ?? ''
+    expect(rid).toMatch(GSC_RESULT_PATTERN)
+
+    // The totals and the queries, and nothing else of the site (no pages, countries or inspection).
+    const analytics = calls.filter((call) => call.url.includes('/searchAnalytics/query'))
+    expect(analytics).toHaveLength(2)
+    expect(analytics.map((call) => (call.options.json as { rowLimit: number }).rowLimit)).toEqual([
+      1, 1000,
+    ])
+    expect(calls.some((call) => call.url.includes('urlInspection'))).toBe(false)
+    // Revoked once used, the token in headers alone.
+    expect(calls.at(-1)?.url).toBe('https://oauth2.googleapis.com/revoke')
+    for (const call of calls) expect(call.url).not.toContain(TOKEN)
+
+    const result = (await (
+      await app.request(`/api/gsc/results/${rid}`)
+    ).json()) as GscKeywordsResult
+    expect(result).toMatchObject({
+      property: { siteUrl: 'sc-domain:example.com', kind: 'domain' },
+      analysed: 4,
+      truncated: false,
+      partial: false,
+    })
+    expect(result.opportunities.map((r) => r.key)).toEqual([
+      'احذية رياضية',
+      'أحذية رياضية',
+      'shoes',
+    ])
+    expect(result.variants).toHaveLength(1)
+    expect((await app.request(`/api/gsc/results/${rid}`)).status).toBe(404)
+    expect(JSON.stringify(result)).not.toContain(TOKEN)
+    expect(logged.join(' ')).not.toContain(TOKEN)
+  })
+
+  it('says it has no property when the user owns none for the site, and when the user says no', async () => {
+    const { app, startKeywords, callback } = setup({
+      sites: { siteEntry: [entry('https://other.example/')] },
+    })
+    const first = await startKeywords('example.com')
+    const done = await callback(
+      `code=c&state=${first.location.searchParams.get('state')}`,
+      first.cookie,
+    )
+    const rid = new URL(done.headers.get('location') ?? '').searchParams.get('gsc') ?? ''
+    const result = (await (
+      await app.request(`/api/gsc/results/${rid}`)
+    ).json()) as GscKeywordsResult
+    expect(result).toMatchObject({ property: null, analysed: 0, top: [], opportunities: [] })
+
+    const second = await startKeywords('example.com')
+    const refusal = await callback(
+      `error=access_denied&state=${second.location.searchParams.get('state')}`,
+      second.cookie,
+    )
+    const to = new URL(refusal.headers.get('location') ?? '')
+    expect(to.pathname).toBe('/tools/gsc-keywords')
+    expect(to.searchParams.get('gsc')).toBe('denied')
+  })
+
+  it('marks a list that reached the cap, and a part Google would not give', async () => {
+    const many = Array.from({ length: 1000 }, (_, i) => wire(row(`كلمة ${i}`, 10, 30, 0)))
+    const full = setup({ queryRows: many })
+    const a = await full.startKeywords('example.com')
+    const back = await full.callback(
+      `code=c&state=${a.location.searchParams.get('state')}`,
+      a.cookie,
+    )
+    const rid = new URL(back.headers.get('location') ?? '').searchParams.get('gsc') ?? ''
+    const result = (await (
+      await full.app.request(`/api/gsc/results/${rid}`)
+    ).json()) as GscKeywordsResult
+    expect(result).toMatchObject({ analysed: 1000, truncated: true })
+    expect(result.top).toHaveLength(50)
+
+    const down = setup({ analyticsStatus: 500 })
+    const b = await down.startKeywords('example.com')
+    const failed = await down.callback(
+      `code=c&state=${b.location.searchParams.get('state')}`,
+      b.cookie,
+    )
+    expect(new URL(failed.headers.get('location') ?? '').searchParams.get('gsc')).toBe('error')
   })
 })
