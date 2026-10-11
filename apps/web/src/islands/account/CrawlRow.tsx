@@ -48,12 +48,31 @@ export default function CrawlRow({
               r.none
             ) : (
               <>
-                {r.states[crawl.state]}
-                {crawl.state === 'running' && ` · ${r.progress(crawl.pagesChecked, crawl.pageCap)}`}
-                {crawl.state === 'rendering' &&
-                  ` · ${r.browsers(crawl.rendered.done, crawl.rendered.total)}`}
-                {crawl.state === 'done' && ` · ${r.summary(crawl.pagesChecked, crawl.templates)}`}
-                {crawl.state === 'failed' && crawl.error !== null && ` · ${r.failed[crawl.error]}`}
+                <span className="font-semibold text-ink">{r.states[crawl.state]}</span>
+                {crawl.state === 'running' && (
+                  <>
+                    {': '}
+                    {r.progress(crawl.pagesChecked, crawl.pageCap)}
+                  </>
+                )}
+                {crawl.state === 'rendering' && (
+                  <>
+                    {': '}
+                    {r.browsers(crawl.rendered.done, crawl.rendered.total)}
+                  </>
+                )}
+                {crawl.state === 'done' && (
+                  <>
+                    {': '}
+                    {r.summary(crawl.pagesChecked, crawl.templates)}
+                  </>
+                )}
+                {crawl.state === 'failed' && crawl.error !== null && (
+                  <>
+                    {': '}
+                    {r.failed[crawl.error]}
+                  </>
+                )}
               </>
             )}
           </span>

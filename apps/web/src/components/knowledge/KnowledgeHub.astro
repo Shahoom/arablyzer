@@ -68,14 +68,17 @@ const jsonLd = [
     <h2 id="browse-title" class="heading-2 m-0">
       {t.browse.label}
     </h2>
-    <ul class="m-0 grid list-none grid-cols-2 gap-3 p-0 md:grid-cols-4 md:gap-4">
+    <ul class="ledger grid-cols-2 md:grid-cols-4">
       {KNOWLEDGE_TYPES.map((type) => (
         <li>
           <a
             href={directories[type]}
-            class="card card-lift group flex h-full flex-col gap-1.5 p-card text-ink hover:text-ink"
+            class="ledger-cell group flex h-full flex-col gap-1 px-card py-5 text-ink hover:bg-surface hover:text-ink"
           >
-            <span dir="ltr" class="heading-2 self-start text-ink tabular-nums">
+            <span
+              dir="ltr"
+              class="heading-2 self-start text-ink tabular-nums group-hover:text-brand-ink"
+            >
               {totals[type]}
             </span>
             <span class="text-small text-ink-2">

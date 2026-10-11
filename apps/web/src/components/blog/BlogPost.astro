@@ -9,9 +9,9 @@ import { STRINGS } from '@arablyzer/seo/strings'
 import { feedLinks } from '../../lib/feeds'
 import { HEAD } from '../../lib/heads'
 import { fixGuideData, termData } from '../../lib/guide-data'
-import { neighbours, postBySlug, translationOf } from '../../lib/blog'
+import { neighbours, postBySlug, TAG_DOT, tagsIn, translationOf } from '../../lib/blog'
 import { ruleData } from '../../lib/rule-data'
-import { siteOf } from '../../lib/site'
+import { scanFormHref, siteOf } from '../../lib/site'
 import { toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
 import DocHeading from '../DocHeading.astro'
@@ -19,7 +19,7 @@ import Related from '../guides/Related.astro'
 import Contents from '../pages/Contents.astro'
 import DocPage from '../pages/DocPage.astro'
 
-// An article of the blog (M6): the trail, the title, the byline and the lead over the faint tint
+// An article of the blog (M6): the trail, the title, the byline and the lead on a white band
 // of a page's head; then the sections in the main column and, beside them, the contents and the
 // pages the article is about (tools, rules, guides, terms, other articles) in the aside. The
 // document kind of M2.6 R7: DocPage on PageColumns.
@@ -95,8 +95,11 @@ const related = await Promise.all(
     title: (await postBySlug(lang, id)).title,
   })),
 )
-const prose = 'prose-fix prose-tool doc-links text-body text-ink-2'
-const pagerCard = 'kb-box group flex flex-col gap-1 p-4 text-ink hover:text-ink'
+const prose = 'prose-fix prose-tool prose-article doc-links'
+// The first topic is the article's kicker: a link when that topic has a page of its own.
+const topic = post.tags[0] ?? 'search'
+const topicPage = (await tagsIn(lang)).some((entry) => entry.tag === topic)
+const pager = 'group flex flex-col gap-1 py-5 text-ink hover:text-ink'
 ---
 
 <DocPage
@@ -110,6 +113,7 @@ const pagerCard = 'kb-box group flex flex-col gap-1 p-4 text-ink hover:text-ink'
   parent={{ name: t.title, href: localePath(lang, PATHS.blog) }}
   langs={langs}
   switchPath={twin === undefined ? PATHS.blog : path}
+  reading
   article={{
     published: post.date,
     modified: post.lastmod,
@@ -118,32 +122,38 @@ const pagerCard = 'kb-box group flex flex-col gap-1 p-4 text-ink hover:text-ink'
   feeds={feedLinks(site, lang)}
 >
   <Fragment slot="head">
-    <span class="kick self-start">{t.tags[post.tags[0] ?? 'search'].name}</span>
+    {topicPage ? (
+      <a href={localePath(lang, PATHS.blogTag(topic))} class="topic self-start">
+        <span aria-hidden="true" class:list={['size-2 rounded-full', TAG_DOT[topic]]} />
+        {t.tags[topic].name}
+      </a>
+    ) : (
+      <span class="topic self-start">
+        <span aria-hidden="true" class:list={['size-2 rounded-full', TAG_DOT[topic]]} />
+        {t.tags[topic].name}
+      </span>
+    )}
     <h1 class={HEAD.page}>
       <Bidi text={post.title} lang={lang} />
     </h1>
     <p class={HEAD.lead}>
       <Bidi text={post.summary} lang={lang} />
     </p>
-    <p class="m-0 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-small text-ink-2">
-      <span class="flex flex-wrap items-baseline gap-x-2">
+    <p class="meta-row m-0 text-small text-ink-2">
+      <span>
         {a.by}
         <span class="font-semibold text-ink">
           <Bidi text={post.author} lang={lang} />
         </span>
       </span>
-      <span class="flex flex-wrap items-baseline gap-x-2">
+      <span>
         {a.published}
-        <time datetime={post.date} class="tabular-nums">
-          {formatDate(post.date, lang)}
-        </time>
+        <time datetime={post.date}>{formatDate(post.date, lang)}</time>
       </span>
       {post.updated !== undefined && post.updated !== post.date && (
-        <span class="flex flex-wrap items-baseline gap-x-2">
+        <span>
           {a.updated}
-          <time datetime={post.updated} class="tabular-nums">
-            {formatDate(post.updated, lang)}
-          </time>
+          <time datetime={post.updated}>{formatDate(post.updated, lang)}</time>
         </span>
       )}
       <span>{a.readingTime(post.minutes)}</span>
@@ -173,22 +183,44 @@ const pagerCard = 'kb-box group flex flex-col gap-1 p-4 text-ink hover:text-ink'
       ]}
     />
   </div>
-  {post.intro !== '' && <div class={prose} set:html={post.intro} />}
-  {post.sections.map((section) => (
-    <section
-      id={section.id}
-      aria-labelledby={`${section.id}-title`}
-      class="flex scroll-mt-6 flex-col gap-4"
-    >
-      <DocHeading id={`${section.id}-title`} title={titleText(section.title)} />
-      <div class={prose} set:html={section.html} />
-    </section>
-  ))}
+  <div class="flex flex-col gap-10 lg:gap-14">
+    {post.intro !== '' && <div class={prose} set:html={post.intro} />}
+    {post.sections.map((section) => (
+      <section
+        id={section.id}
+        aria-labelledby={`${section.id}-title`}
+        class="flex scroll-mt-6 flex-col gap-4 lg:gap-5"
+      >
+        <DocHeading id={`${section.id}-title`} title={titleText(section.title)} />
+        <div class={prose} set:html={section.html} />
+      </section>
+    ))}
+  </div>
+  <aside
+    aria-labelledby="try-title"
+    class="kb-box flex flex-col gap-3 p-card md:flex-row md:items-center md:justify-between md:gap-8"
+  >
+    <div class="flex flex-col gap-1">
+      <h2 id="try-title" class="heading-3 m-0">
+        {a.tryIt.title}
+      </h2>
+      <p class="m-0 text-small text-ink-2">{a.tryIt.text}</p>
+    </div>
+    <a href={scanFormHref(lang)} class="btn-grad shrink-0 self-start md:self-auto">
+      {a.tryIt.button}
+    </a>
+  </aside>
   {(previous !== undefined || next !== undefined) && (
-    <nav aria-label={a.pager} class="grid gap-3 sm:grid-cols-2">
+    <nav
+      aria-label={a.pager}
+      class="grid divide-y divide-line border-y border-line sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:divide-line"
+    >
       {previous !== undefined ? (
-        <a href={localePath(lang, PATHS.post(previous.slug))} class={pagerCard}>
-          <span class="text-meta text-ink-2">{a.previous}</span>
+        <a href={localePath(lang, PATHS.post(previous.slug))} class:list={[pager, 'sm:pe-6']}>
+          <span class="flex items-center gap-2 text-meta text-ink-2">
+            <span aria-hidden="true" class="chev-end rotate-180"></span>
+            {a.previous}
+          </span>
           <span class="text-body font-semibold group-hover:text-brand-ink">
             <Bidi text={previous.title} lang={lang} />
           </span>
@@ -197,8 +229,11 @@ const pagerCard = 'kb-box group flex flex-col gap-1 p-4 text-ink hover:text-ink'
         <span class="hidden sm:block" />
       )}
       {next !== undefined && (
-        <a href={localePath(lang, PATHS.post(next.slug))} class={pagerCard}>
-          <span class="text-meta text-ink-2">{a.next}</span>
+        <a href={localePath(lang, PATHS.post(next.slug))} class:list={[pager, 'sm:ps-6']}>
+          <span class="flex items-center justify-between gap-2 text-meta text-ink-2">
+            {a.next}
+            <span aria-hidden="true" class="chev-end"></span>
+          </span>
           <span class="text-body font-semibold group-hover:text-brand-ink">
             <Bidi text={next.title} lang={lang} />
           </span>

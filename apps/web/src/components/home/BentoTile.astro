@@ -5,12 +5,14 @@ import ChevronRight from '@lucide/astro/icons/chevron-right'
 import Bidi from '../Bidi.astro'
 
 /**
- * One tile of the bento: an icon on its gradient, a heading that is the link to the tool's page
- * (stretched over the whole tile, so the tile is one link and nothing is nested), what the tile
- * shows in the slot, and `example` when the tile's data is made up, which it must say. Hovering
- * lifts the tile; the focus ring is drawn around the tile, not around its heading.
+ * One tile of the bento (R8): its category (a dot in the category's colour and, from md, its name:
+ * the colour is the category's everywhere on the site, so the bento is the directory's legend
+ * and not a set of icons on gradients), a heading that is the link to the tool's page (stretched
+ * over the whole tile, so the tile is one link and nothing is nested), what the tile shows in the
+ * slot, and `example` when the tile's data is made up, which it must say. Hovering lifts the
+ * tile; the focus ring is drawn around the tile, not around its heading.
  *
- * On a phone (M2.6 R7) a tile is a row of the list: the icon, the heading and a chevron, 68 px
+ * On a phone (M2.6 R7) a tile is a row of the list: the dot, the heading and a chevron, 68 px
  * tall, and what it shows (an illustration made of example data) is for md and up. The tile that
  * is `featured` keeps its content on a phone too: it is the one that shows real data. The
  * «مثال» mark goes with the illustration it marks.
@@ -21,14 +23,24 @@ interface Props {
   href: string
   /** The tool's name, which a screen reader hears after the heading. */
   tool: string
-  tone: 'teal' | 'pink' | 'green' | 'indigo' | 'amber' | 'emerald' | 'blue'
+  /** The tool's category: its name, and the class of its dot (the directory's colours). */
+  category: { readonly name: string; readonly dot: string }
   /** The word that marks made-up data («مثال»); left out when the tile shows real data. */
   example?: string | undefined
   /** Whether a phone shows the tile's content under its heading. */
   featured?: boolean
   class?: string | undefined
 }
-const { lang, title, href, tool, tone, example, featured = false, class: className } = Astro.props
+const {
+  lang,
+  title,
+  href,
+  tool,
+  category,
+  example,
+  featured = false,
+  class: className,
+} = Astro.props
 const Chevron = lang === 'ar' ? ChevronLeft : ChevronRight
 ---
 
@@ -43,13 +55,9 @@ const Chevron = lang === 'ar' ? ChevronLeft : ChevronRight
       {example}
     </span>
   )}
-  <span
-    class:list={[
-      'tile-icon grid size-9 place-items-center rounded-[11px] text-white md:size-11 md:rounded-[14px]',
-      `tone-${tone}`,
-    ]}
-  >
-    <slot name="icon" />
+  <span class="flex items-center gap-2 text-meta text-ink-2 md:order-first">
+    <i aria-hidden="true" class:list={['size-2 shrink-0 rounded-full', category.dot]}></i>
+    <span class="hidden md:inline">{category.name}</span>
   </span>
   <h3 class="heading-3 m-0">
     <a
@@ -70,38 +78,3 @@ const Chevron = lang === 'ar' ? ChevronLeft : ChevronRight
     <slot />
   </div>
 </article>
-
-<style>
-  .tone-teal {
-    background-image: linear-gradient(135deg, #0f766e, #14b8a6);
-  }
-  .tone-pink {
-    background-image: linear-gradient(135deg, #be185d, #ec4899);
-  }
-  .tone-green {
-    background-image: linear-gradient(135deg, #047857, #10b981);
-  }
-  .tone-indigo {
-    background-image: linear-gradient(135deg, #4338ca, #818cf8);
-  }
-  .tone-amber {
-    background-image: linear-gradient(135deg, #b45309, #f59e0b);
-  }
-  .tone-emerald {
-    background-image: linear-gradient(135deg, #065f46, #34d399);
-  }
-  .tone-blue {
-    background-image: linear-gradient(135deg, #1d4ed8, #60a5fa);
-  }
-  /* The icon is drawn smaller in the phone's row (a 36 px square) than in a tile (44 px). */
-  .tile-icon :global(svg) {
-    width: 20px;
-    height: 20px;
-  }
-  @media (min-width: 48rem) {
-    .tile-icon :global(svg) {
-      width: 22px;
-      height: 22px;
-    }
-  }
-</style>

@@ -187,7 +187,7 @@ function Loaded({
               {t.markerLegend}:{' '}
               {MARKER_KINDS.filter((kind) => history.markers.some((m) => m.kind === kind.kind))
                 .map((kind) => `${kind.symbol} ${t.markerKinds[kind.kind]}`)
-                .join(' · ')}
+                .join(lang === 'ar' ? '، ' : ', ')}
             </p>
           )}
           <p className="m-0">{t.alertsNote}</p>
@@ -257,7 +257,9 @@ function Loaded({
                 ))}
                 {history.alerts && (
                   <td className="py-2 pe-3">
-                    {(marked.get(point.scanId) ?? []).map(markerText).join(' · ')}
+                    {(marked.get(point.scanId) ?? [])
+                      .map(markerText)
+                      .join(lang === 'ar' ? '، ' : ', ')}
                   </td>
                 )}
                 <td className="py-2">

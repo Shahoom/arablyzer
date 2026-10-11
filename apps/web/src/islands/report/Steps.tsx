@@ -74,7 +74,7 @@ export function Steps({
           )}
           <Dot state={step.state} />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className={`text-body ${LABEL[step.state]}`}>
                 {step.label}
                 <span className="sr-only"> ({t.state[step.state]})</span>

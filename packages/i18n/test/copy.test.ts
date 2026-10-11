@@ -191,12 +191,12 @@ describe('interface copy', () => {
 
   it('counts in Arabic as Arabic counts', () => {
     const tally = HOME.ar.figure.tally
-    expect(tally(3, 18)).toBe('فشلت 3 قواعد · نجحت 18 قاعدة')
-    expect(tally(1, 2)).toBe('فشلت قاعدة واحدة · نجحت قاعدتان')
-    expect(tally(0, 11)).toBe('لم تفشل أي قاعدة · نجحت 11 قاعدة')
-    expect(tally(103, 100)).toBe('فشلت 103 قواعد · نجحت 100 قاعدة')
-    expect(HOME.en.figure.tally(1, 18)).toBe('1 rule failed · 18 passed')
-    expect(HOME.en.figure.tally(0, 20)).toBe('No rule failed · 20 passed')
+    expect(tally(3, 18)).toBe('فشلت 3 قواعد، ونجحت 18 قاعدة')
+    expect(tally(1, 2)).toBe('فشلت قاعدة واحدة، ونجحت قاعدتان')
+    expect(tally(0, 11)).toBe('لم تفشل أي قاعدة، ونجحت 11 قاعدة')
+    expect(tally(103, 100)).toBe('فشلت 103 قواعد، ونجحت 100 قاعدة')
+    expect(HOME.en.figure.tally(1, 18)).toBe('1 rule failed, 18 passed')
+    expect(HOME.en.figure.tally(0, 20)).toBe('No rule failed, 20 passed')
   })
 
   // M5, issue #33: the address is stored as it is sent, with its query string, and its report opens

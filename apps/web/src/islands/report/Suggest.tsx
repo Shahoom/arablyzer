@@ -60,7 +60,7 @@ export function Suggest({ report, lang }: { report: Report; lang: Lang }) {
                     {variant.typed === null ? t.notAsked : variant.typed ? t.typed : t.notTyped}
                   </span>
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-meta ${
+                    className={`rounded-full px-3 py-0.5 text-meta ${
                       variant.typed === true && !variant.covered
                         ? 'bg-moderate-soft text-moderate'
                         : 'bg-surface-2 text-ink-2'

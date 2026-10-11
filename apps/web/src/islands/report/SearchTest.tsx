@@ -33,7 +33,7 @@ export function SearchTest({ report, lang }: { report: Report; lang: Lang }) {
         {fact.lost > 0 ? t.summary(fact.lost, fact.total) : t.clean(fact.total)}
       </p>
       <p className="m-0 text-small text-ink-2">
-        {t.via[fact.via]} · {t.requests(fact.requests)}
+        {t.via[fact.via]} <span className="ms-3">{t.requests(fact.requests)}</span>
       </p>
       <ul className="m-0 flex list-none flex-col gap-4 p-0">
         {fact.words.map((word) => (
@@ -61,7 +61,7 @@ export function SearchTest({ report, lang }: { report: Report; lang: Lang }) {
                     {variant.results === null ? '·' : t.found(variant.results)}
                   </span>
                   <span
-                    className={`rounded-full px-2.5 py-0.5 text-meta ${
+                    className={`rounded-full px-3 py-0.5 text-meta ${
                       variant.counted ? OUTCOME_STYLE[variant.outcome] : 'bg-surface-2 text-ink-2'
                     }`}
                   >

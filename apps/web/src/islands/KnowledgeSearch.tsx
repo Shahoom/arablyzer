@@ -178,17 +178,17 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
         aria-labelledby="knowledge-filter-title"
         className="page-aside-sticky hidden min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:block"
       >
-        <div className="kb-box flex flex-col gap-0.5 p-3">
+        <div className="kb-box flex flex-col gap-1 p-3">
           <h2
             id="knowledge-filter-title"
-            className="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2"
+            className="m-0 px-3 pt-1 pb-2 text-meta font-semibold text-ink-2"
           >
             {t.typesLabel}
           </h2>
           <div
             role="group"
             aria-labelledby="knowledge-filter-title"
-            className="flex flex-col gap-0.5"
+            className="flex flex-col gap-1"
           >
             {CHOICES.map((choice) => (
               <button
@@ -211,7 +211,7 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
       {/* The results: the main column's second row from lg, under the search. */}
       <div className="-mt-5 min-w-0 lg:col-start-1 lg:row-start-2 lg:mt-6">
         {groups.length === 0 ? (
-          <div className="flex flex-col gap-2 rounded-card border border-dashed border-line-2 bg-white/70 p-card">
+          <div className="empty-state">
             <p className="heading-3 m-0">
               {t.none.title.split('{query}').map((part, position) =>
                 position === 0 ? (
@@ -236,7 +236,7 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
                 <li key={item.href}>
                   <a href={item.href} className="kb-row group">
                     <span aria-hidden="true" className={`kb-dot ${dotOf(item.tone, tones)}`} />
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
                       <span className="flex items-start justify-between gap-3">
                         <span
                           data-part="title"
@@ -276,7 +276,7 @@ export default function KnowledgeSearch({ lang, items, tones, directories }: Pro
                   <div className="flex items-center justify-between gap-x-4">
                     <h2
                       id={`knowledge-${group.type}`}
-                      className="heading-2 m-0 flex items-baseline gap-2.5"
+                      className="heading-2 m-0 flex items-baseline gap-3"
                     >
                       <span>{label(group.type)}</span>
                       <span dir="ltr" className="text-small font-normal text-ink-2 tabular-nums">

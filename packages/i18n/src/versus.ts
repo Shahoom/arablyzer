@@ -53,6 +53,8 @@ export interface VersusStrings {
     readonly breadcrumb: string
     readonly heading: (name: string) => string
     readonly kicker: string
+    /** The aside's contents list: its name. */
+    readonly contents: string
     readonly tableTitle: string
     readonly tableCaption: (name: string) => string
     readonly feature: string
@@ -100,6 +102,7 @@ export const VERSUS_UI: Copy<VersusStrings> = {
       breadcrumb: 'مسار الصفحة',
       heading: (name) => `Arablyzer مقابل ${name}`,
       kicker: 'مقارنة',
+      contents: 'في هذه الصفحة',
       tableTitle: 'المقارنة سطراً بسطر',
       tableCaption: (name) => `ما يفعله Arablyzer وما تذكره صفحات ${name} العامة`,
       feature: 'الميزة',
@@ -305,6 +308,7 @@ export const VERSUS_UI: Copy<VersusStrings> = {
       breadcrumb: 'Breadcrumb',
       heading: (name) => `Arablyzer vs ${name}`,
       kicker: 'Comparison',
+      contents: 'On this page',
       tableTitle: 'Line by line',
       tableCaption: (name) => `What Arablyzer does and what ${name}'s public pages state`,
       feature: 'Feature',

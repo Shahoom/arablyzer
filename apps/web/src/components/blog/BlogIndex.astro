@@ -80,13 +80,12 @@ const jsonLd = [
     <Fragment slot="aside">
       <BlogAside lang={lang} tags={tags} current={tag ?? 'all'} total={all.length} />
     </Fragment>
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-5">
       <TagChips lang={lang} tags={tags} current={tag ?? 'all'} />
       {lang === 'en' && tag === undefined && (
         <p class="m-0 text-small text-ink-2">{t.translationNote}</p>
       )}
-      <p class="m-0 text-small text-ink-2">{t.count(posts.length)}</p>
-      <PostList lang={lang} posts={posts} label={name} />
+      <PostList lang={lang} posts={posts} label={name} featured={tag === undefined} />
     </div>
   </PageColumns>
 </Page>

@@ -1,21 +1,14 @@
 ---
-import { HOME } from '@arablyzer/i18n'
+import { HOME, TOOLS_UI } from '@arablyzer/i18n'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import ArrowDown from '@lucide/astro/icons/arrow-down'
 import Check from '@lucide/astro/icons/check'
-import FileText from '@lucide/astro/icons/file-text'
-import Gauge from '@lucide/astro/icons/gauge'
-import MessageCircle from '@lucide/astro/icons/message-circle'
-import ShieldCheck from '@lucide/astro/icons/shield-check'
-import Sparkles from '@lucide/astro/icons/sparkles'
-import TextCursorInput from '@lucide/astro/icons/text-cursor-input'
-import Type from '@lucide/astro/icons/type'
 import X from '@lucide/astro/icons/x'
 import { lettersApart } from '../../lib/arabic'
 import { ENGINE_DOT } from '../../lib/engines'
 import { BENTO_TOOLS, gauge, VITALS, type Vital } from '../../lib/home'
 import { ENGINE_NAMES, SHOWCASE } from '../../lib/showcase'
-import { toolData } from '../../lib/tool-data'
+import { CATEGORY_STYLE, toolData } from '../../lib/tool-data'
 import Bidi from '../Bidi.astro'
 import BentoTile from './BentoTile.astro'
 import SectionIntro from './SectionIntro.astro'
@@ -41,10 +34,15 @@ const t = HOME[lang].bento
 const s = SHOWCASE
 
 /** A tile's tool: where its tile links, and what a screen reader calls it. */
-const tool = (slug: (typeof BENTO_TOOLS)[keyof typeof BENTO_TOOLS]) => ({
-  href: localePath(lang, PATHS.tool(slug)),
-  title: toolData(slug).copy[lang].title,
-})
+const tool = (slug: (typeof BENTO_TOOLS)[keyof typeof BENTO_TOOLS]) => {
+  const { category, copy } = toolData(slug)
+  // The tile wears its tool's category: the colour of its dot and its name, the directory's own.
+  return {
+    href: localePath(lang, PATHS.tool(slug)),
+    title: copy[lang].title,
+    category: { name: TOOLS_UI[lang].categories[category].name, dot: CATEGORY_STYLE[category].dot },
+  }
+}
 const links = {
   engines: tool(BENTO_TOOLS.engines),
   forms: tool(BENTO_TOOLS.forms),
@@ -91,41 +89,33 @@ const gauges = VITAL_ORDER.map((vital) => {
 
 const okChip = 'sev sev-pass'
 const badChip = 'sev bg-critical-soft text-critical-ink'
-const row =
-  'text-small flex items-center justify-between gap-2.5 rounded-xl bg-surface-2 px-3 py-2.5'
+const row = 'text-small flex items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-3'
 ---
 
 <section aria-labelledby="bento-title" class="below-fold strip">
   <div class="wrap">
-    <SectionIntro
-      kicker={t.kicker}
-      id="bento-title"
-      title={t.title}
-      lead={t.lead}
-      phoneLead={false}
-    />
+    <SectionIntro id="bento-title" title={t.title} lead={t.lead} phoneLead={false} />
 
-    <div class="grid gap-2.5 md:auto-rows-[minmax(250px,auto)] md:grid-cols-2 md:gap-card xl:grid-cols-4">
+    <div class="grid gap-3 md:auto-rows-[minmax(250px,auto)] md:grid-cols-2 md:gap-card xl:grid-cols-4">
       <BentoTile
         lang={lang}
         title={t.engines.title}
         href={links.engines.href}
         tool={links.engines.title}
-        tone="teal"
+        category={links.engines.category}
         featured
-        class="mb-1 bg-[linear-gradient(160deg,#ffffff_40%,#f0fdfa)] md:col-span-2 md:mb-0 xl:row-span-2"
+        class="mb-1 md:col-span-2 md:mb-0 xl:row-span-2"
       >
-        <Type slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <p class="text-small m-0 text-ink-2">
           <Bidi text={t.engines.text} lang={lang} />
         </p>
-        <div class="my-auto flex flex-col gap-2 md:gap-2.5 xl:gap-3">
+        <div class="my-auto flex flex-col gap-2 md:gap-3 xl:gap-3">
           {rows.map((item) => (
             <div
               class:list={[
                 // On a phone the engine and its verdict share a line and the word has the one under
                 // it, whole; from sm up the three are one row.
-                'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border px-3 py-2 sm:grid-cols-[118px_minmax(0,1fr)_auto] sm:px-4 sm:py-3.5',
+                'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-2 sm:grid-cols-[118px_minmax(0,1fr)_auto] sm:px-4 sm:py-4',
                 item.joined ? 'border-line bg-white' : 'border-[#fecdd3] bg-[#fff5f6]',
               ]}
             >
@@ -136,7 +126,7 @@ const row =
               >
                 <i
                   aria-hidden="true"
-                  class:list={['size-2.5 shrink-0 rounded-full', ENGINE_DOT[item.engine]]}
+                  class:list={['size-2 shrink-0 rounded-full', ENGINE_DOT[item.engine]]}
                 />
                 {item.name}
               </span>
@@ -181,16 +171,15 @@ const row =
         title={t.forms.title}
         href={links.forms.href}
         tool={links.forms.title}
-        tone="pink"
+        category={links.forms.category}
         example={t.example}
         class="md:col-span-2"
       >
-        <TextCursorInput slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <p class="text-small m-0 text-ink-2">
           <Bidi text={t.forms.text} lang={lang} />
         </p>
-        <div class="mt-auto grid gap-2.5 md:grid-cols-2">
-          <div class="flex flex-col gap-1.5 rounded-xl border border-line bg-[#fcfcfd] px-3.5 py-3">
+        <div class="mt-auto grid gap-3 md:grid-cols-2">
+          <div class="flex flex-col gap-2 rounded-xl border border-line bg-[#fcfcfd] px-4 py-3">
             <span class="text-meta text-ink-2">{s.name.label}</span>
             <span class="text-body flex min-h-10 items-center justify-between gap-2 rounded-[10px] border border-field bg-white px-3">
               <span class="typed" lang="ar" dir="rtl">
@@ -200,7 +189,7 @@ const row =
               <span class:list={[okChip, 'typed-ok']}>{t.forms.nameAccepted}</span>
             </span>
           </div>
-          <div class="flex flex-col gap-1.5 rounded-xl border border-line bg-[#fcfcfd] px-3.5 py-3">
+          <div class="flex flex-col gap-2 rounded-xl border border-line bg-[#fcfcfd] px-4 py-3">
             <span class="text-meta text-ink-2">{t.forms.phone}</span>
             <span class="text-body flex min-h-10 items-center justify-between gap-2 rounded-[10px] border border-field bg-white px-3">
               <samp dir="ltr" class="font-sans">
@@ -217,14 +206,13 @@ const row =
         title={t.whatsapp.title}
         href={links.whatsapp.href}
         tool={links.whatsapp.title}
-        tone="green"
+        category={links.whatsapp.category}
         example={t.example}
       >
-        <MessageCircle slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <div class="mt-auto flex flex-col items-stretch gap-2">
           <span
             dir="ltr"
-            class="text-small rounded-xl bg-surface-2 px-3 py-2.5 font-mono text-ink-2 line-through"
+            class="text-small rounded-xl bg-surface-2 px-3 py-3 font-mono text-ink-2 line-through"
           >
             wa.me/0501234567
           </span>
@@ -234,10 +222,7 @@ const row =
             aria-hidden="true"
             class="nudge self-center text-ink-3"
           />
-          <span
-            dir="ltr"
-            class="text-small rounded-xl bg-pass-soft px-3 py-2.5 font-mono text-pass"
-          >
+          <span dir="ltr" class="text-small rounded-xl bg-pass-soft px-3 py-3 font-mono text-pass">
             wa.me/966501234567
           </span>
         </div>
@@ -248,10 +233,9 @@ const row =
         title={t.ai.title}
         href={links.ai.href}
         tool={links.ai.title}
-        tone="indigo"
+        category={links.ai.category}
         example={t.example}
       >
-        <Sparkles slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <ul class="m-0 mt-auto flex list-none flex-col gap-2 p-0">
           {AI.map((bot) => (
             <li class={row}>
@@ -271,17 +255,16 @@ const row =
         title={t.speed.title}
         href={links.speed.href}
         tool={links.speed.title}
-        tone="amber"
+        category={links.speed.category}
         example={t.example}
         class="md:col-span-2"
       >
-        <Gauge slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <p class="text-small m-0 text-ink-2">
           <Bidi text={t.speed.text} lang={lang} />
         </p>
         <div class="mt-auto grid grid-cols-3 gap-3">
           {gauges.map((item) => (
-            <div class="flex flex-col items-center gap-0.5 rounded-xl bg-surface-2 px-2 pt-3 pb-3">
+            <div class="flex flex-col items-center gap-1 rounded-xl bg-surface-2 px-2 pt-3 pb-3">
               <svg viewBox="0 0 120 70" aria-hidden="true" class="block h-[70px] w-[120px]">
                 <path
                   d="M10 62 A50 50 0 0 1 110 62"
@@ -317,10 +300,9 @@ const row =
         title={t.trust.title}
         href={links.trust.href}
         tool={links.trust.title}
-        tone="emerald"
+        category={links.trust.category}
         example={t.example}
       >
-        <ShieldCheck slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
         <ul class="m-0 mt-auto flex list-none flex-col gap-2 p-0">
           {TRUST.map((check) => (
             <li class={row}>
@@ -340,14 +322,13 @@ const row =
         title={t.robots.title}
         href={links.robots.href}
         tool={links.robots.title}
-        tone="blue"
+        category={links.robots.category}
         example={t.example}
       >
-        <FileText slot="icon" size={22} stroke-width={1.8} aria-hidden="true" />
-        <div class="mt-auto flex flex-col gap-2.5">
+        <div class="mt-auto flex flex-col gap-3">
           <pre
             dir="ltr"
-            class="m-0 overflow-x-auto rounded-xl bg-ink px-4 py-3.5 font-mono text-[13px] leading-[1.8] text-panel-soft"
+            class="m-0 overflow-x-auto rounded-xl bg-ink px-4 py-4 font-mono text-[13px] leading-[1.8] text-panel-soft"
           ><code>User-agent: Googlebot
 <span class="hl">Disallow: /</span></code></pre>
           <span class:list={[badChip, 'self-start']}>
@@ -363,16 +344,16 @@ const row =
   /* The browser's placeholder until the section is laid out: its measured height on a phone, a
      tablet and a desktop (the real height is remembered once it has been drawn). */
   .strip {
-    contain-intrinsic-size: auto 1000px;
+    contain-intrinsic-size: auto 940px;
   }
   @media (min-width: 48rem) {
     .strip {
-      contain-intrinsic-size: auto 1860px;
+      contain-intrinsic-size: auto 1760px;
     }
   }
   @media (min-width: 80rem) {
     .strip {
-      contain-intrinsic-size: auto 1120px;
+      contain-intrinsic-size: auto 1020px;
     }
   }
   /* The gap between the letters of the heading in WebKit's row: it opens and closes. */

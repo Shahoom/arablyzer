@@ -7,7 +7,11 @@ const ENGINE_NAMES = { chromium: 'Chromium', firefox: 'Firefox', webkit: 'WebKit
 
 type Engine = XrayFact['engines'][number]
 
-/** A circle round a word: a white ring under a coloured one, so it shows on any page. */
+/**
+ * A circle round a word: a white ring under a coloured one, so it shows on any page. The strokes
+ * keep their width on the screen (3 px, 6 px under it) whatever the picture is scaled to, so a
+ * desktop's shot, drawn small, is circled as clearly as a phone's.
+ */
 function Circles({ engine }: { engine: Engine }) {
   return (
     <svg
@@ -22,8 +26,24 @@ function Circles({ engine }: { engine: Engine }) {
         const ry = word.box.height / 2 + 8
         return (
           <g key={`${String(word.box.x)}-${String(word.box.y)}`} fill="none">
-            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} stroke="#fff" strokeWidth="10" />
-            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} stroke="currentColor" strokeWidth="5" />
+            <ellipse
+              cx={cx}
+              cy={cy}
+              rx={rx}
+              ry={ry}
+              stroke="#fff"
+              strokeWidth="6"
+              vectorEffect="non-scaling-stroke"
+            />
+            <ellipse
+              cx={cx}
+              cy={cy}
+              rx={rx}
+              ry={ry}
+              stroke="currentColor"
+              strokeWidth="3"
+              vectorEffect="non-scaling-stroke"
+            />
           </g>
         )
       })}

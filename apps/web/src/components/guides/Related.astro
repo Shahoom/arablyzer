@@ -25,7 +25,7 @@ const groups = Astro.props.groups.filter((group) => group.links.length > 0)
     {groups.map((group, index) => (
       <nav
         aria-labelledby={group.id}
-        class:list={['flex flex-col gap-0.5', index > 0 && 'mt-2 border-t border-line pt-2']}
+        class:list={['flex flex-col gap-1', index > 0 && 'mt-2 border-t border-line pt-2']}
       >
         <h2 id={group.id} class="m-0 px-3 pt-1 pb-1 text-meta font-semibold text-ink-2">
           {group.title}

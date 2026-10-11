@@ -35,7 +35,7 @@ function Address({ url, href }: { url: string; href?: string | undefined }) {
       <ArrowUpRight
         aria-hidden="true"
         size={14}
-        className="mt-1.5 shrink-0 text-ink-3 rtl:-scale-x-100"
+        className="mt-2 shrink-0 text-ink-3 rtl:-scale-x-100"
       />
     </a>
   )

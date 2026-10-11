@@ -42,7 +42,7 @@ export function CountryFit({
       <p className="m-0 text-body font-semibold">{headline}</p>
       {fact.percent !== null && (
         <p className="m-0 text-small text-ink-2">
-          {t.judged(fact.judged)} · {t.note}
+          {t.judged(fact.judged)} {t.note}
         </p>
       )}
       {fact.percent !== null && (
@@ -90,7 +90,7 @@ export function CountryFit({
           {t.evidence}:{' '}
           {fact.signals.map((signal, index) => (
             <span key={`${signal.kind}${signal.country}`}>
-              {index > 0 && ' · '}
+              {index > 0 && (lang === 'ar' ? '، ' : ', ')}
               {t.signal[signal.kind]} {signal.country}{' '}
               <span dir="ltr">
                 (<Revealed text={signal.value} />)

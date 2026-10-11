@@ -2,10 +2,11 @@
 import type { Lang } from '@arablyzer/seo/site'
 import { HEAD } from '../lib/heads'
 import Breadcrumb from './Breadcrumb.astro'
+import PageBand from './PageBand.astro'
 
 /**
  * The head of an index page (the tools, the rule library, the fix guides, the glossary): the
- * trail, a kicker if the page has one, the heading in solid ink and its lead over the faint tint
+ * trail, a kicker if the page has one, the heading in solid ink and its lead on a white band
  * of a page's head, and a slot for what sits beside the heading on a wide screen (a search) or
  * under it. At the start of the line, like every page but the home page's hero (lib/heads.ts,
  * which sets the scale: the h1 is 28 px on a phone and 40 px from lg, and has no gradient).
@@ -22,20 +23,17 @@ interface Props {
 const { lang, breadcrumb, title } = Astro.props
 ---
 
-<section class="relative isolate border-b border-line">
-  <div aria-hidden="true" class="page-wash"></div>
-  <div class:list={['wrap flex flex-col gap-4 lg:gap-6', HEAD.padding]}>
-    <Breadcrumb lang={lang} {...breadcrumb} />
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
-      <div class="flex max-w-[760px] flex-col gap-3">
-        <slot name="kicker" />
-        <h1 class={HEAD.index}>{title}</h1>
-        <p class={HEAD.lead}>
-          <slot name="lead" />
-        </p>
-      </div>
-      <slot name="end" />
+<PageBand class="lg:gap-6">
+  <Breadcrumb lang={lang} {...breadcrumb} />
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
+    <div class="flex max-w-[760px] flex-col gap-3">
+      <slot name="kicker" />
+      <h1 class={HEAD.index}>{title}</h1>
+      <p class={HEAD.lead}>
+        <slot name="lead" />
+      </p>
     </div>
-    <slot />
+    <slot name="end" />
   </div>
-</section>
+  <slot />
+</PageBand>

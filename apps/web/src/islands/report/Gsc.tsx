@@ -274,7 +274,7 @@ function Rows({
       ) : (
         <ol className="m-0 flex list-none flex-col gap-2 p-0">
           {rows.map((row) => (
-            <li key={row.key} className="flex min-w-0 flex-col gap-0.5">
+            <li key={row.key} className="flex min-w-0 flex-col gap-1">
               {/* Aligned at the page's start whatever the text: its own direction is set inside. */}
               <span
                 className={

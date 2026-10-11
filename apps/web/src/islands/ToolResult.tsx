@@ -114,7 +114,7 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
           {steps.map((step) => (
             <li
               key={step.key}
-              className="flex items-center gap-3 border-b border-line px-card py-2.5 text-small last:border-b-0"
+              className="flex items-center gap-3 border-b border-line px-card py-3 text-small last:border-b-0"
             >
               <Mark
                 tone={
@@ -205,17 +205,17 @@ function Result({ run, lang, reportsOnly }: { run: Run; lang: Lang; reportsOnly:
           aria-labelledby={`result-${entry.rule.id}`}
           className="flex flex-col border-b border-line"
         >
-          <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 px-card pt-4">
+          <header className="flex flex-wrap items-center gap-x-3 gap-y-1 px-card pt-4">
             <h3 id={`result-${entry.rule.id}`} className="heading-3 m-0">
               <Bidi text={entry.rule.title[lang]} lang={lang} />
             </h3>
             {isNote(entry.rule) && (
-              <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-meta text-ink-2">
+              <span className="rounded-full bg-surface-2 px-3 py-0.5 text-meta text-ink-2">
                 {r.findings.notDeducted}
               </span>
             )}
             {entry.rule.status === 'needs-review' && (
-              <span className="rounded-full bg-blue-soft px-2.5 py-0.5 text-meta text-blue">
+              <span className="rounded-full bg-blue-soft px-3 py-0.5 text-meta text-blue">
                 {r.findings.review}
               </span>
             )}
@@ -327,7 +327,7 @@ function Checked({
           return (
             <li
               key={rule.id}
-              className="flex items-start gap-3 border-t border-line px-card py-2.5 text-small"
+              className="flex items-start gap-3 border-t border-line px-card py-3 text-small"
             >
               {noted ? (
                 <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-surface-2">
@@ -350,7 +350,7 @@ function Checked({
                 <Bidi text={rule.title[lang]} lang={lang} />
               </span>
               <span
-                className={`shrink-0 rounded-full px-2.5 py-0.5 text-meta ${
+                className={`shrink-0 rounded-full px-3 py-0.5 text-meta ${
                   noted || none ? 'bg-surface-2 text-ink-2' : STATUS_STYLE[rule.status]
                 }`}
               >

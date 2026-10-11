@@ -110,8 +110,8 @@ export const KNOWLEDGE_UI: Copy<KnowledgeStrings> = {
       fix: 'كل أدلة الإصلاح',
       term: 'المسرد كاملاً',
     },
-    showAll: 'عرض الكل',
-    showFewer: 'عرض أقل',
+    showAll: 'اعرض الكل',
+    showFewer: 'اعرض أقل',
     status: (count) => (count === 0 ? 'لا نتائج' : arabicCount(count, RESULTS)),
     none: {
       title: 'لا نتائج لـ«{query}»',

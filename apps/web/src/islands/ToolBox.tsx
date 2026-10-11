@@ -44,9 +44,9 @@ export function ToolBox({
  * a text area, which takes its height from its rows.
  */
 export const FIELD =
-  'h-12 min-w-0 rounded-xl border border-field bg-white px-3.5 text-body text-ink placeholder:text-ink-3'
+  'h-12 min-w-0 rounded-xl border border-field bg-white px-4 text-body text-ink placeholder:text-ink-3'
 export const AREA =
-  'min-w-0 rounded-xl border border-field bg-white px-3.5 py-2.5 text-body text-ink placeholder:text-ink-3'
+  'min-w-0 rounded-xl border border-field bg-white px-4 py-3 text-body text-ink placeholder:text-ink-3'
 export const LABEL = 'text-small font-semibold text-ink'
 /** A secondary button inside the box: the page's white one, 44 px high. */
 export const SECONDARY = 'btn-white'

@@ -37,6 +37,18 @@ export interface Post {
   readonly minutes: number
 }
 
+/**
+ * A tag's dot, in the colour of the tool category it is closest to (the bento's and the directory's
+ * dots), as whole class names for Tailwind to find.
+ */
+export const TAG_DOT: Readonly<Record<BlogTag, string>> = {
+  'arabic-text': 'bg-cat-rtl',
+  fonts: 'bg-cat-fonts',
+  performance: 'bg-cat-speed',
+  search: 'bg-cat-index',
+  ecommerce: 'bg-cat-prices',
+}
+
 /** A tag has a page of its own once it holds this many articles: fewer is a thin page. */
 export const TAG_MIN = 2
 

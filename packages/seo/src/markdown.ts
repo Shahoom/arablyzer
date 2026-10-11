@@ -2,7 +2,8 @@ import { escapeHtml } from './html'
 
 /**
  * A strict Markdown subset for our own copy: paragraphs, "-" and "1." lists, fenced code blocks,
- * pipe tables, inline code, **bold**, links to https: or to our own paths, and backslash escapes.
+ * pipe tables, one-paragraph block quotes ("> a sentence", the article's pull-quote), inline code,
+ * **bold**, links to https: or to our own paths, and backslash escapes.
  * Anything else is either a build error or text, escaped, so copy can never inject markup and a
  * construct we do not support never renders wrongly without a word.
  */
@@ -30,6 +31,18 @@ export function renderMarkdown(markdown: string): string {
       i++
       const language = info === '' ? '' : ` class="language-${info.replace(/[^a-z0-9-]/gi, '-')}"`
       blocks.push(`<pre dir="ltr"><code${language}>${escapeHtml(code.join('\n'))}</code></pre>`)
+      continue
+    }
+    if (QUOTE.test(current)) {
+      const quote: string[] = []
+      while (i < lines.length && QUOTE.test(line())) {
+        quote.push((QUOTE.exec(line())?.[1] ?? '').trim())
+        i++
+      }
+      if (quote.some((text) => text === '')) {
+        throw new Error('A block quote is one paragraph: no empty lines inside it')
+      }
+      blocks.push(`<blockquote><p>${renderInline(quote.join(' '))}</p></blockquote>`)
       continue
     }
     unsupported(current)
@@ -109,6 +122,7 @@ const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/
 const TABLE_ROW = /^ {0,3}\|.*\|\s*$/
 const TABLE_SEPARATOR = /^ {0,3}\|(?:\s*:?-{3,}:?\s*\|)+\s*$/
 const LIST = /^(-|\d+\.) (.+)$/
+const QUOTE = /^ {0,3}>\s?(.*)$/
 /**
  * Backslash escapes, code spans, **bold** and [links](url). Each part stops at the first character
  * that could end or restart it, so unclosed markup costs one pass, not one pass per character.
@@ -116,12 +130,11 @@ const LIST = /^(-|\d+\.) (.+)$/
 const INLINE = /\\([!-/:-@[-`{-~])|`([^`]+)`|\*\*([^*]+)\*\*|\[([^[\]]+)\]\(([^()\s[\]]+)\)/g
 
 function startsBlock(line: string): boolean {
-  return FENCE.test(line) || LIST.test(line) || TABLE_ROW.test(line)
+  return FENCE.test(line) || LIST.test(line) || TABLE_ROW.test(line) || QUOTE.test(line)
 }
 
 function unsupported(line: string): void {
   if (/^ {0,3}#{1,6}\s/.test(line)) throw new Error(`Copy headings are not allowed here: ${line}`)
-  if (/^ {0,3}>/.test(line)) throw new Error(`Block quotes are not supported: ${line}`)
 }
 
 /** "| a | b \| c |" → ["a", "b | c"]: GFM's rule, where "\|" is a pipe inside a cell. */

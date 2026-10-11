@@ -66,8 +66,8 @@ export function CruxCountries({ report, lang }: { report: Report; lang: Lang }) 
                   )
                 })}
                 <td className="py-2 text-ink-2">
-                  {country.rank === null ? '·' : t.top(country.rank)}
-                  {!country.found && ` · ${t.noData}`}
+                  {country.rank === null ? '–' : t.top(country.rank)}
+                  {!country.found && <span className="ms-2">{t.noData}</span>}
                 </td>
               </tr>
             ))}

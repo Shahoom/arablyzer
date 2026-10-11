@@ -1,5 +1,6 @@
 ---
 import { VERSUS_SLUGS, VERSUS_UI } from '@arablyzer/i18n'
+import { formatDate } from '@arablyzer/seo/dates'
 import { breadcrumbList, itemList } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
@@ -47,23 +48,34 @@ const jsonLd = [
   >
     <Bidi slot="lead" text={t.hub.lead} lang={lang} />
   </PageHead>
-  <div class:list={['wrap max-w-[760px]', HEAD.bodyTop, 'pb-section']}>
-    <ul class="kb-list m-0 list-none p-0">
+  <div class:list={['wrap', HEAD.bodyTop, 'pb-section']}>
+    <ul class="m-0 grid list-none gap-3 p-0 md:grid-cols-2 md:gap-card">
       {VERSUS_SLUGS.map((slug) => (
-        <li>
-          <a href={localePath(lang, PATHS.versus(slug))} class="kb-row group">
-            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span class="min-w-0 text-body font-semibold group-hover:text-brand-ink">
+        <li class="flex">
+          <a
+            href={localePath(lang, PATHS.versus(slug))}
+            class="card card-lift group flex w-full flex-col gap-3 p-card text-ink hover:text-ink"
+          >
+            <span class="flex items-baseline justify-between gap-3">
+              <span class="heading-3 min-w-0 group-hover:text-brand-ink">
                 <Bidi text={t.hub.row(t.pages[slug].name)} lang={lang} />
               </span>
-              <span class="line-clamp-2 text-small text-ink-2">
-                <Bidi text={t.pages[slug].tagline} lang={lang} />
+              <span
+                aria-hidden="true"
+                class="chev-end text-ink-3 group-hover:text-brand-ink"
+              ></span>
+            </span>
+            <span class="text-small text-ink-2">
+              <Bidi text={t.pages[slug].tagline} lang={lang} />
+            </span>
+            <span class="meta-row mt-auto text-meta text-ink-2">
+              <span>
+                <Bidi text={t.page.checkedOn(t.pages[slug].name)} lang={lang} />
+                <time datetime={t.pages[slug].checked}>
+                  {formatDate(t.pages[slug].checked, lang)}
+                </time>
               </span>
             </span>
-            <span
-              aria-hidden="true"
-              class="chev-end hidden shrink-0 self-center text-ink-3 group-hover:text-brand-ink sm:block"
-            ></span>
           </a>
         </li>
       ))}

@@ -29,11 +29,17 @@ export default function MonitorRow({ lang, site, busy, working, onToggle }: Prop
         <p className="m-0 flex items-start gap-2 text-small text-ink-2">
           <Activity aria-hidden="true" size={16} className="mt-1 shrink-0 text-ink-3" />
           <span className="min-w-0">
-            {monitor === null
-              ? m.off
-              : monitor.paused
-                ? m.paused
-                : `${m.on(monitor.everyDays)} · ${m.nextRun(dayLabel(monitor.nextRunAt, lang))}`}
+            {monitor === null ? (
+              m.off
+            ) : monitor.paused ? (
+              m.paused
+            ) : (
+              <>
+                {m.on(monitor.everyDays)}
+                {'. '}
+                {m.nextRun(dayLabel(monitor.nextRunAt, lang))}
+              </>
+            )}
           </span>
         </p>
         {monitor !== null && monitor.failures > 0 && !monitor.paused && (

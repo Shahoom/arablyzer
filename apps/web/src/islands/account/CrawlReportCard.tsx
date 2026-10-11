@@ -9,7 +9,7 @@ import { ACCOUNT_UI } from '@arablyzer/i18n/account'
 import { COMPARE_UI } from '@arablyzer/i18n/compare'
 import { CRAWL_UI } from '@arablyzer/i18n/crawl'
 import type { Lang } from '@arablyzer/seo/site'
-import { ExternalLink, Layers, Trash2, TriangleAlert, X } from 'lucide-preact'
+import { ExternalLink, Trash2, TriangleAlert, X } from 'lucide-preact'
 import { useEffect, useState } from 'preact/hooks'
 import { listCrawls } from '../compare-api'
 import { compareHref } from '../compare-model'
@@ -140,8 +140,7 @@ export default function CrawlReportCard({ lang, crawlId, onSummary, onClose, onR
   const header = (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-2">
-        <h2 id="crawl-title" className="heading-2 m-0 flex items-center gap-2">
-          <Layers aria-hidden="true" size={22} className="shrink-0 text-ink-3" />
+        <h2 id="crawl-title" className="heading-2 m-0">
           {t.title}
         </h2>
         <p className="m-0 text-body text-ink-2">{t.lead}</p>
@@ -469,7 +468,9 @@ function TemplateCard({
                   </bdi>
                   <span className="text-meta text-ink-2">
                     {rep.state === null ? t.notScanned : t.scanStates[rep.state]}
-                    {rep.score !== null && ` · ${t.score} ${rep.score}`}
+                    {rep.score !== null && (
+                      <span className="ms-3 font-semibold text-ink">{`${t.score} ${rep.score}`}</span>
+                    )}
                   </span>
                 </div>
                 {rep.scanId !== null && (
@@ -478,7 +479,7 @@ function TemplateCard({
                     href={reportHref(lang, rep.scanId)}
                   >
                     {t.openReport}
-                    <ExternalLink size={14} aria-hidden="true" />
+                    <ExternalLink size={14} aria-hidden="true" className="rtl:-scale-x-100" />
                   </a>
                 )}
               </li>
@@ -558,8 +559,12 @@ function TemplatePages({
               </bdi>
               <span className="text-meta text-ink-2">
                 {t.pageStates[page.state]}
-                {page.status !== null && ` · ${t.status} ${page.status}`}
-                {page.state === 'checked' && ` · ${t.pageIssues(page.issues.length)}`}
+                {page.status !== null && (
+                  <span className="ms-3">{`${t.status} ${page.status}`}</span>
+                )}
+                {page.state === 'checked' && (
+                  <span className="ms-3">{t.pageIssues(page.issues.length)}</span>
+                )}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -578,7 +583,7 @@ function TemplatePages({
                 rel="noopener noreferrer"
               >
                 {t.openPage}
-                <ExternalLink size={14} aria-hidden="true" />
+                <ExternalLink size={14} aria-hidden="true" className="rtl:-scale-x-100" />
               </a>
             </div>
           </li>

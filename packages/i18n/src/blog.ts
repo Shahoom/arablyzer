@@ -51,6 +51,10 @@ export interface BlogStrings {
     readonly otherLanguage: string
     /** Shown on the author's line under the title: the team, not a person. */
     readonly defaultAuthor: string
+    /** The index's newest article, set apart above the list. */
+    readonly latest: string
+    /** The close of an article: one line and a button to the scan, on the home page. */
+    readonly tryIt: { readonly title: string; readonly text: string; readonly button: string }
   }
   readonly feeds: {
     readonly rss: string
@@ -139,6 +143,12 @@ export const BLOG_UI: Copy<BlogStrings> = {
       pager: 'التنقل بين المقالات',
       otherLanguage: 'اقرأ المقال بالإنجليزية',
       defaultAuthor: 'فريق Arablyzer',
+      latest: 'الأحدث',
+      tryIt: {
+        title: 'جرّبه على موقعك',
+        text: 'ألصق رابط موقعك: نفتحه في ثلاثة متصفحات ونقول لك ما ينكسر فيه.',
+        button: 'افحص موقعي',
+      },
     },
     feeds: {
       rss: 'RSS',
@@ -211,6 +221,12 @@ export const BLOG_UI: Copy<BlogStrings> = {
       pager: 'More articles',
       otherLanguage: 'Read this article in Arabic',
       defaultAuthor: 'The Arablyzer team',
+      latest: 'Latest',
+      tryIt: {
+        title: 'Try it on your site',
+        text: 'Paste your address. We open it in three browsers and tell you what breaks.',
+        button: 'Scan my site',
+      },
     },
     feeds: {
       rss: 'RSS',

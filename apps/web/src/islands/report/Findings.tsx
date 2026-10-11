@@ -289,14 +289,14 @@ function RuleList({ rules, lang, fold }: { rules: readonly RuleResult[]; lang: L
   return (
     <ul className="m-0 grid list-none gap-x-6 gap-y-3 border-t border-line p-card text-small sm:grid-cols-2">
       {rules.map((rule) => (
-        <li key={rule.id} className="flex min-w-0 items-start gap-2.5">
+        <li key={rule.id} className="flex min-w-0 items-start gap-3">
           <Icon
             aria-hidden="true"
             size={16}
             strokeWidth={2.4}
             className={`mt-1 shrink-0 ${tone}`}
           />
-          <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5">
+          <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3">
             <a
               href={localePath(lang, PATHS.rule(rule.id))}
               className="text-ink-2 underline decoration-field underline-offset-4 hover:text-brand-ink"

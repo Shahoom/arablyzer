@@ -219,7 +219,7 @@ export default function ToolApp({ lang, tool, reads, reportsOnly, title, dot, re
       >
         <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-3">
           {/* The address in a 48 px field with its link icon: the focus ring is the row's. */}
-          <div className="flex h-12 items-center gap-2.5 rounded-xl border border-field bg-white px-3.5 text-ink-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo">
+          <div className="flex h-12 items-center gap-3 rounded-xl border border-field bg-white px-4 text-ink-3 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-indigo">
             <Link2 size={20} strokeWidth={1.9} aria-hidden="true" className="shrink-0" />
             <label htmlFor="tool-url" className="sr-only">
               {t.urlLabel}
@@ -262,7 +262,7 @@ export default function ToolApp({ lang, tool, reads, reportsOnly, title, dot, re
                   key={engine.name}
                   lang="en"
                   dir="ltr"
-                  className="inline-flex items-center gap-1.5"
+                  className="inline-flex items-center gap-2"
                 >
                   <span aria-hidden="true" className={`size-1.5 rounded-full ${engine.dot}`} />
                   {engine.name}

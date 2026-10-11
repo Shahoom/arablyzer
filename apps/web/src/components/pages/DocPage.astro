@@ -5,11 +5,12 @@ import type { Lang } from '@arablyzer/seo/site'
 import { HEAD } from '../../lib/heads'
 import Page from '../../layouts/Page.astro'
 import Breadcrumb from '../Breadcrumb.astro'
+import PageBand from '../PageBand.astro'
 import PageColumns from '../PageColumns.astro'
 
 /**
  * A page that is a document (the methodology, the bot's page, a fix guide, a glossary term): the
- * trail and its heading (slot "head") over the faint tint of a page's head, then its sections in
+ * trail and its heading (slot "head") on a white band, then its sections in
  * the main column of a PageColumns (760 px at the most) beside the aside (slot "aside"), which
  * stays in view on a wide screen. On a narrow one the aside comes after the sections, as links to
  * more do, or before them (`asideFirst`), as a page's contents do. This is the first page kind on
@@ -27,6 +28,8 @@ interface Props {
   /** A step between the home page and this one: the page's section, such as the glossary. */
   parent?: { readonly name: string; readonly href: string }
   asideFirst?: boolean
+  /** An article: the reading column (PageColumns' `reading`). */
+  reading?: boolean
   /** What an article adds to its head (Page.astro): the languages it is in and its dates. */
   langs?: readonly Lang[]
   switchPath?: string
@@ -43,6 +46,7 @@ const {
   breadcrumbLabel,
   parent,
   asideFirst = false,
+  reading = false,
   langs,
   switchPath,
   article,
@@ -61,19 +65,16 @@ const {
   article={article}
   feeds={feeds}
 >
-  <section class="relative isolate border-b border-line">
-    <div aria-hidden="true" class="page-wash"></div>
-    <div class:list={['wrap flex flex-col gap-4 lg:gap-5', HEAD.padding]}>
-      <Breadcrumb
-        lang={lang}
-        label={breadcrumbLabel}
-        steps={parent === undefined ? [] : [parent]}
-        current={crumb}
-      />
-      <slot name="head" />
-    </div>
-  </section>
-  <PageColumns asideFirst={asideFirst} class:list={[HEAD.bodyTop, 'pb-section']}>
+  <PageBand>
+    <Breadcrumb
+      lang={lang}
+      label={breadcrumbLabel}
+      steps={parent === undefined ? [] : [parent]}
+      current={crumb}
+    />
+    <slot name="head" />
+  </PageBand>
+  <PageColumns asideFirst={asideFirst} reading={reading} class:list={[HEAD.bodyTop, 'pb-section']}>
     <Fragment slot="aside">
       <slot name="aside" />
     </Fragment>

@@ -30,7 +30,7 @@ const link = 'kb-link text-ink-2 hover:text-ink lg:[--kb-link-h-lg:32px]'
         class="text-ink-2 transition-transform group-open/contents:rotate-180"
       />
     </summary>
-    <nav aria-label={label} class="flex flex-col gap-0.5 border-t border-line p-2">
+    <nav aria-label={label} class="flex flex-col gap-1 border-t border-line p-2">
       {sections.map((section) => (
         <a href={`#${section.id}`} class={link}>
           {section.title}
@@ -39,8 +39,8 @@ const link = 'kb-link text-ink-2 hover:text-ink lg:[--kb-link-h-lg:32px]'
     </nav>
   </details>
 ) : (
-  <nav aria-labelledby="contents-title" class="kb-box hidden flex-col gap-0.5 p-3 lg:flex">
-    <h2 id="contents-title" class="m-0 px-3 pt-1 pb-1.5 text-meta font-semibold text-ink-2">
+  <nav aria-labelledby="contents-title" class="kb-box hidden flex-col gap-1 p-3 lg:flex">
+    <h2 id="contents-title" class="m-0 px-3 pt-1 pb-2 text-meta font-semibold text-ink-2">
       {label}
     </h2>
     {sections.map((section) => (

@@ -68,12 +68,16 @@ export default function PdfPanel({ lang }: { lang: Lang }) {
               <FileText aria-hidden="true" size={16} className="shrink-0 text-ink-3" />
               <div className="flex min-w-0 flex-1 flex-col">
                 <span className="text-body font-semibold text-ink">{t.kinds[pdf.kind]}</span>
-                <span className="text-meta text-ink-2">
-                  {dayLabel(pdf.createdAt, lang)}
-                  {pdf.bytes !== null && ` · ${t.size(Math.max(1, Math.round(pdf.bytes / 1024)))}`}
-                  {pdf.state === 'expired' && ` · ${t.expired}`}
-                  {pdf.state === 'failed' && pdf.error !== null && ` · ${t.failed[pdf.error]}`}
-                  {isMaking(pdf) && ` · ${t.preparing}`}
+                <span className="meta-row text-meta text-ink-2">
+                  <span>{dayLabel(pdf.createdAt, lang)}</span>
+                  {pdf.bytes !== null && (
+                    <span>{t.size(Math.max(1, Math.round(pdf.bytes / 1024)))}</span>
+                  )}
+                  {pdf.state === 'expired' && <span>{t.expired}</span>}
+                  {pdf.state === 'failed' && pdf.error !== null && (
+                    <span>{t.failed[pdf.error]}</span>
+                  )}
+                  {isMaking(pdf) && <span>{t.preparing}</span>}
                 </span>
               </div>
               {pdf.state === 'done' && (
