@@ -19,7 +19,9 @@ describe('the tools as their pages have them', () => {
           expect(html, tool.slug).not.toMatch(/<script|<iframe|<[^>]*\son\w+=/i)
         }
       }
-      expect(tool.rules.length, tool.slug).toBeGreaterThan(0)
+      // A search tool (M5.3) runs no rules: its work is on the API's own routes.
+      if (tool.kind === 'search') expect(tool.rules, tool.slug).toEqual([])
+      else expect(tool.rules.length, tool.slug).toBeGreaterThan(0)
     }
   })
 
@@ -48,6 +50,9 @@ describe('the tools as their pages have them', () => {
     expect(tag('js-rendering-check')).toBe('render')
     expect(tag('payment-methods-detector')).toBe('html')
     expect(tag('robots-tester')).toBe('robots')
+    expect(tag('gsc-keywords')).toBe('gsc')
+    expect(tag('arabic-suggest')).toBe('google')
+    expect(tag('serp-sampler')).toBe('google')
     expect(tag('whatsapp-link-generator')).toBe('generator')
   })
 
@@ -71,6 +76,7 @@ describe('the tools as their pages have them', () => {
     expect(kind('rtl-check')).toBe('scan')
     expect(kind('robots-tester')).toBe('paste')
     expect(kind('schema-generator')).toBe('generator')
+    expect(kind('gsc-keywords')).toBe('search')
   })
 
   it('names each tool in both languages, for the report page of its result', () => {

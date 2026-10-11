@@ -2,6 +2,7 @@ import { collectPage } from '@arablyzer/collectors'
 import { evaluatePage } from '@arablyzer/engine'
 import type { Finding } from '@arablyzer/report-schema'
 import { RULES, SERVER_RESPONSE_RULES } from '@arablyzer/rules'
+import { toolBySlug } from '@arablyzer/tools'
 import type { DefaultTreeAdapterMap } from 'parse5'
 import { localePath, PATHS, type Lang } from '../site'
 import { isWithin, tagsOf, textOf, type Tag } from './dom'
@@ -503,7 +504,13 @@ function checkSections(tags: readonly Tag[], expected: ExpectedPage, problem: Re
   const links = sections.find((section) => section.id === 'links')?.tag
   if (links !== undefined && !isHidden(links)) {
     const listed = inside(links, 'li').flatMap((item) => inside(item, 'code'))
-    if (listed.length === 0 || !listed.every((code) => RULE_IDS.has(textOf(code.node)))) {
+    // A search tool (M5.3) runs no rules: its list is the nearby tools alone.
+    const ownTool = toolBySlug(toolSlugOf(expected.url) ?? '')
+    const runsNone = ownTool?.rules.length === 0
+    if (
+      !runsNone &&
+      (listed.length === 0 || !listed.every((code) => RULE_IDS.has(textOf(code.node))))
+    ) {
       problem(
         'sections',
         "#links needs the rules the tool runs, a list with each rule's id in <code>",

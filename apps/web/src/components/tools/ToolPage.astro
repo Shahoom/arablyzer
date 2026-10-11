@@ -7,6 +7,9 @@ import Check from '@lucide/astro/icons/check'
 import ChevronDown from '@lucide/astro/icons/chevron-down'
 import X from '@lucide/astro/icons/x'
 import HreflangGenerator from '../../islands/generators/HreflangGenerator'
+import GscKeywords from '../../islands/search/GscKeywords'
+import SerpSampler from '../../islands/search/SerpSampler'
+import SuggestTree from '../../islands/search/SuggestTree'
 import RobotsTester from '../../islands/generators/RobotsTester'
 import SchemaGenerator from '../../islands/generators/SchemaGenerator'
 import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
@@ -59,13 +62,15 @@ const boxed = { lang, tool: slug, title: copy.title, dot }
 // or the paste tool has fields and an output that want the main column's width, so it is the
 // first thing in that column, and the aside holds the page's contents alone.
 const scan = tool.kind === 'scan'
+// A search tool (M5.3) runs no rules: its page lists the nearby tools where the rules would be.
+const hasRules = tool.rules.length > 0
 // The sections the aside lists, in the page's order.
 const contents = [
   { id: 'checks', title: headings.checks },
   { id: 'example', title: headings.example },
   { id: 'fix', title: headings.fix },
   { id: 'faq', title: headings.faq },
-  { id: 'links', title: t.page.runs },
+  { id: 'links', title: hasRules ? t.page.runs : t.page.near },
   { id: 'about', title: t.page.measure },
 ]
 // A question's answer opens and closes (the script below): the heading is a button, the answer
@@ -179,6 +184,9 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
       )}
       {slug === 'schema-generator' && <SchemaGenerator client:idle={{ timeout: 500 }} {...boxed} />}
       {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
+      {slug === 'gsc-keywords' && <GscKeywords client:idle={{ timeout: 500 }} {...boxed} />}
+      {slug === 'arabic-suggest' && <SuggestTree client:idle={{ timeout: 500 }} {...boxed} />}
+      {slug === 'serp-sampler' && <SerpSampler client:idle={{ timeout: 500 }} {...boxed} />}
 
       <ToolSection id="checks" title={headings.checks}>
         <div>
@@ -258,30 +266,32 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
         </div>
       </ToolSection>
 
-      <ToolSection id="links" title={t.page.runs}>
-        <div class="card overflow-hidden">
-          <ul class="m-0 flex list-none flex-col p-0">
-            {tool.rules.map((rule) => (
-              <li class="flex flex-col border-t border-line px-card first:border-t-0 md:flex-row md:items-baseline md:gap-3">
-                <a
-                  href={localePath(lang, PATHS.rule(rule.id))}
-                  class="bidi-whole block min-w-0 grow py-2 text-body font-semibold underline decoration-line-2 underline-offset-4 hover:text-brand-ink md:py-3"
-                >
-                  <Bidi text={rule.title[lang]} lang={lang} />
-                </a>
-                <span class="flex min-w-0 flex-wrap items-center gap-2 pb-3 md:shrink-0 md:flex-nowrap md:pb-0">
-                  <SeverityPill severity={rule.severity} lang={lang} />
-                  <code
-                    dir="ltr"
-                    class="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-meta text-ink-2"
+      <ToolSection id="links" title={hasRules ? t.page.runs : t.page.near}>
+        {hasRules && (
+          <div class="card overflow-hidden">
+            <ul class="m-0 flex list-none flex-col p-0">
+              {tool.rules.map((rule) => (
+                <li class="flex flex-col border-t border-line px-card first:border-t-0 md:flex-row md:items-baseline md:gap-3">
+                  <a
+                    href={localePath(lang, PATHS.rule(rule.id))}
+                    class="bidi-whole block min-w-0 grow py-2 text-body font-semibold underline decoration-line-2 underline-offset-4 hover:text-brand-ink md:py-3"
                   >
-                    {rule.id}
-                  </code>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+                    <Bidi text={rule.title[lang]} lang={lang} />
+                  </a>
+                  <span class="flex min-w-0 flex-wrap items-center gap-2 pb-3 md:shrink-0 md:flex-nowrap md:pb-0">
+                    <SeverityPill severity={rule.severity} lang={lang} />
+                    <code
+                      dir="ltr"
+                      class="rounded-md bg-surface-2 px-2 py-0.5 font-mono text-meta text-ink-2"
+                    >
+                      {rule.id}
+                    </code>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {articles.length > 0 && (
           <nav aria-labelledby="articles-title" class="flex flex-col gap-3 pt-2">
             <h3 id="articles-title" class="heading-3 m-0">
@@ -302,10 +312,16 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
           </nav>
         )}
         {tool.related.length > 0 && (
-          <nav aria-labelledby="near-title" class="flex flex-col gap-3 pt-2">
-            <h3 id="near-title" class="heading-3 m-0">
-              {t.page.near}
-            </h3>
+          <nav
+            aria-label={hasRules ? undefined : t.page.near}
+            aria-labelledby={hasRules ? 'near-title' : undefined}
+            class="flex flex-col gap-3 pt-2"
+          >
+            {hasRules && (
+              <h3 id="near-title" class="heading-3 m-0">
+                {t.page.near}
+              </h3>
+            )}
             <ul class="card m-0 flex list-none flex-col divide-y divide-line overflow-hidden p-0">
               {tool.related.map((other) => (
                 <li>

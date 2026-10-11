@@ -27,9 +27,11 @@ export type ToolCategory = (typeof TOOL_CATEGORIES)[number]
 /**
  * What the visitor gives a tool (M2.3 plan §1): a page's address, which the scanner checks with
  * the tool's rules; a text to paste; or a few fields, from which the tool writes code. The last
- * two run in the visitor's browser alone.
+ * two run in the visitor's browser alone. A `search` tool (M5.3) shows what Google says: it has no
+ * rules, and its work is on the API's own routes (the Search Console connection, the suggestion
+ * tree, the results sampler), never a scan.
  */
-export const TOOL_KINDS = ['scan', 'paste', 'generator'] as const
+export const TOOL_KINDS = ['scan', 'paste', 'generator', 'search'] as const
 export type ToolKind = (typeof TOOL_KINDS)[number]
 
 /** BUILD-PLAN §9 and §10: a tool is a set of rules plus its page. */

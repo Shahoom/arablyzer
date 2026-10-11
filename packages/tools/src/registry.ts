@@ -9,6 +9,7 @@ import { definition as arabicFontSlimmer } from './tools/arabic-font-slimmer/too
 import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
 import { definition as arabicPunctuationCheck } from './tools/arabic-punctuation-check/tool'
 import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/tool'
+import { definition as arabicSuggest } from './tools/arabic-suggest/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
 import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
@@ -19,6 +20,7 @@ import { definition as cruxByCountry } from './tools/crux-by-country/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
+import { definition as gscKeywords } from './tools/gsc-keywords/tool'
 import { definition as headingStructure } from './tools/heading-structure/tool'
 import { definition as hreflangCheck } from './tools/hreflang-check/tool'
 import { definition as hreflangGenerator } from './tools/hreflang-generator/tool'
@@ -45,6 +47,7 @@ import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
 import { definition as schemaGenerator } from './tools/schema-generator/tool'
 import { definition as searchSpellingTest } from './tools/search-spelling-test/tool'
 import { definition as securityHeaders } from './tools/security-headers/tool'
+import { definition as serpSampler } from './tools/serp-sampler/tool'
 import { definition as sitemapCheck } from './tools/sitemap-check/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
 import { definition as structuredDataCheck } from './tools/structured-data-check/tool'
@@ -69,6 +72,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   arabicFormTest,
   arabicPunctuationCheck,
   arabicShapingCheck,
+  arabicSuggest,
   bidiIsolationCheck,
   brokenLinks,
   canonicalCheck,
@@ -79,6 +83,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   digitsConsistency,
   emailSecurity,
   fontFallbackCheck,
+  gscKeywords,
   headingStructure,
   hreflangCheck,
   hreflangGenerator,
@@ -105,6 +110,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   schemaGenerator,
   searchSpellingTest,
   securityHeaders,
+  serpSampler,
   sitemapCheck,
   socialPreview,
   structuredDataCheck,

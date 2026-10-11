@@ -12,6 +12,7 @@ import type { Lang } from '@arablyzer/seo/site'
 import { Link2, LockKeyhole, RotateCcw, TriangleAlert } from 'lucide-preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { fetchGscResult, fetchGscStatus } from '../api'
+import { takeReturn } from '../gsc-return'
 import { Revealed } from './Bidi'
 
 type View =
@@ -21,23 +22,6 @@ type View =
   | { readonly kind: 'loading' }
   | { readonly kind: 'failed'; readonly reason: GscFailure | 'gone' }
   | { readonly kind: 'result'; readonly result: GscResult }
-
-/**
- * What `?gsc=` holds when the visitor comes back from Google: a one-time result's id, or a word.
- * It is taken out of the address at once, so a reload, a copied link or the history never has it.
- */
-function takeReturn(): string | null {
-  try {
-    const url = new URL(window.location.href)
-    const value = url.searchParams.get('gsc')
-    if (value === null) return null
-    url.searchParams.delete('gsc')
-    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash)
-    return value
-  } catch {
-    return null
-  }
-}
 
 const NUMBER = new Intl.NumberFormat('en', { maximumFractionDigits: 0 })
 const DECIMAL = new Intl.NumberFormat('en', { maximumFractionDigits: 1, minimumFractionDigits: 1 })
