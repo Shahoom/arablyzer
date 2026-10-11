@@ -55,7 +55,7 @@ export interface V1Deps {
 }
 
 /** What a request that passed the key check carries, found by the request itself. */
-interface Live {
+export interface Live {
   readonly userId: string
   readonly keyId: string
   readonly access: SessionAccess
@@ -97,7 +97,10 @@ const URL_FAILURE: Readonly<Record<string, V1ErrorCode>> = {
  * authenticates here, so a page on another site cannot act for a signed-in person, and no Origin
  * is asked of a client that sends a bearer.
  */
-export function mountV1(app: Hono, deps: V1Deps): void {
+export function mountV1(
+  app: Hono,
+  deps: V1Deps,
+): { readonly gate: (c: Context) => Promise<Live | Response> } {
   const v1 = new Hono()
   // Keyed by the request object Hono keeps for the whole call (bodyLimit swaps the raw one).
   const lives = new WeakMap<object, Live>()
@@ -151,7 +154,11 @@ export function mountV1(app: Hono, deps: V1Deps): void {
     return c.body(document, 200, { 'Content-Type': 'application/json; charset=UTF-8' })
   })
 
-  v1.use('*', async (c: Context, next: Next) => {
+  /**
+   * Who the request is, from its key: the account it opens, or the answer to send. The API's routes
+   * and /mcp both ask it, so one key means one thing everywhere.
+   */
+  const gate = async (c: Context): Promise<Live | Response> => {
     const { access, accounts, keys } = deps
     if (access === undefined || accounts === undefined || keys === undefined) {
       return fail(c, 'accounts_off')
@@ -194,10 +201,15 @@ export function mountV1(app: Hono, deps: V1Deps): void {
       )
     }
     if (!taken.ok) return fail(c, 'rate_limited', { retryAfterSeconds: taken.retryAfterSeconds })
-    lives.set(c.req, { ...known, access, accounts })
     await keys.touch(known.keyId, at).catch((error: unknown) => {
       told(error instanceof Error ? error : new Error('A key’s use was not noted'))
     })
+    return { ...known, access, accounts }
+  }
+  v1.use('*', async (c: Context, next: Next) => {
+    const gated = await gate(c)
+    if (gated instanceof Response) return gated
+    lives.set(c.req, gated)
     await next()
     return undefined
   })
@@ -409,4 +421,5 @@ export function mountV1(app: Hono, deps: V1Deps): void {
     return fail(c, 'unavailable')
   })
   app.route(API_V1_PATH, v1)
+  return { gate }
 }

@@ -36,6 +36,7 @@ import { hashDeleteToken, newDeleteToken } from './ids'
 import { mountCompare } from './compare'
 import { mountCrawls } from './crawls'
 import { mountPdf } from './pdf'
+import { mountMcp } from './mcp'
 import { mountV1 } from './v1/routes'
 import { mountMonitors } from './monitors'
 import { noMailer } from './monitor/mail'
@@ -450,7 +451,7 @@ export function createApp(deps: ApiDeps): Hono {
   }
 
   // The public API (M5.1) is always mounted: with accounts off every route says so.
-  mountV1(app, {
+  const v1 = mountV1(app, {
     access,
     accounts: deps.accounts,
     keys: deps.accounts?.apiKeys,
@@ -467,6 +468,7 @@ export function createApp(deps: ApiDeps): Hono {
     now,
     startScan,
   })
+  mountMcp(app, { gate: v1.gate, api: (request, env) => app.fetch(request, env) })
 
   app.get('/api/scans/:id', async (c) => {
     const scan = await findScan(c.req.param('id'))

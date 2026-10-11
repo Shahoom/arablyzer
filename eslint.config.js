@@ -215,6 +215,21 @@ export default defineConfig(
     },
   },
   {
+    // The MCP server's stdio entry hands the global `fetch` to the client that calls Arablyzer's own
+    // API with the person's key (M5.1): not scan traffic, which leaves the scanner through the
+    // egress proxy. The client takes its fetch as an argument; this is the one place it is given.
+    files: ['packages/mcp/src/stdio.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
     // IndexNow's one endpoint, asked from the machine that deployed the site, after a deploy
     // (M2.4c): not scan traffic, which leaves the scanner through the egress proxy. fetch alone.
     files: ['apps/web/scripts/indexnow.ts'],

@@ -20,7 +20,7 @@ const doc = buildOpenApi({ reportSchema: reportJsonSchema(), version: '1.0.0' })
 
 describe('the OpenAPI document', () => {
   it('is a valid OpenAPI 3.1 document', async () => {
-    const result = await new Validator().validate(doc as never)
+    const result = await new Validator().validate(doc)
     expect(result.errors ?? []).toEqual([])
     expect(result.valid).toBe(true)
   })

@@ -30,22 +30,22 @@ export interface OpenApiOptions {
 
 /** A schema as a component: a named schema (`meta.id`) comes back as itself, its definitions beside it. */
 function schemaOf(schema: z.ZodType, hoisted: Record<string, Json>): Json {
-  const {
-    $schema: _dialect,
-    $defs,
-    ...main
-  } = z.toJSONSchema(schema, {
+  const made = z.toJSONSchema(schema, {
     target: 'draft-2020-12',
     io: 'output',
     unrepresentable: 'any',
   }) as Json & { $defs?: Record<string, Json> }
+  // The dialect belongs to the document, not to each schema in it.
+  const { $defs, ...main } = Object.fromEntries(
+    Object.entries(made).filter(([key]) => key !== '$schema'),
+  ) as Json & { $defs?: Record<string, Json> }
   const local = (value: unknown): Json =>
     JSON.parse(JSON.stringify(value).replaceAll('"#/$defs/', '"#/components/schemas/')) as Json
   for (const [name, definition] of Object.entries($defs ?? {})) hoisted[name] = local(definition)
   const own = typeof main.$ref === 'string' ? /^#\/\$defs\/(.+)$/.exec(main.$ref)?.[1] : undefined
   if (own !== undefined && hoisted[own] !== undefined) {
     const found = hoisted[own]
-    delete hoisted[own]
+    Reflect.deleteProperty(hoisted, own)
     return found
   }
   return local(main)
@@ -140,7 +140,7 @@ export function buildOpenApi(options: OpenApiOptions): Json {
   // The report's own definitions become components, so that every `$ref` still resolves.
   const rename = (value: unknown): unknown =>
     JSON.parse(JSON.stringify(value).replaceAll('"#/$defs/', '"#/components/schemas/Report.'))
-  const { $schema: _dialect, ...reportBody } = report
+  const reportBody = Object.fromEntries(Object.entries(report).filter(([key]) => key !== '$schema'))
   const listQuery = ['limit', 'cursor']
   const paths: Record<string, Json> = {
     [`${API_V1_PATH}/scans`]: {
