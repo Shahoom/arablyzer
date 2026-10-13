@@ -23,7 +23,7 @@
     "@arablyzer/scanner-client": "workspace:*",
     "@arablyzer/tools": "workspace:*",
     "@hono/node-server": "2.1.3",
-    "hono": "4.13.12"
+    "hono": "4.13.13"
   },
   "devDependencies": {
     "@arablyzer/fixtures": "workspace:*"
