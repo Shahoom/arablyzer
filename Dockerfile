@@ -73,7 +73,7 @@ RUN ARABLYZER_SITE="$ARABLYZER_SITE" PUBLIC_TURNSTILE_SITE_KEY="$PUBLIC_TURNSTIL
 # The site's server: the pages, /api to the API, and the headers (infra/Caddyfile). It listens
 # above port 1024 as nobody, so the capability its binary carries, to bind lower ones, goes: a
 # container without capabilities cannot run a binary that asks for one.
-FROM caddy:2.11-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b AS web
+FROM caddy:2.11-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f AS web
 RUN setcap -r /usr/bin/caddy
 COPY --from=site /arablyzer/apps/web/dist /srv
 COPY infra/Caddyfile /etc/caddy/Caddyfile
