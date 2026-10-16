@@ -47,6 +47,10 @@ export const CRAWL_PAGE_TIMEOUT_MS = 20_000
 /** The longest `Crawl-delay` heeded, in seconds: a site asking for more is crawled at this pace. */
 export const CRAWL_DELAY_MAX_SECONDS = 10
 const ROBOTS_TTL_MS = 10 * 60_000
+/** The wait before robots.txt is asked for a second time, after a server error or a network failure. */
+const ROBOTS_RETRY_DELAY_MS = 3_000
+/** The second ask is given twice the first's time, up to this. */
+const ROBOTS_RETRY_TIMEOUT_MAX_MS = 40_000
 const MAX_ROBOTS_SITES = 50
 const PAGE_ACCEPT = 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.5'
 const BOT = USER_AGENT.split('/', 1)[0] ?? 'ArablyzerBot'
@@ -118,6 +122,32 @@ export interface CrawlerOptions {
   readonly signal?: AbortSignal
   readonly rules?: readonly Rule[]
   readonly now?: () => number
+  /** The wait before robots.txt is read again after a 5xx, 429 or network failure (default {@link ROBOTS_RETRY_DELAY_MS}). */
+  readonly robotsRetryDelayMs?: number
+}
+
+/** What robots.txt means for a page, for the crawler (see `verdict`). */
+type Verdict = 'allowed' | 'blocked' | 'unreachable' | 'challenged'
+
+/** The error code a page refused on a verdict carries. */
+const REFUSAL: Readonly<Record<Exclude<Verdict, 'allowed'>, string>> = {
+  blocked: 'robots',
+  unreachable: 'robots-unreachable',
+  challenged: 'bot-challenge',
+}
+
+/** A wait that ends early, without an error, when the signal does. */
+function pause(ms: number, signal: AbortSignal | undefined): Promise<void> {
+  if (ms <= 0 || signal?.aborted === true) return Promise.resolve()
+  return new Promise((done) => {
+    const finish = () => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', finish)
+      done()
+    }
+    const timer = setTimeout(finish, ms)
+    signal?.addEventListener('abort', finish, { once: true })
+  })
 }
 
 interface RobotsEntry {
@@ -170,6 +200,7 @@ export function createCrawler(options: CrawlerOptions = {}): Crawler {
   const rules = options.rules ?? RULES
   const ruleIds = lightRuleIds(rules)
   const now = options.now ?? Date.now
+  const retryDelayMs = options.robotsRetryDelayMs ?? ROBOTS_RETRY_DELAY_MS
   const base: SafeFetchOptions = {
     userAgent,
     policy,
@@ -187,13 +218,18 @@ export function createCrawler(options: CrawlerOptions = {}): Crawler {
           signal: base.signal === undefined ? signal : AbortSignal.any([base.signal, signal]),
         }
 
-  /** A site's robots.txt, read once and kept for ten minutes. */
-  async function robotsOf(origin: string, signal?: AbortSignal): Promise<RobotsEntry> {
-    const kept = robots.get(origin)
-    if (kept !== undefined && now() - kept.at < ROBOTS_TTL_MS) return kept
+  /** One read of a site's robots.txt, with the time it is given. */
+  async function readRobots(
+    origin: string,
+    signal: AbortSignal | undefined,
+    timeout: number,
+  ): Promise<RobotsEntry> {
     const url = `${origin}/robots.txt`
+    // Redirects are followed, to another host too, up to five (RFC 9309 §2.3.1.2): what the file at
+    // the end says is read as the origin's own, and a sixth redirect counts as "unavailable".
     const fetched = await safeFetch(url, {
       ...withSignal(signal),
+      timeoutMs: timeout,
       accept: 'text/plain,*/*;q=0.8',
       maxBytes: ROBOTS_MAX_BYTES,
       onTooLarge: 'truncate',
@@ -213,19 +249,52 @@ export function createCrawler(options: CrawlerOptions = {}): Crawler {
       facts.outcome === 'fetched' && response !== null
         ? crawlDelayOf(new TextDecoder().decode(response.body))
         : null
-    const entry = { facts, delayMs, at: now() }
+    return { facts, delayMs, at: now() }
+  }
+
+  /**
+   * A site's robots.txt, read once and kept for ten minutes. What it answers (RFC 9309 §2.3.1,
+   * with Google's reading of 401 and 403):
+   *   2xx                                  the file is parsed and followed
+   *   3xx                                  followed to the end, up to five hops, on any host; the
+   *                                        file found applies to the origin asked about; a sixth
+   *                                        hop is "unavailable"
+   *   4xx but 429 (404, 410, 401, 403 ...) unavailable: no restrictions
+   *   5xx, 429, a timeout, a refused or
+   *   failed connection or TLS             unreachable, after one more try, three seconds later and
+   *                                        given twice the time: the crawler stays out
+   *   a bot challenge in its place         not the site's file: the crawler stays out (never solved)
+   */
+  async function robotsOf(origin: string, signal?: AbortSignal): Promise<RobotsEntry> {
+    const kept = robots.get(origin)
+    if (kept !== undefined && now() - kept.at < ROBOTS_TTL_MS) return kept
+    let entry = await readRobots(origin, signal, timeoutMs)
+    if (entry.facts.outcome === 'unreachable') {
+      const stop = withSignal(signal).signal
+      await pause(retryDelayMs, stop)
+      if (stop?.aborted !== true) {
+        entry = await readRobots(
+          origin,
+          signal,
+          Math.min(timeoutMs * 2, Math.max(timeoutMs, ROBOTS_RETRY_TIMEOUT_MAX_MS)),
+        )
+      }
+    }
     if (robots.size >= MAX_ROBOTS_SITES) robots.delete(robots.keys().next().value ?? origin)
     robots.set(origin, entry)
     return entry
   }
 
   /** What robots.txt says of a page for a crawler (RFC 9309): `*` counts, and a file that cannot be read keeps the crawler out. */
-  const verdict = (entry: RobotsEntry, url: string): 'allowed' | 'blocked' | 'unreachable' => {
+  const verdict = (entry: RobotsEntry, url: string): Verdict => {
     const { facts } = entry
     if (facts.outcome === 'fetched') {
       return matchRobots(facts.robots, BOT, url).allowed ? 'allowed' : 'blocked'
     }
-    return facts.outcome === 'unavailable' ? 'allowed' : 'unreachable'
+    if (facts.outcome === 'unavailable') return 'allowed'
+    return facts.outcome === 'failed' && facts.code === 'bot-challenge'
+      ? 'challenged'
+      : 'unreachable'
   }
 
   const failed = (
@@ -257,11 +326,9 @@ export function createCrawler(options: CrawlerOptions = {}): Crawler {
     const entry = await robotsOf(origin, pageOptions.signal)
     const allowed = verdict(entry, checked.url.href)
     if (allowed !== 'allowed') {
-      return failed('blocked', allowed === 'blocked' ? 'robots' : 'robots-unreachable', {
-        crawlDelayMs: entry.delayMs,
-      })
+      return failed('blocked', REFUSAL[allowed], { crawlDelayMs: entry.delayMs })
     }
-    const ended: { declined: 'offsite' | 'blocked' | null } = { declined: null }
+    const ended: { declined: 'offsite' | Exclude<Verdict, 'allowed'> | null } = { declined: null }
     const fetched = await safeFetch(checked.url.href, {
       ...call,
       accept: PAGE_ACCEPT,
@@ -271,8 +338,9 @@ export function createCrawler(options: CrawlerOptions = {}): Crawler {
           return false
         }
         const next = await robotsOf(new URL(to).origin, hop.signal)
-        if (verdict(next, to) !== 'allowed') {
-          ended.declined = 'blocked'
+        const redirected = verdict(next, to)
+        if (redirected !== 'allowed') {
+          ended.declined = redirected
           return false
         }
         return true
@@ -282,8 +350,8 @@ export function createCrawler(options: CrawlerOptions = {}): Crawler {
     if (response === null) {
       if (ended.declined === 'offsite')
         return failed('offsite', null, { crawlDelayMs: entry.delayMs })
-      if (ended.declined === 'blocked')
-        return failed('blocked', 'robots', { crawlDelayMs: entry.delayMs })
+      if (ended.declined !== null)
+        return failed('blocked', REFUSAL[ended.declined], { crawlDelayMs: entry.delayMs })
       return failed('error', fetched.error?.code ?? 'fetch-failed', { crawlDelayMs: entry.delayMs })
     }
     const common = { status: response.status, finalUrl: response.url, crawlDelayMs: entry.delayMs }
