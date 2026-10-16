@@ -212,7 +212,7 @@ export function userPage(v: View, d: UserDetail, flashHtml: string): string {
   const act = (path: string) => href(v.lang, `${base}/${path}`)
   const siteUrl = new Map(d.sites.map((site) => [site.id, site.url]))
   const usage = (label: string, used: number | null, limit: number) =>
-    `<tr><th scope="row">${esc(label)}</th><td class="num">${used === null ? '—' : num(used)} / ${num(limit)}</td><td>${used === null || limit === 0 ? '' : `<meter min="0" max="${String(limit)}" value="${String(Math.min(used, limit))}"></meter>`}</td></tr>`
+    `<tr><th scope="row">${esc(label)}</th><td class="num">${used === null ? '—' : num(used)} / ${num(limit)}</td><td>${used === null || limit === 0 ? '' : `<meter aria-label="${esc(label)}" min="0" max="${String(limit)}" value="${String(Math.min(used, limit))}"></meter>`}</td></tr>`
 
   const profile = `<section class="card"><h2>${esc(t.user.profile)}</h2><dl class="facts">
 <dt>${esc(t.users.email)}</dt><dd>${ltr(row.email)}</dd>
