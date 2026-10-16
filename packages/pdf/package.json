@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@arablyzer/browser": "workspace:*",
-    "pdfjs-dist": "6.3.289",
+    "pdfjs-dist": "6.4.299",
     "playwright-core": "1.63.0"
   }
 }
