@@ -18,6 +18,22 @@ The page's text leans Levantine ({hits} telling words, such as «{example}») an
 
 The page's text leans Maghrebi ({hits} telling words, such as «{example}») and the page is written for {country}, where that dialect is not spoken.
 
+### model-gulf
+
+The dialect model reads the page's sentences as closer to Gulf (about {percent}% of its probability), and the page is written for {country}, where that dialect is not spoken.
+
+### model-egyptian
+
+The dialect model reads the page's sentences as closer to Egyptian (about {percent}% of its probability), and the page is written for {country}, where that dialect is not spoken.
+
+### model-levantine
+
+The dialect model reads the page's sentences as closer to Levantine (about {percent}% of its probability), and the page is written for {country}, where that dialect is not spoken.
+
+### model-maghrebi
+
+The dialect model reads the page's sentences as closer to Maghrebi (about {percent}% of its probability), and the page is written for {country}, where that dialect is not spoken.
+
 ### register-formal-headings
 
 The headings are in Modern Standard and the text under them is colloquial (such as «{example}»): a reader hears the tone change between a heading and what follows.
@@ -48,7 +64,8 @@ The text mixes words of two dialects, such as «{first}» and «{second}», so t
 2. We count words from a small, documented list (see the [Arabic features plan](https://github.com/Shahoom/arablyzer/blob/main/docs/design/plans/arabic-native.md)): words only speakers of one dialect write, such as إزاي, عايز and دلوقتي (Egyptian), وايد, شلون and ابغى (Gulf), هلق, شو and بدي (Levantine), بزاف, واش and ديال (Maghrebi). Words two dialects share are left out, and hamza forms and ta marbuta are folded before matching.
 3. With fewer than 80 Arabic words we give no verdict. Otherwise a dialect is called when at least 3 of its words are found and they are a fifth of all the telling words (dialect and Modern Standard); otherwise the text is Modern Standard.
 4. We compare the dialect with the country the page is written for, named by two different kinds of evidence at least (domain, language, currency, calling code); with no confirmed country we do not compare.
-5. The list is a sample, not a dictionary: colloquial text with none of these words reads as Modern Standard. It is not a language-ID model. It is a minor finding.
+5. Where the Arabic NLP service runs, we also read the text's sentences with CAMeL's dialect model: if the list found no dialect, the page has 80 words or more, and the model gives one variety 70% or more of the probability over the sentences and that variety wins at least half of them, the model's verdict is used. Without the service the list alone decides.
+6. The list is a sample, not a dictionary, and the model errs on short or mixed text. It is a minor finding.
 
 ## References
 

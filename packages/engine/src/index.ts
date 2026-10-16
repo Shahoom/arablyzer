@@ -34,6 +34,16 @@ export {
   type OpenPageRankOptions,
 } from './open-page-rank'
 export { type OutsideOptions } from './outside'
+export {
+  askNlp,
+  forgetNlpFailures,
+  nlpTexts,
+  NLP_MIN_CONFIDENCE,
+  NLP_REST_MS,
+  NLP_TIMEOUT_MS,
+  type NlpOptions,
+  type NlpRun,
+} from './nlp'
 export { parseCredentials } from './bigquery'
 export {
   fetchKnowledgeGraph,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { scanOptionsFrom } from '../src/options'
+import { nlpFrom, scanOptionsFrom } from '../src/options'
 
 describe('scanOptionsFrom', () => {
   it('renders in the three engines, WebKit only where the network is isolated', () => {
@@ -145,6 +145,38 @@ describe('the services beside the site', () => {
       })
     } catch (error) {
       expect(String(error)).not.toContain('SECRETVALUE')
+    }
+  })
+
+  it('asks the Arabic NLP service only where the operator names it, and says how sure it must be', () => {
+    expect(scanOptionsFrom({}).nlp).toBeUndefined()
+    expect(scanOptionsFrom({ ARABLYZER_NLP_URL: ' ' }).nlp).toBeUndefined()
+    expect(nlpFrom({ ARABLYZER_NLP_URL: 'http://arabic-nlp:8790' })).toEqual({
+      url: 'http://arabic-nlp:8790',
+    })
+    expect(
+      nlpFrom({
+        ARABLYZER_NLP_URL: 'http://arabic-nlp:8790/',
+        ARABLYZER_SPELLING_MIN_CONFIDENCE: '0.85',
+      }),
+    ).toEqual({ url: 'http://arabic-nlp:8790/', minConfidence: 0.85 })
+    expect(scanOptionsFrom({ ARABLYZER_NLP_URL: 'http://arabic-nlp:8790' }).nlp?.url).toBe(
+      'http://arabic-nlp:8790',
+    )
+  })
+
+  it('refuses an NLP address that is not an address, and a confidence out of range', () => {
+    expect(() => nlpFrom({ ARABLYZER_NLP_URL: 'arabic-nlp' })).toThrow(/service address/)
+    expect(() => nlpFrom({ ARABLYZER_NLP_URL: 'http://arabic-nlp:8790/path?x=1' })).toThrow(
+      /service address/,
+    )
+    for (const value of ['0.3', '1.2', 'high']) {
+      expect(() =>
+        nlpFrom({
+          ARABLYZER_NLP_URL: 'http://arabic-nlp:8790',
+          ARABLYZER_SPELLING_MIN_CONFIDENCE: value,
+        }),
+      ).toThrow(/0.5 to 1/)
     }
   })
 })

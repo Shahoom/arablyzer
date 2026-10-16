@@ -70,6 +70,18 @@ The page's language tag is «{seen}», the region of another country than the on
 
 The page's text leans to a dialect other than the one of the country this page is for ({seen}).
 
+### gap-vat-rate
+
+The page states a VAT rate of {seen}, and this country's rate is {rate}%: check the rate written on the page and in the cart.
+
+### gap-weekend
+
+The page's opening hours follow a Western week («{seen}» appears in them), not the Gulf's, which rests on Friday and Saturday.
+
+### gap-phone-shape
+
+The number «{seen}» carries this country's code but has a number of digits its numbers do not have, or keeps the national trunk 0 after the code: write the code and then the number with no leading 0.
+
 ## Why it matters
 
 - A visitor decides in seconds whether a site is for them. Prices in the wrong currency, a phone number nobody can dial, digits the country does not use and a missing tax statement each say «not for you», and none of it shows in a speed or SEO score.
@@ -97,7 +109,8 @@ The page's text leans to a dialect other than the one of the country this page i
 2. We name a country only when two kinds of evidence agree (a ccTLD, a language region, a currency that belongs to one country, a calling code) and no other country's evidence comes within two points of it. Otherwise the page says too little, or too much, and we say nothing: we do not guess.
 3. For that country we judge each item the page gives something to judge: prices and their currency, phone numbers, digits, a tax statement where the country charges VAT, a Hijri date where the page has dates, the language tag's region. An item the page shows nothing for is not counted.
 4. The percentage is the items that fit over those judged, and only with three or more judged. A page that fits every item has no finding; the report's facts keep its 100%.
-5. This is information, never deducted.
+5. The Gulf pack, for the six Gulf Cooperation Council states: the VAT rate the page states against the country's (Saudi Arabia 15%, the UAE 5%, Bahrain 10%, Oman 5%; Kuwait and Qatar charge none), the working week in opening hours (Friday and Saturday off in Saudi Arabia, Kuwait, Qatar, Oman and Bahrain; the UAE is not judged), and the shape of numbers written with the country's code (digit count, no national trunk 0). We judge only what the page itself writes.
+6. This is information, never deducted.
 
 ## References
 

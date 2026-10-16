@@ -1,0 +1,32 @@
+{
+  "nlp": {
+    "spelling": {
+      "min_confidence": 0.9,
+      "words": 38,
+      "judged": 37,
+      "truncated": false,
+      "findings": []
+    },
+    "dialect": {
+      "model": "camel-dialectid-model6",
+      "label": "msa",
+      "probabilities": {
+        "msa": 0.6973,
+        "gulf": 0.2268,
+        "egyptian": 0.015,
+        "levantine": 0.0415,
+        "maghrebi": 0.0195
+      },
+      "votes": {
+        "msa": 3,
+        "gulf": 1,
+        "egyptian": 0,
+        "levantine": 0,
+        "maghrebi": 0
+      },
+      "chunks": 4,
+      "words": 38,
+      "truncated": false
+    }
+  }
+}

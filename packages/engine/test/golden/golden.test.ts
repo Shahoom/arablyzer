@@ -3,10 +3,12 @@ import { createPolicy } from '@arablyzer/egress'
 import {
   type CruxStandIn,
   type KnowledgeGraphStandIn,
+  type NlpStandIn,
   type SafeBrowsingStandIn,
   loadSiteConfig,
   serveCrux,
   serveKnowledgeGraph,
+  serveNlp,
   serveSafeBrowsing,
   serveSite,
   trustFixtureCa,
@@ -21,6 +23,7 @@ import {
   IMAGE_FONTS,
   normalize,
   KNOWLEDGE_GRAPH_PORT,
+  NLP_PORT,
   portOf,
   REPORTS,
   SAFE_BROWSING_PORT,
@@ -78,6 +81,7 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
       let crux: CruxStandIn | undefined
       let safeBrowsing: SafeBrowsingStandIn | undefined
       let knowledgeGraph: KnowledgeGraphStandIn | undefined
+      let nlp: NlpStandIn | undefined
       try {
         if (config.crux !== undefined) crux = await serveCrux(config.crux, { port: CRUX_PORT })
         if (config.knowledgeGraph !== undefined) {
@@ -85,6 +89,7 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
             port: KNOWLEDGE_GRAPH_PORT,
           })
         }
+        if (config.nlp !== undefined) nlp = await serveNlp(config.nlp, { port: NLP_PORT })
         if (config.safeBrowsing !== undefined) {
           safeBrowsing = await serveSafeBrowsing(config.safeBrowsing, { port: SAFE_BROWSING_PORT })
         }
@@ -116,6 +121,7 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
           ...(safeBrowsing === undefined
             ? {}
             : { safeBrowsing: { apiKey: 'golden-key', endpoint: safeBrowsing.endpoint } }),
+          ...(nlp === undefined ? {} : { nlp: { url: nlp.url } }),
         })
         const actual = `${JSON.stringify(normalize(report), null, 2)}\n`
         // Kept before anything is checked, so CI has it whatever fails.
@@ -130,6 +136,7 @@ describe.skipIf(!IN_IMAGE)('golden reports, in the scanner image', () => {
         await crux?.close()
         await safeBrowsing?.close()
         await knowledgeGraph?.close()
+        await nlp?.close()
       }
     },
     180_000,

@@ -20,6 +20,9 @@ export interface Native2Strings {
     readonly fits: (country: string) => string
     readonly clashes: (country: string) => string
     readonly note: string
+    /** Where the Arabic NLP service's dialect model read the page (M7). */
+    readonly modelMix: string
+    readonly noteModel: string
   }
   readonly lookalikes: {
     readonly title: string
@@ -163,6 +166,9 @@ export const NATIVE2: Copy<Native2Strings> = {
       fits: (country) => `تناسب لهجة النص بلدها (${country})`,
       clashes: (country) => `لا تُحكى هذه اللهجة في ${country}`,
       note: 'عيّنة كلمات مميِّزة لا نموذج لغة؛ ومعلومة لا تُخصم من درجتك.',
+      modelMix: 'قراءة نموذج اللهجات لجمل الصفحة',
+      noteModel:
+        'حكم نموذج CAMeL لتحديد اللهجة على جمل الصفحة حيث لم تجد قائمة الكلمات لهجة؛ وقد يخطئ في النصوص القصيرة أو المختلطة. ومعلومة لا تُخصم من درجتك.',
     },
     lookalikes: {
       title: 'الدومينات الشبيهة بدومينك',
@@ -378,6 +384,9 @@ export const NATIVE2: Copy<Native2Strings> = {
       fits: (country) => `The dialect fits the page's country (${country})`,
       clashes: (country) => `This dialect is not the speech of ${country}`,
       note: 'A sample of telling words, not a language model; information, never deducted from your score.',
+      modelMix: 'The dialect model’s reading of the page’s sentences',
+      noteModel:
+        'CAMeL’s dialect model decided on the page’s sentences where the word list found no dialect; it errs on short or mixed text. Information, never deducted.',
     },
     lookalikes: {
       title: 'Look-alikes of your domain',

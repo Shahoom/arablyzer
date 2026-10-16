@@ -29,6 +29,7 @@ import {
   type CertificateFacts,
   type Engine,
   type Header,
+  type NlpFacts,
   type PageFacts,
   type RenderedFacts,
   type RobotsFacts,
@@ -44,6 +45,7 @@ import {
   loadFixtureConfig,
   type CruxData,
   type KnowledgeGraphData,
+  type NlpData,
   type SafeBrowsingData,
   loadSiteConfig,
   resolveFixtureResponse,
@@ -464,4 +466,36 @@ export function ldPage(...blocks: unknown[]): PageFacts {
   return htmlPage(
     `<!doctype html><html lang="ar"><head>${scripts}</head><body><p>x</p></body></html>`,
   )
+}
+
+/** The NlpFacts of a stand-in's answers: what the engine makes of them (packages/engine/src/nlp.ts). */
+export function nlpFactsOf(data: NlpData): NlpFacts {
+  return {
+    spelling:
+      data.spelling === undefined
+        ? null
+        : {
+            findings: data.spelling.findings.map((finding) => ({
+              word: finding.word,
+              suggestion: finding.suggestion,
+              family: finding.family,
+              confidence: finding.confidence,
+              before: finding.before,
+              after: finding.after,
+              alternatives: finding.alternatives,
+            })),
+            words: data.spelling.words,
+            judged: data.spelling.judged,
+            truncated: data.spelling.truncated,
+            minConfidence: data.spelling.min_confidence,
+          },
+    dialect: null,
+  }
+}
+
+/** The stand-in NLP answers of a rule's fixture (its site.json), as facts. */
+export async function fixtureNlp(ruleId: string, name: string): Promise<NlpFacts> {
+  const config = await loadSiteConfig(`${fixturesDir(ruleId)}${name}`)
+  if (config.nlp === undefined) throw new Error(`${ruleId}/${name} has no nlp stand-in`)
+  return nlpFactsOf(config.nlp)
 }

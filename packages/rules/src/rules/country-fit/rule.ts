@@ -1,4 +1,5 @@
 import { COUNTRIES, fitOf, INFO, type Country, type ItemId } from '../../lib/country'
+import { VAT_RATES } from '../../lib/gulf'
 import { defineRule, type DetectorFinding } from '../../rule'
 
 type Message =
@@ -11,6 +12,9 @@ type Message =
   | 'gap-hijri'
   | 'gap-lang'
   | 'gap-dialect'
+  | 'gap-vat-rate'
+  | 'gap-weekend'
+  | 'gap-phone-shape'
 
 const FIT_MESSAGES = COUNTRIES.map((country) => `fit-${country.toLowerCase()}` as Message)
 
@@ -23,10 +27,16 @@ const FIT_MESSAGES = COUNTRIES.map((country) => `fit-${country.toLowerCase()}` a
  * prices' currency, phone numbers, digits, tax, Hijri dates, language tag) is `ok` or a gap; a
  * finding names the readiness and each gap. A page that fits has no findings: the report's facts
  * give its 100%.
+ *
+ * The Gulf pack (M7, docs/design/plans/m7-deep-arabic.md) adds three items for the six Gulf
+ * states: the VAT rate the page states against the country's (Saudi Arabia 15%, the UAE 5%,
+ * Bahrain 10%, Oman 5%), Friday and Saturday as the weekend in opening hours (Saudi Arabia, Kuwait,
+ * Qatar, Oman, Bahrain), and the shape of numbers written with the country's own calling code
+ * (digit count, no trunk 0). Bahrain and Oman now judge a VAT statement too.
  */
 export const rule = defineRule({
   id: 'country-fit',
-  version: '1.0.0',
+  version: '1.1.0',
   category: 'locale',
   severity: 'info',
   needs: ['html', 'text'],
@@ -40,6 +50,9 @@ export const rule = defineRule({
     'gap-hijri',
     'gap-lang',
     'gap-dialect',
+    'gap-vat-rate',
+    'gap-weekend',
+    'gap-phone-shape',
   ],
   appliesTo: (page) => page.html !== null && page.text !== null,
   detect: ({ page }): DetectorFinding<Message>[] => {
@@ -80,6 +93,12 @@ export const rule = defineRule({
           return 'gap-lang'
         case 'dialect':
           return 'gap-dialect'
+        case 'vat-rate':
+          return 'gap-vat-rate'
+        case 'weekend':
+          return 'gap-weekend'
+        case 'phone-shape':
+          return 'gap-phone-shape'
       }
     }
     return [
@@ -91,6 +110,7 @@ export const rule = defineRule({
           currency: info.currency,
           dial: info.dial,
           seen: item.detail,
+          rate: VAT_RATES[fit.country ?? 'SA'] ?? 0,
         },
         snippet: item.detail,
         key: item.id,

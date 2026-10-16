@@ -217,6 +217,21 @@ export default defineConfig(
     },
   },
   {
+    // The Arabic NLP client (M7) asks the language service on the scan network, which the scanner and
+    // the worker share with it alone: not scan traffic, which leaves the scanner through the egress
+    // proxy. fetch alone; its address is the operator's, never a visitor's.
+    files: ['packages/collectors/src/nlp.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        ...['XMLHttpRequest', 'WebSocket', 'EventSource'].map((name) => ({
+          name,
+          message: NETWORK_MESSAGE,
+        })),
+      ],
+    },
+  },
+  {
     // The MCP server's stdio entry hands the global `fetch` to the client that calls Arablyzer's own
     // API with the person's key (M5.1): not scan traffic, which leaves the scanner through the
     // egress proxy. The client takes its fetch as an argument; this is the one place it is given.

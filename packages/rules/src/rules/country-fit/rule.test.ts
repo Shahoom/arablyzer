@@ -25,9 +25,9 @@ describe('country-fit', () => {
     ])
     expect(found[0]?.values).toMatchObject({
       country: 'SA',
-      percent: 20,
-      ok: 1,
-      judged: 5,
+      percent: 33,
+      ok: 2,
+      judged: 6,
       gaps: 4,
     })
     expect(found[2]?.values).toMatchObject({ dial: '966', seen: '0501234567' })
@@ -56,20 +56,24 @@ describe('country-fit', () => {
     expect(fitOf(page('<p>مرحبا</p>'))).toMatchObject({ country: null })
   })
 
-  it('names Oman when a currency and a calling code agree, and gives no percentage for the two items it can judge', () => {
+  it('names Oman when a currency and a calling code agree, and now also asks for a tax statement', () => {
     // The live report of cloudtopia.net: OMR and +968, an English page, nothing else to judge.
     const english = page('<p>Plans from OMR 1. Call +968 9588 6393</p>', { lang: 'en' })
     expect(inferCountry(readPage(english))).toMatchObject({ country: 'OM', confidence: 'strong' })
     expect(fitOf(english)).toMatchObject({
       country: 'OM',
       confidence: 'strong',
-      percent: null,
-      judged: 2,
+      // the currency and the number's shape fit; the calling code is the country's; no tax statement beside the price
+      percent: 75,
+      judged: 4,
     })
     // The same in Arabic, with the abbreviation people write on prices.
     const arabic = page('<p>الباقة بـ 12 ر.ع. اتصل على +968 9588 6393</p>')
     expect(inferCountry(readPage(arabic))).toMatchObject({ country: 'OM', confidence: 'strong' })
-    expect(detectAll(rule, evidenceOf(english))).toEqual([])
+    expect(detectAll(rule, evidenceOf(english)).map((f) => f.message)).toEqual([
+      'fit-om',
+      'gap-vat',
+    ])
   })
 
   it('names no country where two kinds of evidence point to different ones, or where one stands alone', () => {
@@ -146,5 +150,84 @@ describe('country-fit', () => {
 
   it('applies to an HTML page with text', () => {
     expect(applies(rule, evidenceOf(page('<p>مرحبا</p>')))).toBe(true)
+  })
+
+  describe('the Gulf pack', () => {
+    const items = (body: string, lang = 'ar-SA', url = 'https://shop.example/') =>
+      Object.fromEntries(fitOf(page(body, { lang, url })).items.map((item) => [item.id, item]))
+
+    it('holds the VAT rate the page states against the country’s', () => {
+      expect(items('<p>150 ر.س شامل ضريبة القيمة المضافة 15%</p>')['vat-rate']).toMatchObject({
+        status: 'ok',
+        detail: '15%',
+      })
+      expect(items('<p>150 ر.س ضريبة القيمة المضافة 5%</p>')['vat-rate']).toMatchObject({
+        status: 'gap',
+        detail: '5%',
+      })
+      expect(items('<p>150 ر.س VAT ١٥٪ included</p>')['vat-rate']).toMatchObject({ status: 'ok' })
+      expect(items('<p>خصم 15% على كل شيء</p>')['vat-rate']).toMatchObject({ status: 'unknown' })
+      // Bahrain 10%, Oman 5%, the UAE 5%; Kuwait and Qatar have none to judge
+      expect(items('<p>10 د.ب ضريبة القيمة المضافة 10%</p>', 'ar-BH')['vat-rate']).toMatchObject({
+        status: 'ok',
+      })
+      expect(items('<p>5 ر.ع ضريبة القيمة المضافة 10%</p>', 'ar-OM')['vat-rate']).toMatchObject({
+        status: 'gap',
+      })
+      expect(items('<p>5 د.ك VAT 5%</p>', 'ar-KW')['vat-rate']).toBeUndefined()
+    })
+
+    it('tells a Gulf working week from a Western one in the opening hours', () => {
+      expect(items('<p>ساعات العمل: من الأحد إلى الخميس 9 ص - 6 م</p>').weekend).toMatchObject({
+        status: 'ok',
+      })
+      expect(items('<p>الجمعة: مغلق</p>').weekend).toMatchObject({ status: 'ok', detail: 'الجمعة' })
+      expect(
+        items('<p>ساعات العمل: من الاثنين إلى الجمعة 9 ص - 5 م، مغلق السبت والأحد</p>').weekend,
+      ).toMatchObject({ status: 'ok' })
+      expect(items('<p>الأحد: مغلق</p>').weekend).toMatchObject({ status: 'gap', detail: 'الأحد' })
+      expect(items('<p>ساعات العمل: من الاثنين إلى الجمعة 9 ص - 5 م</p>').weekend).toMatchObject({
+        status: 'gap',
+      })
+      expect(items('<p>تفضلوا بزيارتنا</p>').weekend).toMatchObject({ status: 'unknown' })
+      // the UAE's week is not judged, nor is another country's
+      expect(items('<p>الأحد: مغلق</p>', 'ar-AE').weekend).toBeUndefined()
+      expect(items('<p>الأحد: مغلق</p>', 'ar-EG').weekend).toBeUndefined()
+    })
+
+    it('checks the shape of the numbers written with the country’s own code', () => {
+      expect(items('<p>اتصل +966 50 123 4567</p>')['phone-shape']).toMatchObject({ status: 'ok' })
+      expect(items('<p>اتصل +966 050 123 4567</p>')['phone-shape']).toMatchObject({ status: 'gap' })
+      expect(items('<p>اتصل +966 50 123 456</p>')['phone-shape']).toMatchObject({ status: 'gap' })
+      expect(items('<p>اتصل 00971 4 123 4567</p>', 'ar-AE')['phone-shape']).toMatchObject({
+        status: 'ok',
+      })
+      expect(items('<p>اتصل +965 5555 1234</p>', 'ar-KW')['phone-shape']).toMatchObject({
+        status: 'ok',
+      })
+      expect(items('<p>اتصل +968 9588 639</p>', 'ar-OM')['phone-shape']).toMatchObject({
+        status: 'gap',
+      })
+      expect(items('<p>مرحبا</p>')['phone-shape']).toMatchObject({ status: 'unknown' })
+      expect(items('<p>اتصل +20 100 123 4567</p>', 'ar-EG')['phone-shape']).toBeUndefined()
+    })
+
+    it('names each gap in the finding', () => {
+      const found = detectAll(
+        rule,
+        evidenceOf(
+          page('<p>150 ر.س ضريبة القيمة المضافة 5%. الأحد: مغلق. اتصل +966 050 123 4567</p>', {
+            lang: 'ar-SA',
+          }),
+        ),
+      )
+      expect(found.map((f) => f.message)).toEqual(
+        expect.arrayContaining(['gap-vat-rate', 'gap-weekend', 'gap-phone-shape']),
+      )
+      expect(found.find((f) => f.message === 'gap-vat-rate')?.values).toMatchObject({
+        seen: '5%',
+        rate: 15,
+      })
+    })
   })
 })

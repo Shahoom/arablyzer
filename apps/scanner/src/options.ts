@@ -1,6 +1,11 @@
 import { networkIsolated } from '@arablyzer/browser/engines'
 import { dohUrlFrom, serverPolicy } from '@arablyzer/egress'
-import { parseCredentials, type OutsideOptions, type ScanOptions } from '@arablyzer/engine'
+import {
+  parseCredentials,
+  type NlpOptions,
+  type OutsideOptions,
+  type ScanOptions,
+} from '@arablyzer/engine'
 import type { Engine } from '@arablyzer/report-schema'
 
 const ENGINES: readonly Engine[] = ['chromium', 'firefox', 'webkit']
@@ -70,6 +75,27 @@ export function outsideFrom(
   return Object.keys(outside).length === 0 ? undefined : outside
 }
 
+/**
+ * The Arabic NLP service (M7): ARABLYZER_NLP_URL, its address on the scanner's internal network
+ * (http://arabic-nlp:8790 in Compose); empty, the spelling check is off and the dialect rule reads its
+ * word list. ARABLYZER_SPELLING_MIN_CONFIDENCE (0.5 to 1, 0.9 by default) is how sure the service must
+ * be of a spelling slip before the report names it.
+ */
+export function nlpFrom(env: Readonly<Record<string, string | undefined>>): NlpOptions | undefined {
+  const url = env.ARABLYZER_NLP_URL?.trim() ?? ''
+  if (url === '') return undefined
+  if (!/^https?:\/\/[^\s/]+(?::\d+)?\/?$/.test(url)) {
+    throw new Error('ARABLYZER_NLP_URL must be the service address, such as http://arabic-nlp:8790')
+  }
+  const raw = env.ARABLYZER_SPELLING_MIN_CONFIDENCE?.trim() ?? ''
+  if (raw === '') return { url }
+  const minConfidence = Number(raw)
+  if (!Number.isFinite(minConfidence) || minConfidence < 0.5 || minConfidence > 1) {
+    throw new Error('ARABLYZER_SPELLING_MIN_CONFIDENCE must be a number from 0.5 to 1')
+  }
+  return { url, minConfidence }
+}
+
 export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>>): ScanOptions {
   const listed = (env.ARABLYZER_ENGINES ?? ENGINES.join(','))
     .split(',')
@@ -103,6 +129,7 @@ export function scanOptionsFrom(env: Readonly<Record<string, string | undefined>
       : { safeBrowsing: { apiKey: safeBrowsingKey } }),
     ...(kgKey === undefined || kgKey === '' ? {} : { knowledgeGraph: { apiKey: kgKey } }),
     ...(outsideFrom(env) === undefined ? {} : { outside: outsideFrom(env) }),
+    ...(nlpFrom(env) === undefined ? {} : { nlp: nlpFrom(env) }),
     // Always given, so a whole scan says when the key is missing.
     openPageRank: { apiKey: oprKey === '' ? undefined : oprKey },
   }

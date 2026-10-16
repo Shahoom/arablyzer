@@ -15,6 +15,7 @@ export {
   type KnowledgeGraphQuery,
   type KnowledgeGraphStandIn,
 } from './knowledge-graph'
+export { NlpData, serveNlp, serveNlpWith, type NlpAnswer, type NlpStandIn } from './nlp'
 export {
   answerSafeBrowsing,
   SafeBrowsingData,

@@ -1,6 +1,13 @@
+import type { NlpDialectFacts } from '@arablyzer/collectors'
 import { describe, expect, it } from 'vitest'
 import { applies, detectAll, evidenceOf, fixtureEvidence, htmlPage } from '../../../test/helpers'
-import { dialectOfPage, fitsCountry, readDialect } from '../../lib/dialect'
+import {
+  dialectOfPage,
+  effectiveDialect,
+  fitsCountry,
+  modelVerdict,
+  readDialect,
+} from '../../lib/dialect'
 import { rule } from './rule'
 
 const filler =
@@ -74,5 +81,98 @@ describe('dialect-register', () => {
     expect(fitsCountry('gulf', 'EG')).toBe(false)
     expect(fitsCountry('msa', 'EG')).toBe(true)
     expect(dialectOfPage([]).whole.label).toBeNull()
+  })
+
+  describe('with the dialect model of the Arabic NLP service', () => {
+    const model = (
+      label: NlpDialectFacts['label'],
+      share: number,
+      votes = 0.8,
+    ): NlpDialectFacts => {
+      const rest = (1 - share) / 4
+      const probabilities = {
+        msa: rest,
+        gulf: rest,
+        egyptian: rest,
+        levantine: rest,
+        maghrebi: rest,
+      }
+      if (label !== null) probabilities[label] = share
+      const chunks = 10
+      const won = Math.round(votes * chunks)
+      return {
+        label,
+        probabilities,
+        votes: {
+          msa: 0,
+          gulf: 0,
+          egyptian: 0,
+          levantine: 0,
+          maghrebi: 0,
+          ...(label === null ? {} : { [label]: won }),
+        },
+        chunks,
+        words: 200,
+        truncated: false,
+      }
+    }
+    // Modern Standard to the word list, on a page that says it is for Egypt (domain, language tag, pounds)
+    const egyptPage = htmlPage(
+      `<!doctype html><html lang="ar-EG"><head><meta charset="utf-8"></head><body><p>${filler}</p><p>السعر 100 ج.م</p></body></html>`,
+      { url: 'https://shop.example.eg/' },
+    )
+
+    it('gives a verdict only when it is sure: 70% of the probability and half of the sentences', () => {
+      expect(modelVerdict(model('gulf', 0.9), 120)).toMatchObject({ label: 'gulf' })
+      expect(modelVerdict(model('gulf', 0.65), 120)).toBeNull()
+      expect(modelVerdict(model('gulf', 0.9, 0.3), 120)).toBeNull()
+      expect(modelVerdict(model('gulf', 0.9), 40)).toBeNull()
+      expect(modelVerdict(model(null, 0), 120)).toBeNull()
+      expect(modelVerdict(null, 120)).toBeNull()
+    })
+
+    it('reads a dialect where the word list finds Modern Standard, and leaves the word list’s own', () => {
+      const msa = readDialect(filler.repeat(2))
+      expect(effectiveDialect(msa, model('gulf', 0.9))).toMatchObject({
+        label: 'gulf',
+        source: 'model',
+      })
+      expect(effectiveDialect(msa, model('msa', 0.9))).toMatchObject({
+        label: 'msa',
+        source: 'model',
+      })
+      expect(effectiveDialect(msa, null)).toMatchObject({ label: 'msa', source: 'lexicon' })
+      const egyptian = readDialect('ازاي نعمل كده دلوقتي عايز اعرف ' + filler)
+      expect(effectiveDialect(egyptian, model('gulf', 0.95))).toMatchObject({
+        label: 'egyptian',
+        source: 'lexicon',
+      })
+    })
+
+    it('names a dialect that is not the country’s when the model is the only one to see it', () => {
+      const evidence = {
+        ...evidenceOf(egyptPage),
+        nlp: { spelling: null, dialect: model('gulf', 0.9) },
+      }
+      const found = detectAll(rule, evidence)
+      expect(found).toEqual([
+        expect.objectContaining({ message: 'model-gulf', values: { country: 'EG', percent: 90 } }),
+      ])
+      // without the service, or with a model that is unsure, the page is Modern Standard: no finding
+      expect(detectAll(rule, evidenceOf(egyptPage))).toEqual([])
+      expect(
+        detectAll(rule, {
+          ...evidenceOf(egyptPage),
+          nlp: { spelling: null, dialect: model('gulf', 0.6) },
+        }),
+      ).toEqual([])
+      // a dialect that is the country's is nothing to say
+      expect(
+        detectAll(rule, {
+          ...evidenceOf(egyptPage),
+          nlp: { spelling: null, dialect: model('egyptian', 0.9) },
+        }),
+      ).toEqual([])
+    })
   })
 })

@@ -450,7 +450,18 @@ export const CountryFitFact = z
     items: z
       .array(
         z.strictObject({
-          id: z.enum(['currency', 'phone', 'digits', 'vat', 'hijri', 'lang', 'dialect']),
+          id: z.enum([
+            'currency',
+            'phone',
+            'digits',
+            'vat',
+            'hijri',
+            'lang',
+            'dialect',
+            'vat-rate',
+            'weekend',
+            'phone-shape',
+          ]),
           status: z.enum(['ok', 'gap', 'unknown']),
           detail: z.string().max(100),
         }),
@@ -496,6 +507,33 @@ export const DialectFact = z
     markers: z.array(z.strictObject({ word: z.string().min(1).max(40), dialect: Variety })).max(12),
     country: z.enum(['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA']).nullable(),
     fits: z.boolean().nullable(),
+    /**
+     * What the verdict rests on: `model` when the Arabic NLP service's dialect model gave it (M7), else
+     * the marker lexicon. Absent in reports made before the model.
+     */
+    source: z.enum(['lexicon', 'model']).optional(),
+    /** The model's reading, where the service answered: the share of each variety over the text's sentences. */
+    model: z
+      .strictObject({
+        label: Variety.nullable(),
+        probabilities: z.strictObject({
+          msa: z.number().int().min(0).max(100),
+          gulf: z.number().int().min(0).max(100),
+          egyptian: z.number().int().min(0).max(100),
+          levantine: z.number().int().min(0).max(100),
+          maghrebi: z.number().int().min(0).max(100),
+        }),
+        /** Sentences read, and the sentences each variety won. */
+        chunks: count(),
+        votes: z.strictObject({
+          msa: count(),
+          gulf: count(),
+          egyptian: count(),
+          levantine: count(),
+          maghrebi: count(),
+        }),
+      })
+      .optional(),
   })
   .meta({ id: 'DialectFact' })
 export type DialectFact = z.infer<typeof DialectFact>

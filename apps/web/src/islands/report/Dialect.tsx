@@ -37,6 +37,19 @@ export function Dialect({ report, lang }: { report: Report; lang: Lang }) {
               </li>
             ))}
           </ul>
+          {fact.model !== undefined && (
+            <>
+              <p className="m-0 text-meta text-ink-3">{t.modelMix}</p>
+              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+                {ORDER.map((variety) => (
+                  <li key={variety} className="chip">
+                    {t.varieties[variety]} {fact.model?.probabilities[variety] ?? 0}
+                    {lang === 'ar' ? '٪' : '%'}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           {fact.headings !== null && fact.headings !== fact.label && (
             <p className="m-0 text-small text-ink-2">{t.headings(t.varieties[fact.headings])}</p>
           )}
@@ -56,7 +69,9 @@ export function Dialect({ report, lang }: { report: Report; lang: Lang }) {
               ))}
             </p>
           )}
-          <p className="m-0 text-meta text-ink-3">{t.note}</p>
+          <p className="m-0 text-meta text-ink-3">
+            {fact.source === 'model' ? t.noteModel : t.note}
+          </p>
         </>
       )}
     </section>

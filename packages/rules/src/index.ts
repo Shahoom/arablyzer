@@ -18,6 +18,7 @@ import { rule as arHtmlLang } from './rules/ar-html-lang/rule'
 import { rule as arLatinPunctuation } from './rules/ar-latin-punctuation/rule'
 import { rule as arLetterSpacing } from './rules/ar-letter-spacing/rule'
 import { rule as arMojibake } from './rules/ar-mojibake/rule'
+import { rule as arSpelling } from './rules/ar-spelling/rule'
 import { rule as arTatweel } from './rules/ar-tatweel/rule'
 import { rule as botChallenge } from './rules/bot-challenge/rule'
 import { rule as brandNameConsistency } from './rules/brand-name-consistency/rule'
@@ -131,6 +132,7 @@ export const RULES: readonly Rule[] = [
   arLatinPunctuation,
   arLetterSpacing,
   arMojibake,
+  arSpelling,
   arTatweel,
   botChallenge,
   brandNameConsistency,
@@ -262,7 +264,15 @@ export {
 } from './lib/spelling-variants'
 export { arabicWords, nameKey, normalizeArabic } from './lib/ar-normalize'
 export { collectBrandNames } from './lib/brand-names'
-export { dialectOfPage, fitsCountry, readDialect, type Dialect, type Variety } from './lib/dialect'
+export {
+  dialectOfPage,
+  effectiveDialect,
+  fitsCountry,
+  modelVerdict,
+  readDialect,
+  type Dialect,
+  type Variety,
+} from './lib/dialect'
 export { isMostlyArabic } from './lib/arabic'
 export { inferCountry, readPage } from './lib/country'
 export { COUNTRIES, fitOf, NAMES as COUNTRY_NAMES, type Country, type Fit } from './lib/country'

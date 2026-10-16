@@ -2,6 +2,7 @@ import type {
   Box,
   CruxFacts,
   DnsFacts,
+  NlpFacts,
   Engine,
   FeedFacts,
   LinkFacts,
@@ -45,6 +46,9 @@ import { loadRuleCopy, type RuleCopy } from './copy'
  * §14). See OUTSIDE in outside.ts. `feed`: the page's own body read as a product feed (Google
  * Merchant Center's RSS, Atom or tab-delimited file) for a tool that checks one: the address the
  * visitor gives is the feed, nothing else is asked for, and a whole scan never reads it (M6.1).
+ * `nlp`: what the Arabic NLP service says of the page's text (spelling slips it is sure of, the
+ * dialect model's reading), asked in a whole scan and a tool's, when the operator runs the service
+ * (ARABLYZER_NLP_URL); without its answer a rule that needs it does not apply (M7).
  */
 export type CollectorId =
   | 'http'
@@ -69,6 +73,7 @@ export type CollectorId =
   | 'ai-visibility'
   | 'crux-countries'
   | 'feed'
+  | 'nlp'
 
 export interface Evidence {
   readonly page: PageFacts
@@ -91,6 +96,8 @@ export interface Evidence {
   readonly safeBrowsing?: SafeBrowsingFacts
   /** Present when the rule needs `knowledge-graph` and Google answered or the page gave no name. */
   readonly knowledgeGraph?: KnowledgeGraphFacts
+  /** Present when the rule needs or may use `nlp` and the service answered for the page. */
+  readonly nlp?: NlpFacts
   /** Present when the rule needs `feed` and the page answered 2xx: the response read as a feed. */
   readonly feed?: FeedFacts
   /** Present when the rule needs `search` and the scan asked the site's search. */
@@ -146,6 +153,11 @@ export interface Rule<M extends string = string> {
   /** "Needs human review": reported, never deducted. */
   readonly manualCheck?: boolean
   readonly needs: readonly CollectorId[]
+  /**
+   * Collectors the rule uses when they are there and judges without when they are not: the dialect
+   * rule reads the model's answer if the NLP service gave one, and its word list if not (M7).
+   */
+  readonly optionalNeeds?: readonly CollectorId[]
   /**
    * With `render`: the engines whose facts the rule can read (Chromium alone reports the fonts
    * that drew a text); all engines by default. The rule sees only those engines' facts.
