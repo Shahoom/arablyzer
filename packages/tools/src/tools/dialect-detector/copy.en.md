@@ -32,6 +32,11 @@ Reads Arabic text you paste, or a page you give us the address of, and says whic
 - Choose one voice for the brand: plain Modern Standard suits every market, and a local dialect suits one.
 - If you choose a dialect, choose the one of the country you serve, and use the same words in the headings and the text.
 - Read what you copied from another country's site or from a translator: it may carry its dialect with it.
+- Name the page's market in its language tag, so that readers and checks know which country you address:
+
+```html
+<html lang="ar-SA" dir="rtl">
+```
 
 ## FAQ
 
