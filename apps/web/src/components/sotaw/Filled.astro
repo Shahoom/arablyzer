@@ -1,0 +1,27 @@
+---
+import type { Lang } from '@arablyzer/seo/site'
+import { segments } from '../../lib/sotaw-format'
+import Rich from '../Rich.astro'
+
+/**
+ * A line of the report's copy with its `{name}`s filled in, each value set apart in its own left-to-right
+ * `bdi`: a date, a count or an id inside Arabic text would be drawn out of order. The words around
+ * them are Rich's (code in backticks, Latin words isolated).
+ */
+interface Props {
+  text: string
+  values: Readonly<Record<string, string | number>>
+  lang: Lang
+}
+const { text, values, lang } = Astro.props
+---
+
+{segments(text, values).map((part) =>
+  part.value ? (
+    <bdi dir="ltr" class="tabular-nums">
+      {part.text}
+    </bdi>
+  ) : (
+    <Rich text={part.text} lang={lang} />
+  ),
+)}

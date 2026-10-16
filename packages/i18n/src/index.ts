@@ -36,6 +36,7 @@ export { RULES_UI, type RuleReads, type RulesStrings } from './rules'
 export { SCAN_FORM, type FormProblem, type ScanFormStrings } from './scan-form'
 export { LEGAL_UI, LEGAL_UPDATED, type LegalStrings } from './legal'
 export { SEARCH_UI, type SearchStrings } from './search'
+export { OPT_OUT_EMAIL, SOTAW_UI, type SotawStrings } from './sotaw'
 export { SITE, type SiteStrings } from './site'
 export { TOOL_APP, type ToolAppStrings } from './tool-app'
 export { TOOLS_UI, type ToolCategoryName, type ToolsStrings, type ToolTag } from './tools'
@@ -69,6 +70,7 @@ import { RULES_UI } from './rules'
 import { LEGAL_UI } from './legal'
 import { SCAN_FORM } from './scan-form'
 import { SEARCH_UI } from './search'
+import { SOTAW_UI } from './sotaw'
 import { SITE } from './site'
 import { TOOL_APP } from './tool-app'
 import { TOOLS_UI } from './tools'
@@ -99,4 +101,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'search.ts': SEARCH_UI,
   'legal.ts': LEGAL_UI,
   'admin.ts': ADMIN_UI,
+  'sotaw.ts': SOTAW_UI,
 }

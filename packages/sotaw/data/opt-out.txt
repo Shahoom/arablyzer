@@ -1,0 +1,2 @@
+# Sites whose owners asked to be left out of «حالة الويب العربي» (docs/design/plans/m9-state-of-arabic-web.md).
+# One domain a line; `#` starts a comment. A domain here is left out of every frame and skipped by the crawl.

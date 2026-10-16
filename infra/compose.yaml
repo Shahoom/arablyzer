@@ -295,6 +295,49 @@ services:
     cpus: 0.5
     pids_limit: 128
 
+  # The crawl of the Arabic web (M9, «حالة الويب العربي»): a one-off, never started with the stack. The API's
+  # image on the application role, run by hand (README, "State of the Arabic Web"):
+  #   docker compose --profile sotaw run --rm sotaw crawl
+  # It reads each site's front page through the scanner and queues its scan behind every visitor's (the
+  # lowest priority), one at a time and at most one every ARABLYZER_SOTAW_INTERVAL_SECONDS, and only
+  # while no visitor's scan waits or runs and the host is quiet. It has no way out of its own.
+  sotaw:
+    <<: *hardened
+    restart: 'no'
+    profiles: [sotaw]
+    build: { context: .., target: api }
+    init: true
+    tmpfs: [/tmp]
+    entrypoint: [node, --import, tsx, packages/sotaw/src/cli.ts]
+    command: [status]
+    environment:
+      VALKEY_URL: redis://arablyzer:${VALKEY_PASSWORD:?}@valkey:6379
+      DATABASE_URL: postgres://arablyzer_app:${POSTGRES_APP_PASSWORD:?}@postgres:5432/arablyzer
+      ARABLYZER_SCANNER_URL: http://scanner:8788
+      ARABLYZER_SCANNER_TOKEN: ${ARABLYZER_SCANNER_TOKEN:?}
+      # The crawl's pace and reach; empty is the gentle default (docs/design/plans/m9-state-of-arabic-web.md §3).
+      ARABLYZER_SOTAW_CONCURRENCY: ${ARABLYZER_SOTAW_CONCURRENCY:-}
+      ARABLYZER_SOTAW_INTERVAL_SECONDS: ${ARABLYZER_SOTAW_INTERVAL_SECONDS:-}
+      ARABLYZER_SOTAW_PREFLIGHT_SECONDS: ${ARABLYZER_SOTAW_PREFLIGHT_SECONDS:-}
+      ARABLYZER_SOTAW_POLL_SECONDS: ${ARABLYZER_SOTAW_POLL_SECONDS:-}
+      ARABLYZER_SOTAW_MAX_LOAD: ${ARABLYZER_SOTAW_MAX_LOAD:-}
+      ARABLYZER_SOTAW_SCAN_TIMEOUT_SECONDS: ${ARABLYZER_SOTAW_SCAN_TIMEOUT_SECONDS:-}
+      ARABLYZER_SOTAW_MAX_ATTEMPTS: ${ARABLYZER_SOTAW_MAX_ATTEMPTS:-}
+      ARABLYZER_SOTAW_ENGINES: ${ARABLYZER_SOTAW_ENGINES:-}
+      ARABLYZER_SOTAW_ALL_ENGINES_SHARE: ${ARABLYZER_SOTAW_ALL_ENGINES_SHARE:-}
+      ARABLYZER_SOTAW_LIMIT: ${ARABLYZER_SOTAW_LIMIT:-}
+      # The export's key for the sites' ids: never in the repository.
+      ARABLYZER_SOTAW_SALT: ${ARABLYZER_SOTAW_SALT:-}
+    networks: [data, scan]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      scanner: { condition: service_healthy }
+      worker: { condition: service_started }
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+
   # The database's own step, once, before the API and the worker (packages/store/src/migrate.ts):
   # it makes the two roles and the tables, and sets the application role's password. It alone
   # holds the bootstrap user's password (a superuser's), and it stops when it is done: the API

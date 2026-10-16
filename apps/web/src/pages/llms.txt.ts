@@ -69,6 +69,11 @@ export const GET: APIRoute = async ({ site: origin }) => {
             note: 'the service, acceptable use, reports, accounts and API keys',
           },
           {
+            title: 'State of the Arabic Web',
+            url: at(PATHS.sotaw),
+            note: 'a yearly report with open data on the homepages of popular sites on Arab country domains: method, sample and, once published, the numbers',
+          },
+          {
             title: 'Security',
             url: at(PATHS.security),
             note: 'how to report a vulnerability (security@arablyzer.com) and what protects the service',

@@ -32,6 +32,9 @@
     "action:build": "pnpm --filter @arablyzer/github-action run build",
     "site:build": "pnpm --filter @arablyzer/web run build",
     "site:audit": "pnpm --filter @arablyzer/seo run site:audit",
+    "sotaw": "pnpm --filter @arablyzer/sotaw run cli",
+    "sotaw:crawl": "pnpm --filter @arablyzer/sotaw run crawl",
+    "sotaw:frame": "pnpm --filter @arablyzer/sotaw run frame",
     "benchmark:httparchive": "pnpm --filter @arablyzer/web exec tsx scripts/httparchive-benchmark.ts"
   },
   "devDependencies": {
