@@ -15,6 +15,16 @@ export {
 export type { AccountsMode, AuthLimits } from './auth-limits'
 export { accountHistoryDaysFrom, DEVELOPMENT_ACCOUNT_PLAN, planCatalogFrom } from './account-plan'
 export type { AccountPlan, PlanCatalog, PlanId } from './account-plan'
+export {
+  applyOverrides,
+  isOverrideNumber,
+  noOverrides,
+  OVERRIDE_BOUNDS,
+  OVERRIDE_NUMBER_FIELDS,
+  sanitizeOverrides,
+  SECONDS_PER_DAY,
+} from './overrides'
+export type { OverrideNumberField, PlanOverrides } from './overrides'
 export type { Env }
 
 export interface Window {

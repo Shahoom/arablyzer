@@ -42,4 +42,20 @@ describe('startAuthMaintenance', () => {
     expect(log).toEqual(['Accounts sweep: down'])
     sweeping.stop()
   })
+
+  it('sweeps the owner’s audit of what is a year old, with the sessions', async () => {
+    vi.useFakeTimers()
+    const now = new Date('2026-10-16T12:00:00.000Z')
+    const sweepAudit = vi.fn(() => Promise.resolve(3))
+    const log: string[] = []
+    const sweeping = startAuthMaintenance(
+      { deleteExpired: () => Promise.resolve({ sessions: 0, verifications: 0 }) },
+      (m) => log.push(m),
+      { intervalMs: 1000, now: () => now, admin: { sweepAudit } as never },
+    )
+    await vi.advanceTimersByTimeAsync(0)
+    expect(sweepAudit).toHaveBeenCalledWith(new Date('2025-10-16T12:00:00.000Z'))
+    expect(log).toEqual(['Accounts sweep: 3 audit entries a year old'])
+    sweeping.stop()
+  })
 })

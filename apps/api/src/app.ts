@@ -29,6 +29,7 @@ import {
 } from '@arablyzer/store'
 import { registerFontRoutes, type FontContext } from './fonts'
 import { mountAccounts, planOf, type AccountsDeps } from './accounts'
+import { mountAdmin } from './admin/routes'
 import { mountApiKeys } from './apikeys'
 import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
@@ -265,7 +266,7 @@ export function createApp(deps: ApiDeps): Hono {
       )
       if (!own.ok) return refuse(c, 'rate-limited', own.retryAfterSeconds)
     } else {
-      const plan = planOf(access.plans, user.id)
+      const plan = await planOf(access.plans, user.id)
       holder = `account:${user.id}`
       places = plan.inFlight
       // The API's share is a cap inside the account's bucket, taken first: a scan the cap refuses
@@ -422,6 +423,17 @@ export function createApp(deps: ApiDeps): Hono {
       })
     }
     mountCompare(app, { access, store: deps.store, now })
+    // The owner's panel (M4.8): there only where an administrator is named and the store is there.
+    const { admin, adminEmails } = deps.accounts
+    if (admin !== undefined && adminEmails !== undefined && adminEmails.length > 0) {
+      mountAdmin(app, {
+        deps: { ...deps, accounts: deps.accounts },
+        access,
+        admin,
+        emails: adminEmails,
+        startedAt: now(),
+      })
+    }
     if (deps.accounts.apiKeys !== undefined) {
       mountApiKeys(app, {
         access,

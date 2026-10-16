@@ -8,8 +8,10 @@ import {
   productionUrl,
   quietly,
   requireSecret,
+  PostgresAdminData,
 } from '@arablyzer/store'
 import pg from 'pg'
+import { withOverrides } from '../admin/plans'
 import { startLoop } from '../monitor/loop'
 import { createPdfRunner } from './runner'
 
@@ -42,7 +44,8 @@ if (accountsModeFrom(env) !== 'on') {
     pdfs: new PostgresPdfData(pool),
     crawls: new PostgresCrawlData(pool),
     store: new PostgresScanStore(pool),
-    plans,
+    // The owner's per-account numbers (M4.8) are read first, as in the API.
+    plans: withOverrides(plans, new PostgresAdminData(pool)),
     scanner: remotePdf(
       scannerUrl,
       requireSecret('ARABLYZER_SCANNER_TOKEN', env.ARABLYZER_SCANNER_TOKEN),

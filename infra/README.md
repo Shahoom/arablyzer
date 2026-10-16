@@ -165,6 +165,17 @@ templates get the full three-browser scan, through the same queue room, host buc
 crawl at a time per account (the database holds the line); crawls are kept as long as the plan's history days. The worker's role
 reads neither `crawls` nor `crawl_pages`.
 
+**The owner's panel (M4.8).** `/admin` is the owner's dashboard: every account and what it uses, the scans, an audit log, the
+plan numbers. `ARABLYZER_ADMIN_EMAILS` names who may open it (lower-case Google addresses, comma-separated; empty, no panel); the
+API renders it (the Caddyfile sends `/admin*` there like `/api/*`), so nothing static says it exists, and everyone else gets the
+404 an unknown address gets. It needs a Google-verified address that is on the list and a sign-in from the last 12 hours, and has
+a limit per administrator. On an account the owner can suspend it (sessions end; no sign-in, API key or account scan until lifted),
+end its sessions, revoke a key, set its limits over the plan's (`admin_user_state.overrides`, read first wherever a quota is
+checked, in the API, the monitor, the crawler and the PDF job) or erase it by the account's own deletion path. Every action is a
+row of `admin_audit` (who, what, which account, when, the admin's network: an IPv6 /48 or IPv4 /24, never the address), kept a
+year; erasing an account removes its address from the audit and replaces its id by a hash. The worker's role reads neither table.
+`robots.txt` does not mention `/admin` on purpose: the page answers `X-Robots-Tag: noindex` and a 404 to everyone else.
+
 **Monitoring and alerts (M4.3).** A person turns monitoring on for a saved site on `/account`; the `monitor`
 service, a second entry of the API's image (`apps/api/src/monitor/main.ts`) on the application role, scans it every
 `ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` days (7 when empty) for up to `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`

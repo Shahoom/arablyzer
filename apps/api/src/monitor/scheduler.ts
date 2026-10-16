@@ -98,7 +98,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
   async function launch(due: DueMonitor): Promise<void> {
     const { monitor, url } = due
     const at = now()
-    const plan = planOf(deps.plans, monitor.userId)
+    const plan = await planOf(deps.plans, monitor.userId)
     // A downgrade pauses the extras, and the interval never goes below the plan's: checked on every run.
     await deps.monitors.pauseExtras(monitor.userId, plan.monitoredSites)
     const current = await deps.monitors.monitor(monitor.userId, monitor.siteId)

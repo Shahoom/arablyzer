@@ -92,7 +92,7 @@ export function mountPdf(app: Hono, deps: PdfDeps): void {
   /** The month's allowance, for the page. */
   async function allowance(userId: string): Promise<PdfsResponse['allowance']> {
     return {
-      perMonth: planOf(access.plans, userId).pdfPerMonth,
+      perMonth: (await planOf(access.plans, userId)).pdfPerMonth,
       used: await pdfs.used(userId, deps.now()),
     }
   }
@@ -150,7 +150,7 @@ export function mountPdf(app: Hono, deps: PdfDeps): void {
         subject = asked.head
         base = asked.base
       }
-      const plan = planOf(access.plans, userId)
+      const plan = await planOf(access.plans, userId)
       const created = await pdfs.create(
         {
           id: newPdfId(),
@@ -217,7 +217,7 @@ export function mountPdf(app: Hono, deps: PdfDeps): void {
   // The brand ----------------------------------------------------------------------------------------
 
   async function settingsOf(userId: string): Promise<BrandSettings> {
-    const plan = planOf(access.plans, userId)
+    const plan = await planOf(access.plans, userId)
     const brand = await pdfs.brand(userId)
     const guarded = brandColorOf(brand?.color ?? null)
     return {
@@ -245,7 +245,7 @@ export function mountPdf(app: Hono, deps: PdfDeps): void {
     async (c) => {
       const read = await access.require(c)
       if (read instanceof Response) return read
-      const plan = planOf(access.plans, read.user.id)
+      const plan = await planOf(access.plans, read.user.id)
       if (!plan.whiteLabel) {
         return c.json({ error: 'plan-limit', limit: 'whiteLabel', plan: plan.id }, 403)
       }
@@ -281,7 +281,7 @@ export function mountPdf(app: Hono, deps: PdfDeps): void {
     async (c) => {
       const read = await access.require(c)
       if (read instanceof Response) return read
-      const plan = planOf(access.plans, read.user.id)
+      const plan = await planOf(access.plans, read.user.id)
       if (!plan.whiteLabel) {
         return c.json({ error: 'plan-limit', limit: 'whiteLabel', plan: plan.id }, 403)
       }
@@ -319,7 +319,7 @@ export function mountPdf(app: Hono, deps: PdfDeps): void {
     if (!SCAN_ID_PATTERN.test(scanId)) return null
     const owner = await access.data.ownerOf(scanId)
     if (owner === null) return null
-    const plan = planOf(access.plans, owner)
+    const plan = await planOf(access.plans, owner)
     if (!plan.whiteLabel) return null
     const brand = await pdfs.brand(owner)
     if (brand === null || brand.name === '') return null

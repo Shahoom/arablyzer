@@ -93,7 +93,7 @@ export function mountCrawls(app: Hono, deps: CrawlsDeps): void {
     const siteId = c.req.param('id')
     const site = SITE_ID_PATTERN.test(siteId) ? await access.data.site(read.user.id, siteId) : null
     if (site === null) return access.fail(c, 'not-found')
-    const plan = planOf(access.plans, read.user.id)
+    const plan = await planOf(access.plans, read.user.id)
     const started = await crawls.create({
       id: newCrawlId(),
       userId: read.user.id,

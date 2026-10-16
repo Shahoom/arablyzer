@@ -34,7 +34,7 @@ export async function brandInputOf(
   deps: Pick<DocumentDeps, 'pdfs' | 'plans'>,
   userId: string,
 ): Promise<BrandInput | null> {
-  const plan = planOf(deps.plans, userId)
+  const plan = await planOf(deps.plans, userId)
   if (!plan.whiteLabel) return null
   const brand = await deps.pdfs.brand(userId)
   if (brand === null || brand.name.trim() === '') return null

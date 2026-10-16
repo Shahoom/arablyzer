@@ -16,11 +16,18 @@ import {
   type AuthErrorResponse,
   type Language,
 } from '@arablyzer/api-contract'
-import type { AccountPlan, AuthLimits, PlanCatalog } from '@arablyzer/plans'
+import {
+  applyOverrides,
+  type AccountPlan,
+  type AuthLimits,
+  type PlanCatalog,
+  type PlanOverrides,
+} from '@arablyzer/plans'
 import type { CrawlSettings } from './crawl/settings'
 import {
   quietly,
   type AccountData,
+  type AdminData,
   type ApiKeyData,
   type CrawlData,
   type MonitorData,
@@ -54,6 +61,18 @@ export interface AccountsDeps {
   readonly pdfs?: PdfData
   /** API keys (M5.1); absent, there are no keys and the API answers 503 `accounts_off`. */
   readonly apiKeys?: ApiKeyData
+  /**
+   * What the owner has decided and kept (M4.8): suspensions, overrides, the audit. Present with
+   * accounts on; its panel is a separate matter (`adminEmails`).
+   */
+  readonly admin?: AdminData
+  /** The Google-verified addresses of the owner's panel (ARABLYZER_ADMIN_EMAILS); empty, no panel. */
+  readonly adminEmails?: readonly string[]
+  /**
+   * Erases everything the account keeps outside the library's own tables: the one chain the
+   * account's own deletion and the owner's both run, before the account itself goes.
+   */
+  readonly erase?: (userId: string) => Promise<void>
   /** Sends a webhook's messages, for the test button. */
   readonly sender?: WebhookSender
   /** Mail, off until a provider is built. */
@@ -61,12 +80,15 @@ export interface AccountsDeps {
 }
 
 /**
- * The plan a person is on. Every account is on `account` until subscriptions exist (M4.4), which
- * will read them here, and nowhere else.
+ * The plan a person is on, with what the owner has set for them over it (M4.8). Every account is on
+ * `account` until subscriptions exist (M4.4), which will read them here, and nowhere else. A lookup
+ * of the owner's numbers that fails leaves the plan as it is: a quota is never refused for it.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- M4.4 reads the person's subscription here
-export function planOf(plans: PlanCatalog, _userId: string): AccountPlan {
-  return plans.account
+export async function planOf(plans: PlanCatalog, userId: string): Promise<AccountPlan> {
+  const lookup = plans.overrides
+  const overrides: PlanOverrides | null =
+    lookup === undefined ? null : await lookup(userId).catch(() => null)
+  return overrides === null ? plans.account : applyOverrides(plans.account, overrides)
 }
 
 /** What the account routes give the rest of the API: who is signed in. */
@@ -80,6 +102,8 @@ export interface SessionAccess {
   readonly require: (
     c: Context,
   ) => Promise<{ readonly user: AccountUser; readonly cookies: readonly string[] } | Response>
+  /** The session as it is, with when it began: the owner's panel asks how fresh the sign-in is. */
+  readonly session: (c: Context) => Promise<SessionRead>
   readonly fail: (c: Context, error: AuthErrorCode, retryAfterSeconds?: number) => Response
   readonly data: AccountData
   readonly plans: PlanCatalog
@@ -108,6 +132,7 @@ export interface AccountUser {
   readonly email: string
   readonly name: string
   readonly language?: string | null
+  readonly emailVerified?: boolean
   readonly createdAt: Date | string
 }
 
@@ -122,7 +147,13 @@ export function summarize(user: AccountUser): AccountSummary {
 }
 
 export type SessionRead =
-  | { readonly kind: 'user'; readonly user: AccountUser; readonly cookies: readonly string[] }
+  | {
+      readonly kind: 'user'
+      readonly user: AccountUser
+      readonly cookies: readonly string[]
+      /** When the person signed in: a refresh moves the session's end, never this. */
+      readonly signedInAt: Date
+    }
   | { readonly kind: 'none' }
   | { readonly kind: 'failed' }
 
@@ -261,8 +292,17 @@ export function mountAccounts(
         returnHeaders: true,
       })
       if (response === null) return { kind: 'none' }
+      // A suspended account has no session, whatever cookie it still holds (M4.8).
+      if ((await deps.accounts.admin?.state(response.user.id))?.suspendedAt != null) {
+        return { kind: 'none' }
+      }
       // A refreshed session comes with its cookie again: handed on, or it would lapse at the old date.
-      return { kind: 'user', user: response.user, cookies: headers.getSetCookie() }
+      return {
+        kind: 'user',
+        user: response.user,
+        cookies: headers.getSetCookie(),
+        signedInAt: new Date(response.session.createdAt),
+      }
     } catch (thrown) {
       tell(thrown)
       return { kind: 'failed' }
@@ -423,6 +463,7 @@ export function mountAccounts(
       return read.kind === 'user' ? read.user : null
     },
     require: signedIn,
+    session: readSession,
     fail,
     data,
     plans,
