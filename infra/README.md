@@ -189,9 +189,12 @@ while no visitor's scan is waiting or running and the host's one-minute load per
 `sotaw_results`, so a stopped crawl goes on where it stopped when the same command is run again.
 
 ```
-docker compose -f infra/compose.yaml --profile sotaw run --rm sotaw status
-docker compose -f infra/compose.yaml --profile sotaw run --rm sotaw crawl      # SIGTERM stops it after the scan in hand
-docker compose -f infra/compose.yaml --profile sotaw run --rm -v /srv/sotaw-out:/out sotaw export --out /out
+cd infra                                                  # where .env and COMPOSE_FILE are
+docker compose --profile sotaw run --rm sotaw status
+docker compose --profile sotaw run -d --name sotaw-crawl sotaw crawl     # in the background
+docker logs -f sotaw-crawl                                # progress, pauses and resumes
+docker stop -t 30 sotaw-crawl && docker rm sotaw-crawl    # stops after the scan in hand; run it again to go on
+docker compose --profile sotaw run --rm -v /srv/sotaw-out:/out sotaw export --out /out
 ```
 
 `ARABLYZER_SOTAW_LIMIT=20` makes a trial run of twenty sites. `export` needs `ARABLYZER_SOTAW_SALT` (`openssl rand -hex 32`,

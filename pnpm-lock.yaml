@@ -753,6 +753,9 @@ importers:
       '@types/pg':
         specifier: 8.23.1
         version: 8.23.1
+      bullmq:
+        specifier: 6.3.11
+        version: 6.3.11(ioredis@5.11.1)(pg@8.23.1)
 
   packages/store:
     dependencies:

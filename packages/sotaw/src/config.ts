@@ -1,5 +1,5 @@
 /** The lowest priority BullMQ takes: a scan with it waits behind every scan with a smaller number or none. */
-export const LOWEST_PRIORITY = 2_097_152
+export const LOWEST_PRIORITY = 2_097_151
 
 /** The gentle defaults: the page says them, so they are written once. */
 export const CRAWL_DEFAULTS = {

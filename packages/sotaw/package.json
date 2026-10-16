@@ -21,7 +21,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --exclude \"test/services/**\"",
+    "test:services": "vitest run test/services",
     "cli": "tsx src/cli.ts",
     "crawl": "tsx src/cli.ts crawl",
     "frame": "tsx src/cli.ts frame",
@@ -41,6 +42,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/pg": "8.23.1"
+    "@types/pg": "8.23.1",
+    "bullmq": "6.3.11"
   }
 }
