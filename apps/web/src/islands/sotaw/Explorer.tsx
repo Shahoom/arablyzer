@@ -2,7 +2,7 @@ import type { SotawStrings } from '@arablyzer/i18n'
 import type { Aggregates } from '@arablyzer/sotaw/aggregate'
 import type { Lang } from '@arablyzer/seo/site'
 import { useEffect, useMemo, useState } from 'preact/hooks'
-import { count, fill, pct, span } from '../../lib/sotaw-format'
+import { count, pct, segments, span } from '../../lib/sotaw-format'
 import { isEdition, viewOf, type ExplorerMetric } from './explorer-model'
 
 interface Props {
@@ -23,6 +23,29 @@ type Load =
   | { readonly state: 'loading' }
   | { readonly state: 'failed' }
   | { readonly state: 'ready'; readonly edition: Aggregates }
+
+/** A line with its values set apart, each left to right: a count inside Arabic text is drawn out of order. */
+function Said({
+  text,
+  values,
+}: {
+  text: string
+  values: Readonly<Record<string, string | number>>
+}) {
+  return (
+    <>
+      {segments(text, values).map((part, index) =>
+        part.value ? (
+          <bdi key={index} dir="ltr" className="tabular-nums">
+            {part.text}
+          </bdi>
+        ) : (
+          part.text
+        ),
+      )}
+    </>
+  )
+}
 
 const FIELD = 'h-12 min-w-0 rounded-xl border border-field bg-white px-4 text-body text-ink'
 const LABEL = 'text-small font-semibold text-ink'
@@ -152,7 +175,9 @@ export default function Explorer({
         {load.state === 'loading' && <p className="m-0 text-body text-ink-2">{t.loading}</p>}
         {load.state === 'failed' && <p className="m-0 text-body text-ink-2">{t.failed}</p>}
         {load.state === 'ready' && view === null && (
-          <p className="m-0 text-body text-ink-2">{fill(t.tooFew, { min: minCell })}</p>
+          <p className="m-0 text-body text-ink-2">
+            <Said text={t.tooFew} values={{ min: minCell }} />
+          </p>
         )}
         {load.state === 'ready' && view !== null && metric !== undefined && (
           <>
@@ -193,7 +218,8 @@ export default function Explorer({
               })}
             </ol>
             <p className="m-0 text-meta text-ink-3">
-              {fill(t.judged, { n: count(view.n) })}. {view.weighted ? t.weighted : t.pooled}.
+              <Said text={t.judged} values={{ n: count(view.n) }} />.{' '}
+              {view.weighted ? t.weighted : t.pooled}.
             </p>
           </>
         )}

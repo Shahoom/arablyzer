@@ -1,14 +1,40 @@
 ---
-title: "أخطاء سلة وزد الشائعة في السيو"
-description: "ثمانية أخطاء تتكرر في المتاجر العربية على سلة وزد وغيرهما: وصف مفقود، noindex منسي، بيانات منتج بسعر مكتوب للقارئ، hreflang خاطئ، تحويلات متسلسلة، روابط واتساب مكسورة. وكيف تكتشف كلاً منها."
-summary: "ثمانية أخطاء تتكرر في المتاجر العربية، وكيف تكتشف كلاً منها."
-date: "2026-10-10"
-tags: ["search", "ecommerce"]
+title: 'أخطاء سلة وزد الشائعة في السيو'
+description: 'ثمانية أخطاء تتكرر في المتاجر العربية على سلة وزد وغيرهما: وصف مفقود، noindex منسي، بيانات منتج بسعر مكتوب للقارئ، hreflang خاطئ، تحويلات متسلسلة، روابط واتساب مكسورة. وكيف تكتشف كلاً منها.'
+summary: 'ثمانية أخطاء تتكرر في المتاجر العربية، وكيف تكتشف كلاً منها.'
+date: '2026-10-10'
+tags: ['search', 'ecommerce']
 lang: ar
 draft: false
 reviewed: false
-tools: [platform-check, title-meta-check, indexability-check, canonical-check, product-page-check, hreflang-check, redirect-chain-check, whatsapp-link-check, search-spelling-test, social-preview]
-rules: [platform-detected, title-missing, meta-description-missing, page-noindex, canonical-conflict, product-offer-invalid, hreflang-invalid-code, redirect-chain, redirect-temporary, whatsapp-link-format, search-spelling-variants, og-tags-missing]
+tools:
+  [
+    platform-check,
+    title-meta-check,
+    indexability-check,
+    canonical-check,
+    product-page-check,
+    hreflang-check,
+    redirect-chain-check,
+    whatsapp-link-check,
+    search-spelling-test,
+    social-preview,
+  ]
+rules:
+  [
+    platform-detected,
+    title-missing,
+    meta-description-missing,
+    page-noindex,
+    canonical-conflict,
+    product-offer-invalid,
+    hreflang-invalid-code,
+    redirect-chain,
+    redirect-temporary,
+    whatsapp-link-format,
+    search-spelling-variants,
+    og-tags-missing,
+  ]
 fix: [url-marked-noindex, duplicate-without-user-selected-canonical, page-with-redirect]
 terms: [meta-description, canonical-url, noindex, json-ld]
 related: [google-indexing-arabic-sites, hreflang-arabic-sites]

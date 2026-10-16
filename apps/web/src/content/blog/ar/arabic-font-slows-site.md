@@ -1,9 +1,9 @@
 ---
-title: "الخط العربي يبطئ موقعك"
-description: "ملف الخط العربي قد يزن أكثر من بقية الصفحة، والنص ينتظر وصوله. كيف نقيس الوزن الزائد، وكيف نقص الخط على الحروف المستعملة مع إبقاء جداول الوصل، وأوزان الخط، وpreload وfont-display، وتفادي قفزة الصفحة."
-summary: "كيف تقص الخط على الحروف التي تستعملها دون أن تكسر الوصل."
-date: "2026-10-10"
-tags: ["fonts", "performance"]
+title: 'الخط العربي يبطئ موقعك'
+description: 'ملف الخط العربي قد يزن أكثر من بقية الصفحة، والنص ينتظر وصوله. كيف نقيس الوزن الزائد، وكيف نقص الخط على الحروف المستعملة مع إبقاء جداول الوصل، وأوزان الخط، وpreload وfont-display، وتفادي قفزة الصفحة.'
+summary: 'كيف تقص الخط على الحروف التي تستعملها دون أن تكسر الوصل.'
+date: '2026-10-10'
+tags: ['fonts', 'performance']
 lang: ar
 draft: false
 reviewed: false
@@ -70,7 +70,7 @@ pyftsubset font.ttf \
 - **`preload` للملف الأهم:** يبدأ التحميل قبل أن يكتشفه CSS. ولا بد من `crossorigin` حتى لخط من نطاقك نفسه:
 
 ```html
-<link rel="preload" href="/fonts/brand-arabic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/brand-arabic.woff2" as="font" type="font/woff2" crossorigin />
 ```
 
 - **WOFF2 وحده:** يقرؤه كل متصفح حديث، فلا حاجة إلى صيغ أخرى.

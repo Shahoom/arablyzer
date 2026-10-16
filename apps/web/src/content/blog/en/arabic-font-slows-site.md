@@ -1,9 +1,9 @@
 ---
-title: "Your Arabic font is slowing your site"
-description: "An Arabic font file can outweigh the rest of the page, and the text waits for it. How to measure the extra weight, cut the font safely, choose weights, preload it and stop the page jumping."
-summary: "How to cut an Arabic font to the letters you use without breaking the joins."
-date: "2026-10-10"
-tags: ["fonts", "performance"]
+title: 'Your Arabic font is slowing your site'
+description: 'An Arabic font file can outweigh the rest of the page, and the text waits for it. How to measure the extra weight, cut the font safely, choose weights, preload it and stop the page jumping.'
+summary: 'How to cut an Arabic font to the letters you use without breaking the joins.'
+date: '2026-10-10'
+tags: ['fonts', 'performance']
 lang: en
 draft: false
 reviewed: false
@@ -64,7 +64,7 @@ A variable font is one file for all weights, and it may be bigger than two stati
 - **`preload` for the most important file:** the download starts before CSS discovers it. `crossorigin` is required even for a font from your own domain:
 
 ```html
-<link rel="preload" href="/fonts/brand-arabic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/brand-arabic.woff2" as="font" type="font/woff2" crossorigin />
 ```
 
 - **WOFF2 alone:** every current browser reads it, so no other formats are needed.

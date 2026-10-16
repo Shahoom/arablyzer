@@ -8,6 +8,34 @@ export function fill(text: string, values: Readonly<Record<string, string | numb
   )
 }
 
+/** A line of copy cut at its `{name}`s: the text between, and each value that was filled in. */
+export interface Segment {
+  readonly text: string
+  readonly value: boolean
+}
+
+/**
+ * The same line as `fill`, in pieces, so that a page can set each value apart: a date, a count or a
+ * list's id inside Arabic text is drawn out of order unless it is isolated (`2026-10-01` reads
+ * `01-10-2026`), and the self-scan's rule says so.
+ */
+export function segments(
+  text: string,
+  values: Readonly<Record<string, string | number>>,
+): Segment[] {
+  const out: Segment[] = []
+  let last = 0
+  for (const match of text.matchAll(/\{([a-zA-Z]+)\}/g)) {
+    const name = match[1] ?? ''
+    if (!(name in values)) continue
+    if (match.index > last) out.push({ text: text.slice(last, match.index), value: false })
+    out.push({ text: String(values[name]), value: true })
+    last = match.index + match[0].length
+  }
+  if (last < text.length) out.push({ text: text.slice(last), value: false })
+  return out
+}
+
 /** A share as a percentage: whole from 10%, a decimal under it, and «<0.1%» for what rounds to nothing. */
 export function pct(share: number): string {
   const percent = share * 100

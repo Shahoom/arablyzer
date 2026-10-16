@@ -1,5 +1,5 @@
 import type { SotawStrings } from '@arablyzer/i18n'
-import { count, fill, pct, round, size, span } from './sotaw-format'
+import { count, fill, pct, round, segments, size, span } from './sotaw-format'
 import type { Aggregates } from '@arablyzer/sotaw/aggregate'
 import { CRAWL_DEFAULTS } from '@arablyzer/sotaw/config'
 import { COUNTRIES, countryByCode } from '@arablyzer/sotaw/countries'
@@ -333,4 +333,4 @@ export function datasetJsonLd(options: {
   }
 }
 
-export { count, fill, pct, size, span }
+export { count, fill, pct, segments, size, span }

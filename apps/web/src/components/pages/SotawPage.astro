@@ -16,7 +16,6 @@ import {
   countryName,
   dataPath,
   datasetJsonLd,
-  fill,
   findings,
   frameRows,
   funnelRows,
@@ -33,6 +32,7 @@ import DocHeading from '../DocHeading.astro'
 import Related from '../guides/Related.astro'
 import Rich from '../Rich.astro'
 import ChartRows from '../sotaw/ChartRows.astro'
+import Filled from '../sotaw/Filled.astro'
 import Contents from './Contents.astro'
 import DocPage from './DocPage.astro'
 
@@ -182,15 +182,31 @@ const explorerPlatforms =
     </p>
     {edition !== null && aggregates !== null && (
       <p class="meta-row m-0 text-meta text-ink-2">
-        <span>{fill(t.edition.label, { edition: edition.id })}</span>
         <span>
-          {fill(t.edition.reached, {
-            reached: count(aggregates.funnel.reached),
-            frame: count(aggregates.funnel.frame),
-          })}
+          <Filled text={t.edition.label} values={{ edition: edition.id }} lang={lang} />
         </span>
-        {finished !== null && <span>{fill(t.edition.finished, { date: finished })}</span>}
-        <span>{fill(t.edition.engines, { engines: aggregates.crawl.engines.join(', ') })}</span>
+        <span>
+          <Filled
+            text={t.edition.reached}
+            values={{
+              reached: count(aggregates.funnel.reached),
+              frame: count(aggregates.funnel.frame),
+            }}
+            lang={lang}
+          />
+        </span>
+        {finished !== null && (
+          <span>
+            <Filled text={t.edition.finished} values={{ date: finished }} lang={lang} />
+          </span>
+        )}
+        <span>
+          <Filled
+            text={t.edition.engines}
+            values={{ engines: aggregates.crawl.engines.join(', ') }}
+            lang={lang}
+          />
+        </span>
       </p>
     )}
     <Contents variant="inline" label={t.contents} sections={sections} />
@@ -235,10 +251,14 @@ const explorerPlatforms =
               <Rich text={finding.title} lang={lang} />
             </span>
             <span class="text-meta text-ink-3">
-              {fill(t.findings.judged, { n: count(finding.n) })}
+              <Filled text={t.findings.judged} values={{ n: count(finding.n) }} lang={lang} />
               <br />
               <span class="tabular-nums">
-                {fill(t.findings.interval, { lo: finding.lo, hi: finding.hi })}
+                <Filled
+                  text={t.findings.interval}
+                  values={{ lo: finding.lo, hi: finding.hi }}
+                  lang={lang}
+                />
               </span>
             </span>
           </li>
@@ -258,7 +278,7 @@ const explorerPlatforms =
       </div>
       {hiddenCountries.length > 0 && aggregates !== null && (
         <p class="m-0 text-meta text-ink-3">
-          {fill(t.countries.hidden, { min: aggregates.minCell })}
+          <Filled text={t.countries.hidden} values={{ min: aggregates.minCell }} lang={lang} />
         </p>
       )}
     </section>
@@ -340,12 +360,16 @@ const explorerPlatforms =
       <DocHeading id="frame-title" title={t.frame.title} />
       <p class={text}>{t.frame.lead}</p>
       <p class={text}>
-        {fill(frame.listCreatedOn === null ? t.soon.frameNoDate : t.soon.frame, {
-          sites: count(frame.total),
-          countries: frameTable.length,
-          list: frame.listId,
-          date: frame.listCreatedOn ?? '',
-        })}
+        <Filled
+          text={frame.listCreatedOn === null ? t.soon.frameNoDate : t.soon.frame}
+          values={{
+            sites: count(frame.total),
+            countries: frameTable.length,
+            list: frame.listId,
+            date: frame.listCreatedOn ?? '',
+          }}
+          lang={lang}
+        />
       </p>
       <div class="overflow-x-auto">
         <table class="w-full border-collapse text-start text-small">
@@ -399,14 +423,14 @@ const explorerPlatforms =
         <h3 class="heading-3 m-0">{part.title}</h3>
         {part.paragraphs?.map((paragraph) => (
           <p class={text}>
-            <Rich text={fill(paragraph, values)} lang={lang} />
+            <Filled text={paragraph} values={values} lang={lang} />
           </p>
         ))}
         {part.items !== undefined && (
           <ul class={list}>
             {part.items.map((item) => (
               <li>
-                <Rich text={fill(item, values)} lang={lang} />
+                <Filled text={item} values={values} lang={lang} />
               </li>
             ))}
           </ul>
@@ -415,7 +439,7 @@ const explorerPlatforms =
 Disallow: /</pre>}
         {part.after?.map((paragraph) => (
           <p class={text}>
-            <Rich text={fill(paragraph, values)} lang={lang} />
+            <Filled text={paragraph} values={values} lang={lang} />
           </p>
         ))}
       </div>

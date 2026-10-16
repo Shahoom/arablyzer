@@ -20,6 +20,7 @@ import {
   pct,
   platformName,
   platformRows,
+  segments,
   span,
   type EditionData,
 } from '../src/lib/sotaw-model'
@@ -98,6 +99,25 @@ describe('the numbers the page shows', () => {
       '100%',
     ])
     expect(fill('{n} of {total} {missing}', { n: 3, total: '4' })).toBe('3 of 4 {missing}')
+  })
+
+  it('cuts a line at its values so each can be set apart, left to right, in Arabic text', () => {
+    expect(
+      segments('عيّنة {sites} موقعاً ({list}، {date}) {missing}', {
+        sites: '3,767',
+        list: 'Y83YG',
+        date: '2026-10-01',
+      }),
+    ).toEqual([
+      { text: 'عيّنة ', value: false },
+      { text: '3,767', value: true },
+      { text: ' موقعاً (', value: false },
+      { text: 'Y83YG', value: true },
+      { text: '، ', value: false },
+      { text: '2026-10-01', value: true },
+      { text: ') {missing}', value: false },
+    ])
+    expect(segments('no values', {})).toEqual([{ text: 'no values', value: false }])
   })
 
   it('findings: each headline metric with its share and interval, and none that was not judged', () => {
