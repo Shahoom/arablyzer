@@ -29,6 +29,8 @@ export interface NativeStrings {
     >
     readonly ready: (percent: number, country: string) => string
     readonly thin: (country: string) => string
+    /** The country is named (two kinds of evidence agree), but too few items could be judged for a percentage. */
+    readonly few: (country: string) => string
     readonly unclear: string
     readonly none: string
     readonly judged: (judged: number) => string
@@ -108,6 +110,8 @@ export const NATIVE: Copy<NativeStrings> = {
       ready: (percent, country) => `جاهزة بنسبة ${String(percent)}٪ لـ${country}`,
       thin: (country) =>
         `تبدو الصفحة لـ${country}، لكن دليلًا واحدًا لا يكفي لنقول ذلك ولا لحساب نسبة`,
+      few: (country) =>
+        `تبدو الصفحة لـ${country}، ودليلان من نوعين مختلفين يتفقان على ذلك، لكن البنود التي نحكم عليها قليلة فلا نحسب نسبة`,
       unclear: 'الأدلة متعارضة أو متقاربة بين بلدان، فلا نسمّي بلدًا ولا نحسب نسبة',
       none: 'لا في الصفحة ما يدل على بلد بعينه، فلا نخمّن',
       judged: (judged) => `حكمنا على ${String(judged)} من البنود`,
@@ -215,6 +219,8 @@ export const NATIVE: Copy<NativeStrings> = {
       ready: (percent, country) => `Ready ${String(percent)}% for ${country}`,
       thin: (country) =>
         `The page looks written for ${country}, but one kind of evidence is not enough to say so or to work out a percentage`,
+      few: (country) =>
+        `The page looks written for ${country}, and two kinds of evidence agree, but too few items could be judged to work out a percentage`,
       unclear:
         'The evidence conflicts or is close between countries, so we name none and give no percentage',
       none: 'Nothing on the page points to one country, and we do not guess',

@@ -1,14 +1,17 @@
 import { REPORT } from '@arablyzer/i18n/report'
-import type { Report, RuleResult, Severity } from '@arablyzer/report-schema'
+import type { Report, RuleResult } from '@arablyzer/report-schema'
 import { STRINGS } from '@arablyzer/seo/strings'
 import { localePath, PATHS, type Lang } from '@arablyzer/seo/site'
 import { Check, CircleCheck, Info, Minus, TriangleAlert, Wrench } from 'lucide-preact'
 import { useState } from 'preact/hooks'
 import {
+  filterChips,
+  narrowedBy,
   noProblemsNote,
   onlyEngine,
   problemsOf,
   renderedEngines,
+  type FindingsFilter,
   type RuleFindings,
 } from '../report-model'
 import { Bidi } from './Bidi'
@@ -44,34 +47,36 @@ export function Findings({
   const t = REPORT[lang]
   const problems = problemsOf(report)
   const rendered = renderedEngines(report).length
-  const [only, setOnly] = useState<Severity | null>(null)
+  const [only, setOnly] = useState<FindingsFilter | null>(null)
   const [open, setOpen] = useState<ReadonlySet<string>>(
     () => new Set(problems[0] === undefined ? [] : [problems[0].rule.id]),
   )
-  const severities = [...new Set(problems.map(({ rule }) => rule.severity))]
-  const shown = only === null ? problems : problems.filter(({ rule }) => rule.severity === only)
+  // A severity counts the rules that failed with it; the checks for a human eye have a chip of
+  // their own, so the chips add up to the summary's counts (filterChips).
+  const chips = filterChips(problems)
+  const shown = narrowedBy(problems, only)
   return (
     <section aria-labelledby="found-title" className="flex flex-col gap-card">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
         <h2 id="found-title" className="heading-2 m-0">
           {t.thread.findings.title}
         </h2>
-        {severities.length > 1 && (
-          // A row that scrolls sideways on a phone, if there are more severities than it holds.
+        {chips.length > 1 && (
+          // A row that scrolls sideways on a phone, if there are more chips than it holds.
           <div role="group" aria-label={t.tabs.filter} className="scroll-row md:justify-end">
-            {severities.map((severity) => (
+            {chips.map(({ key, count }) => (
               <button
-                key={severity}
+                key={key}
                 type="button"
-                aria-pressed={only === severity}
+                aria-pressed={only === key}
                 onClick={() => {
-                  setOnly(only === severity ? null : severity)
+                  setOnly(only === key ? null : key)
                 }}
                 className="chip"
               >
-                {STRINGS[lang].report.severity[severity]}
+                {key === 'review' ? t.findings.review : STRINGS[lang].report.severity[key]}
                 <span dir="ltr" className="tabular-nums">
-                  {problems.filter(({ rule }) => rule.severity === severity).length}
+                  {count}
                 </span>
               </button>
             ))}
@@ -149,7 +154,12 @@ function Finding({
       buttonClass="p-card hover:bg-surface-2/60"
       head={
         <>
-          <SeverityPill severity={rule.severity} lang={lang} />
+          {rule.status === 'needs-review' ? (
+            // Not a severity: the score deducts nothing for it, and no severity count holds it.
+            <span className="sev sev-minor">{t.findings.review}</span>
+          ) : (
+            <SeverityPill severity={rule.severity} lang={lang} />
+          )}
           <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="heading-3 text-ink">
               <Bidi text={rule.title[lang]} lang={lang} />
@@ -162,11 +172,6 @@ function Finding({
                 </span>
               )}
               {rule.severity === 'info' && <span>{t.findings.notDeducted}</span>}
-              {rule.status === 'needs-review' && (
-                <span className="rounded-full bg-indigo-soft px-2 text-meta text-indigo-ink">
-                  {t.findings.review}
-                </span>
-              )}
             </span>
           </span>
         </>

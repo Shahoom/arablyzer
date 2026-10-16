@@ -2,6 +2,7 @@ import { NATIVE } from '@arablyzer/i18n/native'
 import type { Report } from '@arablyzer/report-schema'
 import type { Lang } from '@arablyzer/seo/site'
 import { Check, Minus, TriangleAlert } from 'lucide-preact'
+import { countryVerdict } from '../report-model'
 import { Revealed } from './Bidi'
 
 /**
@@ -23,14 +24,17 @@ export function CountryFit({
   if (fact === undefined) return null
   const t = NATIVE[lang].country
   const name = fact.country === null ? null : t.names[fact.country]
+  const verdict = countryVerdict(fact)
   const headline =
-    fact.country !== null && fact.percent !== null && name !== null
+    name !== null && fact.percent !== null && verdict === 'ready'
       ? t.ready(fact.percent, name)
-      : fact.confidence === 'thin' && name !== null
-        ? t.thin(name)
-        : fact.signals.length === 0
-          ? t.none
-          : t.unclear
+      : name !== null && verdict === 'few'
+        ? t.few(name)
+        : name !== null && verdict === 'thin'
+          ? t.thin(name)
+          : verdict === 'none'
+            ? t.none
+            : t.unclear
   return (
     <section
       aria-labelledby="country-title"
