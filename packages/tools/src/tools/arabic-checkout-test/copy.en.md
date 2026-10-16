@@ -1,5 +1,5 @@
 ---
-summary: Can an Arabic customer fill your checkout: a name like «محمد», an Arabic address, a phone in Arabic digits, and autofill?
+summary: Can an Arabic customer fill your checkout: name, address, phone and autofill?
 ---
 
 # Arabic checkout form test

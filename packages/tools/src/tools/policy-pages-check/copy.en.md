@@ -1,5 +1,5 @@
 ---
-summary: Does your store link to its privacy, terms, returns and shipping pages, where customers and Google look for them?
+summary: Does your store link to its privacy, terms, returns and shipping pages?
 ---
 
 # Store policy pages checker

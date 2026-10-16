@@ -1,5 +1,5 @@
 ---
-summary: Does your Arabic turn into strange Latin symbols because the page is read in the wrong encoding?
+summary: Does your Arabic turn into strange symbols because of the wrong encoding?
 ---
 
 # Arabic encoding (mojibake) checker

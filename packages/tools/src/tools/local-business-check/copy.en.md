@@ -1,5 +1,5 @@
 ---
-summary: Does your business's structured data give Google a name, an address, a phone and opening hours it can read, not Arabic days and digits?
+summary: Can Google read your business name, address, phone and hours from your data?
 ---
 
 # Local business structured data checker

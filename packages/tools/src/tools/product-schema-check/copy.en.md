@@ -1,5 +1,5 @@
 ---
-summary: Does your product page's structured data give Google a name, an image, a price, a currency, stock and a rating it can read?
+summary: Does your product data give Google a name, image, price, stock and rating?
 ---
 
 # Product structured data validator

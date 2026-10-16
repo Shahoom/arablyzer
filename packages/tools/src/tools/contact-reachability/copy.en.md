@@ -1,5 +1,5 @@
 ---
-summary: Do your "call us" and "email us" links dial and write, or do they hold Arabic digits and no country code?
+summary: Do your call and email links work, or hold Arabic digits and no country code?
 ---
 
 # Phone and email links checker

@@ -1,5 +1,5 @@
 ---
-summary: Do your "next" and "previous" arrows point the right way in Arabic: next to the left, back to the right?
+summary: Do your arrows point the right way in Arabic: next left, back right?
 ---
 
 # Next and previous arrows direction checker

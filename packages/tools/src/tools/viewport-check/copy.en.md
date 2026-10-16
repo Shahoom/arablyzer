@@ -1,5 +1,5 @@
 ---
-summary: Does your page tell phones to use their own width, or does it show tiny and make visitors zoom?
+summary: Does your page tell phones to use their width, or show tiny and need zoom?
 ---
 
 # Mobile viewport checker

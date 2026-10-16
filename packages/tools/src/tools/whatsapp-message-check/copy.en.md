@@ -1,5 +1,5 @@
 ---
-summary: Do your store's WhatsApp buttons open the right number with the Arabic message ready, not %D9%85… or broken letters?
+summary: Do your WhatsApp buttons open the right number with the Arabic message ready?
 ---
 
 # WhatsApp order button checker

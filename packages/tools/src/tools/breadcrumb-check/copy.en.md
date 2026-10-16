@@ -1,5 +1,5 @@
 ---
-summary: Can Google read your page's trail (الرئيسية › العطور › the product): positions in digits 0–9, names, and full addresses?
+summary: Can Google read your breadcrumb trail: positions in digits 0–9, names, full URLs?
 ---
 
 # Breadcrumb structured data checker

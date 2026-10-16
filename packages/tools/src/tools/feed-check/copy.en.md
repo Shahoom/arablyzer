@@ -1,5 +1,5 @@
 ---
-summary: Will Google Merchant Center accept your product feed: required fields, prices, availability, GTIN and Arabic titles?
+summary: Will Google Merchant Center accept your feed: fields, prices, stock and GTIN?
 ---
 
 # Google Merchant feed checker

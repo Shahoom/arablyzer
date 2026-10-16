@@ -1,5 +1,5 @@
 ---
-summary: Is your brand's name written the same way in your title, schema, logo and footer, in Arabic and in Latin letters?
+summary: Is your brand named the same in title, schema, logo and footer, in both scripts?
 ---
 
 # Brand name consistency checker

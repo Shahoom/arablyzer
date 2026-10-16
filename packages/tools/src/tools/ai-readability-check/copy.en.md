@@ -1,5 +1,5 @@
 ---
-summary: Can AI assistants and search read your Arabic text, or is it stretched with tatweel, split by invisible characters or drawn in pictures?
+summary: Can AI read your Arabic, or do tatweel, hidden characters and images break it?
 ---
 
 # Arabic AI readability checker

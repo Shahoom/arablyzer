@@ -1,5 +1,5 @@
 ---
-summary: Do the pages 2, 3 and 4 of your product lists have a canonical address of their own, or do they all point to page 1?
+summary: Do pages 2, 3 and 4 of your lists have their own canonical, or point to page 1?
 ---
 
 # Pagination checker

@@ -1,5 +1,5 @@
 ---
-summary: Can Google read the publication and update dates of your page, or are they Arabic digits and month names?
+summary: Can Google read your page's dates, or are they in Arabic digits and months?
 ---
 
 # Page freshness dates checker

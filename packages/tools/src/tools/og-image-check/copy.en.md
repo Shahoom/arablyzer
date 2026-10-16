@@ -1,5 +1,5 @@
 ---
-summary: Will the picture show when your link is shared in WhatsApp, X or Facebook, or is its address relative, http or an SVG?
+summary: Will your picture show when the link is shared, or is it relative, http or SVG?
 ---
 
 # Share image checker (og:image)

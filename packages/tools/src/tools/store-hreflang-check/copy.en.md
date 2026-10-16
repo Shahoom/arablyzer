@@ -1,5 +1,5 @@
 ---
-summary: Does your store tell Google which page is for Saudi Arabia, the UAE or Oman: codes, full addresses, itself and x-default?
+summary: Does your store tell Google which page is for Saudi, the UAE or Oman?
 ---
 
 # Store hreflang checker for the Gulf
