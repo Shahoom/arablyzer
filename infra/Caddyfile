@@ -10,6 +10,10 @@
 	servers {
 		trusted_proxies static {$ARABLYZER_TRUSTED_PROXIES:private_ranges}
 		trusted_proxies_strict
+		# Which header names the visitor, from a trusted proxy: X-Forwarded-For by default. Behind
+		# a shared proxy that only Cloudflare's edge may reach (compose.coolify.yaml), it is
+		# CF-Connecting-IP, since that proxy writes Cloudflare's own address into X-Forwarded-For.
+		client_ip_headers {$ARABLYZER_CLIENT_IP_HEADER:X-Forwarded-For}
 		# A connection that is slow to send its headers or its body is closed: Caddy sets no limit
 		# of its own, so a few hundred that send a byte a minute would hold every slot of a
 		# 64 MB, 128-process container. A request's headers and body are small (the API reads
