@@ -1,5 +1,5 @@
 ---
-summary: Paste a text or give a page's address, and we find the hamza, ta marbuta, alef maqsura and tanween slips we are sure of.
+summary: Paste Arabic text or give a page: the hamza, ta marbuta and tanween slips we are sure of.
 ---
 
 # Arabic spell checker

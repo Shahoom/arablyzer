@@ -1,5 +1,5 @@
 ---
-summary: Paste a text or give a page's address, and we say which variety it is closest to: Modern Standard, Gulf, Egyptian, Levantine or Maghrebi.
+summary: Which Arabic is it: Modern Standard, Gulf, Egyptian, Levantine or Maghrebi? Paste a text or a page.
 ---
 
 # Arabic dialect detector
