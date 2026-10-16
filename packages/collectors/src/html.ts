@@ -48,7 +48,21 @@ export interface AnchorElement extends ElementRef {
   readonly tag: 'a' | 'area'
   readonly href: string
   readonly url: string | null
+  /** Tokens of the rel attribute, lowercased. */
+  readonly rel: readonly string[]
+  /**
+   * What the link says: its text with the alt text of images inside it, whitespace collapsed, at
+   * most ANCHOR_TEXT_MAX characters; an `<area>`'s alt. Empty when it has none, or when the page
+   * has more links than the walk of their text reaches (a page's links share one budget of their
+   * own, so they cannot starve the headings and labels).
+   */
+  readonly text: string
+  /** The aria-label attribute as written; null when absent. */
+  readonly ariaLabel: string | null
 }
+
+/** Characters of a link's text that are kept. */
+export const ANCHOR_TEXT_MAX = 200
 
 export interface ScriptElement extends ElementRef {
   readonly type: string | null
@@ -201,6 +215,9 @@ export function collectHtml(
   const firstAlternatives: TextAlternative[] = []
   const lastAlternatives = new LastKept<TextAlternative>(MAX_TEXT_ALTERNATIVES)
   const walk: Walk = { left: options.walkBudget ?? WALK_BUDGET }
+  // The links' text has a budget of its own: a page with thousands of links cannot take the
+  // headings' and the labels' share.
+  const anchorWalk: Walk = { left: options.walkBudget ?? WALK_BUDGET }
   const labels = labelsByField(all, walk)
   const forms = formIds(all)
   for (const element of all) {
@@ -283,6 +300,16 @@ export function collectHtml(
             tag: element.tagName,
             href,
             url: resolve(href, baseUrl),
+            rel: tokens(attr(element, 'rel')),
+            text: truncate(
+              collapseWhitespace(
+                element.tagName === 'area'
+                  ? (attr(element, 'alt') ?? '')
+                  : textOf(element, anchorWalk, true),
+              ),
+              ANCHOR_TEXT_MAX,
+            ),
+            ariaLabel: attr(element, 'aria-label'),
           })
         }
         break

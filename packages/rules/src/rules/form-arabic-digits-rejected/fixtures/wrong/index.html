@@ -14,9 +14,9 @@
       <h1>عنوان التوصيل</h1>
       <form action="/checkout" method="post">
         <label for="phone">رقم الجوال</label>
-        <input id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]{8}" placeholder="9xxxxxxx" required />
+        <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="numeric" pattern="[0-9]{8}" placeholder="9xxxxxxx" required />
         <label for="area">المنطقة</label>
-        <input id="area" name="area" />
+        <input id="area" name="area" autocomplete="address-level2" />
         <button>متابعة الدفع</button>
       </form>
     </main>

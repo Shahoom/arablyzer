@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.9.0"
+    "rulesetVersion": "0.10.0"
   },
   "target": {
     "url": "https://dates.example:30023/",
@@ -56,10 +56,10 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 30,
+    "pass": 32,
     "fail": 1,
     "needsReview": 0,
-    "notApplicable": 19,
+    "notApplicable": 36,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -75,7 +75,7 @@
       "ai": 100,
       "ar-content": 100,
       "commerce": null,
-      "crawl": 91,
+      "crawl": 94,
       "forms": null,
       "index": 100,
       "intl": 100,
@@ -89,8 +89,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 50,
-      "total": 79
+      "ran": 69,
+      "total": 102
     }
   },
   "rules": [
@@ -103,6 +103,17 @@
       "title": {
         "ar": "نص الصفحة لا يمر من فلاتر جودة بيانات تدريب الذكاء الاصطناعي",
         "en": "The page's text does not pass the AI training quality filters"
+      }
+    },
+    {
+      "id": "anchor-text-generic",
+      "version": "1.0.0",
+      "category": "links",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص الرابط لا يقول إلى أين يذهب",
+        "en": "Link text says nothing about where it goes"
       }
     },
     {
@@ -197,6 +208,17 @@
       }
     },
     {
+      "id": "breadcrumb-schema-invalid",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "بيانات مسار التنقل ناقصة أو معيبة",
+        "en": "Breadcrumb markup is incomplete or malformed"
+      }
+    },
+    {
       "id": "canonical-conflict",
       "version": "1.0.0",
       "category": "index",
@@ -205,6 +227,17 @@
       "title": {
         "ar": "روابط canonical متعارضة في الصفحة",
         "en": "Conflicting canonical URLs on the page"
+      }
+    },
+    {
+      "id": "contact-link-invalid",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "رابط هاتف أو بريد مكتوب بصيغة تفشل",
+        "en": "Phone or email link is written in a form that fails"
       }
     },
     {
@@ -285,6 +318,17 @@
       }
     },
     {
+      "id": "form-address-arabic-rejected",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل العنوان في إتمام الطلب يرفض العربية",
+        "en": "Checkout address field rejects Arabic"
+      }
+    },
+    {
       "id": "form-arabic-digits-rejected",
       "version": "1.0.0",
       "category": "forms",
@@ -307,6 +351,20 @@
       }
     },
     {
+      "id": "form-autocomplete-missing",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "moderate",
+      "wcag": [
+        "1.3.5"
+      ],
+      "status": "not-applicable",
+      "title": {
+        "ar": "حقل في نموذج بلا رمز autocomplete",
+        "en": "Form field has no autocomplete token"
+      }
+    },
+    {
       "id": "frame-protection-missing",
       "version": "1.0.0",
       "category": "trust",
@@ -315,6 +373,17 @@
       "title": {
         "ar": "أي موقع يستطيع عرض الصفحة داخل إطار",
         "en": "Any site may show the page in a frame"
+      }
+    },
+    {
+      "id": "freshness-date-invalid",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "تاريخ تذكره الصفحة لا يُقرأ تاريخاً",
+        "en": "A date the page states cannot be read as a date"
       }
     },
     {
@@ -337,6 +406,39 @@
       "title": {
         "ar": "رمز hreflang غير صالح",
         "en": "Invalid hreflang code"
+      }
+    },
+    {
+      "id": "hreflang-lang-mismatch",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "hreflang و`lang` الصفحة مختلفان",
+        "en": "hreflang and the page's lang disagree"
+      }
+    },
+    {
+      "id": "hreflang-set-invalid",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "روابط hreflang في الصفحة ليست مجموعة صالحة",
+        "en": "The hreflang links of a page are not a valid set"
+      }
+    },
+    {
+      "id": "hreflang-x-default-missing",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "قائمة hreflang بلا x-default",
+        "en": "hreflang list has no x-default"
       }
     },
     {
@@ -395,6 +497,17 @@
       }
     },
     {
+      "id": "local-business-invalid",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "بيانات النشاط التجاري ناقصة أو مكتوبة بصيغ عربية لا يقرؤها Schema.org",
+        "en": "Business markup is incomplete or written in Arabic forms Schema.org does not read"
+      }
+    },
+    {
       "id": "meta-description-missing",
       "version": "1.0.0",
       "category": "onpage",
@@ -414,6 +527,17 @@
       "title": {
         "ar": "محتوى مختلط: صفحة HTTPS تحمّل عبر HTTP",
         "en": "Mixed content: an HTTPS page that loads over HTTP"
+      }
+    },
+    {
+      "id": "og-image-invalid",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "صورة المشاركة ليست عنواناً كاملاً تستطيع التطبيقات رسمه",
+        "en": "Share image is not a full address the apps can draw"
       }
     },
     {
@@ -439,6 +563,17 @@
       }
     },
     {
+      "id": "pagination-canonical",
+      "version": "1.0.0",
+      "category": "index",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة من قائمة عنوانها المرجعي ليس نفسها",
+        "en": "Page of a list has a canonical address that is not itself"
+      }
+    },
+    {
       "id": "payment-methods",
       "version": "1.0.0",
       "category": "commerce",
@@ -461,6 +596,17 @@
       }
     },
     {
+      "id": "policy-pages-missing",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة المتجر لا ترتبط بسياساته",
+        "en": "Store page does not link to its policies"
+      }
+    },
+    {
       "id": "price-decimals",
       "version": "1.0.0",
       "category": "commerce",
@@ -472,6 +618,17 @@
       }
     },
     {
+      "id": "product-availability-invalid",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "توفّر المنتج في البيانات المنظّمة ليس قيمة من Schema.org",
+        "en": "Product availability in markup is not a Schema.org value"
+      }
+    },
+    {
       "id": "product-offer-invalid",
       "version": "1.0.0",
       "category": "schema",
@@ -480,6 +637,28 @@
       "title": {
         "ar": "عرض منتج بلا سعر أو عملة صالحَين (JSON-LD)",
         "en": "Product offer without a valid price or currency (JSON-LD)"
+      }
+    },
+    {
+      "id": "product-rating-invalid",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "تقييم المنتج في البيانات المنظّمة غير صالح",
+        "en": "Product rating in markup is invalid"
+      }
+    },
+    {
+      "id": "product-required-missing",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "بيانات المنتج تنقصها اسم أو صورة أو عرض",
+        "en": "Product markup lacks a name, an image or an offer"
       }
     },
     {
@@ -582,6 +761,17 @@
       }
     },
     {
+      "id": "soft-404-signals",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "serious",
+      "status": "pass",
+      "title": {
+        "ar": "صفحة تقول إنها غير موجودة وتجيب 200",
+        "en": "Page says it was not found but answers 200"
+      }
+    },
+    {
       "id": "spf-missing",
       "version": "1.0.0",
       "category": "trust",
@@ -618,6 +808,17 @@
       }
     },
     {
+      "id": "url-parameters-links",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "روابط الموقع إلى نفسه تحمل معاملات تتبّع أو جلسة",
+        "en": "Links to the site carry tracking or session parameters"
+      }
+    },
+    {
       "id": "viewport-missing",
       "version": "1.0.0",
       "category": "onpage",
@@ -637,6 +838,17 @@
       "title": {
         "ar": "رقم رابط واتساب ليس بالصيغة الدولية",
         "en": "WhatsApp link number not in international format"
+      }
+    },
+    {
+      "id": "whatsapp-text-encoding",
+      "version": "1.0.0",
+      "category": "forms",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "رسالة رابط واتساب مشفّرة خطأً",
+        "en": "WhatsApp link message is encoded wrongly"
       }
     },
     {

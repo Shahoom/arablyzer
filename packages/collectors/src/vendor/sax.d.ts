@@ -28,6 +28,9 @@ declare module 'sax' {
     /** An attribute has been read, and again for none it read before on the tag. */
     onattribute: (attribute: { readonly name: string; readonly value: string }) => void
     onopentag: (tag: Tag) => void
+    /** Text between tags, entities decoded; also whitespace. */
+    ontext: (text: string) => void
+    oncdata: (text: string) => void
     onclosetag: (name: string) => void
     onerror: (error: Error) => void
     write(chunk: string): SAXParser

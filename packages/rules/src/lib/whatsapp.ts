@@ -97,3 +97,34 @@ function decode(value: string): string {
     return value
   }
 }
+
+/**
+ * The `text` of a WhatsApp click-to-chat link as it is written, percent signs and all (null for
+ * other links and for WhatsApp links without one), and the fragment that follows it if the link
+ * has one: wa.me/<number>?text=…, wa.me/?text=…, api.whatsapp.com/send?…&text=…, the web and
+ * app forms.
+ */
+export function whatsAppText(href: string): { text: string; fragment: string } | null {
+  let parsed: URL
+  try {
+    parsed = new URL(href)
+  } catch {
+    return null
+  }
+  const web = parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, '')
+  const isLink =
+    (parsed.protocol === 'whatsapp:' && host === 'send') ||
+    (web && host === 'wa.me') ||
+    (web && SEND_HOSTS.has(host) && /^\/send\/?$/.test(parsed.pathname))
+  if (!isLink) return null
+  // The address as written: the URL parser would have cut a raw # off the text.
+  const hashAt = href.indexOf('#')
+  const before = hashAt === -1 ? href : href.slice(0, hashAt)
+  const fragment = hashAt === -1 ? '' : href.slice(hashAt + 1)
+  const query = before.includes('?') ? before.slice(before.indexOf('?') + 1) : ''
+  for (const pair of query.split('&')) {
+    if (pair.startsWith('text=')) return { text: pair.slice(5), fragment }
+  }
+  return null
+}

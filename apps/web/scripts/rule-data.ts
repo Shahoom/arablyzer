@@ -40,6 +40,7 @@ export function ruleReads(rule: Rule): RuleReads {
   if (rule.needs.includes('dns')) return 'dns'
   if (rule.needs.includes('links')) return 'links'
   if (rule.needs.includes('sitemap')) return 'sitemap'
+  if (rule.needs.includes('feed')) return 'feed'
   if (rule.needs.includes('robots')) return 'robots'
   if (SERVER_RESPONSE_RULES.has(rule.id)) return 'http'
   return 'html'

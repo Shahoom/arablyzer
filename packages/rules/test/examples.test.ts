@@ -16,6 +16,12 @@ const NO_EXAMPLE: Readonly<Record<string, string>> = {
   'cwv-inp-poor': "real visitors' data from the Chrome UX Report, not the page",
   'cwv-lcp-poor': "real visitors' data from the Chrome UX Report, not the page",
   'dmarc-missing': 'DNS records, which no excerpt of the page shows',
+  'feed-file-unreadable':
+    'the product feed file a tool reads in place of a page; its page shows it',
+  'feed-required-missing':
+    'the product feed file a tool reads in place of a page; its page shows it',
+  'feed-text-quality': 'the product feed file a tool reads in place of a page; its page shows it',
+  'feed-values-invalid': 'the product feed file a tool reads in place of a page; its page shows it',
   'frame-protection-missing': 'response headers, whose absence no excerpt shows',
   'hsts-missing': 'a response header, whose absence no excerpt shows',
   'https-missing': 'the address the page answers at',
@@ -49,7 +55,7 @@ function fixtures(ruleId: string, kind: 'wrong' | 'right'): string[][] {
         for (const entry of readdirSync(dir, { withFileTypes: true })) {
           const path = `${dir}${entry.name}`
           if (entry.isDirectory()) walk(`${path}/`)
-          else if (/\.(?:html|css|txt)$/.test(entry.name))
+          else if (/\.(?:html|css|txt|xml|tsv)$/.test(entry.name))
             texts.push(fold(readFileSync(path, 'utf8')))
         }
       }

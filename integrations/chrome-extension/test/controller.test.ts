@@ -98,11 +98,11 @@ describe('the popup', () => {
     const done = last()
     expect(done?.kind).toBe('done')
     if (done?.kind !== 'done') return
-    expect(done.result.score).toBe(71)
+    expect(done.result.score).toBe(72)
     expect(done.result.issues[0]?.severity).toBe('critical')
     expect(done.reportUrl).toBe(`https://arablyzer.com/r/${ID}`)
     expect(context()?.lang).toBe('ar')
-    expect(mock.calls.badgeText).toEqual([{ text: '71', tabId: 7 }])
+    expect(mock.calls.badgeText).toEqual([{ text: '72', tabId: 7 }])
     expect(mock.calls.badgeColor[0]?.tabId).toBe(7)
     expect(mock.session.data.lastScan).toMatchObject({
       url: 'https://shop.example/ar/?q=1',
@@ -183,7 +183,7 @@ describe('the popup', () => {
       { scans: [scan('running'), scan('complete', { score: 71 })], report },
     )
     expect(resumed.states.map((s) => s.kind)).toEqual(['loading', 'scanning', 'done'])
-    expect(resumed.mock.calls.badgeText[0]?.text).toBe('71')
+    expect(resumed.mock.calls.badgeText[0]?.text).toBe('72')
 
     // Too old, another page, or a failed scan: back to ready, with nothing asked of the API.
     const old = await open(

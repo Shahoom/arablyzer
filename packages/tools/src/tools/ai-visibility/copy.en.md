@@ -1,5 +1,5 @@
 ---
-summary: Do ChatGPT, Gemini, Perplexity and Claude mention your site when asked Arabic questions?
+summary: Do ChatGPT, Gemini, Perplexity and Claude name your site in Arabic answers?
 ---
 
 # AI visibility in Arabic
