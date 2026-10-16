@@ -21,6 +21,7 @@ import {
   funnelRows,
   LICENSE_LINK,
   methodValues,
+  notArabicFigure,
   pct,
   platformName,
   platformRows,
@@ -51,9 +52,14 @@ const url = pageUrl(site, lang, PATHS.sotaw)
 const { frame, edition } = SOTAW_DATA
 const aggregates = edition?.aggregates ?? null
 const reading = lang === 'ar'
-const values = methodValues(aggregates?.minCell ?? MIN_CELL, OPT_OUT_EMAIL)
+const values = methodValues(
+  aggregates?.minCell ?? MIN_CELL,
+  OPT_OUT_EMAIL,
+  frame?.excluded ?? aggregates?.frame.excluded ?? 0,
+)
 
 const headline = aggregates === null ? [] : findings(aggregates, t)
+const notArabic = aggregates === null ? null : notArabicFigure(aggregates)
 const charts =
   aggregates === null
     ? []
@@ -127,8 +133,12 @@ const list = 'm-0 flex list-disc flex-col gap-3 ps-5 text-body text-ink-2 marker
 const section = 'flex scroll-mt-6 flex-col gap-4'
 const code =
   'm-0 overflow-x-auto rounded-card bg-navy px-4 py-3 text-start font-mono text-meta text-panel-soft md:text-small'
-const frameCsv =
-  frame === null ? null : `${REPOSITORY}/blob/main/packages/sotaw/data/frames/${frame.listId}.csv`
+const frameFile = (extension: string): string | null =>
+  frame === null
+    ? null
+    : `${REPOSITORY}/blob/main/packages/sotaw/data/frames/${frame.listId}.${extension}`
+const frameCsv = frameFile('csv')
+const exclusionsCsv = frame !== null && frame.excluded > 0 ? frameFile('exclusions.csv') : null
 const explorerMetrics =
   aggregates === null
     ? []
@@ -264,6 +274,28 @@ const explorerPlatforms =
           </li>
         ))}
       </ul>
+      {notArabic !== null && (
+        <div class="card flex flex-col gap-2 p-card">
+          <span dir="ltr" class="heading-1 self-start tabular-nums text-ink">
+            {notArabic.value}
+          </span>
+          <span class="text-small font-semibold text-ink">
+            <Rich text={t.notArabic.title} lang={lang} />
+          </span>
+          <span class="text-meta text-ink-3">
+            <Filled text={t.notArabic.judged} values={{ n: count(notArabic.n) }} lang={lang} />
+            <br />
+            <span class="tabular-nums">
+              <Filled
+                text={t.findings.interval}
+                values={{ lo: notArabic.lo, hi: notArabic.hi }}
+                lang={lang}
+              />
+            </span>
+          </span>
+          <p class="m-0 text-small text-ink-2">{t.notArabic.lead}</p>
+        </div>
+      )}
     </section>
   )}
 
@@ -406,11 +438,28 @@ const explorerPlatforms =
           </tbody>
         </table>
       </div>
+      {frame.excluded > 0 && (
+        <p class={text}>
+          <Filled
+            text={t.frame.excluded}
+            values={{ excluded: count(frame.excluded) }}
+            lang={lang}
+          />
+        </p>
+      )}
       {frameCsv !== null && (
         <p class={text}>
           <a href={frameCsv} class="font-semibold text-brand-ink underline underline-offset-4">
             {t.data.frameFile}
           </a>
+          {exclusionsCsv !== null && (
+            <a
+              href={exclusionsCsv}
+              class="ms-6 font-semibold text-brand-ink underline underline-offset-4"
+            >
+              {t.data.exclusionsFile}
+            </a>
+          )}
         </p>
       )}
     </section>

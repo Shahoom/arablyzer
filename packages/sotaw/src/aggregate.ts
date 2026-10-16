@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { COUNTRY_CODES } from './countries'
 import type { FrameMeta } from './frame'
 import { METRICS, type MetricDef } from './metrics'
-import type { Outcome } from './outcome'
+import { isArabicPage, type Outcome } from './outcome'
 import { weightedShare, wilsonOf, type Interval } from './stats'
 
 /** A cell with fewer reached sites than this is not published (it could point to one site). */
@@ -46,8 +46,11 @@ export const Aggregates = z.strictObject({
     cap: count,
     floor: count,
     total: count,
+    /** The sites of each country on its domains, less those left out as not the Arabic web. */
     populations: z.record(z.string(), count),
     sampled: z.record(z.string(), count),
+    /** The sites left out of the frame as not the Arabic web: link shorteners, global brands' mirrors. */
+    excluded: count,
     sha256: z.string().regex(/^[0-9a-f]{64}$/),
   }),
   crawl: z.strictObject({
@@ -63,8 +66,12 @@ export const Aggregates = z.strictObject({
   funnel: z.strictObject({
     /** The sites of the frame. */
     frame: count,
-    /** Fetched and judged. */
+    /** Fetched and judged, in Arabic or not. */
     reached: count,
+    /** Of those, in Arabic (`lang` starts with `ar`, or the dominant script is Arabic): the pages every other figure is of. */
+    arabic: count,
+    /** Of those, not in Arabic: counted here and in `notArabic`, and in no other figure. */
+    notArabic: count,
     /** Not tried yet, or tried and failed twice. */
     pending: count,
     failed: count,
@@ -82,11 +89,16 @@ export const Aggregates = z.strictObject({
   ),
   /** The platforms with enough sites to be named; `other` and `none` stand for the rest. */
   platforms: z.array(z.strictObject({ id: z.string(), n: count })),
-  /** Reached sites of each country, whatever the cell's size. */
+  /** Arabic pages reached in each country, whatever the cell's size. */
   countries: z.array(z.strictObject({ code: z.string(), n: count })),
   /** `all`, `c:sa`, `p:salla`, `c:sa|p:salla`: only those with at least `minCell` sites. */
   cells: z.record(z.string(), Cell),
   overall: z.record(z.string(), Overall.nullable()),
+  /**
+   * The pages on Arab domains that are not in Arabic, as a share of the pages judged, weighted like
+   * the other whole-frame figures: `n` pages judged, `yes` the share that is not in Arabic.
+   */
+  notArabic: Overall.nullable(),
 })
 export type Aggregates = z.infer<typeof Aggregates>
 
@@ -121,13 +133,59 @@ export function platformKey(outcome: Outcome, named: ReadonlySet<string>): strin
   return named.has(outcome.platform) ? outcome.platform : 'other'
 }
 
+/** A country's pages judged for a metric: its list's size, the pages in each category, and their sum. */
+interface Stratum {
+  readonly population: number
+  readonly counts: readonly number[]
+  readonly n: number
+}
+
+/**
+ * The whole frame's answer: each country's shares weighted by the size of its list (by its pages
+ * when the frame has no list), and, for a binary metric, the weighted share of `yes` with its interval.
+ */
+function weighted(parts: readonly Stratum[], categories: number, binary: boolean): Overall | null {
+  const n = parts.reduce((sum, part) => sum + part.n, 0)
+  if (n === 0) return null
+  const total = parts.reduce((sum, part) => sum + part.population, 0)
+  const shares = Array.from({ length: categories }, (_, j) =>
+    total === 0
+      ? parts.reduce((sum, part) => sum + (part.counts[j] ?? 0), 0) / n
+      : parts.reduce(
+          (sum, part) => sum + (part.population / total) * ((part.counts[j] ?? 0) / part.n),
+          0,
+        ),
+  )
+  const interval: Interval | null = !binary
+    ? null
+    : total === 0
+      ? wilsonOf(parts.reduce((sum, part) => sum + (part.counts[0] ?? 0), 0) / n, n)
+      : weightedShare(
+          parts.map((part) => ({
+            population: part.population,
+            n: part.n,
+            k: part.counts[0] ?? 0,
+          })),
+        )
+  return {
+    n,
+    shares: shares.map(round6),
+    yes:
+      interval === null
+        ? null
+        : { p: round6(interval.p), lo: round6(interval.lo), hi: round6(interval.hi) },
+  }
+}
+
 export function aggregate(input: AggregateInput): Aggregates {
   const minCell = input.minCell ?? MIN_CELL
-  const reached = input.results.flatMap((r) =>
+  const judged = input.results.flatMap((r) =>
     r.state === 'done' && r.outcome?.reached === true
       ? [{ country: r.country, outcome: r.outcome }]
       : [],
   )
+  // Every figure but the funnel and the share of pages not in Arabic is of the Arabic pages alone.
+  const reached = judged.filter(({ outcome }) => isArabicPage(outcome))
   // The platforms that enough sites share to be named.
   const perPlatform = new Map<string, number>()
   for (const { outcome } of reached) {
@@ -160,7 +218,7 @@ export function aggregate(input: AggregateInput): Aggregates {
     add(cellKey(country, platform), outcome)
   }
   // The countries' cells before any is dropped: the whole-frame figures weight these.
-  const strata = (metric: MetricDef) =>
+  const strata = (metric: MetricDef): Stratum[] =>
     COUNTRY_CODES.flatMap((code) => {
       const counts = cells.get(cellKey(code, null))?.m[metric.id]
       const n = counts?.reduce((sum, c) => sum + c, 0) ?? 0
@@ -170,42 +228,27 @@ export function aggregate(input: AggregateInput): Aggregates {
     })
   const overall: Record<string, Overall | null> = {}
   for (const metric of METRICS) {
-    const parts = strata(metric)
-    const n = parts.reduce((sum, part) => sum + part.n, 0)
-    if (n === 0) {
-      overall[metric.id] = null
-      continue
-    }
-    const total = parts.reduce((sum, part) => sum + part.population, 0)
-    const shares = metric.categories.map((_, j) =>
-      total === 0
-        ? parts.reduce((sum, part) => sum + (part.counts[j] ?? 0), 0) / n
-        : parts.reduce(
-            (sum, part) => sum + (part.population / total) * ((part.counts[j] ?? 0) / part.n),
-            0,
-          ),
+    overall[metric.id] = weighted(
+      strata(metric),
+      metric.categories.length,
+      metric.categories.length === 2 && metric.categories[0] === 'yes',
     )
-    const interval: Interval | null =
-      metric.categories.length === 2 && metric.categories[0] === 'yes'
-        ? total === 0
-          ? wilsonOf(parts.reduce((sum, part) => sum + (part.counts[0] ?? 0), 0) / n, n)
-          : weightedShare(
-              parts.map((part) => ({
-                population: part.population,
-                n: part.n,
-                k: part.counts[0] ?? 0,
-              })),
-            )
-        : null
-    overall[metric.id] = {
-      n,
-      shares: shares.map(round6),
-      yes:
-        interval === null
-          ? null
-          : { p: round6(interval.p), lo: round6(interval.lo), hi: round6(interval.hi) },
-    }
   }
+  // The pages not in Arabic, among all the pages judged: `yes` is the share that is not.
+  const notArabicStrata: Stratum[] = COUNTRY_CODES.flatMap((code) => {
+    const here = judged.filter((page) => page.country === code)
+    const notArabic = here.filter(({ outcome }) => !isArabicPage(outcome)).length
+    return here.length === 0
+      ? []
+      : [
+          {
+            population: input.frame.populations[code] ?? 0,
+            counts: [notArabic, here.length - notArabic],
+            n: here.length,
+          },
+        ]
+  })
+  const notArabic = weighted(notArabicStrata, 2, true)
   const published: Record<string, Cell> = {}
   for (const [key, cell] of [...cells].sort(([a], [b]) => (a < b ? -1 : 1))) {
     if (key !== 'all' && cell.n < minCell) continue
@@ -231,7 +274,7 @@ export function aggregate(input: AggregateInput): Aggregates {
   const engines = new Set<string>()
   let allEnginesSites = 0
   const rulesets = new Set<string>()
-  for (const { outcome } of reached) {
+  for (const { outcome } of judged) {
     for (const engine of outcome.engines) engines.add(engine)
     if (outcome.engines.length === 3) allEnginesSites++
     rulesets.add(outcome.ruleset)
@@ -250,6 +293,7 @@ export function aggregate(input: AggregateInput): Aggregates {
       total: input.frame.total,
       populations: { ...input.frame.populations },
       sampled: { ...input.frame.sampled },
+      excluded: input.frame.excluded,
       sha256: input.frame.sha256,
     },
     crawl: {
@@ -260,7 +304,15 @@ export function aggregate(input: AggregateInput): Aggregates {
       allEnginesSites,
       ruleset: [...rulesets].sort().at(-1) ?? null,
     },
-    funnel: { frame: input.results.length, reached: reached.length, pending, failed, skipped },
+    funnel: {
+      frame: input.results.length,
+      reached: judged.length,
+      arabic: reached.length,
+      notArabic: judged.length - reached.length,
+      pending,
+      failed,
+      skipped,
+    },
     minCell,
     metrics: metricsOf(),
     platforms: [
@@ -271,6 +323,7 @@ export function aggregate(input: AggregateInput): Aggregates {
     countries: COUNTRY_CODES.map((code) => ({ code, n: perCountry.get(code) ?? 0 })),
     cells: published,
     overall,
+    notArabic,
   }
 }
 

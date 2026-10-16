@@ -1,7 +1,9 @@
 import type { Outcome } from './outcome'
 
 /**
- * What the report measures (docs/design/plans/m9-state-of-arabic-web.md §4). Each metric sorts a
+ * What the report measures (docs/design/plans/m9-state-of-arabic-web.md §1). The metrics are of the
+ * Arabic pages only (outcome.ts `isArabicPage`): how many pages on Arab domains are not in Arabic is
+ * a figure of its own (aggregate.ts), not a metric. Each metric sorts a
  * homepage into one of its categories, or into none when the page cannot be judged for it (a rule
  * that did not apply or did not run), and only the pages that can be judged are its denominator.
  * A binary metric's first category is the property named (`yes`), the second its absence.
@@ -87,7 +89,6 @@ export const HEADER_RULES = [
 ] as const
 
 export const METRICS: readonly MetricDef[] = [
-  { ...binary('arabic-page', 'adoption', 'arabic', []), classify: arabicPage },
   binary('shaping', 'problem', 'arabic', ['ar-letter-spacing']),
   binary('arabic-font', 'problem', 'arabic', [
     'ar-font-no-arabic',
@@ -148,11 +149,6 @@ export const METRICS: readonly MetricDef[] = [
     classify: ({ score }) => (score === null ? null : Math.min(9, Math.floor(score / 10))),
   },
 ]
-
-function arabicPage({ script }: Outcome): number | null {
-  if (script === null) return null
-  return script === 'arabic' ? YES : NO
-}
 
 const BY_ID: ReadonlyMap<string, MetricDef> = new Map(METRICS.map((m) => [m.id, m]))
 export const metricById = (id: string): MetricDef | undefined => BY_ID.get(id)

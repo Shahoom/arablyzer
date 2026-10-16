@@ -3,7 +3,7 @@ import { Aggregates, aggregate, cellKey, MIN_CELL, type AggregateResult } from '
 import { estimate } from '../src/estimate'
 import type { FrameMeta } from '../src/frame'
 import { metricById } from '../src/metrics'
-import { compact } from '../src/outcome'
+import { compact, isArabicPage } from '../src/outcome'
 import { fakeReport, outcome } from './fixtures'
 
 const frame: FrameMeta = {
@@ -17,6 +17,9 @@ const frame: FrameMeta = {
   populations: { sa: 600, eg: 400 },
   sampled: { sa: 200, eg: 100 },
   optedOut: 0,
+  excluded: 0,
+  exclusions: {},
+  exclusionsSha256: 'e'.repeat(64),
   sha256: 'a'.repeat(64),
 }
 
@@ -163,6 +166,8 @@ describe('the aggregates', () => {
     expect(result.funnel).toEqual({
       frame: results.length,
       reached: 303,
+      arabic: 303,
+      notArabic: 0,
       pending: 1,
       failed: 1,
       skipped: { robots: 2 },
@@ -214,5 +219,78 @@ describe('the aggregates', () => {
   it('hold no domain and no page text', () => {
     const text = JSON.stringify(result)
     expect(text).not.toMatch(/\.(sa|eg)\b/)
+  })
+})
+
+describe('the pages that are not in Arabic', () => {
+  const page = (change: Partial<ReturnType<typeof outcome>>, shaping: 'p' | 'f' = 'p') =>
+    outcome({ 'ar-letter-spacing': shaping }, change)
+
+  it('are the pages whose language does not start with ar and whose script is not Arabic', () => {
+    expect(isArabicPage({ lang: 'ar', script: 'arabic' })).toBe(true)
+    expect(isArabicPage({ lang: 'ar', script: 'latin' })).toBe(true)
+    expect(isArabicPage({ lang: 'arz', script: null })).toBe(true)
+    expect(isArabicPage({ lang: 'en', script: 'arabic' })).toBe(true)
+    expect(isArabicPage({ lang: null, script: 'arabic' })).toBe(true)
+    expect(isArabicPage({ lang: 'en', script: 'latin' })).toBe(false)
+    expect(isArabicPage({ lang: 'fr', script: 'other' })).toBe(false)
+    expect(isArabicPage({ lang: null, script: null })).toBe(false)
+    // `arn` (Mapudungun) and `arg` (Aragonese) start with ar and are not Arabic.
+    expect(isArabicPage({ lang: 'arn', script: 'latin' })).toBe(false)
+    expect(isArabicPage({ lang: 'arg', script: 'latin' })).toBe(false)
+  })
+
+  const english = page({ lang: 'en', script: 'latin' }, 'f')
+  const results: AggregateResult[] = [
+    ...many(80, 'sa', page({}, 'f')),
+    ...many(20, 'sa', page({ lang: 'en', script: 'arabic' })),
+    ...many(100, 'sa', english),
+    ...many(60, 'eg', page({ lang: 'ar', script: 'latin' })),
+    ...many(40, 'eg', page({ lang: null, script: null, platform: 'salla' }, 'f')),
+    { country: 'eg', state: 'skipped', reason: 'robots', outcome: null },
+  ]
+  const result = aggregate({
+    edition: 'test',
+    frame,
+    crawl: { startedAt: null, finishedAt: null },
+    results,
+  })
+
+  it('are counted on their own in the funnel, and in no other figure', () => {
+    expect(result.funnel).toMatchObject({ reached: 300, arabic: 160, notArabic: 140 })
+    expect(result.cells.all?.n).toBe(160)
+    expect(result.cells[cellKey('sa', null)]?.n).toBe(100)
+    expect(result.cells[cellKey('eg', null)]?.n).toBe(60)
+    expect(result.countries.find((c) => c.code === 'sa')?.n).toBe(100)
+    // The English pages, all of them failing the rule, are in no share: only the Arabic page that fails it.
+    expect(result.cells[cellKey('sa', null)]?.m.shaping).toEqual([80, 20])
+    expect(estimate(result, { country: 'sa', platform: null }, 'shaping')?.yes?.p).toBeCloseTo(
+      0.8,
+      6,
+    )
+    // The one page of the platform that is not in Arabic does not make the platform's share.
+    expect(result.platforms).toEqual([])
+    expect(result.cells[cellKey(null, 'none')]?.n).toBe(160)
+  })
+
+  it('are a figure of their own, weighted by the lists like the others', () => {
+    // sa: 100 of 200 judged are not in Arabic (list 600); eg: 40 of 100 (list 400).
+    expect(result.notArabic?.n).toBe(300)
+    expect(result.notArabic?.yes?.p).toBeCloseTo(0.6 * 0.5 + 0.4 * 0.4, 6)
+    expect(result.notArabic?.yes?.lo).toBeLessThan(result.notArabic?.yes?.p ?? 0)
+    expect(result.notArabic?.yes?.hi).toBeGreaterThan(result.notArabic?.yes?.p ?? 1)
+    expect(result.notArabic?.shares[0]).toBeCloseTo(0.46, 6)
+    expect(() => Aggregates.parse(JSON.parse(JSON.stringify(result)))).not.toThrow()
+  })
+
+  it('are no figure when no page was judged', () => {
+    const none = aggregate({
+      edition: 'test',
+      frame,
+      crawl: { startedAt: null, finishedAt: null },
+      results: [{ country: 'sa', state: 'skipped', reason: 'robots', outcome: null }],
+    })
+    expect(none.notArabic).toBeNull()
+    expect(none.funnel).toMatchObject({ reached: 0, arabic: 0, notArabic: 0 })
   })
 })

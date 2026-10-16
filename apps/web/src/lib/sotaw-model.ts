@@ -18,6 +18,8 @@ export interface FrameInfo {
   readonly total: number
   readonly cap: number
   readonly floor: number
+  /** The sites left out of the frame as not the Arabic web (`<list id>.exclusions.csv`). */
+  readonly excluded: number
   readonly seed: string
   readonly populations: Readonly<Record<string, number>>
   readonly sha256: string
@@ -45,11 +47,16 @@ export interface SotawData {
 export const dataPath = (edition: string): string => `/data/state-of-arabic-web/${edition}`
 
 /** The values the methodology's lines are filled in with: each is the code's own number. */
-export function methodValues(minCell: number, email: string): Record<string, string | number> {
+export function methodValues(
+  minCell: number,
+  email: string,
+  excluded: number,
+): Record<string, string | number> {
   return {
     min: minCell,
     interval: CRAWL_DEFAULTS.intervalSeconds,
     cap: count(FRAME_CAP),
+    excluded: count(excluded),
     email,
   }
 }
@@ -114,6 +121,24 @@ export function findings(edition: Aggregates, copy: SotawStrings): Finding[] {
       },
     ]
   })
+}
+
+export interface NotArabic {
+  readonly value: string
+  readonly lo: string
+  readonly hi: string
+  /** Pages judged, in Arabic or not. */
+  readonly n: number
+}
+
+/**
+ * The share of the pages judged, on Arab domains, that are not in Arabic: its own figure, outside
+ * every share above. Null when the edition has none, or too few pages judged to publish it.
+ */
+export function notArabicFigure(edition: Aggregates): NotArabic | null {
+  const found = edition.notArabic
+  if (found?.yes == null || found.n < edition.minCell) return null
+  return { value: pct(found.yes.p), lo: pct(found.yes.lo), hi: pct(found.yes.hi), n: found.n }
 }
 
 // The country charts.
@@ -188,11 +213,11 @@ export interface PlatformRow {
 }
 
 /**
- * The named platforms and the rest. The rest is the sites reached less those named, so no small
+ * The named platforms and the rest. The rest is the Arabic pages less those named, so no small
  * platform's count is published (a platform is named when enough pages share it).
  */
 export function platformRows(edition: Aggregates, copy: SotawStrings): PlatformRow[] {
-  const reached = edition.funnel.reached
+  const reached = edition.funnel.arabic
   if (reached === 0) return []
   const named = edition.platforms.map((p) => ({ id: p.id, name: platformName(p.id), n: p.n }))
   const rest = reached - named.reduce((sum, p) => sum + p.n, 0)
@@ -226,6 +251,9 @@ export function funnelRows(edition: Aggregates, copy: SotawStrings): FunnelRow[]
   return [
     { key: 'frame', label: copy.funnel.frame, n: funnel.frame },
     { key: 'reached', label: copy.funnel.reached, n: funnel.reached },
+    ...(funnel.notArabic > 0
+      ? [{ key: 'not-arabic', label: copy.funnel.notArabic, n: funnel.notArabic }]
+      : []),
     ...reasons,
     ...(funnel.failed > 0 ? [{ key: 'failed', label: copy.funnel.failed, n: funnel.failed }] : []),
     ...(funnel.pending > 0

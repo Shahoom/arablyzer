@@ -15,6 +15,9 @@ const frame: FrameMeta = {
   populations: { sa: 300, eg: 100 },
   sampled: { sa: 300, eg: 100 },
   optedOut: 0,
+  excluded: 0,
+  exclusions: {},
+  exclusionsSha256: 'e'.repeat(64),
   sha256: 'd'.repeat(64),
 }
 const page = (rule: 'p' | 'f', platform: string | null, score: number): Outcome => ({

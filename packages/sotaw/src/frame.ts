@@ -1,4 +1,5 @@
 import { COUNTRY_CODES, countryOfDomain } from './countries'
+import { exclusionOf, type ExcludedRow } from './exclusions'
 import { byHash } from './rng'
 
 /** One site of the sample frame: all that the committed file holds of it. */
@@ -139,22 +140,32 @@ export interface Frame {
   readonly sampled: Readonly<Record<string, number>>
   /** The sites left out at their owners' request. */
   readonly optedOut: number
+  /** The sites left out because they are not the Arabic web (exclusions.ts), with why; by rank. */
+  readonly excluded: readonly ExcludedRow[]
 }
 
 /**
- * The sample frame: the list's sites on an Arab country domain, sampled when there are more than
- * the cap. A country's sites are taken by the smallest hash of (seed, domain), so the choice is
- * random with respect to rank and repeatable.
+ * The sample frame: the list's sites on an Arab country domain, less those that are not the Arabic
+ * web (exclusions.ts) and those whose owners asked, sampled when there are more than the cap. A
+ * country's sites are taken by the smallest hash of (seed, domain), so the choice is random with
+ * respect to rank and repeatable. The countries' populations, which weight the report, are counted
+ * after the exclusions: a left-out site is not a site of the population.
  */
 export function buildFrame(entries: readonly TrancoEntry[], options: FrameOptions): Frame {
   const optOut = options.optOut ?? new Set<string>()
   const byCountry = new Map<string, FrameRow[]>()
   const seen = new Set<string>()
+  const excluded: ExcludedRow[] = []
   let optedOut = 0
   for (const { rank, domain } of entries) {
     const country = countryOfDomain(domain)
     if (country === null || seen.has(domain)) continue
     seen.add(domain)
+    const reason = exclusionOf(domain)
+    if (reason !== null) {
+      excluded.push({ domain, rank, country, reason })
+      continue
+    }
     if (isOptedOut(domain, optOut)) {
       optedOut++
       continue
@@ -176,7 +187,8 @@ export function buildFrame(entries: readonly TrancoEntry[], options: FrameOption
     rows.push(...chosen)
   }
   rows.sort((a, b) => a.rank - b.rank || (a.domain < b.domain ? -1 : 1))
-  return { rows, populations, sampled, optedOut }
+  excluded.sort((a, b) => a.rank - b.rank || (a.domain < b.domain ? -1 : 1))
+  return { rows, populations, sampled, optedOut, excluded }
 }
 
 export const FRAME_HEADER = 'domain,rank,country'
@@ -185,7 +197,12 @@ export function frameCsv(rows: readonly FrameRow[]): string {
   return `${FRAME_HEADER}\n${rows.map((r) => `${r.domain},${String(r.rank)},${r.country}`).join('\n')}\n`
 }
 
-export function parseFrameCsv(text: string): FrameRow[] {
+/**
+ * The frame's rows from its file. A row the rules leave out (exclusions.ts) is refused, so that a
+ * frame cannot be changed by hand back into one with `bit.ly` in it; `keepExcluded` reads a frame
+ * made before the rules (`pnpm sotaw:frame --from-frame`).
+ */
+export function parseFrameCsv(text: string, options: { keepExcluded?: boolean } = {}): FrameRow[] {
   const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '')
   if (lines[0]?.trim() !== FRAME_HEADER) throw new Error(`The frame's header is ${FRAME_HEADER}`)
   const seen = new Set<string>()
@@ -200,6 +217,7 @@ export function parseFrameCsv(text: string): FrameRow[] {
       place < 1 ||
       country === undefined ||
       countryOfDomain(name) !== country ||
+      (options.keepExcluded !== true && exclusionOf(name) !== null) ||
       seen.has(name)
     ) {
       throw new Error(`Line ${String(index + 2)} of the frame is not a site of it`)
@@ -222,6 +240,11 @@ export interface FrameMeta {
   readonly populations: Readonly<Record<string, number>>
   readonly sampled: Readonly<Record<string, number>>
   readonly optedOut: number
+  /** The sites left out as not the Arabic web, in all and for each reason (`<list id>.exclusions.csv`). */
+  readonly excluded: number
+  readonly exclusions: Readonly<Record<string, number>>
+  /** SHA-256 of the exclusions' CSV. */
+  readonly exclusionsSha256: string
   /** SHA-256 of the frame's CSV, so a crawl is tied to exactly this frame. */
   readonly sha256: string
 }

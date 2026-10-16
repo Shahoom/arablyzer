@@ -2,11 +2,14 @@ import { createHmac } from 'node:crypto'
 import { parquetWriteBuffer } from 'hyparquet-writer'
 import { cellKey, platformKey, type Aggregates, type AggregateResult } from './aggregate'
 import { METRICS, type MetricDef } from './metrics'
-import type { Outcome } from './outcome'
+import { isArabicPage, type Outcome } from './outcome'
 import { wilson } from './stats'
 
-// The files of an edition (docs/design/plans/m9-state-of-arabic-web.md §5): a table of anonymised
-// sites, a long table of the aggregates the page shows, and the JSON Schema that describes both.
+// The tables of an edition (docs/design/plans/m9-state-of-arabic-web.md §4). The PUBLIC dataset is
+// the long table of the aggregates the page shows, and the JSON Schema that describes it: no row of
+// it is a site. The per-site table (below, `SITE_COLUMNS`) is for our own analysis: it is written
+// only by `export --internal`, never into the web app's public folder, and the public files, the
+// manifest and the schema do not mention it.
 
 export type ColumnType = 'STRING' | 'BOOLEAN' | 'INT32' | 'DOUBLE'
 
@@ -52,6 +55,13 @@ export const SITE_COLUMNS: readonly Column[] = [
     nullable: false,
     description:
       'The platform the page runs on as the platform rule names it (`salla`, `wordpress` ...); `none` when no platform was recognised, `other` for a platform with fewer reached sites than the smallest published cell.',
+  },
+  {
+    name: 'arabic',
+    type: 'BOOLEAN',
+    nullable: false,
+    description:
+      'The page is in Arabic: its language starts with `ar` or its dominant script is Arabic. The report’s figures are of these pages alone.',
   },
   {
     name: 'script',
@@ -109,6 +119,7 @@ export interface SiteRow {
   readonly country: string
   readonly rank_bucket: string
   readonly platform: string
+  readonly arabic: boolean
   readonly script: string | null
   readonly lang: string | null
   readonly dir: string | null
@@ -137,8 +148,9 @@ export interface SiteInput extends AggregateResult {
 }
 
 /**
- * The sites' rows: the reached sites only, a country or platform that is too small to publish
- * folded into `other`, in the order of their ids (not the frame's, which is by rank).
+ * The sites' rows, internal: the reached sites (in Arabic or not, with `arabic` saying which), a
+ * country or platform that is too small to publish folded into `other`, in the order of their ids
+ * (not the frame's, which is by rank).
  */
 export function siteRows(
   results: readonly SiteInput[],
@@ -161,6 +173,7 @@ export function siteRows(
       country: bigCountries.has(result.country) ? result.country : 'other',
       rank_bucket: rankBucket(result.rank),
       platform: platformKey(outcome, named),
+      arabic: isArabicPage(outcome),
       script: outcome.script,
       lang: outcome.lang,
       dir: outcome.dir,
@@ -381,16 +394,27 @@ function tableSchema(title: string, columns: readonly Column[]): Record<string, 
   }
 }
 
+/** The public dataset's schema: the aggregates' table alone. */
 export function datasetSchema(): Record<string, unknown> {
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
-    title: 'State of the Arabic Web: tables',
+    title: 'State of the Arabic Web: table',
     description:
-      'The rows of sites.parquet (one anonymised homepage each) and of aggregates.parquet / aggregates.csv (one category of a metric in one cell). Licence CC BY 4.0.',
+      'The rows of aggregates.parquet / aggregates.csv: one category of a metric in one cell (all pages, a country, a platform, or both). No row is a site. Licence CC BY 4.0.',
     $defs: {
-      sites: tableSchema('A site', SITE_COLUMNS),
       aggregates: tableSchema('An aggregate', AGGREGATE_COLUMNS),
     },
+  }
+}
+
+/** The schema of the internal per-site table (`sites.parquet` of `export --internal`): not published. */
+export function sitesSchema(): Record<string, unknown> {
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    title: 'State of the Arabic Web: sites (internal)',
+    description:
+      'The rows of sites.parquet: one homepage each, with a keyed id and no domain. For our own analysis; never published.',
+    $defs: { sites: tableSchema('A site', SITE_COLUMNS) },
   }
 }
 

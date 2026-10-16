@@ -10,7 +10,9 @@ import type { SotawData } from '../src/lib/sotaw'
 // What the State of the Arabic Web page needs (M9), for src/generated/sotaw.json: the sample frame
 // as committed (a count for each country: real before any crawl) and, once the crawl has been
 // exported and its files put in public/data/state-of-arabic-web/<edition>/, the newest edition's
-// numbers. The page shows no figure that is not here.
+// numbers. The page shows no figure that is not here. An edition's folder holds the aggregates
+// only: a file the manifest does not list, or a file of sites it does, is refused, so that a
+// per-site table cannot be published by putting it there.
 
 export const EDITIONS_DIR = fileURLToPath(
   new URL('../public/data/state-of-arabic-web/', import.meta.url),
@@ -33,6 +35,7 @@ export function sotawData(options: { editions?: string; frames?: string } = {}):
             total: meta.total,
             cap: meta.cap,
             floor: meta.floor,
+            excluded: meta.excluded,
             seed: meta.seed,
             populations: meta.populations,
             sha256: meta.sha256,
@@ -54,6 +57,16 @@ export function sotawData(options: { editions?: string; frames?: string } = {}):
     if (bytes.byteLength !== file.bytes || sha256(bytes) !== file.sha256) {
       throw new Error(`${join(dir, file.name)} is not the file the manifest lists`)
     }
+  }
+  // The folder is served as it is: a file the manifest does not list (a per-site table put there)
+  // would be published with the rest.
+  const listed = new Set([...manifest.files.map((file) => file.name), 'manifest.json'])
+  const stray = readdirSync(dir).find((name) => !listed.has(name))
+  const perSite = manifest.files.find((file) => /^sites[.-]/.test(file.name))
+  if (stray !== undefined || perSite !== undefined) {
+    throw new Error(
+      `${dir} holds ${stray ?? perSite?.name ?? ''}: the public edition is the manifest's aggregates only`,
+    )
   }
   if (!manifest.files.some((file) => file.name === 'aggregates.json')) {
     throw new Error(`${dir} has no aggregates.json in its manifest`)

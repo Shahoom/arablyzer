@@ -7,6 +7,7 @@ import {
   datasetSchema,
   siteRows,
   sitesParquet,
+  sitesSchema,
   type SiteInput,
 } from './dataset'
 import type { FrameMeta } from './frame'
@@ -27,40 +28,33 @@ export interface EditionInput {
   readonly frame: FrameMeta
   readonly crawl: { readonly startedAt: Date | null; readonly finishedAt: Date | null }
   readonly rows: readonly ResultRow[]
-  /** The secret that keys the sites' ids. */
-  readonly secret: string
 }
 
+const aggregatesOf = (input: EditionInput): Aggregates =>
+  aggregate({
+    edition: input.edition,
+    frame: input.frame,
+    crawl: input.crawl,
+    results: input.rows.map((row): AggregateResult => ({
+      country: row.country,
+      state: row.state,
+      reason: row.reason,
+      outcome: row.outcome,
+    })),
+  })
+
 /**
- * The files of an edition from a run's rows: the aggregates the page shows (JSON, CSV, Parquet),
- * the anonymised sites (Parquet), the JSON Schema of both tables, and a manifest with the size and
- * SHA-256 of each. The same rows give the same bytes.
+ * The PUBLIC files of an edition from a run's rows: the aggregates the page shows (JSON, CSV,
+ * Parquet), the JSON Schema of the aggregates' table, and a manifest with the size and SHA-256 of
+ * each. Aggregates only: no row of any file is a site, not even under a hash. The same rows give
+ * the same bytes.
  */
 export function buildEdition(input: EditionInput): {
   aggregates: Aggregates
   files: EditionFile[]
   manifest: Manifest
 } {
-  const results: AggregateResult[] = input.rows.map((row) => ({
-    country: row.country,
-    state: row.state,
-    reason: row.reason,
-    outcome: row.outcome,
-  }))
-  const aggregates = aggregate({
-    edition: input.edition,
-    frame: input.frame,
-    crawl: input.crawl,
-    results,
-  })
-  const sites: SiteInput[] = input.rows.map((row) => ({
-    domain: row.domain,
-    rank: row.rank,
-    country: row.country,
-    state: row.state,
-    reason: row.reason,
-    outcome: row.outcome,
-  }))
+  const aggregates = aggregatesOf(input)
   const aggregateTable = aggregateRows(aggregates)
   const files: EditionFile[] = [
     {
@@ -82,15 +76,9 @@ export function buildEdition(input: EditionInput): {
       bytes: new Uint8Array(aggregatesParquet(aggregateTable)),
     },
     {
-      name: 'sites.parquet',
-      mediaType: 'application/vnd.apache.parquet',
-      description: 'One anonymised homepage per row: no domain, a keyed id, and the metrics.',
-      bytes: new Uint8Array(sitesParquet(siteRows(sites, aggregates, input.secret))),
-    },
-    {
       name: 'schema.json',
       mediaType: 'application/schema+json',
-      description: 'The JSON Schema of the sites’ and the aggregates’ tables.',
+      description: 'The JSON Schema of the aggregates’ table.',
       bytes: text(`${JSON.stringify(datasetSchema(), null, 2)}\n`),
     },
   ]
@@ -113,4 +101,41 @@ export function buildEdition(input: EditionInput): {
     bytes: text(`${JSON.stringify(manifest, null, 2)}\n`),
   })
   return { aggregates, files, manifest }
+}
+
+/**
+ * The INTERNAL per-site files of a run, for our own analysis: `sites.parquet` (a keyed id, no
+ * domain, one row for each homepage judged, in Arabic or not) and its schema. They are never part
+ * of an edition's public files or its manifest, and the CLI refuses to write them under a `public`
+ * folder.
+ */
+export function buildInternalSites(
+  input: EditionInput & {
+    /** The secret that keys the sites' ids. */
+    readonly secret: string
+  },
+): EditionFile[] {
+  const aggregates = aggregatesOf(input)
+  const sites: SiteInput[] = input.rows.map((row) => ({
+    domain: row.domain,
+    rank: row.rank,
+    country: row.country,
+    state: row.state,
+    reason: row.reason,
+    outcome: row.outcome,
+  }))
+  return [
+    {
+      name: 'sites.parquet',
+      mediaType: 'application/vnd.apache.parquet',
+      description: 'One homepage per row: a keyed id, no domain, and the metrics. Internal.',
+      bytes: new Uint8Array(sitesParquet(siteRows(sites, aggregates, input.secret))),
+    },
+    {
+      name: 'sites.schema.json',
+      mediaType: 'application/schema+json',
+      description: 'The JSON Schema of the sites’ table. Internal.',
+      bytes: text(`${JSON.stringify(sitesSchema(), null, 2)}\n`),
+    },
+  ]
 }
