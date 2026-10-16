@@ -170,6 +170,8 @@ export default defineConfig(
       'apps/web/src/islands/pdf-api.ts',
       // M5.1: the API keys' requests, the same origin.
       'apps/web/src/islands/keys-api.ts',
+      // M9: the State of the Arabic Web explorer reads the edition's aggregates.json, the same origin.
+      'apps/web/src/islands/sotaw/Explorer.tsx',
       'apps/web/src/islands/report/BrandBar.tsx',
     ],
     rules: {

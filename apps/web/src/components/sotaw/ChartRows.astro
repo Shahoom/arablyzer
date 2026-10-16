@@ -1,0 +1,135 @@
+---
+import type { SotawStrings } from '@arablyzer/i18n'
+import type { Chart } from '../../lib/sotaw-model'
+import { count, fill, pct, span } from '../../lib/sotaw-model'
+import Rich from '../Rich.astro'
+import type { Lang } from '@arablyzer/seo/site'
+
+/**
+ * One metric by country (M9): a row for each country with enough pages judged, a bar for its share
+ * and a line for its 95% confidence interval, drawn as SVG on a 0 to 100 scale (the chart's own
+ * end, `max`), from the start of the line in either direction. The label and the number are text
+ * beside the drawing, which says the same in its `aria-label`; the table under it, in a disclosure,
+ * has every number. No `style`: the bar is where its attributes put it.
+ */
+interface Props {
+  chart: Chart
+  lang: Lang
+  copy: SotawStrings
+}
+const { chart, lang, copy } = Astro.props
+const reading = lang === 'ar'
+const t = copy.countries
+---
+
+<div class="flex flex-col gap-3">
+  <div class="flex flex-col gap-1">
+    <h3 class="heading-3 m-0">{chart.title}</h3>
+    <p class="m-0 text-meta text-ink-3">
+      <Rich text={chart.hint} lang={lang} />
+    </p>
+  </div>
+  {chart.bars.length === 0 ? null : (
+    <ol class="m-0 flex list-none flex-col gap-2 p-0">
+      {chart.bars.map((bar) => {
+        const fillBar = span(0, bar.length, reading)
+        const range = span(bar.from, bar.to, reading)
+        const label = fill(t.bar, {
+          country: bar.name,
+          share: pct(bar.p),
+          lo: pct(bar.lo),
+          hi: pct(bar.hi),
+        })
+        return (
+          <li class="grid grid-cols-[6.5rem_minmax(0,1fr)_3.25rem] items-center gap-3 text-small">
+            <span class="text-ink">{bar.name}</span>
+            <svg
+              viewBox="0 0 100 10"
+              preserveAspectRatio="none"
+              class="h-4 w-full"
+              role="img"
+              aria-label={label}
+            >
+              <rect x="0" y="2" width="100" height="6" class="fill-surface-2" />
+              <rect x={fillBar.x} y="2" width={fillBar.width} height="6" class="fill-brand" />
+              <line
+                x1={range.x}
+                x2={range.x + range.width}
+                y1="5"
+                y2="5"
+                class="stroke-ink"
+                stroke-width="1.5"
+                vector-effect="non-scaling-stroke"
+              />
+              <line
+                x1={range.x}
+                x2={range.x}
+                y1="2"
+                y2="8"
+                class="stroke-ink"
+                stroke-width="1.5"
+                vector-effect="non-scaling-stroke"
+              />
+              <line
+                x1={range.x + range.width}
+                x2={range.x + range.width}
+                y1="2"
+                y2="8"
+                class="stroke-ink"
+                stroke-width="1.5"
+                vector-effect="non-scaling-stroke"
+              />
+            </svg>
+            <span dir="ltr" class="text-end font-semibold tabular-nums">
+              {pct(bar.p)}
+            </span>
+          </li>
+        )
+      })}
+    </ol>
+  )}
+  {chart.bars.length > 0 && (
+    <details class="text-small">
+      <summary class="min-h-11 cursor-pointer py-2 font-semibold text-brand-ink">{t.table}</summary>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-start text-small">
+          <caption class="sr-only">{chart.title}</caption>
+          <thead>
+            <tr class="border-b border-line text-ink-2">
+              <th scope="col" class="py-2 pe-3 text-start font-semibold">
+                {t.columns.country}
+              </th>
+              <th scope="col" class="py-2 pe-3 text-start font-semibold">
+                {t.columns.sites}
+              </th>
+              <th scope="col" class="py-2 pe-3 text-start font-semibold">
+                {t.columns.share}
+              </th>
+              <th scope="col" class="py-2 text-start font-semibold">
+                {t.columns.interval}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {chart.bars.map((bar) => (
+              <tr class="border-b border-line">
+                <th scope="row" class="py-2 pe-3 text-start font-normal text-ink">
+                  {bar.name}
+                </th>
+                <td dir="ltr" class="py-2 pe-3 text-start tabular-nums">
+                  {count(bar.n)}
+                </td>
+                <td dir="ltr" class="py-2 pe-3 text-start tabular-nums">
+                  {pct(bar.p)}
+                </td>
+                <td dir="ltr" class="py-2 text-start tabular-nums">
+                  {pct(bar.lo)} – {pct(bar.hi)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  )}
+</div>

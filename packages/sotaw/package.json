@@ -1,0 +1,48 @@
+{
+  "name": "@arablyzer/sotaw",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./aggregate": "./src/aggregate.ts",
+    "./config": "./src/config.ts",
+    "./countries": "./src/countries.ts",
+    "./dataset": "./src/dataset.ts",
+    "./edition": "./src/edition.ts",
+    "./estimate": "./src/estimate.ts",
+    "./frame": "./src/frame.ts",
+    "./frame-files": "./src/frame-files.ts",
+    "./manifest": "./src/manifest.ts",
+    "./outcome": "./src/outcome.ts",
+    "./metrics": "./src/metrics.ts",
+    "./stats": "./src/stats.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --exclude \"test/services/**\"",
+    "test:services": "vitest run test/services",
+    "cli": "tsx src/cli.ts",
+    "crawl": "tsx src/cli.ts crawl",
+    "frame": "tsx src/cli.ts frame",
+    "export": "tsx src/cli.ts export"
+  },
+  "dependencies": {
+    "@arablyzer/egress": "workspace:*",
+    "@arablyzer/engine": "workspace:*",
+    "@arablyzer/report-schema": "workspace:*",
+    "@arablyzer/scanner-client": "workspace:*",
+    "@arablyzer/store": "workspace:*",
+    "hyparquet": "1.31.3",
+    "hyparquet-writer": "0.16.11",
+    "ioredis": "5.11.1",
+    "pg": "8.23.1",
+    "tldts": "7.4.16",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "bullmq": "6.3.11"
+  }
+}

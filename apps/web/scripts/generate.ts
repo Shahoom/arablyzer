@@ -3,6 +3,7 @@ import { RULES } from '@arablyzer/rules'
 import { renderMarkdown } from '@arablyzer/seo'
 import { fixHtml } from '../src/lib/fix-html'
 import { botFacts } from './bot-data'
+import { sotawData } from './sotaw-data'
 import { guidesData } from './guide-data'
 import { methodologyData } from './methodology'
 import { libraryData } from './rule-data'
@@ -27,3 +28,4 @@ await writeFile(new URL('library.json', out), `${JSON.stringify(libraryData())}\
 await writeFile(new URL('methodology.json', out), `${JSON.stringify(methodologyData())}\n`)
 await writeFile(new URL('bot.json', out), `${JSON.stringify(botFacts())}\n`)
 await writeFile(new URL('guides.json', out), `${JSON.stringify(guidesData())}\n`)
+await writeFile(new URL('sotaw.json', out), `${JSON.stringify(sotawData())}\n`)

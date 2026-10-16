@@ -41,9 +41,19 @@ export class BullMQScanQueue implements ScanQueue {
     return this.#queue.getWaitingCount()
   }
 
-  async add(job: ScanJob): Promise<void> {
-    // The scan's ID is the job's, so the same scan is never queued twice.
-    await this.#queue.add('scan', job, { jobId: job.id })
+  async add(job: ScanJob, options: { readonly priority?: number } = {}): Promise<void> {
+    // The scan's ID is the job's, so the same scan is never queued twice. A job with a priority
+    // waits behind every job without one, so the crawl of the Arabic web (M9) never delays a visitor.
+    await this.#queue.add('scan', job, {
+      jobId: job.id,
+      ...(options.priority === undefined ? {} : { priority: options.priority }),
+    })
+  }
+
+  /** Scans waiting or being run, those with a priority aside: whether a visitor is in the queue. */
+  async busy(): Promise<number> {
+    const counts = await this.#queue.getJobCounts('waiting', 'active')
+    return (counts.waiting ?? 0) + (counts.active ?? 0)
   }
 
   close(): Promise<void> {

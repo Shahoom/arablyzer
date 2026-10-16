@@ -29,6 +29,7 @@
     "./tool-app": "./src/tool-app.ts",
     "./search": "./src/search.ts",
     "./legal": "./src/legal.ts",
+    "./sotaw": "./src/sotaw.ts",
     "./native": "./src/native.ts",
     "./native2": "./src/native2.ts"
   },

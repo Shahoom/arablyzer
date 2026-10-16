@@ -23,6 +23,7 @@ const PAGES: readonly string[] = [
   PATHS.privacy,
   PATHS.terms,
   PATHS.security,
+  PATHS.sotaw,
 ]
 
 export async function sitemapPages(section: SitemapSection): Promise<SitemapPage[]> {

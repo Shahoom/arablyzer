@@ -215,6 +215,9 @@ importers:
       '@arablyzer/seo':
         specifier: workspace:*
         version: link:../../packages/seo
+      '@arablyzer/sotaw':
+        specifier: workspace:*
+        version: link:../../packages/sotaw
       '@arablyzer/tools':
         specifier: workspace:*
         version: link:../../packages/tools
@@ -710,6 +713,49 @@ importers:
       parse5:
         specifier: ^8.0.1
         version: 8.0.1
+
+  packages/sotaw:
+    dependencies:
+      '@arablyzer/egress':
+        specifier: workspace:*
+        version: link:../egress
+      '@arablyzer/engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@arablyzer/report-schema':
+        specifier: workspace:*
+        version: link:../report-schema
+      '@arablyzer/scanner-client':
+        specifier: workspace:*
+        version: link:../scanner-client
+      '@arablyzer/store':
+        specifier: workspace:*
+        version: link:../store
+      hyparquet:
+        specifier: 1.31.3
+        version: 1.31.3
+      hyparquet-writer:
+        specifier: 0.16.11
+        version: 0.16.11
+      ioredis:
+        specifier: 5.11.1
+        version: 5.11.1
+      pg:
+        specifier: 8.23.1
+        version: 8.23.1
+      tldts:
+        specifier: 7.4.16
+        version: 7.4.16
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+      bullmq:
+        specifier: 6.3.11
+        version: 6.3.11(ioredis@5.11.1)(pg@8.23.1)
 
   packages/store:
     dependencies:
@@ -3624,6 +3670,12 @@ packages:
   http-link-header@1.1.4:
     resolution: {integrity: sha512-xT3GPW6/ZbGuw4UvwHqErSCEjNUlwbQJuZn9/q5U4WEKfp2kENVCAlousG1zLxHeaQ/ffOHUNpWamvkbBW0eNw==}
     engines: {node: '>=6.0.0'}
+
+  hyparquet-writer@0.16.11:
+    resolution: {integrity: sha512-Q0hI/Cf0RC5PX0iV0L8k02HdnqyPBuYc0t5gq/h9HO9n8eZiu4y5Fq3/AStGKi3lLYCePTCqyrmEymGOlnm61A==}
+
+  hyparquet@1.31.3:
+    resolution: {integrity: sha512-qThDJfCrTClFdaIQuQTtFOGp33bkbOyk+y1NrwcC8YZjvr5wxjNdKz7/PUF3xfNd7ZKLsYW+fY6N8dInjjMWJg==}
 
   iconv-lite@0.7.3:
     resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
@@ -7825,6 +7877,12 @@ snapshots:
       toidentifier: 1.0.1
 
   http-link-header@1.1.4: {}
+
+  hyparquet-writer@0.16.11:
+    dependencies:
+      hyparquet: 1.31.3
+
+  hyparquet@1.31.3: {}
 
   iconv-lite@0.7.3:
     dependencies:
