@@ -1,5 +1,5 @@
 ---
-import { GUIDES_UI, KNOWLEDGE_UI, RULES_UI, TOOLS_UI } from '@arablyzer/i18n'
+import { GUIDES_UI, KNOWLEDGE_UI, RULES_UI, SOTAW_UI, TOOLS_UI } from '@arablyzer/i18n'
 import { breadcrumbList, itemList } from '@arablyzer/seo/json-ld'
 import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
 import { STRINGS } from '@arablyzer/seo/strings'
@@ -20,6 +20,7 @@ interface Props {
 }
 const { lang } = Astro.props
 const t = KNOWLEDGE_UI[lang]
+const report = SOTAW_UI[lang].hub
 const site = siteOf(Astro.site)
 const url = pageUrl(site, lang, PATHS.knowledge)
 const { items, tones, totals } = knowledgeIndex(lang)
@@ -88,5 +89,20 @@ const jsonLd = [
         </li>
       ))}
     </ul>
+  </section>
+
+  <section aria-labelledby="sotaw-title" class="wrap pb-section">
+    <a
+      href={localePath(lang, PATHS.sotaw)}
+      class="card flex flex-col gap-2 p-card text-ink hover:text-ink md:flex-row md:items-center md:justify-between md:gap-8"
+    >
+      <span class="flex flex-col gap-1">
+        <span id="sotaw-title" class="heading-3">
+          {report.title}
+        </span>
+        <span class="text-small text-ink-2">{report.lead}</span>
+      </span>
+      <span class="font-semibold text-brand-ink">{report.cta}</span>
+    </a>
   </section>
 </Page>

@@ -19,7 +19,7 @@ import { Redis } from 'ioredis'
 import pg from 'pg'
 import { runnerConfigFrom } from './config'
 import { buildEdition } from './edition'
-import { buildFrame, frameCsv, parseOptOut, parseTranco } from './frame'
+import { buildFrame, FRAME_CAP, FRAME_FLOOR, frameCsv, parseOptOut, parseTranco } from './frame'
 import { FRAMES_DIR, frameIds, loadFrame, metaOf, OPT_OUT_FILE } from './frame-files'
 import { PostgresSotawStore } from './pg-store'
 import { byHash } from './rng'
@@ -89,8 +89,8 @@ const integer = (name: string, value: string | undefined, fallback: number): num
 async function frameCommand(): Promise<void> {
   const listId = values['list-id']
   if (listId === undefined || !/^[A-Z0-9]{4,8}$/.test(listId)) fail('--list-id is a Tranco list id')
-  const cap = integer('cap', values.cap, 10_000)
-  const floor = integer('floor', values.floor, 300)
+  const cap = integer('cap', values.cap, FRAME_CAP)
+  const floor = integer('floor', values.floor, FRAME_FLOOR)
   const seed = values.seed ?? `arablyzer-sotaw-${listId}`
   let text: string
   let createdOn: string | null = null

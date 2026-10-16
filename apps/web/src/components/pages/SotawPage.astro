@@ -1,0 +1,474 @@
+---
+import { OPT_OUT_EMAIL, RULES_UI, SITE, SOTAW_UI, TOOLS_UI } from '@arablyzer/i18n'
+import { breadcrumbList } from '@arablyzer/seo/json-ld'
+import { localePath, pageUrl, PATHS, type Lang } from '@arablyzer/seo/site'
+import { STRINGS } from '@arablyzer/seo/strings'
+import { MIN_CELL } from '@arablyzer/sotaw/aggregate'
+import { metricById } from '@arablyzer/sotaw/metrics'
+import Explorer from '../../islands/sotaw/Explorer'
+import { HEAD } from '../../lib/heads'
+import { METHODOLOGY_DATA } from '../../lib/methodology'
+import { siteOf, REPOSITORY } from '../../lib/site'
+import {
+  citation,
+  count,
+  countryChart,
+  countryName,
+  dataPath,
+  datasetJsonLd,
+  fill,
+  findings,
+  frameRows,
+  funnelRows,
+  LICENSE_LINK,
+  methodValues,
+  pct,
+  platformName,
+  platformRows,
+  size,
+  SOTAW_DATA,
+  span,
+} from '../../lib/sotaw'
+import DocHeading from '../DocHeading.astro'
+import Related from '../guides/Related.astro'
+import Rich from '../Rich.astro'
+import ChartRows from '../sotaw/ChartRows.astro'
+import Contents from './Contents.astro'
+import DocPage from './DocPage.astro'
+
+// «حالة الويب العربي» (M9, docs/design/plans/m9-state-of-arabic-web.md): the report's page. Until an
+// edition's files are in public/data/state-of-arabic-web it is the head, the sample and the method,
+// with «الإصدار الأول قريباً»; with one, the findings, the countries, the platforms, what happened
+// to the sample, the explorer and the data. Nothing on it is a number that is not in the data.
+
+interface Props {
+  lang: Lang
+}
+const { lang } = Astro.props
+const t = SOTAW_UI[lang]
+const site = siteOf(Astro.site)
+const url = pageUrl(site, lang, PATHS.sotaw)
+const { frame, edition } = SOTAW_DATA
+const aggregates = edition?.aggregates ?? null
+const reading = lang === 'ar'
+const values = methodValues(aggregates?.minCell ?? MIN_CELL, OPT_OUT_EMAIL)
+
+const headline = aggregates === null ? [] : findings(aggregates, t)
+const charts =
+  aggregates === null
+    ? []
+    : headline
+        .map((finding) => countryChart(aggregates, finding.id, lang, t))
+        .filter((chart) => chart.bars.length > 0)
+const platforms = aggregates === null ? [] : platformRows(aggregates, t)
+const funnel = aggregates === null ? [] : funnelRows(aggregates, t)
+const frameTable = frame === null ? [] : frameRows(frame, lang)
+const hiddenCountries = [...new Set(charts.flatMap((chart) => chart.hidden))]
+const finished = aggregates?.crawl.finishedAt?.slice(0, 10) ?? null
+
+// The sections, in the order they are drawn, for the contents list.
+const sections = [
+  ...(edition === null ? [{ id: 'soon', title: t.soon.title }] : []),
+  ...(headline.length > 0 ? [{ id: 'findings', title: t.findings.title }] : []),
+  ...(charts.length > 0 ? [{ id: 'countries', title: t.countries.title }] : []),
+  ...(platforms.length > 0 ? [{ id: 'platforms', title: t.platforms.title }] : []),
+  ...(funnel.length > 0 ? [{ id: 'funnel', title: t.funnel.title }] : []),
+  ...(aggregates !== null && headline.length > 0
+    ? [{ id: 'explorer', title: t.explorer.title }]
+    : []),
+  ...(frame === null ? [] : [{ id: 'frame', title: t.frame.title }]),
+  { id: 'method', title: t.method.title },
+  ...(edition === null
+    ? []
+    : [
+        { id: 'data', title: t.data.title },
+        { id: 'cite', title: t.data.cite },
+      ]),
+]
+
+const jsonLd = [
+  breadcrumbList([
+    { name: STRINGS[lang].home, url: pageUrl(site, lang, PATHS.home) },
+    { name: t.breadcrumb, url },
+  ]),
+  edition === null
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: t.title,
+        description: t.meta.description,
+        url,
+        inLanguage: lang,
+      }
+    : datasetJsonLd({
+        edition,
+        lang,
+        copy: t,
+        pageUrl: url,
+        origin: site.origin,
+        organization: { name: 'Arablyzer', url: site.origin },
+      }),
+]
+const related = [
+  {
+    id: 'related-title',
+    title: t.related,
+    links: [
+      { href: localePath(lang, PATHS.methodology), title: METHODOLOGY_DATA[lang].title },
+      { href: localePath(lang, PATHS.bot), title: SITE[lang].footer.bot },
+      { href: localePath(lang, PATHS.knowledge), title: SITE[lang].nav.knowledge },
+      { href: localePath(lang, PATHS.rules), title: RULES_UI[lang].library.title },
+      { href: localePath(lang, PATHS.tools), title: TOOLS_UI[lang].directory.title },
+    ],
+  },
+]
+const text = 'm-0 text-body text-ink-2'
+const list = 'm-0 flex list-disc flex-col gap-3 ps-5 text-body text-ink-2 marker:text-ink-3'
+const section = 'flex scroll-mt-6 flex-col gap-4'
+const code =
+  'm-0 overflow-x-auto rounded-card bg-navy px-4 py-3 text-start font-mono text-meta text-panel-soft md:text-small'
+const frameCsv =
+  frame === null ? null : `${REPOSITORY}/blob/main/packages/sotaw/data/frames/${frame.listId}.csv`
+const explorerMetrics =
+  aggregates === null
+    ? []
+    : aggregates.metrics.map((metric) => {
+        const def = metricById(metric.id)
+        return {
+          id: metric.id,
+          kind: metric.kind,
+          title: t.metrics[metric.id]?.title ?? metric.id,
+          group: metric.group,
+          categories: metric.categories.map((key, index) => ({
+            key,
+            label:
+              t.categories[key] ??
+              (metric.id === 'score'
+                ? `${String(index * 10)}–${String(index === 9 ? 100 : index * 10 + 9)}`
+                : key),
+          })),
+          // A metric the edition holds no figure for is not offered.
+          present: def !== undefined && aggregates.overall[metric.id] != null,
+        }
+      })
+const explorerChoices = explorerMetrics.filter((metric) => metric.present)
+const explorerCountries =
+  aggregates === null
+    ? []
+    : aggregates.countries
+        .filter((c) => c.n >= aggregates.minCell)
+        .map((c) => ({ code: c.code, name: countryName(c.code, lang) }))
+const explorerPlatforms =
+  aggregates === null
+    ? []
+    : aggregates.platforms.map((p) => ({ id: p.id, name: platformName(p.id) }))
+---
+
+<DocPage
+  lang={lang}
+  path={PATHS.sotaw}
+  title={t.meta.title}
+  description={t.meta.description}
+  jsonLd={jsonLd}
+  crumb={t.breadcrumb}
+  breadcrumbLabel={t.breadcrumb}
+>
+  <Fragment slot="head">
+    <h1 class={HEAD.page}>
+      <Rich text={t.title} lang={lang} />
+    </h1>
+    <p class={HEAD.lead}>
+      <Rich text={t.lead} lang={lang} />
+    </p>
+    {edition !== null && aggregates !== null && (
+      <p class="meta-row m-0 text-meta text-ink-2">
+        <span>{fill(t.edition.label, { edition: edition.id })}</span>
+        <span>
+          {fill(t.edition.reached, {
+            reached: count(aggregates.funnel.reached),
+            frame: count(aggregates.funnel.frame),
+          })}
+        </span>
+        {finished !== null && <span>{fill(t.edition.finished, { date: finished })}</span>}
+        <span>{fill(t.edition.engines, { engines: aggregates.crawl.engines.join(', ') })}</span>
+      </p>
+    )}
+    <Contents variant="inline" label={t.contents} sections={sections} />
+  </Fragment>
+  <div slot="aside" class="flex flex-col gap-3">
+    <Contents label={t.contents} sections={sections} />
+    <Related lang={lang} groups={related} />
+  </div>
+
+  {edition === null && (
+    <section id="soon" aria-labelledby="soon-title" class={section}>
+      <div class="card flex flex-col gap-4 p-card">
+        <span class="kick self-start">{t.soon.kick}</span>
+        <h2 id="soon-title" class="heading-2 m-0">
+          {t.soon.title}
+        </h2>
+        <p class={text}>{t.soon.lead}</p>
+        <ul class={list}>
+          {t.soon.items.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  {aggregates !== null && !aggregates.crawl.complete && (
+    <p class="card m-0 p-card text-body text-ink-2">{t.edition.partial}</p>
+  )}
+
+  {headline.length > 0 && (
+    <section id="findings" aria-labelledby="findings-title" class={section}>
+      <DocHeading id="findings-title" title={t.findings.title} />
+      <p class={text}>{t.findings.lead}</p>
+      <ul class="ledger m-0 grid-cols-2 md:grid-cols-3">
+        {headline.map((finding) => (
+          <li class="ledger-cell flex flex-col gap-1 px-card py-5">
+            <span dir="ltr" class="heading-1 self-start tabular-nums text-ink">
+              {finding.value}
+            </span>
+            <span class="text-small font-semibold text-ink">
+              <Rich text={finding.title} lang={lang} />
+            </span>
+            <span class="text-meta text-ink-3">
+              {fill(t.findings.judged, { n: count(finding.n) })}
+              <br />
+              <span class="tabular-nums">
+                {fill(t.findings.interval, { lo: finding.lo, hi: finding.hi })}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {charts.length > 0 && (
+    <section id="countries" aria-labelledby="countries-title" class={section}>
+      <DocHeading id="countries-title" title={t.countries.title} />
+      <p class={text}>{t.countries.lead}</p>
+      <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
+        {charts.map((chart) => (
+          <ChartRows chart={chart} lang={lang} copy={t} />
+        ))}
+      </div>
+      {hiddenCountries.length > 0 && aggregates !== null && (
+        <p class="m-0 text-meta text-ink-3">
+          {fill(t.countries.hidden, { min: aggregates.minCell })}
+        </p>
+      )}
+    </section>
+  )}
+
+  {platforms.length > 0 && (
+    <section id="platforms" aria-labelledby="platforms-title" class={section}>
+      <DocHeading id="platforms-title" title={t.platforms.title} />
+      <p class={text}>{t.platforms.lead}</p>
+      <ol class="m-0 flex list-none flex-col gap-2 p-0">
+        {platforms.map((row) => {
+          const bar = span(0, row.length, reading)
+          return (
+            <li class="grid grid-cols-[7.5rem_minmax(0,1fr)_3.25rem] items-center gap-3 text-small">
+              <span class="text-ink">
+                <bdi dir="auto">{row.name}</bdi>
+              </span>
+              <svg
+                viewBox="0 0 100 10"
+                preserveAspectRatio="none"
+                class="h-4 w-full"
+                role="img"
+                aria-label={`${row.name}: ${pct(row.share)}`}
+              >
+                <rect x="0" y="2" width="100" height="6" class="fill-surface-2" />
+                <rect x={bar.x} y="2" width={bar.width} height="6" class="fill-brand" />
+              </svg>
+              <span dir="ltr" class="text-end font-semibold tabular-nums">
+                {pct(row.share)}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )}
+
+  {funnel.length > 0 && (
+    <section id="funnel" aria-labelledby="funnel-title" class={section}>
+      <DocHeading id="funnel-title" title={t.funnel.title} />
+      <p class={text}>{t.funnel.lead}</p>
+      <dl class="ledger m-0 grid-cols-1">
+        {funnel.map((row) => (
+          <div class="ledger-cell flex items-baseline justify-between gap-4 px-card py-3">
+            <dt class="text-small text-ink">{row.label}</dt>
+            <dd dir="ltr" class="m-0 text-body font-semibold tabular-nums text-ink">
+              {count(row.n)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )}
+
+  {aggregates !== null && edition !== null && explorerChoices.length > 0 && (
+    <section id="explorer" aria-labelledby="explorer-title" class={section}>
+      <DocHeading id="explorer-title" title={t.explorer.title} />
+      <p class={text}>{t.explorer.lead}</p>
+      <Explorer
+        client:visible
+        lang={lang}
+        src={`${dataPath(edition.id)}/aggregates.json`}
+        strings={t.explorer}
+        metrics={explorerChoices}
+        groups={t.groups}
+        countries={explorerCountries}
+        platforms={explorerPlatforms}
+        minCell={aggregates.minCell}
+        firstMetric={explorerChoices[0]?.id ?? ''}
+      />
+      <noscript>
+        <p class={text}>{t.explorer.noScript}</p>
+      </noscript>
+    </section>
+  )}
+
+  {frame !== null && (
+    <section id="frame" aria-labelledby="frame-title" class={section}>
+      <DocHeading id="frame-title" title={t.frame.title} />
+      <p class={text}>{t.frame.lead}</p>
+      <p class={text}>
+        {fill(frame.listCreatedOn === null ? t.soon.frameNoDate : t.soon.frame, {
+          sites: count(frame.total),
+          countries: frameTable.length,
+          list: frame.listId,
+          date: frame.listCreatedOn ?? '',
+        })}
+      </p>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-start text-small">
+          <caption class="sr-only">{t.frame.caption}</caption>
+          <thead>
+            <tr class="border-b border-line text-ink-2">
+              <th scope="col" class="py-2 pe-3 text-start font-semibold">
+                {t.frame.country}
+              </th>
+              <th scope="col" class="py-2 text-start font-semibold">
+                {t.frame.sites}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {frameTable.map((row) => (
+              <tr class="border-b border-line">
+                <th scope="row" class="py-2 pe-3 text-start font-normal text-ink">
+                  {row.name}
+                </th>
+                <td dir="ltr" class="py-2 text-start tabular-nums">
+                  {count(row.n)}
+                </td>
+              </tr>
+            ))}
+            <tr>
+              <th scope="row" class="py-2 pe-3 text-start font-semibold text-ink">
+                {t.frame.total}
+              </th>
+              <td dir="ltr" class="py-2 text-start font-semibold tabular-nums">
+                {count(frame.total)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {frameCsv !== null && (
+        <p class={text}>
+          <a href={frameCsv} class="font-semibold text-brand-ink underline underline-offset-4">
+            {t.data.frameFile}
+          </a>
+        </p>
+      )}
+    </section>
+  )}
+
+  <section id="method" aria-labelledby="method-title" class={section}>
+    <DocHeading id="method-title" title={t.method.title} />
+    {t.method.sections.map((part) => (
+      <div id={part.id} class="flex scroll-mt-6 flex-col gap-3">
+        <h3 class="heading-3 m-0">{part.title}</h3>
+        {part.paragraphs?.map((paragraph) => (
+          <p class={text}>
+            <Rich text={fill(paragraph, values)} lang={lang} />
+          </p>
+        ))}
+        {part.items !== undefined && (
+          <ul class={list}>
+            {part.items.map((item) => (
+              <li>
+                <Rich text={fill(item, values)} lang={lang} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {part.id === 'ethics' && <pre dir="ltr" tabindex="0" class={code}>User-agent: ArablyzerBot
+Disallow: /</pre>}
+        {part.after?.map((paragraph) => (
+          <p class={text}>
+            <Rich text={fill(paragraph, values)} lang={lang} />
+          </p>
+        ))}
+      </div>
+    ))}
+  </section>
+
+  {edition !== null && (
+    <section id="data" aria-labelledby="data-title" class={section}>
+      <DocHeading id="data-title" title={t.data.title} />
+      <p class={text}>{t.data.lead}</p>
+      <p class={text}>
+        {t.data.license}
+        <a
+          href={LICENSE_LINK}
+          rel="license noopener"
+          class="ms-2 font-semibold text-brand-ink underline underline-offset-4"
+        >
+          {t.data.licenseLink}
+        </a>
+      </p>
+      <ul class="ledger m-0 grid-cols-1">
+        {edition.files.map((file) => (
+          <li class="ledger-cell flex flex-col gap-1 px-card py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+            <span class="flex flex-col gap-1">
+              <a
+                href={`${dataPath(edition.id)}/${file.name}`}
+                download
+                class="inline-flex min-h-11 items-center font-semibold text-brand-ink underline underline-offset-4"
+              >
+                <bdi dir="ltr">{file.name}</bdi>
+              </a>
+              <span class="text-small text-ink-2">
+                {t.data.files[file.name] ?? file.description}
+              </span>
+            </span>
+            <span dir="ltr" class="text-meta text-ink-3 tabular-nums">
+              {size(file.bytes)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {edition !== null && (
+    <section id="cite" aria-labelledby="cite-title" class={section}>
+      <DocHeading id="cite-title" title={t.data.cite} />
+      <p class={text}>{t.data.citeLead}</p>
+      <pre
+        dir={reading ? 'rtl' : 'ltr'}
+        tabindex="0"
+        class={code}
+      >{citation(edition.id, (aggregates?.crawl.finishedAt ?? edition.id).slice(0, 4), url, lang)}</pre>
+    </section>
+  )}
+</DocPage>

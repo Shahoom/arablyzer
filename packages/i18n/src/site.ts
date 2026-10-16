@@ -49,6 +49,8 @@ export interface SiteStrings {
     readonly privacy: string
     readonly terms: string
     readonly security: string
+    /** The knowledge column's link to the State of the Arabic Web (M9). */
+    readonly sotaw: string
     /** The product column's link to the developers' page (M5.1). */
     readonly developers: string
     readonly glossary: string
@@ -94,6 +96,7 @@ export const SITE: Copy<SiteStrings> = {
       privacy: 'الخصوصية',
       terms: 'شروط الاستخدام',
       security: 'الأمان',
+      sotaw: 'حالة الويب العربي',
       developers: 'للمطوّرين: API وMCP',
       glossary: 'المسرد',
       license: 'مفتوح المصدر بترخيص AGPL-3.0',
@@ -135,6 +138,7 @@ export const SITE: Copy<SiteStrings> = {
       privacy: 'Privacy',
       terms: 'Terms of use',
       security: 'Security',
+      sotaw: 'State of the Arabic Web',
       developers: 'For developers: API and MCP',
       glossary: 'Glossary',
       license: 'Open source under AGPL-3.0',

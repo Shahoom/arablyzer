@@ -7,8 +7,16 @@
   "exports": {
     ".": "./src/index.ts",
     "./aggregate": "./src/aggregate.ts",
+    "./config": "./src/config.ts",
     "./countries": "./src/countries.ts",
     "./dataset": "./src/dataset.ts",
+    "./edition": "./src/edition.ts",
+    "./estimate": "./src/estimate.ts",
+    "./frame": "./src/frame.ts",
+    "./frame-files": "./src/frame-files.ts",
+    "./manifest": "./src/manifest.ts",
+    "./outcome": "./src/outcome.ts",
+    "./metrics": "./src/metrics.ts",
     "./stats": "./src/stats.ts"
   },
   "scripts": {

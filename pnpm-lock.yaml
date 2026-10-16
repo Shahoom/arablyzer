@@ -215,6 +215,9 @@ importers:
       '@arablyzer/seo':
         specifier: workspace:*
         version: link:../../packages/seo
+      '@arablyzer/sotaw':
+        specifier: workspace:*
+        version: link:../../packages/sotaw
       '@arablyzer/tools':
         specifier: workspace:*
         version: link:../../packages/tools

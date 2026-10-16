@@ -117,6 +117,10 @@ export function allocate(
   return result
 }
 
+/** The most sites a frame holds, and the fewest a country is given when it has them. */
+export const FRAME_CAP = 10_000
+export const FRAME_FLOOR = 300
+
 export interface FrameOptions {
   /** The most sites in the frame. */
   readonly cap: number

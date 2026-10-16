@@ -10,6 +10,7 @@ import {
   type SiteInput,
 } from './dataset'
 import type { FrameMeta } from './frame'
+import type { Manifest } from './manifest'
 import type { ResultRow } from './store'
 
 export interface EditionFile {
@@ -17,19 +18,6 @@ export interface EditionFile {
   readonly mediaType: string
   readonly description: string
   readonly bytes: Uint8Array
-}
-
-export interface Manifest {
-  readonly v: 1
-  readonly edition: string
-  readonly license: 'CC-BY-4.0'
-  readonly files: readonly {
-    readonly name: string
-    readonly mediaType: string
-    readonly description: string
-    readonly bytes: number
-    readonly sha256: string
-  }[]
 }
 
 const text = (value: string): Uint8Array => new TextEncoder().encode(value)

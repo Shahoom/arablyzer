@@ -1,6 +1,17 @@
 /** The lowest priority BullMQ takes: a scan with it waits behind every scan with a smaller number or none. */
 export const LOWEST_PRIORITY = 2_097_152
 
+/** The gentle defaults: the page says them, so they are written once. */
+export const CRAWL_DEFAULTS = {
+  concurrency: 1,
+  intervalSeconds: 20,
+  preflightSeconds: 2,
+  pollSeconds: 5,
+  maxLoad: 0.5,
+  scanTimeoutSeconds: 300,
+  maxAttempts: 2,
+} as const
+
 export type EngineName = 'chromium' | 'firefox' | 'webkit'
 const ENGINES: readonly EngineName[] = ['chromium', 'firefox', 'webkit']
 
@@ -66,14 +77,29 @@ export function runnerConfigFrom(
   if (engines.length === 0) throw new Error('ARABLYZER_SOTAW_ENGINES names no engine')
   const limit = env.ARABLYZER_SOTAW_LIMIT?.trim()
   return {
-    concurrency: Math.floor(number(env, 'ARABLYZER_SOTAW_CONCURRENCY', 1, 1, 4)),
-    intervalMs: number(env, 'ARABLYZER_SOTAW_INTERVAL_SECONDS', 20, 1, 3600) * 1000,
-    preflightMs: number(env, 'ARABLYZER_SOTAW_PREFLIGHT_SECONDS', 2, 0, 600) * 1000,
-    pollMs: number(env, 'ARABLYZER_SOTAW_POLL_SECONDS', 5, 1, 600) * 1000,
+    concurrency: Math.floor(
+      number(env, 'ARABLYZER_SOTAW_CONCURRENCY', CRAWL_DEFAULTS.concurrency, 1, 4),
+    ),
+    intervalMs:
+      number(env, 'ARABLYZER_SOTAW_INTERVAL_SECONDS', CRAWL_DEFAULTS.intervalSeconds, 1, 3600) *
+      1000,
+    preflightMs:
+      number(env, 'ARABLYZER_SOTAW_PREFLIGHT_SECONDS', CRAWL_DEFAULTS.preflightSeconds, 0, 600) *
+      1000,
+    pollMs: number(env, 'ARABLYZER_SOTAW_POLL_SECONDS', CRAWL_DEFAULTS.pollSeconds, 1, 600) * 1000,
     watchMs: 2000,
-    maxLoad: number(env, 'ARABLYZER_SOTAW_MAX_LOAD', 0.5, 0.05, 1),
-    scanTimeoutMs: number(env, 'ARABLYZER_SOTAW_SCAN_TIMEOUT_SECONDS', 300, 30, 3600) * 1000,
-    maxAttempts: Math.floor(number(env, 'ARABLYZER_SOTAW_MAX_ATTEMPTS', 2, 1, 5)),
+    maxLoad: number(env, 'ARABLYZER_SOTAW_MAX_LOAD', CRAWL_DEFAULTS.maxLoad, 0.05, 1),
+    scanTimeoutMs:
+      number(
+        env,
+        'ARABLYZER_SOTAW_SCAN_TIMEOUT_SECONDS',
+        CRAWL_DEFAULTS.scanTimeoutSeconds,
+        30,
+        3600,
+      ) * 1000,
+    maxAttempts: Math.floor(
+      number(env, 'ARABLYZER_SOTAW_MAX_ATTEMPTS', CRAWL_DEFAULTS.maxAttempts, 1, 5),
+    ),
     engines: engines as EngineName[],
     allEnginesShare: number(env, 'ARABLYZER_SOTAW_ALL_ENGINES_SHARE', 0, 0, 1),
     seed: extras.seed,

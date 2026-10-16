@@ -96,6 +96,8 @@ export function kickerOf(page: BuiltPage): Pick<Card, 'kicker' | 'kickerCode'> {
       return { kicker: SITE[lang].footer.terms }
     case '/security':
       return { kicker: SITE[lang].footer.security }
+    case '/state-of-arabic-web':
+      return { kicker: SITE[lang].footer.sotaw }
     case '/':
       return { kicker: SITE[lang].statusBar }
     case '/r/':

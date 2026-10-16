@@ -37,6 +37,7 @@ export const PATHS = {
   privacy: '/privacy',
   terms: '/terms',
   security: '/security',
+  sotaw: '/state-of-arabic-web',
   developers: '/developers',
   login: '/login',
   account: '/account',
