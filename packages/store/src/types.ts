@@ -79,8 +79,12 @@ export interface ScanJob {
 export interface ScanQueue {
   /** Scans waiting, not yet started. */
   waiting(): Promise<number>
-  /** Queues the scan, once: a second add of the same ID does nothing. */
-  add(job: ScanJob): Promise<void>
+  /**
+   * Queues the scan, once: a second add of the same ID does nothing. A scan with a `priority` is
+   * taken only when no scan without one is waiting (BullMQ: M9, the Arabic-web crawl); the memory
+   * queue of development, which has no such crawl, keeps the order of arrival.
+   */
+  add(job: ScanJob, options?: { readonly priority?: number }): Promise<void>
 }
 
 export interface StoredEvent {

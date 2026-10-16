@@ -178,6 +178,25 @@ reaches it. Email is behind an interface that is off: `ARABLYZER_MAIL_PROVIDER` 
 accounts off the service logs that and idles. The recommended free-plan numbers are in `.env.example` and
 `docs/deploy/staging.md` §4.
 
+## The crawl of the Arabic web (M9)
+
+«حالة الويب العربي» (docs/design/plans/m9-state-of-arabic-web.md) is a one-off job, not a service: the `sotaw` entry of
+the API's image (`packages/sotaw/src/cli.ts`) on the application role, in the `sotaw` profile, so `up` never starts it.
+It reads each site's front page through the scanner (robots.txt as a crawler: the `*` group counts) and queues its scan
+with the lowest priority, one at a time, at most one every `ARABLYZER_SOTAW_INTERVAL_SECONDS` (20 when empty), and only
+while no visitor's scan is waiting or running and the host's one-minute load per core is under `ARABLYZER_SOTAW_MAX_LOAD`
+(0.5). It keeps a compact outcome of each homepage and deletes the scan with its report. State is in `sotaw_runs` and
+`sotaw_results`, so a stopped crawl goes on where it stopped when the same command is run again.
+
+```
+docker compose -f infra/compose.yaml --profile sotaw run --rm sotaw status
+docker compose -f infra/compose.yaml --profile sotaw run --rm sotaw crawl      # SIGTERM stops it after the scan in hand
+docker compose -f infra/compose.yaml --profile sotaw run --rm -v /srv/sotaw-out:/out sotaw export --out /out
+```
+
+`ARABLYZER_SOTAW_LIMIT=20` makes a trial run of twenty sites. `export` needs `ARABLYZER_SOTAW_SALT` (`openssl rand -hex 32`,
+kept off the repository) and a directory the container's user (uid 10001) can write to.
+
 ## The server's own addresses
 
 `ARABLYZER_DENY_CIDRS` names the server's own public addresses, which none of the stack's processes
