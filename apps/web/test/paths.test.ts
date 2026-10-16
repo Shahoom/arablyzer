@@ -1,4 +1,4 @@
-import { ACCOUNT_PAGE_PATH, LOGIN_PAGE_PATH } from '@arablyzer/api-contract/codes'
+import { ACCOUNT_PAGE_PATH, APP_PAGE_PATH, LOGIN_PAGE_PATH } from '@arablyzer/api-contract/codes'
 import { PATHS } from '@arablyzer/seo/site'
 import { describe, expect, it } from 'vitest'
 
@@ -8,5 +8,6 @@ describe('the account pages', () => {
   it('are where the API sends the browser', () => {
     expect(LOGIN_PAGE_PATH).toBe(PATHS.login)
     expect(ACCOUNT_PAGE_PATH).toBe(PATHS.account)
+    expect(APP_PAGE_PATH).toBe(PATHS.app)
   })
 })

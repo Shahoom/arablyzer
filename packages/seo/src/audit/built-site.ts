@@ -83,9 +83,9 @@ function isNotFound(page: string): boolean {
   return /^(?:\/en)?\/404$/.test(page)
 }
 
-/** The sign-in, account and comparison pages (M4.1, M4.6): for the person signed in alone, never indexed. */
+/** The sign-in, account, comparison and dashboard pages (M4.1, M4.6, M4.9): for the person signed in alone, never indexed. */
 function isAccountPage(page: string): boolean {
-  return /^(?:\/en)?\/(?:login|account(?:\/compare)?)$/.test(page)
+  return /^(?:\/en)?\/(?:login|account(?:\/compare)?|app(?:\/[a-z]+)?)$/.test(page)
 }
 
 /** Pages search engines must not index: a user's report, the 404 page, and the account pages. */

@@ -1,0 +1,1104 @@
+/*
+ * The signed-in dashboard (M4.9): its dark theme, its shell, and the few shapes its pages share.
+ * Loaded by the app layout alone; the public pages stay light and do not carry it.
+ *
+ * The dark theme is the v2 tokens redeclared (global.css: "a dark theme is a matter of redeclaring
+ * them"), under `html[data-theme='dark']`, which a hashed inline script in the app's head sets before
+ * the first paint. Every value is a hex, so test/tokens.test.ts can check the pairs that carry text.
+ * The soft fills are the colour at 15 per cent over the dark surface, worked out here and not left to
+ * an alpha, for the same reason.
+ */
+
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #0b1220;
+  --color-surface: #111a2b;
+  --color-surface-2: #16213a;
+  --color-line: #22304a;
+  --color-line-2: #34446a;
+  --color-field: #6b7a93;
+  --color-ink: #e6edf6;
+  --color-ink-2: #b4c0d3;
+  --color-ink-3: #8f9eb5;
+  --color-brand: #3cc3cf;
+  --color-brand-ink: #6fd8e1;
+  --color-brand-soft: #183545;
+  --color-blue: #7aaeff;
+  --color-blue-soft: #22324d;
+  --color-indigo: #9aa2fb;
+  --color-indigo-soft: #2a3250;
+  --color-indigo-ink: #c7cdfd;
+  --color-violet: #b79cf7;
+  --color-critical: #e11d48;
+  --color-critical-soft: #362839;
+  --color-critical-ink: #fda4af;
+  --color-serious: #fdba74;
+  --color-serious-soft: #362d2e;
+  --color-moderate: #fcd34d;
+  --color-moderate-soft: #34332a;
+  --color-pass: #6ee7b7;
+  --color-pass-soft: #16363c;
+  --color-cat-render: #2dd4bf;
+  --color-cat-render-soft: #153641;
+  --color-cat-rtl: #b79cf7;
+  --color-cat-rtl-soft: #2a2e4a;
+  --color-cat-fonts: #38bdf8;
+  --color-cat-fonts-soft: #17324a;
+  --color-cat-forms: #f472b6;
+  --color-cat-forms-soft: #332740;
+  --color-cat-whatsapp: #4ade80;
+  --color-cat-whatsapp-soft: #1a3738;
+  --color-cat-prices: #fb923c;
+  --color-cat-prices-soft: #342c2e;
+  --color-cat-index: #7aaeff;
+  --color-cat-index-soft: #21304b;
+  --color-cat-speed: #fbbf24;
+  --color-cat-speed-soft: #34332a;
+  --color-cat-schema: #e879f9;
+  --color-cat-schema-soft: #31284a;
+  --color-cat-ai: #9aa2fb;
+  --color-cat-ai-soft: #262e4a;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -14px rgb(0 0 0 / 0.55);
+  --shadow-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 36px 70px -28px rgb(0 0 0 / 0.7);
+}
+
+/* Parts of the shared kit that paint a literal white: on the dark surface they take its colour. */
+html[data-theme='dark'] .btn-white {
+  background-color: var(--color-surface-2);
+  border-color: var(--color-line-2);
+}
+html[data-theme='dark'] .btn-white:hover {
+  border-color: var(--color-field);
+}
+html[data-theme='dark'] .btn-ghost:hover {
+  background-color: rgb(255 255 255 / 0.07);
+}
+html[data-theme='dark'] .chip {
+  background-color: var(--color-surface-2);
+  border-color: var(--color-line-2);
+}
+html[data-theme='dark'] .chip:hover {
+  background-color: var(--color-line);
+}
+html[data-theme='dark'] .chip[aria-pressed='true'] {
+  border-color: var(--color-indigo);
+}
+html[data-theme='dark'] .search-field {
+  background-color: var(--color-surface);
+}
+html[data-theme='dark'] .sev-minor {
+  background-color: var(--color-surface);
+}
+html[data-theme='dark'] input,
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
+  color-scheme: dark;
+}
+
+@layer components {
+  /* ------------------------------------------------------------------------------------------ */
+  /* The shell */
+
+  .app {
+    --app-side: 0px;
+    --app-top: 60px;
+    min-height: 100dvh;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    background: var(--color-bg);
+    color: var(--color-ink);
+  }
+  @media (min-width: 48rem) {
+    .app {
+      --app-side: 76px;
+      grid-template-columns: var(--app-side) minmax(0, 1fr);
+    }
+  }
+  @media (min-width: 64rem) {
+    .app {
+      --app-side: 268px;
+    }
+    .app[data-collapsed='true'] {
+      --app-side: 76px;
+    }
+  }
+
+  /* The panel is the whole height of the page's row, so its background and edge run to the foot; what is in it sticks and scrolls inside itself. */
+  .app-side {
+    position: relative;
+    z-index: 25;
+    display: none;
+    border-inline-end: 1px solid var(--color-line);
+    background: var(--color-surface);
+  }
+  @media (min-width: 48rem) {
+    .app-side {
+      display: block;
+    }
+  }
+  .app-side-in {
+    position: sticky;
+    top: 0;
+    display: flex;
+    height: 100dvh;
+    flex-direction: column;
+    gap: 20px;
+    padding: 16px 12px;
+    overflow-y: auto;
+  }
+
+  .app-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding-inline: 6px;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+  .app-brand-word {
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .app-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .app-nav-title {
+    margin: 0 0 4px;
+    padding-inline: 10px;
+    color: var(--color-ink-3);
+    font-size: 0.75rem;
+  }
+  .app-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 8px;
+    border-radius: 12px;
+    color: var(--color-ink-2);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
+  }
+  .app-item:hover {
+    background: var(--color-surface-2);
+    color: var(--color-ink);
+  }
+  .app-item[aria-current='page'] {
+    background: var(--color-indigo-soft);
+    color: var(--color-indigo-ink);
+    font-weight: 600;
+  }
+  .app-ico {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: var(--color-surface-2);
+    color: var(--color-ink-2);
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+  .app-item[aria-current='page'] .app-ico {
+    background: var(--gradient-btn);
+    color: var(--color-white);
+  }
+  .app-count {
+    min-width: 24px;
+    height: 20px;
+    margin-inline-start: auto;
+    padding-inline: 7px;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    color: var(--color-ink-2);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .app-item[aria-current='page'] .app-count {
+    background: var(--color-surface);
+  }
+
+  .app-side-card {
+    margin-top: auto;
+    padding: 14px;
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    background: var(--color-surface-2);
+  }
+
+  /* Tablet: an icon rail. Desktop: the same when the person collapses the menu. */
+  @media (min-width: 48rem) and (max-width: 63.999rem) {
+    .app-label,
+    .app-side-extra,
+    .app-brand-word,
+    .app-count,
+    .app-nav-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .app-item,
+    .app-brand {
+      justify-content: center;
+      padding-inline: 0;
+    }
+  }
+  @media (min-width: 64rem) {
+    .app[data-collapsed='true'] .app-label,
+    .app[data-collapsed='true'] .app-side-extra,
+    .app[data-collapsed='true'] .app-brand-word,
+    .app[data-collapsed='true'] .app-count,
+    .app[data-collapsed='true'] .app-nav-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .app[data-collapsed='true'] .app-item,
+    .app[data-collapsed='true'] .app-brand {
+      justify-content: center;
+      padding-inline: 0;
+    }
+  }
+
+  .app-main {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+  .app-top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: var(--app-top);
+    padding-inline: 16px;
+    border-bottom: 1px solid var(--color-line);
+    background: color-mix(in srgb, var(--color-bg) 84%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  @media (min-width: 48rem) {
+    .app-top {
+      gap: 12px;
+      padding-inline: 24px;
+    }
+  }
+  @media (min-width: 64rem) {
+    .app-top {
+      padding-inline: 32px;
+    }
+  }
+  .app-content {
+    width: 100%;
+    max-width: 1320px;
+    margin-inline: auto;
+    padding: 20px 16px 96px;
+    outline: none;
+  }
+  @media (min-width: 48rem) {
+    .app-content {
+      padding: 28px 24px 56px;
+    }
+  }
+  @media (min-width: 64rem) {
+    .app-content {
+      padding: 32px 32px 64px;
+    }
+  }
+
+  .app-crumbs {
+    display: none;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-ink-3);
+    font-size: 0.875rem;
+  }
+  @media (min-width: 48rem) {
+    .app-crumbs {
+      display: flex;
+    }
+  }
+  .app-crumbs a {
+    color: var(--color-ink-2);
+    text-decoration: none;
+  }
+  .app-crumbs a:hover {
+    color: var(--color-ink);
+    text-decoration: underline;
+  }
+  .app-crumbs [aria-current='page'] {
+    overflow: hidden;
+    color: var(--color-ink);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* A square icon button, 44 px: the theme, the menu, the phone's search. */
+  .app-ib {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-ink-2);
+    cursor: pointer;
+  }
+  .app-ib:hover {
+    border-color: var(--color-field);
+    color: var(--color-ink);
+  }
+  .app-find {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    width: min(320px, 28vw);
+    min-height: 44px;
+    margin-inline-start: auto;
+    padding-inline: 12px;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-ink-3);
+    font-size: 0.875rem;
+    text-align: start;
+    cursor: pointer;
+  }
+  .app-find:hover {
+    border-color: var(--color-field);
+  }
+  .app-find kbd {
+    margin-inline-start: auto;
+    padding: 0 6px;
+    border: 1px solid var(--color-line-2);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.6875rem;
+  }
+  @media (min-width: 48rem) {
+    .app-find {
+      display: flex;
+    }
+  }
+
+  .app-avatar {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--gradient-mark);
+    color: var(--color-white);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* A disclosure's panel under its button: the switcher and the user menu. */
+  .app-pop {
+    position: relative;
+  }
+  .app-pop-panel {
+    position: absolute;
+    inset-block-start: calc(100% + 8px);
+    inset-inline-end: 0;
+    z-index: 40;
+    display: flex;
+    min-width: 240px;
+    max-width: min(340px, calc(100vw - 32px));
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg);
+  }
+  .app-pop-panel[data-start] {
+    inset-inline-end: auto;
+    inset-inline-start: 0;
+  }
+  .app-pop-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.875rem;
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .app-pop-item:hover,
+  .app-pop-item[aria-current='true'] {
+    background: var(--color-surface-2);
+  }
+
+  /* Phone: a bar of the four places people go, and a sheet with the whole menu. */
+  .app-bottom {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid var(--color-line);
+    background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  @media (min-width: 48rem) {
+    .app-bottom {
+      display: none;
+    }
+  }
+  .app-tab {
+    display: flex;
+    min-height: 56px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink-2);
+    font: inherit;
+    font-size: 0.75rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .app-tab[aria-current='page'] {
+    color: var(--color-indigo-ink);
+    font-weight: 600;
+  }
+
+  dialog.app-dialog {
+    padding: 0;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    box-shadow: var(--shadow-lg);
+  }
+  dialog.app-dialog::backdrop {
+    background: rgb(7 12 22 / 0.55);
+    backdrop-filter: blur(2px);
+  }
+  dialog.app-palette {
+    width: min(620px, calc(100vw - 24px));
+    max-height: min(560px, calc(100dvh - 24px));
+    margin: 12vh auto auto;
+    overflow: hidden;
+    border-radius: 18px;
+  }
+  dialog.app-sheet {
+    width: 100%;
+    max-width: none;
+    max-height: 86dvh;
+    margin: auto 0 0;
+    overflow-y: auto;
+    border-radius: 22px 22px 0 0;
+    border-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    dialog.app-sheet[open] {
+      animation: app-rise 0.22s ease-out;
+    }
+    dialog.app-palette[open] {
+      animation: app-fade 0.14s ease-out;
+    }
+  }
+  @keyframes app-rise {
+    from {
+      transform: translateY(24px);
+      opacity: 0;
+    }
+  }
+  @keyframes app-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* ------------------------------------------------------------------------------------------ */
+  /* What the pages share */
+
+  .app-ph {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .app-ph h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    outline: none;
+  }
+  @media (min-width: 48rem) {
+    .app-ph h1 {
+      font-size: 1.75rem;
+    }
+  }
+  .app-ph p {
+    margin: 4px 0 0;
+    color: var(--color-ink-2);
+    font-size: 0.9375rem;
+  }
+
+  /* One bordered surface: a table, a chart, a list. Hairlines, not boxes inside boxes. */
+  .app-surface {
+    border: 1px solid var(--color-line);
+    border-radius: 18px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow);
+  }
+  .app-surface-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 16px 20px 0;
+  }
+  .app-surface-head h2 {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+  }
+  .app-surface-head p {
+    margin: 2px 0 0;
+    color: var(--color-ink-3);
+    font-size: 0.8125rem;
+  }
+
+  /* A strip of figures: one surface with hairlines between the cells. */
+  .app-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 0 24px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: 18px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow);
+  }
+  @media (min-width: 64rem) {
+    .app-stats[data-n='4'] {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .app-stats[data-n='3'] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  .app-stat {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 18px;
+    border-block-end: 1px solid var(--color-line);
+    border-inline-end: 1px solid var(--color-line);
+  }
+  .app-stat dt {
+    color: var(--color-ink-2);
+    font-size: 0.8125rem;
+  }
+  .app-stat dd {
+    margin: 0;
+  }
+  .app-stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+  .app-stat-note {
+    color: var(--color-ink-3);
+    font-size: 0.75rem;
+  }
+  /* Hairlines only between cells: the last of a row and the last row have no outer edge. */
+  .app-stat:nth-child(2n) {
+    border-inline-end: 0;
+  }
+  .app-stat:nth-last-child(-n + 2) {
+    border-block-end: 0;
+  }
+  @media (min-width: 64rem) {
+    .app-stats[data-n='4'] .app-stat:nth-child(2n) {
+      border-inline-end: 1px solid var(--color-line);
+    }
+    .app-stats[data-n='4'] .app-stat:last-child {
+      border-inline-end: 0;
+    }
+    .app-stats[data-n='4'] .app-stat {
+      border-block-end: 0;
+    }
+    .app-stats[data-n='3'] .app-stat:nth-child(2n) {
+      border-inline-end: 1px solid var(--color-line);
+    }
+    .app-stats[data-n='3'] .app-stat:nth-child(3) {
+      border-inline-end: 0;
+    }
+    .app-stats[data-n='3'] .app-stat {
+      border-block-end: 0;
+    }
+  }
+
+  /* Rows: a table from md; below it each row is a small grid, the labels kept for a screen reader. */
+  .app-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .app-table th {
+    padding: 10px 14px;
+    color: var(--color-ink-3);
+    font-size: 0.75rem;
+    font-weight: 400;
+    text-align: start;
+    white-space: nowrap;
+  }
+  .app-table td {
+    padding: 14px;
+    border-top: 1px solid var(--color-line);
+    vertical-align: middle;
+  }
+  .app-table tbody tr:hover td {
+    background: color-mix(in srgb, var(--color-surface-2) 55%, transparent);
+  }
+  @media (max-width: 47.999rem) {
+    .app-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .app-table,
+    .app-table tbody {
+      display: block;
+    }
+    .app-table tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        'site site'
+        'score trend'
+        'mon last'
+        'act act';
+      align-items: center;
+      gap: 10px 12px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--color-line);
+    }
+    .app-table td {
+      display: block;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+    }
+    .app-table td[data-cell='site'] {
+      grid-area: site;
+    }
+    .app-table td[data-cell='score'] {
+      grid-area: score;
+    }
+    .app-table td[data-cell='trend'] {
+      grid-area: trend;
+      justify-self: end;
+    }
+    .app-table td[data-cell='mon'] {
+      grid-area: mon;
+    }
+    .app-table td[data-cell='last'] {
+      grid-area: last;
+      justify-self: end;
+    }
+    .app-table td[data-cell='act'] {
+      grid-area: act;
+    }
+    .app-table td[data-cell='act'] > div {
+      justify-content: space-between;
+    }
+    .app-table td[data-cell='url'] {
+      grid-area: url;
+    }
+    .app-table td[data-cell='state'] {
+      grid-area: state;
+    }
+    .app-table td[data-cell='when'] {
+      grid-area: when;
+      justify-self: end;
+    }
+    .app-table td[data-cell='every'] {
+      grid-area: every;
+    }
+    .app-table td[data-cell='next'] {
+      grid-area: next;
+      justify-self: end;
+    }
+    .app-table td[data-cell='status'] {
+      grid-area: status;
+      justify-self: end;
+    }
+    .app-table[data-kind='scans'] tbody tr {
+      grid-template-areas:
+        'url url'
+        'score state'
+        'when act';
+    }
+    .app-table[data-kind='scans'] td[data-cell='act'] > div {
+      justify-content: flex-end;
+    }
+    .app-table[data-kind='monitoring'] tbody tr {
+      grid-template-areas:
+        'site status'
+        'every next'
+        'trend act';
+    }
+    .app-table[data-kind='monitoring'] td[data-cell='act'] {
+      justify-self: end;
+    }
+    .app-table tbody tr:hover td {
+      background: transparent;
+    }
+  }
+
+  /* A site's tile: its first letter on one of six colours, chosen by its name. */
+  .app-tile {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    color: var(--color-white);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .app-tile[data-tone='0'] {
+    background: linear-gradient(135deg, #0f766e, #14b8a6);
+  }
+  .app-tile[data-tone='1'] {
+    background: linear-gradient(135deg, #4338ca, #818cf8);
+  }
+  .app-tile[data-tone='2'] {
+    background: linear-gradient(135deg, #be185d, #f472b6);
+  }
+  .app-tile[data-tone='3'] {
+    background: linear-gradient(135deg, #1d4ed8, #60a5fa);
+  }
+  .app-tile[data-tone='4'] {
+    background: linear-gradient(135deg, #9a3412, #fb923c);
+  }
+  .app-tile[data-tone='5'] {
+    background: linear-gradient(135deg, #6d28d9, #a78bfa);
+  }
+
+  .app-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding-inline: 10px;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    color: var(--color-ink-2);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .app-pill i {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--color-ink-3);
+  }
+  .app-pill[data-tone='on'] {
+    background: var(--color-pass-soft);
+    color: var(--color-pass);
+  }
+  .app-pill[data-tone='on'] i {
+    background: var(--color-pass);
+  }
+  .app-pill[data-tone='warn'] {
+    background: var(--color-moderate-soft);
+    color: var(--color-moderate);
+  }
+  .app-pill[data-tone='warn'] i {
+    background: var(--color-moderate);
+  }
+
+  /* A score as a number on a tint of its band. */
+  .app-score {
+    display: inline-flex;
+    align-items: baseline;
+    min-width: 44px;
+    justify-content: center;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .app-score[data-band='good'] {
+    background: var(--color-pass-soft);
+    color: var(--color-pass);
+  }
+  .app-score[data-band='mid'] {
+    background: var(--color-moderate-soft);
+    color: var(--color-moderate);
+  }
+  .app-score[data-band='low'] {
+    background: var(--color-critical-soft);
+    color: var(--color-critical-ink);
+  }
+  .app-score[data-band='none'] {
+    background: var(--color-surface-2);
+    color: var(--color-ink-3);
+  }
+  .app-delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .app-delta[data-tone='up'] {
+    color: var(--color-pass);
+  }
+  .app-delta[data-tone='down'] {
+    color: var(--color-critical-ink);
+  }
+  .app-delta[data-tone='same'] {
+    color: var(--color-ink-3);
+  }
+
+  /* A meter: a track and a fill; the fill's width is set from the data on the client. */
+  .app-meter {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-surface-2);
+    box-shadow: inset 0 0 0 1px var(--color-line);
+  }
+  .app-meter > span {
+    display: block;
+    height: 100%;
+    min-width: 6px;
+    border-radius: 999px;
+    background: var(--gradient-btn);
+  }
+  .app-meter[data-tone='near'] > span {
+    background: var(--color-moderate);
+  }
+  .app-meter[data-tone='full'] > span {
+    background: var(--color-critical);
+  }
+
+  /* The severities in a chart: a fill that reads on both grounds, the artboard's. */
+  [data-sev='critical'] {
+    --sev: #e11d48;
+  }
+  [data-sev='serious'] {
+    --sev: #ea580c;
+  }
+  [data-sev='moderate'] {
+    --sev: #f59e0b;
+  }
+  [data-sev='minor'] {
+    --sev: #94a3b8;
+  }
+  [data-sev='info'] {
+    --sev: #60a5fa;
+  }
+  .app-sev-stroke {
+    stroke: var(--sev);
+  }
+  .app-sev-dot {
+    width: 10px;
+    height: 10px;
+    flex: none;
+    border-radius: 999px;
+    background: var(--sev);
+  }
+
+  .app-seg {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    background: var(--color-surface-2);
+  }
+  .app-seg button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 38px;
+    padding-inline: 12px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--color-ink-2);
+    font: inherit;
+    font-size: 0.8125rem;
+    cursor: pointer;
+  }
+  .app-seg button[aria-pressed='true'] {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+  }
+
+  .app-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding-inline: 12px;
+    border: 1px solid var(--color-field);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-ink-3);
+  }
+  .app-field:focus-within {
+    border-color: var(--focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 22%, transparent);
+  }
+  .app-field input,
+  .app-field select {
+    min-width: 0;
+    flex: 1;
+    height: 100%;
+    min-height: 40px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.9375rem;
+  }
+  .app-field select {
+    cursor: pointer;
+  }
+  .app-field select option {
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  /* A panel the app reuses from the account page: its heading is the page's, so it is not drawn twice. */
+  [data-app-panel] > section > h2:first-child {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .app-skel {
+    border-radius: 10px;
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-2) 0%,
+      color-mix(in srgb, var(--color-surface-2) 55%, var(--color-line)) 50%,
+      var(--color-surface-2) 100%
+    );
+    background-size: 220% 100%;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .app-skel {
+      animation: app-shimmer 1.4s ease-in-out infinite;
+    }
+  }
+  @keyframes app-shimmer {
+    from {
+      background-position: 120% 0;
+    }
+    to {
+      background-position: -120% 0;
+    }
+  }
+
+  /* The charts: the line draws once; the pointer's cursor and readout follow it. */
+  .app-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .app-draw {
+      animation: app-draw 0.8s ease-out;
+    }
+  }
+  @keyframes app-draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+  .app-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: pan-y;
+  }
+  /* On a phone the chart is drawn at 560 units across 358 px: its figures are set larger to stay readable. */
+  @media (max-width: 47.999rem) {
+    .app-chart text {
+      font-size: 17px;
+    }
+  }
+  .app-chart:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}
+
+/* A row of buttons and words that sits in a narrow card stacks, whatever the screen: unlayered, so it wins over the row's own `sm:` utilities. */
+[data-stack] > div {
+  flex-direction: column;
+  align-items: flex-start;
+}
