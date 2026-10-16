@@ -19,3 +19,6 @@ infra/certs/
 !integrations/github-action/dist/
 # What `pnpm ext:build` writes next to dist/ (M5.2): the zip for the Chrome Web Store.
 integrations/chrome-extension/*.zip
+__pycache__/
+*.pyc
+.pytest_cache/

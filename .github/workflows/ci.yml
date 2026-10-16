@@ -239,6 +239,47 @@ jobs:
           # A re-run of the job replaces what the run before it kept.
           overwrite: true
 
+  arabic-nlp:
+    # M7: the Arabic language service (services/arabic-nlp), built as Compose builds it, with its data
+    # packages fetched and checked against their locked checksums. Its tests run in the image, with the
+    # data baked in; the measured precision and the dialect accuracy go to the log; then the runtime
+    # image starts as Compose runs it (read-only, no capabilities, 1 GiB, 1 CPU) and the golden pages'
+    # recorded answers are held against what it says.
+    name: Arabic language service (tests, precision, golden answers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the test image
+        run: docker build --target test --tag arabic-nlp:test services/arabic-nlp
+      - name: Tests, in the image
+        run: docker run --rm --read-only --tmpfs /tmp --network none arabic-nlp:test
+      - name: Measured precision and dialect accuracy
+        run: |
+          docker run --rm --read-only --tmpfs /tmp --network none arabic-nlp:test \
+            python tools/evaluate.py --split all --min 0.9
+          docker run --rm --read-only --tmpfs /tmp --network none arabic-nlp:test \
+            python tools/evaluate_dialect.py
+      - name: Build the runtime image and start it as Compose runs it
+        run: |
+          docker build --target runtime --tag arabic-nlp:runtime services/arabic-nlp
+          docker image ls arabic-nlp:runtime
+          docker run --detach --name nlp --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges:true --memory 1g --memory-swap 1g --cpus 1 --pids-limit 128 \
+            --publish 127.0.0.1:8790:8790 arabic-nlp:runtime
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8790/health && break; sleep 2; done
+          curl -sf http://127.0.0.1:8790/health
+      - name: The golden pages' recorded answers are the service's
+        run: python3 services/arabic-nlp/tools/check_golden.py --url http://127.0.0.1:8790
+      - name: Memory of the running service
+        run: docker stats --no-stream --format 'mem={{.MemUsage}} cpu={{.CPUPerc}}' nlp
+      - name: The service's logs
+        if: failure()
+        run: docker logs nlp
+      - name: Stop the service
+        if: always()
+        run: docker rm --force nlp
+
   stack:
     # M2.1d: the stack as Compose runs it (M2.1 plan §5b), with a golden site served inside it,
     # scanned from the API to its report; the networks each part reaches, and that the host has

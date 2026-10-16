@@ -1,0 +1,21 @@
+# What the service imports, and what CAMeL Tools needs of its own imports (it is installed apart, with
+# no dependencies, so that torch and transformers, which the service never loads, stay out).
+fastapi
+uvicorn
+numpy
+scipy
+# The dialect model was pickled with exactly this version: another one warns and may read it wrongly.
+scikit-learn==1.9.0
+dill
+cachetools
+camel-kenlm
+docopt
+editdistance
+emoji
+muddler
+pandas
+pyrsistent
+regex
+requests
+six
+tqdm

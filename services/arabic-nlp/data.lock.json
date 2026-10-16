@@ -1,0 +1,115 @@
+{
+  "read": "2026-10-16",
+  "python": "312",
+  "packages": [
+    {
+      "name": "morphology-db-msa-r13",
+      "description": "calima-msa-r13 morphology (CALIMA MSA r13)",
+      "version": "0.4.0",
+      "license": "GPL-2.0-only",
+      "catalogue_license": "GPL v2",
+      "url": "https://github.com/CAMeL-Lab/camel-tools-data/releases/download/2022.03.21/morphology_db_calima-msa-r13-0.4.0.zip",
+      "zip_sha256": "fe6531250c5529307627cc63ed56447cbb9968020d6ea3ab867e6ad9af94c738",
+      "destination": "morphology_db/calima-msa-r13",
+      "files": [
+        {
+          "path": "LICENSE",
+          "sha256": "7a71f85f07e46759dcc1c16dba64352d9932447759cf71ca3deae3729d85d23e"
+        },
+        {
+          "path": "morphology.db",
+          "sha256": "195bc25a333237a2126470da888d7936b59ed3729f9210e0a4194ba43497dd70"
+        }
+      ]
+    },
+    {
+      "name": "morphology-db-glf-01",
+      "description": "calima-glf-01 Gulf morphology",
+      "version": "0.1.0",
+      "license": "CC-BY-4.0",
+      "catalogue_license": "CC BY 4.0",
+      "url": "https://github.com/CAMeL-Lab/camel-tools-data/releases/download/2022.03.30/morphology_db_calima-glf-01-0.1.0.zip",
+      "zip_sha256": "385a29aa4737335d6431768546aaaf7ecf848dfd4bef460c7e3358168c73c9b3",
+      "destination": "morphology_db/calima-glf-01",
+      "files": [
+        {
+          "path": "LICENSE",
+          "sha256": "25fb60e0e59565106c6aa8eb6bd0492fb8cbe8211e5636bda2916de6ecdad886"
+        },
+        {
+          "path": "morphology.db",
+          "sha256": "0b88b55d09eda8edc2f0009cb3f46d4b2ad8176cf5dc7a17a7b65439f7aaae7d"
+        }
+      ]
+    },
+    {
+      "name": "dialectid-model6",
+      "description": "CAMeL dialect ID, 6 labels (BEI CAI DOH MSA RAB TUN)",
+      "version": "1.1.2",
+      "license": "MIT",
+      "catalogue_license": "MIT",
+      "url": "https://github.com/CAMeL-Lab/camel-tools-data/releases/download/2026.06.08/dialectid_model6-1.1.2.zip",
+      "zip_sha256": "579258f6fad13df92a24251c5d68a4495c24c132f3970cb745855191d66613c5",
+      "destination": "dialectid/model6",
+      "files": [
+        {
+          "path": "did_pretrained_312.dill",
+          "sha256": "a7b75349dcb104761497a83dbf008b4e057d090f4eea888505ef24cc175b405a"
+        },
+        {
+          "path": "lm/char/BEI.arpa",
+          "sha256": "4492265572a54efacf364da8a57a50ef611368b6740341045b74fb01a72be24a"
+        },
+        {
+          "path": "lm/char/CAI.arpa",
+          "sha256": "371d7c98a78f9024869c4d3319269c80fc4f867a41a5d6ece022f43252d4eba0"
+        },
+        {
+          "path": "lm/char/DOH.arpa",
+          "sha256": "37508a7ba76aacc30031bfa8fb424aa7fb32a875ed85326dfbe9dfa3690a461a"
+        },
+        {
+          "path": "lm/char/MSA.arpa",
+          "sha256": "7c8e35f25b90f4183bdc5adb47fa78cc73809a011274ec97c92561c205d9dc3a"
+        },
+        {
+          "path": "lm/char/RAB.arpa",
+          "sha256": "e4a65df088dad41415a8fe4f7737b05c294d9a002c73386eb8d59c28d7f22190"
+        },
+        {
+          "path": "lm/char/TUN.arpa",
+          "sha256": "dbb2eb5f9d6c1265b09c7049cc6f66d7653e80e304fbfaf00c81edc19a4f2c18"
+        },
+        {
+          "path": "lm/word/BEI.arpa",
+          "sha256": "b3d567f5e5643bd648af8b057fe4f55f9920ed2f6423315c73a528fbde404393"
+        },
+        {
+          "path": "lm/word/CAI.arpa",
+          "sha256": "b928139d5387f580b8db41dd538b328a4ef3ab11debc488b63260c9307f8503f"
+        },
+        {
+          "path": "lm/word/DOH.arpa",
+          "sha256": "5038f13961427d6c97504419b43649be0c81702851385e4daaadfa2178cffb92"
+        },
+        {
+          "path": "lm/word/MSA.arpa",
+          "sha256": "25a55bb22dca458d391754d3017b231909b8a53e56140f3ae69f1f4167226b44"
+        },
+        {
+          "path": "lm/word/RAB.arpa",
+          "sha256": "58e964af4caff9487ff4e687f309f8d07a07666b077d9b323676b9b1bfb1ee50"
+        },
+        {
+          "path": "lm/word/TUN.arpa",
+          "sha256": "4f1c241016c5a914fa8f7761888457688395b6765e3161d7fdb1924dadd0a3ea"
+        }
+      ]
+    }
+  ],
+  "catalogue": {
+    "url": "https://raw.githubusercontent.com/CAMeL-Lab/camel-tools-data/main/catalogue-1.6.json",
+    "sha256": "bde5abed1f15cdf52ad804affdea53bc06d1bfdb4d8e77d3d6a8159b2a2ef6d1",
+    "note": "CAMeL Tools reads it at import and downloads it when it is missing: baked in so that the service never asks the network"
+  }
+}

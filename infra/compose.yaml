@@ -10,7 +10,7 @@
 #   edge      the site's server, the API (which resolves names for its first check) and the egress
 #             proxy: the one network with a way out
 #   data      internal: the API and the worker, and Valkey and PostgreSQL
-#   scan      internal: the worker and the scanner
+#   scan      internal: the worker and the scanner, and the Arabic language service they both ask
 #   isolated  internal: the scanner and the egress proxy; the browsers' only way out
 # The internal networks give the host no address on their bridges: with one, a container on them
 # reaches every service the host runs, around the egress proxy (M2.1d review). Docker ignores a
@@ -86,6 +86,8 @@ services:
       # tree (the same flag the scanner reads for the misspellings tool) and the results sampler.
       ARABLYZER_SUGGEST: ${ARABLYZER_SUGGEST:-}
       ARABLYZER_SERP: ${ARABLYZER_SERP:-}
+      # The Arabic text tools (M7): 1 takes a pasted text and hands it to the worker; the API itself has no way to the service.
+      ARABLYZER_NLP_TEXT: ${ARABLYZER_NLP_TEXT-1}
       # Accounts (M4.1), off unless ARABLYZER_ACCOUNTS=on; then every line below must be set.
       ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
       # The owner's panel (M4.8): the Google addresses of its administrators, lower case, comma-separated; empty, no panel.
@@ -338,6 +340,9 @@ services:
       # With accounts on, the scans an account keeps are deleted after the plan's history days.
       ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
       ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS: ${ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS:-}
+      # The text tools (M7): a text a visitor pastes goes from the worker, the one process on both the data and
+      # the scan networks, to the Arabic language service. Empty: the tools say the service is away.
+      ARABLYZER_NLP_URL: ${ARABLYZER_NLP_URL-http://arabic-nlp:8790}
     networks: [data, scan]
     depends_on:
       api: { condition: service_healthy }
@@ -386,6 +391,11 @@ services:
       # The scanner resolves no name itself, so the TXT lookups of its DNS rules (SPF, DMARC) are
       # DNS over HTTPS, through the egress proxy like all its traffic; empty: Cloudflare's.
       ARABLYZER_DOH_URL: ${ARABLYZER_DOH_URL:-}
+      # The Arabic language service (M7), on the scan network beside it: the page's text goes to it after
+      # the render, for the spelling check and the dialect model. Set it empty and both are off; it is
+      # down or slow, the scan goes on without it and says so. How sure it must be of a slip to name it.
+      ARABLYZER_NLP_URL: ${ARABLYZER_NLP_URL-http://arabic-nlp:8790}
+      ARABLYZER_SPELLING_MIN_CONFIDENCE: ${ARABLYZER_SPELLING_MIN_CONFIDENCE:-}
       # The network sees the egress proxy alone, so WebKit may run (plan §13).
       ARABLYZER_NETWORK_ISOLATED: '1'
       # No shader cache kept from one scan to the next.
@@ -407,6 +417,32 @@ services:
     cpus: 2
     # The browsers' threads count too.
     pids_limit: 1024
+
+  # The Arabic language service (M7, docs/design/plans/m7-deep-arabic.md): CAMeL Tools' morphology databases
+  # and dialect model behind a small API (spelling slips, dialect, analysis). It is on the scan network alone,
+  # which has no way out: it reads its own baked data (checksummed at build) and nothing else, keeps nothing,
+  # and is asked by the scanner (a page's text) and the worker (a pasted text). Python 3.12, non-root, read-only.
+  # The memory is measured: the service holds about 640 MiB once its data is loaded (docs/design/plans/m7-deep-arabic.md),
+  # and 1 GiB leaves it room for its word cache. It is a single process, so one CPU is its whole share.
+  arabic-nlp:
+    <<: *hardened
+    build: { context: ../services/arabic-nlp, target: runtime }
+    init: true
+    tmpfs: [/tmp]
+    networks: [scan]
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8790/health', timeout=3).status == 200 else 1)"
+      interval: 10s
+      retries: 10
+      start_period: 30s
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 1
+    pids_limit: 128
 
   egress:
     <<: *hardened
