@@ -438,6 +438,78 @@ export interface GscKeywordsResult {
  * visitor's quota for a request, answer the errors of a scan (`ScanErrorResponse`), and cache
  * what Google said for a day.
  */
+/**
+ * The Arabic text tools (M7): a text a visitor pastes, checked by the Arabic NLP service through the
+ * worker (the API has no way to the service, which is on the scan network): its spelling slips, or its
+ * dialect. Taken as a scan of the visitor's quota, like the search tools; the text is held in the queue
+ * for the seconds the check takes, and kept nowhere.
+ */
+export const NLP_STATUS_PATH = '/api/nlp/status'
+export const NLP_CHECK_PATH = '/api/nlp/check'
+/** The longest text, in characters: a page's worth of paragraphs. */
+export const NLP_TEXT_MAX = 4000
+export const NLP_KINDS = ['spelling', 'dialect'] as const
+export type NlpKind = (typeof NLP_KINDS)[number]
+/** `sure` reports the slips the service is 90% sure of; `wide` those it is 70% sure of, marked as likely. */
+export const NLP_SENSITIVITY = ['sure', 'wide'] as const
+export type NlpSensitivity = (typeof NLP_SENSITIVITY)[number]
+
+export interface NlpStatus {
+  readonly text: boolean
+}
+
+export interface NlpCheckRequest {
+  readonly kind: NlpKind
+  readonly text: string
+  readonly sensitivity?: NlpSensitivity
+  readonly turnstileToken: string
+}
+
+export interface NlpSpellingAnswer {
+  readonly kind: 'spelling'
+  readonly findings: readonly {
+    readonly word: string
+    readonly suggestion: string
+    readonly family: string
+    /** Whole percent. */
+    readonly confidence: number
+    readonly before: string
+    readonly after: string
+    readonly alternatives: readonly string[]
+  }[]
+  readonly words: number
+  readonly judged: number
+  readonly truncated: boolean
+  /** Whole percent: the lowest confidence the findings have. */
+  readonly minConfidence: number
+}
+
+export interface NlpDialectAnswer {
+  readonly kind: 'dialect'
+  readonly label: 'msa' | 'gulf' | 'egyptian' | 'levantine' | 'maghrebi' | null
+  /** Whole percent of the sentences' probability, by variety. */
+  readonly probabilities: Readonly<
+    Record<'msa' | 'gulf' | 'egyptian' | 'levantine' | 'maghrebi', number>
+  >
+  readonly votes: Readonly<Record<'msa' | 'gulf' | 'egyptian' | 'levantine' | 'maghrebi', number>>
+  readonly chunks: number
+  readonly words: number
+  readonly truncated: boolean
+}
+
+export type NlpCheckResponse = NlpSpellingAnswer | NlpDialectAnswer
+
+/** What the worker answers the queue with: the answer, or that the service did not give one. */
+export type NlpTextResult =
+  { readonly ok: true; readonly answer: NlpCheckResponse } | { readonly ok: false }
+
+/** One text for the worker to check: its paragraphs, the kind of check and how sure it must be. */
+export interface NlpTextJob {
+  readonly kind: NlpKind
+  readonly texts: readonly string[]
+  readonly sensitivity: NlpSensitivity
+}
+
 export const SEARCH_STATUS_PATH = '/api/search/status'
 export const SEARCH_SUGGEST_PATH = '/api/search/suggest'
 export const SEARCH_SERP_PATH = '/api/search/serp'

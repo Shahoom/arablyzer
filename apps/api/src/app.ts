@@ -38,6 +38,7 @@ import { mountCompare } from './compare'
 import { mountCrawls } from './crawls'
 import { mountPdf } from './pdf'
 import { mountMcp } from './mcp'
+import { mountNlp, type NlpDeps } from './nlp/routes'
 import { mountSearch, type SearchDeps } from './search/routes'
 import { mountV1 } from './v1/routes'
 import { mountMonitors } from './monitors'
@@ -89,6 +90,8 @@ export interface ApiDeps {
   readonly gsc?: GscDeps
   /** The search tools that ask Google's public pages, each behind its flag (search/routes.ts). */
   readonly search?: SearchDeps
+  /** The Arabic text tools, which check a pasted text through the worker (nlp/routes.ts). */
+  readonly nlp?: NlpDeps
   /** Another way to fetch the font files of the font slimmer's downloads; tests pass their own. */
   readonly fontFetcher?: FontContext['fetcher']
 }
@@ -660,6 +663,8 @@ export function createApp(deps: ApiDeps): Hono {
 
   // The suggestion tree and the results sampler (M5.3), each behind its own flag.
   mountSearch(app, deps, { fromTheSiteJson, refuse }, now)
+  // The Arabic text tools (M7), behind ARABLYZER_NLP_TEXT.
+  mountNlp(app, deps, { fromTheSiteJson, refuse }, now)
 
   app.notFound((c) => c.json({ error: 'not-found' }, 404))
   // A store that fails (Valkey or PostgreSQL away) is the service being unavailable, said as

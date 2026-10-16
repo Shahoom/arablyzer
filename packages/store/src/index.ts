@@ -56,6 +56,7 @@ export type {
   StoredTemplate,
 } from './crawls'
 export { BullMQScanQueue, SCAN_QUEUE, SCAN_WORKER } from './bullmq'
+export { BullMQNlpChecks, NLP_QUEUE, NLP_WAIT_MS, nlpWorker, type NlpChecks } from './nlp-queue'
 export {
   connectionUrl,
   POSTGRES_PROTOCOLS,

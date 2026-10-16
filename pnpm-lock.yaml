@@ -270,6 +270,9 @@ importers:
       '@arablyzer/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@arablyzer/collectors':
+        specifier: workspace:*
+        version: link:../../packages/collectors
       '@arablyzer/plans':
         specifier: workspace:*
         version: link:../../packages/plans
@@ -292,6 +295,9 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
     devDependencies:
+      '@arablyzer/fixtures':
+        specifier: workspace:*
+        version: link:../../fixtures
       '@types/pg':
         specifier: 8.23.1
         version: 8.23.1

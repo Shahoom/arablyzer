@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import {
   authDatabase,
   authSchema,
+  BullMQNlpChecks,
   BullMQScanQueue,
   POSTGRES_PROTOCOLS,
   PostgresAccountData,
@@ -65,12 +66,15 @@ const pool = new pg.Pool({
 pool.on('error', quietly('PostgreSQL', log))
 const store = new PostgresScanStore(pool)
 const queue = new BullMQScanQueue(redis)
+// The Arabic text tools (M7) hand a pasted text to the worker, which alone reaches the NLP service.
+const nlpChecks = env.ARABLYZER_NLP_TEXT?.trim() === '1' ? new BullMQNlpChecks(redis) : undefined
 const stopping = new AbortController()
 const deps = apiDeps(
   env,
   {
     store,
     queue,
+    ...(nlpChecks === undefined ? {} : { nlpChecks }),
     events: new ValkeyScanEvents(redis),
     limiter: new ValkeyRateLimiter(redis),
     inFlight: new ValkeyInFlight(redis),
@@ -110,7 +114,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     stopping.abort()
     sweeping?.stop()
     server.close(() => {
-      void Promise.all([queue.close(), pool.end()]).finally(() => {
+      void Promise.all([queue.close(), nlpChecks?.close(), pool.end()]).finally(() => {
         redis.disconnect()
       })
     })

@@ -27,6 +27,7 @@ import {
   type Handoff,
   type InFlight,
   type MonitorData,
+  type NlpChecks,
   type RateLimiter,
   type ScanEvents,
   type ScanQueue,
@@ -69,6 +70,8 @@ export interface Stores {
   readonly apiKeyData?: ApiKeyData
   /** What the owner keeps and reads (M4.8); without it, there is no suspension, override or panel. */
   readonly adminData?: AdminData
+  /** The queue to the worker for the Arabic text tools (M7); without it, a text check says the service is away. */
+  readonly nlpChecks?: NlpChecks
 }
 
 /**
@@ -221,6 +224,15 @@ export function apiDeps(
     ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
     ...(gsc === undefined ? {} : { gsc }),
     ...(search.suggest || search.serp ? { search } : {}),
+    // The Arabic text tools (M7): on when the owner runs the NLP service (compose sets it).
+    ...(env.ARABLYZER_NLP_TEXT?.trim() === '1'
+      ? {
+          nlp: {
+            enabled: true,
+            ...(stores.nlpChecks === undefined ? {} : { checks: stores.nlpChecks }),
+          },
+        }
+      : {}),
     ...(accounts === undefined ? {} : { accounts }),
     limits,
     policy,

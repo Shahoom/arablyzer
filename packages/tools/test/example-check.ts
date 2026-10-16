@@ -51,8 +51,12 @@ export function fromFixtures(tool: Tool): boolean {
       needs.includes('render') ||
       needs.includes('links') ||
       needs.some((need) => TOOL_ONLY.has(need)) ||
+      // The Arabic NLP service's answer (M7): the example is a fixture's excerpt, the service judged it.
+      needs.includes('nlp') ||
       // A text of 50 words or more is judged, longer than an excerpt of a page.
-      id === 'ai-training-filters'
+      id === 'ai-training-filters' ||
+      // The dialect needs 80 Arabic words.
+      id === 'dialect-register'
     )
   })
 }

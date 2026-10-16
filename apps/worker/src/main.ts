@@ -11,12 +11,14 @@ import {
   VALKEY_PROTOCOLS,
   ValkeyRateLimiter,
   ValkeyScanEvents,
+  nlpWorker,
   type ScanJob,
 } from '@arablyzer/store'
 import { Worker } from 'bullmq'
 import { Redis } from 'ioredis'
 import pg from 'pg'
 import { hostLimited } from './hosts'
+import { nlpTextHandler } from './nlp'
 import { startRetention } from './retention'
 import { failScan, runScan, scanJobOf } from './run'
 
@@ -82,6 +84,15 @@ const worker = new Worker<ScanJob>(
   },
   { connection: redis, ...SCAN_WORKER },
 )
+// The text tools (M7): a pasted text goes to the Arabic NLP service from here, the one process on the
+// data network that is also on the scan network. Without ARABLYZER_NLP_URL the tools answer that the
+// service is away.
+const nlpUrl = env.ARABLYZER_NLP_URL?.trim() ?? ''
+const textWorker =
+  nlpUrl === ''
+    ? null
+    : nlpWorker(redis.duplicate({ maxRetriesPerRequest: null }), nlpTextHandler({ url: nlpUrl }))
+textWorker?.on('error', quietly('Text checks', log))
 worker.on('ready', () => {
   console.log('Worker ready')
 })
@@ -118,6 +129,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     retention.stop()
     // The scan running finishes first (Compose's stop_grace_period is longer than its budget);
     // the queue keeps the rest.
+    void textWorker?.close()
     void worker.close().finally(() => {
       void pool.end().finally(() => {
         redis.disconnect()
