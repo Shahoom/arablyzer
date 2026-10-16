@@ -164,48 +164,50 @@ export function Sidebar({
         : PanelLeftClose
   return (
     <aside className="app-side" aria-label={t.sidebar}>
-      <a href={appHref(lang, 'overview')} className="app-brand" aria-label={t.appName}>
-        <LogoMark />
-        <span className="app-brand-word" lang="en">
-          Arablyzer
-        </span>
-      </a>
-      <nav className="flex flex-col gap-5" aria-label={t.sidebar}>
-        <NavLinks lang={lang} page={page} />
-      </nav>
-      <div className="app-side-card app-side-extra mt-auto">
-        {shared !== null && shared.status === 'ready' ? (
-          <div className="flex flex-col gap-3">
-            <UsageMeter
-              id="side-meter"
-              label={t.plan.title}
-              used={shared.sites.length}
-              limit={shared.limits.sites}
-              text={APP_UI[lang].common.of(shared.sites.length, shared.limits.sites)}
-              full={APP_UI[lang].overview.meterFull}
-            />
-            <a
-              className="text-small font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
-              href={`${localePath(lang, PATHS.home)}#plans`}
-            >
-              {t.plan.compare}
-            </a>
-          </div>
-        ) : (
-          <div className="app-skel h-16" aria-hidden="true" />
-        )}
+      <div className="app-side-in">
+        <a href={appHref(lang, 'overview')} className="app-brand" aria-label={t.appName}>
+          <LogoMark />
+          <span className="app-brand-word" lang="en">
+            Arablyzer
+          </span>
+        </a>
+        <nav className="flex flex-col gap-5" aria-label={t.sidebar}>
+          <NavLinks lang={lang} page={page} />
+        </nav>
+        <div className="app-side-card app-side-extra mt-auto">
+          {shared !== null && shared.status === 'ready' ? (
+            <div className="flex flex-col gap-3">
+              <UsageMeter
+                id="side-meter"
+                label={t.plan.title}
+                used={shared.sites.length}
+                limit={shared.limits.sites}
+                text={APP_UI[lang].common.of(shared.sites.length, shared.limits.sites)}
+                full={APP_UI[lang].overview.meterFull}
+              />
+              <a
+                className="text-small font-semibold text-brand-ink underline underline-offset-4 hover:text-ink"
+                href={`${localePath(lang, PATHS.home)}#plans`}
+              >
+                {t.plan.compare}
+              </a>
+            </div>
+          ) : (
+            <div className="app-skel h-16" aria-hidden="true" />
+          )}
+        </div>
+        <button
+          type="button"
+          className="app-item hidden w-full cursor-pointer border-0 bg-transparent text-start lg:flex"
+          aria-pressed={collapsed}
+          onClick={onCollapse}
+        >
+          <span className="app-ico">
+            <Fold size={16} aria-hidden="true" />
+          </span>
+          <span className="app-label">{collapsed ? t.expand : t.collapse}</span>
+        </button>
       </div>
-      <button
-        type="button"
-        className="app-item hidden w-full cursor-pointer border-0 bg-transparent text-start lg:flex"
-        aria-pressed={collapsed}
-        onClick={onCollapse}
-      >
-        <span className="app-ico">
-          <Fold size={16} aria-hidden="true" />
-        </span>
-        <span className="app-label">{collapsed ? t.expand : t.collapse}</span>
-      </button>
     </aside>
   )
 }

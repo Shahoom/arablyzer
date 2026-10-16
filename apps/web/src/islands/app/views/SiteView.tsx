@@ -389,9 +389,6 @@ export default function SiteView({ lang }: ViewProps) {
                     trendText(site.monitor.trend, monitorWords.noScore),
                   )}
                 />
-                <span className="text-meta text-ink-2">
-                  {trendText(site.monitor.trend, monitorWords.noScore)}
-                </span>
               </div>
             )}
             <div className="mt-auto flex flex-wrap gap-2">
