@@ -6,7 +6,14 @@ import {
   type ReportStrings,
 } from '@arablyzer/i18n/report'
 import type { ToolAppStrings } from '@arablyzer/i18n/tool-app'
-import type { Finding, Notice, Report, RuleResult, Severity } from '@arablyzer/report-schema'
+import type {
+  CountryFitFact,
+  Finding,
+  Notice,
+  Report,
+  RuleResult,
+  Severity,
+} from '@arablyzer/report-schema'
 
 /** The scan's ID, the last part of /r/{id} or /en/r/{id}. */
 export function idFromPath(pathname: string): string | null {
@@ -289,6 +296,65 @@ export function problemsOf(report: Report): RuleFindings[] {
       rule,
       findings: report.findings.filter((finding) => finding.ruleId === rule.id),
     }))
+}
+
+/** What the findings list narrows to: a severity of the rules that failed, or the checks to look at. */
+export type FindingsFilter = Severity | 'review'
+
+export interface FilterChip {
+  readonly key: FindingsFilter
+  /** Rules, as the summary counts them. */
+  readonly count: number
+}
+
+/**
+ * The chips that narrow the findings list. A severity counts the rules that failed with it, as
+ * the summary's headline and severities do; a rule that needs a human eye is counted under none
+ * of them but in a chip of its own, last (the score deducts nothing for it).
+ */
+export function filterChips(problems: readonly RuleFindings[]): FilterChip[] {
+  const chips: FilterChip[] = []
+  const severities = (Object.keys(SEVERITY_RANK) as Severity[]).sort(
+    (a, b) => SEVERITY_RANK[a] - SEVERITY_RANK[b],
+  )
+  for (const severity of severities) {
+    const count = problems.filter(
+      ({ rule }) => rule.status === 'fail' && rule.severity === severity,
+    ).length
+    if (count > 0) chips.push({ key: severity, count })
+  }
+  const review = problems.filter(({ rule }) => rule.status === 'needs-review').length
+  if (review > 0) chips.push({ key: 'review', count: review })
+  return chips
+}
+
+/** The problems a chip narrows the list to; all of them with none pressed. */
+export function narrowedBy(
+  problems: readonly RuleFindings[],
+  only: FindingsFilter | null,
+): RuleFindings[] {
+  if (only === null) return [...problems]
+  return problems.filter(({ rule }) =>
+    only === 'review'
+      ? rule.status === 'needs-review'
+      : rule.status === 'fail' && rule.severity === only,
+  )
+}
+
+/**
+ * What the country card says (rule country-fit): `ready`, a percentage for a named country; `few`,
+ * the country is named, as two kinds of evidence agree, but under three items could be judged, so
+ * there is no percentage; `thin`, one kind of evidence alone; `unclear`, evidence for several
+ * countries that tie or conflict; `none`, nothing points to a country.
+ */
+export type CountryVerdict = 'ready' | 'few' | 'thin' | 'unclear' | 'none'
+
+export function countryVerdict(fact: CountryFitFact): CountryVerdict {
+  if (fact.country !== null) {
+    if (fact.percent !== null) return 'ready'
+    return fact.confidence === 'strong' ? 'few' : 'thin'
+  }
+  return fact.signals.length === 0 ? 'none' : 'unclear'
 }
 
 /** The severity of the worst problem that judges, if there is one; a note is not a problem. */
