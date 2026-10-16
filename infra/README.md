@@ -195,7 +195,7 @@ accounts off the service logs that and idles. The recommended free-plan numbers 
 
 «حالة الويب العربي» (docs/design/plans/m9-state-of-arabic-web.md) is a one-off job, not a service: the `sotaw` entry of
 the API's image (`packages/sotaw/src/cli.ts`) on the application role, in the `sotaw` profile, so `up` never starts it.
-It reads each site's front page through the scanner (robots.txt as a crawler: the `*` group counts) and queues its scan
+It reads each site's front page through the scanner (robots.txt as a crawler: the `*` group counts, a 4xx means no restrictions, a 5xx or a network failure is tried twice) and queues its scan
 with the lowest priority, one at a time, at most one every `ARABLYZER_SOTAW_INTERVAL_SECONDS` (20 when empty), and only
 while no visitor's scan is waiting or running and the host's one-minute load per core is under `ARABLYZER_SOTAW_MAX_LOAD`
 (0.5). It keeps a compact outcome of each homepage and deletes the scan with its report. State is in `sotaw_runs` and
@@ -204,6 +204,7 @@ while no visitor's scan is waiting or running and the host's one-minute load per
 ```
 cd infra                                                  # where .env and COMPOSE_FILE are
 docker compose --profile sotaw run --rm sotaw status
+docker compose --profile sotaw run --rm sotaw requeue --reason robots-unreachable   # sites skipped for it, back to pending
 docker compose --profile sotaw run -d --name sotaw-crawl sotaw crawl     # in the background
 docker logs -f sotaw-crawl                                # progress, pauses and resumes
 docker stop -t 30 sotaw-crawl && docker rm sotaw-crawl    # stops after the scan in hand; run it again to go on

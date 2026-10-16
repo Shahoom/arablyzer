@@ -70,7 +70,18 @@ All of these are of the Arabic pages (see the global constraint above); there is
 
 1. **Gate.** Wait while `busy()` (visitors' scans waiting or running, less the crawl's own that is running) is above 0 or the host's load per core is above the limit; poll every 5 s.
 2. **Take** the next pending site (`UPDATE … FOR UPDATE SKIP LOCKED`); one crawl at a time is held by an advisory lock.
-3. **Read the front page** through the scanner (`/crawl`, no browser): robots.txt as a crawler, then the page, `https://`, then `http://`, then `https://www.`; at least 2 s between two reads. Skipped, with a reason code and no scan: `robots`, `robots-unreachable`, `bot-challenge`, `http-error` (the site answered with an error status), `unreachable`, `not-html`, `off-domain` (the front page ended on another domain), `opt-out`.
+3. **Read the front page** through the scanner (`/crawl`, no browser): robots.txt as a crawler, then the page, `https://`, then `http://`, then `https://www.`; at least 2 s between two reads (what robots.txt's answer means, below). Skipped, with a reason code and no scan: `robots`, `robots-unreachable`, `bot-challenge`, `http-error` (the site answered with an error status), `unreachable`, `not-html`, `off-domain` (the front page ended on another domain), `opt-out`.
+   **robots.txt, as RFC 9309 and Google read it** (`robotsOf` in `packages/engine/src/crawl.ts`; the deep crawl shares it):
+
+   | robots.txt answers | The crawler |
+   |---|---|
+   | 2xx | parses it and follows it (the `*` group counts) |
+   | a redirect | follows up to 5 hops, to any host; the file at the end is read as the asked origin's own (RFC 9309 §2.3.1.2); a 6th hop is "unavailable" |
+   | 4xx but 429: 404, 410, 401, 403 … | "unavailable": no restrictions, the page is read |
+   | 5xx, 429, a timeout, a refused connection, a DNS or TLS failure | one more try after 3 s with twice the time (20 s, then 40 s); still failing: skipped as `robots-unreachable` |
+   | a bot challenge instead of the file (e.g. Cloudflare's `cf-mitigated: challenge`, also after a redirect) | not the site's file, and never solved: skipped as `bot-challenge` |
+
+   `requeue` puts sites back after a rule changed: `pnpm sotaw requeue --reason robots-unreachable` (any reason code, skipped or failed sites) sets those rows back to pending in place, no row added, attempts reset; the running crawl claims them next, in the frame's order; a crawl that had finished takes them up when `crawl` is run again.
 4. **Scan.** After the rate cap (20 s from the last launch) and the gate once more: an unlinked scan row, then a job at priority 2,097,151 (the lowest), `engines: ['chromium']`. The worker runs it as any scan.
 5. **Keep.** When the scan is finished, `compact(report)`: a letter for each rule (`p f r n e`), the page's script, language and direction, the platform id, the CrUX figures, the score, the rule set's version. Nothing else: no URL but the domain the row is stored under, no title, no text, no finding, no screenshot, no X-ray. The scan, with its report, is deleted at once. A bot challenge or a page that could not be read is skipped (`bot-challenge`, `no-page`), not counted as judged.
 6. **Failure.** A scan that fails is tried once more (`ARABLYZER_SOTAW_MAX_ATTEMPTS`), then the site is `failed`; a scan past `ARABLYZER_SOTAW_SCAN_TIMEOUT_SECONDS` (300) is `failed` (`timeout`) and deleted. A scanner that is not there gives the attempt back and waits 15 s.

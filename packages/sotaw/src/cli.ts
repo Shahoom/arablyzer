@@ -48,10 +48,13 @@ import { createRunner } from './runner'
 //                                               as committed (when it holds every site: no download)
 //   pnpm sotaw:crawl [--edition 2026]           crawl it, politely, and go on where it stopped
 //   pnpm sotaw status [--edition 2026]          how far the crawl is
+//   pnpm sotaw requeue --reason robots-unreachable [--edition 2026]
+//                                               put the sites skipped (or failed) for that reason back to
+//                                               pending, in the same rows: the running crawl takes them up
 //   pnpm sotaw export --out DIR [--edition ..]  the public dataset's files (aggregates only), from what the crawl kept
 //   ... export --out DIR --internal DIR2        also the per-site rows, for our own analysis, into DIR2
 //
-// `crawl`, `status` and `export` read DATABASE_URL (the application role's), and `crawl` also
+// `crawl`, `status`, `requeue` and `export` read DATABASE_URL (the application role's), and `crawl` also
 // VALKEY_URL and ARABLYZER_SCANNER_URL / ARABLYZER_SCANNER_TOKEN: they run inside the stack's
 // network (infra/compose.yaml, profile `sotaw`).
 
@@ -60,11 +63,12 @@ const log = (line: string) => {
   console.error(`${new Date().toISOString().slice(0, 19)}Z ${line}`)
 }
 
-const USAGE = `usage: sotaw <frame|crawl|status|export> [options]
+const USAGE = `usage: sotaw <frame|crawl|status|requeue|export> [options]
   frame  --list-id ID [--cap 10000] [--floor 300] [--seed TEXT] [--file list.csv]
   frame  --from-frame ID
   crawl  [--edition 2026] [--frame ID]
   status [--edition 2026]
+  requeue --reason REASON [--edition 2026]
   export --out DIR [--internal DIR2] [--edition 2026] [--frame ID]`
 
 function fail(message: string): never {
@@ -85,6 +89,7 @@ const { positionals, values } = parseArgs({
     edition: { type: 'string' },
     frame: { type: 'string' },
     out: { type: 'string' },
+    reason: { type: 'string' },
   },
 })
 const command = positionals[0]
@@ -295,6 +300,29 @@ async function statusCommand(): Promise<void> {
   }
 }
 
+async function requeueCommand(): Promise<void> {
+  const reason = values.reason?.trim()
+  if (reason === undefined || reason === '') {
+    fail('--reason names why the sites were skipped, e.g. --reason robots-unreachable')
+  }
+  const pool = connect()
+  try {
+    const store = new PostgresSotawStore(pool)
+    const run = await store.run(runId)
+    if (run === null) fail(`There is no run ${runId}`)
+    // No lock: the crawl holds it, and only rows that ended with this reason change, which it never touches.
+    const back = await store.requeue(runId, reason)
+    console.log(
+      `${runId}: ${String(back)} sites put back to pending (${reason}); ${JSON.stringify(await store.counts(runId))}`,
+    )
+    if (run.state === 'finished') {
+      console.log('The crawl had finished: run pnpm sotaw:crawl again to take them up.')
+    }
+  } finally {
+    await pool.end()
+  }
+}
+
 async function exportCommand(): Promise<void> {
   const out = values.out
   if (out === undefined) fail('--out names the directory to write to')
@@ -347,6 +375,9 @@ switch (command) {
     break
   case 'status':
     await statusCommand()
+    break
+  case 'requeue':
+    await requeueCommand()
     break
   case 'export':
     await exportCommand()

@@ -180,6 +180,16 @@ export class PostgresSotawStore implements SotawStore {
     )
   }
 
+  async requeue(runId: string, reason: string): Promise<number> {
+    const { rowCount } = await this.#pool.query(
+      `UPDATE sotaw_results
+       SET state = 'pending', reason = NULL, attempts = 0, scan_id = NULL, started_at = NULL, finished_at = NULL
+       WHERE run_id = $1 AND state IN ('skipped', 'failed') AND reason = $2`,
+      [runId, reason],
+    )
+    return rowCount ?? 0
+  }
+
   async counts(runId: string): Promise<Readonly<Record<ResultState, number>>> {
     const { rows } = await this.#pool.query<{ state: ResultState; n: string }>(
       `SELECT state, count(*) AS n FROM sotaw_results WHERE run_id = $1 GROUP BY state`,

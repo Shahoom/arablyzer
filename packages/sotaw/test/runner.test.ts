@@ -297,6 +297,66 @@ describe('what the crawl does with a site', () => {
     expect(h.added).toHaveLength(0)
   })
 
+  it('puts back the sites skipped for one reason, in the same rows, and the crawl scans them next', async () => {
+    const pages: Record<string, PageAnswer> = {
+      'a.sa': refused('blocked', 'robots-unreachable'),
+      'b.sa': refused('blocked', 'robots'),
+      'c.sa': refused('blocked', 'robots-unreachable'),
+    }
+    const h = harness({ domains: ['a.sa', 'b.sa', 'c.sa', 'd.sa'], pages })
+    await h.run()
+    expect(h.added.map((a) => a.job.url)).toEqual(['https://d.sa/'])
+    const before = await h.store.results(RUN)
+    expect(await h.store.requeue(RUN, 'robots-unreachable')).toBe(2)
+    // Nothing is added, and the others stay as they were.
+    const after = await h.store.results(RUN)
+    expect(after).toHaveLength(before.length)
+    expect(after.map((r) => [r.domain, r.state, r.reason, r.attempts])).toEqual([
+      ['a.sa', 'pending', null, 0],
+      ['b.sa', 'skipped', 'robots', 1],
+      ['c.sa', 'pending', null, 0],
+      ['d.sa', 'done', null, 1],
+    ])
+    // The site now answers: the crawl, started again, takes the two up and no more.
+    pages['a.sa'] = ok('https://a.sa/')
+    pages['c.sa'] = ok('https://c.sa/')
+    const summary = await createRunner(RUN, h.deps, h.config).run(new AbortController().signal)
+    expect(summary.stopped).toBe('finished')
+    expect(summary.counts).toMatchObject({ done: 3, skipped: 1, pending: 0 })
+    expect(h.added.map((a) => a.job.url)).toEqual([
+      'https://d.sa/',
+      'https://a.sa/',
+      'https://c.sa/',
+    ])
+    expect(await h.store.requeue(RUN, 'robots-unreachable')).toBe(0)
+  })
+
+  it('puts back a failed site too, with its attempts, and nothing that is done or still waiting', async () => {
+    const store = new MemorySotawStore()
+    const at = new Date()
+    await store.start(
+      { id: RUN, frameId: 'T', frameSha: 'f'.repeat(64), seed: 's' },
+      ['a.sa', 'b.sa', 'c.sa'].map((domain, position) => ({
+        domain,
+        country: 'sa',
+        rank: position + 1,
+        position,
+      })),
+      at,
+    )
+    await store.claim(RUN)
+    await store.claim(RUN)
+    await store.fail(RUN, 'a.sa', 'timeout')
+    await store.skip(RUN, 'b.sa', 'timeout')
+    expect(await store.requeue(RUN, 'timeout')).toBe(2)
+    expect(await store.requeue('another-run', 'timeout')).toBe(0)
+    expect((await store.results(RUN)).map((r) => [r.state, r.reason, r.attempts])).toEqual([
+      ['pending', null, 0],
+      ['pending', null, 0],
+      ['pending', null, 0],
+    ])
+  })
+
   it('tries http and then www for a site that does not answer, and does not for one that answers with an error', async () => {
     const h = harness({
       domains: ['a.sa', 'b.sa', 'c.sa'],
