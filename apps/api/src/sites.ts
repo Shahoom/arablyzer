@@ -121,7 +121,7 @@ export function mountSites(app: Hono, deps: SitesDeps): void {
       crawls?.latestPerSite(read.user.id) ??
         Promise.resolve(new Map<string, Crawl>() as ReadonlyMap<string, Crawl>),
     ])
-    const plan = planOf(access.plans, read.user.id)
+    const plan = await planOf(access.plans, read.user.id)
     const body: SitesResponse = {
       sites: sites.map((site) =>
         siteOf(
@@ -152,7 +152,7 @@ export function mountSites(app: Hono, deps: SitesDeps): void {
     if (read instanceof Response) return read
     const parsed = parseTarget(request.data.url, deps.policy)
     if (!parsed.ok) return c.json({ error: parsed.code }, URL_STATUS[parsed.code])
-    const plan = planOf(access.plans, read.user.id)
+    const plan = await planOf(access.plans, read.user.id)
     const added = await data.addSite(
       read.user.id,
       { id: newSiteId(), url: parsed.value.url.href, createdAt: deps.now() },
@@ -192,7 +192,7 @@ export function mountSites(app: Hono, deps: SitesDeps): void {
     const history = await data.history(read.user.id, HISTORY_LIMIT)
     const body: AccountScansResponse = {
       scans: history.map(scanOf),
-      historyDays: planOf(access.plans, read.user.id).historyDays,
+      historyDays: (await planOf(access.plans, read.user.id)).historyDays,
     }
     return c.json(body)
   })

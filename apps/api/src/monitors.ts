@@ -117,7 +117,7 @@ export function mountMonitors(app: Hono, deps: MonitorsDeps): void {
       const off: MonitorResponse = { monitor: null }
       return c.json(off)
     }
-    const plan = planOf(access.plans, read.user.id)
+    const plan = await planOf(access.plans, read.user.id)
     const now = deps.now()
     const enabled = await monitors.enable(
       read.user.id,

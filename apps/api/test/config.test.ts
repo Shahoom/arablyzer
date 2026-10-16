@@ -1,5 +1,6 @@
 import {
   MemoryAccountData,
+  MemoryAdminData,
   MemoryInFlight,
   MemoryRateLimiter,
   MemoryScanEvents,
@@ -378,5 +379,50 @@ describe('apiDeps with accounts', () => {
       () => undefined,
     )
     expect(deps.accounts?.secureCookies).toBe(false)
+  })
+
+  it('names the owner’s panel only with ARABLYZER_ADMIN_EMAILS, and wants the store for it', () => {
+    const withAdmin = () => {
+      const base = withAuth()
+      return {
+        ...base,
+        adminData: new MemoryAdminData({
+          users: () => [],
+          sessions: () => [],
+          scans: base.store,
+          accounts: base.accountData,
+        }),
+      }
+    }
+    const none = apiDeps(ACCOUNTS, withAdmin(), () => undefined)
+    expect(none.accounts?.adminEmails).toEqual([])
+    expect(none.accounts?.admin).toBeDefined()
+    const named = apiDeps(
+      { ...ACCOUNTS, ARABLYZER_ADMIN_EMAILS: 'boss@example.com, other@example.com' },
+      withAdmin(),
+      () => undefined,
+    )
+    expect(named.accounts?.adminEmails).toEqual(['boss@example.com', 'other@example.com'])
+    // An account's erasure runs the owner's too, and the plans carry the owner's numbers.
+    expect(typeof named.accounts?.erase).toBe('function')
+    expect(typeof named.accounts?.plans.overrides).toBe('function')
+    expect(() =>
+      apiDeps(
+        { ...ACCOUNTS, ARABLYZER_ADMIN_EMAILS: 'boss@example.com' },
+        withAuth(),
+        () => undefined,
+      ),
+    ).toThrow(/ARABLYZER_ADMIN_EMAILS needs a store/)
+    expect(() =>
+      apiDeps(
+        { ...ACCOUNTS, ARABLYZER_ADMIN_EMAILS: 'Boss@Example.com' },
+        withAdmin(),
+        () => undefined,
+      ),
+    ).toThrow(/lower-case/)
+    // With accounts off the variable is not read: nothing starts.
+    expect(
+      apiDeps({ ...PRODUCTION, ARABLYZER_ADMIN_EMAILS: 'boss@example.com' }, stores()).accounts,
+    ).toBeUndefined()
   })
 })

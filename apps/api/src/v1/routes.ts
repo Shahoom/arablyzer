@@ -182,7 +182,11 @@ export function mountV1(
       if (failures !== null) await deps.limiter.take(failures, deps.attempts, at.getTime())
       return fail(c, 'unauthorized')
     }
-    const plan = planOf(accounts.plans, known.userId)
+    // The owner's suspension closes every key of the account (M4.8), whatever the plan says.
+    if ((await accounts.admin?.state(known.userId))?.suspendedAt != null) {
+      return fail(c, 'unauthorized', { message: 'This account is suspended.' })
+    }
+    const plan = await planOf(accounts.plans, known.userId)
     // A plan with no API closes it, whatever keys were made before it was closed.
     if (plan.apiScans === 0) {
       return fail(c, 'plan_limit', { details: { limit: 'api', plan: plan.id } })
@@ -279,7 +283,7 @@ export function mountV1(
     input: { url: string; tool?: string },
     extras: StartExtras,
   ): Promise<Response> {
-    const plan = planOf(live.accounts.plans, live.userId)
+    const plan = await planOf(live.accounts.plans, live.userId)
     const response = await deps.startScan(
       c,
       {

@@ -14,6 +14,7 @@ export {
   type StartProblem,
 } from './integrations'
 export { ACCOUNT_UI, type AccountProblem, type AccountStrings } from './account'
+export { ADMIN_UI, type AdminStrings } from './admin'
 export { BLOG_TAGS, BLOG_UI, type BlogStrings, type BlogTag } from './blog'
 export { COMPARE_UI, type CompareStrings } from './compare'
 export { CRAWL_UI, type CrawlStrings } from './crawl'
@@ -49,6 +50,7 @@ export {
 } from './versus'
 
 import { ACCOUNT_UI } from './account'
+import { ADMIN_UI } from './admin'
 import { ALERT_TEXT } from './alerts'
 import { BLOG_UI } from './blog'
 import { COMPARE_UI } from './compare'
@@ -96,4 +98,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'integrations.ts': INTEGRATIONS_UI,
   'search.ts': SEARCH_UI,
   'legal.ts': LEGAL_UI,
+  'admin.ts': ADMIN_UI,
 }

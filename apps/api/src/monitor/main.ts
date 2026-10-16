@@ -11,9 +11,11 @@ import {
   ValkeyInFlight,
   ValkeyRateLimiter,
   ValkeyScanEvents,
+  PostgresAdminData,
 } from '@arablyzer/store'
 import { Redis } from 'ioredis'
 import pg from 'pg'
+import { withOverrides } from '../admin/plans'
 import { newScanId } from '../ids'
 import { startLoop } from './loop'
 import { mailerFrom } from './mail'
@@ -63,7 +65,8 @@ if (accountsModeFrom(env) !== 'on') {
     limiter: new ValkeyRateLimiter(redis),
     inFlight: new ValkeyInFlight(redis),
     limits,
-    plans,
+    // The owner's per-account numbers (M4.8) are read first, as in the API.
+    plans: withOverrides(plans, new PostgresAdminData(pool)),
     policy,
     resolver: defaultResolver(policy),
     sender: webhookSender({ policy, resolver: defaultResolver(policy) }),

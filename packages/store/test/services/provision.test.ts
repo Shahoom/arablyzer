@@ -175,6 +175,8 @@ describe.skipIf(!hasPostgres)('the database roles', () => {
         'verifications',
         'sites',
         'account_scans',
+        'admin_user_state',
+        'admin_audit',
         'drizzle.__drizzle_migrations',
       ]) {
         await expect(worker.query(`SELECT * FROM ${table} LIMIT 0`), table).rejects.toThrow(DENIED)

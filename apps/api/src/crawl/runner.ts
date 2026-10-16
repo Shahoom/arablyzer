@@ -300,7 +300,7 @@ export function createCrawlRunner(deps: CrawlRunnerDeps): CrawlRunner {
   /** Starts the scan of one page the way a monitor's starts: the account's place, the host's bucket, the queue's lower half. */
   async function startScan(crawl: Crawl, url: string): Promise<'started' | 'wait' | 'skip'> {
     const at = now()
-    const plan = planOf(deps.plans, crawl.userId)
+    const plan = await planOf(deps.plans, crawl.userId)
     const holder = `account:${crawl.userId}`
     const id = deps.newId()
     if (!(await holdPlace(deps, holder, id, plan.inFlight, at.getTime()))) return 'wait'

@@ -68,8 +68,9 @@
 :{$PORT:8080} {
 	encode zstd gzip
 
-	# The API, and the MCP endpoint (M5.1), which is the API's: the same proxy, address and secret.
-	@api path /api/* /mcp
+	# The API, the MCP endpoint (M5.1) and the owner's panel (M4.8, /admin, which the API renders and
+	# answers 404 to anyone but an administrator): the same proxy, address and secret.
+	@api path /api/* /mcp /admin /admin/*
 	handle @api {
 		import security same-origin
 		reverse_proxy api:8787 {
