@@ -107,6 +107,17 @@
 		file_server
 	}
 
+	# The signed-in dashboard (M4.9): a page for the person alone, never indexed. Its pages are the
+	# build's, and exist only where the site is built with accounts: elsewhere the address is a 404.
+	@dash path_regexp dash ^(/en)?/app(?:/[a-z]+)?$
+	handle @dash {
+		import security same-origin
+		header X-Robots-Tag "noindex, nofollow"
+		root * /srv
+		rewrite * {path}.html
+		file_server
+	}
+
 	# A page is its path's .html file (Astro's build.format 'preserve'): /tools is tools.html,
 	# /tools/rtl-check is tools/rtl-check.html; a directory's page is its index.html.
 	handle {

@@ -40,6 +40,7 @@ export const PATHS = {
   developers: '/developers',
   login: '/login',
   account: '/account',
+  app: '/app',
   compare: '/account/compare',
   fix: '/fix',
   fixGuide: (slug: string) => `/fix/${slug}`,

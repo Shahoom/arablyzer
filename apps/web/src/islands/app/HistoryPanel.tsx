@@ -1,117 +1,35 @@
 import type { HistoryMarker, SiteHistory } from '@arablyzer/api-contract/codes'
+import { APP_UI } from '@arablyzer/i18n/app'
 import { COMPARE_UI } from '@arablyzer/i18n/compare'
 import { CATEGORIES, REPORT } from '@arablyzer/i18n/report'
 import type { Lang } from '@arablyzer/seo/site'
-import { ChartLine } from 'lucide-preact'
 import { useId, useState } from 'preact/hooks'
+import ScoreChart, { lineStyle } from '../account/ScoreChart'
 import { categoriesIn, markersByScan } from '../chart-model'
-import { getSiteHistory } from '../compare-api'
 import { shortDay } from '../compare-model'
 import { dayLabel, reportHref } from '../sites-model'
-import ScoreChart, { lineStyle } from './ScoreChart'
-
-interface Props {
-  lang: Lang
-  siteId: string
-}
 
 const MARKER_KINDS = [
-  { kind: 'score-drop', symbol: '\u25BC' },
-  { kind: 'critical', symbol: '\u25C6' },
-  { kind: 'down', symbol: '\u25A0' },
+  { kind: 'score-drop', symbol: '▼' },
+  { kind: 'critical', symbol: '◆' },
+  { kind: 'down', symbol: '■' },
 ] as const
 
-type State = 'closed' | 'loading' | 'failed' | { readonly history: SiteHistory }
-
 /**
- * One saved site's score history (M4.6): a chart of the overall score, lines for the categories
- * the person turns on, marks where monitoring would alert, and the same numbers as a table. It
- * asks for the history when it is first opened.
+ * A site's score over time (M4.6, in the dashboard of M4.9): the chart that answers the pointer, lines
+ * for the categories the person turns on, the marks where monitoring would have alerted, and the same
+ * numbers as a table. The history is read by the page; this draws it.
  */
-export default function ScoreHistory({ lang, siteId }: Props) {
+export default function HistoryPanel({ lang, history }: { lang: Lang; history: SiteHistory }) {
   const t = COMPARE_UI[lang].history
-  const names = REPORT[lang].categories
+  const a = APP_UI[lang].site.chart
+  const names: Readonly<Record<string, string>> = REPORT[lang].categories
   const uid = useId()
-  const [state, setState] = useState<State>('closed')
   const [categories, setCategories] = useState<readonly string[]>([])
   const [table, setTable] = useState(false)
-  const open = state !== 'closed'
 
-  async function toggle() {
-    if (open) {
-      setState('closed')
-      return
-    }
-    setState('loading')
-    const loaded = await getSiteHistory(siteId)
-    setState(loaded.ok ? { history: loaded.value } : 'failed')
-  }
-
-  const panel = `${uid}-panel`
-  return (
-    <div className="flex flex-col gap-3 border-t border-line pt-3">
-      <button
-        type="button"
-        className="btn-white self-start"
-        aria-expanded={open}
-        aria-controls={panel}
-        onClick={() => void toggle()}
-      >
-        <ChartLine aria-hidden="true" size={16} />
-        {open ? t.hide : t.show}
-      </button>
-      <div id={panel} hidden={!open} className="flex flex-col gap-4">
-        {state === 'loading' && (
-          <p role="status" className="m-0 text-small text-ink-2">
-            {t.loading}
-          </p>
-        )}
-        {state === 'failed' && (
-          <p role="alert" className="m-0 text-small text-ink-2">
-            {t.failed}
-          </p>
-        )}
-        {typeof state !== 'string' && (
-          <Loaded
-            lang={lang}
-            history={state.history}
-            names={names}
-            id={uid}
-            categories={categories}
-            onCategories={setCategories}
-            table={table}
-            onTable={setTable}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
-interface LoadedProps {
-  lang: Lang
-  history: SiteHistory
-  names: Readonly<Record<string, string>>
-  id: string
-  categories: readonly string[]
-  onCategories: (next: readonly string[]) => void
-  table: boolean
-  onTable: (next: boolean) => void
-}
-
-function Loaded({
-  lang,
-  history,
-  names,
-  id,
-  categories,
-  onCategories,
-  table,
-  onTable,
-}: LoadedProps) {
-  const t = COMPARE_UI[lang].history
   if (history.points.length === 0) {
-    return <p className="m-0 text-body text-ink-2">{t.empty}</p>
+    return <p className="m-0 p-5 text-body text-ink-2">{a.empty}</p>
   }
   const available = categoriesIn(history, CATEGORIES)
   const chosen = categories.filter((category) => available.includes(category))
@@ -135,15 +53,11 @@ function Loaded({
         : t.markers.down
 
   return (
-    <>
-      <div className="flex flex-col gap-1">
-        <h3 className="heading-3 m-0">{t.title}</h3>
-        <p className="m-0 text-small text-ink-2">{t.lead(history.days)}</p>
-      </div>
+    <div className="flex flex-col gap-4 p-5 pt-3">
       <ScoreChart
         lang={lang}
         history={history}
-        id={`${id}-chart`}
+        id={`${uid}-chart`}
         summary={summary}
         extra={chosen.map((key) => ({ key, index: CATEGORIES.indexOf(key as never) }))}
       />
@@ -165,7 +79,7 @@ function Loaded({
                 aria-pressed={on}
                 className="chip min-h-11"
                 onClick={() => {
-                  onCategories(on ? chosen.filter((c) => c !== category) : [...chosen, category])
+                  setCategories(on ? chosen.filter((c) => c !== category) : [...chosen, category])
                 }}
               >
                 <span
@@ -197,15 +111,15 @@ function Loaded({
         type="button"
         className="btn-ghost self-start"
         aria-expanded={table}
-        aria-controls={`${id}-table`}
+        aria-controls={`${uid}-table`}
         onClick={() => {
-          onTable(!table)
+          setTable(!table)
         }}
       >
         {table ? t.table.hide : t.table.show}
       </button>
       <div
-        id={`${id}-table`}
+        id={`${uid}-table`}
         hidden={!table}
         role="region"
         aria-label={t.table.caption}
@@ -275,6 +189,6 @@ function Loaded({
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   )
 }

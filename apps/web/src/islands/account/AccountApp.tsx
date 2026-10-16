@@ -1,27 +1,19 @@
-import type { AccountSummary, Language } from '@arablyzer/api-contract/codes'
+import type { Language } from '@arablyzer/api-contract/codes'
 import { ACCOUNT_UI, type AccountProblem } from '@arablyzer/i18n/account'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import { PUBLIC_AUTH_GOOGLE_CLIENT_ID } from 'astro:env/client'
-import { LockKeyhole, LogOut, Trash2, TriangleAlert } from 'lucide-preact'
-import type { ComponentChildren, RefObject } from 'preact'
+import { LockKeyhole, TriangleAlert } from 'lucide-preact'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import {
-  deleteAccount,
   readAccount,
   setLanguage,
   signInWithCredential,
-  signOut,
-  signOutEverywhere,
   startGoogle,
   type Outcome,
 } from '../auth-api'
-import { accountHref, problemFromQuery } from '../auth-model'
+import { problemFromQuery } from '../auth-model'
+import { appHref } from '../app/app-model'
 import GoogleSignIn from './GoogleSignIn'
-import AlertsPanel from './AlertsPanel'
-import BrandPanel from './BrandPanel'
-import KeysPanel from './KeysPanel'
-import PdfPanel from './PdfPanel'
-import SitesPanel from './SitesPanel'
 
 interface Props {
   lang: Language
@@ -32,9 +24,9 @@ interface Props {
 type View =
   | { kind: 'loading' }
   | { kind: 'off' }
-  | { kind: 'out'; message: 'signed-out' | null }
-  | { kind: 'in'; account: AccountSummary }
-  | { kind: 'deleted' }
+  | { kind: 'out' }
+  /** Signed in: on its way to the dashboard. */
+  | { kind: 'in' }
 
 interface Notice {
   readonly problem: AccountProblem
@@ -43,9 +35,9 @@ interface Notice {
 
 /**
  * The sign-in and account pages' one island (M4.1): who is signed in decides what it shows. Signed
- * out: Google's button and One Tap. Signed in: the address and name Google gave, the language, the
- * ways out, and deleting the account. Nothing is requested until the page loads, and the pages are
- * the only ones that load it.
+ * out: Google's button and One Tap. Signed in: on to the dashboard (M4.9), which has the account's
+ * details, its sites and the rest. Nothing is requested until the page loads, and the pages are the
+ * only ones that load it.
  */
 export default function AccountApp({ lang, page }: Props) {
   const t = ACCOUNT_UI[lang]
@@ -72,35 +64,25 @@ export default function AccountApp({ lang, page }: Props) {
       if (!read.ok) {
         if (read.problem === 'not-found') setView({ kind: 'off' })
         else {
-          setView({ kind: 'out', message: null })
+          setView({ kind: 'out' })
           setNotice({ problem: read.problem, ...retry(read) })
         }
         return
       }
       if (read.value === null) {
-        setView({ kind: 'out', message: null })
+        setView({ kind: 'out' })
         if (returned !== null) setNotice({ problem: returned })
         return
       }
-      if (page === 'login') {
-        window.location.replace(accountHref(lang))
-        return
-      }
-      setView({ kind: 'in', account: read.value })
+      // The account's language is set from the page's, once, so both ways in take the same path.
+      if (read.value.language === null) void setLanguage(lang)
+      setView({ kind: 'in' })
+      window.location.replace(appHref(lang, 'overview'))
     })
     return () => {
       live = false
     }
   }, [clientId, lang, page])
-
-  // The account's language is set from the page's, once, so both ways in take the same path.
-  const account = view.kind === 'in' ? view.account : null
-  useEffect(() => {
-    if (account?.language !== null) return
-    void setLanguage(lang).then((set) => {
-      if (set.ok) setView({ kind: 'in', account: set.value })
-    })
-  }, [account, lang])
 
   // A change of view puts the reader at its heading, for a screen reader and the keyboard.
   const kind = view.kind
@@ -122,11 +104,9 @@ export default function AccountApp({ lang, page }: Props) {
       failed(signedIn)
       return
     }
-    if (page === 'login') {
-      window.location.assign(accountHref(lang))
-      return
-    }
-    setView({ kind: 'in', account: signedIn.value })
+    // The dashboard sets the account's language from its own page's, once.
+    if (signedIn.value.language === null) await setLanguage(lang)
+    window.location.assign(appHref(lang, 'overview'))
   }
 
   async function onRedirect() {
@@ -140,19 +120,6 @@ export default function AccountApp({ lang, page }: Props) {
     }
     setBusy(false)
     failed(started)
-  }
-
-  async function leave(everywhere: boolean) {
-    if (busy) return
-    setBusy(true)
-    setNotice(null)
-    const left = await (everywhere ? signOutEverywhere() : signOut())
-    setBusy(false)
-    if (!left.ok) {
-      failed(left)
-      return
-    }
-    setView({ kind: 'out', message: 'signed-out' })
   }
 
   const text = (problem: AccountProblem, wait?: number) =>
@@ -198,30 +165,12 @@ export default function AccountApp({ lang, page }: Props) {
     )
   }
 
-  if (view.kind === 'deleted') {
-    return (
-      <section className="card mx-auto flex w-full max-w-[560px] flex-col gap-4 rounded-card p-card">
-        <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
-          {t.delete.done}
-        </h1>
-        <p role="status" className="m-0 text-body text-ink-2">
-          {t.delete.doneDetail}
-        </p>
-      </section>
-    )
-  }
-
   if (view.kind === 'out') {
     return (
       <section className="card mx-auto flex w-full max-w-[560px] flex-col gap-5 rounded-card p-card">
         <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
           {t.login.title}
         </h1>
-        {view.message === 'signed-out' && (
-          <p role="status" className="m-0 text-body font-semibold text-ink">
-            {t.account.signedOut}
-          </p>
-        )}
         <p className="lead m-0">{t.login.lead}</p>
         {alert}
         <GoogleSignIn
@@ -241,38 +190,19 @@ export default function AccountApp({ lang, page }: Props) {
     )
   }
 
+  // Signed in: the dashboard is on its way.
   return (
-    <SignedIn
-      lang={lang}
-      account={view.account}
-      heading={heading}
-      busy={busy}
-      alert={alert}
-      onLeave={(everywhere) => void leave(everywhere)}
-      onLanguage={async (language) => {
-        if (busy) return
-        setBusy(true)
-        const set = await setLanguage(language)
-        setBusy(false)
-        if (set.ok) setView({ kind: 'in', account: set.value })
-        else failed(set)
-      }}
-      onDelete={async () => {
-        if (busy) return 'busy'
-        setBusy(true)
-        setNotice(null)
-        const gone = await deleteAccount()
-        setBusy(false)
-        if (gone.ok) {
-          setView({ kind: 'deleted' })
-          return 'done'
-        }
-        if (gone.problem === 'fresh-login-required') return 'fresh'
-        failed(gone)
-        return 'failed'
-      }}
-      onSignInAgain={() => void onRedirect()}
-    />
+    <section
+      className="card mx-auto flex w-full max-w-[560px] flex-col gap-4 rounded-card p-card"
+      aria-busy="true"
+    >
+      <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
+        {page === 'login' ? t.login.title : t.account.title}
+      </h1>
+      <p role="status" className="m-0 text-small text-ink-2">
+        {t.account.loading}
+      </p>
+    </section>
   )
 }
 
@@ -289,201 +219,5 @@ function Keeps({ text }: { text: string }) {
       <LockKeyhole size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
       {text}
     </p>
-  )
-}
-
-interface SignedInProps {
-  lang: Language
-  account: AccountSummary
-  heading: RefObject<HTMLHeadingElement>
-  busy: boolean
-  alert: ComponentChildren
-  onLeave: (everywhere: boolean) => void
-  onLanguage: (language: Language) => Promise<void>
-  onDelete: () => Promise<'busy' | 'done' | 'fresh' | 'failed'>
-  onSignInAgain: () => void
-}
-
-function SignedIn({
-  lang,
-  account,
-  heading,
-  busy,
-  alert,
-  onLeave,
-  onLanguage,
-  onDelete,
-  onSignInAgain,
-}: SignedInProps) {
-  const t = ACCOUNT_UI[lang]
-  const [stage, setStage] = useState<'idle' | 'confirm' | 'fresh'>('idle')
-  const rows: [string, ComponentChildren][] = [
-    [t.account.email, <span dir="ltr">{account.email}</span>],
-    [t.account.name, <bdi>{account.name === '' ? '—' : account.name}</bdi>],
-  ]
-  return (
-    <div className="flex flex-col gap-6 lg:gap-8">
-      <header className="flex flex-col gap-2">
-        <h1 ref={heading} tabIndex={-1} className="heading-1 m-0 outline-none">
-          {t.account.title}
-        </h1>
-        <p className="lead m-0">{t.account.lead}</p>
-      </header>
-      <div className="page-columns">
-        <aside aria-labelledby="details-title" className="page-aside page-aside-sticky">
-          <section className="card flex flex-col gap-4 p-card">
-            <h2 id="details-title" className="heading-3 m-0">
-              {t.account.details}
-            </h2>
-            <dl className="m-0 grid grid-cols-[max-content_1fr] items-baseline gap-x-6 gap-y-3 text-small lg:grid-cols-1 lg:gap-y-1">
-              {rows.map(([label, value]) => (
-                <div key={label} className="contents">
-                  <dt className="text-ink-2">{label}</dt>
-                  <dd className="m-0 min-w-0 font-semibold break-words text-ink lg:pb-3">
-                    {value}
-                  </dd>
-                </div>
-              ))}
-              <dt className="text-ink-2">{t.account.language}</dt>
-              <dd className="m-0">
-                <div
-                  role="group"
-                  aria-label={t.account.languageHint}
-                  className="flex flex-wrap gap-2"
-                >
-                  {(['ar', 'en'] as const).map((language) => (
-                    <button
-                      key={language}
-                      type="button"
-                      lang={language}
-                      aria-pressed={account.language === language}
-                      disabled={busy}
-                      onClick={() => void onLanguage(language)}
-                      className="btn-white aria-pressed:border-indigo aria-pressed:bg-indigo-soft aria-pressed:text-indigo-ink"
-                    >
-                      {language === 'ar' ? 'العربية' : 'English'}
-                    </button>
-                  ))}
-                </div>
-              </dd>
-            </dl>
-            {alert}
-            <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-              <button
-                type="button"
-                className="btn-white"
-                disabled={busy}
-                onClick={() => {
-                  onLeave(false)
-                }}
-              >
-                <LogOut size={16} aria-hidden="true" className="rtl:-scale-x-100" />
-                {t.account.signOut}
-              </button>
-              <button
-                type="button"
-                className="btn-white"
-                disabled={busy}
-                onClick={() => {
-                  onLeave(true)
-                }}
-              >
-                {t.account.signOutEverywhere}
-              </button>
-            </div>
-          </section>
-        </aside>
-
-        <div className="page-main flex flex-col gap-4 lg:gap-6">
-          <SitesPanel lang={lang} />
-
-          <AlertsPanel lang={lang} />
-
-          <PdfPanel lang={lang} />
-
-          <BrandPanel lang={lang} />
-
-          <KeysPanel lang={lang} />
-
-          <section
-            aria-labelledby="delete-title"
-            className="card flex flex-col gap-4 rounded-card p-card"
-          >
-            <h2 id="delete-title" className="heading-2 m-0">
-              {t.delete.title}
-            </h2>
-            <p className="m-0 text-small text-ink-2">{t.delete.text}</p>
-            {stage === 'idle' && (
-              <div>
-                <button
-                  type="button"
-                  className="btn-white"
-                  disabled={busy}
-                  onClick={() => {
-                    setStage('confirm')
-                  }}
-                >
-                  <Trash2 size={16} aria-hidden="true" />
-                  {t.delete.open}
-                </button>
-              </div>
-            )}
-            {stage === 'confirm' && (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void onDelete().then((outcome) => {
-                      if (outcome === 'fresh') setStage('fresh')
-                    })
-                  }
-                  className="btn-white border-critical-ink text-critical-ink hover:bg-critical-soft"
-                >
-                  <Trash2 size={16} aria-hidden="true" />
-                  {busy ? t.delete.working : t.delete.confirm}
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  disabled={busy}
-                  onClick={() => {
-                    setStage('idle')
-                  }}
-                >
-                  {t.delete.cancel}
-                </button>
-              </div>
-            )}
-            {stage === 'fresh' && (
-              <>
-                <p role="alert" className="m-0 text-small text-ink-2">
-                  {t.delete.freshNeeded}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="btn-grad"
-                    disabled={busy}
-                    onClick={onSignInAgain}
-                  >
-                    {t.delete.signInAgain}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    onClick={() => {
-                      setStage('idle')
-                    }}
-                  >
-                    {t.delete.cancel}
-                  </button>
-                </div>
-              </>
-            )}
-          </section>
-        </div>
-      </div>
-    </div>
   )
 }
