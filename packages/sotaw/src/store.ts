@@ -65,6 +65,12 @@ export interface SotawStore {
   retry(runId: string, domain: string, reason: string): Promise<void>
   /** Back to pending, the attempt given back: nothing was tried (the scanner was not there). */
   release(runId: string, domain: string): Promise<void>
+  /**
+   * Every site of the run that ended skipped or failed for this reason, back to pending as if
+   * never tried (no attempt spent): the crawl, running or started again, takes them up in its
+   * order. The rows are the same rows, so none is added; the number put back is returned.
+   */
+  requeue(runId: string, reason: string): Promise<number>
   counts(runId: string): Promise<Readonly<Record<ResultState, number>>>
   results(runId: string): Promise<ResultRow[]>
   finish(runId: string, state: 'finished' | 'aborted', at: Date): Promise<void>
@@ -173,6 +179,19 @@ export class MemorySotawStore implements SotawStore {
       attempts: Math.max(0, (row?.attempts ?? 1) - 1),
     })
     return Promise.resolve()
+  }
+
+  requeue(runId: string, reason: string): Promise<number> {
+    const back = [...this.#rows.values()].filter(
+      (row) =>
+        row.runId === runId &&
+        (row.state === 'skipped' || row.state === 'failed') &&
+        row.reason === reason,
+    )
+    for (const row of back) {
+      this.#change(runId, row.domain, { state: 'pending', reason: null, attempts: 0, scanId: null })
+    }
+    return Promise.resolve(back.length)
   }
 
   counts(runId: string): Promise<Readonly<Record<ResultState, number>>> {

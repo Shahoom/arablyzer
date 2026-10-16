@@ -8,11 +8,12 @@ pnpm sotaw:frame --list-id Y83YG      # the frame: data/frames/<list id>.csv, .e
 pnpm sotaw:frame --from-frame Y83YG   # the same frame under the current rules, from the committed one
 pnpm sotaw:crawl                      # crawl it; needs DATABASE_URL, VALKEY_URL, ARABLYZER_SCANNER_*
 pnpm sotaw status                     # how far the run is
+pnpm sotaw requeue --reason robots-unreachable   # sites skipped for that reason, back to pending (same rows)
 pnpm sotaw export --out DIR           # the public files: aggregates (JSON, CSV, Parquet), schema, manifest
 pnpm sotaw export --out DIR --internal DIR2   # also sites.parquet, for our own analysis (never public)
 ```
 
-`crawl`, `status` and `export` run inside the stack's network: `infra/README.md`, «The crawl of the
+`crawl`, `status`, `requeue` and `export` run inside the stack's network: `infra/README.md`, «The crawl of the
 Arabic web». Settings are `ARABLYZER_SOTAW_*` (`src/config.ts`); the defaults are the gentle ones.
 
 - `data/frames/` the committed sample frames and, for each, the sites left out of it and why

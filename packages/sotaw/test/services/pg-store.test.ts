@@ -126,6 +126,25 @@ describe.skipIf(databaseUrl === undefined)('the crawl’s store, on PostgreSQL',
     })
   })
 
+  it('puts back the sites that ended for one reason, in the same rows', async () => {
+    await store.start({ ...RUN, id: 'sotaw-requeue' }, sites(4), NOW)
+    for (const reason of ['robots-unreachable', 'robots', 'robots-unreachable']) {
+      const taken = await store.claim('sotaw-requeue', NOW)
+      await store.skip('sotaw-requeue', taken?.domain ?? '', reason, NOW)
+    }
+    expect(await store.requeue('sotaw-requeue', 'robots-unreachable')).toBe(2)
+    expect(await store.requeue('sotaw-requeue', 'robots-unreachable')).toBe(0)
+    const rows = await store.results('sotaw-requeue')
+    expect(rows).toHaveLength(4)
+    // In the crawl's order (the sites' positions run backwards here): s3, s2, s1, s0.
+    expect(rows.map((r) => [r.domain, r.state, r.reason, r.attempts])).toEqual([
+      ['s3.sa', 'pending', null, 0],
+      ['s2.sa', 'skipped', 'robots', 1],
+      ['s1.sa', 'pending', null, 0],
+      ['s0.sa', 'pending', null, 0],
+    ])
+  })
+
   it('never hands one site to two crawlers at once', async () => {
     await store.start({ ...RUN, id: 'sotaw-race' }, sites(8), NOW)
     const taken = await Promise.all(Array.from({ length: 8 }, () => store.claim('sotaw-race', NOW)))
