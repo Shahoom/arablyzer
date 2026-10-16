@@ -103,7 +103,7 @@ async function frameCommand(): Promise<void> {
       accept: 'text/csv,text/plain;q=0.9',
       policy,
       timeoutMs: 120_000,
-      maxBytes: 128 * 1024 * 1024,
+      maxBytes: 25 * 1024 * 1024,
     })
     if (download.response?.status !== 200) {
       fail(
