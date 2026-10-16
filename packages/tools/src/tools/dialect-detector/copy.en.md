@@ -1,5 +1,5 @@
 ---
-summary: Which Arabic is it: Modern Standard, Gulf, Egyptian, Levantine or Maghrebi? Paste a text or a page.
+summary: Which Arabic is this text? Gulf, Egyptian, Levantine, Maghrebi or Standard.
 ---
 
 # Arabic dialect detector
