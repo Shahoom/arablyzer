@@ -21,7 +21,7 @@ describe('the showcase', () => {
   // M2.6 R2: the home page's product shot is this report as a visitor's report shows it, so every
   // number on it is one of these.
   it('reads the rest of the report the product shot draws: severities, categories, third finding', () => {
-    expect(SHOWCASE.notApplicable).toBe(58)
+    expect(SHOWCASE.notApplicable).toBe(59)
     expect(SHOWCASE.bySeverity).toEqual({ critical: 0, serious: 1, moderate: 1, minor: 0, info: 1 })
     expect(SHOWCASE.categories).toMatchObject({
       rtl: 72,
