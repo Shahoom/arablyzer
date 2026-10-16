@@ -36,6 +36,7 @@ export type ToolTag =
   | 'dns'
   | 'links'
   | 'sitemap'
+  | 'feed'
   | 'search'
   | 'outside'
   | 'gsc'
@@ -207,6 +208,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       links: 'الروابط',
       generator: 'مولّد',
       sitemap: 'خريطة الموقع',
+      feed: 'ملف المنتجات',
       search: 'بحث الموقع',
       outside: 'خدمات خارجية',
       gsc: 'Search Console',
@@ -228,6 +230,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         links: 'يطلب روابط الصفحة',
         generator: 'مولّد',
         sitemap: 'يقرأ خرائط الموقع',
+        feed: 'يقرأ ملف المنتجات',
         search: 'يسأل بحث الموقع',
         outside: 'يسأل خدمات خارجية',
         gsc: 'يقرأ Search Console',
@@ -346,6 +349,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
       links: 'Links',
       generator: 'Generator',
       sitemap: 'Sitemap',
+      feed: 'Product feed',
       search: 'Site search',
       outside: 'Other services',
       gsc: 'Search Console',
@@ -372,6 +376,7 @@ export const TOOLS_UI: Copy<ToolsStrings> = {
         links: 'Asks for the page’s links',
         generator: 'Generator',
         sitemap: 'Reads the sitemaps',
+        feed: 'Reads the product feed',
         search: 'Asks the site’s search',
         outside: 'Asks other services',
         gsc: 'Reads Search Console',

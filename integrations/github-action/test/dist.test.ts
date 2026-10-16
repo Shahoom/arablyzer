@@ -47,9 +47,9 @@ describe('dist/index.mjs', () => {
       'GET https://arablyzer.example/api/v1/scans/AbCdEfGhIjKlMnOpQrSt_-/report',
     ])
     const outputs = readFileSync(join(work, 'output'), 'utf8')
-    expect(outputs).toMatch(/score<<ghadelimiter_[\w-]+\n71\n/)
+    expect(outputs).toMatch(/score<<ghadelimiter_[\w-]+\n72\n/)
     expect(outputs).toMatch(/result<<ghadelimiter_[\w-]+\nfail\n/)
-    expect(readFileSync(join(work, 'summary'), 'utf8')).toContain('Score: **71 of 100**')
+    expect(readFileSync(join(work, 'summary'), 'utf8')).toContain('Score: **72 of 100**')
     const files = readdirSync(join(work, 'arablyzer-sarif'))
     expect(files).toHaveLength(1)
     expect(files[0]).toMatch(/\.sarif$/)

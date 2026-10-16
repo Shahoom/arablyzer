@@ -18,7 +18,7 @@ describe('form-arabic-digits-rejected', () => {
         values: { western: '91234567', eastern: '٩١٢٣٤٥٦٧', pattern: '[0-9]{8}' },
         selector: '#phone',
         snippet:
-          '<input id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]{8}" placeholder="9xxxxxxx" required />',
+          '<input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="numeric" pattern="[0-9]{8}" placeholder="9xxxxxxx" required />',
         location: { line: 17, column: 9 },
       },
     ])

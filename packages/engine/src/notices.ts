@@ -6,6 +6,8 @@ export type NoticeCode =
   | 'robots-unchecked'
   | 'robots-truncated'
   | 'sitemap-unchecked'
+  | 'feed-partial'
+  | 'feed-compressed'
   | 'opted-out'
   | 'page-status'
   | 'bot-challenge'
@@ -158,6 +160,14 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'sitemap-unchecked': {
     ar: 'تعذّرت قراءة بعض خرائط الموقع، فحكمت القواعد التي تفحصها على ما قُرئ منها، ولم تُطبَّق إن لم تُقرأ أي خريطة.',
     en: 'Some of the site’s sitemaps could not be read, so the rules that check them judged the ones that could be, and did not run when none could.',
+  },
+  'feed-compressed': {
+    ar: 'الملف مضغوط (gzip) ويصل كما هو؛ يقرؤه Google Merchant Center لكن هذا الفحص يقرأ ملفات XML والنص فقط، فلم نفحصه. أعطنا رابط الملف غير مضغوط.',
+    en: 'The file is compressed (gzip) and arrives as it is. Google Merchant Center reads it, but this check reads XML and text files only, so it was not checked. Give the address of the uncompressed file.',
+  },
+  'feed-partial': {
+    ar: 'فحصنا أول {items} منتج في الملف فقط؛ فيه منتجات أكثر لم تُفحص.',
+    en: 'Only the first {items} products in the file were checked; it holds more, which were not.',
   },
   // M2.4 plan §2: the site's own words, the rule and where it is, so its owner can find it.
   'opted-out': {

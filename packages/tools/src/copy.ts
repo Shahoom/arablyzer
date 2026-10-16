@@ -9,10 +9,10 @@ export interface CodeExample {
   /**
    * What the code is: an HTML page (or part of one), a robots.txt file, the HTTP responses a
    * page's address gets, redirects included (src/http.ts), the TXT records DNS has for its domain
-   * (src/dns.ts), or JSON: an answer of the Chrome UX Report API, for a tool whose rules read real
-   * visitors' data (M2.3c).
+   * (src/dns.ts), JSON: an answer of the Chrome UX Report API, for a tool whose rules read real
+   * visitors' data (M2.3c), or XML: a product feed (M6.1).
    */
-  readonly lang: 'html' | 'robots.txt' | 'http' | 'dns' | 'json'
+  readonly lang: 'html' | 'robots.txt' | 'http' | 'dns' | 'json' | 'xml'
   readonly code: string
 }
 
@@ -71,7 +71,14 @@ export const TOOL_HEADINGS: Readonly<
 
 const SECTIONS: readonly SectionKey[] = ['checks', 'example', 'fix', 'faq', 'methodology']
 const EXAMPLES: readonly ExampleKey[] = ['wrong', 'right']
-const CODE_LANGS: readonly CodeExample['lang'][] = ['html', 'robots.txt', 'http', 'dns', 'json']
+const CODE_LANGS: readonly CodeExample['lang'][] = [
+  'html',
+  'robots.txt',
+  'http',
+  'dns',
+  'json',
+  'xml',
+]
 
 /** Harakat, superscript alef and tatweel: "كيف تصلح" and "كيف تُصلح" are the same heading. */
 const ARABIC_MARKS = /[\u064B-\u065F\u0670\u0640]/g
@@ -262,7 +269,7 @@ function codeBlock(
   const known = CODE_LANGS.find((candidate) => candidate === lang)
   if (known === undefined) {
     return fail(
-      `${where}: the code block must be html, robots.txt, http, dns or json, not "${lang}"`,
+      `${where}: the code block must be html, robots.txt, http, dns, json or xml, not "${lang}"`,
     )
   }
   if (known === 'http' || known === 'dns') {

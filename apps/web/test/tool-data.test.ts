@@ -54,6 +54,12 @@ describe('the tools as their pages have them', () => {
     expect(tag('arabic-suggest')).toBe('google')
     expect(tag('serp-sampler')).toBe('google')
     expect(tag('whatsapp-link-generator')).toBe('generator')
+    // M6.1: a product feed is the file at the address, and a missing-page check reads the answer.
+    expect(tag('feed-check')).toBe('feed')
+    expect(tag('feed-file-check')).toBe('feed')
+    expect(tag('soft-404-check')).toBe('http')
+    expect(tag('image-alt-check')).toBe('render')
+    expect(tag('product-schema-check')).toBe('html')
   })
 
   // M2.3c review: a tool of information rules says what it found as notes, and "none found".

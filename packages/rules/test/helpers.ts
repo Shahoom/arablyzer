@@ -1,8 +1,9 @@
-import { readdirSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
   ARABIC_BLOCKS,
   collectCrux,
+  collectFeed,
   collectKnowledgeGraph,
   collectSafeBrowsing,
   collectPage,
@@ -296,6 +297,33 @@ export function htmlPage(html: string, options: HtmlPageOptions = {}): PageFacts
   })
 }
 
+/** A product feed as its text: the page is the file, and the evidence reads it as a feed (M6.1). */
+export function feedEvidence(text: string): Evidence {
+  const body = new TextEncoder().encode(text)
+  const page = collectPage({
+    url: `${FIXTURE_ORIGIN}/feed.xml`,
+    status: 200,
+    headers: [['content-type', 'application/xml; charset=utf-8']],
+    body,
+  })
+  return { page, feed: collectFeed({ body }) }
+}
+
+/** An RSS 2.0 feed of these items, each given as the elements inside its `<item>`. */
+export function rssFeed(...items: string[]): Evidence {
+  return feedEvidence(
+    `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel><title>t</title>
+${items.map((item) => `<item>${item}</item>`).join('\n')}
+</channel></rss>`,
+  )
+}
+
+/** The feed file of a fixture (feed.xml, or feed.tsv when `file` says so), read as a feed. */
+export function fixtureFeed(ruleId: string, name: string, file = 'feed.xml'): Evidence {
+  return feedEvidence(readFileSync(`${fixturesDir(ruleId)}${name}/${file}`, 'utf8'))
+}
+
 export function evidenceOf(page: PageFacts, robots?: RobotsFacts): Evidence {
   return robots === undefined ? { page } : { page, robots }
 }
@@ -423,4 +451,17 @@ export function renderedEvidence(
 /** Whether a rule applies, as the engine asks it: with the evidence. */
 export function applies(rule: Rule, evidence: Evidence): boolean {
   return rule.appliesTo(evidence.page, evidence)
+}
+
+/** A page whose JSON-LD is these objects, one script each (M6.1). */
+export function ldPage(...blocks: unknown[]): PageFacts {
+  const scripts = blocks
+    .map(
+      (block) =>
+        `<script type="application/ld+json">${typeof block === 'string' ? block : JSON.stringify(block)}</script>`,
+    )
+    .join('\n')
+  return htmlPage(
+    `<!doctype html><html lang="ar"><head>${scripts}</head><body><p>x</p></body></html>`,
+  )
 }

@@ -73,7 +73,7 @@ describe('auditToolPage on the right pages', () => {
   it('takes a paste or a generator form in place of the URL field (M2.3 plan §1)', () => {
     const scanForm = /<form [^\n]*<\/form>/
     for (const form of [
-      '<form data-tool-kind="generator"><label>الرقم <input type="tel" name="number"></label><button>أنشئ الرابط</button></form>',
+      '<form data-tool-kind="generator"><label>الرقم <input type="tel" name="number" autocomplete="tel"></label><button>أنشئ الرابط</button></form>',
       '<form data-tool-kind="paste"><label>الملف <textarea name="robots"></textarea></label><button>اختبر</button></form>',
       '<form data-tool-kind="generator"><label>العملة <select name="currency"><option>OMR</option></select></label><button>أنشئ الكود</button></form>',
     ]) {
@@ -161,7 +161,8 @@ describe.each<[string, string, AuditCheck[]]>([
       `rel="canonical" href="${ORIGIN}/tools/sample-check"`,
       `rel="canonical" href="${ORIGIN}/"`,
     ),
-    ['canonical'],
+    // The page that lists itself as another is a fault of the set of hreflang links too.
+    ['canonical', 'own-rules'],
   ],
   [
     'the canonical twice',
@@ -175,7 +176,8 @@ describe.each<[string, string, AuditCheck[]]>([
   [
     'no x-default',
     edit(AR, /<link rel="alternate" hreflang="x-default"[^>]*>\n/, ''),
-    ['hreflang', 'reciprocal'],
+    // Our own rule about x-default says it as well.
+    ['hreflang', 'own-rules', 'reciprocal'],
   ],
   [
     'x-default on the English page',
@@ -322,7 +324,12 @@ describe.each<[string, string, AuditCheck[]]>([
     edit(AR, '"item": "https://arablyzer.example/" }', '"item": "https://evil.example/" }'),
     ['json-ld'],
   ],
-  ['a breadcrumb without a name', edit(AR, '"name": "الرئيسية"', '"name": " "'), ['json-ld']],
+  [
+    'a breadcrumb without a name',
+    edit(AR, '"name": "الرئيسية"', '"name": " "'),
+    // The breadcrumb rule says it too.
+    ['json-ld', 'own-rules'],
+  ],
   [
     'the meta description in <body>',
     edit(
