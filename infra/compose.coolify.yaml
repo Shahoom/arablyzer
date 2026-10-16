@@ -1,0 +1,44 @@
+# A server that already runs Coolify (its Traefik, `coolify-proxy`, holds ports 80 and 443): the
+# site's server joins Coolify's network and Traefik routes the domain to it, with a Let's Encrypt
+# certificate. Use it with compose.yaml instead of compose.vps.yaml, which binds 443 itself:
+#
+#   docker compose -f infra/compose.yaml -f infra/compose.coolify.yaml --env-file infra/.env up -d
+#
+# Cloudflare (proxied) -> coolify-proxy (Traefik, TLS) -> `web` -> `api`. Only Cloudflare's edge may
+# reach the router (ipAllowList on the peer's address), so the visitor's address is
+# CF-Connecting-IP, which `web` reads from Traefik alone (private_ranges). Nothing else of the stack
+# is published, and `web` keeps no host port.
+services:
+  web:
+    ports: !reset []
+    environment:
+      ARABLYZER_CLIENT_IP_HEADER: CF-Connecting-IP
+    networks: [edge, coolify]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.services.arablyzer.loadbalancer.server.port=8080
+      # https: the apex and www, from Cloudflare's edge alone; www goes to the apex.
+      - traefik.http.routers.arablyzer.rule=Host(`${ARABLYZER_HOST:?the hostname of ARABLYZER_SITE}`) || Host(`www.${ARABLYZER_HOST}`)
+      - traefik.http.routers.arablyzer.entrypoints=https
+      - traefik.http.routers.arablyzer.tls=true
+      - traefik.http.routers.arablyzer.tls.certresolver=letsencrypt
+      - traefik.http.routers.arablyzer.service=arablyzer
+      - traefik.http.routers.arablyzer.middlewares=arablyzer-cloudflare,arablyzer-www
+      # http: a permanent move to https (Traefik answers Let's Encrypt's challenge before this).
+      - traefik.http.routers.arablyzer-http.rule=Host(`${ARABLYZER_HOST}`) || Host(`www.${ARABLYZER_HOST}`)
+      - traefik.http.routers.arablyzer-http.entrypoints=http
+      - traefik.http.routers.arablyzer-http.service=arablyzer
+      - traefik.http.routers.arablyzer-http.middlewares=arablyzer-https
+      - traefik.http.middlewares.arablyzer-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.arablyzer-https.redirectscheme.permanent=true
+      - traefik.http.middlewares.arablyzer-www.redirectregex.regex=^https://www\.(.+)
+      - traefik.http.middlewares.arablyzer-www.redirectregex.replacement=https://$${1}
+      - traefik.http.middlewares.arablyzer-www.redirectregex.permanent=true
+      # https://www.cloudflare.com/ips-v4 and /ips-v6, as of 2026-10, comma-separated for Traefik (the
+      # space-separated ARABLYZER_CLOUDFLARE_RANGES is compose.vps.yaml's); compare before the first start.
+      - traefik.http.middlewares.arablyzer-cloudflare.ipallowlist.sourcerange=${ARABLYZER_TRAEFIK_CLOUDFLARE_RANGES:-173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22,2400:cb00::/32,2606:4700::/32,2803:f800::/32,2405:b500::/32,2405:8100::/32,2a06:98c0::/29,2c0f:f248::/32}
+
+networks:
+  coolify:
+    external: true
