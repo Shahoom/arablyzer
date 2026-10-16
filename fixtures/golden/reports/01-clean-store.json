@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.10.0"
+    "rulesetVersion": "0.11.0"
   },
   "target": {
     "url": "https://store.example:30001/",
@@ -38,7 +38,7 @@
     "pass": 48,
     "fail": 0,
     "needsReview": 0,
-    "notApplicable": 21,
+    "notApplicable": 22,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -68,8 +68,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 69,
-      "total": 102
+      "ran": 70,
+      "total": 103
     }
   },
   "rules": [
@@ -154,6 +154,17 @@
       }
     },
     {
+      "id": "ar-spelling",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "أخطاء إملائية شائعة في نص الصفحة",
+        "en": "Common spelling slips in the page's text"
+      }
+    },
+    {
       "id": "ar-tatweel",
       "version": "1.0.0",
       "category": "ar-content",
@@ -221,7 +232,7 @@
     },
     {
       "id": "country-fit",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "locale",
       "severity": "info",
       "status": "pass",
@@ -276,7 +287,7 @@
     },
     {
       "id": "dialect-register",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "locale",
       "severity": "minor",
       "status": "not-applicable",
@@ -920,7 +931,7 @@
       "country": "OM",
       "confidence": "thin",
       "percent": null,
-      "judged": 1,
+      "judged": 2,
       "signals": [
         {
           "kind": "currency",
@@ -941,6 +952,26 @@
         },
         {
           "id": "digits",
+          "status": "unknown",
+          "detail": ""
+        },
+        {
+          "id": "vat",
+          "status": "gap",
+          "detail": ""
+        },
+        {
+          "id": "vat-rate",
+          "status": "unknown",
+          "detail": ""
+        },
+        {
+          "id": "weekend",
+          "status": "unknown",
+          "detail": ""
+        },
+        {
+          "id": "phone-shape",
           "status": "unknown",
           "detail": ""
         },

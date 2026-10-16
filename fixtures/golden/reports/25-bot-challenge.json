@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.10.0"
+    "rulesetVersion": "0.11.0"
   },
   "target": {
     "url": "http://127.0.0.1:30025/",
@@ -56,7 +56,7 @@
     "pass": 2,
     "fail": 1,
     "needsReview": 0,
-    "notApplicable": 88,
+    "notApplicable": 89,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -87,8 +87,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 91,
-      "total": 102
+      "ran": 92,
+      "total": 103
     }
   },
   "rules": [
@@ -313,6 +313,17 @@
       }
     },
     {
+      "id": "ar-spelling",
+      "version": "1.0.0",
+      "category": "ar-content",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "أخطاء إملائية شائعة في نص الصفحة",
+        "en": "Common spelling slips in the page's text"
+      }
+    },
+    {
       "id": "ar-tatweel",
       "version": "1.0.0",
       "category": "ar-content",
@@ -380,7 +391,7 @@
     },
     {
       "id": "country-fit",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "locale",
       "severity": "info",
       "status": "not-applicable",
@@ -435,7 +446,7 @@
     },
     {
       "id": "dialect-register",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "category": "locale",
       "severity": "minor",
       "status": "not-applicable",

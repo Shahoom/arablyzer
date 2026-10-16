@@ -153,6 +153,8 @@ when empty) is each key's requests a minute. With accounts off every `/api/v1` r
 calls the API with the caller's own key, in the API's process, so the API's limits and egress rules are the server's; the same
 server runs over stdio from `packages/mcp` (`docs/mcp.md`).
 
+**The Arabic language service (M7).** `arabic-nlp` is CAMeL Tools' morphology databases and dialect model behind a small API (`services/arabic-nlp`, Python 3.12). It is on the internal `scan` network alone, so it has no way out and the API cannot reach it; the scanner asks it for a page's spelling and dialect after the render, and the worker for the text tools (a pasted text, through a BullMQ queue the API adds to). It holds about 660 MiB once its data is loaded: `mem_limit` is 1 GiB, one CPU. Its data packages (GPL v2 and CC BY 4.0 databases, an MIT model) are fetched at image build and checked against `services/arabic-nlp/data.lock.json`; the image is not published. A scan does not wait for it: down or slow, the scan notes it and goes on. `ARABLYZER_NLP_URL` empty turns the spelling check and the model off, `ARABLYZER_NLP_TEXT=0` the paste tools, `ARABLYZER_SPELLING_MIN_CONFIDENCE` (0.9) says how sure it must be of a slip. Licenses, measures and the accuracy policy: `docs/design/plans/m7-deep-arabic.md`.
+
 **Deep crawl (M4.5).** A person starts a crawl of a saved site on `/account`; the `crawler` service, a third entry of the
 API's image (`apps/api/src/crawl/main.ts`) on the application role, finds the site's pages (its sitemaps first, then its
 internal links), up to `ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES` (50 when empty), one page at a time with

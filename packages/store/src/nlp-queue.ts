@@ -33,7 +33,10 @@ export class BullMQNlpChecks implements NlpChecks {
         removeOnFail: { age: 30 },
       },
     })
-    this.#events = new QueueEvents(NLP_QUEUE, { connection: connection.duplicate() })
+    // Its blocking connection must never give up on a command (BullMQ refuses a client that does).
+    this.#events = new QueueEvents(NLP_QUEUE, {
+      connection: connection.duplicate({ maxRetriesPerRequest: null }),
+    })
     this.#events.on('error', () => undefined)
   }
 
