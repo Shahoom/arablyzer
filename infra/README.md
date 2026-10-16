@@ -208,8 +208,10 @@ docker stop -t 30 sotaw-crawl && docker rm sotaw-crawl    # stops after the scan
 docker compose --profile sotaw run --rm -v /srv/sotaw-out:/out sotaw export --out /out
 ```
 
-`ARABLYZER_SOTAW_LIMIT=20` makes a trial run of twenty sites. `export` needs `ARABLYZER_SOTAW_SALT` (`openssl rand -hex 32`,
-kept off the repository) and a directory the container's user (uid 10001) can write to.
+`ARABLYZER_SOTAW_LIMIT=20` makes a trial run of twenty sites. `export` writes the public files (aggregates only) and
+needs a directory the container's user (uid 10001) can write to; `export --internal DIR` also writes the per-site
+`sites.parquet` for our own analysis, needs `ARABLYZER_SOTAW_SALT` (`openssl rand -hex 32`, kept off the repository),
+and refuses a `public` folder: it is never published.
 
 ## The server's own addresses
 

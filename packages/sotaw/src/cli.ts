@@ -18,9 +18,25 @@ import {
 import { Redis } from 'ioredis'
 import pg from 'pg'
 import { runnerConfigFrom } from './config'
-import { buildEdition } from './edition'
-import { buildFrame, FRAME_CAP, FRAME_FLOOR, frameCsv, parseOptOut, parseTranco } from './frame'
-import { FRAMES_DIR, frameIds, loadFrame, metaOf, OPT_OUT_FILE } from './frame-files'
+import { buildEdition, buildInternalSites } from './edition'
+import { exclusionsCsv } from './exclusions'
+import {
+  buildFrame,
+  FRAME_CAP,
+  FRAME_FLOOR,
+  frameCsv,
+  parseOptOut,
+  parseTranco,
+  type TrancoEntry,
+} from './frame'
+import {
+  entriesOfFrame,
+  FRAMES_DIR,
+  frameIds,
+  loadFrame,
+  metaOf,
+  OPT_OUT_FILE,
+} from './frame-files'
 import { PostgresSotawStore } from './pg-store'
 import { byHash } from './rng'
 import { createRunner } from './runner'
@@ -28,9 +44,12 @@ import { createRunner } from './runner'
 // The command line of the crawl of the Arabic web (docs/design/plans/m9-state-of-arabic-web.md):
 //
 //   pnpm sotaw:frame --list-id Y83YG            build and write the sample frame (needs no database)
+//   pnpm sotaw:frame --from-frame Y83YG         the same frame again under the current rules, from the frame
+//                                               as committed (when it holds every site: no download)
 //   pnpm sotaw:crawl [--edition 2026]           crawl it, politely, and go on where it stopped
 //   pnpm sotaw status [--edition 2026]          how far the crawl is
-//   pnpm sotaw export --out DIR [--edition ..]  the dataset's files, from what the crawl kept
+//   pnpm sotaw export --out DIR [--edition ..]  the public dataset's files (aggregates only), from what the crawl kept
+//   ... export --out DIR --internal DIR2        also the per-site rows, for our own analysis, into DIR2
 //
 // `crawl`, `status` and `export` read DATABASE_URL (the application role's), and `crawl` also
 // VALKEY_URL and ARABLYZER_SCANNER_URL / ARABLYZER_SCANNER_TOKEN: they run inside the stack's
@@ -43,9 +62,10 @@ const log = (line: string) => {
 
 const USAGE = `usage: sotaw <frame|crawl|status|export> [options]
   frame  --list-id ID [--cap 10000] [--floor 300] [--seed TEXT] [--file list.csv]
+  frame  --from-frame ID
   crawl  [--edition 2026] [--frame ID]
   status [--edition 2026]
-  export --out DIR [--edition 2026] [--frame ID]`
+  export --out DIR [--internal DIR2] [--edition 2026] [--frame ID]`
 
 function fail(message: string): never {
   console.error(message)
@@ -56,6 +76,8 @@ const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
     'list-id': { type: 'string' },
+    'from-frame': { type: 'string' },
+    internal: { type: 'string' },
     cap: { type: 'string' },
     floor: { type: 'string' },
     seed: { type: 'string' },
@@ -87,62 +109,83 @@ const integer = (name: string, value: string | undefined, fallback: number): num
 }
 
 async function frameCommand(): Promise<void> {
-  const listId = values['list-id']
-  if (listId === undefined || !/^[A-Z0-9]{4,8}$/.test(listId)) fail('--list-id is a Tranco list id')
-  const cap = integer('cap', values.cap, FRAME_CAP)
-  const floor = integer('floor', values.floor, FRAME_FLOOR)
-  const seed = values.seed ?? `arablyzer-sotaw-${listId}`
-  let text: string
+  const from = values['from-frame']
+  let listId = values['list-id']
+  let cap = integer('cap', values.cap, FRAME_CAP)
+  let floor = integer('floor', values.floor, FRAME_FLOOR)
+  let seed: string | undefined = values.seed
+  let entries: TrancoEntry[]
   let createdOn: string | null = null
-  if (values.file !== undefined) {
-    text = readFileSync(resolve(values.file), 'utf8')
+  let optedOutBefore = 0
+  if (from !== undefined) {
+    // The frame as committed holds every site of the list on these domains: the rules are applied to them again.
+    if (listId !== undefined && listId !== from) fail('--from-frame and --list-id name one list')
+    const prior = entriesOfFrame(from)
+    listId = from
+    entries = prior.entries
+    createdOn = prior.meta.listCreatedOn
+    cap = prior.meta.cap
+    floor = prior.meta.floor
+    seed = prior.meta.seed
+    optedOutBefore = prior.meta.optedOut
   } else {
-    const policy = serverPolicy(env)
-    const download = await safeFetch(`https://tranco-list.eu/download/${listId}/1000000`, {
-      userAgent: USER_AGENT,
-      accept: 'text/csv,text/plain;q=0.9',
-      policy,
-      timeoutMs: 120_000,
-      maxBytes: 25 * 1024 * 1024,
-    })
-    if (download.response?.status !== 200) {
-      fail(
-        `Tranco did not give the list: ${download.error?.code ?? String(download.response?.status)}`,
-      )
-    }
-    text = new TextDecoder().decode(download.response.body)
-    const about = await safeFetch(`https://tranco-list.eu/api/lists/id/${listId}`, {
-      userAgent: USER_AGENT,
-      accept: 'application/json',
-      policy,
-      timeoutMs: 30_000,
-      maxBytes: 64 * 1024,
-    })
-    if (about.response?.status === 200) {
-      try {
-        const made = (
-          JSON.parse(new TextDecoder().decode(about.response.body)) as { created_on?: unknown }
-        ).created_on
-        createdOn = typeof made === 'string' ? made.slice(0, 10) : null
-      } catch {
-        createdOn = null
+    if (listId === undefined || !/^[A-Z0-9]{4,8}$/.test(listId))
+      fail('--list-id is a Tranco list id')
+    let text: string
+    if (values.file !== undefined) {
+      text = readFileSync(resolve(values.file), 'utf8')
+    } else {
+      const policy = serverPolicy(env)
+      const download = await safeFetch(`https://tranco-list.eu/download/${listId}/1000000`, {
+        userAgent: USER_AGENT,
+        accept: 'text/csv,text/plain;q=0.9',
+        policy,
+        timeoutMs: 120_000,
+        maxBytes: 25 * 1024 * 1024,
+      })
+      if (download.response?.status !== 200) {
+        fail(
+          `Tranco did not give the list: ${download.error?.code ?? String(download.response?.status)}`,
+        )
+      }
+      text = new TextDecoder().decode(download.response.body)
+      const about = await safeFetch(`https://tranco-list.eu/api/lists/id/${listId}`, {
+        userAgent: USER_AGENT,
+        accept: 'application/json',
+        policy,
+        timeoutMs: 30_000,
+        maxBytes: 64 * 1024,
+      })
+      if (about.response?.status === 200) {
+        try {
+          const made = (
+            JSON.parse(new TextDecoder().decode(about.response.body)) as { created_on?: unknown }
+          ).created_on
+          createdOn = typeof made === 'string' ? made.slice(0, 10) : null
+        } catch {
+          createdOn = null
+        }
       }
     }
+    const parsed = parseTranco(text)
+    if (parsed.entries.length < 100_000 || parsed.invalid > parsed.entries.length / 100) {
+      fail(
+        `This is not a Tranco list: ${String(parsed.entries.length)} sites, ${String(parsed.invalid)} lines that are none`,
+      )
+    }
+    entries = parsed.entries
   }
-  const { entries, invalid } = parseTranco(text)
-  if (entries.length < 100_000 || invalid > entries.length / 100) {
-    fail(
-      `This is not a Tranco list: ${String(entries.length)} sites, ${String(invalid)} lines that are none`,
-    )
-  }
-  const frame = buildFrame(entries, { cap, floor, seed, optOut: readOptOut() })
+  seed ??= `arablyzer-sotaw-${listId}`
+  const built = buildFrame(entries, { cap, floor, seed, optOut: readOptOut() })
+  const frame = { ...built, optedOut: built.optedOut + optedOutBefore }
   const csv = frameCsv(frame.rows)
   const meta = metaOf(frame, { listId, listCreatedOn: createdOn, seed, cap, floor }, csv)
   mkdirSync(FRAMES_DIR, { recursive: true })
   writeFileSync(join(FRAMES_DIR, `${listId}.csv`), csv)
+  writeFileSync(join(FRAMES_DIR, `${listId}.exclusions.csv`), exclusionsCsv(frame.excluded))
   writeFileSync(join(FRAMES_DIR, `${listId}.json`), `${JSON.stringify(meta, null, 2)}\n`)
   log(
-    `frame ${listId}: ${String(frame.rows.length)} sites of ${String(Object.values(frame.populations).reduce((a, b) => a + b, 0))} on Arab domains in ${String(entries.length)}`,
+    `frame ${listId}: ${String(frame.rows.length)} sites of ${String(Object.values(frame.populations).reduce((a, b) => a + b, 0))} on Arab domains in ${String(entries.length)}; ${String(frame.excluded.length)} left out as not the Arabic web ${JSON.stringify(meta.exclusions)}`,
   )
 }
 
@@ -253,7 +296,13 @@ async function statusCommand(): Promise<void> {
 async function exportCommand(): Promise<void> {
   const out = values.out
   if (out === undefined) fail('--out names the directory to write to')
-  const secret = requireSecret('ARABLYZER_SOTAW_SALT', env.ARABLYZER_SOTAW_SALT)
+  const internal = values.internal
+  // The per-site rows are for our own analysis: never into a folder that is served (the web app's public/).
+  if (internal !== undefined && /(^|[\\/])public([\\/]|$)/.test(resolve(internal))) {
+    fail('--internal is not a public folder: the per-site rows are never published')
+  }
+  const secret =
+    internal === undefined ? null : requireSecret('ARABLYZER_SOTAW_SALT', env.ARABLYZER_SOTAW_SALT)
   const { meta } = chosenFrame()
   const pool = connect()
   try {
@@ -262,19 +311,26 @@ async function exportCommand(): Promise<void> {
     if (run === null) fail(`There is no run ${runId}`)
     if (run.frameSha !== meta.sha256) fail('The run was made from another frame: pass --frame')
     const rows = await store.results(runId)
-    const { aggregates, files } = buildEdition({
+    const input = {
       edition,
       frame: meta,
       crawl: { startedAt: run.createdAt, finishedAt: run.finishedAt },
       rows,
-      secret,
-    })
+    }
+    const { aggregates, files } = buildEdition(input)
     const dir = resolve(out, edition)
     mkdirSync(dir, { recursive: true })
     for (const file of files) writeFileSync(join(dir, file.name), file.bytes)
     log(
-      `${dir}: ${files.map((f) => f.name).join(', ')} (${String(aggregates.funnel.reached)} sites reached of ${String(aggregates.funnel.frame)}${aggregates.crawl.complete ? '' : ', the crawl is not complete'})`,
+      `${dir}: ${files.map((f) => f.name).join(', ')} (${String(aggregates.funnel.reached)} sites reached of ${String(aggregates.funnel.frame)}, ${String(aggregates.funnel.notArabic)} of them not in Arabic${aggregates.crawl.complete ? '' : ', the crawl is not complete'})`,
     )
+    if (internal !== undefined && secret !== null) {
+      const inner = resolve(internal, edition)
+      mkdirSync(inner, { recursive: true })
+      const sites = buildInternalSites({ ...input, secret })
+      for (const file of sites) writeFileSync(join(inner, file.name), file.bytes)
+      log(`${inner}: ${sites.map((f) => f.name).join(', ')} (internal: not for publication)`)
+    }
   } finally {
     await pool.end()
   }

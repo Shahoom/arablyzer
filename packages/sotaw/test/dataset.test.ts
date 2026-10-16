@@ -13,9 +13,10 @@ import {
   siteRows,
   SITE_COLUMNS,
   sitesParquet,
+  sitesSchema,
   type SiteInput,
 } from '../src/dataset'
-import { buildEdition } from '../src/edition'
+import { buildEdition, buildInternalSites } from '../src/edition'
 import type { FrameMeta } from '../src/frame'
 import { METRICS } from '../src/metrics'
 import type { ResultRow } from '../src/store'
@@ -33,6 +34,9 @@ const frame: FrameMeta = {
   populations: { sa: 400, eg: 300, ye: 10 },
   sampled: { sa: 40, eg: 40, ye: 5 },
   optedOut: 0,
+  excluded: 0,
+  exclusions: {},
+  exclusionsSha256: 'e'.repeat(64),
   sha256: 'b'.repeat(64),
 }
 
@@ -60,6 +64,7 @@ function inputs(): SiteInput[] {
   )
   add('eg', 35, outcome({ 'ar-letter-spacing': 'p' }))
   add('ye', 5, outcome({ 'ar-letter-spacing': 'p' }))
+  add('sa', 3, outcome({ 'ar-letter-spacing': 'p' }, { lang: 'en', script: 'latin' }))
   rows.push({
     domain: 'blocked.sa',
     rank: 5,
@@ -82,7 +87,13 @@ describe('the sites table', () => {
   const rows = siteRows(inputs(), aggregates(), SECRET)
 
   it('has a row for each site reached, and none for one that was not', () => {
-    expect(rows).toHaveLength(80)
+    expect(rows).toHaveLength(83)
+  })
+
+  it('says of each whether it is in Arabic, the figures being of those alone', () => {
+    expect(rows.filter((r) => !r.arabic)).toHaveLength(3)
+    expect(rows.filter((r) => !r.arabic).every((r) => r.lang === 'en')).toBe(true)
+    expect(aggregates().funnel).toMatchObject({ reached: 83, arabic: 80, notArabic: 3 })
   })
 
   it('names no domain: a keyed id, which the published frame cannot be hashed to', () => {
@@ -140,6 +151,17 @@ describe('Parquet', () => {
     expect(Buffer.from(file).includes('site1.sa')).toBe(false)
   })
 
+  it('has no domain, rank or site id in the aggregates’ files', () => {
+    const table = aggregateRows(aggregates())
+    const text = [
+      aggregatesCsv(table),
+      Buffer.from(aggregatesParquet(table)).toString('latin1'),
+      JSON.stringify(aggregates()),
+    ].join('\n')
+    expect(text).not.toMatch(/site\d+\.|blocked\.sa|site_id|rank_bucket/)
+    expect(AGGREGATE_COLUMNS.map((c) => c.name)).not.toContain('site_id')
+  })
+
   it('holds the aggregates as rows, which the CSV repeats', async () => {
     const table = aggregateRows(aggregates())
     const file = aggregatesParquet(table)
@@ -171,59 +193,104 @@ describe('Parquet', () => {
 })
 
 describe('the schema', () => {
-  it('is JSON Schema of both tables with the columns of the files', () => {
-    const schema = datasetSchema() as {
-      $schema: string
-      $defs: Record<string, { properties: Record<string, { type: unknown }>; required: string[] }>
-    }
+  interface Schema {
+    $schema: string
+    $defs: Record<string, { properties: Record<string, { type: unknown }>; required: string[] }>
+  }
+
+  it('is JSON Schema of the aggregates’ table alone, with the columns of the files', () => {
+    const schema = datasetSchema() as unknown as Schema
     expect(schema.$schema).toBe('https://json-schema.org/draft/2020-12/schema')
+    expect(Object.keys(schema.$defs)).toEqual(['aggregates'])
+    expect(Object.keys(schema.$defs.aggregates?.properties ?? {})).toEqual(
+      AGGREGATE_COLUMNS.map((c) => c.name),
+    )
+    expect(schema.$defs.aggregates?.properties.share?.type).toBe('number')
+    expect(JSON.stringify(schema)).not.toContain('site_id')
+  })
+
+  it('describes the sites’ table only in the internal schema', () => {
+    const schema = sitesSchema() as unknown as Schema
     expect(Object.keys(schema.$defs.sites?.properties ?? {})).toEqual(
       SITE_COLUMNS.map((c) => c.name),
     )
     expect(schema.$defs.sites?.properties.score?.type).toEqual(['integer', 'null'])
+    expect(schema.$defs.sites?.properties.arabic?.type).toBe('boolean')
     expect(schema.$defs.sites?.required).toContain('site_id')
-    expect(schema.$defs.aggregates?.properties.share?.type).toBe('number')
   })
 })
 
 describe('an edition', () => {
+  const rows: ResultRow[] = inputs().map((r, i) => ({
+    runId: 'sotaw-test',
+    domain: r.domain,
+    country: r.country,
+    rank: r.rank,
+    position: i,
+    state: r.state,
+    reason: r.reason,
+    attempts: 1,
+    scanId: null,
+    outcome: r.outcome,
+  }))
+  const make = (list: ResultRow[]) =>
+    buildEdition({
+      edition: 'test',
+      frame,
+      crawl: { startedAt: null, finishedAt: null },
+      rows: list,
+    })
+
   it('is the same bytes from the same rows, with a manifest that hashes them', () => {
-    const rows: ResultRow[] = inputs().map((r, i) => ({
-      runId: 'sotaw-test',
-      domain: r.domain,
-      country: r.country,
-      rank: r.rank,
-      position: i,
-      state: r.state,
-      reason: r.reason,
-      attempts: 1,
-      scanId: null,
-      outcome: r.outcome,
-    }))
-    const a = buildEdition({
-      edition: 'test',
-      frame,
-      crawl: { startedAt: null, finishedAt: null },
-      rows,
-      secret: SECRET,
-    })
-    const b = buildEdition({
-      edition: 'test',
-      frame,
-      crawl: { startedAt: null, finishedAt: null },
-      rows: [...rows].reverse(),
-      secret: SECRET,
-    })
+    const a = make(rows)
+    const b = make([...rows].reverse())
     expect(a.files.map((f) => f.name)).toEqual([
       'aggregates.json',
       'aggregates.csv',
       'aggregates.parquet',
-      'sites.parquet',
       'schema.json',
       'manifest.json',
     ])
     expect(a.manifest.files).toEqual(b.manifest.files)
     expect(a.manifest.files.every((f) => /^[0-9a-f]{64}$/.test(f.sha256) && f.bytes > 0)).toBe(true)
     expect(a.manifest.license).toBe('CC-BY-4.0')
+  })
+
+  it('is aggregates only: no file, row, id or domain of a site, hashed or not', () => {
+    const { files, manifest } = make(rows)
+    expect(manifest.files.map((f) => f.name)).not.toContain('sites.parquet')
+    for (const file of files) {
+      const text = Buffer.from(file.bytes).toString('latin1')
+      expect(text, file.name).not.toMatch(/site_id|rank_bucket|site\d+\.(sa|eg|ye)|blocked\.sa/)
+      expect(text, file.name).not.toContain(siteId('site0.sa', SECRET))
+      expect(text, file.name).not.toContain('sites.parquet')
+    }
+  })
+
+  it('has the per-site rows only in the internal files, which need the secret and are not in the manifest', async () => {
+    const internal = buildInternalSites({
+      edition: 'test',
+      frame,
+      crawl: { startedAt: null, finishedAt: null },
+      rows,
+      secret: SECRET,
+    })
+    expect(internal.map((f) => f.name)).toEqual(['sites.parquet', 'sites.schema.json'])
+    const file = internal[0]?.bytes
+    const back = await parquetReadObjects({
+      file: file?.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength) as ArrayBuffer,
+    })
+    expect(back).toHaveLength(83)
+    expect(back.every((r) => /^[0-9a-f]{16}$/.test(String(r.site_id)))).toBe(true)
+    expect(make(rows).manifest.files.map((f) => f.name)).not.toContain('sites.schema.json')
+    expect(() =>
+      buildInternalSites({
+        edition: 'test',
+        frame,
+        crawl: { startedAt: null, finishedAt: null },
+        rows,
+        secret: 'short',
+      }),
+    ).toThrow(/32 characters/)
   })
 })

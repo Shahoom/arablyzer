@@ -52,6 +52,18 @@ export const Outcome = z.strictObject({
 })
 export type Outcome = z.infer<typeof Outcome>
 
+/** The primary subtags of the page's language that are Arabic: `ar` and the macrolanguage's varieties written `ar…` (not `arn`, Mapudungun, or `arg`, Aragonese). */
+const ARABIC_LANG = /^ar[bqsyz]?$/
+
+/**
+ * Whether a page judged is in Arabic, for the figures about the Arabic web: the language it
+ * declares starts with `ar`, or the script most of its text is in is Arabic. A page on an Arab
+ * domain that is neither (an English site, a French one) is counted on its own, outside every other
+ * figure, so that the report speaks of Arabic pages and says how many pages on Arab domains are not.
+ */
+export const isArabicPage = (outcome: Pick<Outcome, 'lang' | 'script'>): boolean =>
+  outcome.script === 'arabic' || (outcome.lang !== null && ARABIC_LANG.test(outcome.lang))
+
 /** Why a page that was fetched was not judged: a bot challenge, or no page to judge. */
 export type Unjudged = 'bot-challenge' | 'no-page'
 

@@ -56,6 +56,13 @@ export interface SotawStrings {
     /** `{lo}` and `{hi}`, percentages. */
     readonly interval: string
   }
+  /** The pages on Arab domains that are not in Arabic: a figure of their own, outside every share. */
+  readonly notArabic: {
+    readonly title: string
+    readonly lead: string
+    /** `{n}` pages judged, in Arabic or not. */
+    readonly judged: string
+  }
   readonly countries: {
     readonly title: string
     readonly lead: string
@@ -84,6 +91,8 @@ export interface SotawStrings {
     readonly lead: string
     readonly frame: string
     readonly reached: string
+    /** Of the pages judged, those not in Arabic. */
+    readonly notArabic: string
     readonly skipped: string
     readonly failed: string
     readonly pending: string
@@ -114,6 +123,8 @@ export interface SotawStrings {
     readonly country: string
     readonly sites: string
     readonly total: string
+    /** `{excluded}` sites left out as not the Arabic web. */
+    readonly excluded: string
   }
   readonly method: {
     readonly title: string
@@ -127,6 +138,7 @@ export interface SotawStrings {
     readonly download: string
     readonly files: Readonly<Record<string, string>>
     readonly frameFile: string
+    readonly exclusionsFile: string
     readonly cite: string
     readonly citeLead: string
   }
@@ -178,9 +190,14 @@ export const SOTAW_UI: Copy<SotawStrings> = {
     },
     findings: {
       title: 'أهم النتائج',
-      lead: 'كل نسبة هي حصة الصفحات الرئيسية التي حُكم عليها في هذا المقياس، موزونة بحجم قائمة كل دولة. الخط تحت الرقم هو حدود الثقة 95%.',
+      lead: 'كل نسبة هي حصة الصفحات الرئيسية العربية التي حُكم عليها في هذا المقياس، موزونة بحجم قائمة كل دولة. الصفحة عربية إن كانت لغتها المعلنة `ar` (أو أحد تنويعاتها) أو كان الحرف الغالب في نصها عربياً. الخط تحت الرقم هو حدود الثقة 95%.',
       judged: 'من {n} صفحة حُكم عليها',
       interval: 'من {lo} إلى {hi}',
+    },
+    notArabic: {
+      title: 'من الصفحات على النطاقات العربية ليست بالعربية',
+      lead: 'ليست كل صفحة على نطاق عربي عربية: بعضها إنجليزي أو فرنسي أو غيرهما. نحسب هذه الحصة وحدها، وهذه الصفحات خارج كل نسبة أخرى في التقرير، فلا يُحسب خطؤها على الويب العربي.',
+      judged: 'من {n} صفحة حُكم عليها بالعربية وغيرها',
     },
     countries: {
       title: 'الدول',
@@ -201,13 +218,14 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       lead: 'على أي منصّة تعمل الصفحة، كما تكشفها قاعدة كشف المنصّة. نسمّي منصّة حين تشترك فيها صفحات كافية.',
       none: 'منصّة غير معروفة',
       other: 'منصّات أخرى',
-      share: 'من الصفحات',
+      share: 'من الصفحات العربية',
     },
     funnel: {
       title: 'ماذا حدث لمواقع العيّنة',
       lead: 'ليست كل مواقع القائمة في الأرقام. نعرض ما حدث لكل موقع، لأن من لم نصل إليه لا تغطيه حدود الثقة.',
       frame: 'مواقع العيّنة',
       reached: 'صفحات فُحصت وحُكم عليها',
+      notArabic: 'منها صفحات ليست بالعربية، خارج النسب الأخرى',
       skipped: 'مواقع لم نفحصها',
       failed: 'فحوص فشلت',
       pending: 'ما زال ينتظر',
@@ -247,6 +265,8 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       country: 'الدولة',
       sites: 'المواقع',
       total: 'المجموع',
+      excluded:
+        'تركنا {excluded} موقعاً من القائمة لأنها ليست من الويب العربي: روابط مختصرة على نطاقات تُباع للعالم (مثل `bit.ly`) وفروع محلية لشركات عالمية (مثل `google.iq`). كل موقع منها وسبب تركه في ملف منشور.',
     },
     method: {
       title: 'المنهجية',
@@ -276,7 +296,8 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           paragraphs: [
             'نأخذ من قائمة Tranco (رقم قائمة ثابت نسجّله) كل نطاق ينتهي بنطاق دولة عربية: `.sa` `.ae` `.eg` `.kw` `.qa` `.bh` `.om` `.jo` `.ma` `.dz` `.tn` `.iq` `.lb` `.ly` `.sy` `.ye` `.sd` `.ps` `.mr`.',
             'إذا زادت المواقع عن {cap} موقع نأخذ لكل دولة حدّاً أدنى ثم نقسم الباقي بحسب ما بقي لكل دولة، ونختار داخل الدولة بدالة تجزئة مع بذرة منشورة، فالاختيار عشوائي بالنسبة للترتيب ويتكرر بالنتيجة نفسها على أي جهاز. الأرقام الحقيقية للقائمة في قسم «عيّنة المواقع» أعلاه.',
-            'ملف العيّنة CSV فيه النطاق والترتيب والدولة وليس فيه غير ذلك، وهو في مستودع المشروع.',
+            'ثم نستبعد ما ليس من الويب العربي، وهو {excluded} موقعاً في هذه القائمة، ونسجّل كل موقع وسببه في ملف منشور. نستبعد: كل اسم مفرد مباشرة تحت `.ly` (`bit.ly` وأمثاله) فلا نُبقي من `.ly` إلا ما تحت `gov.ly` و`com.ly` و`edu.ly` و`org.ly` و`net.ly` و`sch.ly` و`plc.ly` و`med.ly` و`id.ly`؛ وأسماء معدودة معروفة على نطاقات أخرى (`lu.ma` و`cre.ma`)؛ وفروع الشركات العالمية على نطاقات الدول (Google وYouTube وFacebook وInstagram وAmazon وMicrosoft وApple وWikipedia وYahoo وBing وTwitter وX وTikTok وLinkedIn وWhatsApp وNetflix وBooking). الاستبعاد يسبق أخذ العيّنة، فحجم قائمة كل دولة الذي يوزن به التقرير هو بعد الاستبعاد.',
+            'ملف العيّنة CSV فيه النطاق والترتيب والدولة وليس فيه غير ذلك، وملف المستبعَدين فيه سبب كل موقع، وهما في مستودع المشروع.',
           ],
         },
         {
@@ -294,6 +315,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           id: 'stats',
           title: 'كيف نحسب',
           items: [
+            'كل نسبة رئيسية هي للصفحات العربية وحدها: صفحة لغتها المعلنة `ar` (أو أحد تنويعاتها مثل `arz`) أو الحرف الغالب في نصها عربي. الصفحات الأخرى على النطاقات العربية (إنجليزية وفرنسية وغيرها) نعدّها على حدة ونعرض حصتها رقماً مستقلاً: «من الصفحات على النطاقات العربية ليست بالعربية».',
             'لكل نسبة حدود ثقة 95% بطريقة Wilson.',
             'نسبة «كل العيّنة» موزونة بحجم قائمة كل دولة، لا بعدد صفحاتها التي وصلنا إليها، فلا تطغى دولة صغيرة أُخذ منها حدّ أدنى. حدودها بحجم عيّنة فعّال يحسبه تباين الترجيح.',
             'نسبة دولة أو منصّة هي نسبة صفحاتها بلا ترجيح.',
@@ -307,7 +329,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           id: 'limits',
           title: 'حدود هذا التقرير',
           items: [
-            'نطاق الدولة ليس جمهورها: بعض النطاقات تُستخدم عالمياً (`.ly` لروابط الاختصار مثلاً)، وبعض المواقع فرع محلي لشركة عالمية.',
+            'نطاق الدولة ليس جمهورها: استبعدنا ما نعرفه من روابط الاختصار وفروع الشركات العالمية، وما يبقى من مواقع غير عربية لا يدخل في أي نسبة. وبالمقابل تُسقط قاعدة `.ly` مواقع ليبية حقيقية سُجّلت باسم مفرد مباشرة تحت `.ly`.',
             'لا نغطي المواقع العربية على `.com` و`.net` وأخواتها، ولا النطاقات المعرّبة، ولا المواقع خارج أشهر مليون نطاق. قد يضيف إصدار لاحق مصدراً ثانياً.',
             'صفحة رئيسية واحدة لكل موقع: لا تمثّل بقية الصفحات ولا ما خلف تسجيل الدخول.',
             'نتيجة قاعدة واحدة ليست حكماً على جودة الموقع.',
@@ -318,7 +340,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           id: 'ethics',
           title: 'الأخلاقيات وطلب الاستثناء',
           items: [
-            'لا ننشر اسم موقع ولا ترتيبه ولا نتيجته. الأرقام مجاميع، وصفوف المواقع في ملف البيانات بلا نطاق: معرّف مشفّر بمفتاح سرّي لا ينشر، ولا يمكن حسابه من قائمة العيّنة.',
+            'لا ننشر نتيجة أي موقع. ملفات البيانات مجاميع فقط: لا صف فيها لموقع بعينه، ولا حتى بمعرّف مشفّر. الوحيد الذي فيه أسماء المواقع هو قائمة العيّنة المنشورة قبل الزحف، وفيها النطاق والترتيب والدولة بلا أي نتيجة.',
             'من لا يريد أن يُفحص موقعه يضيف إلى robots.txt `User-agent: ArablyzerBot` ثم `Disallow: /`، أو يراسلنا على `{email}` فنخرج نطاقه من العيّنة والزحف ومن الإصدارات القادمة.',
           ],
           after: ['كل شيء مفتوح المصدر: الزاحف والقواعد وهذه الصفحة، فمن شاء راجعها.'],
@@ -335,11 +357,11 @@ export const SOTAW_UI: Copy<SotawStrings> = {
         'aggregates.json': 'أرقام التقرير: عدّاد لكل دولة ومنصّة ومقياس (JSON)',
         'aggregates.csv': 'الأرقام نفسها في CSV، صف لكل فئة في كل خلية',
         'aggregates.parquet': 'الأرقام نفسها بصيغة Parquet',
-        'sites.parquet': 'صفحة رئيسية في كل صف بلا نطاق، بمعرّف مشفّر ومقاييسها (Parquet)',
-        'schema.json': 'JSON Schema لجدولَي البيانات',
+        'schema.json': 'JSON Schema لجدول الأرقام',
         'manifest.json': 'قائمة الملفات بأحجامها وبصمة SHA-256 لكل ملف',
       },
       frameFile: 'ملف عيّنة المواقع (CSV)',
+      exclusionsFile: 'ملف المواقع المستبعَدة وسبب كل منها (CSV)',
       cite: 'الاقتباس',
       citeLead: 'إن استعملت الأرقام أو البيانات فاقتبسها هكذا:',
     },
@@ -349,10 +371,6 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       cta: 'افتح التقرير',
     },
     metrics: {
-      'arabic-page': {
-        title: 'صفحات رئيسية نصّها عربي في الغالب',
-        hint: 'بحسب الحرف الغالب في نص الصفحة.',
-      },
       shaping: {
         title: 'صفحات عربية تفكّك حروفها بالتباعد',
         hint: '`letter-spacing` على نص عربي يفصل الحروف التي يجب أن تتصل.',
@@ -490,9 +508,14 @@ export const SOTAW_UI: Copy<SotawStrings> = {
     },
     findings: {
       title: 'Headline findings',
-      lead: 'Each percentage is the share of homepages judged for that metric, weighted by the size of each country’s list. The range under it is the 95% confidence interval.',
+      lead: 'Each percentage is the share of Arabic homepages judged for that metric, weighted by the size of each country’s list. A page is Arabic when the language it declares is `ar` (or one of its varieties) or the script most of its text is in is Arabic. The range under it is the 95% confidence interval.',
       judged: 'of {n} pages judged',
       interval: '{lo} to {hi}',
+    },
+    notArabic: {
+      title: 'of the pages on Arab domains are not in Arabic',
+      lead: 'Not every page on an Arab domain is in Arabic: some are in English, French or another language. We count this share on its own, and these pages are in no other figure of the report, so their faults are not counted against the Arabic web.',
+      judged: 'of {n} pages judged, in Arabic or not',
     },
     countries: {
       title: 'Countries',
@@ -514,13 +537,14 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       lead: 'What the page runs on, as the platform rule detects it. A platform is named when enough pages share it.',
       none: 'No platform recognised',
       other: 'Other platforms',
-      share: 'of pages',
+      share: 'of Arabic pages',
     },
     funnel: {
       title: 'What happened to the sample’s sites',
       lead: 'Not every site on the list is in the numbers. We show what happened to each, because a site we did not reach is not covered by the confidence intervals.',
       frame: 'Sites in the sample',
       reached: 'Pages checked and judged',
+      notArabic: 'Of them, pages not in Arabic, outside the other figures',
       skipped: 'Sites not checked',
       failed: 'Checks that failed',
       pending: 'Still waiting',
@@ -561,6 +585,8 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       country: 'Country',
       sites: 'Sites',
       total: 'Total',
+      excluded:
+        'We left {excluded} sites out of the list because they are not the Arabic web: link shorteners on domains sold to the world (such as `bit.ly`) and local mirrors of global companies (such as `google.iq`). Each of them, and why it was left out, is in a published file.',
     },
     method: {
       title: 'Method',
@@ -590,7 +616,8 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           paragraphs: [
             'From the Tranco list (a fixed list id, recorded) we take every domain that ends in an Arab country domain: `.sa` `.ae` `.eg` `.kw` `.qa` `.bh` `.om` `.jo` `.ma` `.dz` `.tn` `.iq` `.lb` `.ly` `.sy` `.ye` `.sd` `.ps` `.mr`.',
             'If there are more than {cap} sites, each country gets a floor and the rest is shared by what each has left, and inside a country sites are chosen by a hash with a published seed, so the choice is random with respect to rank and gives the same result on any machine. The real numbers for the list are in the «The sample of sites» section above.',
-            'The sample file is a CSV with the domain, the rank and the country and nothing else, in the project’s repository.',
+            'Then we leave out what is not the Arabic web: {excluded} sites in this list, each recorded with its reason in a published file. We leave out every name directly under `.ly` (`bit.ly` and its like), so of `.ly` we keep only what sits under `gov.ly`, `com.ly`, `edu.ly`, `org.ly`, `net.ly`, `sch.ly`, `plc.ly`, `med.ly` and `id.ly`; a few named hacks on other domains (`lu.ma`, `cre.ma`); and the country mirrors of global companies (Google, YouTube, Facebook, Instagram, Amazon, Microsoft, Apple, Wikipedia, Yahoo, Bing, Twitter and X, TikTok, LinkedIn, WhatsApp, Netflix and Booking). This comes before any sampling, so the size of each country’s list that weights the report is the size after it.',
+            'The sample file is a CSV with the domain, the rank and the country and nothing else, and the exclusions file gives the reason for each site left out, both in the project’s repository.',
           ],
         },
         {
@@ -608,6 +635,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           id: 'stats',
           title: 'How we count',
           items: [
+            'Every headline share is of the Arabic pages alone: a page whose declared language is `ar` (or one of its varieties, such as `arz`) or whose text is mostly in Arabic script. The other pages on Arab domains (English, French and the rest) are counted on their own, and their share is shown as a figure of its own: «of the pages on Arab domains are not in Arabic».',
             'Each share has a 95% confidence interval by Wilson’s method.',
             'The «whole sample» share is weighted by the size of each country’s list, not by how many of its pages we reached, so a small country that was given a floor does not outweigh a large one. Its interval uses the effective sample size that the weighted variance implies.',
             'A country’s or a platform’s share is the share of its pages, unweighted.',
@@ -621,7 +649,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           id: 'limits',
           title: 'Limits of this report',
           items: [
-            'A country domain is not the country’s audience: some are used worldwide (`.ly` for link shorteners, for one), and some sites are a global company’s local branch.',
+            'A country domain is not the country’s audience: we leave out the link shorteners and the global companies’ mirrors we know of, and the sites that remain and are not in Arabic are in no share. On the other hand the `.ly` rule drops real Libyan sites that registered a single name directly under `.ly`.',
             'We do not cover Arabic sites on `.com`, `.net` and the like, nor internationalised domains, nor sites outside the top million. A later edition may add a second source.',
             'One homepage per site: it does not stand for the other pages or for what is behind a login.',
             'The result of one rule is not a verdict on a site’s quality.',
@@ -632,7 +660,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           id: 'ethics',
           title: 'Ethics and opting out',
           items: [
-            'We publish no site’s name, rank or result. The numbers are aggregates, and the site rows in the data file carry no domain: an id hashed with a secret key that is not published and cannot be computed from the sample list.',
+            'We publish no site’s result. The data files are aggregates only: no row in them is a site, not even under a hash. The one place with site names is the sample list, published before the crawl, with the domain, the rank and the country and no result.',
             'If you do not want your site checked, add `User-agent: ArablyzerBot` and `Disallow: /` to your robots.txt, or write to `{email}` and we take your domain out of the sample, the crawl and later editions.',
           ],
           after: ['All of it is open source: the crawler, the rules and this page.'],
@@ -650,12 +678,11 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           'The report’s numbers: counts for each country, platform and metric (JSON)',
         'aggregates.csv': 'The same numbers in CSV, one row for each category in each cell',
         'aggregates.parquet': 'The same numbers as Parquet',
-        'sites.parquet':
-          'One homepage per row, with no domain, a keyed id and its metrics (Parquet)',
-        'schema.json': 'The JSON Schema of the two tables',
+        'schema.json': 'The JSON Schema of the table of numbers',
         'manifest.json': 'The list of files with their sizes and a SHA-256 of each',
       },
       frameFile: 'The sample of sites (CSV)',
+      exclusionsFile: 'The sites left out and the reason for each (CSV)',
       cite: 'How to cite',
       citeLead: 'If you use the numbers or the data, cite them like this:',
     },
@@ -665,10 +692,6 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       cta: 'Open the report',
     },
     metrics: {
-      'arabic-page': {
-        title: 'Homepages written mostly in Arabic',
-        hint: 'By the script that most of the page’s text is in.',
-      },
       shaping: {
         title: 'Arabic pages that pull letters apart with spacing',
         hint: '`letter-spacing` on Arabic text separates letters that must join.',

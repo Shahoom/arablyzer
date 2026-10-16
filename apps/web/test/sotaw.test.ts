@@ -17,6 +17,8 @@ import {
   findings,
   frameRows,
   funnelRows,
+  methodValues,
+  notArabicFigure,
   pct,
   platformName,
   platformRows,
@@ -37,6 +39,9 @@ const frame: FrameMeta = {
   populations: { sa: 200, eg: 150, ye: 10, ae: 40 },
   sampled: { sa: 200, eg: 150, ye: 10, ae: 40 },
   optedOut: 0,
+  excluded: 12,
+  exclusions: { 'global-brand': 8, 'ly-single-label': 4 },
+  exclusionsSha256: 'd'.repeat(64),
   sha256: 'c'.repeat(64),
 }
 
@@ -84,7 +89,7 @@ const edition: EditionData = {
   aggregates,
   files: [
     { name: 'aggregates.json', bytes: 2048, sha256: 'a'.repeat(64), description: 'x' },
-    { name: 'sites.parquet', bytes: 4096, sha256: 'b'.repeat(64), description: 'y' },
+    { name: 'aggregates.parquet', bytes: 4096, sha256: 'b'.repeat(64), description: 'y' },
   ],
 }
 
@@ -153,7 +158,7 @@ describe('the numbers the page shows', () => {
   it('platforms: the named ones and the rest as the remainder, never a small platform’s own count', () => {
     const list = platformRows(aggregates, copy)
     expect(list.map((row) => row.id)).toEqual(['wordpress', 'salla', 'other'])
-    expect(list.at(-1)?.n).toBe(aggregates.funnel.reached - 160)
+    expect(list.at(-1)?.n).toBe(aggregates.funnel.arabic - 160)
     expect(Math.max(...list.map((r) => r.length))).toBe(100)
     expect(platformName('wordpress')).toBe('WordPress')
     expect(platformName('some-new-cms')).toBe('Some New Cms')
@@ -178,6 +183,7 @@ describe('the numbers the page shows', () => {
         total: 400,
         cap: 10000,
         floor: 300,
+        excluded: 12,
         seed: 's',
         populations: frame.populations,
         sha256: 'c'.repeat(64),
@@ -215,7 +221,7 @@ describe('the Dataset markup', () => {
     }[]
     expect(files.map((f) => f.contentUrl)).toEqual([
       'https://arablyzer.example/data/state-of-arabic-web/test/aggregates.json',
-      'https://arablyzer.example/data/state-of-arabic-web/test/sites.parquet',
+      'https://arablyzer.example/data/state-of-arabic-web/test/aggregates.parquet',
     ])
     expect(files[1]?.encodingFormat).toBe('application/vnd.apache.parquet')
     expect((ld.variableMeasured as unknown[]).length).toBe(METRICS.length)
@@ -314,7 +320,6 @@ describe('the data the build reads', () => {
         scanId: null,
         outcome: r.outcome,
       })),
-      secret: 'k'.repeat(40),
     })
     const folder = join(dir, 'editions', 'test')
     mkdirSync(folder, { recursive: true })
@@ -322,11 +327,94 @@ describe('the data the build reads', () => {
     const data = sotawData({ editions: join(dir, 'editions') })
     expect(data.edition?.id).toBe('test')
     expect(data.edition?.aggregates.funnel.reached).toBe(285)
-    expect(data.edition?.files.map((f) => f.name)).toContain('sites.parquet')
+    expect(data.edition?.files.map((f) => f.name)).not.toContain('sites.parquet')
+    expect(data.edition?.files.map((f) => f.name)).toContain('aggregates.parquet')
     writeFileSync(
       join(folder, 'aggregates.csv'),
       `${readFileSync(join(folder, 'aggregates.csv'), 'utf8')}x`,
     )
     expect(() => sotawData({ editions: join(dir, 'editions') })).toThrow(/manifest/)
+  })
+
+  it('refuses an edition folder that holds a per-site file, listed in the manifest or not', () => {
+    const made = buildEdition({
+      edition: 'sites',
+      frame,
+      crawl: { startedAt: null, finishedAt: null },
+      rows: results.map((r, i) => ({
+        runId: 'r',
+        domain: `site${String(i)}.${r.country}`,
+        country: r.country,
+        rank: i + 1,
+        position: i,
+        state: r.state,
+        reason: r.reason,
+        attempts: 1,
+        scanId: null,
+        outcome: r.outcome,
+      })),
+    })
+    const editions = join(dir, 'with-sites')
+    const folder = join(editions, 'sites')
+    mkdirSync(folder, { recursive: true })
+    for (const file of made.files) writeFileSync(join(folder, file.name), file.bytes)
+    expect(sotawData({ editions }).edition?.id).toBe('sites')
+    writeFileSync(join(folder, 'sites.parquet'), 'PAR1')
+    expect(() => sotawData({ editions })).toThrow(/aggregates only/)
+  })
+
+  it('carries the number of sites the frame left out', () => {
+    const data = sotawData({ editions: join(dir, 'none') })
+    expect(data.frame?.excluded).toBeGreaterThan(0)
+  })
+})
+
+describe('the pages that are not in Arabic', () => {
+  const english = outcome({ 'ar-letter-spacing': 'f' })
+  const mixed = aggregate({
+    edition: 'mixed',
+    frame,
+    crawl: { startedAt: null, finishedAt: null },
+    results: [
+      ...rows(120, 'sa', outcome({ 'ar-letter-spacing': 'p' })),
+      ...rows(80, 'sa', { ...english, lang: 'en', script: 'latin' }),
+      ...rows(90, 'eg', outcome({ 'ar-letter-spacing': 'p' })),
+      ...rows(10, 'eg', { ...english, lang: 'fr', script: 'latin' }),
+    ],
+  })
+
+  it('are a figure of their own, with its interval and the pages judged, Arabic or not', () => {
+    const figure = notArabicFigure(mixed)
+    expect(figure?.n).toBe(300)
+    // sa: 80 of 200 (list 200 of 400); eg: 10 of 100 (list 150): weighted, not 90 of 300.
+    expect(figure?.value).toBe(pct((200 / 350) * 0.4 + (150 / 350) * 0.1))
+    expect(Number.parseFloat(figure?.lo ?? '')).toBeLessThan(Number.parseFloat(figure?.value ?? ''))
+    expect(notArabicFigure(aggregates)?.value).toBe('0%')
+  })
+
+  it('are left out of the platform shares and the headline, and are a row of the funnel', () => {
+    // The headline counts the Arabic pages: 210 of the 300 judged.
+    expect(findings(mixed, copy).find((f) => f.id === 'shaping')?.n).toBe(210)
+    expect(platformRows(mixed, copy).every((row) => row.n <= mixed.funnel.arabic)).toBe(true)
+    const list = funnelRows(mixed, copy)
+    expect(list.map((r) => [r.key, r.n])).toEqual([
+      ['frame', 300],
+      ['reached', 300],
+      ['not-arabic', 90],
+    ])
+    expect(list[2]?.label).toBe(copy.funnel.notArabic)
+  })
+
+  it('are said in the copy, in both languages, with the methodology’s own count of what was left out', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      const t = SOTAW_UI[lang]
+      expect(t.notArabic.title && t.notArabic.lead && t.notArabic.judged).toBeTruthy()
+      expect(t.funnel.notArabic && t.frame.excluded && t.data.exclusionsFile).toBeTruthy()
+      expect(Object.keys(t.data.files)).not.toContain('sites.parquet')
+      expect(JSON.stringify(t)).not.toMatch(/sites\.parquet|keyed id/)
+      const method = t.method.sections.flatMap((s) => [...(s.paragraphs ?? []), ...(s.items ?? [])])
+      expect(method.some((line) => line.includes('{excluded}'))).toBe(true)
+    }
+    expect(methodValues(30, 'a@b.c', 3_589).excluded).toBe('3,589')
   })
 })
