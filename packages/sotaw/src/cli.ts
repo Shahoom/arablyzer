@@ -249,7 +249,9 @@ async function crawlCommand(): Promise<void> {
           scanner,
           requireSecret('ARABLYZER_SCANNER_TOKEN', env.ARABLYZER_SCANNER_TOKEN),
         ),
-        load: () => (os.loadavg()[0] ?? 0) / os.availableParallelism(),
+        // The load average is the host's, so it is divided by the host's cores: inside a container
+        // limited to part of a CPU, availableParallelism() is 1, and any shared host looks busy.
+        load: () => (os.loadavg()[0] ?? 0) / Math.max(1, os.cpus().length),
         now: () => Date.now(),
         sleep: (ms, signal) =>
           new Promise<void>((done) => {
