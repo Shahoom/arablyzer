@@ -1,0 +1,4 @@
+# CAMeL Tools, installed with --no-deps: the service uses its morphology analyzer, its dediacritizer and
+# its dialect model, none of which needs torch or transformers (requirements.in lists what they do need).
+camel-tools==1.6.0 \
+    --hash=sha256:17e51cf959dd2efcce034db610d796fb5e5068061b5bf0bde3c4493d9d426efe

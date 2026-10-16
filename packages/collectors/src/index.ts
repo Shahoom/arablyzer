@@ -7,6 +7,27 @@ export {
   parseUnicodeRange,
   type CodePointRange,
 } from './code-points'
+export {
+  askNlpTexts,
+  forgetNlpFailures,
+  NLP_MAX_TEXT_CHARS,
+  NLP_MAX_TEXTS,
+  NLP_MAX_TOTAL_CHARS,
+  NLP_MIN_CONFIDENCE,
+  NLP_REST_MS,
+  NLP_TIMEOUT_MS,
+  NLP_VARIETIES,
+  SPELLING_FAMILIES,
+  type NlpDialectFacts,
+  type NlpFacts,
+  type NlpOptions,
+  type NlpRun,
+  type NlpSpelling,
+  type NlpSpellingFacts,
+  type NlpVariety,
+  type NlpWants,
+  type SpellingFamily,
+} from './nlp'
 export { collectCrux, type CruxAnswer, type CruxFacts, type CruxInput } from './crux'
 export {
   collectSafeBrowsing,

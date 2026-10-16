@@ -13,6 +13,7 @@ import { definition as arabicFontSlimmer } from './tools/arabic-font-slimmer/too
 import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
 import { definition as arabicPunctuationCheck } from './tools/arabic-punctuation-check/tool'
 import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/tool'
+import { definition as arabicSpellCheck } from './tools/arabic-spell-check/tool'
 import { definition as arabicSuggest } from './tools/arabic-suggest/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
 import { definition as brandNameCheck } from './tools/brand-name-check/tool'
@@ -25,6 +26,7 @@ import { definition as contactReachability } from './tools/contact-reachability/
 import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
 import { definition as countryFit } from './tools/country-fit/tool'
 import { definition as cruxByCountry } from './tools/crux-by-country/tool'
+import { definition as dialectDetector } from './tools/dialect-detector/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
 import { definition as feedCheck } from './tools/feed-check/tool'
@@ -98,6 +100,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   arabicFormTest,
   arabicPunctuationCheck,
   arabicShapingCheck,
+  arabicSpellCheck,
   arabicSuggest,
   bidiIsolationCheck,
   brandNameCheck,
@@ -110,6 +113,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   coreWebVitals,
   countryFit,
   cruxByCountry,
+  dialectDetector,
   digitsConsistency,
   emailSecurity,
   feedCheck,

@@ -16,6 +16,7 @@ import {
   servicesUp,
   siteOnLoopback,
   valkeyAccess,
+  nlpReach,
   workerReach,
 } from '../checks/checks'
 import { Stack, type HostProbe } from '../checks/stack'
@@ -430,6 +431,10 @@ describe('the networks', () => {
 
   it('give the worker the stores and the scanner, and no way out', () => {
     expect(workerReach(stack)).toEqual([])
+  })
+
+  it('put the Arabic language service on the scan network alone, with no way out', () => {
+    expect(nlpReach(stack)).toEqual([])
   })
 
   it('give the host no address on the internal ones', () => {

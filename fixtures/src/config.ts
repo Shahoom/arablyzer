@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { CruxData } from './crux'
 import { KnowledgeGraphData } from './knowledge-graph'
+import { NlpData } from './nlp'
 import { SafeBrowsingData } from './safe-browsing'
 
 const HeaderValue = z.union([z.string(), z.array(z.string()).min(1)])
@@ -44,6 +45,8 @@ export const SiteConfig = z
     safeBrowsing: SafeBrowsingData.optional(),
     /** What the Knowledge Graph stand-in answers for the site (serveKnowledgeGraph): its rule's fixtures. */
     knowledgeGraph: KnowledgeGraphData.optional(),
+    /** What the Arabic NLP service stand-in answers for the site (serveNlp): the spelling rule's fixtures. */
+    nlp: NlpData.optional(),
     host: z.string().regex(EXAMPLE_NAME).optional(),
     aliases: z.array(z.string().regex(EXAMPLE_NAME)).min(1).optional(),
     tls: z

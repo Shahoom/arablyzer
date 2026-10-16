@@ -125,6 +125,48 @@ export function workerReach(stack: Stack): string[] {
   return problems
 }
 
+/**
+ * The Arabic language service (M7) is on the scan network alone: the scanner and the worker reach it, the
+ * API (on the edge and data networks) does not know it, and it knows no store, no site and no proxy and has
+ * no way out. Asked from inside it, in Python, which is all its image has.
+ */
+export function nlpReach(stack: Stack): string[] {
+  const problems: string[] = []
+  for (const service of ['scanner', 'worker']) {
+    if (stack.reachOne(service, 'arabic-nlp', 8790) !== 'open') {
+      problems.push(`${service} does not reach the Arabic language service`)
+    }
+  }
+  if (!UNRESOLVED.test(stack.reachOne('api', 'arabic-nlp', 8790) ?? '')) {
+    problems.push('the API knows the Arabic language service: it is on a network with it')
+  }
+  const script = [
+    'import json, socket',
+    'out = {}',
+    "for name in ['valkey', 'postgres', 'api', 'web', 'egress']:",
+    '    try:',
+    '        socket.gethostbyname(name)',
+    "        out[name] = 'resolves'",
+    '    except OSError:',
+    "        out[name] = 'unresolved'",
+    'try:',
+    `    socket.create_connection(('${stack.options.probe}', 80), 3).close()`,
+    "    out['probe'] = 'open'",
+    'except OSError:',
+    "    out['probe'] = 'closed'",
+    'print(json.dumps(out))',
+  ].join('\n')
+  const seen = JSON.parse(
+    stack.compose('exec', '-T', 'arabic-nlp', 'python', '-c', script),
+  ) as Record<string, string>
+  for (const [name, outcome] of Object.entries(seen)) {
+    if (name === 'probe' ? outcome !== 'closed' : outcome !== 'unresolved') {
+      problems.push(`the Arabic language service: ${name} is ${outcome}`)
+    }
+  }
+  return problems
+}
+
 /** The networks that have no way out are `internal`, and give the host no address on their bridges. */
 export function internalNetworks(stack: Stack, host: HostProbe): string[] {
   const problems: string[] = []

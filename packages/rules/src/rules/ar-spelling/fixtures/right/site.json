@@ -1,0 +1,5 @@
+{
+  "nlp": {
+    "spelling": { "min_confidence": 0.9, "words": 38, "judged": 30, "truncated": false, "findings": [] }
+  }
+}

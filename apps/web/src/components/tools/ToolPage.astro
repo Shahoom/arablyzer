@@ -11,6 +11,7 @@ import GscKeywords from '../../islands/search/GscKeywords'
 import SerpSampler from '../../islands/search/SerpSampler'
 import SuggestTree from '../../islands/search/SuggestTree'
 import RobotsTester from '../../islands/generators/RobotsTester'
+import NlpPaste from '../../islands/nlp/NlpPaste'
 import SchemaGenerator from '../../islands/generators/SchemaGenerator'
 import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
 import ToolApp from '../../islands/ToolApp'
@@ -176,6 +177,13 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
     <div class="flex flex-col gap-section">
       {scan && (
         <ToolResult client:idle={{ timeout: 500 }} lang={lang} reportsOnly={tool.reportsOnly} />
+      )}
+      {/* The Arabic text tools (M7): a text pasted into the page, beside the scan box that takes an address. */}
+      {slug === 'arabic-spell-check' && (
+        <NlpPaste client:idle={{ timeout: 500 }} {...boxed} kind="spelling" />
+      )}
+      {slug === 'dialect-detector' && (
+        <NlpPaste client:idle={{ timeout: 500 }} {...boxed} kind="dialect" />
       )}
       {slug === 'whatsapp-link-generator' && (
         <WhatsAppGenerator client:idle={{ timeout: 500 }} {...boxed} />

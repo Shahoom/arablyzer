@@ -1,5 +1,6 @@
 import type { PageFacts } from '@arablyzer/collectors'
 import { fitsCountry, readDialect } from './dialect'
+import { gulfItems } from './gulf'
 
 /** The countries whose fit the rule judges, by ISO 3166-1 alpha-2. */
 export const COUNTRIES = ['SA', 'AE', 'EG', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA'] as const
@@ -17,7 +18,7 @@ export interface CountryInfo {
   readonly local: string
   /** Numbers are written with a leading 0 inside the country (05…): a number so written has no country code. */
   readonly trunk: boolean
-  /** Prices are expected to say whether they include value-added tax (Saudi Arabia and the UAE). */
+  /** Prices are expected to say whether they include value-added tax (Saudi Arabia, the UAE, Bahrain and Oman). */
   readonly vat: boolean
   /** The Hijri calendar is shown beside the Gregorian on official and news pages. */
   readonly hijri: boolean
@@ -88,7 +89,7 @@ export const INFO: Readonly<Record<Country, CountryInfo>> = {
     dial: '973',
     local: '[36]\\d{7}',
     trunk: false,
-    vat: false,
+    vat: true,
     hijri: false,
     latinDigits: false,
   },
@@ -99,7 +100,7 @@ export const INFO: Readonly<Record<Country, CountryInfo>> = {
     dial: '968',
     local: '[79]\\d{7}',
     trunk: false,
-    vat: false,
+    vat: true,
     hijri: false,
     latinDigits: false,
   },
@@ -337,7 +338,17 @@ export function inferCountry(reading: Reading): Inference {
   return { country, confidence: strong ? 'strong' : 'thin', signals }
 }
 
-export type ItemId = 'currency' | 'phone' | 'digits' | 'vat' | 'hijri' | 'lang' | 'dialect'
+export type ItemId =
+  | 'currency'
+  | 'phone'
+  | 'digits'
+  | 'vat'
+  | 'hijri'
+  | 'lang'
+  | 'dialect'
+  | 'vat-rate'
+  | 'weekend'
+  | 'phone-shape'
 
 export interface Item {
   readonly id: ItemId
@@ -418,6 +429,9 @@ export function itemsFor(reading: Reading, country: Country): Item[] {
     else if (DATE.test(text)) items.push({ id: 'hijri', status: 'gap', detail: '' })
     else items.push({ id: 'hijri', status: 'unknown', detail: '' })
   }
+
+  // The Gulf pack (lib/gulf.ts): the tax rate stated, the working week, the shape of the phone numbers.
+  items.push(...gulfItems(reading, country))
 
   // The language tag's region, where it names one.
   const region = reading.lang === null ? null : regionOf(reading.lang)

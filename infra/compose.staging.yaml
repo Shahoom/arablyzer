@@ -1,6 +1,6 @@
 # What staging adds to compose.yaml (M2.5). Nothing about how the stack runs: every cap, network,
 # hardening option and secret is compose.yaml's, so that what is accepted on staging is what runs
-# later on a server of its own. The memory caps add up to 2,480 MiB with the one scanner, inside the
+# later on a server of its own. The memory caps add up to 3,504 MiB with the one scanner and the Arabic language service (1,024 MiB of it), inside the
 # 3.5 GB that BUILD-PLAN §18.3.1 gives Arablyzer on the owner's server; the hostname is
 # ARABLYZER_SITE in infra/.env, and the port ARABLYZER_PORT. There is nothing to override there.
 #
@@ -45,6 +45,9 @@ services:
     pull_policy: never
   scanner:
     image: arablyzer/scanner:${ARABLYZER_RELEASE:?}
+    pull_policy: never
+  arabic-nlp:
+    image: arablyzer/arabic-nlp:${ARABLYZER_RELEASE:?}
     pull_policy: never
   egress:
     image: arablyzer/egress:${ARABLYZER_RELEASE:?}

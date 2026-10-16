@@ -27,6 +27,8 @@ export const CRUX_PORT = 30_000
 export const SAFE_BROWSING_PORT = 29_999
 /** The Knowledge Graph stand-in's. */
 export const KNOWLEDGE_GRAPH_PORT = 29_998
+/** The Arabic NLP service stand-in's. */
+export const NLP_PORT = 29_997
 
 export function portOf(name: string): number {
   const number = /^(\d{2})-/.exec(name)?.[1]

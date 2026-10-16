@@ -1,0 +1,15 @@
+{
+  "nlp": {
+    "spelling": {
+      "min_confidence": 0.9,
+      "words": 38,
+      "judged": 36,
+      "truncated": false,
+      "findings": [
+        { "word": "الاسعار", "suggestion": "الأسعار", "family": "hamza", "confidence": 0.97, "before": "تتميز", "after": "في متجرنا بالمنافسة", "alternatives": [] },
+        { "word": "والخدمه", "suggestion": "والخدمة", "family": "ta-marbuta", "confidence": 0.97, "before": "نلتزم بجودة المنتجات", "after": "، ونرحب بكم في فرعنا", "alternatives": [] },
+        { "word": "بالمدينه", "suggestion": "بالمدينة", "family": "ta-marbuta", "confidence": 0.97, "before": "ونرحب بكم في فرعنا", "after": "المنورة كل يوم.", "alternatives": [] }
+      ]
+    }
+  }
+}

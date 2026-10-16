@@ -1,0 +1,69 @@
+{
+  "nlp": {
+    "spelling": {
+      "min_confidence": 0.9,
+      "words": 44,
+      "judged": 44,
+      "truncated": false,
+      "findings": [
+        {
+          "text": 1,
+          "start": 6,
+          "end": 13,
+          "word": "الاسعار",
+          "suggestion": "الأسعار",
+          "family": "hamza",
+          "confidence": 0.97,
+          "before": "تتميز",
+          "after": "في متجرنا بالمنافسة، ون",
+          "alternatives": []
+        },
+        {
+          "text": 2,
+          "start": 21,
+          "end": 28,
+          "word": "والخدمه",
+          "suggestion": "والخدمة",
+          "family": "ta-marbuta",
+          "confidence": 0.97,
+          "before": "نلتزم بجودة المنتجات",
+          "after": "، ونرحب بكم في فرعنا بال",
+          "alternatives": []
+        },
+        {
+          "text": 2,
+          "start": 49,
+          "end": 57,
+          "word": "بالمدينه",
+          "suggestion": "بالمدينة",
+          "family": "ta-marbuta",
+          "confidence": 0.97,
+          "before": "دمه، ونرحب بكم في فرعنا",
+          "after": "المنورة كل يوم.",
+          "alternatives": []
+        }
+      ]
+    },
+    "dialect": {
+      "model": "camel-dialectid-model6",
+      "label": "msa",
+      "probabilities": {
+        "msa": 0.484,
+        "gulf": 0.2463,
+        "egyptian": 0.2417,
+        "levantine": 0.0069,
+        "maghrebi": 0.0212
+      },
+      "votes": {
+        "msa": 2,
+        "gulf": 1,
+        "egyptian": 1,
+        "levantine": 0,
+        "maghrebi": 0
+      },
+      "chunks": 4,
+      "words": 44,
+      "truncated": false
+    }
+  }
+}

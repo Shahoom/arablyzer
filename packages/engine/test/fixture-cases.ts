@@ -35,6 +35,15 @@ export const LONG_TEXT_RULES: ReadonlySet<string> = new Set([
   'ai-training-filters',
 ])
 
+/**
+ * Rules that read the Arabic NLP service's answer (M7): without the service they do not apply, so the
+ * static fixtures cannot judge them. Their fixtures hold a stand-in answer (nlp.json) that the rule's own
+ * test reads, and the engine's nlp.test.ts runs the whole path against a stand-in service.
+ */
+export const NLP_RULES: ReadonlySet<string> = new Set(
+  RULES.filter((rule) => rule.needs.includes('nlp')).map((rule) => rule.id),
+)
+
 /** Rules that ask for a person's review: they never fail, so their fixtures need review or not. */
 export const MANUAL_RULES: ReadonlySet<string> = new Set(
   RULES.filter((rule) => rule.manualCheck === true).map((rule) => rule.id),

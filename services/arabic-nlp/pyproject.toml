@@ -1,0 +1,12 @@
+[project]
+name = "arablyzer-arabic-nlp"
+version = "0.1.0"
+description = "Arablyzer's Arabic NLP service: spelling, dialect and morphology over CAMeL Tools"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+filterwarnings = ["ignore::DeprecationWarning"]
+markers = ["data: needs the baked data packages (skipped where they are not)"]

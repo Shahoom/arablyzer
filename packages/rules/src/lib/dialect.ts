@@ -1,3 +1,4 @@
+import type { NlpDialectFacts } from '@arablyzer/collectors'
 import { arabicWords, normalizeArabic } from './ar-normalize'
 
 /**
@@ -190,4 +191,56 @@ export function registerGap(page: PageDialect): 'formal-headings' | 'colloquial-
   if (headings.label === 'msa' && body.label !== 'msa') return 'formal-headings'
   if (headings.label !== 'msa' && body.label === 'msa') return 'colloquial-headings'
   return null
+}
+
+/** The mean share of its sentences the model must give a variety, and the share of sentences that must pick it. */
+export const MODEL_MIN_SHARE = 0.7
+export const MODEL_MIN_VOTES = 0.5
+
+export interface ModelVerdict {
+  readonly label: Variety
+  /** The model's mean probability of the label over the text, 0 to 1. */
+  readonly share: number
+  /** The share of the text's sentences the label won, 0 to 1. */
+  readonly votes: number
+}
+
+/**
+ * The dialect model's verdict on a text, or null when it is not sure: a variety is named only when
+ * it holds at least 70% of the probability and wins half of the sentences. Fewer than MIN_WORDS words
+ * (as the word list counts them) are no verdict (M7, docs/design/plans/m7-deep-arabic.md).
+ */
+export function modelVerdict(
+  model: NlpDialectFacts | null | undefined,
+  words: number,
+): ModelVerdict | null {
+  const label = model?.label ?? null
+  if (model === null || model === undefined || label === null || words < MIN_WORDS) return null
+  const share = model.probabilities[label]
+  const votes = model.chunks === 0 ? 0 : model.votes[label] / model.chunks
+  return share >= MODEL_MIN_SHARE && votes >= MODEL_MIN_VOTES ? { label, share, votes } : null
+}
+
+export interface EffectiveDialect {
+  readonly label: Variety | null
+  readonly source: 'lexicon' | 'model'
+  readonly model: ModelVerdict | null
+}
+
+/**
+ * The variety the page is judged by. The word list wins where it found a dialect (three of its
+ * telling words and a fifth of all of them: the old, explainable rule); where it found Modern
+ * Standard or nothing, the model's verdict is used when it is sure, which is how colloquial text
+ * with none of the listed words is told from Modern Standard.
+ */
+export function effectiveDialect(
+  whole: DialectReading,
+  model: NlpDialectFacts | null | undefined,
+): EffectiveDialect {
+  const verdict = modelVerdict(model, whole.words)
+  if (whole.label !== null && whole.label !== 'msa') {
+    return { label: whole.label, source: 'lexicon', model: verdict }
+  }
+  if (verdict !== null) return { label: verdict.label, source: 'model', model: verdict }
+  return { label: whole.label, source: 'lexicon', model: null }
 }

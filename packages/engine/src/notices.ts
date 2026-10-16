@@ -75,6 +75,7 @@ export type NoticeCode =
   | 'links-robots'
   | 'links-unanswered'
   | 'lab-challenged'
+  | 'nlp-unavailable'
 
 /**
  * User-facing scan notices. They are chosen by code only: egress error details (such as the
@@ -405,6 +406,10 @@ const NOTICES: Readonly<Record<NoticeCode, { readonly ar: string; readonly en: s
   'lab-challenged': {
     ar: 'ردّ الموقع على متصفح بتحدٍّ للبوتات بدل الصفحة، فلم يفتحها Lighthouse: لا يحاول Arablyzer تجاوز أي تحدٍّ.',
     en: 'A browser was answered with a bot challenge instead of the page, so Lighthouse did not open it: Arablyzer never tries to get past a challenge.',
+  },
+  'nlp-unavailable': {
+    ar: 'تعذّر الوصول إلى خدمة تحليل العربية في هذا الفحص، فتُرك فحص الإملاء وقراءة نموذج اللهجات، وقرأنا اللهجة بقائمة الكلمات. بقية الفحوص جرت كالمعتاد.',
+    en: "The Arabic language service could not be reached in this scan, so the spelling check and the dialect model's reading were left out, and the dialect was read from the word list. Everything else ran as usual.",
   },
   'lab-skipped': {
     ar: 'لم يبقَ من وقت الفحص ما يكفي Lighthouse، فلم يعمل.',

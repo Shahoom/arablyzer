@@ -6,10 +6,12 @@ import {
   reportPath,
   SCANS_PATH,
   scanPath,
+  NLP_STATUS_PATH,
   SEARCH_STATUS_PATH,
   type CreateScanRequest,
   type GscKeywordsResult,
   type GscResult,
+  type NlpStatus,
   type ScanErrorCode,
   type ScanSummary,
   type SearchStatus,
@@ -136,6 +138,13 @@ export async function fetchSearchStatus(send: typeof fetch = fetch): Promise<Sea
   if (!loaded.ok || typeof loaded.value !== 'object' || loaded.value === null) return null
   const { suggest, serp } = loaded.value as Partial<SearchStatus>
   return { suggest: suggest === true, serp: serp === true }
+}
+
+/** Whether the Arabic text tools are on (the operator runs the NLP service); null when the API did not answer. */
+export async function fetchNlpStatus(send: typeof fetch = fetch): Promise<NlpStatus | null> {
+  const loaded = await getJson(NLP_STATUS_PATH, send)
+  if (!loaded.ok || typeof loaded.value !== 'object' || loaded.value === null) return null
+  return { text: (loaded.value as Partial<NlpStatus>).text === true }
 }
 
 /** Why a search tool's request was not answered: a scan's refusal codes, or no connection at all. */

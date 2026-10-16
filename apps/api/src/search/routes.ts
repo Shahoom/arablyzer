@@ -10,6 +10,7 @@ import type { safeFetch } from '@arablyzer/egress'
 import type { Hono, Context, MiddlewareHandler } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { ApiDeps } from '../app'
+import { visitorScan } from '../take-scan'
 import { serpSampler } from './serp'
 import { cleanDomain } from './serp'
 import { cleanTerm, suggestTree } from './suggest'
@@ -64,37 +65,7 @@ export function mountSearch(app: Hono, deps: ApiDeps, helpers: Helpers, now: () 
   })
 
   /** The visitor's scan, taken: null when it may go on, else the refusal to send. */
-  const takeScan = async (c: Context, token: unknown): Promise<Response | null> => {
-    const address = deps.address(c)
-    if (address === null) return helpers.refuse(c, 'unavailable')
-    const at = now()
-    const visitor = deps.connectionKey(address, at)
-    const attempt = await deps.limiter.take(
-      `attempt:${visitor}`,
-      deps.limits.attempts,
-      at.getTime(),
-    )
-    if (!attempt.ok) return helpers.refuse(c, 'rate-limited', attempt.retryAfterSeconds)
-    if (typeof token !== 'string' || !(await deps.turnstile(token))) {
-      return helpers.refuse(c, 'turnstile-failed')
-    }
-    const own = await deps.limiter.take(
-      `connection:${visitor}`,
-      deps.limits.perConnection,
-      at.getTime(),
-    )
-    if (!own.ok) return helpers.refuse(c, 'rate-limited', own.retryAfterSeconds)
-    const network = deps.networkKey?.(address, at) ?? null
-    if (network !== null) {
-      const shared = await deps.limiter.take(
-        `network:${network}`,
-        deps.limits.perNetwork,
-        at.getTime(),
-      )
-      if (!shared.ok) return helpers.refuse(c, 'rate-limited', shared.retryAfterSeconds)
-    }
-    return null
-  }
+  const takeScan = visitorScan(deps, helpers, now)
 
   const body = async (c: Context): Promise<Record<string, unknown> | null> => {
     try {

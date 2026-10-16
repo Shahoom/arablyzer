@@ -27,6 +27,7 @@
     "./versus": "./src/versus.ts",
     "./tool-app": "./src/tool-app.ts",
     "./search": "./src/search.ts",
+    "./nlp": "./src/nlp.ts",
     "./legal": "./src/legal.ts",
     "./sotaw": "./src/sotaw.ts",
     "./native": "./src/native.ts",

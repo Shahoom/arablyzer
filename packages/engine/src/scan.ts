@@ -12,6 +12,7 @@ import {
   type CruxFacts,
   organizationalDomain,
   type KnowledgeGraphFacts,
+  type NlpFacts,
   type OpenPageRankFacts,
   type SafeBrowsingFacts,
   type DnsFacts,
@@ -63,6 +64,7 @@ import {
   crawlerAccess,
   detectPlatforms,
   dialectOfPage,
+  effectiveDialect,
   FINEWEB2,
   fitOf,
   fitsCountry,
@@ -89,6 +91,7 @@ import { boundSelector, boundText, boundValues } from './bounds'
 import { SCAN_BUDGET_MS } from './budgets'
 import { fetchCrux, type CruxOptions } from './crux'
 import { fetchOpenPageRank, type OpenPageRankOptions } from './open-page-rank'
+import { askNlp, type NlpOptions } from './nlp'
 import { runOutside, outsideFacts, type OutsideOptions } from './outside'
 import { fetchKnowledgeGraph, type KnowledgeGraphOptions } from './knowledge-graph'
 import { fetchSafeBrowsing, type SafeBrowsingOptions } from './safe-browsing'
@@ -234,6 +237,13 @@ export interface ScanOptions {
    * only with their key in here. A whole scan asks none of them.
    */
   readonly outside?: OutsideOptions
+  /**
+   * The Arabic NLP service (M7): after the render, the page's visible Arabic text goes to it, and its
+   * answer (spelling slips it is sure of, the dialect model's reading) is what the rules that need
+   * `nlp` judge. Without it, or with it down, those rules do not apply, the dialect rule reads its word
+   * list alone, and a service that was asked and failed is a notice; a scan never fails for it.
+   */
+  readonly nlp?: NlpOptions
   /** Lighthouse's lab metrics, after the render; its package loads only then. */
   readonly lab?: LabRequest
   /**
@@ -651,6 +661,21 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
           platformId: platformOf(page),
         }).catch((): SearchFacts => ({ outcome: 'not-found' }))
       : undefined
+  // The Arabic NLP service (M7): after the render, on an Arabic page, for the rules that read it. It
+  // sits on the scanner's own network, not behind the egress proxy, and its failure is a notice.
+  const nlpWants = {
+    spelling: rules.some((rule) => rule.needs.includes('nlp')),
+    dialect: rules.some((rule) => rule.optionalNeeds?.includes('nlp') === true),
+  }
+  const nlpRun =
+    options.nlp !== undefined &&
+    (nlpWants.spelling || nlpWants.dialect) &&
+    reached &&
+    page.html !== null &&
+    page.text !== null &&
+    isMostlyArabic(page)
+      ? await askNlp(page, options.nlp, nlpWants, options.signal)
+      : undefined
   // The services beside the site (look-alike domains and the rest): a tool's scan, after all else.
   const outside = await runOutside({
     rules,
@@ -721,6 +746,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     ...(dnsSkipped ? [notice('dns-unavailable')] : []),
     ...searchNotices(search),
     ...outside.notices,
+    ...(nlpRun?.failed === true ? [notice('nlp-unavailable')] : []),
     ...linkNotices(links, bot),
   ]
   if (lab !== undefined) progress({ step: 'lab', status: lab.status })
@@ -737,6 +763,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
     feed,
     search,
     outside: outside.collected,
+    nlp: nlpRun?.facts,
     sitemap,
     sitemapUnknown: sitemapRead !== undefined && 'failed' in sitemapRead,
   })
@@ -766,7 +793,7 @@ export async function scan(url: string, options: ScanOptions = {}): Promise<Repo
       ...searchFacts(search),
       ...outsideFacts(outside.collected, rules),
       ...countryFitFacts(page, rules),
-      ...dialectFacts(page, rules),
+      ...dialectFacts(page, rules, nlpRun?.facts),
       ...aiTrainingFacts(page, rules),
       ...xrayFacts(rendering),
       ...(lab === undefined ? {} : { lab: labFact(lab) }),
@@ -1011,6 +1038,8 @@ export interface EvaluateOptions {
   readonly feed?: FeedFacts
   /** The site's sitemaps; without them, rules that need them do not apply. */
   readonly sitemap?: SitemapFacts
+  /** What the Arabic NLP service said; without it, rules that need `nlp` do not apply. */
+  readonly nlp?: NlpFacts
 }
 
 export interface Evaluation {
@@ -1045,6 +1074,7 @@ interface Collected {
   readonly search?: SearchFacts | undefined
   readonly feed?: FeedFacts | undefined
   readonly outside?: OutsideFacts | undefined
+  readonly nlp?: NlpFacts | undefined
   readonly sitemap?: SitemapFacts | undefined
   /**
    * The sitemaps were asked for and robots.txt could not be read, so which they are is not known:
@@ -1199,6 +1229,13 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
     }
     outsideNeeded[key] = answer
   }
+  // The Arabic NLP service (M7): a rule that needs it does not apply without its answer; one that
+  // may use it (the dialect rule) is given what there is and judges without the rest.
+  const usesNlp = rule.needs.includes('nlp') || rule.optionalNeeds?.includes('nlp') === true
+  const nlp = usesNlp ? collected.nlp : undefined
+  if (rule.needs.includes('nlp') && nlp === undefined) {
+    return { status: 'not-applicable', findings: [] }
+  }
   // Only for the rules that read them, like the redirects; not asked for, on a local site or
   // without a scan, they leave the rules nothing to judge.
   const sitemap = rule.needs.includes('sitemap') ? collected.sitemap : undefined
@@ -1268,6 +1305,7 @@ function evaluate(rule: Rule, page: PageFacts, collected: Collected, reached: bo
     ...(search === undefined ? {} : { search }),
     ...(feed === undefined ? {} : { feed }),
     ...(Object.keys(outsideNeeded).length === 0 ? {} : { outside: outsideNeeded }),
+    ...(nlp === undefined ? {} : { nlp }),
     ...(robots === undefined ? {} : { robots }),
     ...(read === undefined ? {} : { rendered: read }),
     ...(crux === undefined ? {} : { crux }),
@@ -1636,7 +1674,7 @@ function countryFitFacts(page: PageFacts, rules: readonly Rule[]): Facts {
 }
 
 /** The dialect of the page's Arabic, for the report; nothing without the rule or Arabic text. */
-function dialectFacts(page: PageFacts, rules: readonly Rule[]): Facts {
+function dialectFacts(page: PageFacts, rules: readonly Rule[], nlp?: NlpFacts): Facts {
   if (
     page.html === null ||
     page.text === null ||
@@ -1649,20 +1687,40 @@ function dialectFacts(page: PageFacts, rules: readonly Rule[]): Facts {
   const { whole } = dialect
   const inferred = inferCountry(readPage(page))
   const country = inferred.confidence === 'strong' ? inferred.country : null
+  const effective = effectiveDialect(whole, nlp?.dialect)
+  const percent = (value: number) => Math.round(value * 100)
+  const model = nlp?.dialect
   return {
     dialect: {
-      outcome: whole.label === null ? 'too-little' : 'classified',
+      outcome: effective.label === null ? 'too-little' : 'classified',
       words: whole.words,
-      label: whole.label,
+      label: effective.label,
       mix: { ...whole.mix },
       hits: { ...whole.hits },
       headings: dialect.headings?.label ?? null,
       markers: whole.seen.map(({ word, dialect: name }) => ({ word, dialect: name })),
       country,
       fits:
-        country === null || whole.label === null || whole.label === 'msa'
+        country === null || effective.label === null || effective.label === 'msa'
           ? null
-          : fitsCountry(whole.label, country),
+          : fitsCountry(effective.label, country),
+      ...(model === undefined || model === null
+        ? {}
+        : {
+            source: effective.source,
+            model: {
+              label: model.label,
+              probabilities: {
+                msa: percent(model.probabilities.msa),
+                gulf: percent(model.probabilities.gulf),
+                egyptian: percent(model.probabilities.egyptian),
+                levantine: percent(model.probabilities.levantine),
+                maghrebi: percent(model.probabilities.maghrebi),
+              },
+              chunks: model.chunks,
+              votes: { ...model.votes },
+            },
+          }),
     },
   }
 }
