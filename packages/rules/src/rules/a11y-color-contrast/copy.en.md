@@ -23,6 +23,7 @@ This text's contrast is {ratio}:1 ({foreground} on {background}), below the {exp
 1. We render the page and run axe-core 4.13.0's `color-contrast` rule in each engine: it measures each text's colour against the background behind it.
 2. Before axe runs, we tell it that the fonts of Arabic text are not icon fonts, so it measures Arabic text too.
 3. A text fails below 4.5:1, or below 3:1 when it is large. Text axe cannot measure, such as text over an image, is left to the rule a11y-color-contrast-review.
+4. We also leave a text to a person, and do not fail it, when what axe measured behind it is not what the page draws: the elements the text sits in would pass it, or another element that is not one of them, such as a dark layer or an image, lies over its place.
 
 ## References
 

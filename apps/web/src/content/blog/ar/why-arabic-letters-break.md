@@ -1,30 +1,14 @@
 ---
-title: 'لماذا تتقطع الحروف العربية في موقعك؟'
-description: 'الحروف العربية تتصل ببعضها، وأي شيء يفصلها يكسر الكلمة. خمسة أسباب نراها في المواقع فعلاً: letter-spacing وخط ينقصه حرف وخط مقصوص وتطويل وترميز مكسور، وطريقة تشخيصها في عشر دقائق.'
-summary: 'خمسة أسباب تفصل الحروف العربية عن بعضها في موقعك، وطريقة معرفة أيها عندك.'
-date: '2026-10-10'
-tags: ['arabic-text', 'fonts']
+title: "لماذا تتقطع الحروف العربية في موقعك؟"
+description: "الحروف العربية تتصل ببعضها، وأي شيء يفصلها يكسر الكلمة. خمسة أسباب نراها في المواقع فعلاً: letter-spacing وخط ينقصه حرف وخط مقصوص وتطويل وترميز مكسور، وطريقة تشخيصها في عشر دقائق."
+summary: "خمسة أسباب تفصل الحروف العربية عن بعضها في موقعك، وطريقة معرفة أيها عندك."
+date: "2026-10-10"
+tags: ["arabic-text", "fonts"]
 lang: ar
 draft: false
 reviewed: false
-tools:
-  [
-    arabic-shaping-check,
-    letter-spacing-check,
-    arabic-font-check,
-    font-fallback-check,
-    arabic-font-slimmer,
-    tatweel-check,
-  ]
-rules:
-  [
-    ar-letter-spacing,
-    ar-font-no-arabic,
-    ar-font-missing-letters,
-    ar-font-fallback,
-    ar-tatweel,
-    ar-mojibake,
-  ]
+tools: [arabic-shaping-check, letter-spacing-check, arabic-font-check, font-fallback-check, arabic-font-slimmer, tatweel-check]
+rules: [ar-letter-spacing, ar-font-no-arabic, ar-font-missing-letters, ar-font-fallback, ar-tatweel, ar-mojibake]
 fix: []
 terms: [letter-spacing, font-fallback, tatweel, mojibake, web-font-subsetting]
 related: [arabic-font-slows-site, chatgpt-arabic-text]
@@ -39,9 +23,7 @@ related: [arabic-font-slows-site, chatgpt-arabic-text]
 تأتي الخاصية غالباً من تصميم لاتيني. مصمم يريد عناوين إنجليزية واسعة الحروف، فيكتب في قالب الموقع:
 
 ```css
-h1,
-h2,
-.btn {
+h1, h2, .btn {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

@@ -11,6 +11,7 @@ export default defineConfig({
     './src/postgres/crawl-schema.ts',
     './src/postgres/pdf-schema.ts',
     './src/postgres/apikey-schema.ts',
+    './src/postgres/admin-schema.ts',
     './src/postgres/sotaw-schema.ts',
   ],
   out: './drizzle',

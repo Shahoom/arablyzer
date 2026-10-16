@@ -88,6 +88,8 @@ services:
       ARABLYZER_SERP: ${ARABLYZER_SERP:-}
       # Accounts (M4.1), off unless ARABLYZER_ACCOUNTS=on; then every line below must be set.
       ARABLYZER_ACCOUNTS: ${ARABLYZER_ACCOUNTS:-off}
+      # The owner's panel (M4.8): the Google addresses of its administrators, lower case, comma-separated; empty, no panel.
+      ARABLYZER_ADMIN_EMAILS: ${ARABLYZER_ADMIN_EMAILS:-}
       ARABLYZER_AUTH_GOOGLE_CLIENT_ID: ${ARABLYZER_AUTH_GOOGLE_CLIENT_ID:-}
       ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET: ${ARABLYZER_AUTH_GOOGLE_CLIENT_SECRET:-}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}

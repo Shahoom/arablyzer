@@ -118,7 +118,7 @@ export function mountCompare(app: Hono, deps: CompareDeps): void {
     const id = c.req.param('id')
     const site = SITE_ID_PATTERN.test(id) ? await access.data.site(read.user.id, id) : null
     if (site === null) return access.fail(c, 'not-found')
-    const days = planOf(access.plans, read.user.id).historyDays
+    const days = (await planOf(access.plans, read.user.id)).historyDays
     const since = new Date(deps.now().getTime() - days * DAY_MS)
     const [points, alerts] = await Promise.all([
       access.data.scorePoints(read.user.id, site.id, since, MAX_HISTORY_POINTS),

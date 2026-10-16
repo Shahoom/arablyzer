@@ -10,7 +10,7 @@ import cleanStoreJson from '@arablyzer/fixtures/golden/reports/01-clean-store.js
 import rtlLayoutJson from '@arablyzer/fixtures/golden/reports/04-rtl-layout.json'
 import { REPORT } from '@arablyzer/i18n/report'
 import { TOOL_APP } from '@arablyzer/i18n/tool-app'
-import { Report, type RuleStatus } from '@arablyzer/report-schema'
+import { Report, type CountryFitFact, type RuleStatus } from '@arablyzer/report-schema'
 import { describe, expect, it } from 'vitest'
 import {
   advance,
@@ -18,10 +18,13 @@ import {
   bandOf,
   categoryRows,
   checklistOf,
+  countryVerdict,
   diagramOf,
+  filterChips,
   headlineOf,
   idFromPath,
   listOf,
+  narrowedBy,
   onlyEngine,
   optOutOf,
   outcomeOf,
@@ -588,6 +591,133 @@ describe('headlineOf', () => {
     expect(headlineOf(rtlCheck(['error', 'error'], { status: 'failed' }))).toEqual({
       kind: 'unknown',
     })
+  })
+})
+
+/**
+ * The live report of cloudtopia.net (2026-10): a serious failure and a note, and a serious rule
+ * that needs a human eye, which the filter once counted under serious (2) beside a headline that
+ * said one problem and one note.
+ */
+function withReview(report: Report): Report {
+  const serious = report.rules.find((rule) => rule.status === 'fail' && rule.severity === 'serious')
+  if (serious === undefined) throw new Error('no serious rule')
+  return {
+    ...report,
+    rules: [
+      ...report.rules,
+      { ...serious, id: 'a11y-color-contrast-review', status: 'needs-review' },
+    ],
+  }
+}
+
+describe('filterChips', () => {
+  it('counts a severity by the rules that failed with it, as the summary does', () => {
+    const report = withReview(rtlLayout)
+    const counts = summaryCounts(report)
+    const chips = filterChips(problemsOf(report))
+    for (const severity of ['critical', 'serious', 'moderate', 'minor', 'info'] as const) {
+      expect(chips.find((chip) => chip.key === severity)?.count ?? 0, severity).toBe(
+        counts.bySeverity[severity],
+      )
+    }
+  })
+
+  it('gives the rule that needs a human eye a chip of its own, last, under no severity', () => {
+    const chips = filterChips(problemsOf(withReview(rtlLayout)))
+    expect(chips).toEqual([
+      { key: 'serious', count: 1 },
+      { key: 'moderate', count: 1 },
+      { key: 'info', count: 1 },
+      { key: 'review', count: 1 },
+    ])
+  })
+
+  it('adds up to the headline, and the review chip to the review the summary counts', () => {
+    const report = withReview(rtlLayout)
+    const headline = headlineOf(report)
+    if (headline.kind !== 'counts') throw new Error(headline.kind)
+    const chips = filterChips(problemsOf(report))
+    const severities = chips.filter((chip) => chip.key !== 'review')
+    expect(severities.reduce((sum, chip) => sum + chip.count, 0)).toBe(
+      headline.problems + headline.notes,
+    )
+    expect(chips.find((chip) => chip.key === 'review')?.count).toBe(summaryCounts(report).review)
+  })
+
+  it('has no review chip when no rule needs one', () => {
+    expect(filterChips(problemsOf(rtlLayout)).map((chip) => chip.key)).toEqual([
+      'serious',
+      'moderate',
+      'info',
+    ])
+  })
+})
+
+describe('narrowedBy', () => {
+  it('lists every problem with no chip pressed, and what a chip counts with one', () => {
+    const problems = problemsOf(withReview(rtlLayout))
+    expect(narrowedBy(problems, null)).toHaveLength(4)
+    expect(narrowedBy(problems, 'serious').map(({ rule }) => rule.status)).toEqual(['fail'])
+    expect(narrowedBy(problems, 'review').map(({ rule }) => rule.id)).toEqual([
+      'a11y-color-contrast-review',
+    ])
+  })
+})
+
+describe('countryVerdict', () => {
+  const signals = [
+    { kind: 'currency', value: 'OMR', country: 'OM' },
+    { kind: 'phone', value: '+96895886393', country: 'OM' },
+  ] as const
+  const fact = (part: Partial<CountryFitFact>): CountryFitFact => ({
+    items: [],
+    judged: 0,
+    country: null,
+    percent: null,
+    signals: [],
+    confidence: 'unclear',
+    ...part,
+  })
+
+  it('names the country, with no percentage, when two kinds agree and under three items are judged', () => {
+    // The live report: OMR and +968, two items judged.
+    expect(
+      countryVerdict(
+        fact({ country: 'OM', confidence: 'strong', judged: 2, signals: [...signals] }),
+      ),
+    ).toBe('few')
+  })
+
+  it('gives the percentage once enough items are judged', () => {
+    expect(
+      countryVerdict(
+        fact({
+          country: 'OM',
+          confidence: 'strong',
+          judged: 4,
+          percent: 75,
+          signals: [...signals],
+        }),
+      ),
+    ).toBe('ready')
+  })
+
+  it('says the evidence is thin with one kind, conflicting with several countries, and none with none', () => {
+    expect(countryVerdict(fact({ country: 'OM', confidence: 'thin', signals: [signals[0]] }))).toBe(
+      'thin',
+    )
+    expect(
+      countryVerdict(
+        fact({
+          signals: [
+            { kind: 'currency', value: 'OMR', country: 'OM' },
+            { kind: 'phone', value: '+971501234567', country: 'AE' },
+          ],
+        }),
+      ),
+    ).toBe('unclear')
+    expect(countryVerdict(fact({}))).toBe('none')
   })
 })
 

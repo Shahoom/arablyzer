@@ -665,6 +665,59 @@ describe.each(engines)('rendered facts: %s', (engine) => {
     expect(page.arabicText.length).toBeGreaterThan(0)
   })
 
+  it('asks for a look, and does not fail, a contrast whose background is not what axe measured (first live report, 2026-10)', async () => {
+    // axe is stood in for, with the violations it gave cloudtopia.net: white on #fdfdfd, 1.01:1,
+    // for text on a dark card that axe could not see, since it reads where elements are and a
+    // page that draws sections as they near the screen puts others where this one's text is.
+    const fake = `{
+      _cache: { set() {} },
+      run: async () => {
+        const node = (id, fg, bg, ratio) => ({
+          target: ['#' + id],
+          html: '<p id="' + id + '">',
+          element: document.getElementById(id),
+          any: [{ data: { fgColor: fg, bgColor: bg, contrastRatio: ratio, expectedContrastRatio: '4.5:1' } }],
+          all: [],
+          none: [],
+        })
+        return {
+          violations: [{ id: 'color-contrast', nodes: [
+            node('darkcard', '#ffffff', '#fdfdfd', 1.01),
+            node('layered', '#ffffff', '#fdfdfd', 1.01),
+            node('low', '#999999', '#ffffff', 2.85),
+            node('bare', '#aaaaaa', '#fdfdfd', 2.32),
+          ] }],
+          incomplete: [],
+          inapplicable: [],
+        }
+      },
+    }`
+    const page = await facts(engine, {
+      '/': arabicPage(
+        `<main>
+<div style="background:#0b1530"><p id="darkcard" style="color:#ffffff;margin:0">Scalable infrastructure</p></div>
+<div style="position:relative;height:60px"><div style="position:absolute;inset:0;background:#0b1530"></div><p id="layered" style="position:relative;color:#ffffff;margin:0">Scalable infrastructure</p></div>
+<p id="low" style="color:#999999;background:#ffffff">Light grey on white</p>
+<p id="bare" style="color:#aaaaaa">Light grey on the page</p>
+</main><script>Object.defineProperty(window, 'axe', { get: () => (${fake}), set() {} })</script>`,
+        '<style>body { background: #fdfdfd }</style>',
+      ),
+    })
+    const contrast = page.a11y?.rules.find((rule) => rule.id === 'color-contrast')
+    // The card's own background passes the text, and a layer that is not one of its ancestors
+    // lies where the other's text is: a person looks. The text on its own background, and the one
+    // on the bare page, with nothing drawn over it, still fail.
+    expect(contrast?.violations.map((node) => node.selector)).toEqual(['#low', '#bare'])
+    expect(contrast?.violationCount).toBe(2)
+    expect(contrast?.incomplete.map((node) => [node.selector, node.reason, node.contrast])).toEqual(
+      [
+        ['#darkcard', 'bgOverlap', null],
+        ['#layered', 'bgOverlap', null],
+      ],
+    )
+    expect(contrast?.incompleteCount).toBe(2)
+  })
+
   it('reports text fields with their computed direction', async () => {
     const page = await facts(engine, {
       '/': arabicPage(`<form>

@@ -27,6 +27,13 @@ export interface AuthDeps {
    * cannot cascade (the scans it kept and their reports, M4.2). A throw stops the erasure.
    */
   readonly beforeDelete?: (userId: string) => Promise<void>
+  /**
+   * Whether the owner has suspended the account (M4.8): a suspended account gets no new session,
+   * by any way of signing in. A throw refuses the sign-in too: it is never let through unasked.
+   */
+  readonly isSuspended?: (userId: string) => Promise<boolean>
+  /** Told of each sign-in, for the panel's "last sign-in"; a failure never fails the sign-in. */
+  readonly onSignIn?: (userId: string, at: Date) => Promise<void>
   /** Where a problem the library meets is told: never with an address, token or profile. */
   readonly log: (message: string) => void
 }
@@ -99,8 +106,17 @@ export function createAuth(deps: AuthDeps) {
       },
       session: {
         create: {
-          before: (session) =>
-            Promise.resolve({ data: { ...session, ipAddress: null, userAgent: null } }),
+          before: async (session) => {
+            if ((await deps.isSuspended?.(session.userId)) === true) return false
+            return { data: { ...session, ipAddress: null, userAgent: null } }
+          },
+          after: async (session) => {
+            try {
+              await deps.onSignIn?.(session.userId, new Date())
+            } catch {
+              deps.log('A sign-in could not be noted for the panel')
+            }
+          },
         },
       },
       account: {

@@ -56,6 +56,38 @@ describe('country-fit', () => {
     expect(fitOf(page('<p>مرحبا</p>'))).toMatchObject({ country: null })
   })
 
+  it('names Oman when a currency and a calling code agree, and gives no percentage for the two items it can judge', () => {
+    // The live report of cloudtopia.net: OMR and +968, an English page, nothing else to judge.
+    const english = page('<p>Plans from OMR 1. Call +968 9588 6393</p>', { lang: 'en' })
+    expect(inferCountry(readPage(english))).toMatchObject({ country: 'OM', confidence: 'strong' })
+    expect(fitOf(english)).toMatchObject({
+      country: 'OM',
+      confidence: 'strong',
+      percent: null,
+      judged: 2,
+    })
+    // The same in Arabic, with the abbreviation people write on prices.
+    const arabic = page('<p>الباقة بـ 12 ر.ع. اتصل على +968 9588 6393</p>')
+    expect(inferCountry(readPage(arabic))).toMatchObject({ country: 'OM', confidence: 'strong' })
+    expect(detectAll(rule, evidenceOf(english))).toEqual([])
+  })
+
+  it('names no country where two kinds of evidence point to different ones, or where one stands alone', () => {
+    // Agree: two kinds, one country.
+    expect(
+      inferCountry(readPage(page('<p>OMR 5 +968 9588 6393</p>', { lang: 'en' }))),
+    ).toMatchObject({ country: 'OM', confidence: 'strong' })
+    // Conflict: a currency for Oman, a calling code for the UAE.
+    expect(
+      inferCountry(readPage(page('<p>OMR 5 +971 50 123 4567</p>', { lang: 'en' }))),
+    ).toMatchObject({ country: null, confidence: 'unclear' })
+    // Too little: a calling code alone.
+    expect(inferCountry(readPage(page('<p>+968 9588 6393</p>', { lang: 'en' })))).toMatchObject({
+      country: 'OM',
+      confidence: 'thin',
+    })
+  })
+
   it('reads the ccTLD, the language region, a calling code, and a single-country hreflang', () => {
     const kuwait = page('<p>اتصل: +965 5555 1234</p>', {
       url: 'https://shop.com.kw/',

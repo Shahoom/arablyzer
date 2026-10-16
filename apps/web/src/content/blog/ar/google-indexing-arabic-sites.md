@@ -1,42 +1,15 @@
 ---
-title: 'فهرسة جوجل للمواقع العربية: الأخطاء القاتلة'
-description: 'صفحاتك موجودة ولا تظهر في Google. سبعة أسباب تمنع الفهرسة: robots.txt وnoindex منسيان، نص يكتبه سكربت، canonical متضارب، Soft 404، تحويلات سيئة، وخريطة موقع معطوبة.'
-summary: 'سبعة أسباب تمنع ظهور صفحاتك في Google، مرتبة بحسب ما نفحصه أولاً.'
-date: '2026-10-10'
-tags: ['search']
+title: "فهرسة جوجل للمواقع العربية: الأخطاء القاتلة"
+description: "صفحاتك موجودة ولا تظهر في Google. سبعة أسباب تمنع الفهرسة: robots.txt وnoindex منسيان، نص يكتبه سكربت، canonical متضارب، Soft 404، تحويلات سيئة، وخريطة موقع معطوبة."
+summary: "سبعة أسباب تمنع ظهور صفحاتك في Google، مرتبة بحسب ما نفحصه أولاً."
+date: "2026-10-10"
+tags: ["search"]
 lang: ar
 draft: false
 reviewed: false
-tools:
-  [
-    indexability-check,
-    robots-check,
-    canonical-check,
-    js-rendering-check,
-    sitemap-check,
-    redirect-chain-check,
-    broken-links,
-  ]
-rules:
-  [
-    robots-blocks-googlebot,
-    page-noindex,
-    canonical-conflict,
-    js-only-content,
-    sitemap-missing,
-    sitemap-invalid,
-    redirect-chain,
-    link-broken,
-  ]
-fix:
-  [
-    url-blocked-by-robots-txt,
-    url-marked-noindex,
-    soft-404,
-    crawled-currently-not-indexed,
-    discovered-currently-not-indexed,
-    page-with-redirect,
-  ]
+tools: [indexability-check, robots-check, canonical-check, js-rendering-check, sitemap-check, redirect-chain-check, broken-links]
+rules: [robots-blocks-googlebot, page-noindex, canonical-conflict, js-only-content, sitemap-missing, sitemap-invalid, redirect-chain, link-broken]
+fix: [url-blocked-by-robots-txt, url-marked-noindex, soft-404, crawled-currently-not-indexed, discovered-currently-not-indexed, page-with-redirect]
 terms: [indexing, crawling, noindex, robots-txt, canonical-url, xml-sitemap]
 related: [salla-zid-seo-mistakes, hreflang-arabic-sites]
 ---
@@ -65,7 +38,7 @@ Disallow: /
 وسم `noindex` يقول لـ Google «اقرئي ولا تفهرسي». مكانه إما وسم `meta` في الصفحة:
 
 ```html
-<meta name="robots" content="noindex" />
+<meta name="robots" content="noindex">
 ```
 
 وإما ترويسة `X-Robots-Tag: noindex` يرسلها الخادم، وهذه لا تراها في المصدر ولا تنتبه لها في المتصفح. وكثيراً ما يأتي الوسم من إعداد في لوحة المنصة «إخفاء الموقع عن محركات البحث» نسيه صاحبه بعد الإطلاق، أو من إضافة. [أداة إمكانية الفهرسة](/tools/indexability-check) تنظر إلى الوسم والترويسة وrobots.txt معاً، وقاعدتها [page-noindex](/rules/page-noindex). وحالة Search Console تشرحها [هذه الصفحة](/fix/url-marked-noindex).

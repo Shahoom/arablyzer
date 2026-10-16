@@ -45,7 +45,7 @@ function rowOf(record: ResultRecord): ResultRow {
   }
 }
 
-/** `sotaw_runs` and `sotaw_results` (packages/store, drizzle 0009), through the application role. */
+/** `sotaw_runs` and `sotaw_results` (packages/store, drizzle 0010), through the application role. */
 export class PostgresSotawStore implements SotawStore {
   readonly #pool: pg.Pool
   #lock: pg.PoolClient | null = null

@@ -1,14 +1,13 @@
 ---
-title: 'رمز الريال السعودي الجديد: هل يظهر عند زبائنك؟'
-description: 'للريال السعودي رمز جديد أضافه Unicode 17 برقم U+20C1. إن لم يكن في خط موقعك رسمه جهاز الزائر، وعلى الأجهزة غير المحدّثة يظهر مربعاً فارغاً وسط السعر. كيف تتأكد وكيف تعالجه.'
-summary: 'إن لم يكن الرمز الجديد في خط موقعك فقد يظهر مربعاً فارغاً وسط السعر.'
-date: '2026-10-10'
-tags: ['fonts', 'ecommerce']
+title: "رمز الريال السعودي الجديد: هل يظهر عند زبائنك؟"
+description: "للريال السعودي رمز جديد أضافه Unicode 17 برقم U+20C1. إن لم يكن في خط موقعك رسمه جهاز الزائر، وعلى الأجهزة غير المحدّثة يظهر مربعاً فارغاً وسط السعر. كيف تتأكد وكيف تعالجه."
+summary: "إن لم يكن الرمز الجديد في خط موقعك فقد يظهر مربعاً فارغاً وسط السعر."
+date: "2026-10-10"
+tags: ["fonts", "ecommerce"]
 lang: ar
 draft: false
 reviewed: false
-tools:
-  [country-fit, arabic-font-check, product-page-check, structured-data-check, price-format-check]
+tools: [country-fit, arabic-font-check, product-page-check, structured-data-check, price-format-check]
 rules: [sar-sign-font, country-fit, product-offer-invalid, ar-font-missing-letters]
 fix: []
 terms: [font-fallback, web-font-subsetting]

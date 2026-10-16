@@ -1,30 +1,14 @@
 ---
-title: 'Why do Arabic letters break apart on your website?'
-description: 'Arabic letters join, and anything that separates them breaks the word. Five causes we see on real sites: letter-spacing, missing letters, a bad subset, tatweel and encoding, and how to diagnose them.'
-summary: 'Five causes that pull Arabic letters apart on your site, and how to tell which one you have.'
-date: '2026-10-10'
-tags: ['arabic-text', 'fonts']
+title: "Why do Arabic letters break apart on your website?"
+description: "Arabic letters join, and anything that separates them breaks the word. Five causes we see on real sites: letter-spacing, missing letters, a bad subset, tatweel and encoding, and how to diagnose them."
+summary: "Five causes that pull Arabic letters apart on your site, and how to tell which one you have."
+date: "2026-10-10"
+tags: ["arabic-text", "fonts"]
 lang: en
 draft: false
 reviewed: false
-tools:
-  [
-    arabic-shaping-check,
-    letter-spacing-check,
-    arabic-font-check,
-    font-fallback-check,
-    arabic-font-slimmer,
-    tatweel-check,
-  ]
-rules:
-  [
-    ar-letter-spacing,
-    ar-font-no-arabic,
-    ar-font-missing-letters,
-    ar-font-fallback,
-    ar-tatweel,
-    ar-mojibake,
-  ]
+tools: [arabic-shaping-check, letter-spacing-check, arabic-font-check, font-fallback-check, arabic-font-slimmer, tatweel-check]
+rules: [ar-letter-spacing, ar-font-no-arabic, ar-font-missing-letters, ar-font-fallback, ar-tatweel, ar-mojibake]
 fix: []
 terms: [letter-spacing, font-fallback, tatweel, mojibake, web-font-subsetting]
 related: [arabic-font-slows-site]
@@ -39,9 +23,7 @@ Here are the causes we meet when we scan Arabic websites, from the most common, 
 It usually comes from a Latin design. A designer wants wide English headings and writes this into the site's template:
 
 ```css
-h1,
-h2,
-.btn {
+h1, h2, .btn {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

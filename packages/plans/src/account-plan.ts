@@ -1,4 +1,5 @@
 import { accountsModeFrom } from './auth-limits'
+import type { PlanOverrides } from './overrides'
 import { reader, type Env } from './reader'
 import type { ScanLimits, Window } from './index'
 
@@ -48,6 +49,11 @@ export interface PlanCatalog {
   /** Paid plans exist as configuration only until M4.4; nothing resolves a person to one yet. */
   readonly pro: AccountPlan | null
   readonly agency: AccountPlan | null
+  /**
+   * The owner's per-account numbers (M4.8), looked up where a quota is read; absent, there are
+   * none. A catalog from `planCatalogFrom` has none: the API adds the lookup it has.
+   */
+  readonly overrides?: (userId: string) => Promise<PlanOverrides | null>
 }
 
 /**

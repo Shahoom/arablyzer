@@ -1,31 +1,14 @@
 ---
-title: 'لماذا لا يفهم ChatGPT نصك العربي؟'
-description: 'غالباً لا تكون المشكلة في عربية النموذج، بل في الطريقة التي تسلّم بها صفحتك النص: زاحف محجوب وكلام يكتبه سكربت وتطويل وحروف خفية وأرقام مختلطة ونص داخل صور. كيف تكتشف كل واحدة.'
-summary: 'المشكلة غالباً في طريقة تسليم صفحتك للنص، لا في عربية النموذج.'
-date: '2026-10-10'
-tags: ['arabic-text', 'search']
+title: "لماذا لا يفهم ChatGPT نصك العربي؟"
+description: "غالباً لا تكون المشكلة في عربية النموذج، بل في الطريقة التي تسلّم بها صفحتك النص: زاحف محجوب وكلام يكتبه سكربت وتطويل وحروف خفية وأرقام مختلطة ونص داخل صور. كيف تكتشف كل واحدة."
+summary: "المشكلة غالباً في طريقة تسليم صفحتك للنص، لا في عربية النموذج."
+date: "2026-10-10"
+tags: ["arabic-text", "search"]
 lang: ar
 draft: false
 reviewed: false
-tools:
-  [
-    ai-crawler-check,
-    ai-access,
-    js-rendering-check,
-    tatweel-check,
-    digits-consistency,
-    ai-visibility,
-  ]
-rules:
-  [
-    robots-blocks-ai-search,
-    bot-challenge,
-    js-only-content,
-    ar-ai-readability,
-    ar-tatweel,
-    ar-digits-mixed,
-    ai-visibility-gap,
-  ]
+tools: [ai-crawler-check, ai-access, js-rendering-check, tatweel-check, digits-consistency, ai-visibility]
+rules: [robots-blocks-ai-search, bot-challenge, js-only-content, ar-ai-readability, ar-tatweel, ar-digits-mixed, ai-visibility-gap]
 fix: []
 terms: [ai-crawlers, tatweel, robots-txt]
 related: [why-arabic-letters-break, google-indexing-arabic-sites]

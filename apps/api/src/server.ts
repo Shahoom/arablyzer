@@ -5,6 +5,7 @@ import {
   BullMQScanQueue,
   POSTGRES_PROTOCOLS,
   PostgresAccountData,
+  PostgresAdminData,
   PostgresApiKeyData,
   PostgresCrawlData,
   PostgresPdfData,
@@ -86,12 +87,15 @@ const deps = apiDeps(
     crawlData: new PostgresCrawlData(pool),
     pdfData: new PostgresPdfData(pool),
     apiKeyData: new PostgresApiKeyData(pool),
+    adminData: new PostgresAdminData(pool),
   },
   log,
 )
 // Expired sessions and sign-in states are swept hourly, where accounts are on.
 const sweeping =
-  deps.accounts === undefined ? null : startAuthMaintenance(new PostgresAuthMaintenance(pool), log)
+  deps.accounts === undefined
+    ? null
+    : startAuthMaintenance(new PostgresAuthMaintenance(pool), log, { admin: deps.accounts.admin })
 const app = createApp({ ...deps, shutdown: stopping.signal, log })
 const server = serve(
   { fetch: app.fetch, port: Number(env.PORT ?? 8787), hostname: '0.0.0.0' },

@@ -42,6 +42,11 @@ export class MemoryScanStore implements ScanStore {
     return Promise.resolve(this.#scans.get(id) ?? null)
   }
 
+  /** Every scan, for the owner's panel (M4.8). */
+  records(): ScanRecord[] {
+    return [...this.#scans.values()]
+  }
+
   start(id: string, at: Date): Promise<boolean> {
     return this.#move(id, ['queued'], { state: 'running', startedAt: at })
   }

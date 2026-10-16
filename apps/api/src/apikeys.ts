@@ -58,7 +58,7 @@ export function mountApiKeys(app: Hono, deps: ApiKeysDeps): void {
   app.get(API_KEYS_PATH, async (c) => {
     const read = await access.require(c)
     if (read instanceof Response) return read
-    const plan = planOf(access.plans, read.user.id)
+    const plan = await planOf(access.plans, read.user.id)
     const body: ApiKeysResponse = {
       keys: (await keys.list(read.user.id)).map(keyOf),
       limit: plan.apiKeys,
@@ -82,7 +82,7 @@ export function mountApiKeys(app: Hono, deps: ApiKeysDeps): void {
       if (!request.success) return access.fail(c, 'bad-request')
       const read = await access.require(c)
       if (read instanceof Response) return read
-      const plan = planOf(access.plans, read.user.id)
+      const plan = await planOf(access.plans, read.user.id)
       if (plan.apiScans === 0) return refusal(c, 'api', plan.id)
       const made = newApiKey()
       const created = await keys.create(

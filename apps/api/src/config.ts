@@ -20,6 +20,7 @@ import {
 import {
   requireSecret,
   type AccountData,
+  type AdminData,
   type ApiKeyData,
   type CrawlData,
   type PdfData,
@@ -33,6 +34,8 @@ import {
 } from '@arablyzer/store'
 import type { AccountsDeps } from './accounts'
 import type { ApiDeps } from './app'
+import { adminEmailsFrom, ADMIN_EMAILS_VARIABLE } from './admin/emails'
+import { withOverrides } from './admin/plans'
 import { createAuth, type AuthDatabase } from './auth'
 import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
 import { crawlSettingsFrom } from './crawl/settings'
@@ -64,6 +67,8 @@ export interface Stores {
   readonly pdfData?: PdfData
   /** The account's API keys (M5.1); without it, the API answers 503 `accounts_off`. */
   readonly apiKeyData?: ApiKeyData
+  /** What the owner keeps and reads (M4.8); without it, there is no suspension, override or panel. */
+  readonly adminData?: AdminData
 }
 
 /**
@@ -204,6 +209,7 @@ export function apiDeps(
     crawls: stores.crawlData,
     pdfs: stores.pdfData,
     apiKeys: stores.apiKeyData,
+    admin: stores.adminData,
     policy,
     resolver,
     fetcher: options.fetcher,
@@ -249,6 +255,7 @@ function accountsFrom(
     readonly crawls: CrawlData | undefined
     readonly pdfs: PdfData | undefined
     readonly apiKeys: ApiKeyData | undefined
+    readonly admin: AdminData | undefined
     readonly policy: EgressPolicy
     readonly resolver: Resolver
     readonly fetcher: typeof safeFetch | undefined
@@ -291,6 +298,22 @@ function accountsFrom(
       throw new Error(`HTTPS_PROXY must equal ${EGRESS_PROXY_VARIABLE} with accounts on`)
     }
   }
+  const { admin } = options
+  const adminEmails = adminEmailsFrom(env)
+  if (adminEmails.length > 0 && admin === undefined) {
+    throw new Error(`${ADMIN_EMAILS_VARIABLE} needs a store for the panel (stores.adminData)`)
+  }
+  // An account's scans and their reports go with it; the rest cascades in the database. The
+  // account's own deletion and the owner's both run this, so neither leaves anything behind.
+  const erase = async (userId: string): Promise<void> => {
+    await data.eraseUser(userId)
+    await options.monitors?.eraseUser(userId)
+    await options.crawls?.eraseUser(userId)
+    await options.pdfs?.eraseUser(userId)
+    await options.apiKeys?.eraseUser(userId)
+    await admin?.eraseUser(userId)
+  }
+  const plans = planCatalogFrom(env, options.limits)
   return {
     auth: createAuth({
       site: siteUrl,
@@ -298,21 +321,24 @@ function accountsFrom(
       database,
       google: { clientId, clientSecret },
       production,
-      // An account's scans and their reports go with it; the rest cascades in the database.
-      beforeDelete: async (userId) => {
-        await data.eraseUser(userId)
-        await options.monitors?.eraseUser(userId)
-        await options.crawls?.eraseUser(userId)
-        await options.pdfs?.eraseUser(userId)
-        await options.apiKeys?.eraseUser(userId)
-      },
+      beforeDelete: erase,
+      ...(admin === undefined
+        ? {}
+        : {
+            isSuspended: async (userId: string) => (await admin.state(userId)).suspendedAt !== null,
+            onSignIn: (userId: string, at: Date) => admin.noteSignIn(userId, at),
+          }),
       log: options.log,
     }),
+    erase,
+    ...(admin === undefined ? {} : { admin }),
+    adminEmails,
     limits: authLimitsFrom(env),
     secureCookies: production,
     data,
     // Production refuses to start without the plan's numbers, as it does without the abuse limits.
-    plans: planCatalogFrom(env, options.limits),
+    // The owner's per-account numbers (M4.8) are read first, wherever a quota is.
+    plans: admin === undefined ? plans : withOverrides(plans, admin),
     ...(options.crawls === undefined
       ? {}
       : { crawls: options.crawls, crawlSettings: crawlSettingsFrom(env) }),

@@ -1,9 +1,9 @@
 ---
-title: 'hreflang للمواقع العربية: الأكواد الصحيحة والأخطاء الشائعة'
-description: 'كيف تقول لـ Google أي نسخة من صفحتك لمن؟ أكواد اللغة والدولة التي تقبلها، وأخطاء الخليج الشائعة مثل KSA وUK وar_SA، والروابط المتبادلة وx-default، وثلاث طرق لكتابتها.'
-summary: 'الأكواد التي تقبلها Google، وأخطاء الخليج الشائعة، وثلاث طرق للكتابة.'
-date: '2026-10-10'
-tags: ['search']
+title: "hreflang للمواقع العربية: الأكواد الصحيحة والأخطاء الشائعة"
+description: "كيف تقول لـ Google أي نسخة من صفحتك لمن؟ أكواد اللغة والدولة التي تقبلها، وأخطاء الخليج الشائعة مثل KSA وUK وar_SA، والروابط المتبادلة وx-default، وثلاث طرق لكتابتها."
+summary: "الأكواد التي تقبلها Google، وأخطاء الخليج الشائعة، وثلاث طرق للكتابة."
+date: "2026-10-10"
+tags: ["search"]
 lang: ar
 draft: false
 reviewed: false
@@ -25,8 +25,8 @@ related: [google-indexing-arabic-sites, salla-zid-seo-mistakes]
 ```html
 <link rel="alternate" hreflang="ar-SA" href="https://example.com/sa/" />
 <link rel="alternate" hreflang="ar-AE" href="https://example.com/ae/" />
-<link rel="alternate" hreflang="ar" href="https://example.com/" />
-<link rel="alternate" hreflang="en" href="https://example.com/en/" />
+<link rel="alternate" hreflang="ar"    href="https://example.com/" />
+<link rel="alternate" hreflang="en"    href="https://example.com/en/" />
 <link rel="alternate" hreflang="x-default" href="https://example.com/" />
 ```
 
@@ -39,13 +39,13 @@ related: [google-indexing-arabic-sites, salla-zid-seo-mistakes]
 
 نفحص كل كود `hreflang` تعلنه الصفحة، في وسوم `link` وفي ترويسة `Link` من الخادم، ونقارنه بقوائم رموز ISO وسجل IANA. وهذه الأخطاء التي نلتقطها في المواقع الخليجية:
 
-| ما كُتب | الصحيح  | السبب                     |
-| ------- | ------- | ------------------------- |
-| `KSA`   | `SA`    | KSA ليس كود دولة في ISO   |
-| `UAE`   | `AE`    | UAE ليس كود دولة في ISO   |
-| `UK`    | `GB`    | كود المملكة المتحدة هو GB |
+| ما كُتب | الصحيح | السبب |
+|---|---|---|
+| `KSA` | `SA` | KSA ليس كود دولة في ISO |
+| `UAE` | `AE` | UAE ليس كود دولة في ISO |
+| `UK` | `GB` | كود المملكة المتحدة هو GB |
 | `ar_SA` | `ar-SA` | الفاصل شرطة لا شرطة سفلية |
-| `SA`    | `ar-SA` | الدولة وحدها ليست لغة     |
+| `SA` | `ar-SA` | الدولة وحدها ليست لغة |
 
 وأصل الشرطة السفلية غالباً إعدادات اللغة في بعض البرامج، فتكتبها الإضافة كما هي. وكل خطأ يجعل النسخة المعنية غير مفهومة لدى Google، فقد لا تُعرض لمن صُنعت لهم. [فاحص hreflang](/tools/hreflang-check) يعدّ هذه الأخطاء ويسمّي الجزء الخاطئ والتصحيح حين يكون واضحاً، وهذه [قاعدة hreflang-invalid-code](/rules/hreflang-invalid-code). وإن كتبت الوسوم يدوياً فاستعمل [مولّد hreflang](/tools/hreflang-generator): تكتب عناوين النسخ ولغاتها فيعطيك مجموعة كاملة برموز مقبولة.
 

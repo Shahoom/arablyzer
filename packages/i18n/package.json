@@ -9,6 +9,7 @@
     "./copy": "./src/copy.ts",
     "./scan-form": "./src/scan-form.ts",
     "./account": "./src/account.ts",
+    "./admin": "./src/admin.ts",
     "./alerts": "./src/alerts.ts",
     "./crawl": "./src/crawl.ts",
     "./compare": "./src/compare.ts",

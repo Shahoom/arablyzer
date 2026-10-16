@@ -97,7 +97,7 @@ Every figure is a share of the homepages judged for it (a rule that does not app
 | # | Task | Tests |
 |---|---|---|
 | 1 | `packages/sotaw`: countries, frame, stats, outcome, metrics, aggregate, dataset (Parquet, CSV, JSON Schema), edition | frame filtering and determinism, allocation, intervals, metrics, aggregation and suppression, Parquet round trip |
-| 2 | Store (memory, PostgreSQL, migration 0009), `ScanQueue.add` priority, `BullMQScanQueue.busy()` | the store's contract in memory; services suite for PostgreSQL |
+| 2 | Store (memory, PostgreSQL, migration 0010), `ScanQueue.add` priority, `BullMQScanQueue.busy()` | the store's contract in memory; services suite for PostgreSQL |
 | 3 | Runner and CLI (`frame`, `crawl`, `status`, `export`), compose service `sotaw` | the schedule: pauses while visitors wait, lowest priority, rate cap, concurrency, resume, robots, retries |
 | 4 | Copy (`packages/i18n/src/sotaw.ts`), the page, the explorer, the footer and hub links, `llms.txt`, the sitemap, the OG kicker | the page with and without data (fixture edition), the copy's keys, the self-audit |
 | 5 | The frame (Y83YG), CI, the PR | `pnpm site:audit`, the whole CI |

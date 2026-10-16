@@ -1,5 +1,5 @@
 {
-  "id": "549211e1-8082-490b-a28f-be14a3c1c932",
+  "id": "293d3ed0-4f8b-47ca-8432-7e50e35b20ec",
   "prevId": "e194447b-c79e-4b3f-87c2-35ecacd8e7ea",
   "version": "7",
   "dialect": "postgresql",
@@ -1872,102 +1872,107 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.sotaw_results": {
-      "name": "sotaw_results",
+    "public.admin_audit": {
+      "name": "admin_audit",
       "schema": "",
       "columns": {
-        "run_id": {
-          "name": "run_id",
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "domain": {
-          "name": "domain",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "country": {
-          "name": "country",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rank": {
-          "name": "rank",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "position": {
-          "name": "position",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
+        "actor_email": {
+          "name": "actor_email",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "attempts": {
-          "name": "attempts",
-          "type": "integer",
+        "action": {
+          "name": "action",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "notNull": true
         },
-        "scan_id": {
-          "name": "scan_id",
+        "target_id": {
+          "name": "target_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "outcome": {
-          "name": "outcome",
+        "target_email": {
+          "name": "target_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail": {
+          "name": "detail",
           "type": "jsonb",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "finished_at": {
-          "name": "finished_at",
-          "type": "timestamp with time zone",
+        "network": {
+          "name": "network",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }
       },
       "indexes": {
-        "sotaw_results_next": {
-          "name": "sotaw_results_next",
+        "admin_audit_at": {
+          "name": "admin_audit_at",
           "columns": [
             {
-              "expression": "run_id",
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "admin_audit_target": {
+          "name": "admin_audit_target",
+          "columns": [
+            {
+              "expression": "target_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "state",
+              "expression": "at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
-            },
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "admin_audit_actor": {
+          "name": "admin_audit_actor",
+          "columns": [
             {
-              "expression": "position",
+              "expression": "actor_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1979,13 +1984,56 @@
           "with": {}
         }
       },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.admin_user_state": {
+      "name": "admin_user_state",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "suspended_at": {
+          "name": "suspended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_sign_in_at": {
+          "name": "last_sign_in_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "overrides": {
+          "name": "overrides",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
       "foreignKeys": {
-        "sotaw_results_run_id_sotaw_runs_id_fk": {
-          "name": "sotaw_results_run_id_sotaw_runs_id_fk",
-          "tableFrom": "sotaw_results",
-          "tableTo": "sotaw_runs",
+        "admin_user_state_user_id_users_id_fk": {
+          "name": "admin_user_state_user_id_users_id_fk",
+          "tableFrom": "admin_user_state",
+          "tableTo": "users",
           "columnsFrom": [
-            "run_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -1994,95 +2042,10 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {
-        "sotaw_results_run_id_domain_pk": {
-          "name": "sotaw_results_run_id_domain_pk",
-          "columns": [
-            "run_id",
-            "domain"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "sotaw_results_state": {
-          "name": "sotaw_results_state",
-          "value": "\"sotaw_results\".\"state\" IN ('pending', 'running', 'done', 'skipped', 'failed')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.sotaw_runs": {
-      "name": "sotaw_runs",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "frame_id": {
-          "name": "frame_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "frame_sha": {
-          "name": "frame_sha",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "seed": {
-          "name": "seed",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "total": {
-          "name": "total",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "finished_at": {
-          "name": "finished_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "sotaw_runs_state": {
-          "name": "sotaw_runs_state",
-          "value": "\"sotaw_runs\".\"state\" IN ('running', 'finished', 'aborted')"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     }
   },

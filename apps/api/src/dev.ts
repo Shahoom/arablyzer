@@ -3,6 +3,7 @@ import { memoryAdapter } from 'better-auth/adapters/memory'
 import { localCrawlClient, localScanner, scanOptionsFrom } from '@arablyzer/scanner'
 import {
   MemoryAccountData,
+  MemoryAdminData,
   MemoryCrawlData,
   MemoryApiKeyData,
   MemoryPdfData,
@@ -39,6 +40,15 @@ const crawlData = new MemoryCrawlData()
 accountData.onSiteRemoved.add((siteId) => {
   crawlData.dropSite(siteId)
 })
+const pdfData = new MemoryPdfData()
+const apiKeyData = new MemoryApiKeyData()
+// Better Auth's tables in memory: the owner's panel reads the same rows the library keeps.
+const authTables: Record<string, Record<string, unknown>[]> = {
+  user: [],
+  session: [],
+  account: [],
+  verification: [],
+}
 const queue = new MemoryScanQueue()
 const events = new MemoryScanEvents()
 const limiter = new MemoryRateLimiter()
@@ -50,12 +60,22 @@ const deps = apiDeps(env, {
   inFlight: new MemoryInFlight(),
   handoff: new MemoryHandoff(),
   // Accounts, when ARABLYZER_ACCOUNTS=on, live in memory here: gone when this process ends.
-  auth: { database: memoryAdapter({ user: [], session: [], account: [], verification: [] }) },
+  auth: { database: memoryAdapter(authTables) },
   accountData,
   monitorData,
   crawlData,
-  pdfData: new MemoryPdfData(),
-  apiKeyData: new MemoryApiKeyData(),
+  pdfData,
+  apiKeyData,
+  adminData: new MemoryAdminData({
+    users: () => authTables.user ?? [],
+    sessions: () => authTables.session ?? [],
+    scans: store,
+    accounts: accountData,
+    monitors: monitorData,
+    crawls: crawlData,
+    pdfs: pdfData,
+    apiKeys: apiKeyData,
+  }),
 })
 const app = createApp(deps)
 const port = Number(env.PORT ?? 8787)
