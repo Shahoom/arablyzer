@@ -41,13 +41,13 @@ Every other Python dependency is MIT, BSD, Apache-2.0, PSF, or MPL-2.0 (certifi,
 
 ## 3. Resources (measured)
 
-On the arm64 Docker of the development machine, `docker stats` after the data was loaded and after the worst cases below; CI prints the same on amd64 in the job `arabic-nlp`.
+`docker stats` on the arm64 Docker of the development machine, after the data was loaded and after the worst cases below; and on amd64, which is what CI and the server run, in the job `arabic-nlp` (the same pytest results and precision, bit for bit).
 
 | | Measured |
 | --- | --- |
-| Image | 926 MB (runtime): Python 3.12 slim, the venv (433 MB: scipy, pandas, scikit-learn, numpy, kenlm), the data (141 MB) |
+| Image | 644 MB on amd64 (CI), 926 MB on arm64 (runtime): Python 3.12 slim, the venv (scipy, pandas, scikit-learn, numpy, kenlm), the data (141 MB) |
 | Start | 3 s to load the databases and the model; `/health` answers 503 `loading` until then |
-| Memory, idle after load | 637 MiB |
+| Memory, idle after load | 637 MiB (arm64) and 637.7 MiB (amd64, CI) |
 | Memory after 60,000 characters of unknown words (the worst case, 7.9k words, ~4.2 s) three times, then six such requests at once | 660 MiB |
 | One CPU | a 60,000-character text of ordinary words: 0.06 to 0.9 s; of unknown words: 4.1 to 4.5 s; six at once: two in 4.4 s, the other four cut at the 8 s deadline (`truncated: true`) |
 | Compose limits | `mem_limit: 1g` (660 MiB measured, room for the 50,000-word cache), `cpus: 1`, `pids_limit: 128` |
