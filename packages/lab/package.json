@@ -17,7 +17,7 @@
     "@arablyzer/egress": "workspace:*",
     "lighthouse": "13.5.0",
     "playwright-core": "1.63.0",
-    "puppeteer-core": "25.12.0"
+    "puppeteer-core": "25.13.0"
   },
   "devDependencies": {
     "@arablyzer/fixtures": "workspace:*"
