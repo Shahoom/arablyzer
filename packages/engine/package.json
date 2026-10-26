@@ -24,7 +24,7 @@
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/rules": "workspace:*",
     "@arablyzer/scoring": "workspace:*",
-    "pdfjs-dist": "6.3.289"
+    "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
     "@arablyzer/fixtures": "workspace:*",
