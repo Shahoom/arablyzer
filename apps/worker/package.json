@@ -19,7 +19,7 @@
     "@arablyzer/report-schema": "workspace:*",
     "@arablyzer/scanner-client": "workspace:*",
     "@arablyzer/store": "workspace:*",
-    "bullmq": "6.3.11",
+    "bullmq": "6.3.17",
     "ioredis": "5.11.1",
     "pg": "8.23.1"
   },
