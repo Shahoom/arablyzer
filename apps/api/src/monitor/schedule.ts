@@ -31,9 +31,17 @@ export const pointOf = (point: RunPoint): MonitorPoint => ({
   at: point.at.toISOString(),
 })
 
-export function monitorSummary(monitor: Monitor, trend: readonly RunPoint[]): MonitorSummary {
+/**
+ * A monitor as the page reads it. `everyDays` is the plan's interval as it stands now, which the
+ * scheduler follows at each run, not the one the monitor was enabled with.
+ */
+export function monitorSummary(
+  monitor: Monitor,
+  trend: readonly RunPoint[],
+  everyDays: number = monitor.everyDays,
+): MonitorSummary {
   return {
-    everyDays: monitor.everyDays,
+    everyDays,
     paused: monitor.paused,
     nextRunAt: monitor.nextRunAt.toISOString(),
     failures: monitor.failures,
