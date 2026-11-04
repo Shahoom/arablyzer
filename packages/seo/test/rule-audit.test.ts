@@ -14,7 +14,14 @@ const fixture = (name: string) =>
 const AR = fixture('rule.ar.html')
 const EN = fixture('rule.en.html')
 const ORIGIN = 'https://arablyzer.example'
-const KNOWN = new Set(['/rules', '/en/rules', '/tools/rtl-check', '/en/tools/rtl-check'])
+const KNOWN = new Set([
+  '/',
+  '/en/',
+  '/rules',
+  '/en/rules',
+  '/tools/rtl-check',
+  '/en/tools/rtl-check',
+])
 const ALTERNATES = { ar: `${ORIGIN}/rules/sample-rule`, en: `${ORIGIN}/en/rules/sample-rule` }
 const EXPECTED: Readonly<Record<'ar' | 'en', ExpectedPage>> = {
   ar: { lang: 'ar', url: ALTERNATES.ar, alternates: ALTERNATES, origin: ORIGIN, knownPaths: KNOWN },

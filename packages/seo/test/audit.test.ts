@@ -410,7 +410,7 @@ describe.each<[string, string, AuditCheck[]]>([
     edit(
       AR,
       '"name": "الرئيسية", "item": "https://arablyzer.example/" }',
-      '"name": "الأدوات", "item": "https://arablyzer.example/tools" }',
+      '"name": "الرئيسية", "item": "https://arablyzer.example/tools" }',
     ),
     ['json-ld'],
   ],
