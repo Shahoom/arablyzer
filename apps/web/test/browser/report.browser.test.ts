@@ -140,12 +140,19 @@ async function scanned(id: string): Promise<Report> {
   })
 }
 
-/** Failed or broken rules, less those a report page fails by design or for a known gap. */
+/**
+ * Failed or broken rules, less those a report page fails by design or for a known gap. An
+ * information rule (the sites a page links to) is a note, not a problem: the site audit leaves it
+ * out too.
+ */
 function problems(report: Report) {
   return (
     report.rules
       .filter(
-        (rule) => (rule.status === 'fail' || rule.status === 'error') && !BY_DESIGN.has(rule.id),
+        (rule) =>
+          (rule.status === 'fail' || rule.status === 'error') &&
+          rule.severity !== 'info' &&
+          !BY_DESIGN.has(rule.id),
       )
       // A rule that failed only for gaps the site knows it has (the og:image, M2.4).
       .filter((rule) => {

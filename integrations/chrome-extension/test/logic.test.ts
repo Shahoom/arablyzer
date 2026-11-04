@@ -71,7 +71,7 @@ describe('what is shown of a report', () => {
   })
 
   it('shows a clean page with no rows, and a page with no score as such', () => {
-    const clean = presentReport(golden('01-clean-store'), 'https://arablyzer.com', 'ar')
+    const clean = presentReport(golden('02-clean-article'), 'https://arablyzer.com', 'ar')
     expect(clean).toMatchObject({ score: 100, band: 'good', issues: [], more: 0 })
     const none = presentReport(golden('25-bot-challenge'), 'https://arablyzer.com', 'ar')
     expect(none.score).toBeNull()
