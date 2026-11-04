@@ -27,7 +27,7 @@ function withStatus(...statuses: string[]): Set<string> {
 // Arabic-native rules (from 35: one that fails them, one that passes the riyal sign's), and four for
 // M6.1's store and crawl rules (a store page that fails them and one that passes, a page that says it
 // is not found and a page of a list, each wrong and right: from 37), and two for M7's spelling rule (from 71: one with slips the Arabic NLP
-// service names, one without; the service's answers are the real one's, recorded by services/arabic-nlp/tools/check_golden.py), and two for M10.1's slug, platform and locale rules (a page of a Zid and Shopify store that fails them and one that passes: from 41), and two for M10.2's sitemap rules (a sitemap with bad dates and language versions that do not list each other, and one that is right: from 43), and two for M10.3's FAQ, sharing-language and image-alt rules (from 45). The reports come from the
+// service names, one without; the service's answers are the real one's, recorded by services/arabic-nlp/tools/check_golden.py), and two for M10.1's slug, platform and locale rules (a page of a Zid and Shopify store that fails them and one that passes: from 41), and two for M10.2's sitemap rules (a sitemap with bad dates and language versions that do not list each other, and one that is right: from 43), and two for M10.3's FAQ, sharing-language, image-alt and markup-match rules (from 45). The reports come from the
 // scanner image (test/golden); this reads the committed ones, so a new rule needs a page too.
 describe('golden reports', () => {
   it('are forty-three, one for each page, and none for a page that is gone', () => {

@@ -65,6 +65,7 @@ import { rule as knowledgeGraphEntity } from './rules/knowledge-graph-entity/rul
 import { rule as linkBroken } from './rules/link-broken/rule'
 import { rule as localBusinessInvalid } from './rules/local-business-invalid/rule'
 import { rule as lookalikeDomains } from './rules/lookalike-domains/rule'
+import { rule as markupContentMismatch } from './rules/markup-content-mismatch/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as misspellingsUncovered } from './rules/misspellings-uncovered/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
@@ -192,6 +193,7 @@ export const RULES: readonly Rule[] = [
   linkBroken,
   localBusinessInvalid,
   lookalikeDomains,
+  markupContentMismatch,
   metaDescriptionMissing,
   misspellingsUncovered,
   mixedContent,

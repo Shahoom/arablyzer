@@ -57,6 +57,7 @@ import { definition as localBusinessCheck } from './tools/local-business-check/t
 import { definition as localBusinessGenerator } from './tools/local-business-generator/tool'
 import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
 import { definition as lookalikeDomains } from './tools/lookalike-domains/tool'
+import { definition as markupMatchCheck } from './tools/markup-match-check/tool'
 import { definition as metaTagGenerator } from './tools/meta-tag-generator/tool'
 import { definition as mirroredIconsCheck } from './tools/mirrored-icons-check/tool'
 import { definition as mixedContent } from './tools/mixed-content/tool'
@@ -170,6 +171,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   localBusinessGenerator,
   logicalCssCheck,
   lookalikeDomains,
+  markupMatchCheck,
   metaTagGenerator,
   mirroredIconsCheck,
   mixedContent,
