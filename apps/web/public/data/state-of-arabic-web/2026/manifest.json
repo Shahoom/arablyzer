@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "edition": "2026",
+  "license": "CC-BY-4.0",
+  "files": [
+    {
+      "name": "aggregates.json",
+      "mediaType": "application/json",
+      "description": "The numbers of the report: counts for each country, platform and metric.",
+      "bytes": 16157,
+      "sha256": "41796d42fecb54c75964dbc832f0c89b246bad7e0d498756ee3cf0d2328f60bc"
+    },
+    {
+      "name": "aggregates.csv",
+      "mediaType": "text/csv",
+      "description": "The same aggregates, one row for each category of a metric in a cell.",
+      "bytes": 55033,
+      "sha256": "1d1014f2fd11dafbbafbece11a842f993ff524a1277e884f567e22e611c0e095"
+    },
+    {
+      "name": "aggregates.parquet",
+      "mediaType": "application/vnd.apache.parquet",
+      "description": "The aggregates as Parquet.",
+      "bytes": 17159,
+      "sha256": "ddf8a05be71d737c35de7cc0f1ed8787e57e2c35c5ec6a72552501abfcf3ce93"
+    },
+    {
+      "name": "schema.json",
+      "mediaType": "application/schema+json",
+      "description": "The JSON Schema of the aggregates’ table.",
+      "bytes": 2247,
+      "sha256": "09ba83e401a610aebe361c1a86f5a2d0383734396d3d8a31f2d7ba2a7418f9a1"
+    }
+  ]
+}
