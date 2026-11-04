@@ -30,6 +30,7 @@ import {
 import { registerFontRoutes, type FontContext } from './fonts'
 import { mountAccounts, planOf, type AccountsDeps } from './accounts'
 import { mountAdmin } from './admin/routes'
+import { mountAi } from './ai/routes'
 import { mountApiKeys } from './apikeys'
 import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
@@ -457,6 +458,15 @@ export function createApp(deps: ApiDeps): Hono {
         origin: deps.origin,
         log: deps.log,
         now,
+      })
+    }
+    if (deps.accounts.ai !== undefined) {
+      mountAi(app, {
+        access,
+        assistant: deps.accounts.ai,
+        store: deps.store,
+        origin: deps.origin,
+        log: deps.log,
       })
     }
     if (deps.accounts.sender !== undefined) {
