@@ -24,6 +24,15 @@ overrides:
   '@napi-rs/canvas': 1.0.9
   # GHSA-68fv-2mgg-jv7q: event-loop denial of service in source-map-js before 1.2.2 (through postcss).
   source-map-js: '>=1.2.2'
+  # Advisories published after the lockfile was made (pnpm audit, 2026-11): each package below is pinned by
+  # the one tool that pulls it in, so a plain update cannot move it. Patched versions, same major.
+  # undici (astro > unifont pins 8.11.2): GHSA-qrxm-fqhp-jwvm and three more; vite (vitest): GHSA path in
+  # launch-editor; body-parser (@modelcontextprotocol/sdk > express): denial of service; zod 4 (astro pins
+  # 4.6.5): memory exhaustion on oversized input. zod 3 (a few tools) is a different major and stays.
+  undici: '>=8.12.2 <9'
+  vite: '>=8.3.3 <9'
+  body-parser: '>=2.4.0 <3'
+  'zod@>=4.0.0 <4.6.6': 4.6.7
 
 auditConfig:
   ignoreGhsas:
@@ -31,3 +40,8 @@ auditConfig:
     # static, and astro uses it only at build time for its own image cache: no response is ever
     # cached for one visitor and served to another. No patched version exists yet (2026-10-04).
     - GHSA-ch52-4w7c-c8xp
+    # zod 3.25.76 (puppeteer-core > chromium-bidi pins it, and no patched 3.x exists; the fix is in zod 4, whose
+    # API chromium-bidi does not use): memory exhaustion while validating oversized constrained collections. It
+    # validates the messages of the browser the CLI itself starts on the same machine, never a visitor's
+    # input, and the CLI is a tool run by its user. Every zod 4 in the workspace is patched (2026-11-04).
+    - GHSA-mrhx-c7xc-m3w5
