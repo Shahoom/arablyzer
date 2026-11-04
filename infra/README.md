@@ -107,8 +107,10 @@ PostgreSQL's volume is the only named volume in the stack, so a dump is all of i
 `infra/.env` is not in it, and a rebuild on another server needs that file. A dump holds the accounts, their
 sessions and the scans, so the folder is `700` and each dump `600`.
 
-**The copies are on the server's own disk.** A lost disk or server takes them with the database; nothing sends
-them anywhere else yet. Nothing alerts on a failed night either: `backup.log` is where it shows.
+**These copies stay on the server's own disk**, for a quick restore: a lost disk or server takes them with the
+database. What would survive the server is a separate job of root's, outside this repository, which dumps every
+running PostgreSQL at 03:17 and sends it, encrypted, off the server; restoring from that copy has not been tried
+here. Nothing alerts on a failed night of this job: `backup.log` is where it shows.
 
 **Check a dump** without touching production: read it into a throwaway container of the same image, with no
 network and its data in memory, and compare every table's row count with production's. The counts are taken now
