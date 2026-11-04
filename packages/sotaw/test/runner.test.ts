@@ -627,6 +627,36 @@ describe('stopping and going on', () => {
   })
 })
 
+describe('a frame that grew', () => {
+  const sites = (...domains: string[]) =>
+    domains.map((domain, position) => ({ domain, country: 'ly', rank: position + 1, position }))
+
+  it('adds its new sites to the run and the crawl takes only those', async () => {
+    const h = harness({ domains: ['a.sa', 'b.sa'] })
+    await h.run()
+    const before = await h.store.results(RUN)
+    const added = await h.store.extend(RUN, 'e'.repeat(64), sites('a.sa', 'b.sa', 'c.ly'))
+    expect(added).toBe(1)
+    const after = await h.store.results(RUN)
+    expect(after.slice(0, 2)).toEqual(before)
+    expect(after[2]).toMatchObject({ domain: 'c.ly', state: 'pending', outcome: null })
+    expect(await h.store.run(RUN)).toMatchObject({ frameSha: 'e'.repeat(64), total: 3 })
+    await createRunner(RUN, h.deps, h.config).run(new AbortController().signal)
+    expect(h.added.map((a) => a.job.url)).toEqual([
+      'https://a.sa/',
+      'https://b.sa/',
+      'https://c.ly/',
+    ])
+  })
+
+  it('refuses a frame that lost a site of the run, and changes nothing', async () => {
+    const h = harness({ domains: ['a.sa', 'b.sa'] })
+    await h.run()
+    await expect(h.store.extend(RUN, 'e'.repeat(64), sites('a.sa'))).rejects.toThrow(/lost b\.sa/)
+    expect(await h.store.run(RUN)).toMatchObject({ frameSha: 'f'.repeat(64), total: 2 })
+  })
+})
+
 describe('the settings', () => {
   it('are the gentle ones by default', () => {
     const config = runnerConfigFrom({}, { seed: 's', optOut: new Set() })

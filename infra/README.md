@@ -209,6 +209,7 @@ docker compose --profile sotaw run -d --name sotaw-crawl sotaw crawl     # in th
 docker logs -f sotaw-crawl                                # progress, pauses and resumes
 docker stop -t 30 sotaw-crawl && docker rm sotaw-crawl    # stops after the scan in hand; run it again to go on
 docker compose --profile sotaw run --rm -v /srv/sotaw-out:/out sotaw export --out /out
+docker compose --profile sotaw run --rm --no-deps sotaw extend                # the frame grew: its new sites join the run
 docker compose -f compose.yaml -f compose.sotaw-tls.yaml --profile sotaw run --rm --no-deps sotaw tls-check
 ```
 
