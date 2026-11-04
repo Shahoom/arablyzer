@@ -44,6 +44,7 @@ import { googleApi } from './gsc/google'
 import { newScanId } from './ids'
 import { mailerFrom } from './monitor/mail'
 import { unsubscribeFrom } from './monitor/unsubscribe'
+import { whatsappFrom, whatsappSettingsFrom } from './monitor/whatsapp'
 import { webhookSender } from './monitor/webhook'
 import { cloudflareTurnstile, isTurnstileTestSecret, noTurnstile } from './turnstile'
 
@@ -328,6 +329,7 @@ function accountsFrom(
   }
   const plans = planCatalogFrom(env, options.limits)
   const unsubscribe = unsubscribeFrom(env, siteUrl.origin)
+  const whatsappSettings = whatsappSettingsFrom(env)
   return {
     auth: createAuth({
       site: siteUrl,
@@ -375,6 +377,13 @@ function accountsFrom(
             ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
           }),
           ...(unsubscribe === undefined ? {} : { unsubscribe }),
+          whatsapp: whatsappFrom(env, {
+            policy: options.policy,
+            resolver: options.resolver,
+            log: options.log,
+            ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
+          }),
+          ...(whatsappSettings === null ? {} : { whatsappSettings }),
         }),
   }
 }

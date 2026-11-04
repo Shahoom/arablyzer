@@ -1,5 +1,6 @@
 import { ALERT_TEXT } from '@arablyzer/i18n/alerts'
 import type { AlertEvent, Facts } from './evaluate'
+import type { WhatsAppTemplate } from './whatsapp'
 import type { AlertMessage } from './webhook'
 
 export type Language = 'ar' | 'en'
@@ -93,4 +94,53 @@ export function summaryMessage(
     },
     at,
   }
+}
+
+/** One WhatsApp message: the template, its variables, and the key the run remembers it by. */
+export interface WhatsAppJob {
+  readonly key: string
+  readonly template: WhatsAppTemplate
+  readonly params: readonly string[]
+}
+
+/** The account page, in the person's language: where a stopped monitor is turned on again. */
+export const accountUrl = (origin: string, language: Language): string =>
+  `${origin}${language === 'en' ? '/en' : ''}/account`
+
+/**
+ * What a run's events say on WhatsApp: one approved template per event, with the same facts the
+ * webhook and the mail carry. Never free text, and never the weekly summary: WhatsApp is for what
+ * needs a person's attention now.
+ */
+export function whatsappJobs(
+  origin: string,
+  language: Language,
+  run: RunInfo,
+  events: readonly AlertEvent[],
+): WhatsAppJob[] {
+  const site = siteLabel(run.url)
+  return events.map((event): WhatsAppJob => {
+    switch (event.type) {
+      case 'score-drop':
+        return {
+          key: 'whatsapp:score-drop',
+          template: 'scoreDrop',
+          params: [site, String(event.from), String(event.to), run.report],
+        }
+      case 'critical':
+        return {
+          key: 'whatsapp:critical',
+          template: 'critical',
+          params: [site, String(event.count), run.report],
+        }
+      case 'down':
+        return { key: 'whatsapp:down', template: 'down', params: [site] }
+      case 'paused':
+        return {
+          key: 'whatsapp:paused',
+          template: 'paused',
+          params: [site, accountUrl(origin, language)],
+        }
+    }
+  })
 }

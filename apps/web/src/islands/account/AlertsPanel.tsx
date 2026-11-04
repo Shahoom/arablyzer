@@ -12,6 +12,7 @@ import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { getAlerts, saveAlerts, testAlerts, testEmailAlerts, type SiteOutcome } from '../sites-api'
 import { SIGNATURE_RECIPE, type SiteProblem } from '../sites-model'
+import WhatsappSection from './WhatsappSection'
 
 interface Props {
   lang: Lang
@@ -297,6 +298,18 @@ export default function AlertsPanel({ lang }: Props) {
         </div>
       )}
 
+      {settings.whatsapp.available && settings.whatsapp.allowed && (
+        <WhatsappSection
+          lang={lang}
+          state={settings.whatsapp}
+          onChange={(next) => {
+            setSettings((current) =>
+              typeof current === 'string' ? current : { ...current, whatsapp: next },
+            )
+          }}
+        />
+      )}
+
       <form noValidate onSubmit={(event) => void onSave(event)} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <label htmlFor="webhook-url" className="text-small font-semibold text-ink">
@@ -400,6 +413,7 @@ function withoutSecret(response: AlertsResponse): AlertSettings {
     onDown: response.onDown,
     weeklySummary: response.weeklySummary,
     email: response.email,
+    whatsapp: response.whatsapp,
   }
 }
 
