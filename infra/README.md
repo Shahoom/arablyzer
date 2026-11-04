@@ -92,6 +92,65 @@ docker compose -f infra/compose.yaml exec valkey \
   sh -c 'REDISCLI_AUTH="$VALKEY_PASSWORD" valkey-cli --user arablyzer --no-auth-warning info keyspace'
 ```
 
+## Backups
+
+`infra/backup-postgres.sh` takes a compressed dump of PostgreSQL (`pg_dump`'s custom format) into
+`/home/deploy/backups/arablyzer/db-<date>-<time>.dump`, keeps the newest 14, and adds one line to `backup.log`
+in that folder: `backup ok`, or `backup FAILED`. It deletes no old dump until the new one has read back. The
+`deploy` user's crontab takes it at 05:30 server time (+04), clear of the other apps' jobs on that server:
+
+```cron
+30 5 * * * /home/deploy/arablyzer/infra/backup-postgres.sh >> /home/deploy/backups/arablyzer/backup.log 2>&1
+```
+
+PostgreSQL's volume is the only named volume in the stack, so a dump is all of its state but one thing:
+`infra/.env` is not in it, and a rebuild on another server needs that file. A dump holds the accounts, their
+sessions and the scans, so the folder is `700` and each dump `600`.
+
+**The copies are on the server's own disk.** A lost disk or server takes them with the database; nothing sends
+them anywhere else yet. Nothing alerts on a failed night either: `backup.log` is where it shows.
+
+**Check a dump** without touching production: read it into a throwaway container of the same image, with no
+network and its data in memory, and compare every table's row count with production's. The counts are taken now
+and the dump earlier, so a table that was written to since will differ; take a dump first for a close comparison.
+
+```bash
+cd ~/arablyzer
+C="docker compose -p arablyzer -f infra/compose.yaml -f infra/compose.coolify.yaml --env-file infra/.env"
+F=$(ls -1t ~/backups/arablyzer/db-*.dump | head -1)
+R=arablyzer-restore-test
+COUNT='SELECT format($$SELECT %L, count(*) FROM %I.%I$$, schemaname||$$.$$||relname, schemaname, relname) FROM pg_stat_user_tables ORDER BY 1 \gexec'
+docker run -d --rm --name $R --network none --memory 1g --cpus 1 --tmpfs /var/lib/postgresql/data \
+  -e POSTGRES_USER=arablyzer -e POSTGRES_DB=arablyzer -e POSTGRES_HOST_AUTH_METHOD=trust \
+  "$(docker inspect -f '{{.Image}}' "$($C ps -q postgres)")"
+until docker exec $R pg_isready -q -h 127.0.0.1 -U arablyzer; do sleep 1; done
+docker exec -i $R pg_restore -U arablyzer -d arablyzer --no-owner --no-privileges --exit-on-error < "$F"
+diff <(echo "$COUNT" | $C exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At') \
+     <(echo "$COUNT" | docker exec -i $R psql -U arablyzer -d arablyzer -At) && echo same
+docker stop $R
+```
+
+**Restore** over the live database. `--clean` replaces every table with the dump's, with its owners and rights;
+the site's pages are still served meanwhile and no scan is taken. `up -d` starts what was stopped, and runs
+`migrate`, which brings an older dump up to this release's schema and sets the roles' passwords.
+
+```bash
+F=~/backups/arablyzer/db-<date>-<time>.dump
+$C stop api worker crawler monitor pdf sotaw
+$C exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --single-transaction --exit-on-error' < "$F"
+$C up -d
+```
+
+On a new server or an empty volume, put `infra/.env` back and start the stack once first, so that `migrate` makes
+the roles and the schema, then run the same commands.
+
+**Tried:** on 2026-11-04 the newest dump went into the throwaway container, and all 21 tables matched production.
+Then, with production's roles copied over, without passwords (`pg_dumpall --roles-only --no-role-passwords`), the
+restore command above ran over those tables: the counts still matched, the worker still could not read `users`, and
+every owner and right came back. The one difference is how `drizzle.__drizzle_migrations` and its sequence write
+their owner's own rights, implicitly rather than spelled out, which grants the same. **Not tried:** the restore on
+the live stack, its `up -d`, and a new volume made by `migrate`.
+
 ## Accounts (optional, off by default)
 
 Sign-in is Google's alone: Google's own "Sign in with Google" button, One Tap where the browser
