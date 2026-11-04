@@ -1,5 +1,5 @@
 ---
-summary: Write LocalBusiness markup for a business in the Gulf, with two names, ISO country and English day names.
+summary: Write LocalBusiness markup for a Gulf business, with its two names and opening days.
 ---
 
 # Local business markup generator
