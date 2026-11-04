@@ -13,6 +13,7 @@
     "test:services": "vitest run test/services"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
     "@arablyzer/api-contract": "workspace:*",
     "@arablyzer/collectors": "workspace:*",
     "@arablyzer/egress": "workspace:*",

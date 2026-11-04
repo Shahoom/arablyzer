@@ -13,6 +13,7 @@ export default defineConfig({
     './src/postgres/apikey-schema.ts',
     './src/postgres/admin-schema.ts',
     './src/postgres/sotaw-schema.ts',
+    './src/postgres/ai-schema.ts',
   ],
   out: './drizzle',
 })

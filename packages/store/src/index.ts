@@ -20,6 +20,19 @@ export {
 } from './admin'
 export { PostgresAdminData } from './postgres/admin-store'
 export { adminAudit, adminUserState } from './postgres/admin-schema'
+export {
+  FIX_CACHE_DAYS,
+  MemoryAiData,
+  PENDING_MS,
+  periodStarts,
+  type AiData,
+  type FixUsage,
+  type Reservation,
+  type Reserved,
+  type StoredFix,
+} from './ai'
+export { PostgresAiData } from './postgres/ai-store'
+export { aiFixCache, aiRequests } from './postgres/ai-schema'
 export { MemoryAccountData } from './accounts'
 export type {
   AccountData,
