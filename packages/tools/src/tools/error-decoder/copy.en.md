@@ -1,5 +1,5 @@
 ---
-summary: Paste a Search Console or Merchant Center message and read what it means and what to do.
+summary: Paste a Search Console or Merchant Center message and see what it means.
 ---
 
 # Search Console and Merchant Center error decoder

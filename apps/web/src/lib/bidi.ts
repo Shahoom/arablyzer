@@ -3,9 +3,9 @@
  * right-to-left line, an unisolated `[A-Za-z ]{3,40}` or `04-rtl-layout` is drawn out of order.
  * A run starts at a Latin letter, a digit, a plus sign or an opening bracket, a tag's "<" among
  * them (`<html>`); it ends before Arabic, «», or Arabic punctuation, without its trailing spaces
- * and stops. It is isolated when it holds a Latin letter, or numbers that spaces, brackets or a
- * plus sign join into one, such as `+968 9123 4567` or `[0-9]{8}`, which would otherwise be drawn
- * in pieces, right to left.
+ * and stops. It is isolated when it holds a Latin letter, or numbers that spaces, brackets, a
+ * plus sign or a hyphen join into one, such as `+968 9123 4567`, `[0-9]{8}` or `2026-03-05`, which
+ * would otherwise be drawn in pieces, right to left.
  * Numbers alone stay as they are, and so do brackets around Arabic: they read the same either way.
  */
 export interface TextPart {
@@ -16,8 +16,8 @@ export interface TextPart {
 const RUN = /[A-Za-z0-9[{(+<][^؀-ۿ«»،؛؟]*/g
 const TRAILING = /[\s.,:;]+$/
 const LATIN = /[A-Za-z]/
-/** Digits, and a space, bracket or plus sign that makes them one written thing. */
-const JOINED_NUMBERS = /\d.*[\s[\]{}()+]|[\s[\]{}()+].*\d/
+/** Digits, and a space, bracket, plus sign or hyphen that makes them one written thing. */
+const JOINED_NUMBERS = /\d.*[\s[\]{}()+]|[\s[\]{}()+].*\d|\d-\d/
 
 export function isolateLatin(text: string): TextPart[] {
   const parts: TextPart[] = []
