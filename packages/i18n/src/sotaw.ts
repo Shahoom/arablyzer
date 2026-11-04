@@ -232,6 +232,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       reasons: {
         robots: 'robots.txt يمنع الزاحف',
         'robots-unreachable': 'تعذّرت قراءة robots.txt',
+        'tls-chain': 'شهادة الموقع ناقصة السلسلة أو لا يمكن التحقق منها',
         'bot-challenge': 'اختبار حماية من الروبوتات',
         'http-error': 'ردّ الموقع بخطأ',
         unreachable: 'لم يفتح الموقع',
@@ -551,6 +552,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       reasons: {
         robots: 'robots.txt keeps the crawler out',
         'robots-unreachable': 'robots.txt could not be read',
+        'tls-chain': 'The site’s certificate chain could not be verified',
         'bot-challenge': 'A bot-protection challenge',
         'http-error': 'The site answered with an error',
         unreachable: 'The site did not open',

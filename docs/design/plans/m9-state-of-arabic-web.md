@@ -70,7 +70,7 @@ All of these are of the Arabic pages (see the global constraint above); there is
 
 1. **Gate.** Wait while `busy()` (visitors' scans waiting or running, less the crawl's own that is running) is above 0 or the host's load per core is above the limit; poll every 5 s.
 2. **Take** the next pending site (`UPDATE … FOR UPDATE SKIP LOCKED`); one crawl at a time is held by an advisory lock.
-3. **Read the front page** through the scanner (`/crawl`, no browser): robots.txt as a crawler, then the page, `https://`, then `http://`, then `https://www.`; at least 2 s between two reads (what robots.txt's answer means, below). Skipped, with a reason code and no scan: `robots`, `robots-unreachable`, `bot-challenge`, `http-error` (the site answered with an error status), `unreachable`, `not-html`, `off-domain` (the front page ended on another domain), `opt-out`.
+3. **Read the front page** through the scanner (`/crawl`, no browser): robots.txt as a crawler, then the page, `https://`, then `http://`, then `https://www.`; at least 2 s between two reads (what robots.txt's answer means, below). robots.txt speaks for its own address, so one whose file cannot be read stays closed and the next address is asked on its own file; `robots-unreachable` is a site where no address could be read. A file that says no, or a bot challenge, ends the site there. Skipped, with a reason code and no scan: `robots`, `robots-unreachable`, `bot-challenge`, `http-error` (the site answered with an error status), `unreachable`, `not-html`, `off-domain` (the front page ended on another domain), `opt-out`.
    **robots.txt, as RFC 9309 and Google read it** (`robotsOf` in `packages/engine/src/crawl.ts`; the deep crawl shares it):
 
    | robots.txt answers | The crawler |
@@ -80,6 +80,8 @@ All of these are of the Arabic pages (see the global constraint above); there is
    | 4xx but 429: 404, 410, 401, 403 … | "unavailable": no restrictions, the page is read |
    | 5xx, 429, a timeout, a refused connection, a DNS or TLS failure | one more try after 3 s with twice the time (20 s, then 40 s); still failing: skipped as `robots-unreachable` |
    | a bot challenge instead of the file (e.g. Cloudflare's `cf-mitigated: challenge`, also after a redirect) | not the site's file, and never solved: skipped as `bot-challenge` |
+
+   **An incomplete certificate chain.** A browser fetches a missing intermediate; the crawl's fetch, which never turns certificate checks off, fails, and the scanner answers only that robots.txt could not be read. `pnpm sotaw tls-check`, after the crawl, reads the robots.txt of each site left unread through the egress proxy and moves those failing this way to `tls-chain`, so the funnel counts them on their own. Reading them would take fetching the intermediate in `packages/egress`, which the scanner and the worker must be redeployed to use.
 
    `requeue` puts sites back after a rule changed: `pnpm sotaw requeue --reason robots-unreachable` (any reason code, skipped or failed sites) sets those rows back to pending in place, no row added, attempts reset; the running crawl claims them next, in the frame's order; a crawl that had finished takes them up when `crawl` is run again.
 4. **Scan.** After the rate cap (20 s from the last launch) and the gate once more: an unlinked scan row, then a job at priority 2,097,151 (the lowest), `engines: ['chromium']`. The worker runs it as any scan.
