@@ -145,7 +145,8 @@ describe.each<[string, string, AuditCheck[]]>([
     ),
     ['tool-first'],
   ],
-  ['no FAQ', edit(AR, /<section id="faq">.*<\/section>\n/, ''), ['sections']],
+  // The FAQ markup stays: M10.2's faq-schema-mismatch finds markup for a FAQ the page no longer shows.
+  ['no FAQ', edit(AR, /<section id="faq">.*<\/section>\n/, ''), ['own-rules', 'sections']],
   [
     'an empty "what it checks"',
     edit(AR, '<ul><li>بنية الصفحة ووسومها.</li></ul>', ''),
@@ -279,12 +280,16 @@ describe.each<[string, string, AuditCheck[]]>([
     ['sections'],
   ],
   ['an empty example', edit(AR, '<pre>&lt;p&gt;صحيح&lt;/p&gt;</pre>', '<pre></pre>'), ['sections']],
-  ['an empty question', edit(AR, '<h3>ما هذه الصفحة؟</h3>', '<h3></h3>'), ['sections']],
+  [
+    'an empty question',
+    edit(AR, '<h3>ما هذه الصفحة؟</h3>', '<h3></h3>'),
+    ['own-rules', 'sections'],
+  ],
   ['a hidden tool form', edit(AR, '<form action=', '<form hidden action='), ['tool-first']],
   [
     'a hidden section',
     edit(AR, '<section id="faq">', '<section id="faq" style="display: none">'),
-    ['sections'],
+    ['own-rules', 'sections'],
   ],
   [
     'JSON-LD without @context',
