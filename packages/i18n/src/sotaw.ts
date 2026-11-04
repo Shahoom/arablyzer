@@ -297,7 +297,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           paragraphs: [
             'نأخذ من قائمة Tranco (رقم قائمة ثابت نسجّله) كل نطاق ينتهي بنطاق دولة عربية: `.sa` `.ae` `.eg` `.kw` `.qa` `.bh` `.om` `.jo` `.ma` `.dz` `.tn` `.iq` `.lb` `.ly` `.sy` `.ye` `.sd` `.ps` `.mr`.',
             'إذا زادت المواقع عن {cap} موقع نأخذ لكل دولة حدّاً أدنى ثم نقسم الباقي بحسب ما بقي لكل دولة، ونختار داخل الدولة بدالة تجزئة مع بذرة منشورة، فالاختيار عشوائي بالنسبة للترتيب ويتكرر بالنتيجة نفسها على أي جهاز. الأرقام الحقيقية للقائمة في قسم «عيّنة المواقع» أعلاه.',
-            'ثم نستبعد ما ليس من الويب العربي، وهو {excluded} موقعاً في هذه القائمة، ونسجّل كل موقع وسببه في ملف منشور. نستبعد: كل اسم مفرد مباشرة تحت `.ly` (`bit.ly` وأمثاله) فلا نُبقي من `.ly` إلا ما تحت `gov.ly` و`com.ly` و`edu.ly` و`org.ly` و`net.ly` و`sch.ly` و`plc.ly` و`med.ly` و`id.ly`؛ وأسماء معدودة معروفة على نطاقات أخرى (`lu.ma` و`cre.ma`)؛ وفروع الشركات العالمية على نطاقات الدول (Google وYouTube وFacebook وInstagram وAmazon وMicrosoft وApple وWikipedia وYahoo وBing وTwitter وX وTikTok وLinkedIn وWhatsApp وNetflix وBooking). الاستبعاد يسبق أخذ العيّنة، فحجم قائمة كل دولة الذي يوزن به التقرير هو بعد الاستبعاد.',
+            'ثم نستبعد ما ليس من الويب العربي، وهو {excluded} موقعاً في هذه القائمة، ونسجّل كل موقع وسببه في ملف منشور. نستبعد: كل اسم مفرد مباشرة تحت `.ly` (`bit.ly` وأمثاله) فلا نُبقي من `.ly` إلا ما تحت `gov.ly` و`com.ly` و`edu.ly` و`org.ly` و`net.ly` و`sch.ly` و`plc.ly` و`med.ly` و`id.ly`، و19 موقعاً ليبياً باسم مفرد اخترناها واحداً واحداً بعد قراءة صفحاتها الرئيسية؛ وأسماء معدودة معروفة على نطاقات أخرى (`lu.ma` و`cre.ma`)؛ وفروع الشركات العالمية على نطاقات الدول (Google وYouTube وFacebook وInstagram وAmazon وMicrosoft وApple وWikipedia وYahoo وBing وTwitter وX وTikTok وLinkedIn وWhatsApp وNetflix وBooking). الاستبعاد يسبق أخذ العيّنة، فحجم قائمة كل دولة الذي يوزن به التقرير هو بعد الاستبعاد.',
             'ملف العيّنة CSV فيه النطاق والترتيب والدولة وليس فيه غير ذلك، وملف المستبعَدين فيه سبب كل موقع، وهما في مستودع المشروع.',
           ],
         },
@@ -330,7 +330,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           id: 'limits',
           title: 'حدود هذا التقرير',
           items: [
-            'نطاق الدولة ليس جمهورها: استبعدنا ما نعرفه من روابط الاختصار وفروع الشركات العالمية، وما يبقى من مواقع غير عربية لا يدخل في أي نسبة. وبالمقابل تُسقط قاعدة `.ly` مواقع ليبية حقيقية سُجّلت باسم مفرد مباشرة تحت `.ly`.',
+            'نطاق الدولة ليس جمهورها: استبعدنا ما نعرفه من روابط الاختصار وفروع الشركات العالمية، وما يبقى من مواقع غير عربية لا يدخل في أي نسبة. وبالمقابل قد تُسقط قاعدة `.ly` موقعاً ليبياً لم نتعرّف عليه، وأغلب المواقع الليبية التي أعدناها اخترناها لأن عنوان صفحتها عربي، فحصة الصفحات العربية في ليبيا لا تُقارن بغيرها.',
             'لا نغطي المواقع العربية على `.com` و`.net` وأخواتها، ولا النطاقات المعرّبة، ولا المواقع خارج أشهر مليون نطاق. قد يضيف إصدار لاحق مصدراً ثانياً.',
             'صفحة رئيسية واحدة لكل موقع: لا تمثّل بقية الصفحات ولا ما خلف تسجيل الدخول.',
             'نتيجة قاعدة واحدة ليست حكماً على جودة الموقع.',
@@ -618,7 +618,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           paragraphs: [
             'From the Tranco list (a fixed list id, recorded) we take every domain that ends in an Arab country domain: `.sa` `.ae` `.eg` `.kw` `.qa` `.bh` `.om` `.jo` `.ma` `.dz` `.tn` `.iq` `.lb` `.ly` `.sy` `.ye` `.sd` `.ps` `.mr`.',
             'If there are more than {cap} sites, each country gets a floor and the rest is shared by what each has left, and inside a country sites are chosen by a hash with a published seed, so the choice is random with respect to rank and gives the same result on any machine. The real numbers for the list are in the «The sample of sites» section above.',
-            'Then we leave out what is not the Arabic web: {excluded} sites in this list, each recorded with its reason in a published file. We leave out every name directly under `.ly` (`bit.ly` and its like), so of `.ly` we keep only what sits under `gov.ly`, `com.ly`, `edu.ly`, `org.ly`, `net.ly`, `sch.ly`, `plc.ly`, `med.ly` and `id.ly`; a few named hacks on other domains (`lu.ma`, `cre.ma`); and the country mirrors of global companies (Google, YouTube, Facebook, Instagram, Amazon, Microsoft, Apple, Wikipedia, Yahoo, Bing, Twitter and X, TikTok, LinkedIn, WhatsApp, Netflix and Booking). This comes before any sampling, so the size of each country’s list that weights the report is the size after it.',
+            'Then we leave out what is not the Arabic web: {excluded} sites in this list, each recorded with its reason in a published file. We leave out every name directly under `.ly` (`bit.ly` and its like), so of `.ly` we keep only what sits under `gov.ly`, `com.ly`, `edu.ly`, `org.ly`, `net.ly`, `sch.ly`, `plc.ly`, `med.ly` and `id.ly`, and 19 Libyan sites with a single name, picked one by one after reading their front pages; a few named hacks on other domains (`lu.ma`, `cre.ma`); and the country mirrors of global companies (Google, YouTube, Facebook, Instagram, Amazon, Microsoft, Apple, Wikipedia, Yahoo, Bing, Twitter and X, TikTok, LinkedIn, WhatsApp, Netflix and Booking). This comes before any sampling, so the size of each country’s list that weights the report is the size after it.',
             'The sample file is a CSV with the domain, the rank and the country and nothing else, and the exclusions file gives the reason for each site left out, both in the project’s repository.',
           ],
         },
@@ -651,7 +651,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
           id: 'limits',
           title: 'Limits of this report',
           items: [
-            'A country domain is not the country’s audience: we leave out the link shorteners and the global companies’ mirrors we know of, and the sites that remain and are not in Arabic are in no share. On the other hand the `.ly` rule drops real Libyan sites that registered a single name directly under `.ly`.',
+            'A country domain is not the country’s audience: we leave out the link shorteners and the global companies’ mirrors we know of, and the sites that remain and are not in Arabic are in no share. On the other hand the `.ly` rule can drop a Libyan site we did not recognise, and most of the Libyan sites we put back were picked because their page title is in Arabic, so Libya’s share of Arabic pages is not comparable with another country’s.',
             'We do not cover Arabic sites on `.com`, `.net` and the like, nor internationalised domains, nor sites outside the top million. A later edition may add a second source.',
             'One homepage per site: it does not stand for the other pages or for what is behind a login.',
             'The result of one rule is not a verdict on a site’s quality.',
