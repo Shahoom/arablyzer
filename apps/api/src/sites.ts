@@ -73,12 +73,13 @@ const siteOf = (
   monitor: Monitor | undefined,
   trend: readonly RunPoint[] = [],
   crawl?: Crawl,
+  everyDays?: number,
 ): SiteSummary => ({
   id: site.id,
   url: site.url,
   createdAt: site.createdAt.toISOString(),
   lastScan: last === undefined ? null : scanOf(last),
-  monitor: monitor === undefined ? null : monitorSummary(monitor, trend),
+  monitor: monitor === undefined ? null : monitorSummary(monitor, trend, everyDays),
   crawl: crawl === undefined ? null : listedSummary(crawl),
 })
 
@@ -130,6 +131,7 @@ export function mountSites(app: Hono, deps: SitesDeps): void {
           watched.find((monitor) => monitor.siteId === site.id),
           trend.get(site.id),
           crawled.get(site.id),
+          plan.monitorEveryDays,
         ),
       ),
       limit: plan.savedSites,

@@ -328,7 +328,7 @@ for the free account (decided 2026-10), to set as they are on staging:
 | `ARABLYZER_PLAN_ACCOUNT_SAVED_SITES`        | `3`     | sites a person may save                                                          |
 | `ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS`       | `5`     | days their scans and reports are kept                                            |
 | `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`    | empty   | sites monitored; empty is `1`                                                    |
-| `ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` | empty   | days between two scans of a monitored site; empty is `7` (weekly)                |
+| `ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` | empty   | days between two scans of a monitored site; empty is `7` (weekly); `1` is daily   |
 | `ARABLYZER_MAIL_PROVIDER`                   | empty   | email alerts: empty is off; `resend` turns them on (needs the three below)       |
 | `RESEND_API_KEY`                            | empty   | the Resend key; only with the provider on                                        |
 | `ARABLYZER_MAIL_FROM`                       | empty   | `Arablyzer <alerts@send.<your domain>>`: a subdomain made for automated mail     |
