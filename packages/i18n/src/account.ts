@@ -149,6 +149,12 @@ export interface AccountStrings {
     readonly onDown: string
     readonly weeklySummary: string
     readonly email: string
+    /** Under the email switch: where the mail goes. */
+    readonly emailHint: string
+    readonly emailTest: string
+    readonly emailTesting: string
+    readonly emailTestOk: string
+    readonly emailTestFailed: string
     readonly loading: string
   }
   readonly problems: Readonly<Record<AccountProblem, string>>
@@ -280,6 +286,11 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       onDown: 'تعذّر فحص الموقع',
       weeklySummary: 'ملخص أسبوعي',
       email: 'البريد الإلكتروني',
+      emailHint: 'نرسل التنبيهات إلى العنوان الذي سجّلت به الدخول، وفي كل رسالة رابط لإيقافها.',
+      emailTest: 'أرسل رسالة تجريبية إلى بريدي',
+      emailTesting: 'نرسل…',
+      emailTestOk: 'أُرسلت الرسالة. تفقّد بريدك، وإن لم تجدها ففتّش مجلد الرسائل غير المرغوبة.',
+      emailTestFailed: 'تعذّر إرسال الرسالة الآن. أعد المحاولة بعد قليل.',
       loading: 'نفتح التنبيهات…',
     },
     problems: {
@@ -426,6 +437,12 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       onDown: 'The site cannot be scanned',
       weeklySummary: 'Weekly summary',
       email: 'Email',
+      emailHint:
+        'Alerts go to the address you signed in with, and every email carries a link that stops them.',
+      emailTest: 'Send a test email to me',
+      emailTesting: 'Sending…',
+      emailTestOk: 'The email was sent. Check your inbox, and your spam folder if it is not there.',
+      emailTestFailed: 'We could not send the email now. Try again in a moment.',
       loading: 'Opening alerts…',
     },
     problems: {

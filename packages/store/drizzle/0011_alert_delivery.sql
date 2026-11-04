@@ -1,0 +1,1 @@
+ALTER TABLE "monitor_runs" ADD COLUMN "delivered" text[] DEFAULT '{}'::text[] NOT NULL;

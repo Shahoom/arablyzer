@@ -12,12 +12,14 @@ import {
   type ScanRecord,
   type ScanStore,
   type DueMonitor,
+  type StoredAlerts,
 } from '@arablyzer/store'
 import { planOf } from '../accounts'
 import { holdPlace } from '../places'
 import { parseTarget, resolveTarget } from '../target'
 import { eventsOf, factsOf, MAX_FAILURES, type Facts } from './evaluate'
-import type { Mailer } from './mail'
+import { composeMail, type MailKind } from './email'
+import type { MailOutcome, Mailer } from './mail'
 import {
   alertMessage,
   reportUrl,
@@ -27,6 +29,7 @@ import {
   type RunInfo,
 } from './messages'
 import { DAY_MS, MINUTE_MS, nextRunAfter, type Random } from './schedule'
+import type { Unsubscribe } from './unsubscribe'
 import type { AlertMessage, WebhookSender } from './webhook'
 
 export interface SchedulerDeps {
@@ -42,6 +45,8 @@ export interface SchedulerDeps {
   readonly resolver: Resolver
   readonly sender: WebhookSender
   readonly mail: Mailer
+  /** The links that turn a person's email alerts off; mail is sent only with them. */
+  readonly unsubscribe?: Unsubscribe
   /** The site's origin, for the links in a message. */
   readonly origin: string
   readonly newId: () => string
@@ -207,31 +212,96 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     )
   }
 
-  /** Sends to the webhook, and the mail if there is any; true when every channel wanted got it. */
-  async function deliver(
+  /** The person's email alert goes out only when a provider is on and the links to stop it exist. */
+  const mailAllowed = (alerts: StoredAlerts): boolean =>
+    alerts.email && deps.mail.available && deps.unsubscribe !== undefined
+
+  /** One message to the person's address; a provider that fails is a retry, never an exception. */
+  async function mailTo(
     run: PendingRun,
     message: AlertMessage,
-    subject: string,
+    kind: MailKind,
+    idempotencyKey: string,
+  ): Promise<MailOutcome> {
+    const unsubscribe = deps.unsubscribe
+    if (unsubscribe === undefined) return 'rejected'
+    const composed = composeMail({
+      language: run.language === 'en' ? 'en' : 'ar',
+      kind,
+      site: siteLabel(run.url),
+      lines: message.lines,
+      unsubscribeUrl: unsubscribe.link(run.userId),
+    })
+    try {
+      const outcome = await deps.mail.send({
+        to: run.email,
+        subject: composed.subject,
+        text: composed.text,
+        html: composed.html,
+        headers: composed.headers,
+        idempotencyKey,
+      })
+      return outcome
+    } catch {
+      return 'retry'
+    }
+  }
+
+  /** The webhook's turn: its bookkeeping (failures in a row, switching off) runs on every attempt. */
+  async function viaWebhook(
+    run: PendingRun,
+    alerts: StoredAlerts,
+    message: AlertMessage,
     at: Date,
   ): Promise<boolean> {
+    const { webhook } = alerts
+    if (webhook === null) return true
+    if (webhook.disabledAt !== null) return true
+    const sent = await deps.sender.send(webhook, message).catch(() => ({ ok: false, status: null }))
+    await deps.monitors.delivered(run.userId, sent.ok, at, MAX_WEBHOOK_FAILURES)
+    return sent.ok
+  }
+
+  /**
+   * Sends the run's alert to every channel the person wants that it has not reached yet, and
+   * remembers each one that it reached, so the retry of a run (one channel failed, another did
+   * not) never sends twice to the same place. A mail refused for good counts as handled. True when
+   * every channel wanted has it.
+   */
+  async function deliver(run: PendingRun, message: AlertMessage, at: Date): Promise<boolean> {
+    const alerts = await deps.monitors.alerts(run.userId)
+    const reached = new Set(run.delivered)
+    let all = true
+    const wantsWebhook = alerts.webhook !== null && alerts.webhook.disabledAt === null
+    if (wantsWebhook && !reached.has('webhook')) {
+      if (await viaWebhook(run, alerts, message, at)) {
+        await deps.monitors.markDelivered(run.scanId, 'webhook')
+      } else all = false
+    }
+    if (mailAllowed(alerts) && !reached.has('email')) {
+      const outcome = await mailTo(run, message, 'alert', `alert-${run.scanId}-email`)
+      if (outcome === 'retry') all = false
+      else await deps.monitors.markDelivered(run.scanId, 'email')
+    }
+    return all
+  }
+
+  /**
+   * The weekly summary goes out once: to each channel the person wants, with no retry, so it can
+   * never arrive twice. True when at least one channel took it.
+   */
+  async function broadcast(run: PendingRun, message: AlertMessage, at: Date): Promise<boolean> {
     const alerts = await deps.monitors.alerts(run.userId)
     const results: boolean[] = []
-    const { webhook } = alerts
-    if (webhook !== null && webhook.disabledAt === null) {
-      const sent = await deps.sender
-        .send(webhook, message)
-        .catch(() => ({ ok: false, status: null }))
-      await deps.monitors.delivered(run.userId, sent.ok, at, MAX_WEBHOOK_FAILURES)
-      results.push(sent.ok)
+    if (alerts.webhook !== null && alerts.webhook.disabledAt === null) {
+      results.push(await viaWebhook(run, alerts, message, at))
     }
-    if (alerts.email && deps.mail.available) {
-      results.push(
-        await deps.mail
-          .send({ to: run.email, subject, text: message.lines.join('\n') })
-          .catch(() => false),
-      )
+    if (mailAllowed(alerts)) {
+      const day = at.toISOString().slice(0, 10)
+      const outcome = await mailTo(run, message, 'summary', `summary-${run.userId}-${day}`)
+      results.push(outcome !== 'retry')
     }
-    return results.every(Boolean)
+    return results.some(Boolean)
   }
 
   /** The scan of the run, or null when it is gone; a scan lost between the store and the queue is failed. */
@@ -292,12 +362,10 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       await deps.monitors.settle(run.scanId, at)
     } else {
       const message = alertMessage(language, info, events, at)
-      const delivered = await deliver(run, message, `Arablyzer: ${siteLabel(run.url)}`, at).catch(
-        (error: unknown) => {
-          tell(error)
-          return false
-        },
-      )
+      const delivered = await deliver(run, message, at).catch((error: unknown) => {
+        tell(error)
+        return false
+      })
       if (delivered) await deps.monitors.settle(run.scanId, at)
       else await failedAttempt(run, at)
     }
@@ -335,8 +403,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
           done.map((d) => d.info),
           at,
         )
-        if (await deliver(first.run, message, 'Arablyzer', at))
-          await deps.monitors.summarized(userId, at)
+        if (await broadcast(first.run, message, at)) await deps.monitors.summarized(userId, at)
       } catch (error) {
         tell(error)
       }

@@ -7,10 +7,10 @@ import {
 import { ACCOUNT_UI } from '@arablyzer/i18n/account'
 import { SCAN_FORM } from '@arablyzer/i18n/scan-form'
 import type { Lang } from '@arablyzer/seo/site'
-import { KeyRound, Send, TriangleAlert } from 'lucide-preact'
+import { KeyRound, Mail, Send, TriangleAlert } from 'lucide-preact'
 import type { TargetedSubmitEvent } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
-import { getAlerts, saveAlerts, testAlerts, type SiteOutcome } from '../sites-api'
+import { getAlerts, saveAlerts, testAlerts, testEmailAlerts, type SiteOutcome } from '../sites-api'
 import { SIGNATURE_RECIPE, type SiteProblem } from '../sites-model'
 
 interface Props {
@@ -195,6 +195,19 @@ export default function AlertsPanel({ lang }: Props) {
     }
   }
 
+  async function onTestEmail() {
+    if (busy !== null) return
+    setNote(null)
+    setBusy('test-email')
+    const tested = await testEmailAlerts()
+    setBusy(null)
+    if (!tested.ok) {
+      problem(tested)
+      return
+    }
+    setNote({ kind: 'ok', text: tested.value.ok ? a.emailTestOk : a.emailTestFailed })
+  }
+
   const { webhook } = settings
   return (
     <section
@@ -350,6 +363,22 @@ export default function AlertsPanel({ lang }: Props) {
             />
           )}
         </div>
+        {settings.email.available && (
+          <div className="flex flex-col items-start gap-2">
+            <p className="m-0 text-meta text-ink-2">{a.emailHint}</p>
+            {settings.email.enabled && (
+              <button
+                type="button"
+                className="btn-white"
+                disabled={busy !== null}
+                onClick={() => void onTestEmail()}
+              >
+                <Mail size={16} aria-hidden="true" />
+                {busy === 'test-email' ? a.emailTesting : a.emailTest}
+              </button>
+            )}
+          </div>
+        )}
 
         {notice}
         <div>
