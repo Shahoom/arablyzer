@@ -11,6 +11,8 @@ import GscKeywords from '../../islands/search/GscKeywords'
 import SerpSampler from '../../islands/search/SerpSampler'
 import SuggestTree from '../../islands/search/SuggestTree'
 import RobotsTester from '../../islands/generators/RobotsTester'
+import TextTool from '../../islands/generators/TextTool'
+import { TEXT_TOOLS } from '../../islands/generators/text-tools'
 import NlpPaste from '../../islands/nlp/NlpPaste'
 import SchemaGenerator from '../../islands/generators/SchemaGenerator'
 import WhatsAppGenerator from '../../islands/generators/WhatsAppGenerator'
@@ -193,6 +195,7 @@ const quiet = 'inline-flex min-h-11 items-center underline underline-offset-4 ho
       )}
       {slug === 'schema-generator' && <SchemaGenerator client:idle={{ timeout: 500 }} {...boxed} />}
       {slug === 'robots-tester' && <RobotsTester client:idle={{ timeout: 500 }} {...boxed} />}
+      {TEXT_TOOLS[slug] !== undefined && <TextTool client:idle={{ timeout: 500 }} {...boxed} />}
       {slug === 'gsc-keywords' && <GscKeywords client:idle={{ timeout: 500 }} {...boxed} />}
       {slug === 'arabic-suggest' && <SuggestTree client:idle={{ timeout: 500 }} {...boxed} />}
       {slug === 'serp-sampler' && <SerpSampler client:idle={{ timeout: 500 }} {...boxed} />}
