@@ -1,1 +1,1 @@
-{ "alsoFails": ["platform-detected"] }
+{"alsoFails": ["outbound-links-found", "platform-detected"]}

@@ -68,10 +68,12 @@ export const NOT_FOR_SITE_PAGES: ReadonlySet<string> = new Set(['ai-training-fil
  * Rules that judge the server's response rather than the page (SERVER_RESPONSE_RULES), which the
  * site's server sets (infra/Caddyfile), not the template, are left out: the audit reads the HTML
  * alone, and the deployment is checked with the live site. robots.txt rules are left out too: a
- * rendered page has none to read.
+ * rendered page has none to read. So are the rules of information alone (severity info): they list
+ * what a page shows, such as the sites it links to, and a page that links out has no problem (M10.2).
  */
 const PAGE_RULES = RULES.filter(
   (rule) =>
+    rule.severity !== 'info' &&
     !rule.needs.includes('robots') &&
     !SERVER_RESPONSE_RULES.has(rule.id) &&
     !NOT_FOR_SITE_PAGES.has(rule.id),
