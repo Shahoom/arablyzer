@@ -1,4 +1,5 @@
 export { codeParts, type Copy, type Lang } from './copy'
+export { AI_UI, type AiProblem, type AiStrings } from './ai'
 export { ALERT_TEXT, type AlertStrings } from './alerts'
 export {
   DEVELOPERS_UI,
@@ -52,6 +53,7 @@ export {
 
 import { ACCOUNT_UI } from './account'
 import { ADMIN_UI } from './admin'
+import { AI_UI } from './ai'
 import { ALERT_TEXT } from './alerts'
 import { BLOG_UI } from './blog'
 import { COMPARE_UI } from './compare'
@@ -91,6 +93,7 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'tool-app.ts': TOOL_APP,
   'account.ts': ACCOUNT_UI,
   'alerts.ts': ALERT_TEXT,
+  'ai.ts': AI_UI,
   'crawl.ts': CRAWL_UI,
   'compare.ts': COMPARE_UI,
   'blog.ts': BLOG_UI,

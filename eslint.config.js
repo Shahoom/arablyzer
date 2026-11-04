@@ -163,6 +163,8 @@ export default defineConfig(
     files: [
       'apps/web/src/islands/api.ts',
       'apps/web/src/islands/auth-api.ts',
+      // The fix assistant on a report (BUILD-PLAN §12): its two requests, the same origin.
+      'apps/web/src/islands/ai-api.ts',
       'apps/web/src/islands/sites-api.ts',
       'apps/web/src/islands/crawl-api.ts',
       'apps/web/src/islands/compare-api.ts',
