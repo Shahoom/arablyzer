@@ -8,7 +8,7 @@ Give the address of a page and this tool lists the sites it links to, with how m
 
 ## What it checks
 
-- The sites the page links to, one entry for each, with the number of links, biggest first (30 at most).
+- The sites the page links to, in one note: how many sites and links, and the biggest 12 with their links and how they are marked.
 - How many of each site’s links are plain, `nofollow`, `sponsored` and `ugc`.
 - A subdomain of the page’s own site is the page’s own site; `mailto:`, `tel:` and in-page links are not links to a site.
 - Only the links in the page’s HTML: a link that a script writes after the page loads is not seen.
@@ -63,4 +63,4 @@ No: it lists them. The broken links checker requests a page’s links and says w
 
 ## Methodology
 
-The check reads the links in the page’s HTML whose address is http or https, groups them by site (a name and the part of it that is registered, so `blog.example.org` and `example.org` are one), and counts the `rel` tokens of each. It is information alone, so nothing is deducted. The first 30 sites are listed, by number of links.
+The check reads the links in the page’s HTML whose address is http or https, groups them by site (a name and the part of it that is registered, so `blog.example.org` and `example.org` are one), and counts the `rel` tokens of each. It is information alone, so nothing is deducted. One note names the biggest 12 sites, by number of links.
