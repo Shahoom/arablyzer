@@ -147,6 +147,18 @@ export default function TextTool({
                 <CopyBox key={index} lang={lang} label={block.label} text={block.text} />
               ) : block.kind === 'notes' ? (
                 <Notes key={index} block={block} />
+              ) : block.kind === 'serp' ? (
+                <div key={index} className="card flex flex-col gap-1 p-card" dir={block.dir}>
+                  <p dir="ltr" className="m-0 text-meta text-ink-2 [overflow-wrap:anywhere]">
+                    {block.crumbs}
+                  </p>
+                  <p className="heading-3 m-0 text-brand-ink [overflow-wrap:anywhere]">
+                    {block.title}
+                  </p>
+                  <p className="m-0 text-small text-ink-2 [overflow-wrap:anywhere]">
+                    {block.description}
+                  </p>
+                </div>
               ) : block.kind === 'link' ? (
                 <a key={index} href={block.href} className="btn-white self-start">
                   {block.text}

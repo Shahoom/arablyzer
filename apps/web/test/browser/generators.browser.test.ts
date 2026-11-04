@@ -5,6 +5,10 @@ import {
   arabicSlug,
   decodeError,
   fixProductTitle,
+  planRedirects,
+  redirectConfig,
+  robotsFile,
+  sitemapXml,
   hreflangTags,
   productJsonLd,
   robotsTest,
@@ -180,6 +184,43 @@ describe.each(ENGINES)('the generators in %s', (engine) => {
     await tab.locator('section[aria-label] li').first().waitFor()
     const shown = await tab.locator('section[aria-label]').innerText()
     expect(shown).toContain(decodeError(message)[0]?.ar.means)
+    await tab.context().close()
+  }, 60_000)
+
+  it('writes the robots.txt Node writes, with the AI training crawlers blocked', async () => {
+    const tab = await open(browser, 'robots-generator')
+    await tab.fill('#field-paths', '/admin/\n/cart/')
+    await tab.selectOption('#field-training', 'block')
+    await tab.fill('#field-sitemaps', 'https://example.com/sitemap.xml')
+    await tab.click('form[data-tool-kind] button[type="submit"]')
+    const expected = robotsFile({
+      blockPaths: ['/admin/', '/cart/'],
+      training: 'block',
+      search: 'allow',
+      sitemaps: ['https://example.com/sitemap.xml'],
+    })
+    expect(await outputs(tab)).toEqual([expected.text])
+    await tab.context().close()
+  }, 60_000)
+
+  it('writes the sitemap Node writes, and names the line it left out', async () => {
+    const list = 'https://example.com/\nnot a link\nhttps://example.com/a 2026-03-05'
+    const tab = await open(browser, 'sitemap-generator')
+    await tab.fill('#field-urls', list)
+    await tab.click('form[data-tool-kind] button[type="submit"]')
+    expect(await outputs(tab)).toEqual([sitemapXml(list).xml])
+    await tab.context().close()
+  }, 60_000)
+
+  it('writes the redirect config Node writes, with a chain made one hop', async () => {
+    const list = '/a /b\n/b /c'
+    const tab = await open(browser, 'redirect-generator')
+    await tab.fill('#field-pairs', list)
+    await tab.selectOption('#field-target', 'nginx')
+    await tab.click('form[data-tool-kind] button[type="submit"]')
+    expect(await outputs(tab)).toEqual([
+      redirectConfig(planRedirects(list).pairs, 'nginx', 301, null),
+    ])
     await tab.context().close()
   }, 60_000)
 
