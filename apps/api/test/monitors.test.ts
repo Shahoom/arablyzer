@@ -29,7 +29,14 @@ const PLAN = {
 }
 const ANONYMOUS = { ...DEVELOPMENT_LIMITS, perConnection: { scans: 1, seconds: 60 }, inFlight: 1 }
 
-function setup(options: { monitoring?: boolean; status?: number | null; mail?: boolean } = {}) {
+function setup(
+  options: {
+    monitoring?: boolean
+    status?: number | null
+    mail?: boolean
+    plan?: Record<string, string>
+  } = {},
+) {
   const tables: Record<string, unknown[]> = { user: [], session: [], account: [], verification: [] }
   const scans = new MemoryScanStore()
   const data = new MemoryAccountData(scans)
@@ -63,7 +70,7 @@ function setup(options: { monitoring?: boolean; status?: number | null; mail?: b
     limits: { signIn: { scans: 1000, seconds: 60 } },
     secureCookies: false,
     data,
-    plans: planCatalogFrom(PLAN, ANONYMOUS),
+    plans: planCatalogFrom({ ...PLAN, ...options.plan }, ANONYMOUS),
     ...(options.monitoring === false ? {} : { monitors, sender, mail }),
   }
   const app = createApp({
@@ -154,6 +161,21 @@ describe('monitoring a saved site', () => {
     expect(
       (await send('PUT', `/api/sites/${second}/monitor`, { enabled: true }, cookie)).status,
     ).toBe(200)
+  })
+
+  it('watches daily when the plan says so', async () => {
+    const { send, signIn, addSite } = setup({
+      plan: { ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: '1' },
+    })
+    const cookie = await signIn('ali')
+    const first = await addSite(cookie, 1)
+    const on = await send('PUT', `/api/sites/${first}/monitor`, { enabled: true }, cookie)
+    expect(MonitorResponse.parse(await on.json()).monitor).toMatchObject({ everyDays: 1 })
+    const listed = SitesResponse.parse(
+      await (await send('GET', '/api/sites', undefined, cookie)).json(),
+    )
+    expect(listed.monitoring).toEqual({ limit: 1, everyDays: 1 })
+    expect(listed.sites.find((site) => site.id === first)?.monitor?.everyDays).toBe(1)
   })
 
   it('answers 404 for another person’s site, 401 signed out, 400 for a foreign origin or body', async () => {
