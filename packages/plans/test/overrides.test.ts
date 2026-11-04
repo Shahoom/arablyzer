@@ -19,6 +19,7 @@ describe('plan overrides (M4.8)', () => {
       crawlPages: 300,
       pdfPerMonth: 0,
       whiteLabel: true,
+      aiFixesPerDay: 3,
     })
     expect(plan.scans).toEqual({ scans: 500, seconds: 86_400 })
     expect(plan).toMatchObject({
@@ -27,6 +28,7 @@ describe('plan overrides (M4.8)', () => {
       crawlPages: 300,
       pdfPerMonth: 0,
       whiteLabel: true,
+      aiFixesPerDay: 3,
       inFlight: DEVELOPMENT_ACCOUNT_PLAN.inFlight,
       historyDays: DEVELOPMENT_ACCOUNT_PLAN.historyDays,
       apiKeys: DEVELOPMENT_ACCOUNT_PLAN.apiKeys,
@@ -61,5 +63,7 @@ describe('plan overrides (M4.8)', () => {
     expect(isOverrideNumber('savedSites', -1)).toBe(false)
     expect(isOverrideNumber('savedSites', 10_001)).toBe(false)
     expect(isOverrideNumber('pdfPerMonth', Number.NaN)).toBe(false)
+    expect(isOverrideNumber('aiFixesPerDay', 0)).toBe(true)
+    expect(isOverrideNumber('aiFixesPerDay', 1_001)).toBe(false)
   })
 })

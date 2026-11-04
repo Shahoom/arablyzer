@@ -39,7 +39,22 @@ describe('planCatalogFrom', () => {
       apiKeys: 2,
       apiScans: null,
       apiRequests: 120,
+      aiFixesPerDay: 0,
     })
+  })
+
+  it('reads the fix assistant’s daily number: 0 (off) when empty, in production too, and 0 closes it', () => {
+    const production = { NODE_ENV: 'production', ...SET }
+    expect(planCatalogFrom(production, DEVELOPMENT_LIMITS).account.aiFixesPerDay).toBe(0)
+    const read = (value: string) =>
+      planCatalogFrom(
+        { ...production, ARABLYZER_PLAN_ACCOUNT_AI_FIXES_PER_DAY: value },
+        DEVELOPMENT_LIMITS,
+      ).account.aiFixesPerDay
+    expect(read('5')).toBe(5)
+    expect(read('0')).toBe(0)
+    expect(() => read('-1')).toThrow(/AI_FIXES_PER_DAY/)
+    expect(() => read('many')).toThrow(/AI_FIXES_PER_DAY/)
   })
 
   it('reads the API numbers: keys, a share of the scans (0 closes it), requests', () => {
