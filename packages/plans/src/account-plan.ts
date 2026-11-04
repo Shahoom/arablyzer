@@ -42,6 +42,8 @@ export interface AccountPlan {
   readonly apiScans: number | null
   /** Requests one API key may make per minute, reads included; scans have their own bucket. */
   readonly apiRequests: number
+  /** Whether the account may have its monitoring alerts sent to WhatsApp (M5.6); each message costs. */
+  readonly whatsappAlerts: boolean
 }
 
 export interface PlanCatalog {
@@ -79,6 +81,8 @@ export const DEVELOPMENT_ACCOUNT_PLAN: AccountPlan = Object.freeze({
   apiKeys: 2,
   apiScans: null,
   apiRequests: 120,
+  // M5.6: WhatsApp alerts are a paid plan's (BUILD-PLAN §3); the free account has none unless the owner turns them on.
+  whatsappAlerts: false,
 })
 
 const FIELDS = ['SCANS', 'SCAN_SECONDS', 'INFLIGHT', 'SAVED_SITES', 'HISTORY_DAYS'] as const
@@ -90,6 +94,7 @@ type OptionalField =
   | 'PDF_PER_MONTH'
   | 'WHITE_LABEL'
   | 'WHITE_LABEL_CREDIT'
+  | 'WHATSAPP_ALERTS'
   | 'API_KEYS'
   | 'API_SCANS'
   | 'API_REQUESTS'
@@ -147,6 +152,7 @@ function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
     apiKeys: readOptional('API_KEYS', fallback.apiKeys),
     apiScans: readApiScans(env, name(id, 'API_SCANS'), fallback.apiScans),
     apiRequests: readOptional('API_REQUESTS', fallback.apiRequests),
+    whatsappAlerts: readSwitch(env, name(id, 'WHATSAPP_ALERTS'), fallback.whatsappAlerts),
   })
 }
 
