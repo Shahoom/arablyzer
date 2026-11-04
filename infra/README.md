@@ -129,6 +129,18 @@ days, and deletes the scans an account keeps after them (the other scans follow
 `account_scans.scan_id`, so the sweep can tell which scans are kept, and nothing else. Erasing the
 account deletes its sites, its scans and their reports.
 
+**The fix assistant (BUILD-PLAN §12).** Off unless `ANTHROPIC_API_KEY` is set on the API (no other service holds it). A
+signed-in account asks for a suggested fix of one failed rule on a report: the API reads the rule's evidence from the stored
+report, puts it between data tags (an angle bracket in it is escaped, so a page cannot close them) in one message to the model,
+which has no tools and answers in a fixed JSON shape the API validates again. `ARABLYZER_PLAN_ACCOUNT_AI_FIXES_PER_DAY` (0 when
+empty: none) is the account's day, counted over any 24 hours from the ledger (`ai_requests`); `ARABLYZER_AI_SPEND_MONTHLY`
+(required with the key) and `ARABLYZER_AI_SPEND_DAILY` cap the spend, counted from each response's tokens at the prices of
+`ARABLYZER_AI_PRICE_*` (the default model's published ones when empty). A request holds its worst cost against the caps first,
+under one lock, so concurrent requests cannot pass them; one that fails before the model answers gives it back. Answers are
+kept 30 days in `ai_fix_cache` by rule, version, evidence, language, model and prompt. The request leaves through the egress fetch
+like every other (`ARABLYZER_EGRESS_PROXY`), to `api.anthropic.com` alone. Erasing an account clears whose its requests were and
+keeps what they cost. `pnpm --filter @arablyzer/api ai:eval` runs the frozen evaluation set against the real model.
+
 **PDF export and white-label (M4.7).** A signed-in person presses «Download PDF» on a page report, a crawl report or a
 comparison; the API only queues the job (`pdf_jobs`, one active per account by a partial unique index, and the month's
 allowance `ARABLYZER_PLAN_ACCOUNT_PDF_PER_MONTH`, 3 when empty, counted in `pdf_usage`). The `pdf` service, a fourth entry of

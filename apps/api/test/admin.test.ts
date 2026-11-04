@@ -516,6 +516,31 @@ describe('erasing an account', () => {
     expect((await request('GET', `/admin/users/${id}`, { cookie: boss })).status).toBe(404)
   })
 
+  it('lets the owner give an account the fix assistant, by a daily number, and take it back with 0', async () => {
+    const { request, signIn, userId, admin } = setup()
+    const boss = await signIn('boss')
+    await signIn('bea')
+    const id = userId('bea')
+    await request('POST', `/admin/users/${id}/overrides`, {
+      cookie: boss,
+      form: { confirm: 'yes', aiFixesPerDay: '3' },
+    })
+    expect((await admin.state(id)).overrides).toEqual({ aiFixesPerDay: 3 })
+    const page = await text(await request('GET', `/admin/users/${id}?lang=en`, { cookie: boss }))
+    expect(page).toContain('AI fix suggestions a day')
+    await request('POST', `/admin/users/${id}/overrides`, {
+      cookie: boss,
+      form: { confirm: 'yes', aiFixesPerDay: '0' },
+    })
+    expect((await admin.state(id)).overrides).toEqual({ aiFixesPerDay: 0 })
+    // A number past the bound is refused, and the earlier one stays.
+    await request('POST', `/admin/users/${id}/overrides`, {
+      cookie: boss,
+      form: { confirm: 'yes', aiFixesPerDay: '1001' },
+    })
+    expect((await admin.state(id)).overrides).toEqual({ aiFixesPerDay: 0 })
+  })
+
   it('is also what the account’s own deletion runs: it leaves no state, and scrubs the audit', async () => {
     const { request, signIn, userId, admin } = setup()
     const boss = await signIn('boss')
