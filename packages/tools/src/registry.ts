@@ -6,7 +6,9 @@ import { definition as aiCrawlerCheck } from './tools/ai-crawler-check/tool'
 import { definition as aiReadabilityCheck } from './tools/ai-readability-check/tool'
 import { definition as aiTrainingFilter } from './tools/ai-training-filter/tool'
 import { definition as aiVisibility } from './tools/ai-visibility/tool'
+import { definition as altTextQuality } from './tools/alt-text-quality/tool'
 import { definition as anchorTextCheck } from './tools/anchor-text-check/tool'
+import { definition as answerReadiness } from './tools/answer-readiness/tool'
 import { definition as arabicCheckoutTest } from './tools/arabic-checkout-test/tool'
 import { definition as arabicEncodingCheck } from './tools/arabic-encoding-check/tool'
 import { definition as arabicFontCheck } from './tools/arabic-font-check/tool'
@@ -20,6 +22,7 @@ import { definition as arabicSuggest } from './tools/arabic-suggest/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
 import { definition as brandNameCheck } from './tools/brand-name-check/tool'
 import { definition as breadcrumbCheck } from './tools/breadcrumb-check/tool'
+import { definition as breadcrumbGenerator } from './tools/breadcrumb-generator/tool'
 import { definition as brokenLinks } from './tools/broken-links/tool'
 import { definition as canonicalCheck } from './tools/canonical-check/tool'
 import { definition as carouselDirectionCheck } from './tools/carousel-direction-check/tool'
@@ -34,6 +37,7 @@ import { definition as dialectDetector } from './tools/dialect-detector/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
 import { definition as errorDecoder } from './tools/error-decoder/tool'
+import { definition as faqSchemaGenerator } from './tools/faq-schema-generator/tool'
 import { definition as feedCheck } from './tools/feed-check/tool'
 import { definition as feedFileCheck } from './tools/feed-file-check/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
@@ -50,6 +54,7 @@ import { definition as jsRenderingCheck } from './tools/js-rendering-check/tool'
 import { definition as languageCheck } from './tools/language-check/tool'
 import { definition as letterSpacingCheck } from './tools/letter-spacing-check/tool'
 import { definition as localBusinessCheck } from './tools/local-business-check/tool'
+import { definition as localBusinessGenerator } from './tools/local-business-generator/tool'
 import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
 import { definition as lookalikeDomains } from './tools/lookalike-domains/tool'
 import { definition as metaTagGenerator } from './tools/meta-tag-generator/tool'
@@ -57,6 +62,7 @@ import { definition as mirroredIconsCheck } from './tools/mirrored-icons-check/t
 import { definition as mixedContent } from './tools/mixed-content/tool'
 import { definition as numberFormat } from './tools/number-format/tool'
 import { definition as ogImageCheck } from './tools/og-image-check/tool'
+import { definition as ogLocaleCheck } from './tools/og-locale-check/tool'
 import { definition as outboundLinks } from './tools/outbound-links/tool'
 import { definition as paginationCheck } from './tools/pagination-check/tool'
 import { definition as paymentMethodsDetector } from './tools/payment-methods-detector/tool'
@@ -113,7 +119,9 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   aiReadabilityCheck,
   aiTrainingFilter,
   aiVisibility,
+  altTextQuality,
   anchorTextCheck,
+  answerReadiness,
   arabicCheckoutTest,
   arabicEncodingCheck,
   arabicFontCheck,
@@ -127,6 +135,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   bidiIsolationCheck,
   brandNameCheck,
   breadcrumbCheck,
+  breadcrumbGenerator,
   brokenLinks,
   canonicalCheck,
   carouselDirectionCheck,
@@ -141,6 +150,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   digitsConsistency,
   emailSecurity,
   errorDecoder,
+  faqSchemaGenerator,
   feedCheck,
   feedFileCheck,
   fontFallbackCheck,
@@ -157,6 +167,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   languageCheck,
   letterSpacingCheck,
   localBusinessCheck,
+  localBusinessGenerator,
   logicalCssCheck,
   lookalikeDomains,
   metaTagGenerator,
@@ -164,6 +175,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   mixedContent,
   numberFormat,
   ogImageCheck,
+  ogLocaleCheck,
   outboundLinks,
   paginationCheck,
   paymentMethodsDetector,
