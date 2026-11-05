@@ -259,7 +259,7 @@ describe('arablyzer without its optional packages (M1.3b review)', () => {
         expect.arrayContaining(['engine-unavailable', 'lab-unavailable']),
       )
       expect(result.stderr).toContain('npx playwright-core@1.63.0 install chromium')
-      expect(result.stderr).toContain('lighthouse@13.5.0 and puppeteer-core@25.12.0')
+      expect(result.stderr).toContain('lighthouse@13.5.0 and puppeteer-core@25.16.0')
       // Not rendered, so partial: exit 2, and never a crash.
       expect(result.code).toBe(2)
       expect(result.stderr).not.toContain('unexpected error')
