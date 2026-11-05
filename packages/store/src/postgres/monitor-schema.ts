@@ -54,6 +54,11 @@ export const monitorRuns = pgTable(
     notifiedAt: timestamp('notified_at', { withTimezone: true }),
     attempts: integer('attempts').notNull().default(0),
     retryAfter: timestamp('retry_after', { withTimezone: true }),
+    /** The channels (`webhook`, `email`, …) this run's alert has already reached: a retry skips them. */
+    delivered: text('delivered')
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
   },
   (table) => [
     unique('monitor_runs_slot').on(table.siteId, table.scheduledFor),

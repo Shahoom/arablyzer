@@ -46,6 +46,86 @@ export const PLATFORM_FIXES: Readonly<
       ].join('\n'),
     },
   },
+  'url-slug-invalid': {
+    salla: {
+      en: [
+        'The address of a product is a field of the product, in the dashboard:',
+        '',
+        '1. Open the product from _Products_, and in its data page find the SEO section.',
+        '2. Write the custom address (the slug) in the words of the product, with hyphens between them: the slug generator on Arablyzer writes one.',
+        '3. Save the product data. If the product was already ranking, keep the old address redirecting to the new one.',
+      ].join('\n'),
+      ar: [
+        'عنوان المنتج حقل فيه، في لوحة التحكم:',
+        '',
+        '1. افتح المنتج من _المنتجات_، وفي صفحة بياناته ابحث عن قسم SEO.',
+        '2. اكتب العنوان المخصص (الجزء الأخير) بكلمات المنتج وبينها شرطات: يكتبه لك مولّد الأجزاء في Arablyzer.',
+        '3. احفظ بيانات المنتج. وإن كان المنتج يُرتَّب في البحث فأبقِ العنوان القديم يحوّل إلى الجديد.',
+      ].join('\n'),
+    },
+    zid: {
+      en: [
+        'The address of a product or page is set in its own SEO fields in the Zid dashboard: open the product or page, write the address in the words of the product with hyphens between them (the slug generator on Arablyzer writes one), and save.',
+        'Keep the old address redirecting to the new one if the page was already ranking.',
+      ].join('\n'),
+      ar: [
+        'يُضبط عنوان المنتج أو الصفحة في حقول SEO الخاصة به في لوحة زد: افتح المنتج أو الصفحة، واكتب العنوان بكلمات المنتج وبينها شرطات (يكتبه لك مولّد الأجزاء في Arablyzer)، ثم احفظ.',
+        'وأبقِ العنوان القديم يحوّل إلى الجديد إن كانت الصفحة تُرتَّب في البحث.',
+      ].join('\n'),
+    },
+    shopify: {
+      en: [
+        'The address of a product is its URL handle:',
+        '',
+        '1. Open the product, and under _Search engine listing_ choose _Edit_.',
+        '2. Write the _URL handle_ in the words of the product with hyphens between them.',
+        '3. Keep _Create a URL redirect_ ticked when Shopify offers it, so the old address redirects to the new one.',
+      ].join('\n'),
+      ar: [
+        'عنوان المنتج هو الـ URL handle فيه:',
+        '',
+        '1. افتح المنتج، وتحت _Search engine listing_ اختر _Edit_.',
+        '2. اكتب _URL handle_ بكلمات المنتج وبينها شرطات.',
+        '3. أبقِ _Create a URL redirect_ مفعّلاً حين تعرضه Shopify ليحوّل العنوان القديم إلى الجديد.',
+      ].join('\n'),
+    },
+  },
+  'zid-default-seo': {
+    zid: {
+      en: [
+        'There is no file to edit in a Zid store: its SEO fields are in the dashboard.',
+        '',
+        '1. For the home page, open the store’s SEO settings in the Zid dashboard and write a title and a description.',
+        '2. For a product or a category, open it and fill its SEO fields.',
+        '3. Save, then scan the page again: the theme writes the tags from these fields.',
+      ].join('\n'),
+      ar: [
+        'لا ملف تحرّره في متجر زد: حقول SEO في لوحة التحكم.',
+        '',
+        '1. للصفحة الرئيسية، افتح إعدادات SEO للمتجر في لوحة زد واكتب عنواناً ووصفاً.',
+        '2. للمنتج أو التصنيف، افتحه واملأ حقول SEO فيه.',
+        '3. احفظ ثم افحص الصفحة من جديد: القالب يكتب الوسوم من هذه الحقول.',
+      ].join('\n'),
+    },
+  },
+  'shopify-locale-mismatch': {
+    shopify: {
+      en: [
+        'Arabic needs a right-to-left theme and translated content:',
+        '',
+        '1. Use a theme that supports right-to-left text: the Theme Store can be filtered by this feature.',
+        '2. Translate the store’s content in _Translate & Adapt_ (products, collections, pages, menus, theme text).',
+        '3. If the theme writes `lang="en"` in its layout, ask its developer to set `lang` and `dir` from the page’s language.',
+      ].join('\n'),
+      ar: [
+        'العربية تحتاج قالباً من اليمين إلى اليسار ومحتوى مترجماً:',
+        '',
+        '1. استعمل قالباً يدعم النص من اليمين إلى اليسار: يمكن تصفية متجر القوالب بهذه الميزة.',
+        '2. ترجم محتوى المتجر في _Translate & Adapt_ (المنتجات والمجموعات والصفحات والقوائم ونصوص القالب).',
+        '3. وإن كتب القالب `lang="en"` في ملف التخطيط فاطلب من مطوّره أن يضبط `lang` و`dir` من لغة الصفحة.',
+      ].join('\n'),
+    },
+  },
 }
 
 /** The steps for a rule on a platform, in a language; null when none are written. */

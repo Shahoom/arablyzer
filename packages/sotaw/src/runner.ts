@@ -35,6 +35,7 @@ export type SkipReason =
   | 'opt-out'
   | 'robots'
   | 'robots-unreachable'
+  | 'tls-chain'
   | 'bot-challenge'
   | 'blocked'
   | 'unreachable'
@@ -84,10 +85,17 @@ export function createRunner(runId: string, deps: RunnerDeps, config: RunnerConf
       : [...config.engines]
 
   /** What the site's own front page says, through the scanner. */
-  async function preflight(domain: string): Promise<Verdict> {
+  async function preflight(domain: string, signal: AbortSignal): Promise<Verdict> {
     // https first, then http, then www: a site's address is what its owner made it, and a front
     // page that no one answers is a site without a front page, not a site to count as secure.
+    // robots.txt speaks for its own address (RFC 9309), and the crawler reads each address's: one
+    // that cannot be read keeps that address closed, so the next is asked. A file that says no and a
+    // bot challenge end it there, since another address is no way round them.
+    let unread = false
+    let answered = false
+    let reads = 0
     for (const url of [`https://${domain}/`, `http://${domain}/`, `https://www.${domain}/`]) {
+      if (reads++ > 0) await deps.sleep(config.preflightMs, signal)
       const answer = await crawler.page(url, { anyOrigin: true })
       switch (answer.outcome) {
         case 'ok':
@@ -95,12 +103,14 @@ export function createRunner(runId: string, deps: RunnerDeps, config: RunnerConf
             ? { go: true, url }
             : { go: false, reason: 'off-domain' }
         case 'blocked':
+          if (answer.error === 'robots-unreachable') {
+            unread = true
+            break
+          }
           return {
             go: false,
             reason:
-              answer.error === 'robots' ||
-              answer.error === 'robots-unreachable' ||
-              answer.error === 'bot-challenge'
+              answer.error === 'robots' || answer.error === 'bot-challenge'
                 ? answer.error
                 : 'blocked',
           }
@@ -109,11 +119,18 @@ export function createRunner(runId: string, deps: RunnerDeps, config: RunnerConf
         case 'offsite':
           return { go: false, reason: 'off-domain' }
         case 'error':
-          // A site that answered, with an error, has no other address to try.
-          if (answer.status !== null) return { go: false, reason: 'http-error' }
+          // A site that answered, with an error, has no other address to try, unless the address
+          // before it could not be read at all: then this may not be where the site lives.
+          if (answer.status !== null) {
+            if (!unread) return { go: false, reason: 'http-error' }
+            answered = true
+          }
       }
     }
-    return { go: false, reason: 'unreachable' }
+    return {
+      go: false,
+      reason: answered ? 'http-error' : unread ? 'robots-unreachable' : 'unreachable',
+    }
   }
 
   async function run(signal: AbortSignal): Promise<RunSummary> {
@@ -261,7 +278,7 @@ export function createRunner(runId: string, deps: RunnerDeps, config: RunnerConf
       lastPreflight = deps.now()
       let verdict: Verdict
       try {
-        verdict = await preflight(row.domain)
+        verdict = await preflight(row.domain, signal)
       } catch (error) {
         if (error instanceof ScannerUnavailable) {
           await store.release(runId, row.domain)
