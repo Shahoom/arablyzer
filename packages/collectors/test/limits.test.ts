@@ -34,10 +34,16 @@ function timed<T>(run: () => T): { value: T; ms: number } {
 
 describe('collectPage on hostile HTML', () => {
   it('stays linear with tens of thousands of siblings', () => {
-    const { value, ms } = timed(() => collect(`<body>${'<a href="/x">ب</a>'.repeat(30_000)}`))
+    const siblings = (count: number) => `<body>${'<a href="/x">ب</a>'.repeat(count)}`
+    // Ten times the siblings may take ten times as long; a walk that is quadratic in them takes a
+    // hundred times as long. The ratio holds on a busy CI runner, where a number of milliseconds
+    // did not: the same 30,000 siblings took 140 ms here and 2.5 to 5.3 s on CI, once over 5 s.
+    // The small page is timed three times and the best kept, so one stall does not shrink it.
+    const small = Math.min(...[1, 2, 3].map(() => timed(() => collect(siblings(3_000))).ms))
+    const { value, ms } = timed(() => collect(siblings(30_000)))
     expect(value.html?.anchors).toHaveLength(30_000)
     expect(value.html?.anchors.at(-1)?.selector).toBe('body > a:nth-of-type(30000)')
-    expect(ms).toBeLessThan(5000)
+    expect(ms / small).toBeLessThan(30)
   })
 
   it('does not recurse: deep nesting cannot overflow the stack', () => {
