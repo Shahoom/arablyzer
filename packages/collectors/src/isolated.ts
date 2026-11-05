@@ -23,7 +23,7 @@ export const ISOLATED_HEAP_MB = 384
 /** The longest a timer may be: a longer one fires after a millisecond. */
 const MAX_TIMER_MS = 2 ** 31 - 1
 
-export interface IsolatedOptions extends Omit<CollectOptions, 'deadline'> {
+export interface IsolatedOptions extends Omit<CollectOptions, 'deadline' | 'memoryOver'> {
   /**
    * How long the whole read may take, the thread's start included. Past it the thread is ended,
    * whatever it is doing, and the page is too complex: where collectPage's deadline is read only
@@ -69,7 +69,7 @@ interface ThreadLimits {
 /** The HTML's facts; null when the thread ran out of heap or time, or the page is too complex. */
 function readInThread(
   job: HtmlJob,
-  options: Omit<CollectOptions, 'deadline'>,
+  options: Omit<CollectOptions, 'deadline' | 'memoryOver'>,
   { timeoutMs, maxHeapMb, signal }: ThreadLimits,
 ): Promise<HtmlRead | null> {
   return new Promise((resolve, reject) => {
