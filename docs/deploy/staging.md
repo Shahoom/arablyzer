@@ -333,6 +333,12 @@ for the free account (decided 2026-10), to set as they are on staging:
 | `RESEND_API_KEY`                            | empty   | the Resend key; only with the provider on                                        |
 | `ARABLYZER_MAIL_FROM`                       | empty   | `Arablyzer <alerts@send.<your domain>>`: a subdomain made for automated mail     |
 | `ARABLYZER_MAIL_SECRET`                     | empty   | 32+ random characters; signs the unsubscribe links                               |
+| `ARABLYZER_WHATSAPP_PROVIDER`               | empty   | WhatsApp alerts: empty is off; `cloud` turns them on (needs the two below)       |
+| `WHATSAPP_PHONE_NUMBER_ID`                  | empty   | the sending number's id in WhatsApp Manager                                      |
+| `WHATSAPP_ACCESS_TOKEN`                     | empty   | a system user's permanent token                                                  |
+| `WHATSAPP_API_VERSION`                      | empty   | the Graph API version; empty is `v23.0`                                          |
+| `WHATSAPP_APP_SECRET` / `WHATSAPP_VERIFY_TOKEN` | empty | together: Meta's webhook at `/api/whatsapp/webhook` (STOP replies)             |
+| `ARABLYZER_PLAN_ACCOUNT_WHATSAPP_ALERTS`    | empty   | `on` gives the free account WhatsApp alerts; empty is off (a paid plan's feature) |
 | `ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES`        | empty   | pages one deep crawl checks; empty is `50`                                       |
 | `ARABLYZER_CRAWL_DELAY_MS`                  | empty   | pause between two pages of a crawl; empty is `1000`                              |
 | `ARABLYZER_CRAWL_REPRESENTATIVES`           | empty   | pages per template scanned in the browsers; empty is `1`                         |

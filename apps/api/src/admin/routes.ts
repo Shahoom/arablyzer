@@ -557,6 +557,7 @@ export function mountAdmin(app: Hono, mount: AdminMountDeps): void {
               suggest: deps.search?.suggest ?? false,
               serp: deps.search?.serp ?? false,
               mail: accounts.mail?.available ?? false,
+              whatsapp: accounts.whatsapp?.available ?? false,
               searchConsole: deps.gsc !== undefined,
               monitors: accounts.monitors !== undefined,
               crawls: accounts.crawls !== undefined,

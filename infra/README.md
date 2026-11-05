@@ -267,7 +267,14 @@ automated mail, e.g. `send.arablyzer.com`, never the domain whose mailboxes peop
 (32+ characters, signs the unsubscribe links), a person who turns on «البريد الإلكتروني» in their alerts gets the same
 alerts at the address they signed in with, through the egress proxy. Every mail carries `List-Unsubscribe` and
 `List-Unsubscribe-Post` (one click) and a link to `/api/mail/unsubscribe`, which asks on a GET and turns that person's
-email alerts off on a POST. Resend's own suppression list stops mail to addresses that bounced or complained. With
+email alerts off on a POST. Resend's own suppression list stops mail to addresses that bounced or complained.
+**WhatsApp (M5.6)** is off while `ARABLYZER_WHATSAPP_PROVIDER` is empty. With `cloud`, `WHATSAPP_PHONE_NUMBER_ID` and
+`WHATSAPP_ACCESS_TOKEN`, an account whose plan has WhatsApp alerts (`ARABLYZER_PLAN_<PLAN>_WHATSAPP_ALERTS=on`; the free
+account has none unless the owner turns it on) saves a number on `/account`, confirms it with a code sent to it on
+WhatsApp, and opts each monitored site in. The monitor then sends one approved template per event (a score drop, a new
+critical finding, a site that cannot be scanned, monitoring stopped) through the egress proxy, never the weekly summary.
+Each template is remembered per run like the other channels. With `WHATSAPP_APP_SECRET` and `WHATSAPP_VERIFY_TOKEN`,
+Meta's webhook (`/api/whatsapp/webhook`, signed with `X-Hub-Signature-256`) makes a STOP reply forget that number. With
 accounts off the service logs that and idles. The recommended free-plan numbers are in `.env.example` and
 `docs/deploy/staging.md` §4.
 

@@ -38,6 +38,7 @@ describe('planCatalogFrom', () => {
       whiteLabelCredit: true,
       apiKeys: 2,
       apiScans: null,
+      whatsappAlerts: false,
       apiRequests: 120,
       aiFixesPerDay: 0,
     })
@@ -210,6 +211,44 @@ describe('a paid plan’s monitoring', () => {
         DEVELOPMENT_LIMITS,
       ),
     ).toThrow(/pro plan monitors fewer sites/)
+  })
+})
+
+describe('WhatsApp alerts as a plan setting', () => {
+  const paid = (extra: Record<string, string>) => ({
+    ...SET,
+    ...Object.fromEntries(
+      Object.keys(SET).map((key) => [key.replace('ACCOUNT', 'PRO'), SET[key as keyof typeof SET]]),
+    ),
+    ...extra,
+  })
+
+  it('are off for the free account unless the owner turns them on, and a paid plan can have them', () => {
+    expect(planCatalogFrom(SET, DEVELOPMENT_LIMITS).account.whatsappAlerts).toBe(false)
+    const on = planCatalogFrom(
+      paid({ ARABLYZER_PLAN_PRO_WHATSAPP_ALERTS: 'on' }),
+      DEVELOPMENT_LIMITS,
+    )
+    expect(on.account.whatsappAlerts).toBe(false)
+    expect(on.pro?.whatsappAlerts).toBe(true)
+    expect(
+      planCatalogFrom({ ...SET, ARABLYZER_PLAN_ACCOUNT_WHATSAPP_ALERTS: 'on' }, DEVELOPMENT_LIMITS)
+        .account.whatsappAlerts,
+    ).toBe(true)
+  })
+
+  it('are inherited from the free account by a paid plan, which may not have fewer', () => {
+    const env = paid({ ARABLYZER_PLAN_ACCOUNT_WHATSAPP_ALERTS: 'on' })
+    expect(planCatalogFrom(env, DEVELOPMENT_LIMITS).pro?.whatsappAlerts).toBe(true)
+    expect(() =>
+      planCatalogFrom({ ...env, ARABLYZER_PLAN_PRO_WHATSAPP_ALERTS: 'off' }, DEVELOPMENT_LIMITS),
+    ).toThrow(/no WhatsApp alerts/)
+    expect(() =>
+      planCatalogFrom(
+        { ...SET, ARABLYZER_PLAN_ACCOUNT_WHATSAPP_ALERTS: 'maybe' },
+        DEVELOPMENT_LIMITS,
+      ),
+    ).toThrow(/must be on or off/)
   })
 })
 

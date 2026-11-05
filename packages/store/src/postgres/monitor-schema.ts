@@ -83,3 +83,35 @@ export const alertSettings = pgTable('alert_settings', {
   email: boolean('email').notNull(),
   lastSummaryAt: timestamp('last_summary_at', { withTimezone: true }),
 })
+
+/**
+ * A person's WhatsApp number (M5.6): saved unverified with a one-time code (a hash of it), and
+ * usable only once the code they were sent has been given back. One per account; it goes with it.
+ */
+export const whatsappNumbers = pgTable('whatsapp_numbers', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  /** E.164, with the plus. */
+  phone: text('phone').notNull(),
+  verifiedAt: timestamp('verified_at', { withTimezone: true }),
+  codeHash: text('code_hash'),
+  codeExpiresAt: timestamp('code_expires_at', { withTimezone: true }),
+  codeAttempts: integer('code_attempts').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+})
+
+/** The saved sites whose alerts also go to WhatsApp: a row is the person's opt-in for that site. */
+export const whatsappSites = pgTable(
+  'whatsapp_sites',
+  {
+    siteId: text('site_id')
+      .primaryKey()
+      .references(() => sites.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [index('whatsapp_sites_user').on(table.userId)],
+)

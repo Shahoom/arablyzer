@@ -78,6 +78,7 @@ const ALERTS = {
   onDown: true,
   weeklySummary: false,
   email: { available: false, enabled: false },
+  whatsapp: { available: false, allowed: false, phone: null, verified: false, sites: [] },
 }
 const HOOK_ALERTS = {
   ...ALERTS,
@@ -144,6 +145,8 @@ interface Scenario {
   /** What monitoring answers: the monitoring numbers, and the alerts as saved. */
   monitoring?: { limit: number; everyDays: number }
   alerts?: unknown
+  /** WhatsApp alerts (M5.6) are offered: the monitored sites it lists, each with its opt-in. */
+  whatsapp?: { sites: { id: string; url: string; enabled: boolean }[] }
   /** A saved site's score history, and what the comparison routes answer (M4.6). */
   history?: unknown
   compare?: { status: number; body: unknown }
@@ -169,6 +172,14 @@ async function open(base: FixtureSite, scenario: Scenario) {
   })
   const seen: { method: string; path: string; body: string | null }[] = []
   const external: string[] = []
+  // The account's WhatsApp number as the stand-in API keeps it: unverified until the code 123456.
+  const wa = {
+    available: true,
+    allowed: true,
+    phone: null as string | null,
+    verified: false,
+    sites: (scenario.whatsapp?.sites ?? []).map((site) => ({ ...site })),
+  }
   await context.route('**/*', async (route: Route) => {
     const request = route.request()
     const url = new URL(request.url())
@@ -366,7 +377,35 @@ async function open(base: FixtureSite, scenario: Scenario) {
         )
       }
       if (url.pathname === '/api/account/alerts' && request.method() === 'GET') {
-        return route.fulfill(json(scenario.alerts ?? ALERTS))
+        return route.fulfill(
+          json({
+            ...(scenario.alerts ?? ALERTS),
+            ...(scenario.whatsapp === undefined ? {} : { whatsapp: wa }),
+          }),
+        )
+      }
+      if (url.pathname === '/api/account/whatsapp' && request.method() === 'PUT') {
+        wa.phone = '+966••••••567'
+        wa.verified = false
+        return route.fulfill(json(wa))
+      }
+      if (url.pathname === '/api/account/whatsapp' && request.method() === 'DELETE') {
+        wa.phone = null
+        wa.verified = false
+        for (const site of wa.sites) site.enabled = false
+        return route.fulfill(json(wa))
+      }
+      if (url.pathname === '/api/account/whatsapp/verify') {
+        const { code } = JSON.parse(request.postData() ?? '{}') as { code: string }
+        if (code !== '123456') return route.fulfill(json({ error: 'invalid-token' }, 400))
+        wa.verified = true
+        return route.fulfill(json(wa))
+      }
+      if (/^\/api\/sites\/[^/]+\/whatsapp$/.test(url.pathname) && request.method() === 'PUT') {
+        const { enabled } = JSON.parse(request.postData() ?? '{}') as { enabled: boolean }
+        const id = url.pathname.split('/')[3]
+        for (const site of wa.sites) if (site.id === id) site.enabled = enabled
+        return route.fulfill(json(wa))
       }
       if (url.pathname === '/api/account/alerts' && request.method() === 'PUT') {
         return route.fulfill(json({ ...HOOK_ALERTS, secret: 'S'.repeat(43) }))
@@ -853,6 +892,52 @@ describe('monitoring and alerts, in Chromium', () => {
     await tab.getByRole('button', { name: 'Monitor this site' }).click()
     await tab.getByText('Your plan monitors 1 site.').waitFor()
     expect(seen.some((call) => call.method === 'PUT' && call.path.endsWith('/monitor'))).toBe(false)
+    await close()
+  })
+
+  it('offers WhatsApp only where it is on, confirms the number with its code, and opts a site in', async () => {
+    const off = await open(site, { account: ACCOUNT, google: true, sites: [SAVED] })
+    await off.tab.goto(off.base.url('/en/account'))
+    await off.tab.getByRole('heading', { name: 'Alerts' }).waitFor({ timeout: 15_000 })
+    expect(await off.tab.getByRole('heading', { name: 'WhatsApp alerts' }).count()).toBe(0)
+    await off.close()
+
+    const { tab, seen, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      whatsapp: { sites: [{ id: SITE_ID, url: SAVED.url, enabled: false }] },
+    })
+    await tab.goto(base.url('/en/account'))
+    await tab.getByRole('heading', { name: 'WhatsApp alerts' }).waitFor({ timeout: 15_000 })
+    await tab.getByLabel('WhatsApp number').fill('+966 50 123 4567')
+    await tab.getByRole('button', { name: 'Send the confirmation code' }).click()
+    await tab.getByLabel('Confirmation code').waitFor()
+    await tab.getByText('We sent the confirmation code on WhatsApp.').first().waitFor()
+    const sent = seen.find((call) => call.method === 'PUT' && call.path === '/api/account/whatsapp')
+    expect(JSON.parse(sent?.body ?? '{}')).toEqual({ phone: '+966 50 123 4567' })
+    // A wrong code says so; the right one confirms and lists the monitored sites.
+    await tab.getByLabel('Confirmation code').fill('000000')
+    await tab.getByRole('button', { name: 'Confirm the number' }).click()
+    await tab.getByText('The code is wrong or has expired.').waitFor()
+    await tab.getByLabel('Confirmation code').fill('123456')
+    await tab.getByRole('button', { name: 'Confirm the number' }).click()
+    await tab.getByText('The number is confirmed.').waitFor()
+    const box = tab.getByLabel('https://example.com/')
+    expect(await box.isChecked()).toBe(false)
+    // The box follows the server's answer, so it is clicked, not checked.
+    await box.click()
+    await tab.getByText('Your choice is saved.').waitFor()
+    expect(await box.isChecked()).toBe(true)
+    const opted = seen.find(
+      (call) =>
+        call.method === 'PUT' &&
+        call.path.endsWith('/whatsapp') &&
+        call.path.startsWith('/api/sites/'),
+    )
+    expect(JSON.parse(opted?.body ?? '{}')).toEqual({ enabled: true })
+    await tab.getByRole('button', { name: 'Remove the number' }).click()
+    await tab.getByLabel('WhatsApp number').waitFor()
     await close()
   })
 

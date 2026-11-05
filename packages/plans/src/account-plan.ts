@@ -47,6 +47,8 @@ export interface AccountPlan {
    * §12). A suggestion that is already stored costs none. 0 means the plan has no assistant.
    */
   readonly aiFixesPerDay: number
+  /** Whether the account may have its monitoring alerts sent to WhatsApp (M5.6); each message costs. */
+  readonly whatsappAlerts: boolean
 }
 
 export interface PlanCatalog {
@@ -86,6 +88,8 @@ export const DEVELOPMENT_ACCOUNT_PLAN: AccountPlan = Object.freeze({
   apiRequests: 120,
   // The assistant spends the owner's money, so no plan has it until the owner gives it a number.
   aiFixesPerDay: 0,
+  // M5.6: WhatsApp alerts are a paid plan's (BUILD-PLAN §3); the free account has none unless the owner turns them on.
+  whatsappAlerts: false,
 })
 
 const FIELDS = ['SCANS', 'SCAN_SECONDS', 'INFLIGHT', 'SAVED_SITES', 'HISTORY_DAYS'] as const
@@ -97,6 +101,7 @@ type OptionalField =
   | 'PDF_PER_MONTH'
   | 'WHITE_LABEL'
   | 'WHITE_LABEL_CREDIT'
+  | 'WHATSAPP_ALERTS'
   | 'API_KEYS'
   | 'API_SCANS'
   | 'API_REQUESTS'
@@ -166,6 +171,7 @@ function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
     apiScans: readApiScans(env, name(id, 'API_SCANS'), fallback.apiScans),
     apiRequests: readOptional('API_REQUESTS', fallback.apiRequests),
     aiFixesPerDay: readCount(env, name(id, 'AI_FIXES_PER_DAY'), fallback.aiFixesPerDay),
+    whatsappAlerts: readSwitch(env, name(id, 'WHATSAPP_ALERTS'), fallback.whatsappAlerts),
   })
 }
 
@@ -184,6 +190,7 @@ function optionalPlan(env: Env, id: 'pro' | 'agency', account: AccountPlan): Acc
     ...DEVELOPMENT_ACCOUNT_PLAN,
     monitoredSites: account.monitoredSites,
     monitorEveryDays: account.monitorEveryDays,
+    whatsappAlerts: account.whatsappAlerts,
   })
 }
 
@@ -220,6 +227,9 @@ export function planCatalogFrom(env: Env, anonymous: ScanLimits): PlanCatalog {
       }
       if (plan.monitoredSites < catalog.account.monitoredSites) {
         throw new Error(`The ${plan.id} plan monitors fewer sites than the free account`)
+      }
+      if (catalog.account.whatsappAlerts && !plan.whatsappAlerts) {
+        throw new Error(`The ${plan.id} plan has no WhatsApp alerts, and the free account has`)
       }
     }
   }

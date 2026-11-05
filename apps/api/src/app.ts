@@ -44,7 +44,9 @@ import { mountSearch, type SearchDeps } from './search/routes'
 import { mountV1 } from './v1/routes'
 import { mountMonitors } from './monitors'
 import { mountUnsubscribe } from './mail-routes'
+import { mountWhatsapp, mountWhatsappWebhook, whatsappStateReader } from './whatsapp'
 import { noMailer } from './monitor/mail'
+import { noWhatsApp } from './monitor/whatsapp'
 import { mountSites } from './sites'
 import { holdPlace } from './places'
 import { parseTarget, resolveTarget } from './target'
@@ -485,7 +487,31 @@ export function createApp(deps: ApiDeps): Hono {
         ...(deps.accounts.unsubscribe === undefined
           ? {}
           : { unsubscribe: deps.accounts.unsubscribe }),
+        whatsappState: whatsappStateReader({
+          accounts: deps.accounts,
+          whatsapp: deps.accounts.whatsapp ?? noWhatsApp,
+        }),
       })
+      const cloud = deps.accounts.whatsappSettings
+      if (deps.accounts.whatsapp?.available === true && cloud !== undefined) {
+        mountWhatsapp(app, {
+          access,
+          accounts: deps.accounts,
+          origin: deps.origin,
+          limiter: deps.limiter,
+          log: deps.log,
+          now,
+          whatsapp: deps.accounts.whatsapp,
+          codeKey: cloud.accessToken,
+        })
+        if (cloud.webhook !== null && deps.accounts.monitors !== undefined) {
+          mountWhatsappWebhook(app, {
+            monitors: deps.accounts.monitors,
+            settings: cloud.webhook,
+            log: deps.log,
+          })
+        }
+      }
       if (deps.accounts.monitors !== undefined && deps.accounts.unsubscribe !== undefined) {
         mountUnsubscribe(app, {
           monitors: deps.accounts.monitors,

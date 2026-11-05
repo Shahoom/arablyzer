@@ -85,6 +85,13 @@
       "when": 1793819511741,
       "tag": "0011_alert_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793820366789,
+      "tag": "0012_whatsapp",
+      "breakpoints": true
     }
   ]
 }

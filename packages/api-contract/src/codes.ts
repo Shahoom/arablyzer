@@ -169,6 +169,8 @@ export const PLAN_LIMITS = [
   'api',
   /** The plan has no fix assistant (BUILD-PLAN §12), or its daily number is used. */
   'aiFixesPerDay',
+  /** The plan has no WhatsApp alerts (M5.6). */
+  'whatsapp',
 ] as const
 export type PlanLimit = (typeof PLAN_LIMITS)[number]
 
@@ -269,6 +271,39 @@ export interface MonitorSummary {
 export const WEBHOOK_KINDS = ['slack', 'discord', 'generic'] as const
 export type WebhookKind = (typeof WEBHOOK_KINDS)[number]
 
+/**
+ * WhatsApp alerts (M5.6). `PUT {phone}` sends a code to the number, `POST {code}` verifies it,
+ * `DELETE` forgets the number; each answers the account's `WhatsappState`. A site's alerts are opted
+ * in one by one with `PUT /api/sites/:id/whatsapp {enabled}`. Meta's webhook (STOP replies) is a
+ * server-to-server route and not part of the pages' contract.
+ */
+export const WHATSAPP_PATH = '/api/account/whatsapp'
+export const WHATSAPP_VERIFY_PATH = '/api/account/whatsapp/verify'
+export const siteWhatsappPath = (id: string): string => `/api/sites/${id}/whatsapp`
+export const WHATSAPP_WEBHOOK_PATH = '/api/whatsapp/webhook'
+/** The digits of the code a number is verified with. */
+export const WHATSAPP_CODE_LENGTH = 6
+
+export interface WhatsappSite {
+  readonly id: string
+  readonly url: string
+  /** Whether this site's alerts also go to WhatsApp. */
+  readonly enabled: boolean
+}
+
+export interface WhatsappState {
+  /** Whether the server can send WhatsApp messages at all (ARABLYZER_WHATSAPP_PROVIDER). */
+  readonly available: boolean
+  /** Whether the account's plan has WhatsApp alerts. */
+  readonly allowed: boolean
+  /** The saved number with its middle hidden, or null. */
+  readonly phone: string | null
+  /** The code that was sent to it has been given back: alerts may go to it. */
+  readonly verified: boolean
+  /** The account's monitored sites, each with its opt-in. */
+  readonly sites: readonly WhatsappSite[]
+}
+
 export interface AlertSettings {
   /** The saved webhook as host and kind only: the address and the secret are never given back. */
   readonly webhook: {
@@ -288,6 +323,7 @@ export interface AlertSettings {
     readonly available: boolean
     readonly enabled: boolean
   }
+  readonly whatsapp: WhatsappState
 }
 
 /** `PUT` to the alerts: every field is optional, and what is not sent is not changed. A null address removes the webhook. */
