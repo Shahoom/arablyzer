@@ -1,5 +1,5 @@
 {
-  "id": "ae2ed27f-303d-459d-933e-313cc07855e7",
+  "id": "bcb7b425-e108-48fb-9c77-df8e8ded3289",
   "prevId": "2539bebe-b311-4f32-8d05-6531b266abc9",
   "version": "7",
   "dialect": "postgresql",
@@ -798,6 +798,13 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "delivered": {
+          "name": "delivered",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
         }
       },
       "indexes": {
@@ -2257,184 +2264,6 @@
         "sotaw_runs_state": {
           "name": "sotaw_runs_state",
           "value": "\"sotaw_runs\".\"state\" IN ('running', 'finished', 'aborted')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.ai_fix_cache": {
-      "name": "ai_fix_cache",
-      "schema": "",
-      "columns": {
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "fix": {
-          "name": "fix",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.ai_requests": {
-      "name": "ai_requests",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rule_id": {
-          "name": "rule_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "settled_at": {
-          "name": "settled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "reserved_micro": {
-          "name": "reserved_micro",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cost_micro": {
-          "name": "cost_micro",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "input_tokens": {
-          "name": "input_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "output_tokens": {
-          "name": "output_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cache_read_tokens": {
-          "name": "cache_read_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cache_write_tokens": {
-          "name": "cache_write_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "ai_requests_created": {
-          "name": "ai_requests_created",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "ai_requests_user": {
-          "name": "ai_requests_user",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "ai_requests_user_id_users_id_fk": {
-          "name": "ai_requests_user_id_users_id_fk",
-          "tableFrom": "ai_requests",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "ai_requests_reserved": {
-          "name": "ai_requests_reserved",
-          "value": "\"ai_requests\".\"reserved_micro\" >= 0"
         }
       },
       "isRLSEnabled": false

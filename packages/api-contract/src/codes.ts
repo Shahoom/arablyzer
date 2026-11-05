@@ -230,6 +230,8 @@ export interface SitesResponse {
 export const siteMonitorPath = (id: string): string => `/api/sites/${id}/monitor`
 export const ALERTS_PATH = '/api/account/alerts'
 export const ALERTS_TEST_PATH = '/api/account/alerts/test'
+/** Sends a test message to the account's own address (M5.5); the answer is a `WebhookTestResponse`. */
+export const ALERTS_TEST_EMAIL_PATH = '/api/account/alerts/test-email'
 /** `PUT {enabled}` answers the site's monitor, or null once it is off. */
 export interface MonitorResponse {
   readonly monitor: MonitorSummary | null

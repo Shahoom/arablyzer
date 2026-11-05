@@ -47,6 +47,7 @@ import { crawlSettingsFrom } from './crawl/settings'
 import { googleApi } from './gsc/google'
 import { newAiRequestId, newScanId } from './ids'
 import { mailerFrom } from './monitor/mail'
+import { unsubscribeFrom } from './monitor/unsubscribe'
 import { webhookSender } from './monitor/webhook'
 import { cloudflareTurnstile, isTurnstileTestSecret, noTurnstile } from './turnstile'
 
@@ -371,6 +372,7 @@ function accountsFrom(
           newId: newAiRequestId,
           log: options.log,
         })
+  const unsubscribe = unsubscribeFrom(env, siteUrl.origin)
   return {
     auth: createAuth({
       site: siteUrl,
@@ -411,7 +413,14 @@ function accountsFrom(
             resolver: options.resolver,
             ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
           }),
-          mail: mailerFrom(env),
+          mail: mailerFrom(env, {
+            policy: options.policy,
+            resolver: options.resolver,
+            siteHost: siteUrl.hostname,
+            log: options.log,
+            ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
+          }),
+          ...(unsubscribe === undefined ? {} : { unsubscribe }),
         }),
   }
 }

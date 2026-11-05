@@ -1,6 +1,7 @@
 import {
   ACCOUNT_SCANS_PATH,
   ALERTS_PATH,
+  ALERTS_TEST_EMAIL_PATH,
   ALERTS_TEST_PATH,
   siteMonitorPath,
   sitePath,
@@ -137,6 +138,13 @@ export async function saveAlerts(
   send: typeof fetch = fetch,
 ): Promise<SiteOutcome<AlertsResponse>> {
   return read(await request(send, 'PUT', ALERTS_PATH, change), isAlertsResponse)
+}
+
+/** A test message to the account's own address (M5.5). */
+export async function testEmailAlerts(
+  send: typeof fetch = fetch,
+): Promise<SiteOutcome<WebhookTestResponse>> {
+  return read(await request(send, 'POST', ALERTS_TEST_EMAIL_PATH), isTestResponse)
 }
 
 export async function testAlerts(

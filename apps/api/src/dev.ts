@@ -116,6 +116,7 @@ if (accounts?.monitors !== undefined && accounts.sender !== undefined) {
       resolver: deps.resolver,
       sender: accounts.sender,
       mail: accounts.mail ?? noMailer,
+      ...(accounts.unsubscribe === undefined ? {} : { unsubscribe: accounts.unsubscribe }),
       origin: `http://127.0.0.1:${String(port)}`,
       newId: newScanId,
       log: console.error,

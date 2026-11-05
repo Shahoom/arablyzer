@@ -162,6 +162,57 @@ describe('planCatalogFrom', () => {
   })
 })
 
+describe('a paid plan’s monitoring', () => {
+  const paid = (extra: Record<string, string> = {}, prefix = 'PRO') => ({
+    ...SET,
+    ...Object.fromEntries(
+      Object.keys(SET).map((key) => [key.replace('ACCOUNT', prefix), SET[key as keyof typeof SET]]),
+    ),
+    ...extra,
+  })
+
+  it('can be daily while the free account stays weekly', () => {
+    const catalog = planCatalogFrom(
+      paid({
+        ARABLYZER_PLAN_PRO_MONITOR_EVERY_DAYS: '1',
+        ARABLYZER_PLAN_PRO_MONITORED_SITES: '10',
+      }),
+      DEVELOPMENT_LIMITS,
+    )
+    expect(catalog.account).toMatchObject({ monitoredSites: 1, monitorEveryDays: 7 })
+    expect(catalog.pro).toMatchObject({ monitoredSites: 10, monitorEveryDays: 1 })
+  })
+
+  it('keeps what the free account has when it sets nothing', () => {
+    const env = paid({
+      ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES: '2',
+      ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: '3',
+    })
+    expect(planCatalogFrom(env, DEVELOPMENT_LIMITS).pro).toMatchObject({
+      monitoredSites: 2,
+      monitorEveryDays: 3,
+    })
+  })
+
+  it('refuses a paid plan that watches fewer sites, or less often, than the free account', () => {
+    expect(() =>
+      planCatalogFrom(
+        paid({ ARABLYZER_PLAN_AGENCY_MONITOR_EVERY_DAYS: '14' }, 'AGENCY'),
+        DEVELOPMENT_LIMITS,
+      ),
+    ).toThrow(/agency plan monitors less often/)
+    expect(() =>
+      planCatalogFrom(
+        paid({
+          ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES: '3',
+          ARABLYZER_PLAN_PRO_MONITORED_SITES: '2',
+        }),
+        DEVELOPMENT_LIMITS,
+      ),
+    ).toThrow(/pro plan monitors fewer sites/)
+  })
+})
+
 describe('accountHistoryDaysFrom', () => {
   it('is null with accounts off, and the plan days with them on', () => {
     expect(accountHistoryDaysFrom({ ...SET })).toBeNull()

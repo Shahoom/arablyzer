@@ -42,6 +42,7 @@ import { SESSION_COOKIE } from './auth'
 import { fromTheSite } from './guards'
 import type { Assistant } from './ai/assistant'
 import type { Mailer } from './monitor/mail'
+import type { Unsubscribe } from './monitor/unsubscribe'
 import type { WebhookSender } from './monitor/webhook'
 
 export interface AccountsDeps {
@@ -78,8 +79,10 @@ export interface AccountsDeps {
   readonly ai?: Assistant
   /** Sends a webhook's messages, for the test button. */
   readonly sender?: WebhookSender
-  /** Mail, off until a provider is built. */
+  /** Mail: off unless ARABLYZER_MAIL_PROVIDER names a provider (M5.5). */
   readonly mail?: Mailer
+  /** The links that stop a person's email alerts; present whenever ARABLYZER_MAIL_SECRET is set. */
+  readonly unsubscribe?: Unsubscribe
 }
 
 /**

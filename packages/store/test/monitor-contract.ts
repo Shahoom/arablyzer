@@ -188,6 +188,13 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
       expect(later.map((p) => p.scanId)).toEqual([ids[2]])
       const retry = (await monitors.pending(at(2), 10)).find((p) => p.scanId === ids[1])
       expect(retry?.attempts).toBe(2)
+      // A channel reached is remembered, once, across the retries of the run.
+      expect(retry?.delivered).toEqual([])
+      await monitors.markDelivered(ids[1] ?? '', 'webhook')
+      await monitors.markDelivered(ids[1] ?? '', 'webhook')
+      await monitors.markDelivered(ids[1] ?? '', 'email')
+      const marked = (await monitors.pending(at(2), 10)).find((p) => p.scanId === ids[1])
+      expect([...(marked?.delivered ?? [])].sort()).toEqual(['email', 'webhook'])
     })
 
     it('sets a monitor’s health', async () => {
