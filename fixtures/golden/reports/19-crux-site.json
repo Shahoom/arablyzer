@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.12.0"
+    "rulesetVersion": "0.13.0"
   },
   "target": {
     "url": "http://127.0.0.1:30019/",
@@ -77,7 +77,7 @@
     "pass": 33,
     "fail": 1,
     "needsReview": 0,
-    "notApplicable": 65,
+    "notApplicable": 68,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -108,8 +108,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 99,
-      "total": 110
+      "ran": 102,
+      "total": 113
     }
   },
   "rules": [
@@ -659,6 +659,17 @@
       }
     },
     {
+      "id": "hreflang-sitemap-invalid",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "النسخ اللغوية في خريطة الموقع غير مكتملة",
+        "en": "Language versions in the sitemap are not complete"
+      }
+    },
+    {
       "id": "hreflang-x-default-missing",
       "version": "1.0.0",
       "category": "intl",
@@ -810,6 +821,17 @@
       "title": {
         "ar": "وسوم المشاركة (Open Graph) ناقصة",
         "en": "Open Graph sharing tags are missing"
+      }
+    },
+    {
+      "id": "outbound-links-found",
+      "version": "1.1.0",
+      "category": "links",
+      "severity": "info",
+      "status": "not-applicable",
+      "title": {
+        "ar": "المواقع التي ترتبط بها الصفحة",
+        "en": "Sites this page links to"
       }
     },
     {
@@ -1085,6 +1107,17 @@
       "title": {
         "ar": "خريطة موقع لا تستطيع محركات البحث قراءتها",
         "en": "A sitemap search engines cannot read"
+      }
+    },
+    {
+      "id": "sitemap-lastmod-invalid",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "تواريخ في خريطة الموقع لا تستطيع Google استعمالها",
+        "en": "Sitemap dates that Google cannot use"
       }
     },
     {

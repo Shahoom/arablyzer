@@ -26,6 +26,14 @@ export type Block =
     }
   | { readonly kind: 'text'; readonly label?: string; readonly text: string }
   | { readonly kind: 'link'; readonly text: string; readonly href: string }
+  /** How a search result looks: the address as crumbs, the title as a link, the description. */
+  | {
+      readonly kind: 'serp'
+      readonly crumbs: string
+      readonly title: string
+      readonly description: string
+      readonly dir: 'rtl' | 'ltr'
+    }
 
 export type TextToolResult = { readonly error: string } | { readonly blocks: readonly Block[] }
 
