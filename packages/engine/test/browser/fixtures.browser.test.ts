@@ -36,7 +36,8 @@ describe(`render rule fixtures (${engines.join(', ')})`, () => {
       } else if (fixture.startsWith('wrong')) {
         expect(failed.sort()).toEqual([ruleId, ...alsoFails].sort())
       } else {
-        expect(failed).toEqual([])
+        // Nothing fails on a right fixture but the information a page shows (expect.json).
+        expect(failed.sort()).toEqual([...alsoFails].sort())
         expect(own).toBe('pass')
       }
     } finally {

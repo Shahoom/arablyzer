@@ -105,7 +105,7 @@ describe('SARIF export', () => {
   })
 
   it('is valid for a clean page: no findings, no rules', () => {
-    const log = toSarif(golden('01-'), options('en'))
+    const log = toSarif(golden('02-'), options('en'))
     expect(validate(log)).toBe(true)
     expect(log.runs[0].results).toEqual([])
     expect(log.runs[0].tool.driver.rules).toEqual([])

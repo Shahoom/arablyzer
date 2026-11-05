@@ -17,6 +17,7 @@ import type { AccountsDeps } from '../src/accounts'
 import { createApp } from '../src/app'
 import { createAuth } from '../src/auth'
 import { DEFAULT_CRAWL_SETTINGS } from '../src/crawl/settings'
+import { noMailer } from '../src/monitor/mail'
 import { CLIENT_ID, CLIENT_SECRET, idToken, stubGoogle } from './support/google'
 import { reportOf, type FindingSpec } from './support/reports'
 
@@ -69,7 +70,7 @@ function setup(options: { accounts?: boolean; monitoring?: boolean } = {}) {
       : {
           monitors,
           sender: { send: () => Promise.resolve({ status: 204, ok: true }) },
-          mail: { available: false, send: () => Promise.resolve(false) },
+          mail: noMailer,
         }),
   }
   const app = createApp({

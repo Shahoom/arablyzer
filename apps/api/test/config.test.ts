@@ -2,6 +2,7 @@ import {
   MemoryAccountData,
   MemoryAdminData,
   MemoryInFlight,
+  MemoryMonitorData,
   MemoryRateLimiter,
   MemoryScanEvents,
   MemoryScanQueue,
@@ -330,6 +331,52 @@ describe('apiDeps with accounts', () => {
     const { auth, ...rest } = withAuth()
     expect(() => apiDeps(ACCOUNTS, { ...rest, auth }, () => undefined)).not.toThrow()
     expect(() => apiDeps(ACCOUNTS, { ...stores(), auth }, () => undefined)).toThrow(/accountData/)
+  })
+
+  describe('email alerts', () => {
+    const withMonitors = () => {
+      const base = withAuth()
+      return { ...base, monitorData: new MemoryMonitorData(base.accountData, base.store) }
+    }
+    const MAIL = {
+      ARABLYZER_MAIL_PROVIDER: 'resend',
+      RESEND_API_KEY: 're_key',
+      ARABLYZER_MAIL_FROM: 'Arablyzer <alerts@send.arablyzer.example>',
+      ARABLYZER_MAIL_SECRET: 'm'.repeat(32),
+    }
+    const site = { ARABLYZER_SITE: 'https://arablyzer.example' }
+
+    it('are off by default: no provider, no keys read, no links', () => {
+      const { accounts } = apiDeps({ ...ACCOUNTS, ...site }, withMonitors(), () => undefined)
+      expect(accounts?.mail?.available).toBe(false)
+      expect(accounts?.unsubscribe).toBeUndefined()
+    })
+
+    it('are on with a complete provider, and the links outlive a provider that is switched off', () => {
+      const on = apiDeps({ ...ACCOUNTS, ...site, ...MAIL }, withMonitors(), () => undefined)
+      expect(on.accounts?.mail?.available).toBe(true)
+      expect(on.accounts?.unsubscribe).toBeDefined()
+      const off = apiDeps(
+        { ...ACCOUNTS, ...site, ARABLYZER_MAIL_SECRET: MAIL.ARABLYZER_MAIL_SECRET },
+        withMonitors(),
+        () => undefined,
+      )
+      expect(off.accounts?.mail?.available).toBe(false)
+      expect(off.accounts?.unsubscribe).toBeDefined()
+    })
+
+    it.each(['RESEND_API_KEY', 'ARABLYZER_MAIL_FROM', 'ARABLYZER_MAIL_SECRET'] as const)(
+      'refuse to start with a provider named and %s missing',
+      (missing) => {
+        const env = { ...ACCOUNTS, ...site, ...MAIL, [missing]: '' }
+        expect(() => apiDeps(env, withMonitors(), () => undefined)).toThrow(new RegExp(missing))
+      },
+    )
+
+    it('refuse to start from the site’s own domain', () => {
+      const env = { ...ACCOUNTS, ...site, ...MAIL, ARABLYZER_MAIL_FROM: 'alerts@arablyzer.example' }
+      expect(() => apiDeps(env, withMonitors(), () => undefined)).toThrow(/subdomain/)
+    })
   })
 
   it.each([

@@ -42,6 +42,7 @@ import { mountNlp, type NlpDeps } from './nlp/routes'
 import { mountSearch, type SearchDeps } from './search/routes'
 import { mountV1 } from './v1/routes'
 import { mountMonitors } from './monitors'
+import { mountUnsubscribe } from './mail-routes'
 import { noMailer } from './monitor/mail'
 import { mountSites } from './sites'
 import { holdPlace } from './places'
@@ -471,7 +472,17 @@ export function createApp(deps: ApiDeps): Hono {
         now,
         sender: deps.accounts.sender,
         mail: deps.accounts.mail ?? noMailer,
+        ...(deps.accounts.unsubscribe === undefined
+          ? {}
+          : { unsubscribe: deps.accounts.unsubscribe }),
       })
+      if (deps.accounts.monitors !== undefined && deps.accounts.unsubscribe !== undefined) {
+        mountUnsubscribe(app, {
+          monitors: deps.accounts.monitors,
+          unsubscribe: deps.accounts.unsubscribe,
+          log: deps.log,
+        })
+      }
     }
   }
 

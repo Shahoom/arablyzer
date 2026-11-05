@@ -81,6 +81,23 @@ describe.skipIf(databaseUrl === undefined)('the crawl’s store, on PostgreSQL',
     )
   })
 
+  it('adds the sites of a frame that grew, leaves the others, and refuses one that lost a site', async () => {
+    const run = { ...RUN, id: 'sotaw-grown' }
+    await store.start(run, sites(3), NOW)
+    const claimed = await store.claim(run.id, NOW)
+    await store.skip(run.id, claimed?.domain ?? '', 'robots', NOW)
+    const before = await store.results(run.id)
+    const grown = [...sites(3), { domain: 'new.ly', country: 'ly', rank: 900, position: 9 }]
+    expect(await store.extend(run.id, 'e'.repeat(64), grown, NOW)).toBe(1)
+    expect(await store.extend(run.id, 'e'.repeat(64), grown, NOW)).toBe(0)
+    const after = await store.results(run.id)
+    expect(after.filter((row) => row.domain !== 'new.ly')).toEqual(before)
+    expect(after.find((row) => row.domain === 'new.ly')).toMatchObject({ state: 'pending' })
+    expect(await store.run(run.id)).toMatchObject({ frameSha: 'e'.repeat(64), total: 4 })
+    await expect(store.extend(run.id, 'd'.repeat(64), sites(2), NOW)).rejects.toThrow(/lost/)
+    expect(await store.run(run.id)).toMatchObject({ frameSha: 'e'.repeat(64) })
+  })
+
   it('takes the sites in the crawl’s order, each once, with an attempt spent', async () => {
     const first = await store.claim('sotaw-test', NOW)
     expect(first).toMatchObject({ domain: 's4.sa', state: 'running', attempts: 1, position: 1 })
