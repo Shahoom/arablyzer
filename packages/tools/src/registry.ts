@@ -1,5 +1,6 @@
 import type { ToolDefinition } from './tool'
 import { definition as accessibilityCheck } from './tools/accessibility-check/tool'
+import { definition as addressFormat } from './tools/address-format/tool'
 import { definition as aiAccess } from './tools/ai-access/tool'
 import { definition as aiCrawlerCheck } from './tools/ai-crawler-check/tool'
 import { definition as aiReadabilityCheck } from './tools/ai-readability-check/tool'
@@ -13,6 +14,7 @@ import { definition as arabicFontSlimmer } from './tools/arabic-font-slimmer/too
 import { definition as arabicFormTest } from './tools/arabic-form-test/tool'
 import { definition as arabicPunctuationCheck } from './tools/arabic-punctuation-check/tool'
 import { definition as arabicShapingCheck } from './tools/arabic-shaping-check/tool'
+import { definition as arabicSlugGenerator } from './tools/arabic-slug-generator/tool'
 import { definition as arabicSpellCheck } from './tools/arabic-spell-check/tool'
 import { definition as arabicSuggest } from './tools/arabic-suggest/tool'
 import { definition as bidiIsolationCheck } from './tools/bidi-isolation-check/tool'
@@ -26,9 +28,12 @@ import { definition as contactReachability } from './tools/contact-reachability/
 import { definition as coreWebVitals } from './tools/core-web-vitals/tool'
 import { definition as countryFit } from './tools/country-fit/tool'
 import { definition as cruxByCountry } from './tools/crux-by-country/tool'
+import { definition as currencyFormat } from './tools/currency-format/tool'
+import { definition as dateFormat } from './tools/date-format/tool'
 import { definition as dialectDetector } from './tools/dialect-detector/tool'
 import { definition as digitsConsistency } from './tools/digits-consistency/tool'
 import { definition as emailSecurity } from './tools/email-security/tool'
+import { definition as errorDecoder } from './tools/error-decoder/tool'
 import { definition as feedCheck } from './tools/feed-check/tool'
 import { definition as feedFileCheck } from './tools/feed-file-check/tool'
 import { definition as fontFallbackCheck } from './tools/font-fallback-check/tool'
@@ -48,6 +53,7 @@ import { definition as logicalCssCheck } from './tools/logical-css-check/tool'
 import { definition as lookalikeDomains } from './tools/lookalike-domains/tool'
 import { definition as mirroredIconsCheck } from './tools/mirrored-icons-check/tool'
 import { definition as mixedContent } from './tools/mixed-content/tool'
+import { definition as numberFormat } from './tools/number-format/tool'
 import { definition as ogImageCheck } from './tools/og-image-check/tool'
 import { definition as paginationCheck } from './tools/pagination-check/tool'
 import { definition as paymentMethodsDetector } from './tools/payment-methods-detector/tool'
@@ -63,16 +69,19 @@ import { definition as robotsCheck } from './tools/robots-check/tool'
 import { definition as robotsTester } from './tools/robots-tester/tool'
 import { definition as rtlCheck } from './tools/rtl-check/tool'
 import { definition as rtlOverflowCheck } from './tools/rtl-overflow-check/tool'
+import { definition as sallaStoreCheck } from './tools/salla-store-check/tool'
 import { definition as schemaGenerator } from './tools/schema-generator/tool'
 import { definition as searchSpellingTest } from './tools/search-spelling-test/tool'
 import { definition as securityHeaders } from './tools/security-headers/tool'
 import { definition as serpSampler } from './tools/serp-sampler/tool'
+import { definition as shopifyArabicCheck } from './tools/shopify-arabic-check/tool'
 import { definition as sitemapCheck } from './tools/sitemap-check/tool'
 import { definition as socialPreview } from './tools/social-preview/tool'
 import { definition as soft404Check } from './tools/soft-404-check/tool'
 import { definition as storeHreflangCheck } from './tools/store-hreflang-check/tool'
 import { definition as structuredDataCheck } from './tools/structured-data-check/tool'
 import { definition as tatweelCheck } from './tools/tatweel-check/tool'
+import { definition as titleFixer } from './tools/title-fixer/tool'
 import { definition as titleMetaCheck } from './tools/title-meta-check/tool'
 import { definition as tlsCheck } from './tools/tls-check/tool'
 import { definition as urlParametersCheck } from './tools/url-parameters-check/tool'
@@ -80,6 +89,7 @@ import { definition as viewportCheck } from './tools/viewport-check/tool'
 import { definition as whatsappLinkCheck } from './tools/whatsapp-link-check/tool'
 import { definition as whatsappLinkGenerator } from './tools/whatsapp-link-generator/tool'
 import { definition as whatsappMessageCheck } from './tools/whatsapp-message-check/tool'
+import { definition as zidStoreCheck } from './tools/zid-store-check/tool'
 
 /**
  * Every tool without its page's copy, sorted by slug: what the API checks a tool's slug against,
@@ -87,6 +97,7 @@ import { definition as whatsappMessageCheck } from './tools/whatsapp-message-che
  */
 export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   accessibilityCheck,
+  addressFormat,
   aiAccess,
   aiCrawlerCheck,
   aiReadabilityCheck,
@@ -100,6 +111,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   arabicFormTest,
   arabicPunctuationCheck,
   arabicShapingCheck,
+  arabicSlugGenerator,
   arabicSpellCheck,
   arabicSuggest,
   bidiIsolationCheck,
@@ -113,9 +125,12 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   coreWebVitals,
   countryFit,
   cruxByCountry,
+  currencyFormat,
+  dateFormat,
   dialectDetector,
   digitsConsistency,
   emailSecurity,
+  errorDecoder,
   feedCheck,
   feedFileCheck,
   fontFallbackCheck,
@@ -135,6 +150,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   lookalikeDomains,
   mirroredIconsCheck,
   mixedContent,
+  numberFormat,
   ogImageCheck,
   paginationCheck,
   paymentMethodsDetector,
@@ -150,16 +166,19 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   robotsTester,
   rtlCheck,
   rtlOverflowCheck,
+  sallaStoreCheck,
   schemaGenerator,
   searchSpellingTest,
   securityHeaders,
   serpSampler,
+  shopifyArabicCheck,
   sitemapCheck,
   socialPreview,
   soft404Check,
   storeHreflangCheck,
   structuredDataCheck,
   tatweelCheck,
+  titleFixer,
   titleMetaCheck,
   tlsCheck,
   urlParametersCheck,
@@ -167,6 +186,7 @@ export const TOOL_DEFINITIONS: readonly ToolDefinition[] = [
   whatsappLinkCheck,
   whatsappLinkGenerator,
   whatsappMessageCheck,
+  zidStoreCheck,
 ]
 
 export function toolDefinition(slug: string): ToolDefinition | undefined {

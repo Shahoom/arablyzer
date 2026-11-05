@@ -80,7 +80,8 @@ describe('rule fixtures over HTTP', () => {
       } else if (fixture.startsWith('wrong')) {
         expect(failed.sort()).toEqual([ruleId, ...alsoFails].sort())
       } else {
-        expect(failed).toEqual([])
+        // Nothing fails on a right fixture but the information a platform's page shows (expect.json).
+        expect(failed.sort()).toEqual([...alsoFails].sort())
         expect(report.rules.find((rule) => rule.id === ruleId)?.status).toBe('pass')
       }
     } finally {

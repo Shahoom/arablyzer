@@ -53,11 +53,10 @@ describe.each(RULES.map((rule) => [rule.id, rule] as const))('rule %s', (id, rul
     }
   })
 
-  it('lists only other known rules in expect.json, and only for wrong fixtures', () => {
+  it('lists only other known rules in expect.json: any for a wrong fixture, information alone for a right one', () => {
     for (const name of fixtureNames(id)) {
       const file = `${fixturesDir(id)}${name}/expect.json`
       if (!existsSync(file)) continue
-      expect(name.startsWith('wrong'), `${name}/expect.json`).toBe(true)
       const expected = JSON.parse(readFileSync(file, 'utf8')) as unknown
       expect(Object.keys(expected as object)).toEqual(['alsoFails'])
       const { alsoFails } = expected as { alsoFails: unknown }
@@ -67,6 +66,14 @@ describe.each(RULES.map((rule) => [rule.id, rule] as const))('rule %s', (id, rul
           RULES.some((known) => known.id === other && other !== id),
           String(other),
         ).toBe(true)
+        // A right fixture fails nothing, but a page of a store platform shows the platform, which
+        // platform-detected reports as information (M10.1): only rules of that kind may be named.
+        if (!name.startsWith('wrong')) {
+          expect(
+            RULES.find((known) => known.id === other)?.severity,
+            `${name}: ${String(other)}`,
+          ).toBe('info')
+        }
       }
     }
   })

@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.11.0"
+    "rulesetVersion": "0.12.0"
   },
   "target": {
     "url": "http://127.0.0.1:30036/",
@@ -81,10 +81,10 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 38,
+    "pass": 41,
     "fail": 0,
     "needsReview": 0,
-    "notApplicable": 54,
+    "notApplicable": 58,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -106,7 +106,7 @@
       "index": 100,
       "intl": 100,
       "links": 100,
-      "locale": null,
+      "locale": 100,
       "onpage": 100,
       "rtl": 100,
       "schema": 100,
@@ -115,8 +115,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 92,
-      "total": 103
+      "ran": 99,
+      "total": 110
     }
   },
   "rules": [
@@ -203,6 +203,17 @@
       "title": {
         "ar": "خاصية lang لا تسمّي لغة",
         "en": "lang attribute that names no language"
+      }
+    },
+    {
+      "id": "address-schema-gulf",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "العنوان البريدي في البيانات المنظّمة فيه دولة أو رمز بريدي مكتوب خطأً",
+        "en": "Postal address in structured data has a country or postal code written wrongly"
       }
     },
     {
@@ -440,6 +451,17 @@
       }
     },
     {
+      "id": "currency-forms-mixed",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة تكتب عملة بصيغتين",
+        "en": "Page writes a currency in two forms"
+      }
+    },
+    {
       "id": "cwv-cls-poor",
       "version": "1.0.0",
       "category": "speed",
@@ -470,6 +492,17 @@
       "title": {
         "ar": "بطء ظهور المحتوى الرئيسي على الجوال",
         "en": "Slow to show its main content on phones"
+      }
+    },
+    {
+      "id": "date-forms-mixed",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة تكتب التواريخ بصيغتين",
+        "en": "Page writes dates in two forms"
       }
     },
     {
@@ -754,6 +787,17 @@
       }
     },
     {
+      "id": "number-separators-mixed",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة تكتب علامات الأرقام بطريقتين",
+        "en": "Page writes the marks inside numbers two ways"
+      }
+    },
+    {
       "id": "og-image-invalid",
       "version": "1.0.0",
       "category": "onpage",
@@ -1029,6 +1073,17 @@
       }
     },
     {
+      "id": "shopify-locale-mismatch",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "متجر Shopify يُعرض بالعربية لكن قالبه أو نصوصه ليست كذلك",
+        "en": "Shopify store shown in Arabic but its theme or text is not"
+      }
+    },
+    {
       "id": "sitemap-invalid",
       "version": "1.0.0",
       "category": "crawl",
@@ -1120,6 +1175,17 @@
       }
     },
     {
+      "id": "url-slug-invalid",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "عنوان الصفحة فيه جزء يُكتب بأكثر من طريقة",
+        "en": "Page address has a slug that is written two ways"
+      }
+    },
+    {
       "id": "viewport-missing",
       "version": "1.0.0",
       "category": "onpage",
@@ -1161,6 +1227,17 @@
       "title": {
         "ar": "صفحة بلا X-Content-Type-Options: nosniff",
         "en": "No X-Content-Type-Options: nosniff"
+      }
+    },
+    {
+      "id": "zid-default-seo",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة متجر زد عنوانها أو وصفها هو الافتراضي من زد",
+        "en": "Zid store page still has Zid's default title or description"
       }
     }
   ],
