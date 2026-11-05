@@ -1,6 +1,7 @@
 import {
   AlertsRequest,
   ALERTS_PATH,
+  ALERTS_TEST_EMAIL_PATH,
   ALERTS_TEST_PATH,
   MonitorRequest,
   SITE_ID_PATTERN,
@@ -20,7 +21,9 @@ import type { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { planOf, type AccountsDeps, type SessionAccess } from './accounts'
 import { fromTheSite } from './guards'
+import { composeMail } from './monitor/email'
 import type { Mailer } from './monitor/mail'
+import type { Unsubscribe } from './monitor/unsubscribe'
 import { firstRunAt, monitorSummary } from './monitor/schedule'
 import { newWebhookSecret, webhookTarget, type WebhookSender } from './monitor/webhook'
 import { resolveTarget } from './target'
@@ -36,6 +39,8 @@ export interface MonitorsDeps {
   readonly now: () => Date
   readonly sender: WebhookSender
   readonly mail: Mailer
+  /** The links in mail that stop it; without them, no mail is sent. */
+  readonly unsubscribe?: Unsubscribe
 }
 
 const MAX_BODY_BYTES = 8 * 1024
@@ -55,6 +60,7 @@ const URL_STATUS: Readonly<Record<UrlErrorCode, 400 | 422>> = {
 /** Saving settings and sending a test are each limited per person, so they cannot be used to probe addresses. */
 const SAVE_WINDOW = { scans: 20, seconds: 600 }
 const TEST_WINDOW = { scans: 5, seconds: 600 }
+const MAIL_TEST_WINDOW = { scans: 3, seconds: 600 }
 
 /** The settings as the page reads them: the address and the secret are never in it. */
 export function settingsOf(stored: StoredAlerts, mail: Mailer): AlertSettings {
@@ -221,6 +227,39 @@ export function mountMonitors(app: Hono, deps: MonitorsDeps): void {
     // A test that gets through is the way a disabled webhook is turned on again.
     if (sent.ok) await monitors.reenable(read.user.id)
     const body: WebhookTestResponse = { ok: sent.ok, status: sent.status }
+    return c.json(body)
+  })
+
+  app.post(ALERTS_TEST_EMAIL_PATH, guard(false), async (c) => {
+    const read = await access.require(c)
+    if (read instanceof Response) return read
+    const { unsubscribe } = deps
+    if (!deps.mail.available || unsubscribe === undefined) return access.fail(c, 'not-found')
+    const at = deps.now()
+    const taken = await deps.limiter.take(
+      `mail-test:${read.user.id}`,
+      MAIL_TEST_WINDOW,
+      at.getTime(),
+    )
+    if (!taken.ok) return access.fail(c, 'rate-limited', taken.retryAfterSeconds)
+    const language = read.user.language === 'en' ? 'en' : 'ar'
+    const composed = composeMail({
+      language,
+      kind: 'test',
+      lines: [ALERT_TEXT[language].test],
+      unsubscribeUrl: unsubscribe.link(read.user.id),
+    })
+    const outcome = await deps.mail
+      .send({
+        to: read.user.email,
+        subject: composed.subject,
+        text: composed.text,
+        html: composed.html,
+        headers: composed.headers,
+        idempotencyKey: `test-${read.user.id}-${String(at.getTime())}`,
+      })
+      .catch(() => 'retry' as const)
+    const body: WebhookTestResponse = { ok: outcome === 'sent', status: null }
     return c.json(body)
   })
 }

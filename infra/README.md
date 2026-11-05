@@ -248,7 +248,14 @@ the host's bucket and the person's place like any scan, and sends the alerts the
 their threshold, a new critical finding, a scan that failed, and an optional weekly summary) to the webhook they
 pasted, as Slack, Discord or generic JSON, signed with `X-Arablyzer-Signature` (HMAC-SHA256), through the egress proxy.
 A delivery is retried after 1 min, 5 min, 30 min, 2 h and 6 h; five failures in a row turn the webhook off until a test
-reaches it. Email is behind an interface that is off: `ARABLYZER_MAIL_PROVIDER` stays empty until one is built. With
+reaches it. Each channel of a run's alert is remembered (`monitor_runs.delivered`), so a retry because one channel
+failed never sends the others again. **Email (M5.5)** is off while `ARABLYZER_MAIL_PROVIDER` is empty. With
+`ARABLYZER_MAIL_PROVIDER=resend`, `RESEND_API_KEY`, `ARABLYZER_MAIL_FROM` (a subdomain of the site's domain made for
+automated mail, e.g. `send.arablyzer.com`, never the domain whose mailboxes people use) and `ARABLYZER_MAIL_SECRET`
+(32+ characters, signs the unsubscribe links), a person who turns on «البريد الإلكتروني» in their alerts gets the same
+alerts at the address they signed in with, through the egress proxy. Every mail carries `List-Unsubscribe` and
+`List-Unsubscribe-Post` (one click) and a link to `/api/mail/unsubscribe`, which asks on a GET and turns that person's
+email alerts off on a POST. Resend's own suppression list stops mail to addresses that bounced or complained. With
 accounts off the service logs that and idles. The recommended free-plan numbers are in `.env.example` and
 `docs/deploy/staging.md` §4.
 

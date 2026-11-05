@@ -263,11 +263,12 @@ export class PostgresMonitorData implements MonitorData {
       email: string
       scheduled_for: Date
       attempts: number
+      delivered: string[]
       state: ScanState
       created_at: Date
     }>(
       `SELECT r.scan_id, r.site_id, m.user_id, s.url, u.language, u.email, r.scheduled_for, r.attempts,
-              s.state, s.created_at
+              r.delivered, s.state, s.created_at
        FROM monitor_runs r
        JOIN monitors m ON m.site_id = r.site_id
        JOIN scans s ON s.id = r.scan_id
@@ -285,6 +286,7 @@ export class PostgresMonitorData implements MonitorData {
       email: row.email,
       scheduledFor: row.scheduled_for,
       attempts: row.attempts,
+      delivered: row.delivered,
       state: row.state,
       createdAt: row.created_at,
     }))
@@ -311,6 +313,14 @@ export class PostgresMonitorData implements MonitorData {
     await this.#pool.query(
       'UPDATE monitor_runs SET retry_after = $2, attempts = $3 WHERE scan_id = $1',
       [scanId, after, attempts],
+    )
+  }
+
+  async markDelivered(scanId: string, channel: string): Promise<void> {
+    await this.#pool.query(
+      `UPDATE monitor_runs SET delivered = array_append(delivered, $2::text)
+       WHERE scan_id = $1 AND NOT ($2::text = ANY(delivered))`,
+      [scanId, channel],
     )
   }
 
