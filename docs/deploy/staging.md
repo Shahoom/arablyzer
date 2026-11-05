@@ -328,7 +328,7 @@ for the free account (decided 2026-10), to set as they are on staging:
 | `ARABLYZER_PLAN_ACCOUNT_SAVED_SITES`        | `3`     | sites a person may save                                                          |
 | `ARABLYZER_PLAN_ACCOUNT_HISTORY_DAYS`       | `5`     | days their scans and reports are kept                                            |
 | `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`    | empty   | sites monitored; empty is `1`                                                    |
-| `ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` | empty   | days between two scans of a monitored site; empty is `7` (weekly)                |
+| `ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` | empty   | days between two scans of a monitored site; empty is `7` (weekly); `1` is daily   |
 | `ARABLYZER_MAIL_PROVIDER`                   | empty   | email alerts: no provider is built yet, so leave it empty (a value stops the API) |
 | `ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES`        | empty   | pages one deep crawl checks; empty is `50`                                       |
 | `ARABLYZER_CRAWL_DELAY_MS`                  | empty   | pause between two pages of a crawl; empty is `1000`                              |

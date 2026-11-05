@@ -99,11 +99,12 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     const { monitor, url } = due
     const at = now()
     const plan = await planOf(deps.plans, monitor.userId)
-    // A downgrade pauses the extras, and the interval never goes below the plan's: checked on every run.
+    // A downgrade pauses the extras, and the interval is the plan's, whichever way it moved since the
+    // monitor was enabled (a weekly plan made daily, or back): checked on every run.
     await deps.monitors.pauseExtras(monitor.userId, plan.monitoredSites)
     const current = await deps.monitors.monitor(monitor.userId, monitor.siteId)
     if (current === null || current.paused) return
-    const everyDays = Math.max(monitor.everyDays, plan.monitorEveryDays)
+    const everyDays = plan.monitorEveryDays
     const next = nextRunAfter(at, everyDays, random)
     const holder = `account:${monitor.userId}`
     const id = deps.newId()

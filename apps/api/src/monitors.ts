@@ -129,7 +129,9 @@ export function mountMonitors(app: Hono, deps: MonitorsDeps): void {
       return c.json({ error: 'plan-limit', limit: 'monitoredSites', plan: plan.id }, 403)
     }
     const trend = (await monitors.trend(read.user.id, TREND_LENGTH)).get(site.id) ?? []
-    const body: MonitorResponse = { monitor: monitorSummary(enabled.monitor, trend) }
+    const body: MonitorResponse = {
+      monitor: monitorSummary(enabled.monitor, trend, plan.monitorEveryDays),
+    }
     return c.json(body)
   })
 
