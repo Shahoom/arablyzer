@@ -65,25 +65,53 @@
 	}
 }
 
+# The proxy to the API, the same for every route that reaches it.
+(to_api) {
+	reverse_proxy api:8787 {
+		# One address, the visitor's, which the API counts its limits by (§14).
+		header_up X-Forwarded-For {client_ip}
+		# The API believes that address only of a request that carries this secret: the API's
+		# port is reachable by whatever else is on the edge network, and by the host itself,
+		# and any of them could write any address in the header. Set here, it replaces a
+		# header of the same name that a visitor sends.
+		header_up X-Arablyzer-Proxy-Secret {$ARABLYZER_PROXY_SECRET}
+		# A scan's events go to its page as they come.
+		flush_interval -1
+	}
+}
+
+# The same headers for a page that a dashboard frames (M9): no X-Frame-Options, and no policy of
+# its own here, since the API's names the one dashboard that may.
+(security-framed) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Cross-Origin-Opener-Policy same-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		-Server
+	}
+}
+
 :{$PORT:8080} {
 	encode zstd gzip
+
+	# The panels the Salla and Zid dashboards open inside themselves (M9, issue #41): the API alone
+	# says which dashboard may frame each (its own policy, frame-ancestors named), so this route
+	# sends the security headers but for the two that forbid framing. The apps are off by default,
+	# and then the API answers these addresses with a 404 like any it does not have.
+	@panel path /api/platforms/salla/panel /api/platforms/zid/panel
+	handle @panel {
+		import security-framed
+		import to_api
+	}
 
 	# The API, the MCP endpoint (M5.1) and the owner's panel (M4.8, /admin, which the API renders and
 	# answers 404 to anyone but an administrator): the same proxy, address and secret.
 	@api path /api/* /mcp /admin /admin/*
 	handle @api {
 		import security same-origin
-		reverse_proxy api:8787 {
-			# One address, the visitor's, which the API counts its limits by (§14).
-			header_up X-Forwarded-For {client_ip}
-			# The API believes that address only of a request that carries this secret: the API's
-			# port is reachable by whatever else is on the edge network, and by the host itself,
-			# and any of them could write any address in the header. Set here, it replaces a
-			# header of the same name that a visitor sends.
-			header_up X-Arablyzer-Proxy-Secret {$ARABLYZER_PROXY_SECRET}
-			# A scan's events go to its page as they come.
-			flush_interval -1
-		}
+		import to_api
 	}
 
 	# A report's link opens the report page of its language, never indexed (§6.5). The page's
