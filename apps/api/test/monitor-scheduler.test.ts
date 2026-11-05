@@ -244,6 +244,35 @@ describe('starting runs', () => {
     expect(state[0]?.nextRunAt.getTime()).toBe(START.getTime() + 7 * DAY_MS)
   })
 
+  it('follows a plan that watches daily: the interval is the plan’s, whatever the monitor was enabled with', async () => {
+    const { scheduler, monitors, queue, user, watch } = setup({
+      plan: { monitoredSites: 1, monitorEveryDays: 1 },
+    })
+    const [site] = await user('ali')
+    await watch('ali', site?.id ?? '', new Date(START.getTime() - MINUTE_MS), 7)
+    await scheduler.tick()
+    expect(await queue.waiting()).toBe(1)
+    const monitor = await monitors.monitor('ali', site?.id ?? '')
+    expect(monitor?.everyDays).toBe(1)
+    expect(monitor?.nextRunAt.getTime()).toBe(START.getTime() + DAY_MS)
+  })
+
+  it('scans a daily monitor once a day, however many ticks fall in the day', async () => {
+    const { scheduler, queue, advance, user, watch } = setup({
+      plan: { monitoredSites: 1, monitorEveryDays: 1, inFlight: 5 },
+    })
+    const [site] = await user('ali')
+    await watch('ali', site?.id ?? '')
+    for (let day = 1; day <= 3; day++) {
+      // A tick every 15 minutes through the day: only one of them starts a scan.
+      for (let tick = 0; tick < 96; tick++) {
+        await scheduler.tick()
+        advance(15 * MINUTE_MS)
+      }
+      expect(await queue.waiting()).toBe(day)
+    }
+  })
+
   it('records a name that no longer resolves as a failed scan, and alerts that the site is down', async () => {
     const { scheduler, monitors, scans, queue, sent, user, watch } = setup({
       resolver: () => Promise.reject(new Error('nxdomain')),

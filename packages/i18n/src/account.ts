@@ -375,7 +375,10 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
     },
     monitor: {
       off: 'Not monitored',
-      on: (days) => `Scanned automatically every ${englishCount(days, 'day', 'days')}`,
+      on: (days) =>
+        days === 1
+          ? 'Scanned automatically every day'
+          : `Scanned automatically every ${englishCount(days, 'day', 'days')}`,
       nextRun: (date) => `Next scan: ${date}`,
       enable: 'Monitor this site',
       enabling: 'Turning monitoring on…',

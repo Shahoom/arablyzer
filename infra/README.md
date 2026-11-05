@@ -241,7 +241,7 @@ year; erasing an account removes its address from the audit and replaces its id 
 
 **Monitoring and alerts (M4.3).** A person turns monitoring on for a saved site on `/account`; the `monitor`
 service, a second entry of the API's image (`apps/api/src/monitor/main.ts`) on the application role, scans it every
-`ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` days (7 when empty) for up to `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`
+`ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` days (7 when empty; the plan's days are read at every run, so a paid plan with `ARABLYZER_PLAN_<PLAN>_MONITOR_EVERY_DAYS=1` watches daily) for up to `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`
 sites (1 when empty), and checks both on every run. It is not the worker: the worker's role reads no account and
 inserts no scan (M4.1). It starts scans only while the queue holds less than half of `ARABLYZER_LIMIT_QUEUE`, takes
 the host's bucket and the person's place like any scan, and sends the alerts the person asked for (a score drop beyond
