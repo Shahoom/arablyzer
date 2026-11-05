@@ -33,7 +33,9 @@ function timed<T>(run: () => T): { value: T; ms: number } {
 }
 
 describe('collectPage on hostile HTML', () => {
-  it('stays linear with tens of thousands of siblings', () => {
+  // The 60 s is a wall-clock cap, not the check: three small pages and a large one took over 5 s of
+  // vitest's default on CI, and the ratio below is what fails a walk that is not linear.
+  it('stays linear with tens of thousands of siblings', { timeout: 60_000 }, () => {
     const siblings = (count: number) => `<body>${'<a href="/x">ب</a>'.repeat(count)}`
     // Ten times the siblings may take ten times as long; a walk that is quadratic in them takes a
     // hundred times as long. The ratio holds on a busy CI runner, where a number of milliseconds
