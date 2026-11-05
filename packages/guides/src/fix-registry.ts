@@ -6,7 +6,9 @@ import { definition as crawledCurrentlyNotIndexed } from './fix/crawled-currentl
 import { definition as discoveredCurrentlyNotIndexed } from './fix/discovered-currently-not-indexed/guide'
 import { definition as duplicateGoogleChoseDifferentCanonicalThanUser } from './fix/duplicate-google-chose-different-canonical-than-user/guide'
 import { definition as duplicateWithoutUserSelectedCanonical } from './fix/duplicate-without-user-selected-canonical/guide'
+import { definition as indexedThoughBlockedByRobotsTxt } from './fix/indexed-though-blocked-by-robots-txt/guide'
 import { definition as notFound404 } from './fix/not-found-404/guide'
+import { definition as pageIndexedWithoutContent } from './fix/page-indexed-without-content/guide'
 import { definition as pageWithRedirect } from './fix/page-with-redirect/guide'
 import { definition as redirectError } from './fix/redirect-error/guide'
 import { definition as serverError5xx } from './fix/server-error-5xx/guide'
@@ -35,4 +37,6 @@ export const FIX_GUIDE_DEFINITIONS: readonly FixGuideDefinition[] = [
   duplicateWithoutUserSelectedCanonical,
   duplicateGoogleChoseDifferentCanonicalThanUser,
   pageWithRedirect,
+  indexedThoughBlockedByRobotsTxt,
+  pageIndexedWithoutContent,
 ]
