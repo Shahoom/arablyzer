@@ -27,6 +27,13 @@ if (!existsSync(CLI)) {
     `${CLI} is missing: run pnpm test:e2e or test:browser from the repository root, or pnpm --filter @arablyzer/cli build`,
   )
 }
+// The versions the hint names are the ones the package pins (src/versions.ts), so a bump of one
+// moves the message and not this test.
+const OPTIONAL = (
+  JSON.parse(
+    readFileSync(fileURLToPath(new URL('../../package.json', import.meta.url)), 'utf8'),
+  ) as { optionalDependencies: Record<'lighthouse' | 'playwright-core' | 'puppeteer-core', string> }
+).optionalDependencies
 const RULES_DIR = fileURLToPath(new URL('../../../rules/src/rules/', import.meta.url))
 const SHARED_SITES = fileURLToPath(new URL('../../../../fixtures/sites/', import.meta.url))
 
@@ -258,8 +265,13 @@ describe('arablyzer without its optional packages (M1.3b review)', () => {
       expect(report.scan.notices.map((notice) => notice.code)).toEqual(
         expect.arrayContaining(['engine-unavailable', 'lab-unavailable']),
       )
-      expect(result.stderr).toContain('npx playwright-core@1.63.0 install chromium')
-      expect(result.stderr).toContain('lighthouse@13.5.0 and puppeteer-core@25.16.0')
+      expect(OPTIONAL['playwright-core']).toMatch(/^\d+\.\d+\.\d+$/)
+      expect(result.stderr).toContain(
+        `npx playwright-core@${OPTIONAL['playwright-core']} install chromium`,
+      )
+      expect(result.stderr).toContain(
+        `lighthouse@${OPTIONAL.lighthouse} and puppeteer-core@${OPTIONAL['puppeteer-core']}`,
+      )
       // Not rendered, so partial: exit 2, and never a crash.
       expect(result.code).toBe(2)
       expect(result.stderr).not.toContain('unexpected error')
