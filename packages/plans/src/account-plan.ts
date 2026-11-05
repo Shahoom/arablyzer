@@ -150,14 +150,22 @@ function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
   })
 }
 
-/** A paid plan is configured with all five numbers or none; half of one is a mistake. */
-function optionalPlan(env: Env, id: 'pro' | 'agency'): AccountPlan | null {
+/**
+ * A paid plan is configured with all five numbers or none; half of one is a mistake. Its
+ * monitoring starts from what the free account has (a paid plan that sets nothing is no worse), so
+ * `MONITOR_EVERY_DAYS=1` is the whole of what makes a plan watch daily.
+ */
+function optionalPlan(env: Env, id: 'pro' | 'agency', account: AccountPlan): AccountPlan | null {
   const set = FIELDS.filter((field) => (env[name(id, field)]?.trim() ?? '') !== '')
   if (set.length === 0) return null
   if (set.length < FIELDS.length) {
     throw new Error(`${id} needs all of ${FIELDS.map((f) => name(id, f)).join(', ')}, or none`)
   }
-  return planFrom(env, id, DEVELOPMENT_ACCOUNT_PLAN)
+  return planFrom(env, id, {
+    ...DEVELOPMENT_ACCOUNT_PLAN,
+    monitoredSites: account.monitoredSites,
+    monitorEveryDays: account.monitorEveryDays,
+  })
 }
 
 /** The rate a window allows, in scans per second. */
@@ -169,10 +177,11 @@ const rate = (window: Window) => window.scans / window.seconds
  * less than the anonymous visitor has (Phase 4 design §6): it refuses to start rather than do so.
  */
 export function planCatalogFrom(env: Env, anonymous: ScanLimits): PlanCatalog {
+  const account = planFrom(env, 'account', DEVELOPMENT_ACCOUNT_PLAN)
   const catalog: PlanCatalog = Object.freeze({
-    account: planFrom(env, 'account', DEVELOPMENT_ACCOUNT_PLAN),
-    pro: optionalPlan(env, 'pro'),
-    agency: optionalPlan(env, 'agency'),
+    account,
+    pro: optionalPlan(env, 'pro', account),
+    agency: optionalPlan(env, 'agency', account),
   })
   for (const plan of [catalog.account, catalog.pro, catalog.agency]) {
     if (plan === null) continue
@@ -183,6 +192,16 @@ export function planCatalogFrom(env: Env, anonymous: ScanLimits): PlanCatalog {
       throw new Error(
         `The ${plan.id} plan's concurrent scans are fewer than an anonymous visitor's`,
       )
+    }
+    // Monitoring only grows with the plans: the free account is weekly (the owner's decision), a
+    // paid plan may be daily, and none may watch fewer sites or less often than the one below it.
+    if (plan !== catalog.account) {
+      if (plan.monitorEveryDays > catalog.account.monitorEveryDays) {
+        throw new Error(`The ${plan.id} plan monitors less often than the free account`)
+      }
+      if (plan.monitoredSites < catalog.account.monitoredSites) {
+        throw new Error(`The ${plan.id} plan monitors fewer sites than the free account`)
+      }
     }
   }
   return catalog

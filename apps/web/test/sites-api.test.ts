@@ -9,6 +9,7 @@ import {
   scanSite,
   setMonitor,
   testAlerts,
+  testEmailAlerts,
 } from '../src/islands/sites-api'
 
 const json = (body: unknown, status = 200) =>
@@ -66,6 +67,13 @@ describe('what each call sends', () => {
       (send: typeof fetch) => testAlerts(send),
       'POST',
       '/api/account/alerts/test',
+      undefined,
+    ],
+    [
+      'testEmailAlerts',
+      (send: typeof fetch) => testEmailAlerts(send),
+      'POST',
+      '/api/account/alerts/test-email',
       undefined,
     ],
   ])('%s', async (_name, call, method, path, body) => {

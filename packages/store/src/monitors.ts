@@ -53,6 +53,8 @@ export interface PendingRun {
   readonly scheduledFor: Date
   /** Deliveries tried so far. */
   readonly attempts: number
+  /** The channels this run's alert has already reached, so a retry never sends to them twice. */
+  readonly delivered: readonly string[]
   readonly state: ScanState
   readonly createdAt: Date
 }
@@ -178,6 +180,8 @@ export interface MonitorData {
   settle(scanId: string, at: Date): Promise<void>
   /** A delivery failed: try again after `after`, `attempts` made so far. */
   retryLater(scanId: string, after: Date, attempts: number): Promise<void>
+  /** The run's alert reached `channel`: a retry of the run skips it. Idempotent. */
+  markDelivered(scanId: string, channel: string): Promise<void>
   alerts(userId: string): Promise<StoredAlerts>
   saveAlerts(userId: string, patch: AlertsPatch): Promise<StoredAlerts>
   /**
@@ -198,6 +202,7 @@ interface MemoryRun {
   notified: boolean
   attempts: number
   retryAfter: Date | null
+  delivered: string[]
 }
 
 /** MonitorData in memory, over the memory scan store and account data, for tests and `pnpm dev`. */
@@ -325,6 +330,7 @@ export class MemoryMonitorData implements MonitorData {
       notified: false,
       attempts: 0,
       retryAfter: null,
+      delivered: [],
     })
     this.#monitors.set(run.siteId, {
       ...monitor,
@@ -385,6 +391,7 @@ export class MemoryMonitorData implements MonitorData {
         email: this.emails.get(monitor.userId) ?? `${monitor.userId}@example.invalid`,
         scheduledFor: run.scheduledFor,
         attempts: run.attempts,
+        delivered: [...run.delivered],
         state: scan.state,
         createdAt: scan.createdAt,
       })
@@ -417,6 +424,12 @@ export class MemoryMonitorData implements MonitorData {
       run.retryAfter = after
       run.attempts = attempts
     }
+    return Promise.resolve()
+  }
+
+  markDelivered(scanId: string, channel: string): Promise<void> {
+    const run = this.#runs.find((kept) => kept.scanId === scanId)
+    if (run !== undefined && !run.delivered.includes(channel)) run.delivered.push(channel)
     return Promise.resolve()
   }
 
