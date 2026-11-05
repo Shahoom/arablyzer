@@ -1,8 +1,17 @@
 import { fileURLToPath } from 'node:url'
 import { executablePathFor } from '@arablyzer/browser/engines'
 import { serveSite, type FixtureSite } from '@arablyzer/fixtures'
-import { hreflangTags, productJsonLd, robotsTest, whatsAppLink } from '@arablyzer/generators'
+import {
+  arabicSlug,
+  decodeError,
+  fixProductTitle,
+  hreflangTags,
+  productJsonLd,
+  robotsTest,
+  whatsAppLink,
+} from '@arablyzer/generators'
 import { GENERATORS_UI } from '@arablyzer/i18n/generators'
+import { TEXT_TOOLS_UI } from '@arablyzer/i18n/text-tools'
 import type { Engine } from '@arablyzer/report-schema'
 import { chromium, firefox, webkit, type Browser, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -135,6 +144,43 @@ describe.each(ENGINES)('the generators in %s', (engine) => {
       expect(await outputs(tab)).toEqual([expected.html])
       await tab.context().close()
     }
+  }, 60_000)
+
+  it('writes the slug Node writes, as it shows and as it is sent', async () => {
+    const title = 'العُروض الخـاصة: خصم ٥٠٪!'
+    const tab = await open(browser, 'arabic-slug-generator')
+    await tab.fill('#field-title', title)
+    await tab.fill('#field-base', 'https://example.com/offers')
+    await tab.click('form[data-tool-kind] button[type="submit"]')
+    const expected = arabicSlug(title)
+    expect(await outputs(tab)).toEqual([
+      expected.slug,
+      expected.encoded,
+      `https://example.com/offers/${expected.encoded}`,
+    ])
+    await tab.context().close()
+  }, 60_000)
+
+  it('fixes the title Node fixes, and says what it changed', async () => {
+    const title = 'مســك أبيض شحن مجاني وخصم ٣٠٪ لفترة محدودة'
+    const tab = await open(browser, 'title-fixer')
+    await tab.fill('#field-title', title)
+    await tab.click('form[data-tool-kind] button[type="submit"]')
+    expect(await outputs(tab)).toEqual([fixProductTitle(title).title])
+    const notes = await tab.locator('section[aria-label] li').allTextContents()
+    expect(notes[0]).toContain(TEXT_TOOLS_UI.ar.title.changes.tatweel)
+    await tab.context().close()
+  }, 60_000)
+
+  it('explains the Search Console message Node explains', async () => {
+    const message = 'Crawled - currently not indexed'
+    const tab = await open(browser, 'error-decoder')
+    await tab.fill('#field-message', message)
+    await tab.click('form[data-tool-kind] button[type="submit"]')
+    await tab.locator('section[aria-label] li').first().waitFor()
+    const shown = await tab.locator('section[aria-label]').innerText()
+    expect(shown).toContain(decodeError(message)[0]?.ar.means)
+    await tab.context().close()
   }, 60_000)
 
   it('judges a pasted robots.txt as Node does, naming the rule and its line', async () => {

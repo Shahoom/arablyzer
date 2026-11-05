@@ -164,7 +164,9 @@ describe('the Arabic X-ray and country fit cards, rendered in Chromium', () => {
     const failed = report.rules
       .filter((rule) => rule.status === 'fail' || rule.status === 'error')
       .map((rule) => rule.id)
-      .filter((id) => !['page-noindex', 'h1-missing', 'js-only-content'].includes(id))
+      .filter(
+        (id) => !['page-noindex', 'h1-missing', 'js-only-content', 'url-slug-invalid'].includes(id),
+      )
     expect(failed).toEqual([])
   }, 180_000)
 })

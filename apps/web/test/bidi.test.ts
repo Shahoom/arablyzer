@@ -50,6 +50,12 @@ describe('isolateLatin', () => {
     expect(isolated('ويرفض «٩١٢٣٤٥٦٧»، ونمطه [0-9]{8}.')).toEqual(['[0-9]{8}'])
   })
 
+  it('isolates a date written with hyphens, which a right-to-left line draws in pieces', () => {
+    expect(isolated('وتاريخ مكتوب «2026-03-05» في سطر و«05/03/2026» في سطر بعده')).toEqual([
+      '2026-03-05',
+    ])
+  })
+
   it('leaves numbers alone, and keeps every character', () => {
     const text = 'هاتف عرضها 390 بكسل بمقدار 280 بكسل، و«12.50 ر.ع.» في CSS هنا.'
     expect(isolated(text)).toEqual(['CSS'])
