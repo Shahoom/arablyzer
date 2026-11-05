@@ -92,6 +92,13 @@
       "when": 1793820366789,
       "tag": "0012_whatsapp",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793917804228,
+      "tag": "0013_ai_fixes",
+      "breakpoints": true
     }
   ]
 }
