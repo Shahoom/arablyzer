@@ -7,22 +7,22 @@
       "name": "aggregates.json",
       "mediaType": "application/json",
       "description": "The numbers of the report: counts for each country, platform and metric.",
-      "bytes": 16157,
-      "sha256": "41796d42fecb54c75964dbc832f0c89b246bad7e0d498756ee3cf0d2328f60bc"
+      "bytes": 17242,
+      "sha256": "074bf1f2661374a8c7eb1a1d42744ccfd05ebc3ddd0214296a4f965ada310aea"
     },
     {
       "name": "aggregates.csv",
       "mediaType": "text/csv",
       "description": "The same aggregates, one row for each category of a metric in a cell.",
-      "bytes": 55033,
-      "sha256": "1d1014f2fd11dafbbafbece11a842f993ff524a1277e884f567e22e611c0e095"
+      "bytes": 62540,
+      "sha256": "e324a175eea8caba762777b1e4449f858fa6fad032cbfaeeb62b102f894cfcf7"
     },
     {
       "name": "aggregates.parquet",
       "mediaType": "application/vnd.apache.parquet",
       "description": "The aggregates as Parquet.",
-      "bytes": 17159,
-      "sha256": "ddf8a05be71d737c35de7cc0f1ed8787e57e2c35c5ec6a72552501abfcf3ce93"
+      "bytes": 19288,
+      "sha256": "d7755858ab62d19b2f475afdc2576ad2cde3d9de160a64dc5879e17b6bea9bcf"
     },
     {
       "name": "schema.json",
