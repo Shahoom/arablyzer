@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "State of the Arabic Web: table",
+  "description": "The rows of aggregates.parquet / aggregates.csv: one category of a metric in one cell (all pages, a country, a platform, or both). No row is a site. Licence CC BY 4.0.",
+  "$defs": {
+    "aggregates": {
+      "type": "object",
+      "title": "An aggregate",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "metric",
+        "category",
+        "sites",
+        "judged",
+        "share"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "all, country, platform or country_platform."
+        },
+        "country": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The country code, for the scopes that have one."
+        },
+        "platform": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The platform id (`none` and `other` too), for the scopes that have one."
+        },
+        "metric": {
+          "type": "string",
+          "description": "The metric id."
+        },
+        "category": {
+          "type": "string",
+          "description": "The metric’s category: yes or no for a binary metric."
+        },
+        "sites": {
+          "type": "integer",
+          "description": "Sites in the category."
+        },
+        "judged": {
+          "type": "integer",
+          "description": "Sites judged for the metric in the cell: the denominator."
+        },
+        "share": {
+          "type": "number",
+          "description": "The category's share of the sites judged. In the scope `all` it is weighted by the size of each country's list; elsewhere it is `sites` over `judged`."
+        },
+        "lo": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The lower end of the 95% interval of the share of `yes`; null for the other categories and for a distribution."
+        },
+        "hi": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "The upper end of that interval."
+        }
+      }
+    }
+  }
+}
