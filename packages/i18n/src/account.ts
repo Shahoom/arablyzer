@@ -156,6 +156,31 @@ export interface AccountStrings {
     readonly emailTestOk: string
     readonly emailTestFailed: string
     readonly loading: string
+    /** WhatsApp alerts (M5.6): the number, its code, and the sites that use it. */
+    readonly whatsapp: {
+      readonly title: string
+      readonly lead: string
+      readonly phoneLabel: string
+      readonly phoneHint: string
+      readonly sendCode: string
+      readonly sending: string
+      readonly codeSent: string
+      readonly numberLabel: string
+      readonly codeLabel: string
+      readonly verify: string
+      readonly verifying: string
+      readonly wrongCode: string
+      readonly sendFailed: string
+      readonly verified: string
+      readonly changeNumber: string
+      readonly remove: string
+      readonly removing: string
+      readonly sitesTitle: string
+      readonly sitesLead: string
+      readonly noSites: string
+      readonly needsNumber: string
+      readonly saved: string
+    }
   }
   readonly problems: Readonly<Record<AccountProblem, string>>
 }
@@ -292,6 +317,30 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       emailTestOk: 'أُرسلت الرسالة. تفقّد بريدك، وإن لم تجدها ففتّش مجلد الرسائل غير المرغوبة.',
       emailTestFailed: 'تعذّر إرسال الرسالة الآن. أعد المحاولة بعد قليل.',
       loading: 'نفتح التنبيهات…',
+      whatsapp: {
+        title: 'تنبيهات واتساب',
+        lead: 'استلم التنبيهات المهمة على واتساب: انخفاض الدرجة، ومشكلة حرجة جديدة، وتعذّر فحص الموقع. لا نرسل إلى رقمك قبل أن تؤكده بالرمز، ولا نرسل عن موقع لم تفعّله هنا.',
+        phoneLabel: 'رقم واتساب',
+        phoneHint: 'اكتب الرقم مع رمز الدولة. نرسل إليه رمز تأكيد على واتساب.',
+        sendCode: 'أرسل رمز التأكيد',
+        sending: 'نرسل…',
+        codeSent: 'أرسلنا رمز التأكيد على واتساب. اكتبه هنا خلال عشر دقائق.',
+        numberLabel: 'الرقم',
+        codeLabel: 'رمز التأكيد',
+        verify: 'أكّد الرقم',
+        verifying: 'نتحقق…',
+        wrongCode: 'الرمز غير صحيح أو انتهت صلاحيته. اطلب رمزاً جديداً.',
+        sendFailed: 'تعذّر إرسال الرمز. تأكد من الرقم ومن أنه يعمل على واتساب، ثم أعد المحاولة.',
+        verified: 'تم تأكيد الرقم. اختر الآن المواقع التي تصلك تنبيهاتها على واتساب.',
+        changeNumber: 'رقم آخر',
+        remove: 'احذف الرقم',
+        removing: 'نحذف…',
+        sitesTitle: 'المواقع',
+        sitesLead: 'فعّل واتساب للمواقع التي تريد تنبيهاتها على هذا الرقم.',
+        noSites: 'فعّل مراقبة موقع من القائمة أعلاه ليظهر هنا.',
+        needsNumber: 'أكّد رقمك أولاً لتختار المواقع.',
+        saved: 'حُفظ اختيارك.',
+      },
     },
     problems: {
       'bad-request': 'تعذّر قراءة الطلب. حدّث الصفحة وأعد المحاولة.',
@@ -447,6 +496,33 @@ export const ACCOUNT_UI: Copy<AccountStrings> = {
       emailTestOk: 'The email was sent. Check your inbox, and your spam folder if it is not there.',
       emailTestFailed: 'We could not send the email now. Try again in a moment.',
       loading: 'Opening alerts…',
+      whatsapp: {
+        title: 'WhatsApp alerts',
+        lead: 'Get the alerts that matter on WhatsApp: a score drop, a new critical finding, a site that cannot be scanned. We send nothing to your number until you confirm it with a code, and nothing about a site you have not switched on here.',
+        phoneLabel: 'WhatsApp number',
+        phoneHint:
+          'Write the number with its country code. We send a confirmation code to it on WhatsApp.',
+        sendCode: 'Send the confirmation code',
+        sending: 'Sending…',
+        codeSent: 'We sent the confirmation code on WhatsApp. Enter it here within ten minutes.',
+        numberLabel: 'Number',
+        codeLabel: 'Confirmation code',
+        verify: 'Confirm the number',
+        verifying: 'Checking…',
+        wrongCode: 'The code is wrong or has expired. Ask for a new one.',
+        sendFailed:
+          'We could not send the code. Check the number and that it is on WhatsApp, then try again.',
+        verified:
+          'The number is confirmed. Now choose the sites whose alerts you want on WhatsApp.',
+        changeNumber: 'Another number',
+        remove: 'Remove the number',
+        removing: 'Removing…',
+        sitesTitle: 'Sites',
+        sitesLead: 'Switch WhatsApp on for the sites whose alerts you want on this number.',
+        noSites: 'Turn on monitoring for a site in the list above and it will appear here.',
+        needsNumber: 'Confirm your number first to choose sites.',
+        saved: 'Your choice is saved.',
+      },
     },
     problems: {
       'bad-request': 'We could not read that request. Reload the page and try again.',

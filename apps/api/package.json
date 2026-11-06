@@ -10,9 +10,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude \"test/ssrf/**\" --exclude \"test/services/**\"",
     "test:ssrf": "vitest run test/ssrf",
-    "test:services": "vitest run test/services"
+    "test:services": "vitest run test/services",
+    "ai:eval": "tsx scripts/ai-eval.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
     "@arablyzer/api-contract": "workspace:*",
     "@arablyzer/collectors": "workspace:*",
     "@arablyzer/egress": "workspace:*",

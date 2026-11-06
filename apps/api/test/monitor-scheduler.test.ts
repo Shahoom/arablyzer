@@ -22,6 +22,7 @@ import {
 import { noMailer, type MailMessage, type MailOutcome } from '../src/monitor/mail'
 import { DAY_MS, MINUTE_MS } from '../src/monitor/schedule'
 import { unsubscribeFor } from '../src/monitor/unsubscribe'
+import type { WhatsAppMessage } from '../src/monitor/whatsapp'
 import type { AlertMessage, Delivery } from '../src/monitor/webhook'
 
 const START = new Date('2026-10-09T12:00:00.000Z')
@@ -48,6 +49,8 @@ function setup(
     status?: () => number | null
     /** A mail provider that is on; what each message becomes. Absent, mail is off. */
     mail?: (message: MailMessage) => MailOutcome | Promise<MailOutcome>
+    /** A WhatsApp provider that is on; what each message becomes. Absent, WhatsApp is off. */
+    whatsapp?: (message: WhatsAppMessage) => MailOutcome
   } = {},
 ) {
   let clock = START
@@ -60,7 +63,9 @@ function setup(
   const limiter = new MemoryRateLimiter()
   const sent: AlertMessage[] = []
   const mailed: MailMessage[] = []
+  const texted: WhatsAppMessage[] = []
   const mailOn = options.mail
+  const whatsappOn = options.whatsapp
   const account = { ...DEVELOPMENT_ACCOUNT_PLAN, ...options.plan }
   const plans: PlanCatalog = { account, pro: null, agency: null }
   let n = 0
@@ -97,6 +102,17 @@ function setup(
             },
           },
     ...(mailOn === undefined ? {} : { unsubscribe: unsubscribeFor('k'.repeat(40), ORIGIN) }),
+    ...(whatsappOn === undefined
+      ? {}
+      : {
+          whatsapp: {
+            available: true,
+            send: (message: WhatsAppMessage) => {
+              texted.push(message)
+              return Promise.resolve(whatsappOn(message))
+            },
+          },
+        }),
     origin: ORIGIN,
     newId: () => `scan${String(++n).padStart(18, '0')}`,
     now: () => clock,
@@ -148,6 +164,7 @@ function setup(
     limiter,
     sent,
     mailed,
+    texted,
     advance,
     user,
     watch,
@@ -319,6 +336,8 @@ describe('alerts', () => {
     before: Report | null,
     after: Report | 'fail',
     settings: Parameters<MemoryMonitorData['saveAlerts']>[1] = {},
+    /** Runs once the site is monitored, before its scan starts. */
+    prepare?: (siteId: string) => Promise<void>,
   ) {
     const [site] = await t.user('ali')
     await t.monitors.saveAlerts('ali', { webhook: HOOK, ...settings })
@@ -339,6 +358,7 @@ describe('alerts', () => {
       await t.finish(id, before)
     }
     await t.watch('ali', site?.id ?? '')
+    await prepare?.(site?.id ?? '')
     await t.scheduler.tick()
     const [run] = await t.monitors.pending(START, 5)
     await t.finish(run?.scanId ?? '', after)
@@ -554,6 +574,149 @@ describe('alerts', () => {
       await t.scheduler.tick()
       expect(t.sent).toHaveLength(1)
       expect(t.mailed).toHaveLength(1)
+    })
+  })
+
+  describe('WhatsApp', () => {
+    /** A verified number and the site opted in, the way the page does it. */
+    const optIn =
+      (t: ReturnType<typeof setup>, options: { verified?: boolean; site?: boolean } = {}) =>
+      async (siteId: string) => {
+        await t.monitors.startWhatsapp('ali', {
+          phone: '+966501234567',
+          codeHash: 'h',
+          expiresAt: new Date(START.getTime() + DAY_MS),
+          at: START,
+        })
+        if (options.verified !== false) await t.monitors.confirmWhatsapp('ali', 'h', START, 5)
+        if (options.site !== false) await t.monitors.setWhatsappSite('ali', siteId, true)
+      }
+    const on = { plan: { whatsappAlerts: true } }
+
+    it('sends one approved template per event to the number of an opted-in site, in the account’s language', async () => {
+      const t = setup({ ...on, whatsapp: () => 'sent' })
+      t.monitors.languages.set('ali', 'en')
+      const { scanId } = await ran(
+        t,
+        report(90, ['aaaaaaaaaaaaaaaa']),
+        report(60, ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb']),
+        {},
+        optIn(t),
+      )
+      await t.scheduler.tick()
+      expect(t.texted).toEqual([
+        {
+          to: '+966501234567',
+          template: 'scoreDrop',
+          language: 'en',
+          params: ['ali0.example', '90', '60', `${ORIGIN}/en/r/${scanId}`],
+        },
+        {
+          to: '+966501234567',
+          template: 'critical',
+          language: 'en',
+          params: ['ali0.example', '1', `${ORIGIN}/en/r/${scanId}`],
+        },
+      ])
+      expect(await t.monitors.pending(t.now(), 5)).toEqual([])
+    })
+
+    it('says the same about a site that cannot be reached, and when monitoring stops', async () => {
+      const t = setup({ ...on, whatsapp: () => 'sent' })
+      const [site] = await t.user('ali')
+      await t.watch('ali', site?.id ?? '')
+      await optIn(t)(site?.id ?? '')
+      await t.scheduler.tick()
+      const [run] = await t.monitors.pending(t.now(), 5)
+      await t.finish(run?.scanId ?? '', 'fail')
+      await t.scheduler.tick()
+      expect(t.texted).toEqual([
+        { to: '+966501234567', template: 'down', language: 'ar', params: ['ali0.example'] },
+      ])
+    })
+
+    it.each([
+      ['the plan has no WhatsApp alerts', { plan: { whatsappAlerts: false } }, {}],
+      ['the number was never verified', on, { verified: false }],
+      ['the site was not opted in', on, { site: false }],
+    ])(
+      'sends nothing when %s, and the other channels are as they were',
+      async (_why, plan, opts) => {
+        const t = setup({ ...plan, whatsapp: () => 'sent' })
+        await ran(t, report(90), report(10), {}, optIn(t, opts))
+        await t.scheduler.tick()
+        expect(t.texted).toHaveLength(0)
+        expect(t.sent).toHaveLength(1)
+      },
+    )
+
+    it('is off without a provider, and never carries the weekly summary', async () => {
+      const off = setup(on)
+      await ran(off, report(90), report(10), {}, optIn(off))
+      await off.scheduler.tick()
+      expect(off.texted).toHaveLength(0)
+      expect(off.sent).toHaveLength(1)
+
+      const t = setup({ ...on, whatsapp: () => 'sent' })
+      await ran(t, report(90), report(88), { weeklySummary: true }, optIn(t))
+      await t.scheduler.tick()
+      expect(t.sent.map((m) => m.type)).toEqual(['monitor.summary'])
+      expect(t.texted).toHaveLength(0)
+    })
+
+    it('never sends a template twice: a retry sends only what has not gone, and the other channels are not repeated', async () => {
+      let answers: MailOutcome[] = ['sent', 'retry']
+      const t = setup({
+        ...on,
+        mail: () => 'sent',
+        whatsapp: () => answers.shift() ?? 'sent',
+      })
+      await ran(
+        t,
+        report(90, ['aaaaaaaaaaaaaaaa']),
+        report(60, ['aaaaaaaaaaaaaaaa', 'bbbbbbbbbbbbbbbb']),
+        { email: true },
+        optIn(t),
+      )
+      await t.scheduler.tick()
+      expect(t.texted.map((m) => m.template)).toEqual(['scoreDrop', 'critical'])
+      answers = []
+      t.advance(BACKOFF_MS[0] ?? 0)
+      await t.scheduler.tick()
+      expect(t.texted.map((m) => m.template)).toEqual(['scoreDrop', 'critical', 'critical'])
+      t.advance(BACKOFF_MS.at(-1) ?? 0)
+      await t.scheduler.tick()
+      expect(t.texted).toHaveLength(3)
+      expect(t.sent).toHaveLength(1)
+      expect(t.mailed).toHaveLength(1)
+      expect(await t.monitors.pending(t.now(), 5)).toEqual([])
+    })
+
+    it('does not retry a number or template the provider refuses for good', async () => {
+      const t = setup({ ...on, whatsapp: () => 'rejected' })
+      await ran(t, report(90), report(10), {}, optIn(t))
+      await t.scheduler.tick()
+      t.advance(BACKOFF_MS.at(-1) ?? 0)
+      await t.scheduler.tick()
+      expect(t.texted).toHaveLength(1)
+      expect(await t.monitors.pending(t.now(), 5)).toEqual([])
+    })
+
+    it('lets a provider that throws neither block the webhook nor the run, and gives up in the end', async () => {
+      const t = setup({
+        ...on,
+        whatsapp: () => {
+          throw new Error('provider down')
+        },
+      })
+      await ran(t, report(90), report(10), {}, optIn(t))
+      for (let i = 0; i < MAX_ATTEMPTS + 1; i++) {
+        await t.scheduler.tick()
+        t.advance(BACKOFF_MS.at(-1) ?? 0)
+      }
+      expect(t.sent).toHaveLength(1)
+      expect(t.texted).toHaveLength(MAX_ATTEMPTS)
+      expect(await t.monitors.pending(t.now(), 5)).toEqual([])
     })
   })
 

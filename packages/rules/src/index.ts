@@ -36,6 +36,7 @@ import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
 import { rule as dateFormsMixed } from './rules/date-forms-mixed/rule'
 import { rule as dialectRegister } from './rules/dialect-register/rule'
 import { rule as dmarcMissing } from './rules/dmarc-missing/rule'
+import { rule as faqSchemaMismatch } from './rules/faq-schema-mismatch/rule'
 import { rule as feedFileUnreadable } from './rules/feed-file-unreadable/rule'
 import { rule as feedRequiredMissing } from './rules/feed-required-missing/rule'
 import { rule as feedTextQuality } from './rules/feed-text-quality/rule'
@@ -56,6 +57,7 @@ import { rule as hreflangSitemapInvalid } from './rules/hreflang-sitemap-invalid
 import { rule as hreflangXDefaultMissing } from './rules/hreflang-x-default-missing/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
 import { rule as httpsMissing } from './rules/https-missing/rule'
+import { rule as imageAltQuality } from './rules/image-alt-quality/rule'
 import { rule as imageFormatLegacy } from './rules/image-format-legacy/rule'
 import { rule as jsOnlyContent } from './rules/js-only-content/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
@@ -63,11 +65,13 @@ import { rule as knowledgeGraphEntity } from './rules/knowledge-graph-entity/rul
 import { rule as linkBroken } from './rules/link-broken/rule'
 import { rule as localBusinessInvalid } from './rules/local-business-invalid/rule'
 import { rule as lookalikeDomains } from './rules/lookalike-domains/rule'
+import { rule as markupContentMismatch } from './rules/markup-content-mismatch/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as misspellingsUncovered } from './rules/misspellings-uncovered/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as numberSeparatorsMixed } from './rules/number-separators-mixed/rule'
 import { rule as ogImageInvalid } from './rules/og-image-invalid/rule'
+import { rule as ogLocaleMismatch } from './rules/og-locale-mismatch/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
 import { rule as outboundLinksFound } from './rules/outbound-links-found/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
@@ -160,6 +164,7 @@ export const RULES: readonly Rule[] = [
   dateFormsMixed,
   dialectRegister,
   dmarcMissing,
+  faqSchemaMismatch,
   feedFileUnreadable,
   feedRequiredMissing,
   feedTextQuality,
@@ -180,6 +185,7 @@ export const RULES: readonly Rule[] = [
   hreflangXDefaultMissing,
   hstsMissing,
   httpsMissing,
+  imageAltQuality,
   imageFormatLegacy,
   jsOnlyContent,
   jsonldSyntaxError,
@@ -187,11 +193,13 @@ export const RULES: readonly Rule[] = [
   linkBroken,
   localBusinessInvalid,
   lookalikeDomains,
+  markupContentMismatch,
   metaDescriptionMissing,
   misspellingsUncovered,
   mixedContent,
   numberSeparatorsMixed,
   ogImageInvalid,
+  ogLocaleMismatch,
   ogTagsMissing,
   outboundLinksFound,
   pageNoindex,

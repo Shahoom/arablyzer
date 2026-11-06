@@ -4,6 +4,7 @@ import { localCrawlClient, localScanner, scanOptionsFrom } from '@arablyzer/scan
 import {
   MemoryAccountData,
   MemoryAdminData,
+  MemoryAiData,
   MemoryCrawlData,
   MemoryApiKeyData,
   MemoryPdfData,
@@ -68,6 +69,7 @@ const deps = apiDeps(env, {
   crawlData,
   pdfData,
   apiKeyData,
+  aiData: new MemoryAiData(),
   platformData: new MemoryPlatformData(store),
   adminData: new MemoryAdminData({
     users: () => authTables.user ?? [],
@@ -118,6 +120,7 @@ if (accounts?.monitors !== undefined && accounts.sender !== undefined) {
       sender: accounts.sender,
       mail: accounts.mail ?? noMailer,
       ...(accounts.unsubscribe === undefined ? {} : { unsubscribe: accounts.unsubscribe }),
+      ...(accounts.whatsapp === undefined ? {} : { whatsapp: accounts.whatsapp }),
       origin: `http://127.0.0.1:${String(port)}`,
       newId: newScanId,
       log: console.error,

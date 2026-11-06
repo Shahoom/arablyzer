@@ -333,6 +333,12 @@ for the free account (decided 2026-10), to set as they are on staging:
 | `RESEND_API_KEY`                            | empty   | the Resend key; only with the provider on                                        |
 | `ARABLYZER_MAIL_FROM`                       | empty   | `Arablyzer <alerts@send.<your domain>>`: a subdomain made for automated mail     |
 | `ARABLYZER_MAIL_SECRET`                     | empty   | 32+ random characters; signs the unsubscribe links                               |
+| `ARABLYZER_WHATSAPP_PROVIDER`               | empty   | WhatsApp alerts: empty is off; `cloud` turns them on (needs the two below)       |
+| `WHATSAPP_PHONE_NUMBER_ID`                  | empty   | the sending number's id in WhatsApp Manager                                      |
+| `WHATSAPP_ACCESS_TOKEN`                     | empty   | a system user's permanent token                                                  |
+| `WHATSAPP_API_VERSION`                      | empty   | the Graph API version; empty is `v23.0`                                          |
+| `WHATSAPP_APP_SECRET` / `WHATSAPP_VERIFY_TOKEN` | empty | together: Meta's webhook at `/api/whatsapp/webhook` (STOP replies)             |
+| `ARABLYZER_PLAN_ACCOUNT_WHATSAPP_ALERTS`    | empty   | `on` gives the free account WhatsApp alerts; empty is off (a paid plan's feature) |
 | `ARABLYZER_PLAN_ACCOUNT_CRAWL_PAGES`        | empty   | pages one deep crawl checks; empty is `50`                                       |
 | `ARABLYZER_CRAWL_DELAY_MS`                  | empty   | pause between two pages of a crawl; empty is `1000`                              |
 | `ARABLYZER_CRAWL_REPRESENTATIVES`           | empty   | pages per template scanned in the browsers; empty is `1`                         |
@@ -344,6 +350,22 @@ day from one visitor and one scan at a time. The `monitor` service (192 MiB, 0.5
 the scheduler; it starts a monitored site's scan only into the lower half of the queue, and sends the alerts as signed
 webhooks (Slack, Discord or JSON) through the egress proxy. The `crawler` service (192 MiB, 0.5 CPU, the same image)
 runs the deep crawls through the scanner and needs no other way out.
+
+**The fix assistant** (off until the Claude API key is set; docs/design/plans/fix-assistant.md). It is for signed-in
+accounts and costs money per suggestion, so it has a plan number and two caps:
+
+| Variable                                  | Secret | What it is                                                                                    |
+| ----------------------------------------- | :----: | --------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`                       |  yes   | the Claude API key; empty is off. Give it a Console workspace of its own, with a spend limit  |
+| `ARABLYZER_AI_SPEND_MONTHLY`              |   no   | **required with the key**: units (US dollars) the assistant may spend in a calendar month, UTC |
+| `ARABLYZER_AI_SPEND_DAILY`                |   no   | optional: units a UTC day, not above the monthly cap                                          |
+| `ARABLYZER_PLAN_ACCOUNT_AI_FIXES_PER_DAY` |   no   | suggestions an account may ask for in a day; empty is `0`, none: set it, or use the admin panel |
+| `ARABLYZER_AI_MODEL`                      |   no   | empty is `claude-opus-5-5`; another model needs `ARABLYZER_AI_PRICE_INPUT` and `_OUTPUT`      |
+
+The API refuses to start with the key set and the monthly cap missing, or any of these malformed; with the key empty it
+reads none of them. A request is held against the caps at its worst before the model is asked and settled at what the
+response says it cost, so the caps are not passed. Answers are stored 30 days by rule, evidence and language: asking
+again costs nothing.
 
 **Given by Cloudflare and Google** (the owner's accounts):
 

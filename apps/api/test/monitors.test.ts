@@ -230,6 +230,7 @@ describe('alert settings', () => {
       onDown: true,
       weeklySummary: false,
       email: { available: false, enabled: false },
+      whatsapp: { available: false, allowed: false, phone: null, verified: false, sites: [] },
     })
     const saved = await send(
       'PUT',

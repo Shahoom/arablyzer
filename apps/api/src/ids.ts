@@ -37,6 +37,11 @@ export function newPdfId(): string {
   return newCrawlId()
 }
 
+/** A fix assistant request's id: the same shape as a scan's. */
+export function newAiRequestId(): string {
+  return newCrawlId()
+}
+
 /** An API key's id: the same shape as a scan's (M5.1). */
 export function newApiKeyId(): string {
   return randomBytes(16).toString('base64url')

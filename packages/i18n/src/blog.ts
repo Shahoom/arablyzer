@@ -8,7 +8,14 @@ import { arabicCount, englishCount, type ArabicForms } from './plural'
  */
 
 /** The topics an article may carry: `tags` in an article's frontmatter names these slugs. */
-export const BLOG_TAGS = ['arabic-text', 'fonts', 'performance', 'search', 'ecommerce'] as const
+export const BLOG_TAGS = [
+  'arabic-text',
+  'fonts',
+  'performance',
+  'search',
+  'ecommerce',
+  'security',
+] as const
 export type BlogTag = (typeof BLOG_TAGS)[number]
 
 export interface BlogStrings {
@@ -120,6 +127,11 @@ export const BLOG_UI: Copy<BlogStrings> = {
         description:
           'ما يخص المتاجر الإلكترونية العربية: سلة وزد، الأسعار والعملات، وسرعة صفحات المنتجات.',
       },
+      security: {
+        name: 'الأمان والثقة',
+        description:
+          'ما يحمي الزائر وبريدك وصفحاتك: ترويسات الأمان، توثيق البريد، وصفحات الثقة في المتاجر.',
+      },
     },
     tagPage: {
       title: (name) => `مقالات عن ${name}`,
@@ -196,6 +208,11 @@ export const BLOG_UI: Copy<BlogStrings> = {
         name: 'Online stores',
         description:
           'What matters to Arabic online stores: Salla and Zid, prices and currencies, product-page speed.',
+      },
+      security: {
+        name: 'Security and trust',
+        description:
+          'What protects visitors, your email and your pages: security headers, email authentication, and store trust pages.',
       },
     },
     tagPage: {

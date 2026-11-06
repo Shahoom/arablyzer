@@ -9,7 +9,7 @@ draft: false
 reviewed: false
 tools: [indexability-check, robots-check, canonical-check, js-rendering-check, sitemap-check, redirect-chain-check, broken-links]
 rules: [robots-blocks-googlebot, page-noindex, canonical-conflict, js-only-content, sitemap-missing, sitemap-invalid, redirect-chain, link-broken]
-fix: [url-blocked-by-robots-txt, url-marked-noindex, soft-404, crawled-currently-not-indexed, discovered-currently-not-indexed, page-with-redirect]
+fix: [url-blocked-by-robots-txt, url-marked-noindex, soft-404, crawled-currently-not-indexed, discovered-currently-not-indexed, page-with-redirect, indexed-though-blocked-by-robots-txt, page-indexed-without-content]
 terms: [indexing, crawling, noindex, robots-txt, canonical-url, xml-sitemap]
 related: [salla-zid-seo-mistakes, hreflang-arabic-sites]
 ---

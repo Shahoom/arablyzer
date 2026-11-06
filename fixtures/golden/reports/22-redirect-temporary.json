@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.13.0"
+    "rulesetVersion": "0.15.0"
   },
   "target": {
     "url": "https://offers.example:30022/",
@@ -64,7 +64,7 @@
     "pass": 38,
     "fail": 1,
     "needsReview": 0,
-    "notApplicable": 41,
+    "notApplicable": 45,
     "error": 0,
     "bySeverity": {
       "critical": 0,
@@ -94,8 +94,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 80,
-      "total": 113
+      "ran": 84,
+      "total": 117
     }
   },
   "rules": [
@@ -367,6 +367,17 @@
       }
     },
     {
+      "id": "faq-schema-mismatch",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "وسوم الأسئلة الشائعة تقول ما لا تقوله الصفحة",
+        "en": "FAQ markup says what the page does not"
+      }
+    },
+    {
       "id": "form-address-arabic-rejected",
       "version": "1.0.0",
       "category": "forms",
@@ -524,6 +535,17 @@
       }
     },
     {
+      "id": "image-alt-quality",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص بديل للصورة لا يصف الصورة",
+        "en": "Image alt text that does not describe the image"
+      }
+    },
+    {
       "id": "jsonld-syntax-error",
       "version": "1.0.0",
       "category": "schema",
@@ -568,6 +590,17 @@
       }
     },
     {
+      "id": "markup-content-mismatch",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "البيانات المنظّمة تقول ما لا تقوله الصفحة",
+        "en": "Structured data says what the page does not"
+      }
+    },
+    {
       "id": "meta-description-missing",
       "version": "1.0.0",
       "category": "onpage",
@@ -609,6 +642,17 @@
       "title": {
         "ar": "صورة المشاركة ليست عنواناً كاملاً تستطيع التطبيقات رسمه",
         "en": "Share image is not a full address the apps can draw"
+      }
+    },
+    {
+      "id": "og-locale-mismatch",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لغة المشاركة لا تطابق لغة الصفحة",
+        "en": "Sharing language does not match the page's language"
       }
     },
     {

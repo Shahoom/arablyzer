@@ -1,8 +1,9 @@
-import { AUTH_ERROR_CODES, SCAN_ERROR_CODES } from '@arablyzer/api-contract/codes'
+import { AI_ERROR_CODES, AUTH_ERROR_CODES, SCAN_ERROR_CODES } from '@arablyzer/api-contract/codes'
 import { DEFAULT_POLICY } from '@arablyzer/egress'
 import { describe, expect, it } from 'vitest'
 import {
   ACCOUNT_UI,
+  AI_UI,
   ALL_COPY,
   CATEGORIES,
   codeParts,
@@ -181,6 +182,14 @@ describe('interface copy', () => {
         // A function of the copy takes its numbers as parameters: the sample ones are the only digits.
         const own = path.includes('()') ? text.replace(/\b(?:3|18|390)\b/g, '') : text
         expect(own, path).not.toMatch(/[0-9\u0660-\u0669]/)
+      }
+    }
+  })
+
+  it('has words for every error the fix assistant can give, and the page’s own', () => {
+    for (const lang of ['ar', 'en'] as const) {
+      for (const code of [...AI_ERROR_CODES, 'network'] as const) {
+        expect(AI_UI[lang].problems[code]).toBeTruthy()
       }
     }
   })
