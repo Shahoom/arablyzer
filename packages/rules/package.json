@@ -12,6 +12,7 @@
     "./feed-title": "./src/lib/feed-title.ts",
     "./hreflang": "./src/lib/hreflang.ts",
     "./iso-codes": "./src/lib/iso-codes.ts",
+    "./locale-format": "./src/lib/locale-format.ts",
     "./robots-match": "./src/lib/robots.ts",
     "./url-slug": "./src/lib/url-slug.ts",
     "./w3c-date": "./src/lib/w3c-date.ts",

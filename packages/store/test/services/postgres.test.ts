@@ -209,7 +209,10 @@ describe.skipIf(!hasPostgres)('PostgreSQL', () => {
     })
   })
 
-  describe('retention', () => {
+  // Each test here makes a database of its own and migrates it from nothing. On CI that is the
+  // cost, not the deleting: the files of this package create their databases at the same time, and
+  // one run took 5 s for the first of them and 2.3 s for the second, against 5 s of default.
+  describe('retention', { timeout: 30_000 }, () => {
     const day = 24 * 60 * 60 * 1000
     const ago = (days: number) => new Date(NOW.getTime() - days * day)
     /** A store of its own, so the scans of the tests before it are not counted. */

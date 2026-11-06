@@ -132,6 +132,81 @@ export interface TextToolsStrings {
     readonly descriptionCut: string
     readonly fits: string
   }
+  readonly business: {
+    readonly type: string
+    readonly types: Readonly<
+      Record<
+        | 'LocalBusiness'
+        | 'Store'
+        | 'Restaurant'
+        | 'CafeOrCoffeeShop'
+        | 'Bakery'
+        | 'Pharmacy'
+        | 'Dentist'
+        | 'BeautySalon'
+        | 'AutoRepair',
+        string
+      >
+    >
+    readonly nameAr: string
+    readonly nameEn: string
+    readonly country: string
+    readonly countries: Readonly<Record<'SA' | 'AE' | 'OM' | 'KW' | 'BH' | 'QA', string>>
+    readonly city: string
+    readonly street: string
+    readonly postalCode: string
+    readonly telephone: string
+    readonly telephoneHint: string
+    readonly url: string
+    readonly image: string
+    readonly hours: string
+    readonly hoursHint: string
+    readonly latitude: string
+    readonly longitude: string
+    readonly submit: string
+    readonly block: string
+    readonly ok: string
+    readonly empty: string
+    readonly problems: Readonly<
+      Record<
+        | 'name-blank'
+        | 'telephone-bad'
+        | 'postal-shape'
+        | 'hours-line'
+        | 'geo-bad'
+        | 'url-bad'
+        | 'image-bad',
+        (input: string) => string
+      >
+    >
+    readonly where: string
+  }
+  readonly faq: {
+    readonly items: string
+    readonly itemsHint: string
+    readonly submit: string
+    readonly page: string
+    readonly markup: string
+    readonly empty: string
+    readonly count: (count: number) => string
+    readonly match: string
+    readonly limited: string
+  }
+  readonly breadcrumb: {
+    readonly steps: string
+    readonly stepsHint: string
+    readonly submit: string
+    readonly block: string
+    readonly count: (count: number) => string
+    readonly empty: string
+    readonly problems: Readonly<
+      Record<
+        'name-blank' | 'url-bad' | 'url-missing' | 'too-few',
+        (line: number, input: string) => string
+      >
+    >
+    readonly where: string
+  }
   readonly title: {
     readonly title: string
     readonly hint: string
@@ -313,6 +388,94 @@ export const TEXT_TOOLS_UI: Copy<TextToolsStrings> = {
       titleCut: 'العنوان أطول من عرض النتيجة المتعارف عليه فقُطع.',
       descriptionCut: 'الوصف أطول من أن يظهر كله فقُطع.',
       fits: 'العنوان والوصف يظهران كاملين في هذه المعاينة.',
+    },
+    business: {
+      type: 'نوع النشاط',
+      types: {
+        LocalBusiness: 'نشاط محلي (عام)',
+        Store: 'متجر',
+        Restaurant: 'مطعم',
+        CafeOrCoffeeShop: 'مقهى',
+        Bakery: 'مخبز',
+        Pharmacy: 'صيدلية',
+        Dentist: 'عيادة أسنان',
+        BeautySalon: 'صالون تجميل',
+        AutoRepair: 'ورشة سيارات',
+      },
+      nameAr: 'الاسم بالعربية',
+      nameEn: 'الاسم بالإنجليزية',
+      country: 'الدولة',
+      countries: {
+        SA: 'السعودية',
+        AE: 'الإمارات',
+        OM: 'عُمان',
+        KW: 'الكويت',
+        BH: 'البحرين',
+        QA: 'قطر',
+      },
+      city: 'المدينة',
+      street: 'الشارع',
+      postalCode: 'الرمز البريدي (اختياري)',
+      telephone: 'الهاتف',
+      telephoneHint: 'برمز الدولة (+968…) أو بدونه فنضيف رمز الدولة التي اخترتها.',
+      url: 'عنوان الموقع',
+      image: 'عنوان صورة النشاط',
+      hours: 'ساعات العمل',
+      hoursHint:
+        'سطراً لكل فترة، مثل: السبت-الخميس 09:00-21:00 و: الجمعة 16:00-22:00. الأيام بالعربية أو بالإنجليزية.',
+      latitude: 'خط العرض (اختياري)',
+      longitude: 'خط الطول (اختياري)',
+      submit: 'اكتب الوسوم',
+      block: 'كتلة JSON-LD',
+      ok: 'الوسوم تجتاز فحصي النشاط المحلي والعنوان في Arablyzer.',
+      empty: 'اكتب اسم النشاط بالعربية أو بالإنجليزية.',
+      problems: {
+        'name-blank': () => 'اكتب اسم النشاط بالعربية أو بالإنجليزية.',
+        'telephone-bad': (input) =>
+          `تُرك الهاتف «${input}» خارج الوسوم: ليس رقماً من 8 إلى 15 رقماً.`,
+        'postal-shape': (input) =>
+          `تُرك الرمز البريدي «${input}» خارج الوسوم: ليس على صورة رموز هذه الدولة.`,
+        'hours-line': (input) =>
+          `تُرك السطر «${input}» خارج الساعات: اكتب الأيام ثم الوقت، مثل السبت-الخميس 09:00-21:00.`,
+        'geo-bad': (input) =>
+          `تُركت الإحداثيات «${input}» خارج الوسوم: اكتب خط العرض وخط الطول رقمين.`,
+        'url-bad': (input) => `تُرك عنوان الموقع «${input}» خارج الوسوم: ليس رابطاً كاملاً.`,
+        'image-bad': (input) => `تُركت الصورة «${input}» خارج الوسوم: ليست رابطاً كاملاً.`,
+      },
+      where:
+        'ضعها في الصفحة التي تصف النشاط (غالباً الرئيسية أو صفحة «اتصل بنا»)، وتأكد أن ما فيها هو ما تعرضه الصفحة.',
+    },
+    faq: {
+      items: 'الأسئلة والإجابات',
+      itemsHint:
+        'السؤال في السطر الأول والإجابة بعده، وسطر فارغ بين كل سؤال والتالي. يمكن أن تبدأ بـ «س:» و«ج:».',
+      submit: 'اكتب الوسوم',
+      page: 'نص الصفحة (HTML)',
+      markup: 'وسوم FAQPage (JSON-LD)',
+      empty: 'اكتب سؤالاً وتحته إجابته، وسطراً فارغاً بين الأسئلة.',
+      count: (count) => `${String(count)} سؤالاً في الوسوم وفي النص.`,
+      match:
+        'ضع النص في الصفحة والوسوم فيها، بالكلمات نفسها: تطلب Google أن تصف الوسوم ما يراه الزائر.',
+      limited:
+        'تعرض Google نتائج الأسئلة الشائعة المنسّقة لمواقع حكومية وصحية معروفة فقط في الغالب؛ فالوسوم لا تَعِد بظهورها، لكنها تُفهم الصفحة لمن يقرؤها.',
+    },
+    breadcrumb: {
+      steps: 'خطوات المسار',
+      stepsHint:
+        'سطراً لكل خطوة: الاسم ثم | ثم العنوان الكامل. الخطوة الأخيرة (الصفحة نفسها) لا تحتاج عنواناً.',
+      submit: 'اكتب الوسوم',
+      block: 'كتلة JSON-LD',
+      count: (count) => `${String(count)} خطوات في المسار.`,
+      empty: 'اكتب خطوتين على الأقل، مثل: الرئيسية | https://example.com/',
+      problems: {
+        'name-blank': (line) => `السطر ${String(line)}: لا اسم للخطوة. تُركت.`,
+        'url-bad': (line, input) =>
+          `السطر ${String(line)}: العنوان في «${input}» ليس رابطاً كاملاً. تُركت الخطوة.`,
+        'url-missing': (line, input) =>
+          `السطر ${String(line)}: لا عنوان للخطوة «${input}»، والعنوان لازم لكل خطوة غير الأخيرة. تُركت.`,
+        'too-few': () => 'يلزم خطوتان على الأقل.',
+      },
+      where: 'ضعها في الصفحة نفسها، وأبقِ أسماء الخطوات كما يعرضها مسار التنقل المرئي.',
     },
     title: {
       title: 'عنوان المنتج',
@@ -508,6 +671,96 @@ export const TEXT_TOOLS_UI: Copy<TextToolsStrings> = {
       titleCut: 'The title is longer than the commonly used result width, so it is cut.',
       descriptionCut: 'The description is too long to show whole, so it is cut.',
       fits: 'The title and the description show whole in this preview.',
+    },
+    business: {
+      type: 'Kind of business',
+      types: {
+        LocalBusiness: 'A local business (general)',
+        Store: 'A store',
+        Restaurant: 'A restaurant',
+        CafeOrCoffeeShop: 'A café',
+        Bakery: 'A bakery',
+        Pharmacy: 'A pharmacy',
+        Dentist: 'A dental clinic',
+        BeautySalon: 'A beauty salon',
+        AutoRepair: 'A car workshop',
+      },
+      nameAr: 'The name in Arabic',
+      nameEn: 'The name in English',
+      country: 'Country',
+      countries: {
+        SA: 'Saudi Arabia',
+        AE: 'United Arab Emirates',
+        OM: 'Oman',
+        KW: 'Kuwait',
+        BH: 'Bahrain',
+        QA: 'Qatar',
+      },
+      city: 'City',
+      street: 'Street',
+      postalCode: 'Postal code (optional)',
+      telephone: 'Telephone',
+      telephoneHint:
+        'With the country code (+968…), or without it and we add the chosen country’s.',
+      url: 'The website’s address',
+      image: 'Address of the business’s image',
+      hours: 'Opening hours',
+      hoursHint:
+        'One period to a line, such as: Sat-Thu 09:00-21:00 and: Fri 16:00-22:00. Days in Arabic or English.',
+      latitude: 'Latitude (optional)',
+      longitude: 'Longitude (optional)',
+      submit: 'Write the markup',
+      block: 'The JSON-LD block',
+      ok: 'The markup passes Arablyzer’s local business and address checks.',
+      empty: 'Type the business’s name in Arabic or in English.',
+      problems: {
+        'name-blank': () => 'Type the business’s name in Arabic or in English.',
+        'telephone-bad': (input) =>
+          `The telephone “${input}” was left out: it is not a number of 8 to 15 digits.`,
+        'postal-shape': (input) =>
+          `The postal code “${input}” was left out: it is not the shape this country’s codes have.`,
+        'hours-line': (input) =>
+          `The line “${input}” was left out of the hours: write the days, then the time, such as Sat-Thu 09:00-21:00.`,
+        'geo-bad': (input) =>
+          `The coordinates “${input}” were left out: write the latitude and the longitude as two numbers.`,
+        'url-bad': (input) => `The website “${input}” was left out: it is not a full link.`,
+        'image-bad': (input) => `The image “${input}” was left out: it is not a full link.`,
+      },
+      where:
+        'Put it in the page that describes the business (usually the home page or the contact page), and keep what it says the same as what the page shows.',
+    },
+    faq: {
+      items: 'The questions and answers',
+      itemsHint:
+        'The question on the first line and the answer after it, with an empty line between one question and the next. They can begin with “Q:” and “A:”.',
+      submit: 'Write the markup',
+      page: 'The page’s text (HTML)',
+      markup: 'The FAQPage markup (JSON-LD)',
+      empty: 'Type a question with its answer under it, and an empty line between questions.',
+      count: (count) => `${String(count)} questions, in the markup and in the text.`,
+      match:
+        'Put the text in the page and the markup in it, in the same words: Google asks that the markup describe what the visitor sees.',
+      limited:
+        'Google mostly shows FAQ rich results for well-known government and health sites; the markup does not promise them, but it makes the page plain to whoever reads it.',
+    },
+    breadcrumb: {
+      steps: 'The steps of the trail',
+      stepsHint:
+        'One step to a line: the name, then |, then the full address. The last step (the page itself) needs no address.',
+      submit: 'Write the markup',
+      block: 'The JSON-LD block',
+      count: (count) => `${String(count)} steps in the trail.`,
+      empty: 'Type two steps at least, such as: Home | https://example.com/',
+      problems: {
+        'name-blank': (line) => `Line ${String(line)}: the step has no name. Left out.`,
+        'url-bad': (line, input) =>
+          `Line ${String(line)}: the address in “${input}” is not a full link. The step was left out.`,
+        'url-missing': (line, input) =>
+          `Line ${String(line)}: the step “${input}” has no address, and every step but the last needs one. Left out.`,
+        'too-few': () => 'Two steps are needed at least.',
+      },
+      where:
+        'Put it in the page itself, and keep the steps’ names the same as the visible trail shows.',
     },
     title: {
       title: 'Product title',
