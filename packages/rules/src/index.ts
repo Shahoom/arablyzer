@@ -52,6 +52,7 @@ import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as hreflangLangMismatch } from './rules/hreflang-lang-mismatch/rule'
 import { rule as hreflangSetInvalid } from './rules/hreflang-set-invalid/rule'
+import { rule as hreflangSitemapInvalid } from './rules/hreflang-sitemap-invalid/rule'
 import { rule as hreflangXDefaultMissing } from './rules/hreflang-x-default-missing/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
 import { rule as httpsMissing } from './rules/https-missing/rule'
@@ -68,6 +69,7 @@ import { rule as mixedContent } from './rules/mixed-content/rule'
 import { rule as numberSeparatorsMixed } from './rules/number-separators-mixed/rule'
 import { rule as ogImageInvalid } from './rules/og-image-invalid/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
+import { rule as outboundLinksFound } from './rules/outbound-links-found/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as paginationCanonical } from './rules/pagination-canonical/rule'
 import { rule as paymentMethods } from './rules/payment-methods/rule'
@@ -96,6 +98,7 @@ import { rule as sarSignFont } from './rules/sar-sign-font/rule'
 import { rule as searchSpellingVariants } from './rules/search-spelling-variants/rule'
 import { rule as shopifyLocaleMismatch } from './rules/shopify-locale-mismatch/rule'
 import { rule as sitemapInvalid } from './rules/sitemap-invalid/rule'
+import { rule as sitemapLastmodInvalid } from './rules/sitemap-lastmod-invalid/rule'
 import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
 import { rule as soft404Signals } from './rules/soft-404-signals/rule'
 import { rule as spfMissing } from './rules/spf-missing/rule'
@@ -173,6 +176,7 @@ export const RULES: readonly Rule[] = [
   hreflangInvalidCode,
   hreflangLangMismatch,
   hreflangSetInvalid,
+  hreflangSitemapInvalid,
   hreflangXDefaultMissing,
   hstsMissing,
   httpsMissing,
@@ -189,6 +193,7 @@ export const RULES: readonly Rule[] = [
   numberSeparatorsMixed,
   ogImageInvalid,
   ogTagsMissing,
+  outboundLinksFound,
   pageNoindex,
   paginationCanonical,
   paymentMethods,
@@ -217,6 +222,7 @@ export const RULES: readonly Rule[] = [
   searchSpellingVariants,
   shopifyLocaleMismatch,
   sitemapInvalid,
+  sitemapLastmodInvalid,
   sitemapMissing,
   soft404Signals,
   spfMissing,

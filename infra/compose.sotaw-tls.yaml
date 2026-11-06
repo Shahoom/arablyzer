@@ -1,0 +1,9 @@
+# One command of the crawl of the Arabic web needs a way out: `sotaw tls-check` reads robots.txt through
+# the egress proxy itself, because the scanner does not say why one could not be read (infra/README.md).
+# The crawl and the export run without this file, and keep having no way out of their own.
+services:
+  sotaw:
+    environment:
+      ARABLYZER_EGRESS_PROXY: http://egress:4750
+      ARABLYZER_DENY_CIDRS: ${ARABLYZER_DENY_CIDRS:?}
+    networks: [data, scan, isolated]

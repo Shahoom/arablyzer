@@ -39,6 +39,8 @@ import { mountCompare } from './compare'
 import { mountCrawls } from './crawls'
 import { mountPdf } from './pdf'
 import { mountMcp } from './mcp'
+import { mountPlatforms } from './platforms/routes'
+import type { PlatformsDeps } from './platforms/routes'
 import { mountNlp, type NlpDeps } from './nlp/routes'
 import { mountSearch, type SearchDeps } from './search/routes'
 import { mountV1 } from './v1/routes'
@@ -92,6 +94,8 @@ export interface ApiDeps {
   readonly accounts?: AccountsDeps
   /** Search Console, connected from a report; absent, the feature is off (gsc/routes.ts). */
   readonly gsc?: GscDeps
+  /** The Salla and Zid apps, each behind its own flag; absent, none of their routes exist (platforms/). */
+  readonly platforms?: PlatformsDeps
   /** The search tools that ask Google's public pages, each behind its flag (search/routes.ts). */
   readonly search?: SearchDeps
   /** The Arabic text tools, which check a pasted text through the worker (nlp/routes.ts). */
@@ -707,6 +711,19 @@ export function createApp(deps: ApiDeps): Hono {
     now,
     log: failure,
   })
+
+  // The Salla and Zid apps (M9), each behind its own flag: absent, none of their routes exist.
+  if (deps.platforms !== undefined) {
+    mountPlatforms(app, {
+      platforms: deps.platforms,
+      store: deps.store,
+      limiter: deps.limiter,
+      address: deps.address,
+      connectionKey: deps.connectionKey,
+      now,
+      log: deps.log,
+    })
+  }
 
   // The suggestion tree and the results sampler (M5.3), each behind its own flag.
   mountSearch(app, deps, { fromTheSiteJson, refuse }, now)

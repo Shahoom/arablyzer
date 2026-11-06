@@ -20,7 +20,7 @@ export const EXCLUSION_REASONS: readonly ExclusionReason[] = [
  * `.ly` is the one Arab ccTLD whose single-label names (`bit.ly`, `cutt.ly`, `musical.ly`) are
  * sold worldwide as word endings, so a name directly under `.ly` is not taken for a Libyan site.
  * What Libya itself registers sits under these second-level public suffixes (`cbl.gov.ly`,
- * `uot.edu.ly`), and only those are kept.
+ * `uot.edu.ly`), and those are kept, with the single names in `LY_SITES`.
  */
 export const LY_SECOND_LEVEL: readonly string[] = [
   'gov',
@@ -33,6 +33,36 @@ export const LY_SECOND_LEVEL: readonly string[] = [
   'med',
   'id',
 ]
+
+/**
+ * The single names under `.ly` that are Libya's own, named one by one after reading the front page
+ * of all 136 that list `Y83YG` left out: an Arabic title on the site's own address, or a Libyan
+ * institution by its page or its name (an English-language paper, an operator that did not answer).
+ * A name that sends its visitor to another domain, or that could not be read and says nothing by
+ * itself, stays out. Most of these were picked for their Arabic title, so Libya's share of Arabic
+ * pages is not comparable with another country's.
+ */
+export const LY_SITES: ReadonlySet<string> = new Set([
+  'aljeel.ly',
+  'almadar.ly',
+  'almusallh.ly',
+  'alwasat.ly',
+  'bcd.ly',
+  'connect.ly',
+  'icona.ly',
+  'ksad.ly',
+  'lawsociety.ly',
+  'libyana.ly',
+  'libyanjobs.ly',
+  'libyaobserver.ly',
+  'ltt.ly',
+  'noc.ly',
+  'nub.ly',
+  'sabaqinsure.ly',
+  'wahda.ly',
+  'wowmart.ly',
+  'yaqeenbank.ly',
+])
 
 /**
  * Domain hacks on the other Arab ccTLDs, named one by one: `.ma` and the rest are Morocco's and
@@ -86,7 +116,11 @@ export function exclusionOf(domain: string): ExclusionReason | null {
   ) {
     return 'global-brand'
   }
-  if (tld === 'ly' && !(rest.length >= 2 && LY_SECOND_LEVEL.includes(rest.at(-1) ?? ''))) {
+  if (
+    tld === 'ly' &&
+    !LY_SITES.has(domain) &&
+    !(rest.length >= 2 && LY_SECOND_LEVEL.includes(rest.at(-1) ?? ''))
+  ) {
     return 'ly-single-label'
   }
   return VANITY_DOMAINS.has(domain) ? 'vanity-domain' : null
@@ -106,7 +140,14 @@ export function exclusionsCsv(rows: readonly ExcludedRow[]): string {
   return `${EXCLUSIONS_HEADER}\n${rows.map((r) => `${r.domain},${String(r.rank)},${r.country},${r.reason}`).join('\n')}${rows.length === 0 ? '' : '\n'}`
 }
 
-export function parseExclusionsCsv(text: string): ExcludedRow[] {
+/**
+ * The sites a frame left out, from its file. A row the rules no longer leave out is refused;
+ * `keepKept` reads the file of a frame made under an older list (`pnpm sotaw:frame --from-frame`).
+ */
+export function parseExclusionsCsv(
+  text: string,
+  options: { keepKept?: boolean } = {},
+): ExcludedRow[] {
   const lines = text.split(/\r?\n/).filter((line) => line.trim() !== '')
   if (lines[0]?.trim() !== EXCLUSIONS_HEADER) {
     throw new Error(`The exclusions' header is ${EXCLUSIONS_HEADER}`)
@@ -121,11 +162,11 @@ export function parseExclusionsCsv(text: string): ExcludedRow[] {
       !Number.isInteger(place) ||
       place < 1 ||
       !EXCLUSION_REASONS.includes(reason as ExclusionReason) ||
-      exclusionOf(domain) !== reason
+      (options.keepKept !== true && exclusionOf(domain) !== reason)
     ) {
       throw new Error(`Line ${String(index + 2)} of the exclusions is not one of them`)
     }
-    return { domain, rank: place, country, reason }
+    return { domain, rank: place, country, reason: reason as ExclusionReason }
   })
 }
 

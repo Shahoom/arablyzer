@@ -14,6 +14,7 @@ export default defineConfig({
     './src/postgres/admin-schema.ts',
     './src/postgres/sotaw-schema.ts',
     './src/postgres/ai-schema.ts',
+    './src/postgres/platform-schema.ts',
   ],
   out: './drizzle',
 })

@@ -1,0 +1,54 @@
+name: Uptime
+
+# The outside view of arablyzer.com every 15 minutes (GitHub may start a run a few minutes late):
+# the site, the API, and the TLS certificate (a warning under 14 days). A failure opens one issue
+# labelled `uptime`, or comments on the open one, and GitHub emails the owner; a clean run closes
+# it. No secrets, no outside service: the token is the run's own. The checks are in
+# .github/scripts/uptime-check.sh, the issue in uptime-issue.sh.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      simulate:
+        description: 'Test the alert path: make a check fail on purpose (the issue is marked [test])'
+        type: choice
+        options: [none, site-down, tls-soon]
+        default: none
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  uptime:
+    name: Uptime
+    if: github.repository == 'Shahoom/arablyzer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SIMULATE: ${{ inputs.simulate || 'none' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+      - name: Check
+        run: |
+          case "$SIMULATE" in
+            site-down) export SITE_URL=https://arablyzer.com/uptime-test-this-page-does-not-exist ;;
+            tls-soon) export TLS_WARN_DAYS=3650 ;;
+          esac
+          .github/scripts/uptime-check.sh
+          { echo '### Uptime'; cat uptime-out/report.md; } >>"$GITHUB_STEP_SUMMARY"
+      - name: Open, update or close the issue
+        run: |
+          if [ "$SIMULATE" != none ]; then
+            export UPTIME_NOTE="This is a test: a run started by hand with \`simulate = $SIMULATE\`. Nothing is wrong."
+          fi
+          .github/scripts/uptime-issue.sh

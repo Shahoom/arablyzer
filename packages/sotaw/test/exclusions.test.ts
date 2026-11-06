@@ -5,9 +5,11 @@ import { describe, expect, it } from 'vitest'
 import {
   countByReason,
   exclusionOf,
+  EXCLUSIONS_HEADER,
   exclusionsCsv,
   GLOBAL_BRANDS,
   parseExclusionsCsv,
+  LY_SITES,
   VANITY_DOMAINS,
 } from '../src/exclusions'
 import { buildFrame, frameCsv, parseFrameCsv, type TrancoEntry } from '../src/frame'
@@ -35,7 +37,6 @@ describe('the sites left out of the frame', () => {
       'adf.ly',
       'dai.ly',
       'tithe.ly',
-      'libyana.ly',
       'com.ly',
       'foo.ly.ly',
     ]) {
@@ -46,6 +47,23 @@ describe('the sites left out of the frame', () => {
     }
     // A name under a suffix that is not one of the nine is not Libya's either.
     expect(exclusionOf('name.co.ly')).toBe('ly-single-label')
+  })
+
+  it('reads a left-out site the rules now keep only when it is asked to', () => {
+    const csv = `${EXCLUSIONS_HEADER}\nlibyana.ly,303550,ly,ly-single-label\n`
+    expect(() => parseExclusionsCsv(csv)).toThrow(/not one of them/)
+    expect(parseExclusionsCsv(csv, { keepKept: true })).toHaveLength(1)
+  })
+
+  it('keeps the single names under .ly that are named as Libyan, and no others', () => {
+    expect(LY_SITES.size).toBe(19)
+    for (const domain of LY_SITES) {
+      expect(domain.split('.')).toHaveLength(2)
+      expect(domain.endsWith('.ly'), domain).toBe(true)
+      expect(exclusionOf(domain), domain).toBeNull()
+    }
+    expect(exclusionOf('www.libyana.ly')).toBe('ly-single-label')
+    expect(exclusionOf('libyana.ma')).toBeNull()
   })
 
   it('does not drop a single name on the other country domains, only the hacks named one by one', () => {

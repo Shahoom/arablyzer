@@ -109,6 +109,17 @@ export {
 export { PostgresApiKeyData } from './postgres/apikey-store'
 export { apiKeys } from './postgres/apikey-schema'
 export { accountBrand, pdfJobs, pdfUsage } from './postgres/pdf-schema'
+export { MemoryPlatformData, PLATFORMS } from './platforms'
+export type {
+  InstallPatch,
+  InstallStatus,
+  Platform,
+  PlatformData,
+  PlatformInstall,
+  TokenPatch,
+} from './platforms'
+export { PostgresPlatformData } from './postgres/platform-store'
+export { platformAudits, platformInstalls } from './postgres/platform-schema'
 export { PostgresCrawlData } from './postgres/crawl-store'
 export { crawlPages, crawls } from './postgres/crawl-schema'
 export { alertSettings, monitorRuns, monitors } from './postgres/monitor-schema'
