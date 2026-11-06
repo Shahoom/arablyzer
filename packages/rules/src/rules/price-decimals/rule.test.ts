@@ -104,7 +104,9 @@ describe('price-decimals', () => {
   it('counts every such price in a currency, and reports each currency on its own', () => {
     const findings = detect('<p>OMR 1.5، OMR 2.500، KD 3.25، OMR 4.25</p><p>KD 5.5</p>')
     expect(findings.map((finding) => [finding.key, finding.values])).toEqual([
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- `fixed` is this rule's value key, not String.prototype.fixed.
       ['OMR', { price: 'OMR 1.5', fixed: 'OMR 1.500', currency: 'OMR', count: 2 }],
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- `fixed` is this rule's value key, not String.prototype.fixed.
       ['KWD', { price: 'KD 3.25', fixed: 'KD 3.250', currency: 'KWD', count: 2 }],
     ])
   })

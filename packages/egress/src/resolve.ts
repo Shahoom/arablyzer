@@ -93,7 +93,7 @@ export function createTxtResolver(options: DnsResolverOptions = {}): TxtResolver
  */
 export const systemResolver: Resolver = Object.assign(
   async (hostname: string): Promise<readonly ResolvedAddress[]> => {
-    const answers = await lookup(hostname, { all: true, verbatim: true })
+    const answers = await lookup(hostname, { all: true, order: 'verbatim' })
     return answers.map(({ address, family }) => ({ address, family: family === 6 ? 6 : 4 }))
   },
   { txt: createTxtResolver() },
