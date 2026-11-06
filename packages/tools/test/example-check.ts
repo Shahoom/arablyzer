@@ -4,6 +4,7 @@ import {
   collectCrux,
   collectPage,
   collectRobots,
+  collectSitemap,
   organizationalDomain,
   sitemapTargets,
   txtLookup,
@@ -37,6 +38,11 @@ import {
 const PAGE_URL = 'https://example.com/'
 const encode = (text: string) => new TextEncoder().encode(text)
 const RULES_DIR = fileURLToPath(new URL('../../rules/src/rules/', import.meta.url))
+
+/** An `xml` example that is a sitemap (a `urlset` or `sitemapindex`) and not a product feed. */
+const SITEMAP_ROOT = /<(?:\w+:)?(?:urlset|sitemapindex)\b/
+const isSitemapXml = (example: CodeExample) =>
+  example.lang === 'xml' && SITEMAP_ROOT.test(example.code)
 
 const fold = (text: string) => text.replace(/\s+/g, ' ').trim()
 
@@ -166,6 +172,35 @@ export function evaluateExample(tool: Tool, example: CodeExample) {
     return evaluatePage(page, { rules: RULES, ruleIds: tool.rules, crux: cruxAnswer(example.code) })
       .results
   }
+  if (isSitemapXml(example)) {
+    // A sitemap the site names in its robots.txt, as the scan would have fetched it.
+    const url = `${PAGE_URL}sitemap.xml`
+    const robots = collectRobots({
+      url: `${PAGE_URL}robots.txt`,
+      response: { status: 200, body: encode(`Sitemap: ${url}`), truncated: false },
+      errorCode: null,
+    })
+    const sitemap: SitemapFacts = {
+      named: robots.outcome === 'fetched' ? robots.robots.sitemaps : [],
+      checked: [
+        collectSitemap({
+          url,
+          named: true,
+          status: 200,
+          body: encode(example.code),
+          truncated: false,
+        }),
+      ],
+      unchecked: 0,
+    }
+    const page = collectPage({
+      url: PAGE_URL,
+      status: 200,
+      headers: [['content-type', 'text/html; charset=utf-8']],
+      body: encode('<!doctype html><p>مرحبا</p>'),
+    })
+    return evaluatePage(page, { rules: RULES, ruleIds: tool.rules, robots, sitemap }).results
+  }
   const html = example.lang === 'html' ? example.code : '<!doctype html><p>مرحبا</p>'
   const page = collectPage({
     url: PAGE_URL,
@@ -208,7 +243,7 @@ export function speaksTo(example: CodeExample, ruleId: string): boolean {
     case 'json':
       return reads.includes('crux')
     case 'xml':
-      return reads.includes('feed')
+      return isSitemapXml(example) ? reads.includes('sitemap') : reads.includes('feed')
     case 'html':
       return (
         !reads.includes('robots') &&

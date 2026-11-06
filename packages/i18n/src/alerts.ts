@@ -21,6 +21,28 @@ export interface AlertStrings {
   readonly summaryDown: (site: string) => string
   /** The message the test button sends. */
   readonly test: string
+  /** The words around an alert when it is an email (M5.5). */
+  readonly mail: MailStrings
+}
+
+export interface MailStrings {
+  /** The subject of an alert about one site. */
+  readonly subject: (site: string) => string
+  readonly summarySubject: string
+  readonly testSubject: string
+  /** Why the person is getting it. */
+  readonly why: string
+  readonly noReply: string
+  /** Before the unsubscribe link. */
+  readonly unsubscribe: string
+  /** The page the unsubscribe link opens. */
+  readonly page: {
+    readonly title: string
+    readonly lead: string
+    readonly button: string
+    readonly done: string
+    readonly invalid: string
+  }
 }
 
 const sign = (change: number) => (change > 0 ? `+${String(change)}` : String(change))
@@ -43,6 +65,21 @@ export const ALERT_TEXT: Copy<AlertStrings> = {
           : `${site}: ${String(score)} (${sign(change)} عن المرة السابقة)`,
     summaryDown: (site) => `${site}: تعذّر الفحص`,
     test: 'هذه رسالة تجريبية من Arablyzer. إن وصلتك فالتنبيهات تعمل.',
+    mail: {
+      subject: (site) => `تنبيه من Arablyzer: ${site}`,
+      summarySubject: 'ملخص الأسبوع من Arablyzer',
+      testSubject: 'رسالة تجريبية من Arablyzer',
+      why: 'وصلتك هذه الرسالة لأنك فعّلت تنبيهات البريد الإلكتروني في حسابك على Arablyzer.',
+      noReply: 'هذا العنوان لا يستقبل الردود.',
+      unsubscribe: 'لإيقاف هذه الرسائل افتح هذا الرابط:',
+      page: {
+        title: 'إيقاف رسائل التنبيه',
+        lead: 'لن نرسل إليك تنبيهات Arablyzer على بريدك الإلكتروني بعد الآن. يمكنك تشغيلها من جديد من صفحة حسابك.',
+        button: 'أوقف رسائل البريد',
+        done: 'أُوقفت رسائل التنبيه على بريدك الإلكتروني.',
+        invalid: 'هذا الرابط غير صالح.',
+      },
+    },
   },
   en: {
     scoreDrop: (site, from, to) =>
@@ -61,5 +98,20 @@ export const ALERT_TEXT: Copy<AlertStrings> = {
           : `${site}: ${String(score)} (${sign(change)} since last time)`,
     summaryDown: (site) => `${site}: could not be scanned`,
     test: 'This is a test message from Arablyzer. If you can read it, alerts work.',
+    mail: {
+      subject: (site) => `Arablyzer alert: ${site}`,
+      summarySubject: 'Your Arablyzer summary for the week',
+      testSubject: 'A test message from Arablyzer',
+      why: 'You are getting this because you turned on email alerts in your Arablyzer account.',
+      noReply: 'Replies to this address are not read.',
+      unsubscribe: 'To stop these emails, open this link:',
+      page: {
+        title: 'Stop alert emails',
+        lead: 'We will no longer send Arablyzer alerts to your email address. You can turn them on again from your account page.',
+        button: 'Stop alert emails',
+        done: 'Alert emails to your address are now off.',
+        invalid: 'This link is not valid.',
+      },
+    },
   },
 }

@@ -557,7 +557,8 @@ describe('summaryCounts', () => {
     // Golden report 04: a serious and a moderate rule failed, and one that only lists (info).
     expect(summaryCounts(rtlLayout)).toMatchObject({ problems: 2, notes: 1, review: 0 })
     expect(summaryCounts(checkoutForm)).toMatchObject({ problems: 4, notes: 0, review: 0 })
-    expect(summaryCounts(cleanStore)).toMatchObject({ problems: 0, notes: 0, review: 0 })
+    // Report 01 links to another site, which the outbound-links-found note says (M10.2).
+    expect(summaryCounts(cleanStore)).toMatchObject({ problems: 0, notes: 1, review: 0 })
   })
 
   it('counts a rule that needs a review as neither', () => {
@@ -584,7 +585,7 @@ describe('headlineOf', () => {
   })
 
   it('says the page is clean only as far as the rules that ran can say it', () => {
-    expect(headlineOf(cleanStore)).toEqual({ kind: 'clean' })
+    expect(headlineOf(rtlCheck(['pass', 'pass']))).toEqual({ kind: 'clean' })
     expect(headlineOf(rtlCheck(['pass', 'error'], { status: 'partial' }))).toEqual({
       kind: 'incomplete',
     })
@@ -743,8 +744,19 @@ describe('categoryRows', () => {
         { category: 'ar-render', value: 0 },
         { category: 'rtl', value: 72 },
       ],
-      full: ['ar-content', 'onpage', 'index', 'crawl', 'links', 'intl', 'speed', 'trust', 'ai'],
-      none: ['forms', 'locale', 'schema', 'commerce'],
+      full: [
+        'ar-content',
+        'onpage',
+        'index',
+        'crawl',
+        'links',
+        'intl',
+        'locale',
+        'speed',
+        'trust',
+        'ai',
+      ],
+      none: ['forms', 'schema', 'commerce'],
     })
   })
 
@@ -823,14 +835,14 @@ describe('the engines of a report', () => {
 
 describe('checklistOf', () => {
   it('tells a finished scan as the progress page told it running, each step done', () => {
-    // Golden report 04: robots.txt answered 404, the page 200, three engines rendered 92 rules.
+    // Golden report 04: robots.txt answered 404, the page 200, three engines rendered 106 rules.
     expect(
       checklistOf(rtlLayout, t).map((step) => [step.key, step.state, step.detail, step.ltr]),
     ).toEqual([
       ['robots', 'done', '404', true],
       ['page', 'done', '200 · text/html', true],
       ['render', 'done', '3 / 3', true],
-      ['rules', 'done', '92 rules', false],
+      ['rules', 'done', '106 rules', false],
     ])
     // The same keys, in the same order, as the steps of a scan running.
     const running = stepsOf(

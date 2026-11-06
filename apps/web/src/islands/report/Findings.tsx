@@ -1,3 +1,4 @@
+import type { AiStatus } from '@arablyzer/api-contract/codes'
 import { REPORT } from '@arablyzer/i18n/report'
 import type { Report, RuleResult } from '@arablyzer/report-schema'
 import { STRINGS } from '@arablyzer/seo/strings'
@@ -17,6 +18,7 @@ import {
 import { Bidi } from './Bidi'
 import { Disclosure } from './Disclosure'
 import { Evidence } from './Evidence'
+import { FixAssistant, useAiStatus } from './FixAssistant'
 import { ENGINE_LABEL, SeverityPill } from './ui'
 
 /** The rules' "how to fix" sections, by rule, in the page's language. */
@@ -36,15 +38,19 @@ function toggled(set: ReadonlySet<string>, id: string): ReadonlySet<string> {
  * severe opens first, so a report starts with its worst problem in view.
  */
 export function Findings({
+  id,
   report,
   fixes,
   lang,
 }: {
+  /** The report's id, which the fix assistant is asked about. */
+  id: string
   report: Report
   fixes: Fixes | null
   lang: Lang
 }) {
   const t = REPORT[lang]
+  const ai = useAiStatus()
   const problems = problemsOf(report)
   const rendered = renderedEngines(report).length
   const [only, setOnly] = useState<FindingsFilter | null>(null)
@@ -94,6 +100,9 @@ export function Findings({
                 fix={fixes?.[entry.rule.id]?.fix ?? null}
                 lang={lang}
                 rendered={rendered}
+                assistant={
+                  ai.status === null ? null : { reportId: id, status: ai.status, onSpent: ai.spend }
+                }
                 open={open.has(entry.rule.id)}
                 onToggle={() => {
                   setOpen((current) => toggled(current, entry.rule.id))
@@ -132,6 +141,7 @@ function Finding({
   fix,
   lang,
   rendered,
+  assistant,
   open,
   onToggle,
 }: {
@@ -140,6 +150,8 @@ function Finding({
   lang: Lang
   /** How many engines rendered the page. */
   rendered: number
+  /** The fix assistant for this report, when it is there for this person. */
+  assistant: { reportId: string; status: AiStatus; onSpent: () => void } | null
   open: boolean
   onToggle: () => void
 }) {
@@ -204,6 +216,16 @@ function Finding({
               dangerouslySetInnerHTML={{ __html: fix }}
             />
           </section>
+        )}
+        {assistant !== null && (
+          <FixAssistant
+            reportId={assistant.reportId}
+            ruleId={rule.id}
+            ruleTitle={rule.title[lang]}
+            lang={lang}
+            status={assistant.status}
+            onSpent={assistant.onSpent}
+          />
         )}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-small">
           <a

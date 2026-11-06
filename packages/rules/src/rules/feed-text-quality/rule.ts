@@ -1,6 +1,7 @@
 import type { FeedItem } from '@arablyzer/collectors'
 import { attributeOf, itemLabel, MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from '../../lib/feed'
 import { STRETCHED_WORD } from '../../lib/arabic'
+import { isAllCaps, PROMOTION } from '../../lib/feed-title'
 import { firstGarbledRun } from '../../lib/mojibake'
 import { defineRule, type DetectorFinding } from '../../rule'
 
@@ -14,21 +15,6 @@ const MESSAGES = [
   'garbled',
 ] as const
 type Message = (typeof MESSAGES)[number]
-
-/**
- * Promotional wording the specification asks a title to leave out («شحن مجاني»، "free shipping",
- * "sale", "% off"): Arabic phrases are whole words, Latin ones are matched as words.
- */
-const PROMOTION =
-  /(?<!\p{L})(?:شحن مجاني|توصيل مجاني|عرض خاص|أفضل سعر|افضل سعر|أقل سعر|اقل سعر|لفترة محدودة|اشتري الآن|اشتر الآن|خصم|تخفيضات|تخفيض)(?!\p{L})|\b(?:free shipping|free delivery|best price|lowest price|buy now|limited time|sale)\b|\d+\s*%\s*(?:off|خصم)|%\s*off\b/iu
-
-/** The text of a title that reads as shouting: Latin letters, most of the letters, none lowercase. */
-function isAllCaps(title: string): boolean {
-  const latin = title.match(/\p{Script=Latin}/gu) ?? []
-  const letters = title.match(/\p{L}/gu) ?? []
-  if (latin.length < 4 || latin.length * 2 <= letters.length) return false
-  return !/\p{Ll}/u.test(latin.join(''))
-}
 
 interface Hit {
   readonly message: Message

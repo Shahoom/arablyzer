@@ -52,6 +52,12 @@ export interface SotawStore {
    * hash) is required, and a site already in it is left as it is.
    */
   start(run: NewRun, sites: readonly NewResult[], at: Date): Promise<RunRow>
+  /**
+   * A run whose frame grew (a rule of the frame changed): the sites it does not hold are added as
+   * pending and the frame's hash and size are recorded, and every other row stays as it is. A frame
+   * that lost one of the run's sites is refused. The number of sites added is returned.
+   */
+  extend(runId: string, frameSha: string, sites: readonly NewResult[], at: Date): Promise<number>
   run(id: string): Promise<RunRow | null>
   /** The sites a crawler took and did not end: those of one that died. */
   running(runId: string): Promise<ResultRow[]>
@@ -123,6 +129,34 @@ export class MemorySotawStore implements SotawStore {
       })
     }
     return Promise.resolve(row)
+  }
+
+  extend(runId: string, frameSha: string, sites: readonly NewResult[]): Promise<number> {
+    const kept = this.#runs.get(runId)
+    if (kept === undefined) return Promise.reject(new Error(`There is no run ${runId}`))
+    const wanted = new Set(sites.map((site) => site.domain))
+    const lost = [...this.#rows.values()].find(
+      (row) => row.runId === runId && !wanted.has(row.domain),
+    )
+    if (lost !== undefined) {
+      return Promise.reject(new Error(`The new frame has lost ${lost.domain}`))
+    }
+    let added = 0
+    for (const site of sites) {
+      if (this.#rows.has(this.#key(runId, site.domain))) continue
+      this.#rows.set(this.#key(runId, site.domain), {
+        runId,
+        ...site,
+        state: 'pending',
+        reason: null,
+        attempts: 0,
+        scanId: null,
+        outcome: null,
+      })
+      added++
+    }
+    this.#runs.set(runId, { ...kept, frameSha, total: sites.length })
+    return Promise.resolve(added)
   }
 
   run(id: string): Promise<RunRow | null> {

@@ -101,7 +101,7 @@ export function ReportView({
           )}
           <Notices notices={report.scan.notices} lang={lang} id="notices-title" />
         </div>
-        <Findings report={report} fixes={fixes} lang={lang} />
+        <Findings id={id} report={report} fixes={fixes} lang={lang} />
         <Checks report={report} lang={lang} />
         {tool === undefined && <CountryFit report={report} lang={lang} standalone />}
         {tool === undefined && (

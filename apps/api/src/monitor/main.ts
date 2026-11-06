@@ -20,6 +20,8 @@ import { newScanId } from '../ids'
 import { startLoop } from './loop'
 import { mailerFrom } from './mail'
 import { createScheduler } from './scheduler'
+import { unsubscribeFrom } from './unsubscribe'
+import { whatsappFrom } from './whatsapp'
 import { webhookSender } from './webhook'
 
 // The monitoring scheduler as Compose runs it (M4.3): its own process, on the API's image and the
@@ -57,6 +59,7 @@ if (accountsModeFrom(env) !== 'on') {
   })
   pool.on('error', quietly('PostgreSQL', log))
   const queue = new BullMQScanQueue(redis)
+  const unsubscribe = unsubscribeFrom(env, new URL(site).origin)
   const scheduler = createScheduler({
     monitors: new PostgresMonitorData(pool),
     store: new PostgresScanStore(pool),
@@ -70,7 +73,14 @@ if (accountsModeFrom(env) !== 'on') {
     policy,
     resolver: defaultResolver(policy),
     sender: webhookSender({ policy, resolver: defaultResolver(policy) }),
-    mail: mailerFrom(env),
+    mail: mailerFrom(env, {
+      policy,
+      resolver: defaultResolver(policy),
+      siteHost: new URL(site).hostname,
+      log,
+    }),
+    ...(unsubscribe === undefined ? {} : { unsubscribe }),
+    whatsapp: whatsappFrom(env, { policy, resolver: defaultResolver(policy), log }),
     origin: new URL(site).origin,
     newId: newScanId,
     log,

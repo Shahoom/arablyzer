@@ -38,9 +38,10 @@ const FAILED = 'FailedFailedFailedFail_5'
  * server sends is a shell whose heading and report the island draws, so a rule that reads the
  * HTML as sent finds no heading (h1-missing), and most of the words a browser draws are written
  * by scripts (js-only-content, M2.3c). Search engines never read it; a visitor, and a screen
- * reader, get the heading and the report.
+ * reader, get the heading and the report. Its address ends in the scan's id, 22 random characters
+ * with capitals, hyphens and underscores in them (url-slug-invalid): nobody searches for it.
  */
-const BY_DESIGN = new Set(['page-noindex', 'h1-missing', 'js-only-content'])
+const BY_DESIGN = new Set(['page-noindex', 'h1-missing', 'js-only-content', 'url-slug-invalid'])
 
 let root = ''
 let site: FixtureSite
@@ -140,12 +141,19 @@ async function scanned(id: string): Promise<Report> {
   })
 }
 
-/** Failed or broken rules, less those a report page fails by design or for a known gap. */
+/**
+ * Failed or broken rules, less those a report page fails by design or for a known gap. An
+ * information rule (the sites a page links to) is a note, not a problem: the site audit leaves it
+ * out too.
+ */
 function problems(report: Report) {
   return (
     report.rules
       .filter(
-        (rule) => (rule.status === 'fail' || rule.status === 'error') && !BY_DESIGN.has(rule.id),
+        (rule) =>
+          (rule.status === 'fail' || rule.status === 'error') &&
+          rule.severity !== 'info' &&
+          !BY_DESIGN.has(rule.id),
       )
       // A rule that failed only for gaps the site knows it has (the og:image, M2.4).
       .filter((rule) => {

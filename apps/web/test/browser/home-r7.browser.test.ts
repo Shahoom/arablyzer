@@ -5,6 +5,7 @@ import { HOME, SCAN_FORM } from '@arablyzer/i18n'
 import type { Engine } from '@arablyzer/report-schema'
 import { chromium, firefox, webkit, type Browser, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { SHOWCASE } from '../../src/lib/showcase'
 
 // The home page after the owner's review (M2.6 R7, "home"): a compact page on a phone and the
 // lively one on a desktop. The hero's sizes, the marquee as one row (a scroll-row under reduced
@@ -432,7 +433,7 @@ describe.each(ENGINES)('the home page in %s', (engine) => {
       for (const lang of LANGS) {
         const tab = await open(lang, 390, { flat: true })
         const shot = await read(tab, HOME[lang].figure.label)
-        expect(shot?.score, lang).toBe('92')
+        expect(shot?.score, lang).toBe(String(SHOWCASE.score))
         // Three severity pills in the summary and one in each of the three findings.
         expect(shot?.pills, `${lang}: pills`).toBe(6)
         expect(shot?.categories, `${lang}: no category bars`).toBe(0)

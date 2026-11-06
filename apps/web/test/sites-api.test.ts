@@ -9,6 +9,11 @@ import {
   scanSite,
   setMonitor,
   testAlerts,
+  removeWhatsapp,
+  sendWhatsappCode,
+  setWhatsappSite,
+  testEmailAlerts,
+  verifyWhatsappCode,
 } from '../src/islands/sites-api'
 
 const json = (body: unknown, status = 200) =>
@@ -67,6 +72,41 @@ describe('what each call sends', () => {
       'POST',
       '/api/account/alerts/test',
       undefined,
+    ],
+    [
+      'testEmailAlerts',
+      (send: typeof fetch) => testEmailAlerts(send),
+      'POST',
+      '/api/account/alerts/test-email',
+      undefined,
+    ],
+    [
+      'sendWhatsappCode',
+      (send: typeof fetch) => sendWhatsappCode('+966501234567', send),
+      'PUT',
+      '/api/account/whatsapp',
+      { phone: '+966501234567' },
+    ],
+    [
+      'verifyWhatsappCode',
+      (send: typeof fetch) => verifyWhatsappCode('123456', send),
+      'POST',
+      '/api/account/whatsapp/verify',
+      { code: '123456' },
+    ],
+    [
+      'removeWhatsapp',
+      (send: typeof fetch) => removeWhatsapp(send),
+      'DELETE',
+      '/api/account/whatsapp',
+      undefined,
+    ],
+    [
+      'setWhatsappSite',
+      (send: typeof fetch) => setWhatsappSite('s'.repeat(22), true, send),
+      'PUT',
+      `/api/sites/${'s'.repeat(22)}/whatsapp`,
+      { enabled: true },
     ],
   ])('%s', async (_name, call, method, path, body) => {
     const { send, calls } = answering(json({}, 500))

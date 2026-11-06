@@ -30,6 +30,7 @@ import {
 import { registerFontRoutes, type FontContext } from './fonts'
 import { mountAccounts, planOf, type AccountsDeps } from './accounts'
 import { mountAdmin } from './admin/routes'
+import { mountAi } from './ai/routes'
 import { mountApiKeys } from './apikeys'
 import { fromTheSite } from './guards'
 import { registerGscRoutes, type GscDeps } from './gsc/routes'
@@ -38,11 +39,16 @@ import { mountCompare } from './compare'
 import { mountCrawls } from './crawls'
 import { mountPdf } from './pdf'
 import { mountMcp } from './mcp'
+import { mountPlatforms } from './platforms/routes'
+import type { PlatformsDeps } from './platforms/routes'
 import { mountNlp, type NlpDeps } from './nlp/routes'
 import { mountSearch, type SearchDeps } from './search/routes'
 import { mountV1 } from './v1/routes'
 import { mountMonitors } from './monitors'
+import { mountUnsubscribe } from './mail-routes'
+import { mountWhatsapp, mountWhatsappWebhook, whatsappStateReader } from './whatsapp'
 import { noMailer } from './monitor/mail'
+import { noWhatsApp } from './monitor/whatsapp'
 import { mountSites } from './sites'
 import { holdPlace } from './places'
 import { parseTarget, resolveTarget } from './target'
@@ -88,6 +94,8 @@ export interface ApiDeps {
   readonly accounts?: AccountsDeps
   /** Search Console, connected from a report; absent, the feature is off (gsc/routes.ts). */
   readonly gsc?: GscDeps
+  /** The Salla and Zid apps, each behind its own flag; absent, none of their routes exist (platforms/). */
+  readonly platforms?: PlatformsDeps
   /** The search tools that ask Google's public pages, each behind its flag (search/routes.ts). */
   readonly search?: SearchDeps
   /** The Arabic text tools, which check a pasted text through the worker (nlp/routes.ts). */
@@ -459,6 +467,15 @@ export function createApp(deps: ApiDeps): Hono {
         now,
       })
     }
+    if (deps.accounts.ai !== undefined) {
+      mountAi(app, {
+        access,
+        assistant: deps.accounts.ai,
+        store: deps.store,
+        origin: deps.origin,
+        log: deps.log,
+      })
+    }
     if (deps.accounts.sender !== undefined) {
       mountMonitors(app, {
         access,
@@ -471,7 +488,41 @@ export function createApp(deps: ApiDeps): Hono {
         now,
         sender: deps.accounts.sender,
         mail: deps.accounts.mail ?? noMailer,
+        ...(deps.accounts.unsubscribe === undefined
+          ? {}
+          : { unsubscribe: deps.accounts.unsubscribe }),
+        whatsappState: whatsappStateReader({
+          accounts: deps.accounts,
+          whatsapp: deps.accounts.whatsapp ?? noWhatsApp,
+        }),
       })
+      const cloud = deps.accounts.whatsappSettings
+      if (deps.accounts.whatsapp?.available === true && cloud !== undefined) {
+        mountWhatsapp(app, {
+          access,
+          accounts: deps.accounts,
+          origin: deps.origin,
+          limiter: deps.limiter,
+          log: deps.log,
+          now,
+          whatsapp: deps.accounts.whatsapp,
+          codeKey: cloud.accessToken,
+        })
+        if (cloud.webhook !== null && deps.accounts.monitors !== undefined) {
+          mountWhatsappWebhook(app, {
+            monitors: deps.accounts.monitors,
+            settings: cloud.webhook,
+            log: deps.log,
+          })
+        }
+      }
+      if (deps.accounts.monitors !== undefined && deps.accounts.unsubscribe !== undefined) {
+        mountUnsubscribe(app, {
+          monitors: deps.accounts.monitors,
+          unsubscribe: deps.accounts.unsubscribe,
+          log: deps.log,
+        })
+      }
     }
   }
 
@@ -660,6 +711,19 @@ export function createApp(deps: ApiDeps): Hono {
     now,
     log: failure,
   })
+
+  // The Salla and Zid apps (M9), each behind its own flag: absent, none of their routes exist.
+  if (deps.platforms !== undefined) {
+    mountPlatforms(app, {
+      platforms: deps.platforms,
+      store: deps.store,
+      limiter: deps.limiter,
+      address: deps.address,
+      connectionKey: deps.connectionKey,
+      now,
+      log: deps.log,
+    })
+  }
 
   // The suggestion tree and the results sampler (M5.3), each behind its own flag.
   mountSearch(app, deps, { fromTheSiteJson, refuse }, now)

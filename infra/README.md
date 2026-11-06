@@ -92,6 +92,67 @@ docker compose -f infra/compose.yaml exec valkey \
   sh -c 'REDISCLI_AUTH="$VALKEY_PASSWORD" valkey-cli --user arablyzer --no-auth-warning info keyspace'
 ```
 
+## Backups
+
+`infra/backup-postgres.sh` takes a compressed dump of PostgreSQL (`pg_dump`'s custom format) into
+`/home/deploy/backups/arablyzer/db-<date>-<time>.dump`, keeps the newest 14, and adds one line to `backup.log`
+in that folder: `backup ok`, or `backup FAILED`. It deletes no old dump until the new one has read back. The
+`deploy` user's crontab takes it at 05:30 server time (+04), clear of the other apps' jobs on that server:
+
+```cron
+30 5 * * * /home/deploy/arablyzer/infra/backup-postgres.sh >> /home/deploy/backups/arablyzer/backup.log 2>&1
+```
+
+PostgreSQL's volume is the only named volume in the stack, so a dump is all of its state but one thing:
+`infra/.env` is not in it, and a rebuild on another server needs that file. A dump holds the accounts, their
+sessions and the scans, so the folder is `700` and each dump `600`.
+
+**These copies stay on the server's own disk**, for a quick restore: a lost disk or server takes them with the
+database. What would survive the server is a separate job of root's, outside this repository, which dumps every
+running PostgreSQL at 03:17 and sends it, encrypted, off the server; restoring from that copy has not been tried
+here. Nothing alerts on a failed night of this job: `backup.log` is where it shows.
+
+**Check a dump** without touching production: read it into a throwaway container of the same image, with no
+network and its data in memory, and compare every table's row count with production's. The counts are taken now
+and the dump earlier, so a table that was written to since will differ; take a dump first for a close comparison.
+
+```bash
+cd ~/arablyzer
+C="docker compose -p arablyzer -f infra/compose.yaml -f infra/compose.coolify.yaml --env-file infra/.env"
+F=$(ls -1t ~/backups/arablyzer/db-*.dump | head -1)
+R=arablyzer-restore-test
+COUNT='SELECT format($$SELECT %L, count(*) FROM %I.%I$$, schemaname||$$.$$||relname, schemaname, relname) FROM pg_stat_user_tables ORDER BY 1 \gexec'
+docker run -d --rm --name $R --network none --memory 1g --cpus 1 --tmpfs /var/lib/postgresql/data \
+  -e POSTGRES_USER=arablyzer -e POSTGRES_DB=arablyzer -e POSTGRES_HOST_AUTH_METHOD=trust \
+  "$(docker inspect -f '{{.Image}}' "$($C ps -q postgres)")"
+until docker exec $R pg_isready -q -h 127.0.0.1 -U arablyzer; do sleep 1; done
+docker exec -i $R pg_restore -U arablyzer -d arablyzer --no-owner --no-privileges --exit-on-error < "$F"
+diff <(echo "$COUNT" | $C exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At') \
+     <(echo "$COUNT" | docker exec -i $R psql -U arablyzer -d arablyzer -At) && echo same
+docker stop $R
+```
+
+**Restore** over the live database. `--clean` replaces every table with the dump's, with its owners and rights;
+the site's pages are still served meanwhile and no scan is taken. `up -d` starts what was stopped, and runs
+`migrate`, which brings an older dump up to this release's schema and sets the roles' passwords.
+
+```bash
+F=~/backups/arablyzer/db-<date>-<time>.dump
+$C stop api worker crawler monitor pdf sotaw
+$C exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --single-transaction --exit-on-error' < "$F"
+$C up -d
+```
+
+On a new server or an empty volume, put `infra/.env` back and start the stack once first, so that `migrate` makes
+the roles and the schema, then run the same commands.
+
+**Tried:** on 2026-11-04 the newest dump went into the throwaway container, and all 21 tables matched production.
+Then, with production's roles copied over, without passwords (`pg_dumpall --roles-only --no-role-passwords`), the
+restore command above ran over those tables: the counts still matched, the worker still could not read `users`, and
+every owner and right came back. The one difference is how `drizzle.__drizzle_migrations` and its sequence write
+their owner's own rights, implicitly rather than spelled out, which grants the same. **Not tried:** the restore on
+the live stack, its `up -d`, and a new volume made by `migrate`.
+
 ## Accounts (optional, off by default)
 
 Sign-in is Google's alone: Google's own "Sign in with Google" button, One Tap where the browser
@@ -128,6 +189,18 @@ days, and deletes the scans an account keeps after them (the other scans follow
 `ARABLYZER_REPORT_RETENTION_DAYS`). The worker's role can read one column of the accounts' data,
 `account_scans.scan_id`, so the sweep can tell which scans are kept, and nothing else. Erasing the
 account deletes its sites, its scans and their reports.
+
+**The fix assistant (BUILD-PLAN §12).** Off unless `ANTHROPIC_API_KEY` is set on the API (no other service holds it). A
+signed-in account asks for a suggested fix of one failed rule on a report: the API reads the rule's evidence from the stored
+report, puts it between data tags (an angle bracket in it is escaped, so a page cannot close them) in one message to the model,
+which has no tools and answers in a fixed JSON shape the API validates again. `ARABLYZER_PLAN_ACCOUNT_AI_FIXES_PER_DAY` (0 when
+empty: none) is the account's day, counted over any 24 hours from the ledger (`ai_requests`); `ARABLYZER_AI_SPEND_MONTHLY`
+(required with the key) and `ARABLYZER_AI_SPEND_DAILY` cap the spend, counted from each response's tokens at the prices of
+`ARABLYZER_AI_PRICE_*` (the default model's published ones when empty). A request holds its worst cost against the caps first,
+under one lock, so concurrent requests cannot pass them; one that fails before the model answers gives it back. Answers are
+kept 30 days in `ai_fix_cache` by rule, version, evidence, language, model and prompt. The request leaves through the egress fetch
+like every other (`ARABLYZER_EGRESS_PROXY`), to `api.anthropic.com` alone. Erasing an account clears whose its requests were and
+keeps what they cost. `pnpm --filter @arablyzer/api ai:eval` runs the frozen evaluation set against the real model.
 
 **PDF export and white-label (M4.7).** A signed-in person presses «Download PDF» on a page report, a crawl report or a
 comparison; the API only queues the job (`pdf_jobs`, one active per account by a partial unique index, and the month's
@@ -180,14 +253,28 @@ year; erasing an account removes its address from the audit and replaces its id 
 
 **Monitoring and alerts (M4.3).** A person turns monitoring on for a saved site on `/account`; the `monitor`
 service, a second entry of the API's image (`apps/api/src/monitor/main.ts`) on the application role, scans it every
-`ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` days (7 when empty) for up to `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`
+`ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS` days (7 when empty; the plan's days are read at every run, so a paid plan with `ARABLYZER_PLAN_<PLAN>_MONITOR_EVERY_DAYS=1` watches daily) for up to `ARABLYZER_PLAN_ACCOUNT_MONITORED_SITES`
 sites (1 when empty), and checks both on every run. It is not the worker: the worker's role reads no account and
 inserts no scan (M4.1). It starts scans only while the queue holds less than half of `ARABLYZER_LIMIT_QUEUE`, takes
 the host's bucket and the person's place like any scan, and sends the alerts the person asked for (a score drop beyond
 their threshold, a new critical finding, a scan that failed, and an optional weekly summary) to the webhook they
 pasted, as Slack, Discord or generic JSON, signed with `X-Arablyzer-Signature` (HMAC-SHA256), through the egress proxy.
 A delivery is retried after 1 min, 5 min, 30 min, 2 h and 6 h; five failures in a row turn the webhook off until a test
-reaches it. Email is behind an interface that is off: `ARABLYZER_MAIL_PROVIDER` stays empty until one is built. With
+reaches it. Each channel of a run's alert is remembered (`monitor_runs.delivered`), so a retry because one channel
+failed never sends the others again. **Email (M5.5)** is off while `ARABLYZER_MAIL_PROVIDER` is empty. With
+`ARABLYZER_MAIL_PROVIDER=resend`, `RESEND_API_KEY`, `ARABLYZER_MAIL_FROM` (a subdomain of the site's domain made for
+automated mail, e.g. `send.arablyzer.com`, never the domain whose mailboxes people use) and `ARABLYZER_MAIL_SECRET`
+(32+ characters, signs the unsubscribe links), a person who turns on «البريد الإلكتروني» in their alerts gets the same
+alerts at the address they signed in with, through the egress proxy. Every mail carries `List-Unsubscribe` and
+`List-Unsubscribe-Post` (one click) and a link to `/api/mail/unsubscribe`, which asks on a GET and turns that person's
+email alerts off on a POST. Resend's own suppression list stops mail to addresses that bounced or complained.
+**WhatsApp (M5.6)** is off while `ARABLYZER_WHATSAPP_PROVIDER` is empty. With `cloud`, `WHATSAPP_PHONE_NUMBER_ID` and
+`WHATSAPP_ACCESS_TOKEN`, an account whose plan has WhatsApp alerts (`ARABLYZER_PLAN_<PLAN>_WHATSAPP_ALERTS=on`; the free
+account has none unless the owner turns it on) saves a number on `/account`, confirms it with a code sent to it on
+WhatsApp, and opts each monitored site in. The monitor then sends one approved template per event (a score drop, a new
+critical finding, a site that cannot be scanned, monitoring stopped) through the egress proxy, never the weekly summary.
+Each template is remembered per run like the other channels. With `WHATSAPP_APP_SECRET` and `WHATSAPP_VERIFY_TOKEN`,
+Meta's webhook (`/api/whatsapp/webhook`, signed with `X-Hub-Signature-256`) makes a STOP reply forget that number. With
 accounts off the service logs that and idles. The recommended free-plan numbers are in `.env.example` and
 `docs/deploy/staging.md` §4.
 
@@ -209,12 +296,18 @@ docker compose --profile sotaw run -d --name sotaw-crawl sotaw crawl     # in th
 docker logs -f sotaw-crawl                                # progress, pauses and resumes
 docker stop -t 30 sotaw-crawl && docker rm sotaw-crawl    # stops after the scan in hand; run it again to go on
 docker compose --profile sotaw run --rm -v /srv/sotaw-out:/out sotaw export --out /out
+docker compose --profile sotaw run --rm --no-deps sotaw extend                # the frame grew: its new sites join the run
+docker compose -f compose.yaml -f compose.sotaw-tls.yaml --profile sotaw run --rm --no-deps sotaw tls-check
 ```
 
 `ARABLYZER_SOTAW_LIMIT=20` makes a trial run of twenty sites. `export` writes the public files (aggregates only) and
 needs a directory the container's user (uid 10001) can write to; `export --internal DIR` also writes the per-site
 `sites.parquet` for our own analysis, needs `ARABLYZER_SOTAW_SALT` (`openssl rand -hex 32`, kept off the repository),
 and refuses a `public` folder: it is never published.
+
+`tls-check` runs after a crawl. The scanner only answers that a robots.txt could not be read, so this reads, through the
+egress proxy, the robots.txt of each site left unread and moves those failing on an incomplete certificate chain to the
+reason `tls-chain`. It is the one command that needs a way out, which `compose.sotaw-tls.yaml` gives it for that run.
 
 ## The server's own addresses
 

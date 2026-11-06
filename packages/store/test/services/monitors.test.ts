@@ -71,7 +71,13 @@ describe.skipIf(!hasPostgres)('monitoring, on PostgreSQL', () => {
   }))
 
   it('closes the monitoring tables to the worker’s role, and a run goes with its scan', async () => {
-    for (const table of ['monitors', 'monitor_runs', 'alert_settings']) {
+    for (const table of [
+      'monitors',
+      'monitor_runs',
+      'alert_settings',
+      'whatsapp_numbers',
+      'whatsapp_sites',
+    ]) {
       await expect(worker.query(`SELECT count(*) FROM ${table}`), table).rejects.toThrow(
         /permission denied/,
       )

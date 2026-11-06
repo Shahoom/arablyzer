@@ -15,7 +15,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AccountsDeps } from '../src/accounts'
 import { createApp } from '../src/app'
 import { createAuth } from '../src/auth'
-import type { Mailer } from '../src/monitor/mail'
+import type { MailMessage, Mailer } from '../src/monitor/mail'
+import { unsubscribeFor } from '../src/monitor/unsubscribe'
 import type { AlertMessage, WebhookSender } from '../src/monitor/webhook'
 import { CLIENT_ID, CLIENT_SECRET, idToken, stubGoogle } from './support/google'
 
@@ -29,7 +30,14 @@ const PLAN = {
 }
 const ANONYMOUS = { ...DEVELOPMENT_LIMITS, perConnection: { scans: 1, seconds: 60 }, inFlight: 1 }
 
-function setup(options: { monitoring?: boolean; status?: number | null; mail?: boolean } = {}) {
+function setup(
+  options: {
+    monitoring?: boolean
+    status?: number | null
+    mail?: boolean
+    plan?: Record<string, string>
+  } = {},
+) {
   const tables: Record<string, unknown[]> = { user: [], session: [], account: [], verification: [] }
   const scans = new MemoryScanStore()
   const data = new MemoryAccountData(scans)
@@ -42,10 +50,15 @@ function setup(options: { monitoring?: boolean; status?: number | null; mail?: b
       return Promise.resolve({ status, ok: status !== null && status >= 200 && status < 300 })
     },
   }
+  const mailed: MailMessage[] = []
   const mail: Mailer = {
     available: options.mail === true,
-    send: () => Promise.resolve(options.mail === true),
+    send: (message) => {
+      mailed.push(message)
+      return Promise.resolve(options.mail === true ? 'sent' : 'rejected')
+    },
   }
+  const unsubscribe = unsubscribeFor('u'.repeat(40), SITE.origin)
   const auth = createAuth({
     site: SITE,
     secret: 'a'.repeat(40),
@@ -63,8 +76,8 @@ function setup(options: { monitoring?: boolean; status?: number | null; mail?: b
     limits: { signIn: { scans: 1000, seconds: 60 } },
     secureCookies: false,
     data,
-    plans: planCatalogFrom(PLAN, ANONYMOUS),
-    ...(options.monitoring === false ? {} : { monitors, sender, mail }),
+    plans: planCatalogFrom({ ...PLAN, ...options.plan }, ANONYMOUS),
+    ...(options.monitoring === false ? {} : { monitors, sender, mail, unsubscribe }),
   }
   const app = createApp({
     limits: ANONYMOUS,
@@ -116,7 +129,7 @@ function setup(options: { monitoring?: boolean; status?: number | null; mail?: b
         id: string
       }
     ).id
-  return { send, signIn, addSite, sent, monitors }
+  return { send, signIn, addSite, sent, monitors, mailed, unsubscribe }
 }
 
 afterEach(() => {
@@ -154,6 +167,21 @@ describe('monitoring a saved site', () => {
     expect(
       (await send('PUT', `/api/sites/${second}/monitor`, { enabled: true }, cookie)).status,
     ).toBe(200)
+  })
+
+  it('watches daily when the plan says so', async () => {
+    const { send, signIn, addSite } = setup({
+      plan: { ARABLYZER_PLAN_ACCOUNT_MONITOR_EVERY_DAYS: '1' },
+    })
+    const cookie = await signIn('ali')
+    const first = await addSite(cookie, 1)
+    const on = await send('PUT', `/api/sites/${first}/monitor`, { enabled: true }, cookie)
+    expect(MonitorResponse.parse(await on.json()).monitor).toMatchObject({ everyDays: 1 })
+    const listed = SitesResponse.parse(
+      await (await send('GET', '/api/sites', undefined, cookie)).json(),
+    )
+    expect(listed.monitoring).toEqual({ limit: 1, everyDays: 1 })
+    expect(listed.sites.find((site) => site.id === first)?.monitor?.everyDays).toBe(1)
   })
 
   it('answers 404 for another person’s site, 401 signed out, 400 for a foreign origin or body', async () => {
@@ -202,6 +230,7 @@ describe('alert settings', () => {
       onDown: true,
       weeklySummary: false,
       email: { available: false, enabled: false },
+      whatsapp: { available: false, allowed: false, phone: null, verified: false, sites: [] },
     })
     const saved = await send(
       'PUT',
@@ -305,5 +334,100 @@ describe('alert settings', () => {
     const limited = await send('POST', '/api/account/alerts/test', undefined, cookie)
     expect(limited.status).toBe(429)
     expect(limited.headers.get('retry-after')).not.toBeNull()
+  })
+})
+
+describe('email alerts (M5.5)', () => {
+  const idOf = async (send: ReturnType<typeof setup>['send'], cookie: string): Promise<string> =>
+    ((await (await send('GET', '/api/account', undefined, cookie)).json()) as { id: string }).id
+
+  it('sends a test message to the account’s own address, with the way to stop the mail, and limits it', async () => {
+    const { send, signIn, mailed } = setup({ mail: true })
+    const cookie = await signIn('ali')
+    const first = await send('POST', '/api/account/alerts/test-email', undefined, cookie)
+    expect(await first.json()).toEqual({ ok: true, status: null })
+    expect(mailed).toHaveLength(1)
+    expect(mailed[0]).toMatchObject({ to: 'ali@example.com' })
+    expect(mailed[0]?.headers?.['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
+    expect(mailed[0]?.text).toContain('/api/mail/unsubscribe?t=')
+    for (let n = 0; n < 2; n++)
+      await send('POST', '/api/account/alerts/test-email', undefined, cookie)
+    const limited = await send('POST', '/api/account/alerts/test-email', undefined, cookie)
+    expect(limited.status).toBe(429)
+    expect(mailed).toHaveLength(3)
+  })
+
+  it('is not there without a mail provider, or signed out, or from another site', async () => {
+    const off = setup()
+    const cookie = await off.signIn('ali')
+    expect(
+      (await off.send('POST', '/api/account/alerts/test-email', undefined, cookie)).status,
+    ).toBe(404)
+    expect(off.mailed).toHaveLength(0)
+    const on = setup({ mail: true })
+    expect((await on.send('POST', '/api/account/alerts/test-email')).status).toBe(401)
+    const signed = await on.signIn('bo')
+    expect(
+      (
+        await on.send(
+          'POST',
+          '/api/account/alerts/test-email',
+          undefined,
+          signed,
+          'https://evil.example',
+        )
+      ).status,
+    ).toBe(400)
+  })
+
+  describe('the link in every mail', () => {
+    it('asks on a GET and changes nothing, then turns the person’s email alerts off on a POST', async () => {
+      const { send, signIn, monitors, unsubscribe } = setup({ mail: true })
+      const cookie = await signIn('ali')
+      await send('PUT', '/api/account/alerts', { email: true }, cookie)
+      const id = await idOf(send, cookie)
+      const link = new URL(unsubscribe.link(id))
+      const asked = await send('GET', `${link.pathname}${link.search}`)
+      expect(asked.status).toBe(200)
+      const page = await asked.text()
+      expect(page).toContain('<form method="post"')
+      expect(page).not.toContain('style=')
+      expect(page).not.toContain('<script')
+      expect(asked.headers.get('content-security-policy')).toContain("default-src 'none'")
+      expect((await monitors.alerts(id)).email).toBe(true)
+
+      // A mail client's one click: a POST with no cookie and no Origin.
+      const done = await send('POST', `${link.pathname}${link.search}`, undefined, undefined, '')
+      expect(done.status).toBe(200)
+      expect((await monitors.alerts(id)).email).toBe(false)
+      // Again is the same.
+      expect((await send('POST', `${link.pathname}${link.search}`)).status).toBe(200)
+      // The rest of the settings stand.
+      expect((await monitors.alerts(id)).onCritical).toBe(true)
+    })
+
+    it('refuses a token that is not ours, another person’s, or cut short', async () => {
+      const { send, signIn, monitors, unsubscribe } = setup({ mail: true })
+      const cookie = await signIn('ali')
+      await send('PUT', '/api/account/alerts', { email: true }, cookie)
+      const id = await idOf(send, cookie)
+      const good = new URL(unsubscribe.link(id)).searchParams.get('t') ?? ''
+      const [name = '', mac = ''] = good.split('.')
+      for (const bad of [
+        '',
+        'x',
+        `${name}.`,
+        `${name}.${mac.slice(0, -2)}AA`,
+        `${Buffer.from('someone-else').toString('base64url')}.${mac}`,
+        `${good}.extra`,
+      ]) {
+        const response = await send('POST', `/api/mail/unsubscribe?t=${encodeURIComponent(bad)}`)
+        expect(response.status).toBe(400)
+        expect(
+          (await send('GET', `/api/mail/unsubscribe?t=${encodeURIComponent(bad)}`)).status,
+        ).toBe(400)
+      }
+      expect((await monitors.alerts(id)).email).toBe(true)
+    })
   })
 })

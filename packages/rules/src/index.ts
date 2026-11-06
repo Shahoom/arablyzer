@@ -5,6 +5,7 @@ import { rule as a11yColorContrastReview } from './rules/a11y-color-contrast-rev
 import { rule as a11yImageAlt } from './rules/a11y-image-alt/rule'
 import { rule as a11yLinkName } from './rules/a11y-link-name/rule'
 import { rule as a11yValidLang } from './rules/a11y-valid-lang/rule'
+import { rule as addressSchemaGulf } from './rules/address-schema-gulf/rule'
 import { rule as aiTrainingFilters } from './rules/ai-training-filters/rule'
 import { rule as aiVisibilityGap } from './rules/ai-visibility-gap/rule'
 import { rule as anchorTextGeneric } from './rules/anchor-text-generic/rule'
@@ -28,11 +29,14 @@ import { rule as contactLinkInvalid } from './rules/contact-link-invalid/rule'
 import { rule as countryFit } from './rules/country-fit/rule'
 import { rule as cruxCountryGaps } from './rules/crux-country-gaps/rule'
 import { rule as cspMissing } from './rules/csp-missing/rule'
+import { rule as currencyFormsMixed } from './rules/currency-forms-mixed/rule'
 import { rule as cwvClsPoor } from './rules/cwv-cls-poor/rule'
 import { rule as cwvInpPoor } from './rules/cwv-inp-poor/rule'
 import { rule as cwvLcpPoor } from './rules/cwv-lcp-poor/rule'
+import { rule as dateFormsMixed } from './rules/date-forms-mixed/rule'
 import { rule as dialectRegister } from './rules/dialect-register/rule'
 import { rule as dmarcMissing } from './rules/dmarc-missing/rule'
+import { rule as faqSchemaMismatch } from './rules/faq-schema-mismatch/rule'
 import { rule as feedFileUnreadable } from './rules/feed-file-unreadable/rule'
 import { rule as feedRequiredMissing } from './rules/feed-required-missing/rule'
 import { rule as feedTextQuality } from './rules/feed-text-quality/rule'
@@ -49,9 +53,11 @@ import { rule as h1Missing } from './rules/h1-missing/rule'
 import { rule as hreflangInvalidCode } from './rules/hreflang-invalid-code/rule'
 import { rule as hreflangLangMismatch } from './rules/hreflang-lang-mismatch/rule'
 import { rule as hreflangSetInvalid } from './rules/hreflang-set-invalid/rule'
+import { rule as hreflangSitemapInvalid } from './rules/hreflang-sitemap-invalid/rule'
 import { rule as hreflangXDefaultMissing } from './rules/hreflang-x-default-missing/rule'
 import { rule as hstsMissing } from './rules/hsts-missing/rule'
 import { rule as httpsMissing } from './rules/https-missing/rule'
+import { rule as imageAltQuality } from './rules/image-alt-quality/rule'
 import { rule as imageFormatLegacy } from './rules/image-format-legacy/rule'
 import { rule as jsOnlyContent } from './rules/js-only-content/rule'
 import { rule as jsonldSyntaxError } from './rules/jsonld-syntax-error/rule'
@@ -59,11 +65,15 @@ import { rule as knowledgeGraphEntity } from './rules/knowledge-graph-entity/rul
 import { rule as linkBroken } from './rules/link-broken/rule'
 import { rule as localBusinessInvalid } from './rules/local-business-invalid/rule'
 import { rule as lookalikeDomains } from './rules/lookalike-domains/rule'
+import { rule as markupContentMismatch } from './rules/markup-content-mismatch/rule'
 import { rule as metaDescriptionMissing } from './rules/meta-description-missing/rule'
 import { rule as misspellingsUncovered } from './rules/misspellings-uncovered/rule'
 import { rule as mixedContent } from './rules/mixed-content/rule'
+import { rule as numberSeparatorsMixed } from './rules/number-separators-mixed/rule'
 import { rule as ogImageInvalid } from './rules/og-image-invalid/rule'
+import { rule as ogLocaleMismatch } from './rules/og-locale-mismatch/rule'
 import { rule as ogTagsMissing } from './rules/og-tags-missing/rule'
+import { rule as outboundLinksFound } from './rules/outbound-links-found/rule'
 import { rule as pageNoindex } from './rules/page-noindex/rule'
 import { rule as paginationCanonical } from './rules/pagination-canonical/rule'
 import { rule as paymentMethods } from './rules/payment-methods/rule'
@@ -90,7 +100,9 @@ import { rule as rtlPhysicalCss } from './rules/rtl-physical-css/rule'
 import { rule as safeBrowsingFlagged } from './rules/safe-browsing-flagged/rule'
 import { rule as sarSignFont } from './rules/sar-sign-font/rule'
 import { rule as searchSpellingVariants } from './rules/search-spelling-variants/rule'
+import { rule as shopifyLocaleMismatch } from './rules/shopify-locale-mismatch/rule'
 import { rule as sitemapInvalid } from './rules/sitemap-invalid/rule'
+import { rule as sitemapLastmodInvalid } from './rules/sitemap-lastmod-invalid/rule'
 import { rule as sitemapMissing } from './rules/sitemap-missing/rule'
 import { rule as soft404Signals } from './rules/soft-404-signals/rule'
 import { rule as spfMissing } from './rules/spf-missing/rule'
@@ -98,10 +110,12 @@ import { rule as textCompressionMissing } from './rules/text-compression-missing
 import { rule as titleMissing } from './rules/title-missing/rule'
 import { rule as tlsExpiring } from './rules/tls-expiring/rule'
 import { rule as urlParametersLinks } from './rules/url-parameters-links/rule'
+import { rule as urlSlugInvalid } from './rules/url-slug-invalid/rule'
 import { rule as viewportMissing } from './rules/viewport-missing/rule'
 import { rule as whatsappLinkFormat } from './rules/whatsapp-link-format/rule'
 import { rule as whatsappTextEncoding } from './rules/whatsapp-text-encoding/rule'
 import { rule as xContentTypeOptionsMissing } from './rules/x-content-type-options-missing/rule'
+import { rule as zidDefaultSeo } from './rules/zid-default-seo/rule'
 
 export { RULESET_VERSION } from './version'
 export {
@@ -119,6 +133,7 @@ export const RULES: readonly Rule[] = [
   a11yImageAlt,
   a11yLinkName,
   a11yValidLang,
+  addressSchemaGulf,
   aiTrainingFilters,
   aiVisibilityGap,
   anchorTextGeneric,
@@ -142,11 +157,14 @@ export const RULES: readonly Rule[] = [
   countryFit,
   cruxCountryGaps,
   cspMissing,
+  currencyFormsMixed,
   cwvClsPoor,
   cwvInpPoor,
   cwvLcpPoor,
+  dateFormsMixed,
   dialectRegister,
   dmarcMissing,
+  faqSchemaMismatch,
   feedFileUnreadable,
   feedRequiredMissing,
   feedTextQuality,
@@ -163,9 +181,11 @@ export const RULES: readonly Rule[] = [
   hreflangInvalidCode,
   hreflangLangMismatch,
   hreflangSetInvalid,
+  hreflangSitemapInvalid,
   hreflangXDefaultMissing,
   hstsMissing,
   httpsMissing,
+  imageAltQuality,
   imageFormatLegacy,
   jsOnlyContent,
   jsonldSyntaxError,
@@ -173,11 +193,15 @@ export const RULES: readonly Rule[] = [
   linkBroken,
   localBusinessInvalid,
   lookalikeDomains,
+  markupContentMismatch,
   metaDescriptionMissing,
   misspellingsUncovered,
   mixedContent,
+  numberSeparatorsMixed,
   ogImageInvalid,
+  ogLocaleMismatch,
   ogTagsMissing,
+  outboundLinksFound,
   pageNoindex,
   paginationCanonical,
   paymentMethods,
@@ -204,7 +228,9 @@ export const RULES: readonly Rule[] = [
   safeBrowsingFlagged,
   sarSignFont,
   searchSpellingVariants,
+  shopifyLocaleMismatch,
   sitemapInvalid,
+  sitemapLastmodInvalid,
   sitemapMissing,
   soft404Signals,
   spfMissing,
@@ -212,10 +238,12 @@ export const RULES: readonly Rule[] = [
   titleMissing,
   tlsExpiring,
   urlParametersLinks,
+  urlSlugInvalid,
   viewportMissing,
   whatsappLinkFormat,
   whatsappTextEncoding,
   xContentTypeOptionsMissing,
+  zidDefaultSeo,
 ]
 
 export function ruleById(id: string): Rule | undefined {

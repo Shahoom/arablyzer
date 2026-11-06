@@ -20,6 +20,7 @@ import {
 import {
   requireSecret,
   type AccountData,
+  type AiData,
   type AdminData,
   type ApiKeyData,
   type CrawlData,
@@ -28,6 +29,7 @@ import {
   type InFlight,
   type MonitorData,
   type NlpChecks,
+  type PlatformData,
   type RateLimiter,
   type ScanEvents,
   type ScanQueue,
@@ -36,13 +38,19 @@ import {
 import type { AccountsDeps } from './accounts'
 import type { ApiDeps } from './app'
 import { adminEmailsFrom, ADMIN_EMAILS_VARIABLE } from './admin/emails'
+import { createAssistant } from './ai/assistant'
+import { anthropicClient, type ModelClient } from './ai/client'
+import { aiSettingsFrom, type AiSettings } from './ai/settings'
 import { withOverrides } from './admin/plans'
 import { createAuth, type AuthDatabase } from './auth'
 import { clientAddress, connectionKey, networkKey, trustProxyFrom } from './client'
 import { crawlSettingsFrom } from './crawl/settings'
 import { googleApi } from './gsc/google'
-import { newScanId } from './ids'
+import { newAiRequestId, newScanId } from './ids'
 import { mailerFrom } from './monitor/mail'
+import { platformsFrom } from './platforms/config'
+import { unsubscribeFrom } from './monitor/unsubscribe'
+import { whatsappFrom, whatsappSettingsFrom } from './monitor/whatsapp'
 import { webhookSender } from './monitor/webhook'
 import { cloudflareTurnstile, isTurnstileTestSecret, noTurnstile } from './turnstile'
 
@@ -70,8 +78,12 @@ export interface Stores {
   readonly apiKeyData?: ApiKeyData
   /** What the owner keeps and reads (M4.8); without it, there is no suspension, override or panel. */
   readonly adminData?: AdminData
+  /** What the fix assistant keeps; needed with ANTHROPIC_API_KEY set, or the API does not start. */
+  readonly aiData?: AiData
   /** The queue to the worker for the Arabic text tools (M7); without it, a text check says the service is away. */
   readonly nlpChecks?: NlpChecks
+  /** What the Salla and Zid apps keep (M9); needed when either is on. */
+  readonly platformData?: PlatformData
 }
 
 /**
@@ -98,6 +110,10 @@ export function apiDeps(
     readonly rewriteGoogle?: (url: string) => string
     /** The pause between questions to Google's public pages; tests pass one that does not wait. */
     readonly searchSleep?: (ms: number) => Promise<void>
+    /** The model's client; tests pass their own, so no test reaches the Claude API. */
+    readonly aiClient?: ModelClient
+    /** The clock of the Salla and Zid apps' tokens; tests pass their own. */
+    readonly now?: () => Date
   } = {},
 ): ApiDeps {
   const production = env.NODE_ENV === 'production'
@@ -203,6 +219,11 @@ export function apiDeps(
   }
 
   const limits = limitsFrom(env)
+  // The fix assistant: off without ANTHROPIC_API_KEY. With it, a mistake in the rest stops the start.
+  const ai = aiSettingsFrom(env)
+  if (ai !== undefined && accountsModeFrom(env) !== 'on') {
+    log('The fix assistant is off: it is for signed-in accounts, and ARABLYZER_ACCOUNTS is not on.')
+  }
   const accounts = accountsFrom(env, {
     production,
     siteUrl,
@@ -213,6 +234,10 @@ export function apiDeps(
     pdfs: stores.pdfData,
     apiKeys: stores.apiKeyData,
     admin: stores.adminData,
+    ai:
+      ai === undefined
+        ? undefined
+        : { settings: ai, data: stores.aiData, client: options.aiClient },
     policy,
     resolver,
     fetcher: options.fetcher,
@@ -220,9 +245,25 @@ export function apiDeps(
     log,
   })
 
+  // The Salla and Zid apps (M9), each behind its own flag, off by default.
+  const platforms = platformsFrom(env, {
+    production,
+    siteUrl,
+    data: stores.platformData,
+    handoff,
+    limiterKey: key,
+    policy,
+    resolver,
+    fetcher: options.fetcher,
+    newId: newScanId,
+    ...(options.now === undefined ? {} : { now: options.now }),
+    log,
+  })
+
   return {
     ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
     ...(gsc === undefined ? {} : { gsc }),
+    ...(platforms === undefined ? {} : { platforms }),
     ...(search.suggest || search.serp ? { search } : {}),
     // The Arabic text tools (M7): on when the owner runs the NLP service (compose sets it).
     ...(env.ARABLYZER_NLP_TEXT?.trim() === '1'
@@ -268,6 +309,13 @@ function accountsFrom(
     readonly pdfs: PdfData | undefined
     readonly apiKeys: ApiKeyData | undefined
     readonly admin: AdminData | undefined
+    readonly ai:
+      | {
+          readonly settings: AiSettings
+          readonly data: AiData | undefined
+          readonly client: ModelClient | undefined
+        }
+      | undefined
     readonly policy: EgressPolicy
     readonly resolver: Resolver
     readonly fetcher: typeof safeFetch | undefined
@@ -323,9 +371,32 @@ function accountsFrom(
     await options.crawls?.eraseUser(userId)
     await options.pdfs?.eraseUser(userId)
     await options.apiKeys?.eraseUser(userId)
+    await options.ai?.data?.eraseUser(userId)
     await admin?.eraseUser(userId)
   }
   const plans = planCatalogFrom(env, options.limits)
+  if (options.ai !== undefined && options.ai.data === undefined) {
+    throw new Error('ANTHROPIC_API_KEY is set: the fix assistant needs a store (stores.aiData)')
+  }
+  const assistant =
+    options.ai?.data === undefined
+      ? undefined
+      : createAssistant({
+          settings: options.ai.settings,
+          data: options.ai.data,
+          // The Claude API is reached through the egress fetch, like every request the API makes.
+          client:
+            options.ai.client ??
+            anthropicClient(options.ai.settings, {
+              policy: options.policy,
+              resolver: options.resolver,
+              ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
+            }),
+          newId: newAiRequestId,
+          log: options.log,
+        })
+  const unsubscribe = unsubscribeFrom(env, siteUrl.origin)
+  const whatsappSettings = whatsappSettingsFrom(env)
   return {
     auth: createAuth({
       site: siteUrl,
@@ -356,6 +427,7 @@ function accountsFrom(
       : { crawls: options.crawls, crawlSettings: crawlSettingsFrom(env) }),
     ...(options.pdfs === undefined ? {} : { pdfs: options.pdfs }),
     ...(options.apiKeys === undefined ? {} : { apiKeys: options.apiKeys }),
+    ...(assistant === undefined ? {} : { ai: assistant }),
     ...(options.monitors === undefined
       ? {}
       : {
@@ -365,7 +437,21 @@ function accountsFrom(
             resolver: options.resolver,
             ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
           }),
-          mail: mailerFrom(env),
+          mail: mailerFrom(env, {
+            policy: options.policy,
+            resolver: options.resolver,
+            siteHost: siteUrl.hostname,
+            log: options.log,
+            ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
+          }),
+          ...(unsubscribe === undefined ? {} : { unsubscribe }),
+          whatsapp: whatsappFrom(env, {
+            policy: options.policy,
+            resolver: options.resolver,
+            log: options.log,
+            ...(options.fetcher === undefined ? {} : { fetcher: options.fetcher }),
+          }),
+          ...(whatsappSettings === null ? {} : { whatsappSettings }),
         }),
   }
 }

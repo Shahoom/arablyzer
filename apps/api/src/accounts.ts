@@ -40,8 +40,11 @@ import type { ApiDeps } from './app'
 import type { Auth } from './auth'
 import { SESSION_COOKIE } from './auth'
 import { fromTheSite } from './guards'
+import type { Assistant } from './ai/assistant'
 import type { Mailer } from './monitor/mail'
+import type { Unsubscribe } from './monitor/unsubscribe'
 import type { WebhookSender } from './monitor/webhook'
+import type { WhatsApp, WhatsAppSettings } from './monitor/whatsapp'
 
 export interface AccountsDeps {
   readonly auth: Auth
@@ -73,10 +76,17 @@ export interface AccountsDeps {
    * account's own deletion and the owner's both run, before the account itself goes.
    */
   readonly erase?: (userId: string) => Promise<void>
+  /** The fix assistant (BUILD-PLAN §12); absent where the deployment has no key, and its routes are not there. */
+  readonly ai?: Assistant
   /** Sends a webhook's messages, for the test button. */
   readonly sender?: WebhookSender
-  /** Mail, off until a provider is built. */
+  /** Mail: off unless ARABLYZER_MAIL_PROVIDER names a provider (M5.5). */
   readonly mail?: Mailer
+  /** The links that stop a person's email alerts; present whenever ARABLYZER_MAIL_SECRET is set. */
+  readonly unsubscribe?: Unsubscribe
+  /** WhatsApp alerts (M5.6): off unless ARABLYZER_WHATSAPP_PROVIDER names a provider. */
+  readonly whatsapp?: WhatsApp
+  readonly whatsappSettings?: WhatsAppSettings
 }
 
 /**

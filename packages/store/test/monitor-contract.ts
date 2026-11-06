@@ -188,6 +188,13 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
       expect(later.map((p) => p.scanId)).toEqual([ids[2]])
       const retry = (await monitors.pending(at(2), 10)).find((p) => p.scanId === ids[1])
       expect(retry?.attempts).toBe(2)
+      // A channel reached is remembered, once, across the retries of the run.
+      expect(retry?.delivered).toEqual([])
+      await monitors.markDelivered(ids[1] ?? '', 'webhook')
+      await monitors.markDelivered(ids[1] ?? '', 'webhook')
+      await monitors.markDelivered(ids[1] ?? '', 'email')
+      const marked = (await monitors.pending(at(2), 10)).find((p) => p.scanId === ids[1])
+      expect([...(marked?.delivered ?? [])].sort()).toEqual(['email', 'webhook'])
     })
 
     it('sets a monitor’s health', async () => {
@@ -231,7 +238,106 @@ export function monitorContract(make: () => Harness | Promise<Harness>): void {
       expect((await monitors.alerts(userId)).lastSummaryAt).toEqual(at(1))
       expect((await monitors.saveAlerts(userId, { webhook: null })).webhook).toBeNull()
     })
+  })
 
+  describe('WhatsApp', () => {
+    const PHONE = '+966501234567'
+    const start = (
+      monitors: Awaited<ReturnType<typeof setup>>['monitors'],
+      userId: string,
+      hash = 'hash-1',
+      phone = PHONE,
+      expires = at(1),
+    ) => monitors.startWhatsapp(userId, { phone, codeHash: hash, expiresAt: expires, at: NOW })
+
+    it('verifies a number only with the code that was sent, counts wrong tries, and spends the code', async () => {
+      const { monitors, userId } = await setup(0)
+      expect(await monitors.whatsapp(userId)).toBeNull()
+      expect(await monitors.confirmWhatsapp(userId, 'hash-1', NOW, 5)).toBe('none')
+      await start(monitors, userId)
+      expect(await monitors.whatsapp(userId)).toEqual({ phone: PHONE, verifiedAt: null })
+      for (let n = 0; n < 2; n++) {
+        expect(await monitors.confirmWhatsapp(userId, 'nope', NOW, 3)).toBe('wrong')
+      }
+      expect(await monitors.confirmWhatsapp(userId, 'hash-1', NOW, 3)).toBe('verified')
+      expect(await monitors.whatsapp(userId)).toEqual({ phone: PHONE, verifiedAt: NOW })
+      // Spent: the same code does not work twice.
+      expect(await monitors.confirmWhatsapp(userId, 'hash-1', NOW, 3)).toBe('none')
+    })
+
+    it('locks after the attempts, expires, and starts over with a new code', async () => {
+      const { monitors, userId } = await setup(0)
+      await start(monitors, userId)
+      for (let n = 0; n < 3; n++) await monitors.confirmWhatsapp(userId, 'nope', NOW, 3)
+      expect(await monitors.confirmWhatsapp(userId, 'hash-1', NOW, 3)).toBe('locked')
+      await start(monitors, userId, 'hash-2')
+      expect(await monitors.confirmWhatsapp(userId, 'hash-2', at(2), 3)).toBe('expired')
+      await start(monitors, userId, 'hash-3', '+966509999999', at(5))
+      expect(await monitors.confirmWhatsapp(userId, 'hash-3', at(2), 3)).toBe('verified')
+      expect((await monitors.whatsapp(userId))?.phone).toBe('+966509999999')
+    })
+
+    it('alerts a site only when it is monitored by the person, the number is verified and the site opted in', async () => {
+      const { monitors, userId, sites } = await setup(2)
+      const [a, b] = [must(sites[0]), must(sites[1])]
+      expect(await monitors.setWhatsappSite(userId, a.id, true)).toBe('no-monitor')
+      await monitors.enable(userId, a.id, input(), 5)
+      await monitors.enable(userId, b.id, input(), 5)
+      expect(await monitors.setWhatsappSite(userId, a.id, true)).toBe('unverified')
+      await start(monitors, userId)
+      expect(await monitors.setWhatsappSite(userId, a.id, true)).toBe('unverified')
+      await monitors.confirmWhatsapp(userId, 'hash-1', NOW, 5)
+      expect(await monitors.whatsappTarget(userId, a.id)).toBeNull()
+      expect(await monitors.setWhatsappSite(userId, a.id, true)).toBe('set')
+      expect(await monitors.setWhatsappSite(userId, a.id, true)).toBe('set')
+      expect(await monitors.whatsappTarget(userId, a.id)).toBe(PHONE)
+      expect(await monitors.whatsappTarget(userId, b.id)).toBeNull()
+      expect([...(await monitors.whatsappSites(userId))]).toEqual([a.id])
+      // A new, unverified number sends nothing until it is verified; the opt-in stays.
+      await start(monitors, userId, 'hash-9', '+966500000000')
+      expect(await monitors.whatsappTarget(userId, a.id)).toBeNull()
+      expect([...(await monitors.whatsappSites(userId))]).toEqual([a.id])
+      // Turning monitoring off ends the site's opt-in.
+      await monitors.confirmWhatsapp(userId, 'hash-9', NOW, 5)
+      expect(await monitors.whatsappTarget(userId, a.id)).toBe('+966500000000')
+      await monitors.disable(userId, a.id)
+      expect(await monitors.whatsappTarget(userId, a.id)).toBeNull()
+      expect((await monitors.whatsappSites(userId)).size).toBe(0)
+    })
+
+    it('forgets a number and its opt-ins, by person or by number, and with the person', async () => {
+      // A number of its own: the PostgreSQL suite shares one database across its tests.
+      const SHARED = '+966555000111'
+      const { monitors, userId, sites, ...h } = await setup(1)
+      const site = must(sites[0])
+      await monitors.enable(userId, site.id, input(), 5)
+      await start(monitors, userId, 'hash-1', SHARED)
+      await monitors.confirmWhatsapp(userId, 'hash-1', NOW, 5)
+      await monitors.setWhatsappSite(userId, site.id, true)
+      // Another person with the same number: STOP forgets both.
+      const other = id('u')
+      await h.user(other)
+      await start(monitors, other, 'hash-1', SHARED)
+      expect(await monitors.removeWhatsappNumber(SHARED)).toBe(2)
+      expect(await monitors.whatsapp(userId)).toBeNull()
+      expect(await monitors.whatsapp(other)).toBeNull()
+      expect(await monitors.whatsappTarget(userId, site.id)).toBeNull()
+      expect(await monitors.removeWhatsappNumber(SHARED)).toBe(0)
+
+      await start(monitors, userId, 'hash-1', SHARED)
+      await monitors.confirmWhatsapp(userId, 'hash-1', NOW, 5)
+      await monitors.setWhatsappSite(userId, site.id, true)
+      await monitors.removeWhatsapp(userId)
+      expect(await monitors.whatsapp(userId)).toBeNull()
+      expect((await monitors.whatsappSites(userId)).size).toBe(0)
+
+      await start(monitors, userId, 'hash-1', SHARED)
+      await monitors.eraseUser(userId)
+      expect(await monitors.whatsapp(userId)).toBeNull()
+    })
+  })
+
+  describe('erasing', () => {
     it('erases everything of a person', async () => {
       const { monitors, userId, sites } = await setup(1)
       await monitors.enable(userId, sites[0]?.id ?? '', input(), 1)

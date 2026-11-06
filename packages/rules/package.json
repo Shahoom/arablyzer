@@ -6,11 +6,16 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./ai-crawlers": "./src/lib/ai-crawlers.ts",
     "./challenges": "./src/lib/challenges.ts",
     "./version": "./src/version.ts",
+    "./feed-title": "./src/lib/feed-title.ts",
     "./hreflang": "./src/lib/hreflang.ts",
     "./iso-codes": "./src/lib/iso-codes.ts",
+    "./locale-format": "./src/lib/locale-format.ts",
     "./robots-match": "./src/lib/robots.ts",
+    "./url-slug": "./src/lib/url-slug.ts",
+    "./w3c-date": "./src/lib/w3c-date.ts",
     "./whatsapp": "./src/lib/whatsapp.ts"
   },
   "scripts": {

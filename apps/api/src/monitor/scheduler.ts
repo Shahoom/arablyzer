@@ -12,21 +12,27 @@ import {
   type ScanRecord,
   type ScanStore,
   type DueMonitor,
+  type StoredAlerts,
 } from '@arablyzer/store'
 import { planOf } from '../accounts'
 import { holdPlace } from '../places'
 import { parseTarget, resolveTarget } from '../target'
 import { eventsOf, factsOf, MAX_FAILURES, type Facts } from './evaluate'
-import type { Mailer } from './mail'
+import { composeMail, type MailKind } from './email'
+import type { MailOutcome, Mailer } from './mail'
 import {
   alertMessage,
   reportUrl,
   siteLabel,
   summaryMessage,
+  whatsappJobs,
   type Language,
   type RunInfo,
+  type WhatsAppJob,
 } from './messages'
 import { DAY_MS, MINUTE_MS, nextRunAfter, type Random } from './schedule'
+import type { Unsubscribe } from './unsubscribe'
+import type { WhatsApp } from './whatsapp'
 import type { AlertMessage, WebhookSender } from './webhook'
 
 export interface SchedulerDeps {
@@ -42,6 +48,10 @@ export interface SchedulerDeps {
   readonly resolver: Resolver
   readonly sender: WebhookSender
   readonly mail: Mailer
+  /** WhatsApp, off unless a provider is on; used only for accounts whose plan has it and who opted a site in. */
+  readonly whatsapp?: WhatsApp
+  /** The links that turn a person's email alerts off; mail is sent only with them. */
+  readonly unsubscribe?: Unsubscribe
   /** The site's origin, for the links in a message. */
   readonly origin: string
   readonly newId: () => string
@@ -99,11 +109,12 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     const { monitor, url } = due
     const at = now()
     const plan = await planOf(deps.plans, monitor.userId)
-    // A downgrade pauses the extras, and the interval never goes below the plan's: checked on every run.
+    // A downgrade pauses the extras, and the interval is the plan's, whichever way it moved since the
+    // monitor was enabled (a weekly plan made daily, or back): checked on every run.
     await deps.monitors.pauseExtras(monitor.userId, plan.monitoredSites)
     const current = await deps.monitors.monitor(monitor.userId, monitor.siteId)
     if (current === null || current.paused) return
-    const everyDays = Math.max(monitor.everyDays, plan.monitorEveryDays)
+    const everyDays = plan.monitorEveryDays
     const next = nextRunAfter(at, everyDays, random)
     const holder = `account:${monitor.userId}`
     const id = deps.newId()
@@ -207,31 +218,134 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
     )
   }
 
-  /** Sends to the webhook, and the mail if there is any; true when every channel wanted got it. */
+  /** The person's email alert goes out only when a provider is on and the links to stop it exist. */
+  const mailAllowed = (alerts: StoredAlerts): boolean =>
+    alerts.email && deps.mail.available && deps.unsubscribe !== undefined
+
+  /** One message to the person's address; a provider that fails is a retry, never an exception. */
+  async function mailTo(
+    run: PendingRun,
+    message: AlertMessage,
+    kind: MailKind,
+    idempotencyKey: string,
+  ): Promise<MailOutcome> {
+    const unsubscribe = deps.unsubscribe
+    if (unsubscribe === undefined) return 'rejected'
+    const composed = composeMail({
+      language: run.language === 'en' ? 'en' : 'ar',
+      kind,
+      site: siteLabel(run.url),
+      lines: message.lines,
+      unsubscribeUrl: unsubscribe.link(run.userId),
+    })
+    try {
+      const outcome = await deps.mail.send({
+        to: run.email,
+        subject: composed.subject,
+        text: composed.text,
+        html: composed.html,
+        headers: composed.headers,
+        idempotencyKey,
+      })
+      return outcome
+    } catch {
+      return 'retry'
+    }
+  }
+
+  /** The webhook's turn: its bookkeeping (failures in a row, switching off) runs on every attempt. */
+  async function viaWebhook(
+    run: PendingRun,
+    alerts: StoredAlerts,
+    message: AlertMessage,
+    at: Date,
+  ): Promise<boolean> {
+    const { webhook } = alerts
+    if (webhook === null) return true
+    if (webhook.disabledAt !== null) return true
+    const sent = await deps.sender.send(webhook, message).catch(() => ({ ok: false, status: null }))
+    await deps.monitors.delivered(run.userId, sent.ok, at, MAX_WEBHOOK_FAILURES)
+    return sent.ok
+  }
+
+  /**
+   * Sends the run's alert to every channel the person wants that it has not reached yet, and
+   * remembers each one that it reached, so the retry of a run (one channel failed, another did
+   * not) never sends twice to the same place. A mail refused for good counts as handled. True when
+   * every channel wanted has it.
+   */
   async function deliver(
     run: PendingRun,
     message: AlertMessage,
-    subject: string,
     at: Date,
+    jobs: readonly WhatsAppJob[] = [],
   ): Promise<boolean> {
     const alerts = await deps.monitors.alerts(run.userId)
+    const reached = new Set(run.delivered)
+    let all = true
+    const wantsWebhook = alerts.webhook !== null && alerts.webhook.disabledAt === null
+    if (wantsWebhook && !reached.has('webhook')) {
+      if (await viaWebhook(run, alerts, message, at)) {
+        await deps.monitors.markDelivered(run.scanId, 'webhook')
+      } else all = false
+    }
+    if (mailAllowed(alerts) && !reached.has('email')) {
+      const outcome = await mailTo(run, message, 'alert', `alert-${run.scanId}-email`)
+      if (outcome === 'retry') all = false
+      else await deps.monitors.markDelivered(run.scanId, 'email')
+    }
+    if (!(await viaWhatsapp(run, jobs, reached))) all = false
+    return all
+  }
+
+  /**
+   * WhatsApp's turn: only for an account whose plan has it, whose number is verified and who opted
+   * this site in. Each template is remembered on its own, so a retry sends only the ones not sent.
+   */
+  async function viaWhatsapp(
+    run: PendingRun,
+    jobs: readonly WhatsAppJob[],
+    reached: ReadonlySet<string>,
+  ): Promise<boolean> {
+    const whatsapp = deps.whatsapp
+    if (whatsapp === undefined || !whatsapp.available || jobs.length === 0) return true
+    const plan = await planOf(deps.plans, run.userId)
+    if (!plan.whatsappAlerts) return true
+    const phone = await deps.monitors.whatsappTarget(run.userId, run.siteId)
+    if (phone === null) return true
+    let all = true
+    for (const job of jobs) {
+      if (reached.has(job.key)) continue
+      const outcome = await whatsapp
+        .send({
+          to: phone,
+          template: job.template,
+          language: run.language === 'en' ? 'en' : 'ar',
+          params: job.params,
+        })
+        .catch(() => 'retry' as const)
+      if (outcome === 'retry') all = false
+      else await deps.monitors.markDelivered(run.scanId, job.key)
+    }
+    return all
+  }
+
+  /**
+   * The weekly summary goes out once: to each channel the person wants, with no retry, so it can
+   * never arrive twice. True when at least one channel took it.
+   */
+  async function broadcast(run: PendingRun, message: AlertMessage, at: Date): Promise<boolean> {
+    const alerts = await deps.monitors.alerts(run.userId)
     const results: boolean[] = []
-    const { webhook } = alerts
-    if (webhook !== null && webhook.disabledAt === null) {
-      const sent = await deps.sender
-        .send(webhook, message)
-        .catch(() => ({ ok: false, status: null }))
-      await deps.monitors.delivered(run.userId, sent.ok, at, MAX_WEBHOOK_FAILURES)
-      results.push(sent.ok)
+    if (alerts.webhook !== null && alerts.webhook.disabledAt === null) {
+      results.push(await viaWebhook(run, alerts, message, at))
     }
-    if (alerts.email && deps.mail.available) {
-      results.push(
-        await deps.mail
-          .send({ to: run.email, subject, text: message.lines.join('\n') })
-          .catch(() => false),
-      )
+    if (mailAllowed(alerts)) {
+      const day = at.toISOString().slice(0, 10)
+      const outcome = await mailTo(run, message, 'summary', `summary-${run.userId}-${day}`)
+      results.push(outcome !== 'retry')
     }
-    return results.every(Boolean)
+    return results.some(Boolean)
   }
 
   /** The scan of the run, or null when it is gone; a scan lost between the store and the queue is failed. */
@@ -292,12 +406,11 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       await deps.monitors.settle(run.scanId, at)
     } else {
       const message = alertMessage(language, info, events, at)
-      const delivered = await deliver(run, message, `Arablyzer: ${siteLabel(run.url)}`, at).catch(
-        (error: unknown) => {
-          tell(error)
-          return false
-        },
-      )
+      const jobs = whatsappJobs(deps.origin, language, info, events)
+      const delivered = await deliver(run, message, at, jobs).catch((error: unknown) => {
+        tell(error)
+        return false
+      })
       if (delivered) await deps.monitors.settle(run.scanId, at)
       else await failedAttempt(run, at)
     }
@@ -335,8 +448,7 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
           done.map((d) => d.info),
           at,
         )
-        if (await deliver(first.run, message, 'Arablyzer', at))
-          await deps.monitors.summarized(userId, at)
+        if (await broadcast(first.run, message, at)) await deps.monitors.summarized(userId, at)
       } catch (error) {
         tell(error)
       }

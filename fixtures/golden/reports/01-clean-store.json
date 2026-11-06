@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.11.0"
+    "rulesetVersion": "0.15.0"
   },
   "target": {
     "url": "https://store.example:30001/",
@@ -35,17 +35,17 @@
     "dominantScript": "arabic"
   },
   "summary": {
-    "pass": 48,
-    "fail": 0,
+    "pass": 52,
+    "fail": 1,
     "needsReview": 0,
-    "notApplicable": 22,
+    "notApplicable": 31,
     "error": 0,
     "bySeverity": {
       "critical": 0,
       "serious": 0,
       "moderate": 0,
       "minor": 0,
-      "info": 0
+      "info": 1
     }
   },
   "score": {
@@ -59,7 +59,7 @@
       "index": 100,
       "intl": 100,
       "links": 100,
-      "locale": null,
+      "locale": 100,
       "onpage": 100,
       "rtl": 100,
       "schema": 100,
@@ -68,11 +68,22 @@
     },
     "partial": false,
     "rules": {
-      "ran": 70,
-      "total": 103
+      "ran": 84,
+      "total": 117
     }
   },
   "rules": [
+    {
+      "id": "address-schema-gulf",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "العنوان البريدي في البيانات المنظّمة فيه دولة أو رمز بريدي مكتوب خطأً",
+        "en": "Postal address in structured data has a country or postal code written wrongly"
+      }
+    },
     {
       "id": "ai-training-filters",
       "version": "1.0.0",
@@ -253,6 +264,17 @@
       }
     },
     {
+      "id": "currency-forms-mixed",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة تكتب عملة بصيغتين",
+        "en": "Page writes a currency in two forms"
+      }
+    },
+    {
       "id": "cwv-cls-poor",
       "version": "1.0.0",
       "category": "speed",
@@ -286,6 +308,17 @@
       }
     },
     {
+      "id": "date-forms-mixed",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة تكتب التواريخ بصيغتين",
+        "en": "Page writes dates in two forms"
+      }
+    },
+    {
       "id": "dialect-register",
       "version": "1.1.0",
       "category": "locale",
@@ -305,6 +338,17 @@
       "title": {
         "ar": "لا سجل DMARC صالح للنطاق",
         "en": "No valid DMARC record for the domain"
+      }
+    },
+    {
+      "id": "faq-schema-mismatch",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "وسوم الأسئلة الشائعة تقول ما لا تقوله الصفحة",
+        "en": "FAQ markup says what the page does not"
       }
     },
     {
@@ -421,6 +465,17 @@
       }
     },
     {
+      "id": "hreflang-sitemap-invalid",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "النسخ اللغوية في خريطة الموقع غير مكتملة",
+        "en": "Language versions in the sitemap are not complete"
+      }
+    },
+    {
       "id": "hreflang-x-default-missing",
       "version": "1.0.0",
       "category": "intl",
@@ -451,6 +506,17 @@
       "title": {
         "ar": "صفحة بلا HTTPS",
         "en": "Page without HTTPS"
+      }
+    },
+    {
+      "id": "image-alt-quality",
+      "version": "1.0.0",
+      "category": "trust",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "نص بديل للصورة لا يصف الصورة",
+        "en": "Image alt text that does not describe the image"
       }
     },
     {
@@ -498,6 +564,17 @@
       }
     },
     {
+      "id": "markup-content-mismatch",
+      "version": "1.0.0",
+      "category": "schema",
+      "severity": "moderate",
+      "status": "pass",
+      "title": {
+        "ar": "البيانات المنظّمة تقول ما لا تقوله الصفحة",
+        "en": "Structured data says what the page does not"
+      }
+    },
+    {
       "id": "meta-description-missing",
       "version": "1.0.0",
       "category": "onpage",
@@ -520,6 +597,17 @@
       }
     },
     {
+      "id": "number-separators-mixed",
+      "version": "1.0.0",
+      "category": "locale",
+      "severity": "minor",
+      "status": "pass",
+      "title": {
+        "ar": "الصفحة تكتب علامات الأرقام بطريقتين",
+        "en": "Page writes the marks inside numbers two ways"
+      }
+    },
+    {
       "id": "og-image-invalid",
       "version": "1.0.0",
       "category": "onpage",
@@ -531,6 +619,17 @@
       }
     },
     {
+      "id": "og-locale-mismatch",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "لغة المشاركة لا تطابق لغة الصفحة",
+        "en": "Sharing language does not match the page's language"
+      }
+    },
+    {
       "id": "og-tags-missing",
       "version": "1.0.0",
       "category": "onpage",
@@ -539,6 +638,17 @@
       "title": {
         "ar": "وسوم المشاركة (Open Graph) ناقصة",
         "en": "Open Graph sharing tags are missing"
+      }
+    },
+    {
+      "id": "outbound-links-found",
+      "version": "1.1.0",
+      "category": "links",
+      "severity": "info",
+      "status": "fail",
+      "title": {
+        "ar": "المواقع التي ترتبط بها الصفحة",
+        "en": "Sites this page links to"
       }
     },
     {
@@ -729,6 +839,17 @@
       }
     },
     {
+      "id": "shopify-locale-mismatch",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "serious",
+      "status": "not-applicable",
+      "title": {
+        "ar": "متجر Shopify يُعرض بالعربية لكن قالبه أو نصوصه ليست كذلك",
+        "en": "Shopify store shown in Arabic but its theme or text is not"
+      }
+    },
+    {
       "id": "sitemap-invalid",
       "version": "1.0.0",
       "category": "crawl",
@@ -737,6 +858,17 @@
       "title": {
         "ar": "خريطة موقع لا تستطيع محركات البحث قراءتها",
         "en": "A sitemap search engines cannot read"
+      }
+    },
+    {
+      "id": "sitemap-lastmod-invalid",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "تواريخ في خريطة الموقع لا تستطيع Google استعمالها",
+        "en": "Sitemap dates that Google cannot use"
       }
     },
     {
@@ -809,6 +941,17 @@
       }
     },
     {
+      "id": "url-slug-invalid",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "عنوان الصفحة فيه جزء يُكتب بأكثر من طريقة",
+        "en": "Page address has a slug that is written two ways"
+      }
+    },
+    {
       "id": "viewport-missing",
       "version": "1.0.0",
       "category": "onpage",
@@ -851,9 +994,38 @@
         "ar": "صفحة بلا X-Content-Type-Options: nosniff",
         "en": "No X-Content-Type-Options: nosniff"
       }
+    },
+    {
+      "id": "zid-default-seo",
+      "version": "1.0.0",
+      "category": "onpage",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "صفحة متجر زد عنوانها أو وصفها هو الافتراضي من زد",
+        "en": "Zid store page still has Zid's default title or description"
+      }
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "ruleId": "outbound-links-found",
+      "severity": "info",
+      "fingerprint": "69f6902483aa45ac",
+      "message": {
+        "ar": "ترتبط الصفحة بـ 1 مواقع أخرى (1 رابطاً): wa.me ×1.",
+        "en": "The page links to 1 other sites (1 links): wa.me ×1."
+      },
+      "evidence": {
+        "url": "https://store.example:30001/",
+        "values": {
+          "sites": 1,
+          "links": 1,
+          "list": "wa.me ×1"
+        }
+      }
+    }
+  ],
   "facts": {
     "robots": {
       "url": "https://store.example:30001/robots.txt",

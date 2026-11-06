@@ -72,6 +72,7 @@ describe('the tools as their pages have them', () => {
     expect(only('rtl-check')).toBe(false)
     expect(data.tools.filter((tool) => tool.reportsOnly).map((tool) => tool.slug)).toEqual([
       'logical-css-check',
+      'outbound-links',
       'payment-methods-detector',
       'platform-check',
     ])

@@ -104,7 +104,7 @@ describe('the hub’s index', () => {
 
   it('writes the totals the tiles show without a count the registries do not have', () => {
     const { totals } = knowledgeIndex('ar')
-    expect(KNOWLEDGE_UI.ar.browse.tiles.tool(totals.tool)).toMatch(/أداة/)
+    expect(KNOWLEDGE_UI.ar.browse.tiles.tool(totals.tool)).toMatch(/أداة|أدوات/)
     expect(KNOWLEDGE_UI.en.browse.tiles.fix(totals.fix)).toMatch(/fix guides/)
   })
 })

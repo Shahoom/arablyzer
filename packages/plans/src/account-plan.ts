@@ -42,6 +42,13 @@ export interface AccountPlan {
   readonly apiScans: number | null
   /** Requests one API key may make per minute, reads included; scans have their own bucket. */
   readonly apiRequests: number
+  /**
+   * The AI fix suggestions the account may ask for in any 24 hours (the fix assistant, BUILD-PLAN
+   * §12). A suggestion that is already stored costs none. 0 means the plan has no assistant.
+   */
+  readonly aiFixesPerDay: number
+  /** Whether the account may have its monitoring alerts sent to WhatsApp (M5.6); each message costs. */
+  readonly whatsappAlerts: boolean
 }
 
 export interface PlanCatalog {
@@ -79,6 +86,10 @@ export const DEVELOPMENT_ACCOUNT_PLAN: AccountPlan = Object.freeze({
   apiKeys: 2,
   apiScans: null,
   apiRequests: 120,
+  // The assistant spends the owner's money, so no plan has it until the owner gives it a number.
+  aiFixesPerDay: 0,
+  // M5.6: WhatsApp alerts are a paid plan's (BUILD-PLAN §3); the free account has none unless the owner turns them on.
+  whatsappAlerts: false,
 })
 
 const FIELDS = ['SCANS', 'SCAN_SECONDS', 'INFLIGHT', 'SAVED_SITES', 'HISTORY_DAYS'] as const
@@ -90,9 +101,11 @@ type OptionalField =
   | 'PDF_PER_MONTH'
   | 'WHITE_LABEL'
   | 'WHITE_LABEL_CREDIT'
+  | 'WHATSAPP_ALERTS'
   | 'API_KEYS'
   | 'API_SCANS'
   | 'API_REQUESTS'
+  | 'AI_FIXES_PER_DAY'
 const name = (plan: PlanId, field: (typeof FIELDS)[number] | OptionalField) =>
   `ARABLYZER_PLAN_${plan.toUpperCase()}_${field}`
 
@@ -124,6 +137,16 @@ function readApiScans(env: Env, variable: string, fallback: number | null): numb
   return Number(raw)
 }
 
+/** A count that may be 0 (the plan has none): unset keeps the fallback, anything but whole numbers is a mistake. */
+function readCount(env: Env, variable: string, fallback: number): number {
+  const raw = env[variable]?.trim() ?? ''
+  if (raw === '') return fallback
+  if (!/^\d+$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+    throw new Error(`${variable} must be a whole number, 0 or more, not ${raw}`)
+  }
+  return Number(raw)
+}
+
 function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
   const read = reader(env, 'Phase 4 design §2.4')
   // Monitoring's two numbers are optional: unset, the design's (1 site, every 7 days) stand.
@@ -147,17 +170,28 @@ function planFrom(env: Env, id: PlanId, fallback: AccountPlan): AccountPlan {
     apiKeys: readOptional('API_KEYS', fallback.apiKeys),
     apiScans: readApiScans(env, name(id, 'API_SCANS'), fallback.apiScans),
     apiRequests: readOptional('API_REQUESTS', fallback.apiRequests),
+    aiFixesPerDay: readCount(env, name(id, 'AI_FIXES_PER_DAY'), fallback.aiFixesPerDay),
+    whatsappAlerts: readSwitch(env, name(id, 'WHATSAPP_ALERTS'), fallback.whatsappAlerts),
   })
 }
 
-/** A paid plan is configured with all five numbers or none; half of one is a mistake. */
-function optionalPlan(env: Env, id: 'pro' | 'agency'): AccountPlan | null {
+/**
+ * A paid plan is configured with all five numbers or none; half of one is a mistake. Its
+ * monitoring starts from what the free account has (a paid plan that sets nothing is no worse), so
+ * `MONITOR_EVERY_DAYS=1` is the whole of what makes a plan watch daily.
+ */
+function optionalPlan(env: Env, id: 'pro' | 'agency', account: AccountPlan): AccountPlan | null {
   const set = FIELDS.filter((field) => (env[name(id, field)]?.trim() ?? '') !== '')
   if (set.length === 0) return null
   if (set.length < FIELDS.length) {
     throw new Error(`${id} needs all of ${FIELDS.map((f) => name(id, f)).join(', ')}, or none`)
   }
-  return planFrom(env, id, DEVELOPMENT_ACCOUNT_PLAN)
+  return planFrom(env, id, {
+    ...DEVELOPMENT_ACCOUNT_PLAN,
+    monitoredSites: account.monitoredSites,
+    monitorEveryDays: account.monitorEveryDays,
+    whatsappAlerts: account.whatsappAlerts,
+  })
 }
 
 /** The rate a window allows, in scans per second. */
@@ -169,10 +203,11 @@ const rate = (window: Window) => window.scans / window.seconds
  * less than the anonymous visitor has (Phase 4 design §6): it refuses to start rather than do so.
  */
 export function planCatalogFrom(env: Env, anonymous: ScanLimits): PlanCatalog {
+  const account = planFrom(env, 'account', DEVELOPMENT_ACCOUNT_PLAN)
   const catalog: PlanCatalog = Object.freeze({
-    account: planFrom(env, 'account', DEVELOPMENT_ACCOUNT_PLAN),
-    pro: optionalPlan(env, 'pro'),
-    agency: optionalPlan(env, 'agency'),
+    account,
+    pro: optionalPlan(env, 'pro', account),
+    agency: optionalPlan(env, 'agency', account),
   })
   for (const plan of [catalog.account, catalog.pro, catalog.agency]) {
     if (plan === null) continue
@@ -183,6 +218,19 @@ export function planCatalogFrom(env: Env, anonymous: ScanLimits): PlanCatalog {
       throw new Error(
         `The ${plan.id} plan's concurrent scans are fewer than an anonymous visitor's`,
       )
+    }
+    // Monitoring only grows with the plans: the free account is weekly (the owner's decision), a
+    // paid plan may be daily, and none may watch fewer sites or less often than the one below it.
+    if (plan !== catalog.account) {
+      if (plan.monitorEveryDays > catalog.account.monitorEveryDays) {
+        throw new Error(`The ${plan.id} plan monitors less often than the free account`)
+      }
+      if (plan.monitoredSites < catalog.account.monitoredSites) {
+        throw new Error(`The ${plan.id} plan monitors fewer sites than the free account`)
+      }
+      if (catalog.account.whatsappAlerts && !plan.whatsappAlerts) {
+        throw new Error(`The ${plan.id} plan has no WhatsApp alerts, and the free account has`)
+      }
     }
   }
   return catalog

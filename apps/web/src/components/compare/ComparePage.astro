@@ -229,6 +229,22 @@ const prose = 'prose-fix prose-tool prose-article doc-links'
       <p>
         <Bidi text={p.methodBody} lang={lang} />
       </p>
+      {them.sources !== undefined && them.sources.length > 0 && (
+        <>
+          <p>
+            <Bidi text={p.sourcesLead} lang={lang} />
+          </p>
+          <ul>
+            {them.sources.map((source) => (
+              <li>
+                <a href={source.url} rel="noopener">
+                  <Bidi text={source.label} lang={lang} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       <p>
         {p.tryItLead}{' '}
         <a href={scanFormHref(lang)} class="font-semibold">

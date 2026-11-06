@@ -5,7 +5,7 @@
   "seed": "arablyzer-sotaw-Y83YG",
   "cap": 10000,
   "floor": 300,
-  "total": 3588,
+  "total": 3607,
   "populations": {
     "sa": 568,
     "ae": 734,
@@ -20,7 +20,7 @@
     "tn": 286,
     "iq": 99,
     "lb": 57,
-    "ly": 19,
+    "ly": 38,
     "sy": 52,
     "ye": 32,
     "sd": 34,
@@ -41,7 +41,7 @@
     "tn": 286,
     "iq": 99,
     "lb": 57,
-    "ly": 19,
+    "ly": 38,
     "sy": 52,
     "ye": 32,
     "sd": 34,
@@ -49,12 +49,12 @@
     "mr": 15
   },
   "optedOut": 0,
-  "excluded": 179,
+  "excluded": 160,
   "exclusions": {
     "global-brand": 41,
-    "ly-single-label": 136,
+    "ly-single-label": 117,
     "vanity-domain": 2
   },
-  "exclusionsSha256": "4fda7bd8aea501116194de10b90c6be2ada6a4269a2a485deb7e361e1ed51ee2",
-  "sha256": "feba471f8a0577257596b4d9ecdea3dca25d963a602aecdc410e9c68d7cf2290"
+  "exclusionsSha256": "18f945d7ab1ea3ee9f138c8ac676a2df50daa148a5eeb88addd16fec18241ad1",
+  "sha256": "e8c06c7e265f3c303b9d83cfd25c757b24e7496475076bde2ba4689ae76e0043"
 }
