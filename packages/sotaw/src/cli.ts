@@ -40,6 +40,7 @@ import {
 import { PostgresSotawStore } from './pg-store'
 import { byHash } from './rng'
 import { createRunner } from './runner'
+import { markIncompleteChains } from './tls-check'
 
 // The command line of the crawl of the Arabic web (docs/design/plans/m9-state-of-arabic-web.md):
 //
@@ -51,6 +52,9 @@ import { createRunner } from './runner'
 //   pnpm sotaw requeue --reason robots-unreachable [--edition 2026]
 //                                               put the sites skipped (or failed) for that reason back to
 //                                               pending, in the same rows: the running crawl takes them up
+//   pnpm sotaw extend [--edition 2026]          the frame grew: add its new sites to the run, the rest untouched
+//   pnpm sotaw tls-check [--edition 2026]       of the sites left unread, name those with an incomplete
+//                                               certificate chain (needs the egress proxy: infra/README.md)
 //   pnpm sotaw export --out DIR [--edition ..]  the public dataset's files (aggregates only), from what the crawl kept
 //   ... export --out DIR --internal DIR2        also the per-site rows, for our own analysis, into DIR2
 //
@@ -63,12 +67,14 @@ const log = (line: string) => {
   console.error(`${new Date().toISOString().slice(0, 19)}Z ${line}`)
 }
 
-const USAGE = `usage: sotaw <frame|crawl|status|requeue|export> [options]
+const USAGE = `usage: sotaw <frame|crawl|status|requeue|extend|tls-check|export> [options]
   frame  --list-id ID [--cap 10000] [--floor 300] [--seed TEXT] [--file list.csv]
   frame  --from-frame ID
   crawl  [--edition 2026] [--frame ID]
   status [--edition 2026]
   requeue --reason REASON [--edition 2026]
+  extend [--edition 2026] [--frame ID]
+  tls-check [--edition 2026]
   export --out DIR [--internal DIR2] [--edition 2026] [--frame ID]`
 
 function fail(message: string): never {
@@ -323,6 +329,69 @@ async function requeueCommand(): Promise<void> {
   }
 }
 
+async function extendCommand(): Promise<void> {
+  const { rows, meta } = chosenFrame()
+  const pool = connect()
+  try {
+    const store = new PostgresSotawStore(pool)
+    const run = await store.run(runId)
+    if (run === null) fail(`There is no run ${runId}`)
+    if (run.frameId !== meta.listId || run.seed !== meta.seed) {
+      fail(`The run was made from the list ${run.frameId}: a frame grows only on its own list`)
+    }
+    const order = [...rows].sort(byHash(`${meta.seed}:order`, (row) => row.domain))
+    const added = await store.extend(
+      runId,
+      meta.sha256,
+      order.map((row, position) => ({ ...row, position })),
+      new Date(),
+    )
+    console.log(
+      `${runId}: ${String(added)} sites added, ${String(rows.length)} in the frame; ${JSON.stringify(await store.counts(runId))}`,
+    )
+  } finally {
+    await pool.end()
+  }
+}
+
+async function tlsCheckCommand(): Promise<void> {
+  const { meta } = chosenFrame()
+  const config = runnerConfigFrom(env, { seed: meta.seed, optOut: readOptOut() })
+  const policy = serverPolicy(env)
+  const pool = connect()
+  try {
+    const store = new PostgresSotawStore(pool)
+    if ((await store.run(runId)) === null) fail(`There is no run ${runId}`)
+    const found = await markIncompleteChains(runId, {
+      store,
+      read: async (url) =>
+        (
+          await safeFetch(url, {
+            userAgent: USER_AGENT,
+            accept: 'text/plain,*/*;q=0.8',
+            policy,
+            timeoutMs: 15_000,
+            maxBytes: 1024,
+            onTooLarge: 'truncate',
+            maxRedirects: 0,
+          })
+        ).error,
+      load: () => (os.loadavg()[0] ?? 0) / Math.max(1, os.cpus().length),
+      sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
+      now: () => Date.now(),
+      log,
+      maxLoad: config.maxLoad,
+      pollMs: config.pollMs,
+      paceMs: config.preflightMs,
+    })
+    log(
+      `${String(found.marked)} of ${String(found.checked)} sites left unread have an incomplete chain`,
+    )
+  } finally {
+    await pool.end()
+  }
+}
+
 async function exportCommand(): Promise<void> {
   const out = values.out
   if (out === undefined) fail('--out names the directory to write to')
@@ -378,6 +447,12 @@ switch (command) {
     break
   case 'requeue':
     await requeueCommand()
+    break
+  case 'extend':
+    await extendCommand()
+    break
+  case 'tls-check':
+    await tlsCheckCommand()
     break
   case 'export':
     await exportCommand()

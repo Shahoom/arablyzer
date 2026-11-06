@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   collectSitemap,
+  MAX_SITEMAP_URLS,
   readSitemap,
+  readSitemapUrls,
   SITEMAP_MAX_ATTRIBUTES,
   SITEMAP_MAX_DEPTH,
   SITEMAP_NAMESPACE,
@@ -457,7 +459,7 @@ describe('collectSitemap: what could not be checked', () => {
 describe('collectSitemap', () => {
   it('reads a 2xx answer, and keeps any other status', () => {
     const base = { url: 'https://shop.example/sitemap.xml', named: true, truncated: false }
-    expect(collectSitemap({ ...base, status: 200, body: utf8(URLSET) })).toEqual({
+    expect(collectSitemap({ ...base, status: 200, body: utf8(URLSET) })).toMatchObject({
       ...base,
       outcome: 'fetched',
       status: 200,
@@ -469,5 +471,72 @@ describe('collectSitemap', () => {
       outcome: 'unavailable',
       status: 404,
     })
+  })
+})
+
+describe('readSitemapUrls', () => {
+  const body = (xml: string) => utf8(xml)
+  const XML = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://shop.example/ar/oud?a=1&amp;b=2</loc>
+    <lastmod>2026-03-05</lastmod>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://shop.example/ar/oud?a=1&amp;b=2"/>
+    <xhtml:link rel="alternate" hreflang="en" href='https://shop.example/en/oud'/>
+    <xhtml:link rel="stylesheet" href="x.css"/>
+  </url>
+  <url><loc>https://shop.example/about</loc></url>
+  <url><lastmod>2026-01-01</lastmod></url>
+</urlset>`
+
+  it('reads each entry’s address, date and alternates, with the entities decoded', () => {
+    expect(readSitemapUrls(body(XML), false)).toEqual({
+      total: 3,
+      urls: [
+        {
+          loc: 'https://shop.example/ar/oud?a=1&b=2',
+          lastmod: '2026-03-05',
+          alternates: [
+            { hreflang: 'ar', href: 'https://shop.example/ar/oud?a=1&b=2' },
+            { hreflang: 'en', href: 'https://shop.example/en/oud' },
+          ],
+        },
+        { loc: 'https://shop.example/about', lastmod: null, alternates: [] },
+      ],
+    })
+  })
+
+  it('keeps the first entries and counts the rest', () => {
+    const many = `<urlset>${Array.from({ length: MAX_SITEMAP_URLS + 3 }, (_, i) => `<url><loc>https://a.example/${String(i)}</loc></url>`).join('')}</urlset>`
+    const read = readSitemapUrls(body(many), false)
+    expect(read.total).toBe(MAX_SITEMAP_URLS + 3)
+    expect(read.urls).toHaveLength(MAX_SITEMAP_URLS)
+  })
+
+  it('stops at an entry the body cut, and never throws on junk', () => {
+    expect(readSitemapUrls(body('<urlset><url><loc>https://a.example/</loc>'), true).total).toBe(0)
+    expect(readSitemapUrls(body('<url><url></url><<>>'), false)).toEqual({ urls: [], total: 1 })
+    expect(readSitemapUrls(new Uint8Array([0xff, 0xfe, 0x3c]), false).urls).toEqual([])
+  })
+
+  it('comes with a urlset check and not with an index or a text sitemap', () => {
+    const base = {
+      url: 'https://shop.example/sitemap.xml',
+      named: true,
+      truncated: false,
+      status: 200,
+    }
+    expect(collectSitemap({ ...base, body: body(XML) })).toHaveProperty('urls.total', 3)
+    expect(
+      collectSitemap({
+        ...base,
+        body: body(
+          '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>https://a.example/s.xml</loc></sitemap></sitemapindex>',
+        ),
+      }),
+    ).not.toHaveProperty('urls')
+    expect(collectSitemap({ ...base, body: body('https://a.example/\n') })).not.toHaveProperty(
+      'urls',
+    )
   })
 })

@@ -3,7 +3,7 @@
   "generator": {
     "name": "arablyzer",
     "version": "0.1.0",
-    "rulesetVersion": "0.12.0"
+    "rulesetVersion": "0.13.0"
   },
   "target": {
     "url": "https://store.example:30001/",
@@ -36,16 +36,16 @@
   },
   "summary": {
     "pass": 51,
-    "fail": 0,
+    "fail": 1,
     "needsReview": 0,
-    "notApplicable": 26,
+    "notApplicable": 28,
     "error": 0,
     "bySeverity": {
       "critical": 0,
       "serious": 0,
       "moderate": 0,
       "minor": 0,
-      "info": 0
+      "info": 1
     }
   },
   "score": {
@@ -68,8 +68,8 @@
     },
     "partial": false,
     "rules": {
-      "ran": 77,
-      "total": 110
+      "ran": 80,
+      "total": 113
     }
   },
   "rules": [
@@ -454,6 +454,17 @@
       }
     },
     {
+      "id": "hreflang-sitemap-invalid",
+      "version": "1.0.0",
+      "category": "intl",
+      "severity": "moderate",
+      "status": "not-applicable",
+      "title": {
+        "ar": "النسخ اللغوية في خريطة الموقع غير مكتملة",
+        "en": "Language versions in the sitemap are not complete"
+      }
+    },
+    {
       "id": "hreflang-x-default-missing",
       "version": "1.0.0",
       "category": "intl",
@@ -583,6 +594,17 @@
       "title": {
         "ar": "وسوم المشاركة (Open Graph) ناقصة",
         "en": "Open Graph sharing tags are missing"
+      }
+    },
+    {
+      "id": "outbound-links-found",
+      "version": "1.1.0",
+      "category": "links",
+      "severity": "info",
+      "status": "fail",
+      "title": {
+        "ar": "المواقع التي ترتبط بها الصفحة",
+        "en": "Sites this page links to"
       }
     },
     {
@@ -795,6 +817,17 @@
       }
     },
     {
+      "id": "sitemap-lastmod-invalid",
+      "version": "1.0.0",
+      "category": "crawl",
+      "severity": "minor",
+      "status": "not-applicable",
+      "title": {
+        "ar": "تواريخ في خريطة الموقع لا تستطيع Google استعمالها",
+        "en": "Sitemap dates that Google cannot use"
+      }
+    },
+    {
       "id": "sitemap-missing",
       "version": "1.0.0",
       "category": "crawl",
@@ -930,7 +963,25 @@
       }
     }
   ],
-  "findings": [],
+  "findings": [
+    {
+      "ruleId": "outbound-links-found",
+      "severity": "info",
+      "fingerprint": "69f6902483aa45ac",
+      "message": {
+        "ar": "ترتبط الصفحة بـ 1 مواقع أخرى (1 رابطاً): wa.me ×1.",
+        "en": "The page links to 1 other sites (1 links): wa.me ×1."
+      },
+      "evidence": {
+        "url": "https://store.example:30001/",
+        "values": {
+          "sites": 1,
+          "links": 1,
+          "list": "wa.me ×1"
+        }
+      }
+    }
+  ],
   "facts": {
     "robots": {
       "url": "https://store.example:30001/robots.txt",

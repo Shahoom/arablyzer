@@ -54,13 +54,17 @@ afterAll(async () => {
   await site.close()
 })
 
-/** Failed or broken rules, each with its findings' messages, for a readable failure. */
+/**
+ * Failed or broken rules, each with its findings' messages, for a readable failure. An
+ * information rule is a note, not a problem: the site audit leaves it out too.
+ */
 function problems(report: Report) {
   return (
     report.rules
       .filter(
         (rule) =>
           (rule.status === 'fail' || rule.status === 'error') &&
+          rule.severity !== 'info' &&
           !SERVER_RULES.has(rule.id) &&
           // Rules the site audit leaves out too: prose-corpus rules, for a visitor's own text.
           !NOT_FOR_SITE_PAGES.has(rule.id),

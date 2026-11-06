@@ -84,6 +84,10 @@ describe('scan: sitemaps', () => {
           status: 200,
           content: { kind: 'sitemap', format: 'urlset', entries: 1 },
           truncated: false,
+          urls: {
+            urls: [{ loc: 'http://shop.example/', lastmod: null, alternates: [] }],
+            total: 1,
+          },
         },
       ],
       unchecked: 0,
