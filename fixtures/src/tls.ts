@@ -85,7 +85,7 @@ export function serverCertificate(
     ],
     signer: authority.privateKey,
   })
-  return { key: privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(), cert }
+  return { key: privateKey.export({ type: 'pkcs8', format: 'pem' }), cert }
 }
 
 /** A certificate `lifetimeDays` long with `daysLeft` of it to run. */
@@ -112,7 +112,7 @@ function makeAuthority(): Authority {
     ],
     signer: privateKey,
   })
-  const key = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString()
+  const key = privateKey.export({ type: 'pkcs8', format: 'pem' })
   return { key, cert, privateKey: createPrivateKey(key) }
 }
 

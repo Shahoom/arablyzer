@@ -197,7 +197,7 @@ describe('the Chrome UX Report by country', () => {
 
 describe('the BigQuery client', () => {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 })
-  const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString()
+  const pem = privateKey.export({ type: 'pkcs8', format: 'pem' })
   const key = JSON.stringify({ client_email: 'svc@proj.iam.gserviceaccount.com', private_key: pem })
 
   it('reads a service account key as JSON or base64, and refuses anything else', () => {
