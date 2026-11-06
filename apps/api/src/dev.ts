@@ -10,6 +10,7 @@ import {
   MemoryHandoff,
   MemoryInFlight,
   MemoryMonitorData,
+  MemoryPlatformData,
   MemoryRateLimiter,
   MemoryScanEvents,
   MemoryScanQueue,
@@ -23,6 +24,7 @@ import { createCrawlRunner } from './crawl/runner'
 import { startLoop } from './monitor/loop'
 import { noMailer } from './monitor/mail'
 import { createScheduler } from './monitor/scheduler'
+import { startPlatformLoop } from './platforms/loop'
 
 // `pnpm --filter @arablyzer/api dev`: the API and one worker in this process, on the stores in
 // memory, so the site's form scans locally with nothing else installed (M2.1 plan §4). With
@@ -66,6 +68,7 @@ const deps = apiDeps(env, {
   crawlData,
   pdfData,
   apiKeyData,
+  platformData: new MemoryPlatformData(store),
   adminData: new MemoryAdminData({
     users: () => authTables.user ?? [],
     sessions: () => authTables.session ?? [],
@@ -123,6 +126,10 @@ if (accounts?.monitors !== undefined && accounts.sender !== undefined) {
   )
   stop.signal.addEventListener('abort', () => void loop.stop())
 }
+
+// The Salla and Zid apps' audits, when either is on: the same scheduler, on the memory stores.
+const platformLoop = startPlatformLoop(deps, console.error)
+if (platformLoop !== null) stop.signal.addEventListener('abort', () => void platformLoop.stop())
 
 // And the crawler: the same runner, reading pages with the engine in this process.
 if (accounts?.crawls !== undefined && accounts.crawlSettings !== undefined) {

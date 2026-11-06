@@ -12,6 +12,7 @@ import {
   PostgresPdfData,
   PostgresAuthMaintenance,
   PostgresMonitorData,
+  PostgresPlatformData,
   PostgresScanStore,
   productionUrl,
   quietly,
@@ -27,6 +28,7 @@ import pg from 'pg'
 import { createApp } from './app'
 import { apiDeps } from './config'
 import { startAuthMaintenance } from './maintenance'
+import { startPlatformLoop } from './platforms/loop'
 
 // The API as Compose and staging run it (M2.1 plan §4): PostgreSQL for scans and reports,
 // Valkey for the queue, the events and the limits. It connects to PostgreSQL as a role that can
@@ -92,6 +94,7 @@ const deps = apiDeps(
     pdfData: new PostgresPdfData(pool),
     apiKeyData: new PostgresApiKeyData(pool),
     adminData: new PostgresAdminData(pool),
+    platformData: new PostgresPlatformData(pool),
   },
   log,
 )
@@ -100,6 +103,8 @@ const sweeping =
   deps.accounts === undefined
     ? null
     : startAuthMaintenance(new PostgresAuthMaintenance(pool), log, { admin: deps.accounts.admin })
+// The Salla and Zid apps' audits and token refreshes (M9), where either app is on.
+const platformLoop = startPlatformLoop(deps, log)
 const app = createApp({ ...deps, shutdown: stopping.signal, log })
 const server = serve(
   { fetch: app.fetch, port: Number(env.PORT ?? 8787), hostname: '0.0.0.0' },
@@ -113,6 +118,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     // Open event streams end now; their pages reconnect to another process, or retry.
     stopping.abort()
     sweeping?.stop()
+    void platformLoop?.stop()
     server.close(() => {
       void Promise.all([queue.close(), nlpChecks?.close(), pool.end()]).finally(() => {
         redis.disconnect()

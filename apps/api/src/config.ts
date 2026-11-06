@@ -28,6 +28,7 @@ import {
   type InFlight,
   type MonitorData,
   type NlpChecks,
+  type PlatformData,
   type RateLimiter,
   type ScanEvents,
   type ScanQueue,
@@ -43,6 +44,7 @@ import { crawlSettingsFrom } from './crawl/settings'
 import { googleApi } from './gsc/google'
 import { newScanId } from './ids'
 import { mailerFrom } from './monitor/mail'
+import { platformsFrom } from './platforms/config'
 import { unsubscribeFrom } from './monitor/unsubscribe'
 import { webhookSender } from './monitor/webhook'
 import { cloudflareTurnstile, isTurnstileTestSecret, noTurnstile } from './turnstile'
@@ -73,6 +75,8 @@ export interface Stores {
   readonly adminData?: AdminData
   /** The queue to the worker for the Arabic text tools (M7); without it, a text check says the service is away. */
   readonly nlpChecks?: NlpChecks
+  /** What the Salla and Zid apps keep (M9); needed when either is on. */
+  readonly platformData?: PlatformData
 }
 
 /**
@@ -99,6 +103,8 @@ export function apiDeps(
     readonly rewriteGoogle?: (url: string) => string
     /** The pause between questions to Google's public pages; tests pass one that does not wait. */
     readonly searchSleep?: (ms: number) => Promise<void>
+    /** The clock of the Salla and Zid apps' tokens; tests pass their own. */
+    readonly now?: () => Date
   } = {},
 ): ApiDeps {
   const production = env.NODE_ENV === 'production'
@@ -221,9 +227,25 @@ export function apiDeps(
     log,
   })
 
+  // The Salla and Zid apps (M9), each behind its own flag, off by default.
+  const platforms = platformsFrom(env, {
+    production,
+    siteUrl,
+    data: stores.platformData,
+    handoff,
+    limiterKey: key,
+    policy,
+    resolver,
+    fetcher: options.fetcher,
+    newId: newScanId,
+    ...(options.now === undefined ? {} : { now: options.now }),
+    log,
+  })
+
   return {
     ...(siteUrl === undefined ? {} : { origin: siteUrl.origin }),
     ...(gsc === undefined ? {} : { gsc }),
+    ...(platforms === undefined ? {} : { platforms }),
     ...(search.suggest || search.serp ? { search } : {}),
     // The Arabic text tools (M7): on when the owner runs the NLP service (compose sets it).
     ...(env.ARABLYZER_NLP_TEXT?.trim() === '1'
