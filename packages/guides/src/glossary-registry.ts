@@ -4,11 +4,13 @@ import { definition as altText } from './glossary/alt-text/term'
 import { definition as bidi } from './glossary/bidi/term'
 import { definition as canonicalUrl } from './glossary/canonical-url/term'
 import { definition as cls } from './glossary/cls/term'
+import { definition as contentSecurityPolicy } from './glossary/content-security-policy/term'
 import { definition as coreWebVitals } from './glossary/core-web-vitals/term'
 import { definition as crawling } from './glossary/crawling/term'
 import { definition as crux } from './glossary/crux/term'
 import { definition as cssLogicalProperties } from './glossary/css-logical-properties/term'
 import { definition as easternArabicNumerals } from './glossary/eastern-arabic-numerals/term'
+import { definition as emailAuthentication } from './glossary/email-authentication/term'
 import { definition as fontFallback } from './glossary/font-fallback/term'
 import { definition as googlebot } from './glossary/googlebot/term'
 import { definition as h1Heading } from './glossary/h1-heading/term'
@@ -28,14 +30,20 @@ import { definition as mixedContent } from './glossary/mixed-content/term'
 import { definition as mojibake } from './glossary/mojibake/term'
 import { definition as noindex } from './glossary/noindex/term'
 import { definition as openGraph } from './glossary/open-graph/term'
+import { definition as percentEncoding } from './glossary/percent-encoding/term'
 import { definition as robotsTxt } from './glossary/robots-txt/term'
 import { definition as rtl } from './glossary/rtl/term'
 import { definition as soft404 } from './glossary/soft-404/term'
 import { definition as structuredData } from './glossary/structured-data/term'
 import { definition as tatweel } from './glossary/tatweel/term'
+import { definition as textCompression } from './glossary/text-compression/term'
 import { definition as titleTag } from './glossary/title-tag/term'
+import { definition as urlParameters } from './glossary/url-parameters/term'
+import { definition as utf8 } from './glossary/utf-8/term'
+import { definition as viewportMeta } from './glossary/viewport-meta/term'
 import { definition as wcag } from './glossary/wcag/term'
 import { definition as webFontSubsetting } from './glossary/web-font-subsetting/term'
+import { definition as whatsappClickToChat } from './glossary/whatsapp-click-to-chat/term'
 import { definition as xmlSitemap } from './glossary/xml-sitemap/term'
 
 /** Every glossary term, sorted by slug, without its copy. */
@@ -45,11 +53,13 @@ export const GLOSSARY_DEFINITIONS: readonly GlossaryTermDefinition[] = [
   bidi,
   canonicalUrl,
   cls,
+  contentSecurityPolicy,
   coreWebVitals,
   crawling,
   crux,
   cssLogicalProperties,
   easternArabicNumerals,
+  emailAuthentication,
   fontFallback,
   googlebot,
   h1Heading,
@@ -69,13 +79,19 @@ export const GLOSSARY_DEFINITIONS: readonly GlossaryTermDefinition[] = [
   mojibake,
   noindex,
   openGraph,
+  percentEncoding,
   robotsTxt,
   rtl,
   soft404,
   structuredData,
   tatweel,
+  textCompression,
   titleTag,
+  urlParameters,
+  utf8,
+  viewportMeta,
   wcag,
   webFontSubsetting,
+  whatsappClickToChat,
   xmlSitemap,
 ]

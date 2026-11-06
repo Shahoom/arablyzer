@@ -190,6 +190,18 @@ days, and deletes the scans an account keeps after them (the other scans follow
 `account_scans.scan_id`, so the sweep can tell which scans are kept, and nothing else. Erasing the
 account deletes its sites, its scans and their reports.
 
+**The fix assistant (BUILD-PLAN §12).** Off unless `ANTHROPIC_API_KEY` is set on the API (no other service holds it). A
+signed-in account asks for a suggested fix of one failed rule on a report: the API reads the rule's evidence from the stored
+report, puts it between data tags (an angle bracket in it is escaped, so a page cannot close them) in one message to the model,
+which has no tools and answers in a fixed JSON shape the API validates again. `ARABLYZER_PLAN_ACCOUNT_AI_FIXES_PER_DAY` (0 when
+empty: none) is the account's day, counted over any 24 hours from the ledger (`ai_requests`); `ARABLYZER_AI_SPEND_MONTHLY`
+(required with the key) and `ARABLYZER_AI_SPEND_DAILY` cap the spend, counted from each response's tokens at the prices of
+`ARABLYZER_AI_PRICE_*` (the default model's published ones when empty). A request holds its worst cost against the caps first,
+under one lock, so concurrent requests cannot pass them; one that fails before the model answers gives it back. Answers are
+kept 30 days in `ai_fix_cache` by rule, version, evidence, language, model and prompt. The request leaves through the egress fetch
+like every other (`ARABLYZER_EGRESS_PROXY`), to `api.anthropic.com` alone. Erasing an account clears whose its requests were and
+keeps what they cost. `pnpm --filter @arablyzer/api ai:eval` runs the frozen evaluation set against the real model.
+
 **PDF export and white-label (M4.7).** A signed-in person presses «Download PDF» on a page report, a crawl report or a
 comparison; the API only queues the job (`pdf_jobs`, one active per account by a partial unique index, and the month's
 allowance `ARABLYZER_PLAN_ACCOUNT_PDF_PER_MONTH`, 3 when empty, counted in `pdf_usage`). The `pdf` service, a fourth entry of
@@ -255,7 +267,14 @@ automated mail, e.g. `send.arablyzer.com`, never the domain whose mailboxes peop
 (32+ characters, signs the unsubscribe links), a person who turns on «البريد الإلكتروني» in their alerts gets the same
 alerts at the address they signed in with, through the egress proxy. Every mail carries `List-Unsubscribe` and
 `List-Unsubscribe-Post` (one click) and a link to `/api/mail/unsubscribe`, which asks on a GET and turns that person's
-email alerts off on a POST. Resend's own suppression list stops mail to addresses that bounced or complained. With
+email alerts off on a POST. Resend's own suppression list stops mail to addresses that bounced or complained.
+**WhatsApp (M5.6)** is off while `ARABLYZER_WHATSAPP_PROVIDER` is empty. With `cloud`, `WHATSAPP_PHONE_NUMBER_ID` and
+`WHATSAPP_ACCESS_TOKEN`, an account whose plan has WhatsApp alerts (`ARABLYZER_PLAN_<PLAN>_WHATSAPP_ALERTS=on`; the free
+account has none unless the owner turns it on) saves a number on `/account`, confirms it with a code sent to it on
+WhatsApp, and opts each monitored site in. The monitor then sends one approved template per event (a score drop, a new
+critical finding, a site that cannot be scanned, monitoring stopped) through the egress proxy, never the weekly summary.
+Each template is remembered per run like the other channels. With `WHATSAPP_APP_SECRET` and `WHATSAPP_VERIFY_TOKEN`,
+Meta's webhook (`/api/whatsapp/webhook`, signed with `X-Hub-Signature-256`) makes a STOP reply forget that number. With
 accounts off the service logs that and idles. The recommended free-plan numbers are in `.env.example` and
 `docs/deploy/staging.md` §4.
 

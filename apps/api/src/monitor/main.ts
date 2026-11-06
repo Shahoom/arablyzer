@@ -21,6 +21,7 @@ import { startLoop } from './loop'
 import { mailerFrom } from './mail'
 import { createScheduler } from './scheduler'
 import { unsubscribeFrom } from './unsubscribe'
+import { whatsappFrom } from './whatsapp'
 import { webhookSender } from './webhook'
 
 // The monitoring scheduler as Compose runs it (M4.3): its own process, on the API's image and the
@@ -79,6 +80,7 @@ if (accountsModeFrom(env) !== 'on') {
       log,
     }),
     ...(unsubscribe === undefined ? {} : { unsubscribe }),
+    whatsapp: whatsappFrom(env, { policy, resolver: defaultResolver(policy), log }),
     origin: new URL(site).origin,
     newId: newScanId,
     log,

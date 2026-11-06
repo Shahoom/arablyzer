@@ -47,6 +47,7 @@ export const TAG_DOT: Readonly<Record<BlogTag, string>> = {
   performance: 'bg-cat-speed',
   search: 'bg-cat-index',
   ecommerce: 'bg-cat-prices',
+  security: 'bg-cat-render',
 }
 
 /** A tag has a page of its own once it holds this many articles: fewer is a thin page. */

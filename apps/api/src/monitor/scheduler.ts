@@ -25,11 +25,14 @@ import {
   reportUrl,
   siteLabel,
   summaryMessage,
+  whatsappJobs,
   type Language,
   type RunInfo,
+  type WhatsAppJob,
 } from './messages'
 import { DAY_MS, MINUTE_MS, nextRunAfter, type Random } from './schedule'
 import type { Unsubscribe } from './unsubscribe'
+import type { WhatsApp } from './whatsapp'
 import type { AlertMessage, WebhookSender } from './webhook'
 
 export interface SchedulerDeps {
@@ -45,6 +48,8 @@ export interface SchedulerDeps {
   readonly resolver: Resolver
   readonly sender: WebhookSender
   readonly mail: Mailer
+  /** WhatsApp, off unless a provider is on; used only for accounts whose plan has it and who opted a site in. */
+  readonly whatsapp?: WhatsApp
   /** The links that turn a person's email alerts off; mail is sent only with them. */
   readonly unsubscribe?: Unsubscribe
   /** The site's origin, for the links in a message. */
@@ -269,7 +274,12 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
    * not) never sends twice to the same place. A mail refused for good counts as handled. True when
    * every channel wanted has it.
    */
-  async function deliver(run: PendingRun, message: AlertMessage, at: Date): Promise<boolean> {
+  async function deliver(
+    run: PendingRun,
+    message: AlertMessage,
+    at: Date,
+    jobs: readonly WhatsAppJob[] = [],
+  ): Promise<boolean> {
     const alerts = await deps.monitors.alerts(run.userId)
     const reached = new Set(run.delivered)
     let all = true
@@ -283,6 +293,39 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       const outcome = await mailTo(run, message, 'alert', `alert-${run.scanId}-email`)
       if (outcome === 'retry') all = false
       else await deps.monitors.markDelivered(run.scanId, 'email')
+    }
+    if (!(await viaWhatsapp(run, jobs, reached))) all = false
+    return all
+  }
+
+  /**
+   * WhatsApp's turn: only for an account whose plan has it, whose number is verified and who opted
+   * this site in. Each template is remembered on its own, so a retry sends only the ones not sent.
+   */
+  async function viaWhatsapp(
+    run: PendingRun,
+    jobs: readonly WhatsAppJob[],
+    reached: ReadonlySet<string>,
+  ): Promise<boolean> {
+    const whatsapp = deps.whatsapp
+    if (whatsapp === undefined || !whatsapp.available || jobs.length === 0) return true
+    const plan = await planOf(deps.plans, run.userId)
+    if (!plan.whatsappAlerts) return true
+    const phone = await deps.monitors.whatsappTarget(run.userId, run.siteId)
+    if (phone === null) return true
+    let all = true
+    for (const job of jobs) {
+      if (reached.has(job.key)) continue
+      const outcome = await whatsapp
+        .send({
+          to: phone,
+          template: job.template,
+          language: run.language === 'en' ? 'en' : 'ar',
+          params: job.params,
+        })
+        .catch(() => 'retry' as const)
+      if (outcome === 'retry') all = false
+      else await deps.monitors.markDelivered(run.scanId, job.key)
     }
     return all
   }
@@ -363,7 +406,8 @@ export function createScheduler(deps: SchedulerDeps): Scheduler {
       await deps.monitors.settle(run.scanId, at)
     } else {
       const message = alertMessage(language, info, events, at)
-      const delivered = await deliver(run, message, at).catch((error: unknown) => {
+      const jobs = whatsappJobs(deps.origin, language, info, events)
+      const delivered = await deliver(run, message, at, jobs).catch((error: unknown) => {
         tell(error)
         return false
       })

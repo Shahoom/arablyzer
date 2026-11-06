@@ -42,3 +42,15 @@ export {
   type MetaResult,
   type SerpPreview,
 } from './meta-tags'
+export { faqMarkup, parseFaq, type FaqItem, type FaqMarkup } from './faq'
+export {
+  BUSINESS_TYPES,
+  COUNTRIES,
+  localBusiness,
+  type BusinessType,
+  type Country,
+  type LocalBusinessInput,
+  type LocalBusinessProblem,
+  type LocalBusinessResult,
+} from './local-business'
+export { breadcrumbMarkup, type BreadcrumbProblem, type BreadcrumbResult } from './breadcrumb'

@@ -7,6 +7,7 @@ import {
   isMonitorResponse,
   isSitesResponse,
   isTestResponse,
+  isWhatsappState,
   sparkline,
   trendText,
   reportHref,
@@ -112,8 +113,21 @@ describe('monitoring’s shapes', () => {
       onDown: true,
       weeklySummary: false,
       email: { available: false, enabled: false },
+      whatsapp: { available: false, allowed: false, phone: null, verified: false, sites: [] },
     }
     expect(isAlertSettings(settings)).toBe(true)
+    expect(isAlertSettings({ ...settings, whatsapp: undefined })).toBe(false)
+    const whatsapp = {
+      available: true,
+      allowed: true,
+      phone: '+966••••••567',
+      verified: true,
+      sites: [{ id: 'a'.repeat(22), url: 'https://example.com/', enabled: true }],
+    }
+    expect(isWhatsappState(whatsapp)).toBe(true)
+    expect(isWhatsappState({ ...whatsapp, sites: [{ id: 'x', url: 'u' }] })).toBe(false)
+    expect(isWhatsappState({ ...whatsapp, phone: 5 })).toBe(false)
+    expect(isAlertSettings({ ...settings, whatsapp })).toBe(true)
     expect(isAlertSettings({ ...settings, webhook: null })).toBe(true)
     expect(isAlertSettings({ ...settings, email: undefined })).toBe(false)
     expect(isAlertsResponse({ ...settings, secret: 'abc' })).toBe(true)

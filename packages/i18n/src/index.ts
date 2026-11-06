@@ -1,4 +1,5 @@
 export { codeParts, type Copy, type Lang } from './copy'
+export { AI_UI, type AiProblem, type AiStrings } from './ai'
 export { ALERT_TEXT, type AlertStrings } from './alerts'
 export {
   DEVELOPERS_UI,
@@ -31,6 +32,7 @@ export {
   type EngineState,
   type ReportStrings,
 } from './report'
+export { PLATFORM_UI, type PlatformStrings } from './platforms'
 export { PAGES_UI, type BotNumbers, type PagesStrings } from './pages'
 export { RULES_UI, type RuleReads, type RulesStrings } from './rules'
 export { SCAN_FORM, type FormProblem, type ScanFormStrings } from './scan-form'
@@ -52,12 +54,14 @@ export {
 
 import { ACCOUNT_UI } from './account'
 import { ADMIN_UI } from './admin'
+import { AI_UI } from './ai'
 import { ALERT_TEXT } from './alerts'
 import { BLOG_UI } from './blog'
 import { COMPARE_UI } from './compare'
 import { CRAWL_UI } from './crawl'
 import { DEVELOPERS_UI } from './developers'
 import { INTEGRATIONS_UI } from './integrations'
+import { PLATFORM_UI } from './platforms'
 import { PDF_UI } from './pdf'
 import type { Copy } from './copy'
 import { GENERATORS_UI } from './generators'
@@ -91,6 +95,7 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'tool-app.ts': TOOL_APP,
   'account.ts': ACCOUNT_UI,
   'alerts.ts': ALERT_TEXT,
+  'ai.ts': AI_UI,
   'crawl.ts': CRAWL_UI,
   'compare.ts': COMPARE_UI,
   'blog.ts': BLOG_UI,
@@ -102,4 +107,5 @@ export const ALL_COPY: Readonly<Record<string, Copy<unknown>>> = {
   'legal.ts': LEGAL_UI,
   'admin.ts': ADMIN_UI,
   'sotaw.ts': SOTAW_UI,
+  'platforms.ts': PLATFORM_UI,
 }

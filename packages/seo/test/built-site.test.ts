@@ -425,7 +425,7 @@ describe('auditBuiltSite on the blog', () => {
         },
       },
     })
-    return `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head>${head}</head><body><main><h1>${title}</h1><p>${body}</p><p><time datetime="2026-10-10">10 October 2026</time></p></main></body></html>`
+    return `<!doctype html><html lang="${lang}" dir="${lang === 'ar' ? 'rtl' : 'ltr'}"><head>${head}</head><body><main><nav>Home / Blog / ${title}</nav><h1>${title}</h1><p>${body}</p><p><time datetime="2026-10-10">10 October 2026</time></p></main></body></html>`
   }
 
   const problemsOf = (dir: string) =>

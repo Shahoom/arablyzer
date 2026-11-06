@@ -71,6 +71,12 @@ export interface CollectOptions {
   readonly maxNodes?: number
   /** Levels of nesting the tree may reach; past them the page is too complex. Default MAX_HTML_DEPTH. */
   readonly maxDepth?: number
+  /**
+   * Whether the read has used up the memory it may, asked as the tree grows: a yes ends the parse
+   * as the deadline does, and the page is too complex. Set by the thread that reads with a heap
+   * of its own (isolated-thread.mjs), which is no option of a caller's.
+   */
+  readonly memoryOver?: () => boolean
 }
 
 /**
@@ -203,6 +209,7 @@ export function readHtml(job: HtmlJob, options: CollectOptions = {}): HtmlRead |
         deadline: options.deadline ?? Number.POSITIVE_INFINITY,
         maxNodes: options.maxNodes ?? MAX_HTML_NODES,
         maxDepth: options.maxDepth ?? MAX_HTML_DEPTH,
+        memoryOver: options.memoryOver ?? (() => false),
       }),
     })
   } catch (error) {
@@ -226,7 +233,11 @@ interface TreeLimits {
   readonly deadline: number
   readonly maxNodes: number
   readonly maxDepth: number
+  readonly memoryOver: () => boolean
 }
+
+/** How many elements and comments pass between two looks at the memory. */
+const MEMORY_CHECK_EVERY = 1024
 
 type Node = DefaultTreeAdapterTypes.Node
 type ParentNode = DefaultTreeAdapterTypes.ParentNode
@@ -237,10 +248,13 @@ type ParentNode = DefaultTreeAdapterTypes.ParentNode
  * in nesting depth, so a hostile page is cut off at the deadline instead of stalling the scan. A
  * count of the elements and comments made, and the depth of each element placed: a hostile page
  * cannot fill the heap with a tree, or nest so deep that no deadline could end its parse in time.
- * The count and the depth are the page's own, so they do not depend on the machine.
+ * The count and the depth are the page's own, so they do not depend on the machine. The memory
+ * is the machine's: a thread with a heap of its own asks whether it is nearly full every so many
+ * nodes, so that it gives up itself and never reaches the limit, where Node ends the thread by an
+ * error but, if a slow collection lets the thread overshoot, the whole process.
  */
 function boundedTreeAdapter(limits: TreeLimits): TreeAdapter<DefaultTreeAdapterMap> {
-  const { deadline, maxNodes, maxDepth } = limits
+  const { deadline, maxNodes, maxDepth, memoryOver } = limits
   const check = () => {
     if (performance.now() > deadline) throw new ParseLimit('HTML parsing ran out of time')
   }
@@ -248,6 +262,8 @@ function boundedTreeAdapter(limits: TreeLimits): TreeAdapter<DefaultTreeAdapterM
   const count = () => {
     if (++nodes > maxNodes)
       throw new ParseLimit(`The page holds more than ${String(maxNodes)} nodes`)
+    if (nodes % MEMORY_CHECK_EVERY === 0 && memoryOver())
+      throw new ParseLimit('The page needs more memory than a read may take')
   }
   /**
    * The level of each parent so far: the document is 0, <html> 1. A template's content, which is

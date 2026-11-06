@@ -5,6 +5,7 @@ import type { TargetedSubmitEvent } from 'preact'
 import { useState } from 'preact/hooks'
 import { ScanNote } from '../ScanNote'
 import { AREA, FIELD, LABEL, SUBMIT, ToolBox } from '../ToolBox'
+import { Bidi } from '../knowledge/Bidi'
 import { CopyBox } from './CopyBox'
 import { TEXT_TOOLS } from './text-tools'
 import type { Block, TextField, TextToolResult, Tone } from './text-tools/spec'
@@ -16,13 +17,13 @@ const TONE: Readonly<Record<Tone, { readonly icon: typeof Check; readonly style:
   info: { icon: Info, style: 'text-ink-2' },
 }
 
-function Field({ field }: { field: TextField }) {
+function Field({ field, lang }: { field: TextField; lang: Lang }) {
   const id = `field-${field.name}`
   const mono = field.dir === 'ltr' ? ' font-mono' : ''
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor={id} className={LABEL}>
-        {field.label}
+        <Bidi text={field.label} lang={lang} />
       </label>
       {field.kind === 'textarea' ? (
         <textarea
@@ -60,24 +61,30 @@ function Field({ field }: { field: TextField }) {
       )}
       {field.hint !== undefined && (
         <p id={`${id}-hint`} className="m-0 text-meta text-ink-2">
-          {field.hint}
+          <Bidi text={field.hint} lang={lang} />
         </p>
       )}
     </div>
   )
 }
 
-function Notes({ block }: { block: Extract<Block, { kind: 'notes' }> }) {
+function Notes({ block, lang }: { block: Extract<Block, { kind: 'notes' }>; lang: Lang }) {
   return (
     <div className="card flex flex-col gap-3 p-card">
-      {block.label !== undefined && <p className="heading-3 m-0">{block.label}</p>}
+      {block.label !== undefined && (
+        <p className="heading-3 m-0">
+          <Bidi text={block.label} lang={lang} />
+        </p>
+      )}
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {block.items.map((item) => {
           const { icon: Icon, style } = TONE[item.tone]
           return (
             <li key={item.text} className={`flex items-start gap-2 text-small ${style}`}>
               <Icon size={16} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
-              <span className="min-w-0 text-ink [overflow-wrap:anywhere]">{item.text}</span>
+              <span className="min-w-0 text-ink [overflow-wrap:anywhere]">
+                <Bidi text={item.text} lang={lang} />
+              </span>
             </li>
           )
         })}
@@ -125,7 +132,7 @@ export default function TextTool({
       >
         <form onSubmit={onSubmit} data-tool-kind={spec.kind} className="flex flex-col gap-4">
           {spec.fields(lang).map((field) => (
-            <Field key={field.name} field={field} />
+            <Field key={field.name} field={field} lang={lang} />
           ))}
           <button type="submit" className={SUBMIT}>
             {spec.submit(lang)}
@@ -139,14 +146,14 @@ export default function TextTool({
               role="alert"
               className="m-0 rounded-xl bg-serious-soft px-card py-3 text-small text-serious"
             >
-              {result.error}
+              <Bidi text={result.error} lang={lang} />
             </p>
           ) : (
             result.blocks.map((block, index) =>
               block.kind === 'code' ? (
                 <CopyBox key={index} lang={lang} label={block.label} text={block.text} />
               ) : block.kind === 'notes' ? (
-                <Notes key={index} block={block} />
+                <Notes key={index} block={block} lang={lang} />
               ) : block.kind === 'serp' ? (
                 <div key={index} className="card flex flex-col gap-1 p-card" dir={block.dir}>
                   <p dir="ltr" className="m-0 text-meta text-ink-2 [overflow-wrap:anywhere]">
@@ -166,9 +173,13 @@ export default function TextTool({
               ) : (
                 <div key={index} className="card flex flex-col gap-1 p-card">
                   {block.label !== undefined && (
-                    <p className="m-0 text-small font-semibold text-ink-2">{block.label}</p>
+                    <p className="m-0 text-small font-semibold text-ink-2">
+                      <Bidi text={block.label} lang={lang} />
+                    </p>
                   )}
-                  <p className="m-0 text-body text-ink [overflow-wrap:anywhere]">{block.text}</p>
+                  <p className="m-0 text-body text-ink [overflow-wrap:anywhere]">
+                    <Bidi text={block.text} lang={lang} />
+                  </p>
                 </div>
               ),
             )

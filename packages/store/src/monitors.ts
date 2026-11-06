@@ -125,6 +125,16 @@ export function applyAlerts(current: StoredAlerts, patch: AlertsPatch): StoredAl
   }
 }
 
+/** A person's WhatsApp number, saved by them and (once `verifiedAt` is set) proved theirs. */
+export interface StoredWhatsapp {
+  /** E.164, with the plus. */
+  readonly phone: string
+  readonly verifiedAt: Date | null
+}
+
+/** What giving a code back came to. */
+export type WhatsappCheck = 'verified' | 'wrong' | 'expired' | 'locked' | 'none'
+
 export interface MonitorData {
   monitor(userId: string, siteId: string): Promise<Monitor | null>
   monitors(userId: string): Promise<Monitor[]>
@@ -191,6 +201,48 @@ export interface MonitorData {
   delivered(userId: string, ok: boolean, at: Date, maxFailures: number): Promise<StoredAlerts>
   reenable(userId: string): Promise<void>
   summarized(userId: string, at: Date): Promise<void>
+  /** The person's WhatsApp number, or null. */
+  whatsapp(userId: string): Promise<StoredWhatsapp | null>
+  /** The ids of the person's sites whose alerts also go to WhatsApp. */
+  whatsappSites(userId: string): Promise<ReadonlySet<string>>
+  /**
+   * Saves the number, unverified, with the hash of the code sent to it, replacing any number or code
+   * before it. The sites the person opted in stay opted in; nothing is sent until the number is verified.
+   */
+  startWhatsapp(
+    userId: string,
+    input: {
+      readonly phone: string
+      readonly codeHash: string
+      readonly expiresAt: Date
+      readonly at: Date
+    },
+  ): Promise<void>
+  /**
+   * Gives a code back. Each wrong try counts; past `maxAttempts` the code is locked until a new one
+   * is sent. A right one verifies the number and spends the code.
+   */
+  confirmWhatsapp(
+    userId: string,
+    codeHash: string,
+    at: Date,
+    maxAttempts: number,
+  ): Promise<WhatsappCheck>
+  /** Forgets the person's number and every site's opt-in. */
+  removeWhatsapp(userId: string): Promise<void>
+  /** Forgets every account's number that is this one (the person replied STOP); how many. */
+  removeWhatsappNumber(phone: string): Promise<number>
+  /**
+   * Opts a monitored site in or out of WhatsApp. `no-monitor` when the site is not monitored by the
+   * person, `unverified` when opting in without a verified number.
+   */
+  setWhatsappSite(
+    userId: string,
+    siteId: string,
+    enabled: boolean,
+  ): Promise<'set' | 'no-monitor' | 'unverified'>
+  /** The number to alert for this site: the verified one, when the site is opted in; else null. */
+  whatsappTarget(userId: string, siteId: string): Promise<string | null>
   /** Deletes everything monitoring keeps for the person (before the account itself goes). */
   eraseUser(userId: string): Promise<void>
 }
@@ -212,6 +264,18 @@ export class MemoryMonitorData implements MonitorData {
   readonly #monitors = new Map<string, Monitor>()
   readonly #runs: MemoryRun[] = []
   readonly #alerts = new Map<string, StoredAlerts>()
+  readonly #whatsapp = new Map<
+    string,
+    {
+      phone: string
+      verifiedAt: Date | null
+      codeHash: string | null
+      codeExpiresAt: Date | null
+      attempts: number
+    }
+  >()
+  /** site id → the person who opted it in */
+  readonly #whatsappSites = new Map<string, string>()
   /** The language of each account, as the users table holds it; tests set it. */
   readonly languages = new Map<string, 'ar' | 'en'>()
   /** The address of each account; tests set it. */
@@ -222,6 +286,7 @@ export class MemoryMonitorData implements MonitorData {
     this.#scans = scans
     accounts.onSiteRemoved.add((siteId) => {
       this.#monitors.delete(siteId)
+      this.#whatsappSites.delete(siteId)
       this.#dropRuns(siteId)
     })
   }
@@ -273,6 +338,7 @@ export class MemoryMonitorData implements MonitorData {
   disable(userId: string, siteId: string): Promise<boolean> {
     if (this.#monitors.get(siteId)?.userId !== userId) return Promise.resolve(false)
     this.#monitors.delete(siteId)
+    this.#whatsappSites.delete(siteId)
     for (let index = this.#runs.length - 1; index >= 0; index--) {
       if (this.#runs[index]?.siteId === siteId) this.#runs.splice(index, 1)
     }
@@ -472,7 +538,102 @@ export class MemoryMonitorData implements MonitorData {
     this.#alerts.set(userId, { ...(await this.alerts(userId)), lastSummaryAt: at })
   }
 
+  whatsapp(userId: string): Promise<StoredWhatsapp | null> {
+    const found = this.#whatsapp.get(userId)
+    return Promise.resolve(
+      found === undefined ? null : { phone: found.phone, verifiedAt: found.verifiedAt },
+    )
+  }
+
+  whatsappSites(userId: string): Promise<ReadonlySet<string>> {
+    return Promise.resolve(
+      new Set([...this.#whatsappSites].filter(([, owner]) => owner === userId).map(([id]) => id)),
+    )
+  }
+
+  startWhatsapp(
+    userId: string,
+    input: { phone: string; codeHash: string; expiresAt: Date; at: Date },
+  ): Promise<void> {
+    this.#whatsapp.set(userId, {
+      phone: input.phone,
+      verifiedAt: null,
+      codeHash: input.codeHash,
+      codeExpiresAt: input.expiresAt,
+      attempts: 0,
+    })
+    return Promise.resolve()
+  }
+
+  confirmWhatsapp(
+    userId: string,
+    codeHash: string,
+    at: Date,
+    maxAttempts: number,
+  ): Promise<WhatsappCheck> {
+    const found = this.#whatsapp.get(userId)
+    if (found?.codeHash == null || found.codeExpiresAt === null) return Promise.resolve('none')
+    if (found.attempts >= maxAttempts) return Promise.resolve('locked')
+    if (found.codeExpiresAt <= at) return Promise.resolve('expired')
+    if (found.codeHash !== codeHash) {
+      found.attempts += 1
+      return Promise.resolve('wrong')
+    }
+    found.verifiedAt = at
+    found.codeHash = null
+    found.codeExpiresAt = null
+    found.attempts = 0
+    return Promise.resolve('verified')
+  }
+
+  removeWhatsapp(userId: string): Promise<void> {
+    this.#whatsapp.delete(userId)
+    for (const [siteId, owner] of [...this.#whatsappSites]) {
+      if (owner === userId) this.#whatsappSites.delete(siteId)
+    }
+    return Promise.resolve()
+  }
+
+  async removeWhatsappNumber(phone: string): Promise<number> {
+    let removed = 0
+    for (const [userId, found] of [...this.#whatsapp]) {
+      if (found.phone !== phone) continue
+      await this.removeWhatsapp(userId)
+      removed += 1
+    }
+    return removed
+  }
+
+  setWhatsappSite(
+    userId: string,
+    siteId: string,
+    enabled: boolean,
+  ): Promise<'set' | 'no-monitor' | 'unverified'> {
+    if (this.#monitors.get(siteId)?.userId !== userId) return Promise.resolve('no-monitor')
+    if (!enabled) {
+      this.#whatsappSites.delete(siteId)
+      return Promise.resolve('set')
+    }
+    if (this.#whatsapp.get(userId)?.verifiedAt == null) return Promise.resolve('unverified')
+    this.#whatsappSites.set(siteId, userId)
+    return Promise.resolve('set')
+  }
+
+  whatsappTarget(userId: string, siteId: string): Promise<string | null> {
+    const found = this.#whatsapp.get(userId)
+    const optedIn = this.#whatsappSites.get(siteId) === userId
+    return Promise.resolve(
+      optedIn && found?.verifiedAt != null && this.#monitors.get(siteId)?.userId === userId
+        ? found.phone
+        : null,
+    )
+  }
+
   eraseUser(userId: string): Promise<void> {
+    this.#whatsapp.delete(userId)
+    for (const [siteId, owner] of [...this.#whatsappSites]) {
+      if (owner === userId) this.#whatsappSites.delete(siteId)
+    }
     for (const monitor of [...this.#monitors.values()]) {
       if (monitor.userId !== userId) continue
       this.#monitors.delete(monitor.siteId)

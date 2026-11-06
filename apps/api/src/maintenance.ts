@@ -1,7 +1,15 @@
-import { AUDIT_DAYS, quietly, type AdminData, type AuthMaintenance } from '@arablyzer/store'
+import {
+  AUDIT_DAYS,
+  quietly,
+  type AdminData,
+  type AiData,
+  type AuthMaintenance,
+} from '@arablyzer/store'
 
 /** How often the accounts tables are swept. */
 export const AUTH_SWEEP_MS = 60 * 60 * 1000
+/** How long the fix assistant's ledger is kept (a month's cap needs a month; the rest is for the owner's eye). */
+export const AI_LEDGER_DAYS = 90
 
 /**
  * Sweeps the accounts tables at start and every interval, telling a count only when something
@@ -15,6 +23,8 @@ export function startAuthMaintenance(
     readonly now?: () => Date
     /** The owner's audit, kept a year (M4.8): swept with the sessions. */
     readonly admin?: AdminData
+    /** The fix assistant's ledger and stored answers (BUILD-PLAN §12), swept with them. */
+    readonly ai?: AiData
   } = {},
 ): { stop(): void } {
   const failure = quietly('Accounts sweep', log)
@@ -26,6 +36,9 @@ export function startAuthMaintenance(
         new Date(at.getTime() - AUDIT_DAYS * 86_400_000),
       )
       if (audit !== undefined && audit > 0) log(`Accounts sweep: ${audit} audit entries a year old`)
+      const ai = await options.ai?.prune(new Date(at.getTime() - AI_LEDGER_DAYS * 86_400_000))
+      if (ai !== undefined && ai > 0)
+        log(`Accounts sweep: ${ai} fix assistant rows past their time`)
       const gone = await maintenance.deleteExpired(at)
       if (gone.sessions > 0 || gone.verifications > 0) {
         log(
