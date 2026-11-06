@@ -158,12 +158,16 @@ interface Scenario {
   /** What adding a site answers, in place of a created site. */
   addStatus?: number
   addBody?: unknown
+  /** The window's width (a phone's 390 by default) and the system's colour scheme. */
+  width?: number
+  scheme?: 'light' | 'dark'
 }
 
 /** A context whose requests to the site's API and to Google are answered by the scenario. */
 async function open(base: FixtureSite, scenario: Scenario) {
   const context: BrowserContext = await browser.newContext({
-    viewport: { width: 390, height: 844 },
+    viewport: { width: scenario.width ?? 390, height: 844 },
+    ...(scenario.scheme === undefined ? {} : { colorScheme: scenario.scheme }),
   })
   const seen: { method: string; path: string; body: string | null }[] = []
   const external: string[] = []
@@ -411,7 +415,7 @@ describe('the sign-in page, in Chromium', () => {
         credential: 'header.payload.signature',
       })
     })
-    await tab.waitForURL('**/account')
+    await tab.waitForURL('**/app')
     const taps = seen.filter((call) => call.path === '/api/session/one-tap')
     expect(taps).toHaveLength(1)
     expect(taps[0]?.method).toBe('POST')
@@ -441,10 +445,25 @@ describe('the sign-in page, in Chromium', () => {
     await close()
   })
 
-  it('sends a signed-in visitor on to their account page', async () => {
-    const { tab, base, close } = await open(site, { account: ACCOUNT, google: true })
-    await tab.goto(base.url('/login'))
-    await tab.waitForURL('**/account')
+  it('sends a signed-in visitor on to the dashboard, from the sign-in page and from the account address', async () => {
+    for (const [from, to] of [
+      ['/login', '**/app'],
+      ['/en/login', '**/en/app'],
+      ['/account', '**/app'],
+      ['/en/account', '**/en/app'],
+    ] as const) {
+      const { tab, base, close } = await open(site, { account: ACCOUNT, google: true })
+      await tab.goto(base.url(from))
+      await tab.waitForURL(to)
+      await close()
+    }
+  })
+
+  it('still shows the sign-in on the account address to a visitor who is signed out', async () => {
+    const { tab, base, close } = await open(site, { account: null, google: true })
+    await tab.goto(base.url('/en/account'))
+    await tab.locator('[data-gis-button]').waitFor({ timeout: 15_000 })
+    expect(new URL(tab.url()).pathname).toBe('/en/account')
     await close()
   })
 
@@ -462,15 +481,15 @@ describe('the sign-in page, in Chromium', () => {
   })
 })
 
-describe('the account page, in Chromium', () => {
+describe('the account page of the dashboard, in Chromium', () => {
   it('shows the account, sets the language of an account that has none, and signs out', async () => {
     const { tab, seen, base, close } = await open(site, {
       account: { ...ACCOUNT, language: null as never },
       google: true,
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/account'))
     await tab.getByText('ali@example.com').waitFor({ timeout: 15_000 })
-    await tab.waitForFunction(() => document.querySelector('[aria-pressed="true"]') !== null)
+    await tab.waitForFunction(() => document.querySelector('main [aria-pressed="true"]') !== null)
     const patches = seen.filter((call) => call.method === 'PATCH')
     expect(patches).toHaveLength(1)
     expect(JSON.parse(patches[0]?.body ?? '{}')).toEqual({ language: 'en' })
@@ -482,14 +501,37 @@ describe('the account page, in Chromium', () => {
       ).toBeGreaterThanOrEqual(44)
     }
     await tab.getByRole('button', { name: 'Sign out', exact: true }).click()
-    await tab.getByText('You are signed out.').waitFor()
-    expect(seen.some((call) => call.method === 'DELETE' && call.path === '/api/session')).toBe(true)
+    await expect
+      .poll(() => seen.some((call) => call.method === 'DELETE' && call.path === '/api/session'))
+      .toBe(true)
+    await close()
+  })
+
+  it('says what the plan allows, from the API’s own numbers', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      limit: 3,
+      monitoring: { limit: 1, everyDays: 7 },
+    })
+    await tab.goto(base.url('/en/app/account'))
+    const plan = tab.getByRole('heading', { name: 'Your plan' })
+    await plan.waitFor({ timeout: 15_000 })
+    const rows = await tab.locator('section[aria-labelledby="ac-plan"] dl > div').allTextContents()
+    expect(rows[0]).toContain('Saved sites')
+    expect(rows[0]).toContain('3')
+    expect(rows[1]).toContain('Monitored sites')
+    expect(rows[1]).toContain('1')
+    expect(rows[2]).toContain('Every 7 days')
+    expect(rows[3]).toContain('50 pages')
+    expect(rows[6]).toContain('30 days')
     await close()
   })
 
   it('erases the account after one confirmation, and says it is gone', async () => {
     const { tab, seen, base, close } = await open(site, { account: ACCOUNT, google: true })
-    await tab.goto(base.url('/account'))
+    await tab.goto(base.url('/app/account'))
     await tab.getByRole('button', { name: 'حذف الحساب…' }).click()
     expect(seen.filter((call) => call.method === 'DELETE')).toHaveLength(0)
     await tab.getByRole('button', { name: 'احذف حسابي نهائياً' }).click()
@@ -507,7 +549,7 @@ describe('the account page, in Chromium', () => {
       deleteStatus: 403,
       deleteBody: { error: 'fresh-login-required' },
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/account'))
     await tab.getByRole('button', { name: 'Delete account…' }).click()
     await tab.getByRole('button', { name: 'Delete my account for good' }).click()
     await tab.getByText('sign in again before deleting').waitFor()
@@ -521,20 +563,17 @@ describe('the account page, in Chromium', () => {
 })
 
 describe('saved sites and the history, in Chromium', () => {
-  it('lists the sites with their last score and the history with report links', async () => {
+  it('lists the sites with their last score, and the scans with report links', async () => {
     const { tab, base, close } = await open(site, {
       account: ACCOUNT,
       google: true,
       sites: [SAVED],
       scans: [LAST],
     })
-    await tab.goto(base.url('/en/account'))
-    await tab.getByRole('heading', { name: 'Your sites' }).waitFor({ timeout: 15_000 })
+    await tab.goto(base.url('/en/app/sites'))
+    await tab.getByRole('heading', { name: 'My sites', level: 1 }).waitFor({ timeout: 15_000 })
     await tab.getByText('1 of 3 saved').waitFor()
-    await tab.getByText('Score 82').first().waitFor()
-    await tab.getByText('We keep your scans for 30 days, then delete them.').waitFor()
-    const reports = await tab.locator('a[href="/en/r/BBBBBBBBBBBBBBBBBBBBBB"]').count()
-    expect(reports).toBeGreaterThanOrEqual(2)
+    await tab.locator('main td[data-cell="score"]').getByText('82').waitFor()
     // Targets are 44 px; the page draws no style attribute (the CSP forbids them).
     for (const name of ['Scan now', 'Save site']) {
       expect(
@@ -542,6 +581,11 @@ describe('saved sites and the history, in Chromium', () => {
       ).toBeGreaterThanOrEqual(44)
     }
     expect(await tab.locator('main [style]').count()).toBe(0)
+    await tab.goto(base.url('/en/app/scans'))
+    await tab.getByText('We keep your scans for 30 days, then delete them.').waitFor()
+    expect(
+      await tab.locator('main a[href="/en/r/BBBBBBBBBBBBBBBBBBBBBB"]').count(),
+    ).toBeGreaterThanOrEqual(1)
     await close()
   })
 
@@ -552,29 +596,37 @@ describe('saved sites and the history, in Chromium', () => {
       sites: [SAVED],
       scans: [LAST],
     })
-    await tab.goto(base.url('/account'))
-    await tab.getByRole('heading', { name: 'مواقعك' }).waitFor({ timeout: 15_000 })
+    await tab.goto(base.url('/app/sites'))
+    await tab.getByRole('heading', { name: 'مواقعي', level: 1 }).waitFor({ timeout: 15_000 })
     await tab.getByText('المحفوظ 1 من أصل 3').waitFor()
-    await tab.getByText('الدرجة 82').first().waitFor()
-    expect(await tab.locator('bdi[dir="ltr"]').first().textContent()).toBe('example.com')
+    await tab.locator('main td[data-cell="score"]').getByText('82').waitFor()
+    const host = tab.locator('main td[data-cell="site"] a').first()
+    expect(await host.textContent()).toBe('example.com')
+    expect(await host.getAttribute('dir')).toBe('ltr')
+    expect(await tab.evaluate(() => document.documentElement.dir)).toBe('rtl')
     await close()
   })
 
-  it('saves a site, removes one, and scans one into its report', async () => {
+  it('saves a site, removes one after asking, and scans one into its report', async () => {
     const { tab, seen, base, close } = await open(site, {
       account: ACCOUNT,
       google: true,
       sites: [SAVED],
       scans: [LAST],
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/sites'))
     await tab.getByLabel('Site URL').fill('new.example.org')
     await tab.getByRole('button', { name: 'Save site' }).click()
     await tab.getByText('2 of 3 saved').waitFor()
-    await tab.getByText('new.example.org').waitFor()
+    await tab.getByText('new.example.org').first().waitFor()
     const added = seen.find((call) => call.method === 'POST' && call.path === '/api/sites')
     expect(JSON.parse(added?.body ?? '{}')).toEqual({ url: 'https://new.example.org/' })
     await tab.getByRole('button', { name: 'Remove example.com from your sites' }).click()
+    // Nothing is sent before the person says yes.
+    expect(
+      seen.some((call) => call.method === 'DELETE' && call.path.startsWith('/api/sites/')),
+    ).toBe(false)
+    await tab.getByRole('button', { name: 'Remove the site' }).click()
     await tab.getByText('1 of 3 saved').waitFor()
     expect(
       seen.some((call) => call.method === 'DELETE' && call.path === `/api/sites/${SITE_ID}`),
@@ -598,13 +650,39 @@ describe('saved sites and the history, in Chromium', () => {
       addStatus: 403,
       addBody: { error: 'plan-limit', limit: 'savedSites', plan: 'account' },
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/sites'))
     await tab.getByLabel('Site URL').fill('other.example.org')
     await tab.getByRole('button', { name: 'Save site' }).click()
     await tab.getByText('You have reached the number of saved sites your plan allows').waitFor()
     await tab.getByLabel('Site URL').fill('http://')
     await tab.getByRole('button', { name: 'Save site' }).click()
     await tab.getByText('That is not a full URL').waitFor()
+    await close()
+  })
+
+  it('filters and pages the scans, ten at a time', async () => {
+    const many = Array.from({ length: 13 }, (_, i) => ({
+      ...LAST,
+      id: String(i).padStart(2, '0').repeat(11),
+      url: i % 2 === 0 ? 'https://even.example/' : 'https://odd.example/',
+      state: i === 4 ? 'failed' : 'complete',
+      score: i === 4 ? null : 60 + i,
+      siteId: null,
+      createdAt: `2026-10-${String(20 - i).padStart(2, '0')}T12:00:00.000Z`,
+    }))
+    const { tab, base, close } = await open(site, { account: ACCOUNT, google: true, scans: many })
+    await tab.goto(base.url('/en/app/scans'))
+    await tab.getByText('1 to 10 of 13').waitFor({ timeout: 15_000 })
+    expect(await tab.locator('main tbody tr').count()).toBe(10)
+    await tab.getByRole('button', { name: 'Next' }).click()
+    await tab.getByText('11 to 13 of 13').waitFor()
+    expect(await tab.getByRole('button', { name: 'Next' }).isDisabled()).toBe(true)
+    await tab.getByLabel('Search by address').fill('odd.example')
+    await tab.getByText('1 to 6 of 6').waitFor()
+    await tab.getByLabel('State').selectOption('failed')
+    await tab.getByText('No scans match this filter.').waitFor()
+    await tab.getByRole('button', { name: 'Clear the filter' }).click()
+    await tab.getByText('1 to 10 of 13').waitFor()
     await close()
   })
 })
@@ -708,50 +786,79 @@ const COMPARISON = {
 
 describe('score history and comparison, in Chromium', () => {
   it('draws a site’s scores with its alert marks and the same numbers as a table, in both directions', async () => {
-    for (const [path, show, label] of [
-      [
-        '/en/account',
-        'Show the score chart',
-        'Chart of the scores of https://example.com/ over time',
-      ],
-      ['/account', 'اعرض مخطط الدرجات', 'مخطط درجات https://example.com/ عبر الزمن'],
+    for (const [path, label] of [
+      [`/en/app/site?id=${SITE_ID}`, 'Chart of the scores of https://example.com/ over time'],
+      [`/app/site?id=${SITE_ID}`, 'مخطط درجات https://example.com/ عبر الزمن'],
     ] as const) {
       const { tab, base, close } = await open(site, {
         account: ACCOUNT,
         google: true,
         sites: [SAVED],
+        scans: [LAST],
         history: HISTORY,
       })
       await tab.goto(base.url(path))
-      const toggle = tab.getByRole('button', { name: show })
-      await toggle.waitFor({ timeout: 15_000 })
-      expect((await toggle.boundingBox())?.height).toBeGreaterThanOrEqual(44)
-      await toggle.click()
-      await tab.getByRole('img', { name: label }).waitFor()
+      await tab.getByRole('img', { name: label }).waitFor({ timeout: 15_000 })
       // The overall line, one dot per scored scan, and a mark per alert.
-      expect(await tab.locator('main svg[role="img"] circle').count()).toBe(2)
-      expect(await tab.locator('main svg[role="img"] g[aria-hidden] > path').count()).toBe(2)
+      expect(await tab.locator('main svg.app-chart circle').count()).toBe(2)
+      expect(await tab.locator('main svg.app-chart g[aria-hidden] > path').count()).toBe(2)
       // The oldest scan sits at the start edge: left in English, right in Arabic.
       const xs = await tab
-        .locator('main svg[role="img"] circle')
+        .locator('main svg.app-chart circle')
         .evaluateAll((all) => all.map((c) => Number(c.getAttribute('cx'))))
-      expect((xs[0] ?? 0) < (xs[1] ?? 0)).toBe(path === '/en/account')
+      expect((xs[0] ?? 0) < (xs[1] ?? 0)).toBe(path.startsWith('/en/'))
       // A category line is switched on from a chip that says whether it is pressed.
       const chip = tab.locator('main button.chip[aria-pressed]').first()
       expect(await chip.getAttribute('aria-pressed')).toBe('false')
       expect((await chip.boundingBox())?.height).toBeGreaterThanOrEqual(44)
       await chip.click()
       expect(await chip.getAttribute('aria-pressed')).toBe('true')
-      expect(await tab.locator('main svg[role="img"] circle').count()).toBe(4)
+      expect(await tab.locator('main svg.app-chart circle').count()).toBe(4)
       // The table holds every value; nothing overflows the phone, and no style attribute is drawn.
       await tab.locator('main button[aria-controls$="-table"]').click()
       expect(await tab.locator('main table tbody tr').count()).toBe(3)
       expect(
         await tab.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        path,
       ).toBe(true)
       expect(await tab.locator('main [style]').count()).toBe(0)
       await close()
     }
+  })
+
+  it('follows the pointer and the arrow keys along the chart, and says the scan under it', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+      history: HISTORY,
+    })
+    await tab.goto(base.url(`/en/app/site?id=${SITE_ID}`))
+    const chart = tab.locator('main svg.app-chart')
+    await chart.waitFor({ timeout: 15_000 })
+    const cursor = chart.locator('g[pointer-events="none"]')
+    expect(await cursor.count()).toBe(0)
+    // The pointer at the chart's left end finds the oldest scored scan; its readout is said, politely.
+    const box = await chart.boundingBox()
+    await tab.mouse.move((box?.x ?? 0) + 40, (box?.y ?? 0) + 60)
+    await cursor.waitFor()
+    expect(await cursor.locator('text').first().textContent()).toBe('Oct 1')
+    expect(await cursor.locator('text').nth(1).textContent()).toBe('90')
+    await tab.mouse.move(0, 0)
+    await cursor.waitFor({ state: 'detached' })
+    // From the keyboard: focus lands on the newest scan, the arrows move one scan, Escape lets go.
+    await chart.focus()
+    await cursor.waitFor()
+    expect(await cursor.locator('text').nth(1).textContent()).toBe('72')
+    await tab.keyboard.press('ArrowLeft')
+    expect(await cursor.locator('text').nth(1).textContent()).toBe('90')
+    expect(
+      await chart.locator('xpath=..').locator('p[aria-live="polite"]').textContent(),
+    ).toContain('90')
+    await tab.keyboard.press('Escape')
+    await cursor.waitFor({ state: 'detached' })
+    await close()
   })
 
   it('offers «compare with the previous scan» beside a scan that has an older one, and shows the comparison', async () => {
@@ -762,14 +869,21 @@ describe('score history and comparison, in Chromium', () => {
       scans: [LAST, OLDER],
       compare: { status: 200, body: COMPARISON },
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/scans'))
     const link = tab.getByRole('link', { name: /Compare with the scan of/ })
     await link.waitFor({ timeout: 15_000 })
     expect(await link.count()).toBe(1)
     expect(await link.getAttribute('href')).toBe(
       `/en/account/compare?type=scan&base=${OLDER.id}&head=${LAST.id}`,
     )
-    await link.click()
+    // The site's page offers the same, for its last two.
+    await tab.goto(base.url(`/en/app/site?id=${SITE_ID}`))
+    const last = tab.getByRole('link', { name: /Compare with the scan of/ })
+    await last.waitFor()
+    expect(await last.getAttribute('href')).toBe(
+      `/en/account/compare?type=scan&base=${OLDER.id}&head=${LAST.id}`,
+    )
+    await last.click()
     await tab.getByRole('heading', { name: 'Compare two reports' }).waitFor()
     await tab.getByText('Image without alt text').waitFor()
     await tab.getByText('Title too long').waitFor()
@@ -811,9 +925,8 @@ describe('monitoring and alerts, in Chromium', () => {
       google: true,
       sites: [SAVED],
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url(`/en/app/site?id=${SITE_ID}`))
     await tab.getByText('Not monitored').waitFor({ timeout: 15_000 })
-    await tab.getByText('0 of 1 monitored').waitFor()
     const on = tab.getByRole('button', { name: 'Monitor this site' })
     expect((await on.boundingBox())?.height).toBeGreaterThanOrEqual(44)
     await on.click()
@@ -828,6 +941,24 @@ describe('monitoring and alerts, in Chromium', () => {
     await close()
   })
 
+  it('lists what is monitored, with its schedule and state, and counts it against the plan', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [{ ...SAVED, monitor: MONITOR }],
+      monitoring: { limit: 2, everyDays: 7 },
+      history: { ...HISTORY, markers: [HISTORY.markers[0]] },
+    })
+    await tab.goto(base.url('/en/app/monitoring'))
+    await tab.getByText('1 of 2 monitoring slots').waitFor({ timeout: 15_000 })
+    const row = tab.locator('main tbody tr').first()
+    expect(await row.textContent()).toContain('Every 7 days')
+    expect(await row.textContent()).toContain('Running')
+    // The alert the monitor would have sent, worked out from the history.
+    await tab.getByText('Score dropped from 90 to 72').waitFor()
+    await close()
+  })
+
   it('says why a second site cannot be monitored at the plan’s one', async () => {
     const { tab, seen, base, close } = await open(site, {
       account: ACCOUNT,
@@ -837,7 +968,7 @@ describe('monitoring and alerts, in Chromium', () => {
         { ...SAVED, id: 'EEEEEEEEEEEEEEEEEEEEEE', url: 'https://other.example/', monitor: null },
       ],
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/site?id=EEEEEEEEEEEEEEEEEEEEEE'))
     await tab.getByRole('button', { name: 'Monitor this site' }).click()
     await tab.getByText('Your plan monitors 1 site.').waitFor()
     expect(seen.some((call) => call.method === 'PUT' && call.path.endsWith('/monitor'))).toBe(false)
@@ -850,8 +981,8 @@ describe('monitoring and alerts, in Chromium', () => {
       google: true,
       sites: [SAVED],
     })
-    await tab.goto(base.url('/en/account'))
-    await tab.getByRole('heading', { name: 'Alerts' }).waitFor({ timeout: 15_000 })
+    await tab.goto(base.url('/en/app/monitoring'))
+    await tab.getByRole('heading', { name: 'Alerts', exact: true }).waitFor({ timeout: 15_000 })
     await tab.getByLabel('Webhook address').fill('https://hooks.slack.com/services/T0/B0/xyz')
     await tab.getByRole('button', { name: 'Save alerts' }).click()
     await tab.getByText('Sending to hooks.slack.com (Slack)').waitFor()
@@ -886,9 +1017,9 @@ describe('monitoring and alerts, in Chromium', () => {
       sites: [{ ...SAVED, monitor: MONITOR }],
       alerts: HOOK_ALERTS,
     })
-    await tab.goto(base.url('/account'))
-    await tab.getByRole('heading', { name: 'التنبيهات' }).waitFor({ timeout: 15_000 })
-    await tab.getByText('نفحصه تلقائياً كل 7 أيام').waitFor()
+    await tab.goto(base.url('/app/monitoring'))
+    await tab.getByRole('heading', { name: 'التنبيهات', exact: true }).waitFor({ timeout: 15_000 })
+    await tab.getByText('كل 7 أيام').first().waitFor()
     await tab.getByText('نرسل إلى hooks.slack.com (Slack)').waitFor()
     await close()
   })
@@ -901,7 +1032,7 @@ describe('PDF export and white-label, in Chromium', () => {
       google: true,
       brand: { available: true, name: '', color: null, hasLogo: false },
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/brand'))
     const form = tab.getByRole('region', { name: 'Your brand on reports' })
     await form.waitFor({ timeout: 15_000 })
     const name = form.getByLabel('Company name')
@@ -951,7 +1082,7 @@ describe('PDF export and white-label, in Chromium', () => {
       google: true,
       brand: { available: false, name: '', color: null, hasLogo: false },
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/brand'))
     await tab
       .getByText('Your own brand is not included in your current plan.')
       .waitFor({ timeout: 15_000 })
@@ -967,7 +1098,7 @@ describe('PDF export and white-label, in Chromium', () => {
       scans: [LAST],
       pdf: { status: 202, body: PDF_JOB },
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/scans'))
     const button = tab
       .getByRole('button', { name: /Download example.com\/ as a PDF|Download .* as a PDF/ })
       .first()
@@ -1021,7 +1152,7 @@ describe('PDF export and white-label, in Chromium', () => {
       scans: [LAST],
       pdf: { status: 403, body: { error: 'plan-limit', limit: 'pdfPerMonth', plan: 'account' } },
     })
-    await tab.goto(base.url('/en/account'))
+    await tab.goto(base.url('/en/app/scans'))
     await tab
       .getByRole('button', { name: /as a PDF/ })
       .first()
@@ -1029,6 +1160,234 @@ describe('PDF export and white-label, in Chromium', () => {
     await tab
       .getByText('You have reached your plan’s PDF limit for this month.')
       .waitFor({ timeout: 15_000 })
+    await close()
+  })
+})
+
+const DASH_PAGES = [
+  '/app',
+  '/app/sites',
+  `/app/site?id=${SITE_ID}`,
+  '/app/scans',
+  '/app/monitoring',
+  '/app/crawls',
+  '/app/pdfs',
+  '/app/keys',
+  '/app/brand',
+  '/app/account',
+]
+
+describe('the dashboard, in Chromium', () => {
+  it('draws the shell around the overview, marks the page, and counts against the API’s numbers', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+      width: 1280,
+    })
+    await tab.goto(base.url('/en/app'))
+    await tab.getByRole('heading', { name: 'Welcome, علي', level: 1 }).waitFor({ timeout: 15_000 })
+    const nav = tab.locator('aside nav')
+    expect(await nav.locator('a').count()).toBe(9)
+    expect(await nav.locator('a[aria-current="page"]').textContent()).toContain('Overview')
+    // The limits are the API's: three saved sites and one monitored by default.
+    const meters = tab.locator('main [role="meter"]')
+    await meters.first().waitFor()
+    expect(await meters.nth(0).getAttribute('aria-valuetext')).toBe('1 of 3')
+    expect(await meters.nth(1).getAttribute('aria-valuetext')).toBe('0 of 1')
+    expect(await tab.locator('main dl.app-stats').textContent()).toContain('82')
+    await close()
+  })
+
+  it('invites the first site where there is none, and keeps a checklist', async () => {
+    const { tab, base, close } = await open(site, { account: ACCOUNT, google: true, width: 1280 })
+    await tab.goto(base.url('/en/app'))
+    await tab.getByText('Start with your first site').waitFor({ timeout: 15_000 })
+    await tab.getByText('0 of 4').waitFor()
+    expect(await tab.getByRole('link', { name: 'Add a site' }).count()).toBeGreaterThan(0)
+    await close()
+  })
+
+  it('runs under the page’s policy: no violation on any page, and no style attribute in the markup the server drew', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+      history: HISTORY,
+      brand: { available: true, name: '', color: null, hasLogo: false },
+      width: 1280,
+    })
+    const violations: string[] = []
+    tab.on('console', (message) => {
+      if (/Content Security Policy|Refused to/i.test(message.text()))
+        violations.push(message.text())
+    })
+    tab.on('pageerror', (error) => violations.push(error.message))
+    for (const page of DASH_PAGES) {
+      for (const prefix of ['', '/en']) {
+        await tab.goto(base.url(`${prefix}${page}`))
+        await tab.locator('main h1').waitFor({ timeout: 15_000 })
+        await tab.waitForLoadState('networkidle')
+      }
+    }
+    expect(violations).toEqual([])
+    for (const file of ['app.html', 'app/sites.html', 'en/app/site.html']) {
+      const html = await readFile(path.join(built, file), 'utf8')
+      expect(html, file).not.toMatch(/\sstyle="/)
+      expect(html, file).toContain('noindex')
+    }
+    await close()
+  })
+
+  it('opens in the system’s scheme with no flash, and keeps the person’s choice', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      scheme: 'dark',
+      width: 1280,
+    })
+    await tab.goto(base.url('/en/app'), { waitUntil: 'domcontentloaded' })
+    // Set by the head's own script, before the island has run.
+    expect(await tab.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(
+      'dark',
+    )
+    const ground = () => tab.evaluate(() => getComputedStyle(document.body).backgroundColor)
+    expect(await ground()).toBe('rgb(11, 18, 32)')
+    await tab.getByRole('button', { name: 'Light mode' }).click()
+    expect(await tab.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(
+      'light',
+    )
+    expect(await ground()).toBe('rgb(246, 248, 251)')
+    expect(await tab.evaluate(() => localStorage.getItem('arablyzer-theme'))).toBe('light')
+    await tab.reload({ waitUntil: 'domcontentloaded' })
+    expect(await tab.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(
+      'light',
+    )
+    await close()
+  })
+
+  it('searches the person’s own sites and scans from the keyboard', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+      width: 1280,
+    })
+    await tab.goto(base.url('/en/app/scans'))
+    await tab.locator('main h1').waitFor({ timeout: 15_000 })
+    await tab.keyboard.press('Control+K')
+    const dialog = tab.getByRole('dialog', { name: 'Go to' })
+    await dialog.waitFor()
+    await dialog.getByRole('combobox').fill('example')
+    expect(await dialog.getByRole('option').count()).toBe(2)
+    await tab.keyboard.press('Enter')
+    await tab.waitForURL(`**/en/app/site?id=${SITE_ID}`)
+    await tab.locator('main h1').waitFor()
+    await tab.keyboard.press('Control+K')
+    await dialog.waitFor()
+    await dialog.getByRole('combobox').fill('zzz')
+    await dialog.getByText('No results for “zzz”.').waitFor()
+    await tab.keyboard.press('Escape')
+    await dialog.waitFor({ state: 'hidden' })
+    await close()
+  })
+
+  it('has a bottom bar and a sheet on a phone, and nothing sideways on any page', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      sites: [SAVED],
+      scans: [LAST],
+      history: HISTORY,
+      brand: { available: true, name: '', color: null, hasLogo: false },
+    })
+    await tab.goto(base.url('/en/app'))
+    await tab.locator('main h1').waitFor({ timeout: 15_000 })
+    expect(await tab.locator('aside').isVisible()).toBe(false)
+    const bar = tab.getByRole('navigation', { name: 'Navigation' })
+    expect(await bar.isVisible()).toBe(true)
+    for (const link of await bar.getByRole('link').all()) {
+      expect((await link.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44)
+    }
+    await bar.getByRole('button', { name: 'More' }).click()
+    const sheet = tab.getByRole('dialog', { name: 'More' })
+    await sheet.waitFor()
+    expect(await sheet.getByRole('link').count()).toBe(9)
+    await tab.keyboard.press('Escape')
+    await sheet.waitFor({ state: 'hidden' })
+    for (const page of DASH_PAGES) {
+      await tab.goto(base.url(`/en${page}`))
+      await tab.locator('main h1').waitFor({ timeout: 15_000 })
+      await tab.waitForLoadState('networkidle')
+      expect(
+        await tab.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+        page,
+      ).toBeLessThanOrEqual(0)
+    }
+    await close()
+  })
+
+  it('folds the menu to icons on a tablet, and on a desktop when asked, and remembers it', async () => {
+    const tablet = await open(site, { account: ACCOUNT, google: true, width: 900 })
+    await tablet.tab.goto(tablet.base.url('/en/app'))
+    await tablet.tab.locator('main h1').waitFor({ timeout: 15_000 })
+    const aside = tablet.tab.locator('aside')
+    expect((await aside.boundingBox())?.width).toBeLessThan(100)
+    // The names stay for a screen reader.
+    expect(await aside.getByRole('link', { name: 'My sites' }).count()).toBe(1)
+    await tablet.close()
+    const wide = await open(site, { account: ACCOUNT, google: true, width: 1280 })
+    await wide.tab.goto(wide.base.url('/en/app'))
+    await wide.tab.locator('main h1').waitFor({ timeout: 15_000 })
+    expect((await wide.tab.locator('aside').boundingBox())?.width).toBeGreaterThan(250)
+    await wide.tab.getByRole('button', { name: 'Collapse the menu' }).click()
+    expect((await wide.tab.locator('aside').boundingBox())?.width).toBeLessThan(100)
+    await wide.tab.reload()
+    await wide.tab.getByRole('button', { name: 'Expand the menu' }).waitFor({ timeout: 15_000 })
+    await wide.close()
+  })
+
+  it('sends a visitor who is not signed in to the sign-in page', async () => {
+    const { tab, base, close } = await open(site, { account: null, google: true })
+    await tab.goto(base.url('/en/app/sites'))
+    await tab.waitForURL('**/en/login')
+    await close()
+  })
+
+  it('has the account menu with the language and the ways out', async () => {
+    const { tab, seen, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      width: 1280,
+    })
+    await tab.goto(base.url('/en/app'))
+    await tab.locator('main h1').waitFor({ timeout: 15_000 })
+    await tab.getByRole('button', { name: 'Account menu' }).click()
+    await tab.getByText('ali@example.com').waitFor()
+    await tab.getByRole('link', { name: /Language/ }).click()
+    await tab.waitForURL((url) => url.pathname === '/app')
+    expect(JSON.parse(seen.find((call) => call.method === 'PATCH')?.body ?? '{}')).toEqual({
+      language: 'ar',
+    })
+    await tab.locator('main h1').waitFor()
+    await tab.getByRole('button', { name: 'قائمة الحساب' }).click()
+    await tab.getByRole('button', { name: 'تسجيل الخروج', exact: true }).click()
+    await expect
+      .poll(() => seen.some((call) => call.method === 'DELETE' && call.path === '/api/session'))
+      .toBe(true)
+    await close()
+  })
+
+  it('is not there on a site built without accounts: its addresses are 404', async () => {
+    const { tab, seen, base, close } = await open(plain, { account: null, google: true })
+    for (const page of ['/app', '/en/app', '/app/sites', '/en/app/site']) {
+      const response = await tab.goto(base.url(page))
+      expect(response?.status(), page).toBe(404)
+    }
+    expect(seen).toEqual([])
     await close()
   })
 })

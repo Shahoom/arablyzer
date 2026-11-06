@@ -119,6 +119,8 @@ export const GOOGLE_CALLBACK_PATH = '/api/auth/callback/google'
 /** The pages: static, never indexed. The English ones are under /en. */
 export const LOGIN_PAGE_PATH = '/login'
 export const ACCOUNT_PAGE_PATH = '/account'
+/** The signed-in dashboard (M4.9), before the language prefix; the pages under it are its sections. */
+export const APP_PAGE_PATH = '/app'
 /** How long after signing in an account may be deleted without signing in again. */
 export const FRESH_LOGIN_SECONDS = 600
 

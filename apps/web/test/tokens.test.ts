@@ -198,3 +198,58 @@ describe('the design tokens', () => {
     }
   })
 })
+
+// The dashboard's dark theme (M4.9): the same tokens, redeclared in src/styles/app.css, each a hex so
+// that this file can hold its text pairs to the same 4.5:1 and its edges to 3:1.
+const APP_CSS = readFileSync(new URL('../src/styles/app.css', import.meta.url), 'utf8')
+const DARK_BLOCK = /html\[data-theme='dark'\]\s*\{([\s\S]*?)\n\}/.exec(APP_CSS)?.[1] ?? ''
+const DARK = new Map<string, string>(
+  [...DARK_BLOCK.matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-f]{6})\s*;/gi)].map(
+    ([, name = '', hex = '']) => [name, hex.toLowerCase()],
+  ),
+)
+function dark(name: string): string {
+  // A token the dark theme does not redeclare is the light one: white, and the panel's own.
+  const hex = DARK.get(name) ?? TOKENS.get(name)
+  if (hex === undefined) throw new Error(`no --color-${name}`)
+  return hex
+}
+
+describe('the dark theme of the dashboard', () => {
+  it('redeclares the tokens as hex values', () => {
+    expect(DARK.size).toBeGreaterThan(45)
+    expect(dark('bg')).toBe('#0b1220')
+  })
+
+  it.each(
+    TEXT.filter(([text, ground]) => !text.startsWith('panel') && ground !== 'panel').filter(
+      // White on a severity or the brand is the button's and the pill's: those fills stay as they are.
+      ([text]) => text !== 'white',
+    ),
+  )('keeps %s above 4.5:1 on %s', (text, ground) => {
+    expect(contrast(dark(text), dark(ground))).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('keeps white text on the critical pill and the gradient button as in the light theme', () => {
+    expect(contrast('#ffffff', dark('critical'))).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it.each(CATEGORIES)(
+    'keeps the %s category readable on its tint and on the dark grounds',
+    (name) => {
+      const colour = dark(`cat-${name}`)
+      for (const ground of [dark(`cat-${name}-soft`), dark('surface'), dark('bg')]) {
+        expect(contrast(colour, ground), `${name} on ${ground}`).toBeGreaterThanOrEqual(4.5)
+      }
+    },
+  )
+
+  it('keeps an input’s border and the focus ring at 3:1 on the dark grounds', () => {
+    for (const ground of ['surface', 'bg']) {
+      expect(contrast(dark('field'), dark(ground)), `field on ${ground}`).toBeGreaterThanOrEqual(3)
+      expect(contrast(dark('indigo'), dark(ground)), `indigo on ${ground}`).toBeGreaterThanOrEqual(
+        3,
+      )
+    }
+  })
+})

@@ -1,0 +1,24 @@
+---
+import { APP_UI } from '@arablyzer/i18n/app'
+import type { Lang } from '@arablyzer/seo/site'
+import AppFrame from '../../islands/app/AppFrame'
+import type { AppPage } from '../../islands/app/app-model'
+import AppLayout from '../../layouts/AppLayout.astro'
+
+// One page of the signed-in dashboard (M4.9): a static shell for the signed-in person alone. The
+// island asks who is signed in and shows the page; it loads nothing from Google (a visitor who is
+// not signed in is sent on to /login), so the page adds no source to the site's policy.
+interface Props {
+  lang: Lang
+  page: AppPage
+}
+const { lang, page } = Astro.props
+const t = APP_UI[lang].pages[page]
+---
+
+<AppLayout lang={lang} title={`${t.title} — Arablyzer`} description={t.lead}>
+  <AppFrame client:load lang={lang} page={page} />
+  <noscript>
+    <p class="p-6">{APP_UI[lang].shell.noscript}</p>
+  </noscript>
+</AppLayout>

@@ -1,0 +1,63 @@
+---
+import { renderHead } from '@arablyzer/seo/head'
+import type { Lang } from '@arablyzer/seo/site'
+import { Font } from 'astro:assets'
+import { createHash } from 'node:crypto'
+import { dirOf } from '../lib/site'
+import '../styles/global.css'
+import '../styles/app.css'
+
+// The signed-in dashboard's page (M4.9): the site's head and fonts and nothing of its public
+// header or footer, since the app brings its own shell. Never indexed and no canonical.
+interface Props {
+  lang: Lang
+  title: string
+  description: string
+}
+const { lang, title, description } = Astro.props
+
+// The theme is set before the first paint, so a dark page does not flash white: the one inline
+// script of the app, allowed in the page's policy by its hash (the choice is `arablyzer-theme`,
+// `light` or `dark`; with none, the system's).
+const THEME = `(function(){try{var s=localStorage.getItem('arablyzer-theme');var d=s==='dark'||(s!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light')}catch(e){document.documentElement.setAttribute('data-theme','light')}})()`
+Astro.csp?.insertScriptHash(`sha256-${createHash('sha256').update(THEME).digest('base64')}`)
+
+const head = renderHead({
+  title,
+  description,
+  robots: 'noindex, nofollow',
+  openGraph: { title, description },
+})
+---
+
+<!doctype html>
+<html lang={lang} dir={dirOf(lang)} data-theme="light">
+  <head>
+    <Fragment set:html={head} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#007D88" />
+    <script is:inline set:html={THEME}></script>
+    <Font
+      cssVariable="--font-dm-sans"
+      preload={[
+        { subset: 'latin', weight: 600 },
+        { subset: 'latin', weight: 400 },
+      ]}
+    />
+    <Font
+      cssVariable="--font-plex-arabic"
+      preload={
+        lang === 'ar'
+          ? [
+              { subset: 'arabic', weight: 600 },
+              { subset: 'arabic', weight: 400 },
+            ]
+          : false
+      }
+    />
+    <Font cssVariable="--font-plex-mono" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

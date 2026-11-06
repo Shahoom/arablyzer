@@ -1,0 +1,15 @@
+---
+import { PUBLIC_AUTH_GOOGLE_CLIENT_ID } from 'astro:env/client'
+import AppPage from '../../../components/app/AppPage.astro'
+import { APP_ROUTES, pageOfSlug } from '../../../islands/app/app-model'
+
+// The dashboard's pages (M4.9) exist only where the site is built with accounts: with no OAuth
+// client id there is no page, and the address answers 404, as the header shows no link to it.
+export function getStaticPaths() {
+  if ((PUBLIC_AUTH_GOOGLE_CLIENT_ID ?? '') === '') return []
+  return APP_ROUTES.map(({ slug }) => ({ params: { page: slug } }))
+}
+const page = pageOfSlug(Astro.params.page) ?? 'overview'
+---
+
+<AppPage lang="en" page={page} />

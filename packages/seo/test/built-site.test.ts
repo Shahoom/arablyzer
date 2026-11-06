@@ -270,6 +270,8 @@ describe('auditBuiltSite', () => {
       'en/account.html': page('en', 'Account', noindex),
       'account/compare.html': page('ar', 'Compare', noindex),
       'en/account/compare.html': page('en', 'Compare', noindex),
+      'app.html': page('ar', 'App', noindex),
+      'en/app/sites.html': page('en', 'Sites', noindex),
     }
     const dir = build(files)
     for (const path of [
@@ -279,10 +281,16 @@ describe('auditBuiltSite', () => {
       '/en/account',
       '/account/compare',
       '/en/account/compare',
+      '/app',
+      '/en/app',
+      '/app/site',
+      '/en/app/sites',
     ]) {
       expect(isNoindexPage(path), path).toBe(true)
     }
     expect(isNoindexPage('/login-help')).toBe(false)
+    expect(isNoindexPage('/apple')).toBe(false)
+    expect(isNoindexPage('/app/a/b')).toBe(false)
     expect(auditBuiltSite(dir, SITE).problems).toEqual([])
     expect(representativePages(builtPages(dir)).map((built) => built.path)).toEqual(['/', '/en/'])
     const indexed = build({ ...files, 'login.html': page('ar', 'Login', '') })
