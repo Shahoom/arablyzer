@@ -11,6 +11,8 @@ import {
   type PendingRun,
   type RunPoint,
   type StoredAlerts,
+  type StoredWhatsapp,
+  type WhatsappCheck,
 } from '../monitors'
 
 interface MonitorRow {
@@ -152,6 +154,11 @@ export class PostgresMonitorData implements MonitorData {
       'DELETE FROM monitors WHERE user_id = $1 AND site_id = $2',
       [userId, siteId],
     )
+    // Turning monitoring off ends the site's WhatsApp opt-in with it.
+    await this.#pool.query('DELETE FROM whatsapp_sites WHERE user_id = $1 AND site_id = $2', [
+      userId,
+      siteId,
+    ])
     return (rowCount ?? 0) > 0
   }
 
@@ -394,7 +401,146 @@ export class PostgresMonitorData implements MonitorData {
     ])
   }
 
+  async whatsapp(userId: string): Promise<StoredWhatsapp | null> {
+    const { rows } = await this.#pool.query<{ phone: string; verified_at: Date | null }>(
+      'SELECT phone, verified_at FROM whatsapp_numbers WHERE user_id = $1',
+      [userId],
+    )
+    return rows[0] === undefined ? null : { phone: rows[0].phone, verifiedAt: rows[0].verified_at }
+  }
+
+  async whatsappSites(userId: string): Promise<ReadonlySet<string>> {
+    const { rows } = await this.#pool.query<{ site_id: string }>(
+      'SELECT site_id FROM whatsapp_sites WHERE user_id = $1',
+      [userId],
+    )
+    return new Set(rows.map((row) => row.site_id))
+  }
+
+  async startWhatsapp(
+    userId: string,
+    input: { phone: string; codeHash: string; expiresAt: Date; at: Date },
+  ): Promise<void> {
+    await this.#pool.query(
+      `INSERT INTO whatsapp_numbers
+         (user_id, phone, verified_at, code_hash, code_expires_at, code_attempts, created_at)
+       VALUES ($1, $2, NULL, $3, $4, 0, $5)
+       ON CONFLICT (user_id) DO UPDATE SET
+         phone = $2, verified_at = NULL, code_hash = $3, code_expires_at = $4, code_attempts = 0`,
+      [userId, input.phone, input.codeHash, input.expiresAt, input.at],
+    )
+  }
+
+  async confirmWhatsapp(
+    userId: string,
+    codeHash: string,
+    at: Date,
+    maxAttempts: number,
+  ): Promise<WhatsappCheck> {
+    const client = await this.#pool.connect()
+    try {
+      await client.query('BEGIN')
+      const { rows } = await client.query<{
+        code_hash: string | null
+        code_expires_at: Date | null
+        code_attempts: number
+      }>(
+        'SELECT code_hash, code_expires_at, code_attempts FROM whatsapp_numbers WHERE user_id = $1 FOR UPDATE',
+        [userId],
+      )
+      const row = rows[0]
+      let result: WhatsappCheck
+      if (row?.code_hash == null || row.code_expires_at === null) result = 'none'
+      else if (row.code_attempts >= maxAttempts) result = 'locked'
+      else if (row.code_expires_at <= at) result = 'expired'
+      else if (row.code_hash !== codeHash) {
+        await client.query(
+          'UPDATE whatsapp_numbers SET code_attempts = code_attempts + 1 WHERE user_id = $1',
+          [userId],
+        )
+        result = 'wrong'
+      } else {
+        await client.query(
+          `UPDATE whatsapp_numbers SET verified_at = $2, code_hash = NULL, code_expires_at = NULL,
+             code_attempts = 0 WHERE user_id = $1`,
+          [userId, at],
+        )
+        result = 'verified'
+      }
+      await client.query('COMMIT')
+      return result
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined)
+      throw error
+    } finally {
+      client.release()
+    }
+  }
+
+  async removeWhatsapp(userId: string): Promise<void> {
+    await this.#pool.query('DELETE FROM whatsapp_sites WHERE user_id = $1', [userId])
+    await this.#pool.query('DELETE FROM whatsapp_numbers WHERE user_id = $1', [userId])
+  }
+
+  async removeWhatsappNumber(phone: string): Promise<number> {
+    const { rows } = await this.#pool.query<{ user_id: string }>(
+      'DELETE FROM whatsapp_numbers WHERE phone = $1 RETURNING user_id',
+      [phone],
+    )
+    if (rows.length > 0) {
+      await this.#pool.query('DELETE FROM whatsapp_sites WHERE user_id = ANY($1::text[])', [
+        rows.map((row) => row.user_id),
+      ])
+    }
+    return rows.length
+  }
+
+  async setWhatsappSite(
+    userId: string,
+    siteId: string,
+    enabled: boolean,
+  ): Promise<'set' | 'no-monitor' | 'unverified'> {
+    const monitored = await this.#pool.query(
+      'SELECT 1 FROM monitors WHERE user_id = $1 AND site_id = $2',
+      [userId, siteId],
+    )
+    if (monitored.rowCount === 0) return 'no-monitor'
+    if (!enabled) {
+      await this.#pool.query('DELETE FROM whatsapp_sites WHERE user_id = $1 AND site_id = $2', [
+        userId,
+        siteId,
+      ])
+      return 'set'
+    }
+    const { rowCount } = await this.#pool.query(
+      `INSERT INTO whatsapp_sites (site_id, user_id, created_at)
+       SELECT $2, $1, now() WHERE EXISTS (
+         SELECT 1 FROM whatsapp_numbers WHERE user_id = $1 AND verified_at IS NOT NULL)
+       ON CONFLICT (site_id) DO NOTHING`,
+      [userId, siteId],
+    )
+    if ((rowCount ?? 0) > 0) return 'set'
+    const already = await this.#pool.query(
+      'SELECT 1 FROM whatsapp_sites WHERE user_id = $1 AND site_id = $2',
+      [userId, siteId],
+    )
+    return already.rowCount === 0 ? 'unverified' : 'set'
+  }
+
+  async whatsappTarget(userId: string, siteId: string): Promise<string | null> {
+    const { rows } = await this.#pool.query<{ phone: string }>(
+      `SELECT n.phone FROM whatsapp_numbers n
+       JOIN whatsapp_sites w ON w.user_id = n.user_id
+       JOIN monitors m ON m.site_id = w.site_id AND m.user_id = n.user_id
+       WHERE n.user_id = $1 AND w.site_id = $2 AND n.verified_at IS NOT NULL`,
+      [userId, siteId],
+    )
+    return rows[0]?.phone ?? null
+  }
+
   async eraseUser(userId: string): Promise<void> {
+    await this.#pool.query('DELETE FROM whatsapp_sites WHERE user_id = $1', [userId])
+    await this.#pool.query('DELETE FROM whatsapp_numbers WHERE user_id = $1', [userId])
     await this.#pool.query('DELETE FROM monitors WHERE user_id = $1', [userId])
     await this.#pool.query('DELETE FROM alert_settings WHERE user_id = $1', [userId])
   }

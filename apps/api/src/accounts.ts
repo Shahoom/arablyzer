@@ -43,6 +43,7 @@ import { fromTheSite } from './guards'
 import type { Mailer } from './monitor/mail'
 import type { Unsubscribe } from './monitor/unsubscribe'
 import type { WebhookSender } from './monitor/webhook'
+import type { WhatsApp, WhatsAppSettings } from './monitor/whatsapp'
 
 export interface AccountsDeps {
   readonly auth: Auth
@@ -80,6 +81,9 @@ export interface AccountsDeps {
   readonly mail?: Mailer
   /** The links that stop a person's email alerts; present whenever ARABLYZER_MAIL_SECRET is set. */
   readonly unsubscribe?: Unsubscribe
+  /** WhatsApp alerts (M5.6): off unless ARABLYZER_WHATSAPP_PROVIDER names a provider. */
+  readonly whatsapp?: WhatsApp
+  readonly whatsappSettings?: WhatsAppSettings
 }
 
 /**

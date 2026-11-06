@@ -11,6 +11,7 @@ import {
   type SitesResponse,
   type UrlErrorCode,
   type WebhookTestResponse,
+  type WhatsappState,
 } from '@arablyzer/api-contract/codes'
 import { localePath, type Lang } from '@arablyzer/seo/site'
 import { problemOf, type AuthProblem } from './auth-model'
@@ -99,6 +100,23 @@ export function isMonitorResponse(value: unknown): value is MonitorResponse {
   return monitor === null || isMonitorSummary(monitor)
 }
 
+export function isWhatsappState(value: unknown): value is WhatsappState {
+  if (typeof value !== 'object' || value === null) return false
+  const v = value as Record<string, unknown>
+  return (
+    typeof v.available === 'boolean' &&
+    typeof v.allowed === 'boolean' &&
+    (v.phone === null || typeof v.phone === 'string') &&
+    typeof v.verified === 'boolean' &&
+    Array.isArray(v.sites) &&
+    (v.sites as unknown[]).every((site) => {
+      if (typeof site !== 'object' || site === null) return false
+      const w = site as Record<string, unknown>
+      return typeof w.id === 'string' && typeof w.url === 'string' && typeof w.enabled === 'boolean'
+    })
+  )
+}
+
 export function isAlertSettings(value: unknown): value is AlertSettings {
   if (typeof value !== 'object' || value === null) return false
   const v = value as Record<string, unknown>
@@ -118,7 +136,8 @@ export function isAlertSettings(value: unknown): value is AlertSettings {
     typeof email === 'object' &&
     email !== null &&
     typeof email.available === 'boolean' &&
-    typeof email.enabled === 'boolean'
+    typeof email.enabled === 'boolean' &&
+    isWhatsappState(v.whatsapp)
   )
 }
 

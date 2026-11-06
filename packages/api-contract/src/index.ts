@@ -15,6 +15,7 @@ import {
   SITE_ID_PATTERN,
   TOOL_SLUG_PATTERN,
   WEBHOOK_KINDS,
+  WHATSAPP_CODE_LENGTH,
   type AccountScan as AccountScanShape,
   type AccountScansResponse as AccountScansResponseShape,
   type AccountSummary as AccountSummaryShape,
@@ -34,6 +35,7 @@ import {
   type SiteSummary as SiteSummaryShape,
   type SitesResponse as SitesResponseShape,
   type WebhookTestResponse as WebhookTestResponseShape,
+  type WhatsappState as WhatsappStateShape,
 } from './codes'
 
 export * from './codes'
@@ -263,6 +265,26 @@ export const AlertsRequest = z.strictObject({
   email: z.boolean().optional(),
 }) satisfies z.ZodType<AlertsChange>
 export type AlertsRequest = AlertsChange
+/** The number as typed: checked and normalised by the server. */
+export const WhatsappPhoneRequest = z.strictObject({ phone: z.string().min(5).max(40) })
+export const WhatsappCodeRequest = z.strictObject({
+  code: z.string().regex(new RegExp(`^\\d{${String(WHATSAPP_CODE_LENGTH)}}$`)),
+})
+export const WhatsappSiteRequest = z.strictObject({ enabled: z.boolean() })
+export const WhatsappState = z.strictObject({
+  available: z.boolean(),
+  allowed: z.boolean(),
+  phone: z.string().nullable(),
+  verified: z.boolean(),
+  sites: z.array(
+    z.strictObject({
+      id: z.string().regex(SITE_ID_PATTERN),
+      url: z.string(),
+      enabled: z.boolean(),
+    }),
+  ),
+}) satisfies z.ZodType<WhatsappStateShape>
+export type WhatsappState = WhatsappStateShape
 export const AlertSettings = z.strictObject({
   webhook: z
     .strictObject({
@@ -277,6 +299,7 @@ export const AlertSettings = z.strictObject({
   onDown: z.boolean(),
   weeklySummary: z.boolean(),
   email: z.strictObject({ available: z.boolean(), enabled: z.boolean() }),
+  whatsapp: WhatsappState,
 }) satisfies z.ZodType<AlertSettingsShape>
 export const AlertsResponse = AlertSettings.extend({
   secret: z.string().min(1).optional(),

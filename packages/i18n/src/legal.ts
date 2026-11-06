@@ -96,7 +96,7 @@ export const LEGAL_UI: Copy<LegalStrings> = {
           id: 'accounts',
           title: 'الحساب (اختياري)',
           paragraphs: [
-            'الدخول بحساب Google وحده. نحفظ بريدك واسمك واللغة التي تختارها، والمواقع التي تحفظها، وفحوصك وأنت مسجّل الدخول مع تقاريرها (للمدة التي تحددها خطتك ثم نحذفها)، وإعدادات التنبيه إن وضعتها (بريد أو عنوان webhook)، ومفاتيح API (نحفظ منها بصمة فقط، وتُعرض لك مرة واحدة).',
+            'الدخول بحساب Google وحده. نحفظ بريدك واسمك واللغة التي تختارها، والمواقع التي تحفظها، وفحوصك وأنت مسجّل الدخول مع تقاريرها (للمدة التي تحددها خطتك ثم نحذفها)، وإعدادات التنبيه إن وضعتها (بريد أو عنوان webhook أو رقم واتساب بعد أن تؤكده)، ومفاتيح API (نحفظ منها بصمة فقط، وتُعرض لك مرة واحدة).',
             'لا نحفظ كلمة مرور، ولا صورة شخصية، ولا عنوان IP أو متصفح الجلسة، ولا شيئاً آخر من حساب Google. حذف الحساب من صفحته يمحو ذلك كله.',
           ],
         },
@@ -129,6 +129,8 @@ export const LEGAL_UI: Copy<LegalStrings> = {
           items: [
             'Google: الدخول بحسابك، وSearch Console، واقتراحات البحث ونتائجه حين تُشغَّل الأدوات.',
             'Cloudflare: التحقق من أنك إنسان (Turnstile)، وطلبات DNS عبر HTTPS لبعض الفحوص.',
+            'Resend: إن فعّلت تنبيهات البريد أرسل عبره بريدك وبريداً يحمل التنبيه إليك.',
+            'Meta (منصة واتساب للأعمال): إن فعّلت تنبيهات واتساب أرسل عبرها رقمك ورسائل التنبيه إليه.',
             'مزوّد الاستضافة الذي يشغّل الخادم، والمواقع التي تفحصها: يصلها طلب من ArablyzerBot كما تشرح صفحته.',
           ],
         },
@@ -320,7 +322,7 @@ export const LEGAL_UI: Copy<LegalStrings> = {
           id: 'accounts',
           title: 'Accounts (optional)',
           paragraphs: [
-            'Sign-in is with a Google account only. We keep your email, your name and the language you choose, the sites you save, the scans you run while signed in with their reports (for the period your plan sets, then we delete them), alert settings if you set them (an email or a webhook address) and API keys (we keep only a fingerprint of each; it is shown to you once).',
+            'Sign-in is with a Google account only. We keep your email, your name and the language you choose, the sites you save, the scans you run while signed in with their reports (for the period your plan sets, then we delete them), alert settings if you set them (an email, a webhook address or a WhatsApp number once you confirm it) and API keys (we keep only a fingerprint of each; it is shown to you once).',
             'We keep no password, no profile picture, no IP address or browser of the session, and nothing else from your Google account. Deleting the account from its page erases all of this.',
           ],
         },
@@ -353,6 +355,8 @@ export const LEGAL_UI: Copy<LegalStrings> = {
           items: [
             'Google: signing in with your account, Search Console, and the suggestions and results when the tools are on.',
             'Cloudflare: checking that you are a person (Turnstile), and DNS-over-HTTPS requests for some checks.',
+            'Resend: if you turn on email alerts, your address and the alert email to you go through it.',
+            'Meta (WhatsApp Business Platform): if you turn on WhatsApp alerts, your number and the alert messages to it go through it.',
             'The hosting provider that runs the server, and the sites you scan: they receive a request from ArablyzerBot as its page explains.',
           ],
         },

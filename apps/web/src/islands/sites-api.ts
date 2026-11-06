@@ -3,8 +3,11 @@ import {
   ALERTS_PATH,
   ALERTS_TEST_EMAIL_PATH,
   ALERTS_TEST_PATH,
+  WHATSAPP_PATH,
+  WHATSAPP_VERIFY_PATH,
   siteMonitorPath,
   sitePath,
+  siteWhatsappPath,
   SITES_PATH,
   siteScansPath,
   type AccountScansResponse,
@@ -15,6 +18,7 @@ import {
   type SiteSummary,
   type SitesResponse,
   type WebhookTestResponse,
+  type WhatsappState,
 } from '@arablyzer/api-contract/codes'
 import {
   isAccountScansResponse,
@@ -24,6 +28,7 @@ import {
   isTestResponse,
   isSiteSummary,
   isSitesResponse,
+  isWhatsappState,
   siteProblemOf,
   type SiteProblem,
 } from './sites-model'
@@ -151,4 +156,36 @@ export async function testAlerts(
   send: typeof fetch = fetch,
 ): Promise<SiteOutcome<WebhookTestResponse>> {
   return read(await request(send, 'POST', ALERTS_TEST_PATH), isTestResponse)
+}
+
+/** Sends a confirmation code to the number on WhatsApp (M5.6); the answer is the account's WhatsApp state. */
+export async function sendWhatsappCode(
+  phone: string,
+  send: typeof fetch = fetch,
+): Promise<SiteOutcome<WhatsappState>> {
+  return read(await request(send, 'PUT', WHATSAPP_PATH, { phone }), isWhatsappState)
+}
+
+/** Gives the code back; a wrong or late one is the `invalid-token` problem. */
+export async function verifyWhatsappCode(
+  code: string,
+  send: typeof fetch = fetch,
+): Promise<SiteOutcome<WhatsappState>> {
+  return read(await request(send, 'POST', WHATSAPP_VERIFY_PATH, { code }), isWhatsappState)
+}
+
+/** Forgets the number and every site's opt-in. */
+export async function removeWhatsapp(
+  send: typeof fetch = fetch,
+): Promise<SiteOutcome<WhatsappState>> {
+  return read(await request(send, 'DELETE', WHATSAPP_PATH), isWhatsappState)
+}
+
+/** Opts a monitored site in or out of WhatsApp alerts. */
+export async function setWhatsappSite(
+  id: string,
+  enabled: boolean,
+  send: typeof fetch = fetch,
+): Promise<SiteOutcome<WhatsappState>> {
+  return read(await request(send, 'PUT', siteWhatsappPath(id), { enabled }), isWhatsappState)
 }

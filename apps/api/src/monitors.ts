@@ -12,6 +12,7 @@ import {
   type MonitorResponse,
   type UrlErrorCode,
   type WebhookTestResponse,
+  type WhatsappState,
 } from '@arablyzer/api-contract'
 import type { EgressPolicy, Resolver } from '@arablyzer/egress'
 import { ALERT_TEXT } from '@arablyzer/i18n/alerts'
@@ -41,6 +42,17 @@ export interface MonitorsDeps {
   readonly mail: Mailer
   /** The links in mail that stop it; without them, no mail is sent. */
   readonly unsubscribe?: Unsubscribe
+  /** The WhatsApp part of the settings (M5.6); without it, WhatsApp is shown as off. */
+  readonly whatsappState?: (userId: string) => Promise<WhatsappState>
+}
+
+/** WhatsApp as the pages see it when the server has none. */
+const NO_WHATSAPP: WhatsappState = {
+  available: false,
+  allowed: false,
+  phone: null,
+  verified: false,
+  sites: [],
 }
 
 const MAX_BODY_BYTES = 8 * 1024
@@ -63,7 +75,11 @@ const TEST_WINDOW = { scans: 5, seconds: 600 }
 const MAIL_TEST_WINDOW = { scans: 3, seconds: 600 }
 
 /** The settings as the page reads them: the address and the secret are never in it. */
-export function settingsOf(stored: StoredAlerts, mail: Mailer): AlertSettings {
+export function settingsOf(
+  stored: StoredAlerts,
+  mail: Mailer,
+  whatsapp: WhatsappState = NO_WHATSAPP,
+): AlertSettings {
   return {
     webhook:
       stored.webhook === null
@@ -79,6 +95,7 @@ export function settingsOf(stored: StoredAlerts, mail: Mailer): AlertSettings {
     onDown: stored.onDown,
     weeklySummary: stored.weeklySummary,
     email: { available: mail.available, enabled: mail.available && stored.email },
+    whatsapp,
   }
 }
 
@@ -144,7 +161,13 @@ export function mountMonitors(app: Hono, deps: MonitorsDeps): void {
   app.get(ALERTS_PATH, async (c) => {
     const read = await access.require(c)
     if (read instanceof Response) return read
-    return c.json(settingsOf(await monitors.alerts(read.user.id), deps.mail))
+    return c.json(
+      settingsOf(
+        await monitors.alerts(read.user.id),
+        deps.mail,
+        (await deps.whatsappState?.(read.user.id)) ?? NO_WHATSAPP,
+      ),
+    )
   })
 
   app.put(ALERTS_PATH, guard(true), small, async (c) => {
@@ -199,7 +222,7 @@ export function mountMonitors(app: Hono, deps: MonitorsDeps): void {
       ...(wanted.email === undefined ? {} : { email: wanted.email }),
     })
     const body: AlertsResponse = {
-      ...settingsOf(next, deps.mail),
+      ...settingsOf(next, deps.mail, (await deps.whatsappState?.(read.user.id)) ?? NO_WHATSAPP),
       ...(secret === undefined ? {} : { secret }),
     }
     return c.json(body)

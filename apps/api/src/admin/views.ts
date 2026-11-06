@@ -488,7 +488,15 @@ export interface SettingsInput {
   readonly authLimits: AuthLimits | undefined
   readonly flags: Readonly<
     Record<
-      'suggest' | 'serp' | 'mail' | 'searchConsole' | 'monitors' | 'crawls' | 'pdfs' | 'keys',
+      | 'suggest'
+      | 'serp'
+      | 'mail'
+      | 'whatsapp'
+      | 'searchConsole'
+      | 'monitors'
+      | 'crawls'
+      | 'pdfs'
+      | 'keys',
       boolean
     >
   >
@@ -545,6 +553,7 @@ ${flag(t.settings.accounts, true)}
 ${flag(t.settings.suggest, s.flags.suggest)}
 ${flag(t.settings.serp, s.flags.serp)}
 ${flag(t.settings.mail, s.flags.mail)}
+${flag(t.settings.whatsapp, s.flags.whatsapp)}
 ${flag(t.settings.searchConsole, s.flags.searchConsole)}
 ${flag(t.settings.monitorsFlag, s.flags.monitors)}
 ${flag(t.settings.crawlsFlag, s.flags.crawls)}
