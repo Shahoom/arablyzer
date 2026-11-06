@@ -9,6 +9,8 @@ pnpm sotaw:frame --from-frame Y83YG   # the same frame under the current rules, 
 pnpm sotaw:crawl                      # crawl it; needs DATABASE_URL, VALKEY_URL, ARABLYZER_SCANNER_*
 pnpm sotaw status                     # how far the run is
 pnpm sotaw requeue --reason robots-unreachable   # sites skipped for that reason, back to pending (same rows)
+pnpm sotaw extend                     # the frame grew: add its new sites to the run, the others untouched
+pnpm sotaw tls-check                  # of the sites left unread, name those with an incomplete certificate chain
 pnpm sotaw export --out DIR           # the public files: aggregates (JSON, CSV, Parquet), schema, manifest
 pnpm sotaw export --out DIR --internal DIR2   # also sites.parquet, for our own analysis (never public)
 ```

@@ -81,6 +81,26 @@ pnpm test:stack
 
 The egress proxy's configuration is generated from `packages/egress`, its deny list and its limits: `pnpm --filter @arablyzer/egress smokescreen-config` writes `infra/egress/smokescreen.yaml`, and the egress tests check the two agree. The proxy's own tests (`infra/egress/main_test.go`) run as its image is built.
 
+### The Salla and Zid apps / تطبيقا سلة وزد
+
+The merchant apps for the two Arabic e-commerce platforms (M9, issue #41): a merchant installs the app, the store's public storefront is audited through the same scanner, egress proxy and rate rules as a public scan, and the store's dashboard opens a panel with the latest audit and a link to the full report. Each app is **off unless its flag is `on`**; off, none of its routes exist (404) and nothing of it runs. [`docs/platforms.md`](docs/platforms.md) has the design, the documents it follows, its assumptions, and the owner's checklist (accounts, addresses to enter, review steps).
+
+| Variable | Needed by | What it is |
+| --- | --- | --- |
+| `ARABLYZER_SITE` | both | The site's origin: the callback and panel addresses, and the report links, are built on it. |
+| `ARABLYZER_PLATFORM_SECRET` | both | 32 characters or more (`openssl rand -hex 32`). Seals the stores' tokens (AES-256-GCM). Losing or changing it makes every merchant activate the app again. |
+| `ARABLYZER_SALLA` | Salla | `on` or `off` (default). |
+| `ARABLYZER_SALLA_CLIENT_ID`, `ARABLYZER_SALLA_CLIENT_SECRET` | Salla | The app's keys, from the Salla Partners Portal. |
+| `ARABLYZER_SALLA_APP_ID` | Salla | The app's id; Salla's token check is asked with it (`S-Source`). |
+| `ARABLYZER_SALLA_WEBHOOK_SECRET` | Salla | The webhook's secret, from the Partners Portal. |
+| `ARABLYZER_SALLA_WEBHOOK_STRATEGY` | Salla, optional | `signature` (default) or `token`. |
+| `ARABLYZER_ZID` | Zid | `on` or `off` (default). |
+| `ARABLYZER_ZID_CLIENT_ID`, `ARABLYZER_ZID_CLIENT_SECRET` | Zid | The app's keys, from the Zid Partner Dashboard. |
+| `ARABLYZER_ZID_APP_ID` | Zid | The app's numeric id; events of other apps are ignored. |
+| `ARABLYZER_ZID_WEBHOOK_SECRET` | Zid | 32 characters or more, chosen by the owner; sent by Zid in the header `X-Arablyzer-Webhook-Token`. |
+
+With an app on, the production start refuses to run unless its whole group is set, and says which variable is missing (never its value). The addresses are `/api/platforms/<salla|zid>/install`, `callback`, `webhook` and `panel`; `compose.yaml` passes the variables to the API, and `infra/.env.example` documents them.
+
 - Plan (source of truth, Arabic): [`docs/BUILD-PLAN.md`](docs/BUILD-PLAN.md)
 - Designs: [Phase 0](docs/design/phase-0.md), [Phase 1](docs/design/phase-1.md), [Phase 2](docs/design/phase-2.md)
 

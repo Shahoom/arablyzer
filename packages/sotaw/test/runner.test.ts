@@ -94,7 +94,8 @@ function harness(options: Options = {}) {
     crawler: {
       page: (url) => {
         asked.push(url)
-        const answer = options.pages?.[url] ?? options.pages?.[new URL(url).hostname] ?? ok(url)
+        const site = new URL(url).hostname.replace(/^www\./, '')
+        const answer = options.pages?.[url] ?? options.pages?.[site] ?? ok(url)
         return answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer)
       },
     },
@@ -388,6 +389,102 @@ describe('what the crawl does with a site', () => {
     expect(h.added.map((a) => a.job.url)).toEqual(['https://www.c.sa/'])
   })
 
+  it('goes on to the next address when an address’s robots.txt cannot be read, and scans the one that answers', async () => {
+    const h = harness({
+      domains: ['a.sa', 'b.sa', 'c.sa'],
+      pages: {
+        'https://a.sa/': refused('blocked', 'robots-unreachable'),
+        'http://a.sa/': ok('http://a.sa/'),
+        'https://b.sa/': refused('blocked', 'robots-unreachable'),
+        'http://b.sa/': refused('blocked', 'robots-unreachable'),
+        'https://www.b.sa/': ok('https://www.b.sa/'),
+        'https://c.sa/': refused('blocked', 'robots-unreachable'),
+        'http://c.sa/': refused('blocked', 'robots-unreachable'),
+        'https://www.c.sa/': refused('blocked', 'robots-unreachable'),
+      },
+    })
+    await h.run()
+    expect(h.asked).toEqual([
+      'https://a.sa/',
+      'http://a.sa/',
+      'https://b.sa/',
+      'http://b.sa/',
+      'https://www.b.sa/',
+      'https://c.sa/',
+      'http://c.sa/',
+      'https://www.c.sa/',
+    ])
+    // Each address answers for itself: the site is only scanned where its own robots.txt let it through.
+    expect(h.added.map((a) => a.job.url)).toEqual(['http://a.sa/', 'https://www.b.sa/'])
+    expect((await h.store.results(RUN)).map((r) => [r.state, r.reason])).toEqual([
+      ['done', null],
+      ['done', null],
+      ['skipped', 'robots-unreachable'],
+    ])
+  })
+
+  it('stops at a robots.txt that says no or a bot challenge: another address is no way round them', async () => {
+    const h = harness({
+      domains: ['a.sa', 'b.sa', 'c.sa', 'd.sa'],
+      pages: {
+        'https://a.sa/': refused('blocked', 'robots'),
+        'https://b.sa/': refused('blocked', 'bot-challenge'),
+        'https://c.sa/': refused('blocked', 'robots-unreachable'),
+        'http://c.sa/': refused('blocked', 'robots'),
+        'https://d.sa/': refused('blocked', 'robots-unreachable'),
+        'http://d.sa/': refused('blocked', 'bot-challenge'),
+      },
+    })
+    await h.run()
+    expect(h.asked).toEqual([
+      'https://a.sa/',
+      'https://b.sa/',
+      'https://c.sa/',
+      'http://c.sa/',
+      'https://d.sa/',
+      'http://d.sa/',
+    ])
+    expect(h.added).toHaveLength(0)
+    expect((await h.store.results(RUN)).map((r) => r.reason)).toEqual([
+      'robots',
+      'bot-challenge',
+      'robots',
+      'bot-challenge',
+    ])
+  })
+
+  it('tries www after an error on http when https could not be read, and counts the error if www fails too', async () => {
+    const h = harness({
+      domains: ['a.sa', 'b.sa'],
+      pages: {
+        'https://a.sa/': refused('blocked', 'robots-unreachable'),
+        'http://a.sa/': refused('error', 'http-404', 404),
+        'https://www.a.sa/': ok('https://www.a.sa/'),
+        'https://b.sa/': refused('blocked', 'robots-unreachable'),
+        'http://b.sa/': refused('error', 'http-403', 403),
+        'https://www.b.sa/': refused('blocked', 'robots-unreachable'),
+      },
+    })
+    await h.run()
+    expect(h.added.map((a) => a.job.url)).toEqual(['https://www.a.sa/'])
+    expect((await h.store.results(RUN)).map((r) => [r.state, r.reason])).toEqual([
+      ['done', null],
+      ['skipped', 'http-error'],
+    ])
+  })
+
+  it('leaves the pause between two reads between the addresses of one site too', async () => {
+    const h = harness({
+      domains: ['a.sa'],
+      config: { preflightMs: 2_000 },
+      pages: { 'a.sa': refused('blocked', 'robots-unreachable') },
+    })
+    const started = h.clock()
+    await h.run()
+    expect(h.asked).toHaveLength(3)
+    expect(h.clock() - started).toBeGreaterThanOrEqual(4_000)
+  })
+
   it('leaves a site that moves to another domain, a file that is no page, and an opted-out site', async () => {
     const h = harness({
       domains: ['a.sa', 'b.sa', 'c.sa', 'd.sa'],
@@ -527,6 +624,36 @@ describe('stopping and going on', () => {
         new Date(),
       ),
     ).rejects.toThrow(/another frame/)
+  })
+})
+
+describe('a frame that grew', () => {
+  const sites = (...domains: string[]) =>
+    domains.map((domain, position) => ({ domain, country: 'ly', rank: position + 1, position }))
+
+  it('adds its new sites to the run and the crawl takes only those', async () => {
+    const h = harness({ domains: ['a.sa', 'b.sa'] })
+    await h.run()
+    const before = await h.store.results(RUN)
+    const added = await h.store.extend(RUN, 'e'.repeat(64), sites('a.sa', 'b.sa', 'c.ly'))
+    expect(added).toBe(1)
+    const after = await h.store.results(RUN)
+    expect(after.slice(0, 2)).toEqual(before)
+    expect(after[2]).toMatchObject({ domain: 'c.ly', state: 'pending', outcome: null })
+    expect(await h.store.run(RUN)).toMatchObject({ frameSha: 'e'.repeat(64), total: 3 })
+    await createRunner(RUN, h.deps, h.config).run(new AbortController().signal)
+    expect(h.added.map((a) => a.job.url)).toEqual([
+      'https://a.sa/',
+      'https://b.sa/',
+      'https://c.ly/',
+    ])
+  })
+
+  it('refuses a frame that lost a site of the run, and changes nothing', async () => {
+    const h = harness({ domains: ['a.sa', 'b.sa'] })
+    await h.run()
+    await expect(h.store.extend(RUN, 'e'.repeat(64), sites('a.sa'))).rejects.toThrow(/lost b\.sa/)
+    expect(await h.store.run(RUN)).toMatchObject({ frameSha: 'f'.repeat(64), total: 2 })
   })
 })
 

@@ -103,6 +103,22 @@ describe('collectPageIsolated', () => {
     },
   )
 
+  // Node ends a thread that reaches its heap limit, but one that fills it fast on a busy machine
+  // ended the whole test process (SIGABRT on Node 24 in CI). So the thread asks, as its tree
+  // grows, whether the memory is nearly spent (isolated-thread.mjs), and gives up first.
+  it('gives up when the memory it may take is spent, asked as the tree grows', () => {
+    let asked = 0
+    const facts = collectPage(page(`<body>${'<p>x</p>'.repeat(3_000)}`), {
+      memoryOver: () => ++asked >= 2,
+    })
+    expect(facts).toMatchObject({ isHtml: true, html: null, text: null, htmlTooComplex: true })
+    // Every 1,024 elements and comments: the 2,048th is the second.
+    expect(asked).toBe(2)
+    expect(collectPage(page('<body><p>x</p>'), { memoryOver: () => true }).htmlTooComplex).toBe(
+      false,
+    )
+  })
+
   // One start tag with 200,000 attributes: parse5 checks each against the ones before it, so its
   // tokenizer takes minutes (80,000 took 16 s), and never comes back to the clock the tree adapter
   // reads.

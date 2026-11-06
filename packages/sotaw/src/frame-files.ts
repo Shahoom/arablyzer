@@ -143,7 +143,7 @@ export function entriesOfFrame(
   }
   let left: ExcludedRow[] = []
   try {
-    left = parseExclusionsCsv(readFileSync(`${base}.exclusions.csv`, 'utf8'))
+    left = parseExclusionsCsv(readFileSync(`${base}.exclusions.csv`, 'utf8'), { keepKept: true })
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
   }
