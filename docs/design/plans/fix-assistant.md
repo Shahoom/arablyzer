@@ -44,7 +44,7 @@ Everything the scanner copied from the page (a finding's message, address, selec
 | Path | Responsibility |
 |---|---|
 | `packages/plans/src/{account-plan,overrides}.ts` | `aiFixesPerDay` (optional variable, 0), and as an override (0 to 1,000) |
-| `packages/store/src/{ai,postgres/ai-schema,postgres/ai-store}.ts`, `drizzle/0013_ai_fixes.sql` | `AiData`: ledger (`ai_requests`: reserve, settle, release, counts, spend) and answer cache (`ai_fix_cache`), memory and PostgreSQL over one contract suite |
+| `packages/store/src/{ai,postgres/ai-schema,postgres/ai-store}.ts`, `drizzle/0014_ai_fixes.sql` | `AiData`: ledger (`ai_requests`: reserve, settle, release, counts, spend) and answer cache (`ai_fix_cache`), memory and PostgreSQL over one contract suite |
 | `packages/api-contract/src/{codes,index}.ts` | paths, `AiStatus`, `AiFix`, error codes, `AiFixRequest` |
 | `apps/api/src/ai/{settings,prompt,answer,cost,client,assistant,routes}.ts` | the environment, the prompt and the evidence, the answer's shape, prices, the SDK on the egress fetch, the flow, the two routes |
 | `apps/api/src/{config,app,accounts,server,dev,maintenance,ids}.ts`, `admin/views.ts` | wiring, the 90-day sweep of the ledger, the admin form's field |
@@ -84,7 +84,7 @@ The error explainer (BUILD-PLAN §12 use 2), the annual-crawl classifier and the
 **Built (branch `feat/fix-assistant`).** Behind `ANTHROPIC_API_KEY` and `ARABLYZER_ACCOUNTS=on`; see the tables above.
 
 - `packages/plans`: `aiFixesPerDay`, 0 by default, from `ARABLYZER_PLAN_ACCOUNT_AI_FIXES_PER_DAY` (and the paid plans' names); an override field, with the admin form's input and the settings and plan rows.
-- `packages/store`: migration `0013_ai_fixes` (`ai_requests`, `ai_fix_cache`); `AiData` in memory and PostgreSQL over one contract suite, including twelve requests at once on separate connections. The worker's role has no right on either table. `user_id` is set null on erasure and the cost stays.
+- `packages/store`: migration `0014_ai_fixes` (`ai_requests`, `ai_fix_cache`); `AiData` in memory and PostgreSQL over one contract suite, including twelve requests at once on separate connections. The worker's role has no right on either table. `user_id` is set null on erasure and the cost stays.
 - `apps/api`: the assistant and its two routes; `@anthropic-ai/sdk` on the egress fetch; the ledger swept at 90 days with the accounts' tables.
 - `apps/web`: `FixAssistant` under each failed rule's «how to fix», shown only when `GET /api/ai` says available; its text is text.
 
