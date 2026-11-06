@@ -158,6 +158,8 @@ interface Scenario {
     id: string
     brand: { name: string; color: string | null; hasLogo: boolean; credit: boolean } | null
   }
+  /** The fix assistant (BUILD-PLAN §12): its status, and what asking for a fix answers. */
+  ai?: { status: number; body: unknown; fix?: { status: number; body: unknown } }
   /** What adding a site answers, in place of a created site. */
   addStatus?: number
   addBody?: unknown
@@ -308,6 +310,16 @@ async function open(base: FixtureSite, scenario: Scenario) {
           return route.fulfill(json(settings({ ...sent, colorFallback: sent.color === '#ffff00' })))
         }
         return route.fulfill(json(settings()))
+      }
+      if (scenario.ai !== undefined && url.pathname === '/api/ai') {
+        return route.fulfill(json(scenario.ai.body, scenario.ai.status))
+      }
+      if (
+        scenario.ai?.fix !== undefined &&
+        request.method() === 'POST' &&
+        url.pathname.endsWith('/fix')
+      ) {
+        return route.fulfill(json(scenario.ai.fix.body, scenario.ai.fix.status))
       }
       if (url.pathname === '/api/account/brand/logo' && scenario.brand !== undefined) {
         if (request.method() === 'GET') {
@@ -1115,6 +1127,126 @@ describe('PDF export and white-label, in Chromium', () => {
       .getByText('You have reached your plan’s PDF limit for this month.')
       .waitFor({ timeout: 15_000 })
     await close()
+  })
+})
+
+describe('the fix assistant on a report, in Chromium', () => {
+  const id = 'AssistantAssistantAs_0'
+  const STATUS = { available: true, perDay: 5, used: 0 }
+  const FIX = {
+    ruleId: 'form-label-missing',
+    language: 'en',
+    explanation: 'Each field needs a label that names it for people using a screen reader.',
+    steps: ['Add a label element for each field.', 'Point its for attribute at the field’s id.'],
+    patch: '<label for="phone">Phone</label>\n<input id="phone" name="phone">',
+    confidence: 'high',
+    cached: false,
+  }
+  const ask = (tab: import('playwright-core').Page) =>
+    tab.getByRole('button', { name: /Suggest a fix with AI/ }).first()
+
+  it('shows no button where the assistant is not there, or the person is not signed in', async () => {
+    for (const scenario of [
+      { account: ACCOUNT, google: true, report: { id, brand: null } },
+      {
+        account: null,
+        google: true,
+        report: { id, brand: null },
+        ai: { status: 401, body: { error: 'unauthorized' } },
+      },
+      {
+        account: ACCOUNT,
+        google: true,
+        report: { id, brand: null },
+        ai: { status: 200, body: { available: false, perDay: 0, used: 0 } },
+      },
+    ]) {
+      const { tab, base, close } = await open(site, scenario)
+      await tab.goto(base.url(`/en/r/${id}`))
+      await tab.getByRole('link', { name: 'Scan again' }).waitFor({ timeout: 15_000 })
+      expect(await ask(tab).count()).toBe(0)
+      await close()
+    }
+  })
+
+  it('asks for the rule alone, and shows the suggestion as text, labelled as AI’s', async () => {
+    const { tab, base, seen, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      report: { id, brand: null },
+      ai: { status: 200, body: STATUS, fix: { status: 200, body: FIX } },
+    })
+    await tab.goto(base.url(`/en/r/${id}`))
+    await ask(tab).waitFor({ timeout: 15_000 })
+    await tab.getByText('0 of 5 suggestions used in the last day').first().waitFor()
+    await ask(tab).click()
+    const shown = tab.getByRole('region', { name: 'Suggested fix' })
+    await shown.waitFor({ timeout: 15_000 })
+    expect(await shown.textContent()).toContain('AI-generated. Review it before you apply it.')
+    expect(await shown.textContent()).toContain(FIX.explanation)
+    expect(await shown.locator('ol li').count()).toBe(2)
+    expect(await shown.locator('pre code').textContent()).toBe(FIX.patch)
+    expect(await shown.textContent()).toContain('Confidence: High')
+    const posted = seen.find(
+      (request) => request.method === 'POST' && request.path.endsWith('/fix'),
+    )
+    expect(posted?.path).toBe(`/api/reports/${id}/fix`)
+    expect(JSON.parse(posted?.body ?? '{}')).toEqual({
+      ruleId: 'form-label-missing',
+      language: 'en',
+    })
+    await close()
+  })
+
+  it('writes what the model sent as text: a tag in it is shown, not drawn', async () => {
+    const hostile = {
+      ...FIX,
+      explanation: 'Use <img src=x onerror=alert(1)> and <b>bold</b>.',
+      patch: '<script>alert(1)</script>',
+    }
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      report: { id, brand: null },
+      ai: { status: 200, body: STATUS, fix: { status: 200, body: hostile } },
+    })
+    await tab.goto(base.url(`/en/r/${id}`))
+    await ask(tab).click()
+    const shown = tab.getByRole('region', { name: 'Suggested fix' })
+    await shown.waitFor({ timeout: 15_000 })
+    expect(await shown.textContent()).toContain('<img src=x onerror=alert(1)>')
+    expect(await shown.locator('img, b, script').count()).toBe(0)
+    await close()
+  })
+
+  it('says plainly why no suggestion came, in Arabic too', async () => {
+    const { tab, base, close } = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      report: { id, brand: null },
+      ai: { status: 200, body: STATUS, fix: { status: 503, body: { error: 'budget' } } },
+    })
+    await tab.goto(base.url(`/en/r/${id}`))
+    await ask(tab).click()
+    await tab
+      .getByText('The assistant is paused because its spending limit has been reached.')
+      .waitFor({ timeout: 15_000 })
+    await close()
+    const arabic = await open(site, {
+      account: ACCOUNT,
+      google: true,
+      report: { id, brand: null },
+      ai: { status: 200, body: STATUS, fix: { status: 403, body: { error: 'plan-limit' } } },
+    })
+    await arabic.tab.goto(arabic.base.url(`/r/${id}`))
+    await arabic.tab
+      .getByRole('button', { name: /اقترح إصلاحاً بالذكاء الاصطناعي/ })
+      .first()
+      .click()
+    await arabic.tab
+      .getByText('خطتك لا تتضمن اقتراح الإصلاحات بالذكاء الاصطناعي.')
+      .waitFor({ timeout: 15_000 })
+    await arabic.close()
   })
 })
 

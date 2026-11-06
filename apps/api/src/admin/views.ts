@@ -231,6 +231,7 @@ ${usage(t.user.savedSites, d.sites.length, d.plan.savedSites)}
 ${usage(t.user.monitored, d.monitors.filter((m) => !m.paused).length, d.plan.monitoredSites)}
 ${usage(t.user.pdfMonth, d.pdfUsed, d.plan.pdfPerMonth)}
 <tr><th scope="row">${esc(t.user.crawlPages)}</th><td class="num" colspan="2">${num(d.plan.crawlPages)}</td></tr>
+<tr><th scope="row">${esc(t.user.aiFixes)}</th><td class="num" colspan="2">${num(d.plan.aiFixesPerDay)}</td></tr>
 <tr><th scope="row">${esc(t.user.whiteLabel)}</th><td colspan="2">${esc(d.plan.whiteLabel ? t.common.yes : t.common.no)}</td></tr>
 </tbody></table></section>`
 
@@ -328,7 +329,7 @@ ${usage(t.user.pdfMonth, d.pdfUsed, d.plan.pdfPerMonth)}
     summary: t.actions.overrides,
     note: t.actions.overridesNote,
     submit: t.actions.saveOverrides,
-    fields: `<div class="fields">${field('scansPerDay', t.actions.scansPerDay, d.overrides.scansPerDay, Math.round((d.base.scans.scans * 86_400) / d.base.scans.seconds))}${field('savedSites', t.actions.savedSites, d.overrides.savedSites, d.base.savedSites)}${field('monitoredSites', t.actions.monitoredSites, d.overrides.monitoredSites, d.base.monitoredSites)}${field('crawlPages', t.actions.crawlPages, d.overrides.crawlPages, d.base.crawlPages)}${field('pdfPerMonth', t.actions.pdfPerMonth, d.overrides.pdfPerMonth, d.base.pdfPerMonth)}<div><label for="o-whiteLabel">${esc(t.actions.whiteLabel)}</label><select id="o-whiteLabel" name="whiteLabel">${option('', t.actions.whiteLabelDefault)}${option('on', t.actions.whiteLabelOn)}${option('off', t.actions.whiteLabelOff)}</select></div></div>`,
+    fields: `<div class="fields">${field('scansPerDay', t.actions.scansPerDay, d.overrides.scansPerDay, Math.round((d.base.scans.scans * 86_400) / d.base.scans.seconds))}${field('savedSites', t.actions.savedSites, d.overrides.savedSites, d.base.savedSites)}${field('monitoredSites', t.actions.monitoredSites, d.overrides.monitoredSites, d.base.monitoredSites)}${field('crawlPages', t.actions.crawlPages, d.overrides.crawlPages, d.base.crawlPages)}${field('pdfPerMonth', t.actions.pdfPerMonth, d.overrides.pdfPerMonth, d.base.pdfPerMonth)}${field('aiFixesPerDay', t.actions.aiFixesPerDay, d.overrides.aiFixesPerDay, d.base.aiFixesPerDay)}<div><label for="o-whiteLabel">${esc(t.actions.whiteLabel)}</label><select id="o-whiteLabel" name="whiteLabel">${option('', t.actions.whiteLabelDefault)}${option('on', t.actions.whiteLabelOn)}${option('off', t.actions.whiteLabelOff)}</select></div></div>`,
   })
   const actions = d.self
     ? `<p class="muted">${esc(t.actions.itself)}</p>${overridesForm}`
@@ -522,6 +523,7 @@ ${row(t.settings.monitoredSites, num(plan.monitoredSites))}
 ${row(t.settings.monitorEveryDays, num(plan.monitorEveryDays))}
 ${row(t.settings.crawlPages, num(plan.crawlPages))}
 ${row(t.settings.pdfPerMonth, num(plan.pdfPerMonth))}
+${row(t.settings.aiFixesPerDay, num(plan.aiFixesPerDay))}
 ${row(t.settings.whiteLabel, esc(plan.whiteLabel ? t.common.yes : t.common.no))}
 ${row(t.settings.apiKeys, num(plan.apiKeys))}
 ${row(t.settings.apiScans, plan.apiScans === null ? esc(t.settings.apiScansAll) : num(plan.apiScans))}

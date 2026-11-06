@@ -167,6 +167,8 @@ export const PLAN_LIMITS = [
   'apiKeys',
   /** The plan has no API (M5.1). */
   'api',
+  /** The plan has no fix assistant (BUILD-PLAN §12), or its daily number is used. */
+  'aiFixesPerDay',
   /** The plan has no WhatsApp alerts (M5.6). */
   'whatsapp',
 ] as const
@@ -1128,3 +1130,70 @@ export interface ApiKeyCreated {
 
 /** The Model Context Protocol endpoint, on the same host as the API (stateless streamable HTTP). */
 export const MCP_PATH = '/mcp'
+
+/**
+ * The fix assistant (BUILD-PLAN §12): on a finished report, a signed-in person asks for a suggested
+ * fix of one failed rule. The answer is the model's, labelled as such, and only a suggestion: it
+ * changes no finding and no score. `GET /api/ai` says whether the assistant is there for this
+ * person (404 where the deployment has none, 401 without a session); the fix is
+ * `POST /api/reports/:id/fix`. The evidence it reads is the stored report's, never the request's.
+ */
+export const AI_STATUS_PATH = '/api/ai'
+export const aiFixPath = (scanId: string): string => `/api/reports/${scanId}/fix`
+
+/** The most steps an answer lists, and the longest text of each part: the API trims to these. */
+export const AI_MAX_STEPS = 8
+export const AI_MAX_EXPLANATION = 1500
+export const AI_MAX_STEP = 400
+export const AI_MAX_PATCH = 3000
+
+export const AI_CONFIDENCE = ['high', 'medium', 'low'] as const
+export type AiConfidence = (typeof AI_CONFIDENCE)[number]
+
+/** Why a suggestion was not given, for the page to word. */
+export const AI_ERROR_CODES = [
+  'bad-request',
+  'unauthorized',
+  'not-found',
+  /** The plan has no assistant, or its daily number is used. */
+  'plan-limit',
+  /** Too many requests at once, or the day's are used: try again later. */
+  'rate-limited',
+  /** The deployment's spend cap for the day or the month is reached. */
+  'budget',
+  /** The model declined to answer about this finding. */
+  'refused',
+  /** The model could not be reached or is overloaded. */
+  'unavailable',
+  /** The model's answer could not be used. */
+  'failed',
+] as const
+export type AiErrorCode = (typeof AI_ERROR_CODES)[number]
+
+export interface AiStatus {
+  /** Whether this person may ask now: the assistant is on and their plan has it. */
+  readonly available: boolean
+  /** Their plan's suggestions a day, and how many they have used in the last 24 hours. */
+  readonly perDay: number
+  readonly used: number
+}
+
+export interface AiErrorResponse {
+  readonly error: AiErrorCode
+  readonly retryAfterSeconds?: number
+  /** With plan-limit: which limit, and the plan whose it is. */
+  readonly limit?: PlanLimit
+  readonly plan?: string
+}
+
+export interface AiFix {
+  readonly ruleId: string
+  readonly language: Language
+  readonly explanation: string
+  readonly steps: readonly string[]
+  /** Code or configuration to change; empty when no concrete change can be given. */
+  readonly patch: string
+  readonly confidence: AiConfidence
+  /** True when an answer already stored for the same rule and evidence was given again, at no cost. */
+  readonly cached: boolean
+}

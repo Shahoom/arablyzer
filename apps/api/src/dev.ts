@@ -4,6 +4,7 @@ import { localCrawlClient, localScanner, scanOptionsFrom } from '@arablyzer/scan
 import {
   MemoryAccountData,
   MemoryAdminData,
+  MemoryAiData,
   MemoryCrawlData,
   MemoryApiKeyData,
   MemoryPdfData,
@@ -68,6 +69,7 @@ const deps = apiDeps(env, {
   crawlData,
   pdfData,
   apiKeyData,
+  aiData: new MemoryAiData(),
   platformData: new MemoryPlatformData(store),
   adminData: new MemoryAdminData({
     users: () => authTables.user ?? [],

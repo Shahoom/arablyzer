@@ -13,6 +13,8 @@ export interface PlanOverrides {
   readonly crawlPages?: number
   readonly pdfPerMonth?: number
   readonly whiteLabel?: boolean
+  /** The AI fix suggestions the account may ask for in a day; 0 closes the assistant for it. */
+  readonly aiFixesPerDay?: number
 }
 
 export const OVERRIDE_NUMBER_FIELDS = [
@@ -21,6 +23,7 @@ export const OVERRIDE_NUMBER_FIELDS = [
   'monitoredSites',
   'crawlPages',
   'pdfPerMonth',
+  'aiFixesPerDay',
 ] as const
 export type OverrideNumberField = (typeof OVERRIDE_NUMBER_FIELDS)[number]
 
@@ -32,6 +35,7 @@ export const OVERRIDE_BOUNDS: Readonly<Record<OverrideNumberField, { min: number
     monitoredSites: { min: 0, max: 10_000 },
     crawlPages: { min: 0, max: 100_000 },
     pdfPerMonth: { min: 0, max: 10_000 },
+    aiFixesPerDay: { min: 0, max: 1_000 },
   })
 
 export const SECONDS_PER_DAY = 86_400
@@ -76,5 +80,6 @@ export function applyOverrides(plan: AccountPlan, overrides: PlanOverrides): Acc
     ...(overrides.crawlPages === undefined ? {} : { crawlPages: overrides.crawlPages }),
     ...(overrides.pdfPerMonth === undefined ? {} : { pdfPerMonth: overrides.pdfPerMonth }),
     ...(overrides.whiteLabel === undefined ? {} : { whiteLabel: overrides.whiteLabel }),
+    ...(overrides.aiFixesPerDay === undefined ? {} : { aiFixesPerDay: overrides.aiFixesPerDay }),
   })
 }

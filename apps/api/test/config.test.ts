@@ -1,5 +1,6 @@
 import {
   MemoryAccountData,
+  MemoryAiData,
   MemoryAdminData,
   MemoryInFlight,
   MemoryMonitorData,
@@ -411,6 +412,42 @@ describe('apiDeps with accounts', () => {
     expect(() =>
       apiDeps({ NODE_ENV: 'development', ARABLYZER_ACCOUNTS: 'on' }, withAuth()),
     ).toThrow(/ARABLYZER_SITE/)
+  })
+
+  describe('the fix assistant', () => {
+    const KEY = { ANTHROPIC_API_KEY: 'sk-ant-test-key', ARABLYZER_AI_SPEND_MONTHLY: '20' }
+    const withAi = () => ({ ...withAuth(), aiData: new MemoryAiData() })
+
+    it('is off without the key: nothing about it is read, and nothing is required', () => {
+      expect(apiDeps(ACCOUNTS, withAuth(), () => undefined).accounts?.ai).toBeUndefined()
+      const noisy = { ...ACCOUNTS, ARABLYZER_AI_MODEL: '??', ARABLYZER_AI_SPEND_MONTHLY: 'lots' }
+      expect(apiDeps(noisy, withAuth(), () => undefined).accounts?.ai).toBeUndefined()
+    })
+
+    it('is on with the key, the cap and a store', () => {
+      const deps = apiDeps({ ...ACCOUNTS, ...KEY }, withAi(), () => undefined)
+      expect(deps.accounts?.ai?.settings).toMatchObject({ model: 'claude-opus-5-5' })
+    })
+
+    it('refuses to start with the key but a mistake, or without the store', () => {
+      expect(() =>
+        apiDeps({ ...ACCOUNTS, ANTHROPIC_API_KEY: 'sk-ant-test-key' }, withAi(), () => undefined),
+      ).toThrow(/ARABLYZER_AI_SPEND_MONTHLY/)
+      expect(() =>
+        apiDeps({ ...ACCOUNTS, ...KEY, ARABLYZER_AI_EFFORT: 'x' }, withAi(), () => undefined),
+      ).toThrow(/ARABLYZER_AI_EFFORT/)
+      expect(() => apiDeps({ ...ACCOUNTS, ...KEY }, withAuth(), () => undefined)).toThrow(
+        /stores\.aiData/,
+      )
+    })
+
+    it('says it is off, and starts, with accounts off', () => {
+      const told: string[] = []
+      const deps = apiDeps({ ...PRODUCTION, ...KEY }, stores(), (line) => told.push(line))
+      expect(deps.accounts).toBeUndefined()
+      expect(told.join('\n')).toContain('fix assistant is off')
+      expect(told.join('\n')).not.toContain('sk-ant')
+    })
   })
 
   it('takes development without the proxy or a secret', () => {

@@ -351,6 +351,22 @@ the scheduler; it starts a monitored site's scan only into the lower half of the
 webhooks (Slack, Discord or JSON) through the egress proxy. The `crawler` service (192 MiB, 0.5 CPU, the same image)
 runs the deep crawls through the scanner and needs no other way out.
 
+**The fix assistant** (off until the Claude API key is set; docs/design/plans/fix-assistant.md). It is for signed-in
+accounts and costs money per suggestion, so it has a plan number and two caps:
+
+| Variable                                  | Secret | What it is                                                                                    |
+| ----------------------------------------- | :----: | --------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`                       |  yes   | the Claude API key; empty is off. Give it a Console workspace of its own, with a spend limit  |
+| `ARABLYZER_AI_SPEND_MONTHLY`              |   no   | **required with the key**: units (US dollars) the assistant may spend in a calendar month, UTC |
+| `ARABLYZER_AI_SPEND_DAILY`                |   no   | optional: units a UTC day, not above the monthly cap                                          |
+| `ARABLYZER_PLAN_ACCOUNT_AI_FIXES_PER_DAY` |   no   | suggestions an account may ask for in a day; empty is `0`, none: set it, or use the admin panel |
+| `ARABLYZER_AI_MODEL`                      |   no   | empty is `claude-opus-5-5`; another model needs `ARABLYZER_AI_PRICE_INPUT` and `_OUTPUT`      |
+
+The API refuses to start with the key set and the monthly cap missing, or any of these malformed; with the key empty it
+reads none of them. A request is held against the caps at its worst before the model is asked and settled at what the
+response says it cost, so the caps are not passed. Answers are stored 30 days by rule, evidence and language: asking
+again costs nothing.
+
 **Given by Cloudflare and Google** (the owner's accounts):
 
 | Variable                    | Secret | What it is                                                                                                       |

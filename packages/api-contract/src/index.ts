@@ -155,6 +155,15 @@ export const PdfRequest = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('compare-crawls'), base: reportId, head: reportId, language }),
 ])
 export type PdfRequest = z.infer<typeof PdfRequest>
+/** What a suggested fix is asked for (the fix assistant): one rule of the report, in a language. */
+export const AiFixRequest = z.strictObject({
+  ruleId: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(80),
+  language,
+})
+export type AiFixRequest = z.infer<typeof AiFixRequest>
 /** The brand's text fields; the logo goes up on its own route, as bytes. */
 export const BrandPatch = z.strictObject({
   name: z.string().max(60),

@@ -6,6 +6,7 @@ import {
   BullMQScanQueue,
   POSTGRES_PROTOCOLS,
   PostgresAccountData,
+  PostgresAiData,
   PostgresAdminData,
   PostgresApiKeyData,
   PostgresCrawlData,
@@ -67,6 +68,7 @@ const pool = new pg.Pool({
 // without a listener, it would end the process.
 pool.on('error', quietly('PostgreSQL', log))
 const store = new PostgresScanStore(pool)
+const aiData = new PostgresAiData(pool)
 const queue = new BullMQScanQueue(redis)
 // The Arabic text tools (M7) hand a pasted text to the worker, which alone reaches the NLP service.
 const nlpChecks = env.ARABLYZER_NLP_TEXT?.trim() === '1' ? new BullMQNlpChecks(redis) : undefined
@@ -94,6 +96,7 @@ const deps = apiDeps(
     pdfData: new PostgresPdfData(pool),
     apiKeyData: new PostgresApiKeyData(pool),
     adminData: new PostgresAdminData(pool),
+    aiData,
     platformData: new PostgresPlatformData(pool),
   },
   log,
@@ -102,7 +105,10 @@ const deps = apiDeps(
 const sweeping =
   deps.accounts === undefined
     ? null
-    : startAuthMaintenance(new PostgresAuthMaintenance(pool), log, { admin: deps.accounts.admin })
+    : startAuthMaintenance(new PostgresAuthMaintenance(pool), log, {
+        admin: deps.accounts.admin,
+        ai: aiData,
+      })
 // The Salla and Zid apps' audits and token refreshes (M9), where either app is on.
 const platformLoop = startPlatformLoop(deps, log)
 const app = createApp({ ...deps, shutdown: stopping.signal, log })
