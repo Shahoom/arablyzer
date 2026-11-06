@@ -60,6 +60,27 @@ export type SitemapContent =
    */
   | { readonly kind: 'compression' }
 
+/** A language version a `urlset`'s `url` lists beside itself: `<xhtml:link rel="alternate" hreflang href>` (M10.1). */
+export interface SitemapAlternate {
+  readonly hreflang: string
+  readonly href: string
+}
+
+/** One `url` of a `urlset`: its address, its `lastmod` as written, and its alternates (M10.1). */
+export interface SitemapUrl {
+  readonly loc: string
+  /** null without a `lastmod`. */
+  readonly lastmod: string | null
+  /** At most MAX_ALTERNATES. */
+  readonly alternates: readonly SitemapAlternate[]
+}
+
+/** The `url` entries of a `urlset` that were kept (the first MAX_SITEMAP_URLS), and how many there were. */
+export interface SitemapUrls {
+  readonly urls: readonly SitemapUrl[]
+  readonly total: number
+}
+
 /**
  * A sitemap the scan asked for: the URL, whether robots.txt names it, and what came of it (M2.3c).
  * Each is an outcome of its own, so one that could not be checked leaves the others' verdicts.
@@ -73,6 +94,8 @@ export type SitemapCheck =
       readonly status: number
       readonly content: SitemapContent
       readonly truncated: boolean
+      /** For a `urlset`: what its entries say (M10.1). */
+      readonly urls?: SitemapUrls
     }
   /** The site says it is not there, or cannot be had: an error status, after any redirects. */
   | {
@@ -182,13 +205,17 @@ export function collectSitemap(input: SitemapInput): SitemapCheck {
       truncated: false,
     }
   }
+  const content = readSitemap(input.body, input.truncated)
   return {
     outcome: 'fetched',
     url,
     named,
     status,
-    content: readSitemap(input.body, input.truncated),
+    content,
     truncated: input.truncated,
+    ...(content.kind === 'sitemap' && content.format === 'urlset'
+      ? { urls: readSitemapUrls(input.body, input.truncated) }
+      : {}),
   }
 }
 
@@ -432,6 +459,60 @@ function isEntry(root: Root, element: { readonly local: string; readonly uri: st
     (root.local === 'urlset' && element.local === 'url') ||
     (root.local === 'sitemapindex' && element.local === 'sitemap')
   )
+}
+
+/** The `url` entries kept of a `urlset`; the rest are counted. */
+export const MAX_SITEMAP_URLS = 5_000
+/** The alternates kept of one `url`. */
+export const MAX_ALTERNATES = 200
+
+const LINK = /<(?:\w+:)?link\b[^>]*>/gi
+
+/** One attribute's value in a tag: double quotes or single. */
+function attribute(tag: string, name: string): string | null {
+  const found = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`, 'i').exec(tag)
+  return found === null ? null : (found[1] ?? found[2] ?? '')
+}
+
+function elementText(block: string, name: string): string | null {
+  const open = block.indexOf(`<${name}>`)
+  if (open === -1) return null
+  const end = block.indexOf(`</${name}>`, open)
+  return end === -1 ? null : locText(block.slice(open + name.length + 2, end))
+}
+
+/**
+ * A `urlset`'s entries, for the rules that judge what they say (M10.1): each `url`'s `loc`,
+ * `lastmod` and `xhtml:link` alternates. Not a parser of XML: it walks the `<url>` blocks the way
+ * readSitemapLocs walks `<loc>`, one scan along the body, linear in its size, and never throws.
+ * Only the first MAX_SITEMAP_URLS entries are kept, and MAX_ALTERNATES alternates of each.
+ */
+export function readSitemapUrls(body: Uint8Array, truncated: boolean): SitemapUrls {
+  const text = new TextDecoder('utf-8').decode(body, { stream: truncated })
+  const urls: SitemapUrl[] = []
+  let total = 0
+  const open = /<url[\s>]/g
+  for (let found = open.exec(text); found !== null; found = open.exec(text)) {
+    const end = text.indexOf('</url>', found.index)
+    if (end === -1) break
+    total++
+    open.lastIndex = end + 6
+    if (urls.length >= MAX_SITEMAP_URLS) continue
+    const block = text.slice(found.index, end)
+    const loc = elementText(block, 'loc')
+    if (loc === null) continue
+    const alternates: SitemapAlternate[] = []
+    for (const tag of block.match(LINK) ?? []) {
+      if (alternates.length >= MAX_ALTERNATES) break
+      if (attribute(tag, 'rel')?.toLowerCase() !== 'alternate') continue
+      const hreflang = attribute(tag, 'hreflang')
+      const href = attribute(tag, 'href')
+      if (hreflang === null || href === null) continue
+      alternates.push({ hreflang: hreflang.trim(), href: locText(href) })
+    }
+    urls.push({ loc, lastmod: elementText(block, 'lastmod'), alternates })
+  }
+  return { urls, total }
 }
 
 /** The addresses a sitemap lists (M4.5): its `loc` elements, and whether it is an index of sitemaps. */

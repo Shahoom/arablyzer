@@ -64,27 +64,55 @@ export class PostgresSotawStore implements SotawStore {
     if (kept?.frameSha !== run.frameSha) {
       throw new Error(`Run ${run.id} was made from another frame`)
     }
+    await this.#insert(run.id, sites)
+    await this.#pool.query(
+      `UPDATE sotaw_runs SET state = 'running', updated_at = $2, finished_at = NULL WHERE id = $1`,
+      [run.id, at],
+    )
+    return kept
+  }
+
+  /** The sites the run does not hold, as pending; the number added. */
+  async #insert(runId: string, sites: readonly NewResult[]): Promise<number> {
+    let added = 0
     for (let i = 0; i < sites.length; i += CHUNK) {
       const part = sites.slice(i, i + CHUNK)
-      await this.#pool.query(
+      const { rowCount } = await this.#pool.query(
         `INSERT INTO sotaw_results (run_id, domain, country, rank, position, state)
          SELECT $1, d, c, r, p, 'pending'
          FROM unnest($2::text[], $3::text[], $4::int[], $5::int[]) AS t(d, c, r, p)
          ON CONFLICT (run_id, domain) DO NOTHING`,
         [
-          run.id,
+          runId,
           part.map((s) => s.domain),
           part.map((s) => s.country),
           part.map((s) => s.rank),
           part.map((s) => s.position),
         ],
       )
+      added += rowCount ?? 0
     }
-    await this.#pool.query(
-      `UPDATE sotaw_runs SET state = 'running', updated_at = $2, finished_at = NULL WHERE id = $1`,
-      [run.id, at],
+    return added
+  }
+
+  async extend(
+    runId: string,
+    frameSha: string,
+    sites: readonly NewResult[],
+    at: Date,
+  ): Promise<number> {
+    const { rows } = await this.#pool.query<{ domain: string }>(
+      `SELECT domain FROM sotaw_results WHERE run_id = $1 AND NOT (domain = ANY($2::text[])) LIMIT 1`,
+      [runId, sites.map((site) => site.domain)],
     )
-    return kept
+    if (rows[0] !== undefined) throw new Error(`The new frame has lost ${rows[0].domain}`)
+    const added = await this.#insert(runId, sites)
+    const { rowCount } = await this.#pool.query(
+      `UPDATE sotaw_runs SET frame_sha = $2, total = $3, updated_at = $4 WHERE id = $1`,
+      [runId, frameSha, sites.length, at],
+    )
+    if (rowCount === 0) throw new Error(`There is no run ${runId}`)
+    return added
   }
 
   async run(id: string): Promise<RunRow | null> {
