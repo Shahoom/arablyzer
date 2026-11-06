@@ -157,8 +157,19 @@ describe('the numbers the page shows', () => {
 
   it('platforms: the named ones and the rest as the remainder, never a small platform’s own count', () => {
     const list = platformRows(aggregates, copy)
-    expect(list.map((row) => row.id)).toEqual(['wordpress', 'salla', 'other'])
+    // Every page here not on a named platform is on none detected: the rest is that row alone.
+    expect(list.map((row) => row.id)).toEqual(['wordpress', 'salla', 'none'])
     expect(list.at(-1)?.n).toBe(aggregates.funnel.arabic - 160)
+    expect(list.at(-1)?.name).toBe(copy.platforms.none)
+    // With neither cell published, the rest is one row that names both.
+    const cells = Object.fromEntries(
+      Object.entries(aggregates.cells).filter(([key]) => key !== 'p:none' && key !== 'p:other'),
+    )
+    const lumped = platformRows({ ...aggregates, cells }, copy)
+    expect(lumped.map((row) => [row.id, row.n]).at(-1)).toEqual([
+      'rest',
+      aggregates.funnel.arabic - 160,
+    ])
     expect(Math.max(...list.map((r) => r.length))).toBe(100)
     expect(platformName('wordpress')).toBe('WordPress')
     expect(platformName('some-new-cms')).toBe('Some New Cms')

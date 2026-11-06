@@ -8,7 +8,7 @@ import type { Copy } from './copy'
  * The metrics are the ids of `packages/sotaw/src/metrics.ts`; a test checks that each has words.
  */
 export interface SotawMetricStrings {
-  /** What the share counts: «صفحات عربية تفكّك حروفها». */
+  /** What the share counts: «صفحات عربية فيها تباعد بين الحروف». */
   readonly title: string
   /** One sentence on how it is judged. */
   readonly hint: string
@@ -84,6 +84,8 @@ export interface SotawStrings {
     readonly lead: string
     readonly none: string
     readonly other: string
+    /** Both, when the edition publishes neither apart. */
+    readonly rest: string
     readonly share: string
   }
   readonly funnel: {
@@ -218,6 +220,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       lead: 'على أي منصّة تعمل الصفحة، كما تكشفها قاعدة كشف المنصّة. نسمّي منصّة حين تشترك فيها صفحات كافية.',
       none: 'منصّة غير معروفة',
       other: 'منصّات أخرى',
+      rest: 'منصّات أخرى أو غير معروفة',
       share: 'من الصفحات العربية',
     },
     funnel: {
@@ -231,7 +234,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       pending: 'ما زال ينتظر',
       reasons: {
         robots: 'robots.txt يمنع الزاحف',
-        'robots-unreachable': 'تعذّرت قراءة robots.txt',
+        'robots-unreachable': 'تعذّرت قراءة robots.txt على كل عناوين الموقع',
         'tls-chain': 'شهادة الموقع ناقصة السلسلة أو لا يمكن التحقق منها',
         'bot-challenge': 'اختبار حماية من الروبوتات',
         'http-error': 'ردّ الموقع بخطأ',
@@ -279,7 +282,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
             'نفحص الصفحة الرئيسية فقط لكل موقع، بقواعد Arablyzer نفسها التي يفحص بها أي زائر موقعه: الكود حتمي، وللصفحة نفسها النتيجة نفسها. كل رقم هو حصة الصفحات التي حُكم عليها في المقياس. صفحة لا تنطبق عليها القاعدة (فحص الاتجاه لصفحة غير عربية مثلاً) لا تدخل في مقام ذلك الرقم.',
           ],
           items: [
-            'العرض العربي: تباعد الحروف الذي يقطع اتصالها، ومشكلات الخط العربي، وخلط الأرقام، ورمز الريال السعودي الجديد.',
+            'العرض العربي: تباعد الحروف الذي يقطع اتصالها في بعض المتصفحات، ومشكلات الخط العربي، وخلط الأرقام، ورمز الريال السعودي الجديد.',
             'الاتجاه واللغة: `dir="rtl"` و`lang` في الصفحات العربية.',
             'قراءة الآلة: كلمات ممطوطة بالتطويل أو فيها محارف خفية، ونص لا يصل في HTML قبل السكربتات، ومنع زواحف بحث الذكاء الاصطناعي في robots.txt.',
             'الجوال: صفحة RTL أعرض من شاشة الهاتف، وغياب وسم viewport.',
@@ -288,7 +291,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
             'البنية: استخدام JSON-LD وصحة صياغته، والمنصّة، ودرجة Arablyzer.',
           ],
           after: [
-            'قياس «تفكّك الحروف» يعني بالتحديد `letter-spacing` على نص عربي، وهو السبب الوحيد الذي نكشفه بيقين في متصفح واحد. مشكلات التشكيل داخل الخط نفسه لا نقيسها هنا.',
+            'قياس «تباعد الحروف» يعني بالتحديد `letter-spacing` على نص عربي. لا نرى الحروف تنفصل، لأننا نفحص بمتصفح Chromium وهو لا يفصلها؛ نرى الإعداد الذي يفصلها في Safari ومتصفحات WebKit. مشكلات التشكيل داخل الخط نفسه لا نقيسها هنا.',
           ],
         },
         {
@@ -373,8 +376,8 @@ export const SOTAW_UI: Copy<SotawStrings> = {
     },
     metrics: {
       shaping: {
-        title: 'صفحات عربية تفكّك حروفها بالتباعد',
-        hint: '`letter-spacing` على نص عربي يفصل الحروف التي يجب أن تتصل.',
+        title: 'صفحات عربية فيها تباعد بين الحروف',
+        hint: '`letter-spacing` على نص عربي: يفصل Safari به حروفاً يجب أن تتصل.',
       },
       'arabic-font': {
         title: 'صفحات عربية بمشكلة في الخط',
@@ -428,7 +431,10 @@ export const SOTAW_UI: Copy<SotawStrings> = {
         title: 'CLS: ثبات التخطيط',
         hint: 'جيّد حتى 0.1، ضعيف فوق 0.25، على الهاتف عند المئين 75.',
       },
-      'no-https': { title: 'صفحات بلا HTTPS', hint: 'الصفحة لا تنتهي على اتصال مشفّر.' },
+      'no-https': {
+        title: 'صفحات تُفتح على http فقط',
+        hint: 'نطلب الصفحة على https أولاً، ونعدّها هنا حين لا تُفتح إلا على http.',
+      },
       'no-hsts': {
         title: 'صفحات بلا ترويسة HSTS',
         hint: 'لا تُلزم المتصفح بالاتصال المشفّر.',
@@ -538,6 +544,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       lead: 'What the page runs on, as the platform rule detects it. A platform is named when enough pages share it.',
       none: 'No platform recognised',
       other: 'Other platforms',
+      rest: 'Other or unrecognised platforms',
       share: 'of Arabic pages',
     },
     funnel: {
@@ -551,7 +558,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
       pending: 'Still waiting',
       reasons: {
         robots: 'robots.txt keeps the crawler out',
-        'robots-unreachable': 'robots.txt could not be read',
+        'robots-unreachable': 'robots.txt could not be read at any of the site’s addresses',
         'tls-chain': 'The site’s certificate chain could not be verified',
         'bot-challenge': 'A bot-protection challenge',
         'http-error': 'The site answered with an error',
@@ -600,7 +607,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
             'We check the homepage of each site, and only that, with the same Arablyzer rules any visitor checks their own site with: the code is deterministic, so the same page gives the same result. Each number is the share of the pages judged for that metric. A page a rule does not apply to (the direction check on a page that is not Arabic) is not in that number’s denominator.',
           ],
           items: [
-            'Arabic rendering: letter-spacing that breaks the joining of letters, Arabic font problems, mixed digit systems, and the new Saudi riyal sign.',
+            'Arabic rendering: letter-spacing that breaks the joining of letters in some browsers, Arabic font problems, mixed digit systems, and the new Saudi riyal sign.',
             'Direction and language: `dir="rtl"` and `lang` on Arabic pages.',
             'Machine reading: words stretched with tatweel or holding invisible characters, text that is not in the HTML before scripts run, and AI search crawlers blocked in robots.txt.',
             'Mobile: a right-to-left page wider than a phone screen, and a missing viewport tag.',
@@ -609,7 +616,7 @@ export const SOTAW_UI: Copy<SotawStrings> = {
             'Structure: use of JSON-LD and whether it is well formed, the platform, and Arablyzer’s score.',
           ],
           after: [
-            '«Letters pulled apart» means exactly `letter-spacing` on Arabic text, the one cause we detect with certainty in one browser. Shaping faults inside a font itself are not measured here.',
+            '«Letter-spacing» means exactly `letter-spacing` on Arabic text. We do not see letters come apart, since we check in Chromium, which keeps them joined; we see the setting that pulls them apart in Safari and other WebKit browsers. Shaping faults inside a font itself are not measured here.',
           ],
         },
         {
@@ -695,8 +702,8 @@ export const SOTAW_UI: Copy<SotawStrings> = {
     },
     metrics: {
       shaping: {
-        title: 'Arabic pages that pull letters apart with spacing',
-        hint: '`letter-spacing` on Arabic text separates letters that must join.',
+        title: 'Arabic pages with letter-spacing',
+        hint: '`letter-spacing` on Arabic text: Safari pulls apart letters that must join.',
       },
       'arabic-font': {
         title: 'Arabic pages with a font problem',
@@ -751,8 +758,8 @@ export const SOTAW_UI: Copy<SotawStrings> = {
         hint: 'Good up to 0.1, poor over 0.25, on phones at the 75th percentile.',
       },
       'no-https': {
-        title: 'Pages without HTTPS',
-        hint: 'The page does not end on an encrypted connection.',
+        title: 'Pages that open on http only',
+        hint: 'We ask for the page on https first, and count it here when it opens only on http.',
       },
       'no-hsts': {
         title: 'Pages without an HSTS header',

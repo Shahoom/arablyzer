@@ -1,6 +1,6 @@
 import type { SotawStrings } from '@arablyzer/i18n'
 import { count, fill, pct, round, segments, size, span } from './sotaw-format'
-import type { Aggregates } from '@arablyzer/sotaw/aggregate'
+import { cellKey, type Aggregates } from '@arablyzer/sotaw/aggregate'
 import { CRAWL_DEFAULTS } from '@arablyzer/sotaw/config'
 import { COUNTRIES, countryByCode } from '@arablyzer/sotaw/countries'
 import { estimate } from '@arablyzer/sotaw/estimate'
@@ -214,17 +214,25 @@ export interface PlatformRow {
 
 /**
  * The named platforms and the rest. The rest is the Arabic pages less those named, so no small
- * platform's count is published (a platform is named when enough pages share it).
+ * platform's count is published (a platform is named when enough pages share it). It is split into
+ * the pages on a platform not named and those on none detected when the edition publishes either
+ * cell, since the other is then the difference; otherwise it is one row.
  */
 export function platformRows(edition: Aggregates, copy: SotawStrings): PlatformRow[] {
   const reached = edition.funnel.arabic
   if (reached === 0) return []
   const named = edition.platforms.map((p) => ({ id: p.id, name: platformName(p.id), n: p.n }))
   const rest = reached - named.reduce((sum, p) => sum + p.n, 0)
-  const rows = [
-    ...named,
-    ...(rest > 0 ? [{ id: 'other', name: copy.platforms.other, n: rest }] : []),
-  ]
+  const none = edition.cells[cellKey(null, 'none')]?.n
+  const other = edition.cells[cellKey(null, 'other')]?.n
+  const unnamed =
+    none !== undefined || other !== undefined
+      ? [
+          { id: 'other', name: copy.platforms.other, n: other ?? rest - (none ?? 0) },
+          { id: 'none', name: copy.platforms.none, n: none ?? rest - (other ?? 0) },
+        ]
+      : [{ id: 'rest', name: copy.platforms.rest, n: rest }]
+  const rows = [...named, ...unnamed.filter((row) => row.n > 0)]
   const widest = Math.max(...rows.map((row) => row.n / reached))
   return rows.map((row) => ({
     ...row,

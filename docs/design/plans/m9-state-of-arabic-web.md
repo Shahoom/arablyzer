@@ -37,7 +37,7 @@ Every figure is a share of the homepages judged for it (a rule that does not app
 
 | Metric (id) | From |
 |---|---|
-| Letters pulled apart (`shaping`) | `ar-letter-spacing`: letter-spacing on Arabic text breaks the joining of letters. It is the cause of broken shaping the engine detects with certainty in one browser; a font's own shaping bugs are not measured here |
+| Letter-spacing (`shaping`) | `ar-letter-spacing`: letter-spacing on Arabic text, which breaks the joining of letters in Safari and other WebKit browsers. The crawl runs Chromium, which keeps them joined, so it measures the setting, not letters seen apart; a font's own shaping bugs are not measured here |
 | Arabic font problems (`arabic-font`) | `ar-font-no-arabic`, `ar-font-missing-letters`, `ar-font-fallback` |
 | Mixed digit systems (`mixed-digits`) | `ar-digits-mixed` |
 | New riyal sign used / its glyph missing (`sar-sign-used`, `sar-sign-glyph`) | `sar-sign-font`: of the pages that use U+20C1, those whose font lacks it |
